@@ -1,0 +1,55 @@
+{# Fragment HTMX : statut du job de sync. S'auto-rafraîchit toutes les 2s tant que running. #}
+<div id="sync-status"
+     class="alert alert-{{ 'info' if job.is_running else ('success' if job.status == 'done' else 'danger') }} small mb-3"
+     {% if job.is_running %}
+     hx-get="{{ url_for('payouts.sync_status', job_id=job.id) }}"
+     hx-trigger="every 2s"
+     hx-swap="outerHTML"
+     {% endif %}>
+  <div class="d-flex justify-content-between align-items-center">
+    <strong>
+      {% if job.is_running %}
+        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+        Synchronisation en cours…
+      {% elif job.status == 'done' %}
+        ✓ Synchronisation terminée
+      {% else %}
+        ✗ Échec de la synchronisation
+      {% endif %}
+    </strong>
+    <small class="text-muted">
+      Démarré {{ job.started_at.strftime('%d/%m/%Y %H:%M:%S') }}
+      {% if job.finished_at %}
+        — fini {{ job.finished_at.strftime('%H:%M:%S') }}
+      {% endif %}
+    </small>
+  </div>
+
+  {% if job.message %}
+    <div class="mt-1">{{ job.message }}</div>
+  {% endif %}
+
+  {% if job.is_running and job.progress_total %}
+    {% set pct = (100 * job.progress_done / job.progress_total) | round(0, 'floor') | int %}
+    <div class="progress mt-2" style="height: 6px;">
+      <div class="progress-bar progress-bar-striped progress-bar-animated"
+           role="progressbar" style="width: {{ pct }}%;"></div>
+    </div>
+    <small class="text-muted">{{ job.progress_done }} / {{ job.progress_total }}</small>
+  {% elif job.is_running %}
+    <small class="text-muted">{{ job.progress_done }} traité(s)</small>
+  {% endif %}
+
+  {% if job.status == 'done' and job.result_json %}
+    {% set r = job.result_json | from_json %}
+    <div class="mt-1 small">
+      {% if r.get('imported') is not none %}
+        {{ r.imported }} versement(s) importé(s), {{ r.updated }} mis à jour sur {{ r.total }}.
+      {% endif %}
+      {% if r.get('payments_total') is not none %}
+        Paiements : {{ r.payments_imported }} importé(s), {{ r.payments_updated }} mis à jour sur {{ r.payments_total }}.
+      {% endif %}
+    </div>
+    <a href="" onclick="location.reload(); return false;" class="small">Recharger la page</a>
+  {% endif %}
+</div>

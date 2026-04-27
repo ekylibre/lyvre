@@ -1,0 +1,153 @@
+.font-monospace { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 0.9em; }
+
+table.table-sm td, table.table-sm th { vertical-align: middle; }
+
+/* Sections n'apparaissant qu'à l'impression */
+.print-header,
+.print-footer { display: none; }
+
+/* ==========================================================================
+   Impression / export PDF
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 1.6cm 1cm 1.4cm 1cm;
+  }
+
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 9pt;
+    line-height: 1.35;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .navbar,
+  .btn,
+  form,
+  .alert,
+  .no-print,
+  nav {
+    display: none !important;
+  }
+
+  .container-fluid {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* En-tête imprimable affiché uniquement à l'impression */
+  .print-header {
+    display: block !important;
+    border-bottom: 2pt solid #000;
+    padding-bottom: 6pt;
+    margin-bottom: 12pt;
+  }
+  .print-header h1 {
+    font-size: 16pt;
+    font-weight: bold;
+    margin: 0 0 4pt 0;
+    letter-spacing: 0.5pt;
+    text-transform: uppercase;
+  }
+  .print-header .meta {
+    font-size: 8.5pt;
+    color: #333;
+  }
+
+  /* Tableau */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto;
+  }
+  table.table-bordered,
+  table.table-bordered td,
+  table.table-bordered th {
+    border: 0.4pt solid #444 !important;
+  }
+  table.table-bordered td,
+  table.table-bordered th {
+    padding: 2.5pt 5pt !important;
+    font-size: 8.5pt;
+    line-height: 1.25;
+  }
+
+  /* Répéter l'en-tête à chaque saut de page */
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+  tr, td, th { page-break-inside: avoid; }
+
+  /* En-tête général (table-dark) en noir net */
+  .table-dark, .table-dark th, .table-dark td {
+    background-color: #1c2530 !important;
+    color: #fff !important;
+    font-weight: bold;
+  }
+
+  /* En-têtes de section */
+  .table-secondary, .table-secondary td, .table-secondary th {
+    background-color: #d8e1ea !important;
+    color: #000 !important;
+    font-weight: bold;
+    border-top: 1pt solid #000 !important;
+  }
+
+  /* Sous-en-têtes */
+  .table-light, .table-light td, .table-light th {
+    background-color: #f3f3f3 !important;
+    color: #000 !important;
+  }
+
+  /* Totaux intermédiaires */
+  tr.fw-bold.table-light {
+    background-color: #eaeaea !important;
+    border-top: 0.6pt solid #000 !important;
+  }
+
+  /* Résultats encadrés */
+  tr.fw-bold.table-primary,
+  .table-primary {
+    background-color: #cfe2f3 !important;
+    color: #000 !important;
+    font-weight: bold;
+    border: 0.8pt solid #000 !important;
+  }
+  tr.fw-bold.table-success,
+  .table-success {
+    background-color: #d9ead3 !important;
+    color: #000 !important;
+    font-weight: bold;
+    border: 0.8pt solid #000 !important;
+  }
+  tr.fw-bold.table-danger,
+  .table-danger {
+    background-color: #f4cccc !important;
+    color: #000 !important;
+    font-weight: bold;
+    border: 0.8pt solid #000 !important;
+  }
+
+  /* Texte en gris clair → noir pour la lisibilité imprimée */
+  .text-muted { color: #555 !important; }
+
+  /* Police monospace plus dense pour les montants */
+  .font-monospace {
+    font-family: "Courier New", monospace !important;
+    font-size: 8.5pt;
+  }
+
+  h1, h2, h3, h4, h5 {
+    page-break-after: avoid;
+  }
+
+  /* Liens : retire le soulignement et la couleur bleue */
+  a, a:visited {
+    color: #000 !important;
+    text-decoration: none !important;
+  }
+}

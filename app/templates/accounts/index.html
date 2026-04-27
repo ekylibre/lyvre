@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Plan comptable{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Plan comptable</h2>
+  <a href="{{ url_for('accounts.new') }}" class="btn btn-primary btn-sm">+ Nouveau compte</a>
+</div>
+
+<form class="row g-2 mb-3">
+  <div class="col-md-4">
+    <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm"
+           placeholder="Rechercher (code ou libellé)…">
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-outline-secondary btn-sm">Filtrer</button>
+    {% if search %}<a href="{{ url_for('accounts.index') }}" class="btn btn-outline-danger btn-sm">✕</a>{% endif %}
+  </div>
+</form>
+
+<table class="table table-sm table-hover">
+  <thead class="table-light">
+    <tr><th>Code</th><th>Libellé</th><th>Type</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for account in accounts %}
+    <tr {% if account.is_header %}class="table-secondary fw-bold"{% endif %}>
+      <td class="font-monospace">{{ account.code }}</td>
+      <td>{{ account.label }}</td>
+      <td><span class="badge bg-secondary">{{ account.account_type }}</span></td>
+      <td>
+        <a href="{{ url_for('accounts.edit', account_id=account.id) }}"
+           class="btn btn-outline-secondary btn-sm py-0">Modifier</a>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" class="text-muted text-center">Aucun compte.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

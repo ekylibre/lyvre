@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Entités{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Entités</h2>
+  <a href="{{ url_for('entities.new') }}" class="btn btn-primary btn-sm">+ Nouvelle entité</a>
+</div>
+
+{% if entities %}
+<table class="table table-sm table-hover">
+  <thead class="table-light">
+    <tr>
+      <th>Nom</th>
+      <th>Type</th>
+      <th>Compte</th>
+      <th>Transactions</th>
+      <th>Notes</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for e in entities %}
+    <tr>
+      <td class="fw-semibold">{{ e.name }}</td>
+      <td><span class="badge bg-secondary">{{ entity_types.get(e.entity_type, e.entity_type) }}</span></td>
+      <td class="font-monospace small">{{ e.account_code or '—' }}</td>
+      <td>{{ e.transactions.count() }}</td>
+      <td class="text-muted small">{{ e.notes or '' }}</td>
+      <td class="text-end">
+        <a href="{{ url_for('entities.edit', entity_id=e.id) }}" class="btn btn-outline-secondary btn-sm">Modifier</a>
+        <form method="post" action="{{ url_for('entities.delete', entity_id=e.id) }}"
+              class="d-inline"
+              onsubmit="return confirm('Supprimer {{ e.name }} ?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-outline-danger btn-sm">Supprimer</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<div class="text-muted small">{{ entities | length }} entité(s).</div>
+{% else %}
+<p class="text-muted">Aucune entité. <a href="{{ url_for('entities.new') }}">Créer la première.</a></p>
+{% endif %}
+{% endblock %}

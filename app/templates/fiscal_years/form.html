@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Nouvel exercice{% endblock %}
+{% block content %}
+<h2>Nouvel exercice</h2>
+<form method="post" class="col-md-5 mt-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="mb-3">
+    <label class="form-label">Libellé (ex: 2025-2026)</label>
+    <input type="text" name="label" class="form-control" required placeholder="2025-2026">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Date de début</label>
+    <input type="date" name="start_date" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Date de fin</label>
+    <input type="date" name="end_date" class="form-control" required>
+  </div>
+  <button type="submit" class="btn btn-primary">Créer</button>
+  <a href="{{ url_for('fiscal_years.index') }}" class="btn btn-outline-secondary ms-2">Annuler</a>
+</form>
+{% endblock %}

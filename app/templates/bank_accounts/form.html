@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Modifier' if bank_account else 'Nouveau' }} compte bancaire{% endblock %}
+{% block content %}
+<h2>{{ 'Modifier' if bank_account else 'Nouveau' }} compte bancaire</h2>
+
+<form method="post" class="col-md-6 mt-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="mb-3">
+    <label class="form-label">Libellé <span class="text-danger">*</span></label>
+    <input type="text" name="label"
+           value="{{ bank_account.label if bank_account else '' }}"
+           class="form-control" required
+           placeholder="ex : CIC Compte courant">
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">IBAN</label>
+    <input type="text" name="iban"
+           value="{{ bank_account.iban if bank_account and bank_account.iban else '' }}"
+           class="form-control font-monospace"
+           placeholder="FR76 3000 6000 0112 3456 7890 189"
+           maxlength="34">
+    <div class="form-text">Optionnel. Les espaces sont retirés automatiquement.</div>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Compte GL (classe 512) <span class="text-danger">*</span></label>
+    {% if gl_accounts %}
+      <select name="account_id" class="form-select" required>
+        <option value="">— Sélectionner —</option>
+        {% for acc in gl_accounts %}
+          <option value="{{ acc.id }}"
+            {{ 'selected' if bank_account and bank_account.account_id == acc.id }}>
+            {{ acc.code }} — {{ acc.label }}
+          </option>
+        {% endfor %}
+      </select>
+    {% else %}
+      <div class="alert alert-warning mb-0">
+        Aucun compte 512 trouvé dans le plan comptable.
+        <a href="{{ url_for('accounts.new') }}" class="alert-link">
+          Créer un compte 512xxx
+        </a> avant de continuer.
+      </div>
+      <input type="hidden" name="account_id" value="">
+    {% endif %}
+  </div>
+
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-primary" {{ 'disabled' if not gl_accounts }}>
+      {{ 'Enregistrer' if bank_account else 'Créer' }}
+    </button>
+    <a href="{{ url_for('bank_accounts.index') }}" class="btn btn-outline-secondary">Annuler</a>
+  </div>
+</form>
+{% endblock %}

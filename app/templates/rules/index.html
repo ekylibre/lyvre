@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Moteur de règles{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2>Moteur de règles</h2>
+    <p class="text-muted mb-0 small font-monospace">{{ rules_path }}</p>
+  </div>
+  <form method="post" action="{{ url_for('rules.apply') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="d-flex align-items-center gap-2">
+      <div class="form-check mb-0">
+        <input class="form-check-input" type="checkbox" name="overwrite" value="1" id="chkOverwrite">
+        <label class="form-check-label small" for="chkOverwrite">Ré-appliquer aux déjà catégorisées</label>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">
+        Appliquer les règles
+      </button>
+    </div>
+  </form>
+</div>
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+{% if rules %}
+<p class="text-muted small">{{ rules | length }} règle(s) chargée(s). Les règles sont évaluées dans l'ordre : la première qui correspond est appliquée.</p>
+
+<table class="table table-sm table-hover align-middle">
+  <thead class="table-light">
+    <tr>
+      <th>#</th>
+      <th>Nom</th>
+      <th>Conditions</th>
+      <th>Entité</th>
+      <th>Type entité</th>
+      <th>Catégorie</th>
+      <th>Compte</th>
+      <th>Sens</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for rule in rules %}
+    <tr>
+      <td class="text-muted">{{ loop.index }}</td>
+      <td class="fw-semibold">{{ rule.name }}</td>
+      <td>
+        {% if rule.label_contains is defined %}
+          <span class="badge bg-light text-dark border me-1">contient « {{ rule.label_contains }} »</span>
+        {% endif %}
+        {% if rule.label_regex is defined %}
+          <span class="badge bg-light text-dark border me-1 font-monospace">{{ rule.label_regex }}</span>
+        {% endif %}
+        {% if rule.amount_min is defined %}
+          <span class="badge bg-light text-dark border me-1">≥ {{ rule.amount_min }} €</span>
+        {% endif %}
+        {% if rule.amount_max is defined %}
+          <span class="badge bg-light text-dark border me-1">≤ {{ rule.amount_max }} €</span>
+        {% endif %}
+        {% if rule.raw_type is defined %}
+          <span class="badge bg-light text-dark border me-1">type={{ rule.raw_type }}</span>
+        {% endif %}
+      </td>
+      <td>{{ rule.entity if rule.entity is defined else '—' }}</td>
+      <td>
+        {% if rule.entity_type is defined %}
+          <span class="badge bg-secondary">{{ rule.entity_type }}</span>
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endif %}
+      </td>
+      <td>{{ rule.category if rule.category is defined else '—' }}</td>
+      <td class="font-monospace">
+        {% if rule.account is defined %}
+          {{ rule.account }}
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if rule.account is defined %}
+          {% set acc_str = rule.account|string %}
+          {% if acc_str.startswith('6') %}
+            <span class="badge bg-danger-subtle text-danger-emphasis">Débit (charge)</span>
+          {% elif acc_str.startswith('7') %}
+            <span class="badge bg-success-subtle text-success-emphasis">Crédit (produit)</span>
+          {% else %}
+            <span class="badge bg-warning text-dark">Compte invalide</span>
+          {% endif %}
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% elif not error %}
+<p class="text-muted">Aucune règle définie dans le fichier YAML.</p>
+{% endif %}
+
+<div class="mt-4">
+  <h5>Comment modifier les règles</h5>
+  <p class="text-muted small">
+    Éditez directement le fichier <code>{{ rules_path }}</code>.
+    Rechargez cette page pour voir les règles mises à jour.
+    Cliquez sur « Appliquer les règles » pour catégoriser les transactions importées.
+  </p>
+  <pre class="bg-light p-3 rounded small"><code>rules:
+  - name: "Exemple"
+    label_contains: "MOT_CLE"   # ou label_regex: "(?i)pattern"
+    entity: "Nom de l'entité"   # facultatif — crée l'entité si inexistante
+    entity_type: FOURNISSEUR    # CLIENT | FOURNISSEUR | SALARIE | ORGANISME | AUTRE
+    category: "Libellé catégorie"
+    account: "707"              # facultatif — crée une écriture comptable
+                                #   compte 6xx → débit charge / crédit banque
+                                #   compte 7xx → débit banque / crédit produit</code></pre>
+
+  <h5 class="mt-3">Génération automatique d'écritures</h5>
+  <p class="text-muted small">
+    Lorsqu'une règle définit le champ <code>account</code>, l'application des règles
+    crée automatiquement une écriture comptable équilibrée dans le journal <code>BQ</code>,
+    dans l'exercice qui couvre la date de la transaction. La transaction bancaire est
+    alors automatiquement rapprochée à la ligne d'écriture côté banque.
+    Le compte indiqué doit être un compte du plan comptable (non en-tête)
+    commençant par <code>6</code> (charge) ou <code>7</code> (produit).
+  </p>
+</div>
+{% endblock %}

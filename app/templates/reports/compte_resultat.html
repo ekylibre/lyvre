@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}Compte de résultat{% endblock %}
+
+{% macro row(label, n_val, p_val, indent=0) %}
+<tr>
+  <td style="padding-left: {{ indent * 16 + 8 }}px">{{ label }}</td>
+  <td class="text-end font-monospace">{{ n_val | euros if n_val else '' }}</td>
+  <td class="text-end font-monospace text-muted">{{ p_val | euros if p_val is not none and p_val != none else '' }}</td>
+</tr>
+{% endmacro %}
+
+{% macro total_row(label, n_val, p_val) %}
+<tr class="fw-bold table-light border-top">
+  <td>{{ label }}</td>
+  <td class="text-end font-monospace">{{ n_val | euros }}</td>
+  <td class="text-end font-monospace text-muted">{{ p_val | euros if p_val is not none else '' }}</td>
+</tr>
+{% endmacro %}
+
+{% macro result_row(label, n_val, p_val) %}
+<tr class="fw-bold table-primary">
+  <td>{{ label }}</td>
+  <td class="text-end font-monospace">{{ n_val | euros }}</td>
+  <td class="text-end font-monospace">{{ p_val | euros if p_val is not none else '' }}</td>
+</tr>
+{% endmacro %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+  <h2>Compte de résultat</h2>
+  <div class="d-flex gap-2">
+    {% if fy %}
+    <a href="{{ url_for('reports.compte_resultat_csv', fy_id=fy.id) }}"
+       class="btn btn-outline-success btn-sm">Exporter CSV</a>
+    <a href="{{ url_for('reports.compte_resultat_ods', fy_id=fy.id) }}"
+       class="btn btn-outline-success btn-sm">Exporter ODS</a>
+    {% endif %}
+    <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">Exporter PDF</button>
+  </div>
+</div>
+
+<form class="row g-2 mb-3 no-print">
+  <div class="col-md-3">
+    <select name="fy_id" class="form-select form-select-sm" onchange="this.form.submit()">
+      {% for f in fiscal_years %}
+        <option value="{{ f.id }}" {{ 'selected' if fy and f.id == fy.id }}>{{ f.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</form>
+
+{% if fy %}
+<div class="print-header">
+  <h1>Compte de résultat</h1>
+  <div class="meta">
+    <strong>Exercice :</strong> {{ fy.label }}
+    ({{ fy.start_date.strftime('%d/%m/%Y') }} → {{ fy.end_date.strftime('%d/%m/%Y') }})
+    {% if fy_prev %}
+      &nbsp;&middot;&nbsp;
+      <strong>Comparatif :</strong> {{ fy_prev.label }}
+      ({{ fy_prev.start_date.strftime('%d/%m/%Y') }} → {{ fy_prev.end_date.strftime('%d/%m/%Y') }})
+    {% endif %}
+    &nbsp;&middot;&nbsp;
+    <span class="text-muted">Édité le {{ now_date.strftime('%d/%m/%Y') if now_date else '' }}</span>
+  </div>
+</div>
+{% endif %}
+
+{% if data %}
+{% set d = data %}
+
+{% set total_pe = d.produits_exploitation.values() | map(attribute=0) | sum %}
+{% set total_pe_prev = d.produits_exploitation.values() | map(attribute=1) | reject('none') | list %}
+
+<table class="table table-sm table-bordered">
+  <thead class="table-dark">
+    <tr>
+      <th>COMPTE DE RÉSULTAT</th>
+      <th class="text-end">Exercice N{% if fy %} ({{ fy.label }}){% endif %}</th>
+      <th class="text-end text-muted">Exercice N-1{% if fy_prev %} ({{ fy_prev.label }}){% endif %}</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr class="table-secondary fw-bold"><td colspan="3">PRODUITS D'EXPLOITATION</td></tr>
+    {{ row("Cotisations", d.produits_exploitation.cotisations[0], d.produits_exploitation.cotisations[1], 1) }}
+    <tr class="table-light"><td style="padding-left:16px">Ventes de biens et services</td><td></td><td></td></tr>
+    {{ row("Ventes de biens", d.produits_exploitation.ventes_biens[0], d.produits_exploitation.ventes_biens[1], 2) }}
+    {{ row("dont ventes de dons en nature", d.produits_exploitation.dont_ventes_dons_nature[0], d.produits_exploitation.dont_ventes_dons_nature[1], 3) }}
+    {{ row("Ventes de prestations de services", d.produits_exploitation.ventes_prestations[0], d.produits_exploitation.ventes_prestations[1], 2) }}
+    {{ row("dont parrainages", d.produits_exploitation.dont_parrainages[0], d.produits_exploitation.dont_parrainages[1], 3) }}
+    <tr class="table-light"><td style="padding-left:16px">Produits de tiers financeurs</td><td></td><td></td></tr>
+    {{ row("Concours publics et subventions d'exploitation", d.produits_exploitation.concours_publics_subventions[0], d.produits_exploitation.concours_publics_subventions[1], 2) }}
+    {{ row("Versements des fondateurs / dotation consomptible", d.produits_exploitation.versements_fondateurs_dotation[0], d.produits_exploitation.versements_fondateurs_dotation[1], 2) }}
+    <tr class="table-light"><td style="padding-left:32px">Ressources liées à la générosité du public</td><td></td><td></td></tr>
+    {{ row("Dons manuels", d.produits_exploitation.dons_manuels[0], d.produits_exploitation.dons_manuels[1], 3) }}
+    {{ row("Mécénats", d.produits_exploitation.mecenat[0], d.produits_exploitation.mecenat[1], 3) }}
+    {{ row("Legs, donations et assurances-vie", d.produits_exploitation.legs_donations[0], d.produits_exploitation.legs_donations[1], 3) }}
+    {{ row("Contributions financières", d.produits_exploitation.contributions_financieres[0], d.produits_exploitation.contributions_financieres[1], 2) }}
+    {{ row("Reprises sur amortissements, dépréciations, provisions", d.produits_exploitation.reprises_amort_provisions[0], d.produits_exploitation.reprises_amort_provisions[1], 1) }}
+    {{ row("Utilisations des fonds dédiés", d.produits_exploitation.utilisations_fonds_dedies[0], d.produits_exploitation.utilisations_fonds_dedies[1], 1) }}
+    {{ row("Autres produits", d.produits_exploitation.autres_produits[0], d.produits_exploitation.autres_produits[1], 1) }}
+
+    {% set total_I = d.produits_exploitation.values() | map(attribute=0) | sum %}
+    {{ total_row("TOTAL I — Produits d'exploitation", total_I, none) }}
+
+    <tr class="table-secondary fw-bold"><td colspan="3">CHARGES D'EXPLOITATION</td></tr>
+    {{ row("Achats de marchandises", d.charges_exploitation.achats_marchandises[0], d.charges_exploitation.achats_marchandises[1], 1) }}
+    {{ row("Variation de stocks", d.charges_exploitation.variation_stocks[0], d.charges_exploitation.variation_stocks[1], 1) }}
+    {{ row("Autres achats et charges externes", d.charges_exploitation.autres_achats_charges_externes[0], d.charges_exploitation.autres_achats_charges_externes[1], 1) }}
+    {{ row("Aides financières", d.charges_exploitation.aides_financieres[0], d.charges_exploitation.aides_financieres[1], 1) }}
+    {{ row("Impôts, taxes et versements assimilés", d.charges_exploitation.impots_taxes[0], d.charges_exploitation.impots_taxes[1], 1) }}
+    {{ row("Salaires et traitements", d.charges_exploitation.salaires_traitements[0], d.charges_exploitation.salaires_traitements[1], 1) }}
+    {{ row("Charges sociales", d.charges_exploitation.charges_sociales[0], d.charges_exploitation.charges_sociales[1], 1) }}
+    {{ row("Dotations aux amortissements et aux dépréciations", d.charges_exploitation.dotations_amort_depreciations[0], d.charges_exploitation.dotations_amort_depreciations[1], 1) }}
+    {{ row("Dotations aux provisions", d.charges_exploitation.dotations_provisions[0], d.charges_exploitation.dotations_provisions[1], 1) }}
+    {{ row("Reports en fonds dédiés", d.charges_exploitation.reports_fonds_dedies[0], d.charges_exploitation.reports_fonds_dedies[1], 1) }}
+    {{ row("Autres charges", d.charges_exploitation.autres_charges[0], d.charges_exploitation.autres_charges[1], 1) }}
+
+    {% set total_II = d.charges_exploitation.values() | map(attribute=0) | sum %}
+    {{ total_row("TOTAL II — Charges d'exploitation", total_II, none) }}
+    {{ result_row("1 — RÉSULTAT D'EXPLOITATION (I - II)", total_I - total_II, none) }}
+
+    <tr class="table-secondary fw-bold"><td colspan="3">PRODUITS FINANCIERS</td></tr>
+    {{ row("De participations", d.produits_financiers.de_participations[0], d.produits_financiers.de_participations[1], 1) }}
+    {{ row("Autres intérêts et produits assimilés", d.produits_financiers.autres_interets[0], d.produits_financiers.autres_interets[1], 1) }}
+    {{ row("Produits nets sur cessions de VMP", d.produits_financiers.produits_nets_cessions_vmp[0], d.produits_financiers.produits_nets_cessions_vmp[1], 1) }}
+    {% set total_III = d.produits_financiers.values() | map(attribute=0) | sum %}
+    {{ total_row("TOTAL III — Produits financiers", total_III, none) }}
+
+    <tr class="table-secondary fw-bold"><td colspan="3">CHARGES FINANCIÈRES</td></tr>
+    {{ row("Intérêts et charges assimilées", d.charges_financieres.interets_charges[0], d.charges_financieres.interets_charges[1], 1) }}
+    {% set total_IV = d.charges_financieres.values() | map(attribute=0) | sum %}
+    {{ total_row("TOTAL IV — Charges financières", total_IV, none) }}
+    {{ result_row("2 — RÉSULTAT FINANCIER (III - IV)", total_III - total_IV, none) }}
+    {{ result_row("3 — RÉSULTAT COURANT avant impôts", total_I - total_II + total_III - total_IV, none) }}
+
+    <tr class="table-secondary fw-bold"><td colspan="3">PRODUITS EXCEPTIONNELS</td></tr>
+    {{ row("Sur opérations de gestion", d.produits_exceptionnels.sur_operations_gestion[0], d.produits_exceptionnels.sur_operations_gestion[1], 1) }}
+    {{ row("Sur opérations en capital", d.produits_exceptionnels.sur_operations_capital[0], d.produits_exceptionnels.sur_operations_capital[1], 1) }}
+    {{ row("Reprises sur provisions", d.produits_exceptionnels.reprises_provisions[0], d.produits_exceptionnels.reprises_provisions[1], 1) }}
+    {% set total_V = d.produits_exceptionnels.values() | map(attribute=0) | sum %}
+    {{ total_row("TOTAL V — Produits exceptionnels", total_V, none) }}
+
+    <tr class="table-secondary fw-bold"><td colspan="3">CHARGES EXCEPTIONNELLES</td></tr>
+    {{ row("Sur opérations de gestion", d.charges_exceptionnelles.sur_operations_gestion[0], d.charges_exceptionnelles.sur_operations_gestion[1], 1) }}
+    {{ row("Sur opérations en capital", d.charges_exceptionnelles.sur_operations_capital[0], d.charges_exceptionnelles.sur_operations_capital[1], 1) }}
+    {{ row("Dotations aux amortissements", d.charges_exceptionnelles.dotations_amort[0], d.charges_exceptionnelles.dotations_amort[1], 1) }}
+    {% set total_VI = d.charges_exceptionnelles.values() | map(attribute=0) | sum %}
+    {{ total_row("TOTAL VI — Charges exceptionnelles", total_VI, none) }}
+    {{ result_row("4 — RÉSULTAT EXCEPTIONNEL (V - VI)", total_V - total_VI, none) }}
+
+    <tr>
+      <td>Participation des salariés aux résultats (VII)</td>
+      <td class="text-end font-monospace">{{ d.participation_salaries[0] | euros }}</td>
+      <td class="text-end font-monospace text-muted"></td>
+    </tr>
+    <tr>
+      <td>Impôts sur les bénéfices (VIII)</td>
+      <td class="text-end font-monospace">{{ d.impots_benefices[0] | euros }}</td>
+      <td class="text-end font-monospace text-muted"></td>
+    </tr>
+
+    {% set total_produits = total_I + total_III + total_V %}
+    {% set total_charges = total_II + total_IV + total_VI + d.participation_salaries[0] + d.impots_benefices[0] %}
+    {{ total_row("Total des produits (I+III+V)", total_produits, none) }}
+    {{ total_row("Total des charges (II+IV+VI+VII+VIII)", total_charges, none) }}
+
+    {% set excedent = total_produits - total_charges %}
+    <tr class="fw-bold {% if excedent >= 0 %}table-success{% else %}table-danger{% endif %}">
+      <td>6 — EXCÉDENT {% if excedent < 0 %}/ DÉFICIT{% endif %}</td>
+      <td class="text-end font-monospace">{{ excedent | euros }}</td>
+      <td class="text-end font-monospace text-muted"></td>
+    </tr>
+
+    <!-- Contributions volontaires en nature -->
+    <tr class="table-secondary fw-bold"><td colspan="3">CONTRIBUTIONS VOLONTAIRES EN NATURE</td></tr>
+    {{ row("Dons en nature", d.contributions_produits.dons_nature[0], d.contributions_produits.dons_nature[1], 1) }}
+    {{ row("Prestations en nature", d.contributions_produits.prestations_nature[0], d.contributions_produits.prestations_nature[1], 1) }}
+    {{ row("Bénévolat", d.contributions_produits.benevolat[0], d.contributions_produits.benevolat[1], 1) }}
+    {% set total_cvn = d.contributions_produits.values() | map(attribute=0) | sum %}
+    {{ total_row("TOTAL", total_cvn, none) }}
+
+    <tr class="table-secondary fw-bold"><td colspan="3">CHARGES DES CONTRIBUTIONS VOLONTAIRES EN NATURE</td></tr>
+    {{ row("Secours en nature", d.contributions_charges.secours_nature[0], d.contributions_charges.secours_nature[1], 1) }}
+    {{ row("Mise à disposition gratuite de biens", d.contributions_charges.mise_dispo_biens[0], d.contributions_charges.mise_dispo_biens[1], 1) }}
+    {{ row("Prestations en nature", d.contributions_charges.prestations_nature[0], d.contributions_charges.prestations_nature[1], 1) }}
+    {{ row("Personnel bénévole", d.contributions_charges.personnel_benevole[0], d.contributions_charges.personnel_benevole[1], 1) }}
+    {% set total_cvn_c = d.contributions_charges.values() | map(attribute=0) | sum %}
+    {{ total_row("TOTAL", total_cvn_c, none) }}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

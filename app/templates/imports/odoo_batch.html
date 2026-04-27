@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Lot {{ batch_name }}{% endblock %}
+{% block content %}
+<h2>Lot Odoo : {{ batch_name }}</h2>
+<a href="{{ url_for('imports.odoo') }}" class="btn btn-outline-secondary btn-sm mb-3">← Retour</a>
+<table class="table table-sm table-hover">
+  <thead class="table-light">
+    <tr>
+      <th>Facture</th><th>Date</th><th>Client</th><th>Produit</th>
+      <th class="text-end">HT</th><th class="text-end">TVA</th><th class="text-end">TTC</th>
+      <th>Compte</th><th>Écriture</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for line in lines %}
+    <tr>
+      <td>{{ line.invoice_number }}</td>
+      <td>{{ line.invoice_date.strftime('%d/%m/%Y') if line.invoice_date else '' }}</td>
+      <td>{{ line.partner_name }}</td>
+      <td>{{ line.product_name }}</td>
+      <td class="text-end font-monospace">{{ line.amount_ht_cents | euros }}</td>
+      <td class="text-end font-monospace">{{ line.tax_amount_cents | euros }}</td>
+      <td class="text-end font-monospace">{{ line.amount_ttc_cents | euros }}</td>
+      <td class="font-monospace">{{ line.account_code }}</td>
+      <td>
+        {% if line.journal_entry_id %}
+          <a href="{{ url_for('entries.detail', entry_id=line.journal_entry_id) }}" class="badge bg-success text-decoration-none">
+            Comptabilisé
+          </a>
+        {% else %}
+          <span class="badge bg-secondary">En attente</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

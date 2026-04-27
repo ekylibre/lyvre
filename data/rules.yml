@@ -1,0 +1,137 @@
+# Règles de catégorisation automatique des transactions bancaires
+# Chaque règle peut utiliser : label_contains, label_regex, amount_min, amount_max, raw_type
+# Résultat : entity (nom), entity_type, category, account
+#
+# Si "account" est défini, une écriture comptable équilibrée est créée :
+#   - compte commençant par 6 (charge)  → débit 6xx, crédit compte bancaire
+#   - compte commençant par 7 (produit) → débit compte bancaire, crédit 7xx
+
+rules:
+  - name: "TPE"
+    label_contains: "VIREMENT EN VOTRE FAVEUR ILIAD"
+    entity: "FREE"
+    entity_type: CLIENT
+    category: "Vente"
+    account: "707"
+
+  - name: "TPE"
+    label_contains: "VERSEMENT D ESPECES ST PORCHAIRE"
+    entity: "SN"
+    entity_type: CLIENT
+    category: "Vente"
+    account: "707"
+
+  - name: "TPE"
+    label_contains: "VIREMENT EN VOTRE FAVEUR HelloAssoPay"
+    entity: "HELLOASSO"
+    entity_type: CLIENT
+    category: "Adhesion"
+    account: "756"
+
+  - name: "TPE"
+    label_contains: "Mangopay"
+    entity: "Vinted"
+    entity_type: CLIENT
+    category: "Vente Vinted"
+    account: "707"
+
+  - name: "MAIF / Assurance"
+    label_contains: "PRELEVEMENT MAIF"
+    entity: "MAIF"
+    entity_type: FOURNISSEUR
+    category: "Assurance"
+    account: "616"
+
+  - name: "Ecomaison"
+    label_contains: "VIREMENT EN VOTRE FAVEUR ECOMAISON"
+    entity: "ECOMAISON"
+    entity_type: CLIENT
+    category: "Eco-organisme"
+    account: "758"
+
+  - name: "Salaires"
+    label_regex: "(?i)amandine mouret|Amandine mouret"
+    entity: "Amandine Mouret"
+    entity_type: SALARIE
+    category: "Salaires"
+    account: "641"
+
+  - name: "Frais Compte"
+    label_contains: "dit Agricole"
+    entity: "Crédit Agricole"
+    entity_type: FOURNISSEUR
+    category: "Frais bancaires"
+    account: "627"
+
+  - name: "Frais TPE"
+    label_contains: "PRELEVEMENT Iliad78 Stancer"
+    entity: "STANCER"
+    entity_type: FOURNISSEUR
+    category: "Frais bancaires"
+    account: "627"
+
+  - name: "Salaires"
+    label_regex: "(?i)salaire|virement personnel|salaires"
+    entity_type: SALARIE
+    category: "Salaires"
+    account: "641"
+
+  - name: "URSSAF cotisations"
+    label_contains: "URSSAF"
+    entity: "URSSAF"
+    entity_type: ORGANISME
+    category: "Cotisations sociales"
+    account: "645"
+
+  - name: "Impôts et taxes"
+    label_regex: "(?i)tresor public|dgfip|impot|taxe"
+    entity: "DGFIP"
+    entity_type: ORGANISME
+    category: "Impôts et taxes"
+    account: "635"
+
+  - name: "Cotisations adhérents"
+    label_regex: "(?i)cotisation|adhesion|adhésion"
+    entity_type: CLIENT
+    category: "Cotisations"
+    account: "756"
+
+  - name: "Subventions"
+    label_regex: "(?i)subvention|mairie|conseil departement|conseil regional|prefect"
+    entity_type: ORGANISME
+    category: "Subventions"
+    account: "74"
+
+  - name: "Subventions"
+    label_contains: "VIREMENT EN VOTRE FAVEUR PAIERIE REGIONALE"
+    entity_type: ORGANISME
+    category: "Subventions"
+    account: "74"
+
+  - name: "Subventions"
+    label_contains: "VIREMENT EN VOTRE FAVEUR SGC ROCHEFORT"
+    entity_type: ORGANISME
+    category: "Subventions"
+    account: "74"
+
+  - name: "Frais locations"
+    label_contains: "les chenes verts"
+    entity: "les chenes verts"
+    entity_type: FOURNISSEUR
+    category: "Location"
+    account: "613"
+
+  - name: "Achat St Fiacre"
+    label_contains: "Conserves St-Fiacre"
+    category: "Revente magasin"
+    account: "607"
+  
+  - name: "Réparation Master"
+    label_contains: "Plaquettes Master"
+    category: "Entretien matériel"
+    account: "605"
+
+
+    
+
+    

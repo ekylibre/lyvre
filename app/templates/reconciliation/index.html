@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Rapprochement bancaire{% endblock %}
+{% block content %}
+<h2>Rapprochement bancaire</h2>
+
+<form class="row g-2 mb-3">
+  <div class="col-md-4">
+    <select name="bank_account_id" class="form-select form-select-sm"
+            onchange="this.form.submit()">
+      {% for ba in bank_accounts %}
+        <option value="{{ ba.id }}" {{ 'selected' if ba.id == selected_id }}>{{ ba.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% if selected_id %}
+  <div class="col-auto">
+    <form method="post" action="{{ url_for('reconciliation.auto') }}" style="display:inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="bank_account_id" value="{{ selected_id }}">
+      <button type="submit" class="btn btn-outline-primary btn-sm">
+        Rapprochement automatique
+      </button>
+    </form>
+  </div>
+  {% endif %}
+</form>
+
+{% if unreconciled %}
+<table class="table table-sm table-hover">
+  <thead class="table-light">
+    <tr>
+      <th>Date</th><th>Libellé</th><th class="text-end">Montant</th><th>Suggestions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for bt in unreconciled %}
+    <tr>
+      <td>{{ bt.transaction_date.strftime('%d/%m/%Y') }}</td>
+      <td>{{ bt.label }}</td>
+      <td class="text-end font-monospace {% if bt.amount_cents < 0 %}text-danger{% else %}text-success{% endif %}">
+        {{ bt.amount_cents | euros }}
+      </td>
+      <td>
+        <button class="btn btn-outline-secondary btn-sm py-0"
+                hx-get="{{ url_for('reconciliation.suggest', bt_id=bt.id) }}"
+                hx-target="#suggestions-{{ bt.id }}"
+                hx-swap="innerHTML">
+          Voir suggestions
+        </button>
+        <a href="{{ url_for('entries.new', bt_id=bt.id) }}"
+           class="btn btn-outline-primary btn-sm py-0">Créer écriture</a>
+        <div id="suggestions-{{ bt.id }}" class="mt-1"></div>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% elif selected_id %}
+  <div class="alert alert-success">Toutes les transactions sont rapprochées.</div>
+{% endif %}
+{% endblock %}

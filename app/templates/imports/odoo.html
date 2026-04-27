@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Import Odoo{% endblock %}
+{% block content %}
+<h2>Import de lignes Odoo</h2>
+<form method="post" enctype="multipart/form-data" class="col-md-6 mt-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="mb-3">
+    <label class="form-label">Nom du lot (optionnel)</label>
+    <input type="text" name="batch_name" class="form-control"
+           placeholder="odoo-2025-01 (généré automatiquement si vide)">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Fichier CSV (export Odoo)</label>
+    <input type="file" name="csv_file" class="form-control" accept=".csv" required>
+    <div class="form-text">
+      Colonnes attendues : <code>name</code>, <code>invoice_date</code>,
+      <code>partner_id/name</code>, <code>product_id/name</code>,
+      <code>price_subtotal</code>, <code>price_total</code>,
+      <code>account_id/code</code>
+    </div>
+  </div>
+  <button type="submit" class="btn btn-primary">Importer</button>
+</form>
+
+{% if result %}
+<div class="mt-4 col-md-8">
+  <h5>Résultat — lot {{ result.batch }}</h5>
+  <p>{{ result.imported }} ligne(s) importée(s).</p>
+  {% if result.errors %}
+  <div class="alert alert-warning">
+    <strong>Erreurs :</strong>
+    <ul class="mb-0">{% for e in result.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+  {% if result.preview %}
+  <h6>Aperçu (5 premières lignes)</h6>
+  <table class="table table-sm table-bordered">
+    <thead class="table-light">
+      <tr><th>Facture</th><th>Date</th><th>Client</th><th>Montant TTC</th><th>Compte</th></tr>
+    </thead>
+    <tbody>
+      {% for row in result.preview %}
+      <tr>
+        <td>{{ row.invoice_number }}</td>
+        <td>{{ row.invoice_date }}</td>
+        <td>{{ row.partner_name }}</td>
+        <td class="text-end">{{ row.amount_ttc_cents | euros }}</td>
+        <td class="font-monospace">{{ row.account_code }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <a href="{{ url_for('imports.odoo_batch', batch_name=result.batch) }}" class="btn btn-outline-primary btn-sm">
+    Voir toutes les lignes du lot →
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if batches %}
+<div class="mt-4 col-md-8">
+  <h5>Lots importés</h5>
+  <table class="table table-sm table-hover">
+    <thead class="table-light">
+      <tr><th>Lot</th><th>Lignes</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for batch_name, count in batches %}
+      <tr>
+        <td>{{ batch_name }}</td>
+        <td>{{ count }}</td>
+        <td><a href="{{ url_for('imports.odoo_batch', batch_name=batch_name) }}"
+               class="btn btn-outline-secondary btn-sm py-0">Voir</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Écritures{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Écritures comptables</h2>
+  <a href="{{ url_for('entries.new') }}" class="btn btn-primary btn-sm">+ Nouvelle écriture</a>
+</div>
+
+<form class="row g-2 mb-3">
+  <div class="col-md-3">
+    <select name="fy_id" class="form-select form-select-sm">
+      <option value="">— Exercice —</option>
+      {% for fy in fiscal_years %}
+        <option value="{{ fy.id }}" {{ 'selected' if fy.id == selected_fy_id }}>{{ fy.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-3">
+    <select name="journal_id" class="form-select form-select-sm">
+      <option value="">— Journal —</option>
+      {% for j in journals %}
+        <option value="{{ j.id }}" {{ 'selected' if j.id == selected_journal_id }}>{{ j.code }} — {{ j.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-outline-secondary btn-sm">Filtrer</button>
+  </div>
+</form>
+
+<table class="table table-sm table-hover align-middle">
+  <thead class="table-light">
+    <tr>
+      <th>Date</th><th>Référence</th><th>Journal</th><th>Description</th>
+      <th class="text-end">Débit</th><th class="text-end">Crédit</th>
+      <th>Équilibré</th>
+      <th class="text-end">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for entry in entries %}
+    <tr>
+      <td>{{ entry.entry_date.strftime('%d/%m/%Y') }}</td>
+      <td><a href="{{ url_for('entries.detail', entry_id=entry.id) }}">{{ entry.reference }}</a></td>
+      <td>{{ entry.journal.code }}</td>
+      <td>{{ entry.description }}</td>
+      <td class="text-end font-monospace">{{ entry.total_debit | euros }}</td>
+      <td class="text-end font-monospace">{{ entry.total_credit | euros }}</td>
+      <td>
+        {% if entry.is_balanced %}
+          <span class="badge bg-success">✓</span>
+        {% else %}
+          <span class="badge bg-danger">✗</span>
+        {% endif %}
+      </td>
+      <td class="text-end">
+        {% if entry.fiscal_year.closed %}
+          <span class="text-muted small">Verrouillé</span>
+        {% else %}
+          <a href="{{ url_for('entries.edit', entry_id=entry.id) }}"
+             class="btn btn-outline-secondary btn-sm">Modifier</a>
+          <form method="post" action="{{ url_for('entries.delete', entry_id=entry.id) }}"
+                class="d-inline"
+                onsubmit="return confirm('Supprimer l\'écriture {{ entry.reference }} ?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline-danger btn-sm">Supprimer</button>
+          </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="8" class="text-muted text-center">Aucune écriture.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

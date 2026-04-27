@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Exercices{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Exercices comptables</h2>
+  <a href="{{ url_for('fiscal_years.new') }}" class="btn btn-primary btn-sm">+ Nouvel exercice</a>
+</div>
+<table class="table table-sm table-hover">
+  <thead class="table-light">
+    <tr><th>Libellé</th><th>Début</th><th>Fin</th><th>Statut</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for fy in fiscal_years %}
+    <tr>
+      <td>{{ fy.label }}</td>
+      <td>{{ fy.start_date.strftime('%d/%m/%Y') }}</td>
+      <td>{{ fy.end_date.strftime('%d/%m/%Y') }}</td>
+      <td>
+        {% if fy.closed %}
+          <span class="badge bg-secondary">Clôturé</span>
+        {% else %}
+          <span class="badge bg-success">Ouvert</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if not fy.closed %}
+        <form method="post" action="{{ url_for('fiscal_years.close', fy_id=fy.id) }}"
+              onsubmit="return confirm('Clôturer cet exercice ? Cette action est irréversible.')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline-warning btn-sm">Clôturer</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

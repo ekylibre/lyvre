@@ -1,0 +1,23 @@
+{% if matches %}
+<table class="table table-sm table-bordered mt-1">
+  <tbody>
+    {% for line in matches %}
+    <tr>
+      <td class="font-monospace small">{{ line.account.code }}</td>
+      <td class="small">{{ line.entry.entry_date.strftime('%d/%m/%Y') }} — {{ line.label or line.entry.description }}</td>
+      <td class="text-end font-monospace small">{{ (line.debit_cents or line.credit_cents) | euros }}</td>
+      <td>
+        <form method="post" action="{{ url_for('reconciliation.link') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="bank_transaction_id" value="{{ bt.id }}">
+          <input type="hidden" name="journal_line_id" value="{{ line.id }}">
+          <button type="submit" class="btn btn-success btn-sm py-0">Rapprocher</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<span class="text-muted small">Aucune suggestion trouvée.</span>
+{% endif %}

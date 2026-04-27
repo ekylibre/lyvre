@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Transactions — {{ ba.label }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h2>{{ ba.label }}</h2>
+    <p class="text-muted mb-0">
+      {{ ba.account.code }} — {{ ba.account.label }}
+      {% if ba.iban %} · <span class="font-monospace">{{ ba.iban }}</span>{% endif %}
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('bank_accounts.index') }}" class="btn btn-outline-secondary btn-sm">← Retour</a>
+    <a href="{{ url_for('imports.ofx') }}" class="btn btn-primary btn-sm">Importer OFX</a>
+    <a href="{{ url_for('rules.index') }}" class="btn btn-outline-secondary btn-sm">Règles</a>
+    <a href="{{ url_for('reconciliation.index', bank_account_id=ba.id) }}"
+       class="btn btn-outline-primary btn-sm">Rapprocher</a>
+  </div>
+</div>
+
+<div class="mb-3">
+  <a href="{{ url_for('bank_accounts.transactions', ba_id=ba.id) }}"
+     class="btn btn-sm {{ 'btn-secondary' if not only_unreconciled else 'btn-outline-secondary' }}">
+    Toutes
+  </a>
+  <a href="{{ url_for('bank_accounts.transactions', ba_id=ba.id, unreconciled=1) }}"
+     class="btn btn-sm {{ 'btn-warning' if only_unreconciled else 'btn-outline-warning' }}">
+    Non rapprochées
+  </a>
+</div>
+
+<table class="table table-sm table-hover">
+  <thead class="table-light">
+    <tr>
+      <th>Date</th>
+      <th>Libellé</th>
+      <th>Type</th>
+      <th class="text-end">Montant</th>
+      <th>Entité</th>
+      <th>Catégorie</th>
+      <th>Statut</th>
+      <th>Écriture liée</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for txn in txns %}
+    <tr>
+      <td>{{ txn.transaction_date.strftime('%d/%m/%Y') }}</td>
+      <td>{{ txn.label or '—' }}</td>
+      <td><span class="badge bg-light text-dark border">{{ txn.raw_type or '—' }}</span></td>
+      <td class="text-end font-monospace {% if txn.amount_cents < 0 %}text-danger{% else %}text-success{% endif %}">
+        {{ txn.amount_cents | euros }}
+      </td>
+      <td>
+        {% if txn.entity %}
+          <a href="{{ url_for('entities.edit', entity_id=txn.entity_id) }}" class="small">
+            {{ txn.entity.name }}
+          </a>
+        {% else %}
+          <span class="text-muted small">—</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if txn.category %}
+          <span class="badge bg-info text-dark">{{ txn.category }}</span>
+        {% else %}
+          <span class="text-muted small">—</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if txn.reconciled %}
+          <span class="badge bg-success">Rapproché</span>
+        {% else %}
+          <span class="badge bg-warning text-dark">En attente</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if txn.journal_line %}
+          <a href="{{ url_for('entries.detail', entry_id=txn.journal_line.entry_id) }}"
+             class="small">{{ txn.journal_line.entry.reference }}</a>
+        {% else %}
+          <span class="text-muted small">—</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="8" class="text-muted text-center">Aucune transaction.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if txns %}
+<div class="text-muted small">{{ txns | length }} transaction(s) affichée(s).</div>
+{% endif %}
+{% endblock %}

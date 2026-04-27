@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Versement {{ payout.stancer_id }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0">Versement Stancer</h2>
+    <small class="text-muted font-monospace">{{ payout.stancer_id }}</small>
+  </div>
+  <div>
+    <a href="{{ url_for('payouts.index') }}" class="btn btn-outline-secondary btn-sm">← Retour</a>
+    <form hx-post="{{ url_for('payouts.sync_payments_route', payout_id=payout.id) }}"
+          hx-target="#sync-status-zone"
+          hx-swap="innerHTML"
+          class="d-inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-primary btn-sm">Resynchroniser les paiements</button>
+    </form>
+  </div>
+</div>
+
+<div id="sync-status-zone">
+  {% if last_job %}
+    {% with job = last_job %}{% include "payouts/_sync_status.html" %}{% endwith %}
+  {% endif %}
+</div>
+
+<div class="row mb-4">
+  <div class="col-md-6">
+    <table class="table table-sm">
+      <tbody>
+        <tr><th>Date versement</th><td>{{ payout.date_payout.strftime('%d/%m/%Y') if payout.date_payout else '—' }}</td></tr>
+        <tr><th>Date banque</th><td>{{ payout.date_bank.strftime('%d/%m/%Y') if payout.date_bank else '—' }}</td></tr>
+        <tr><th>Statut</th><td>{{ payout_statuses.get(payout.status, payout.status) }}</td></tr>
+        <tr><th>Description</th><td>{{ payout.statement_description or payout.description or '—' }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="col-md-6">
+    <table class="table table-sm">
+      <tbody>
+        <tr><th>Montant</th><td class="font-monospace">{{ payout.amount_cents | euros }}</td></tr>
+        <tr><th>Frais</th><td class="font-monospace text-muted">{{ payout.fees_cents | euros }}</td></tr>
+        <tr><th>Devise</th><td>{{ payout.currency }}</td></tr>
+        <tr>
+          <th>Opération bancaire</th>
+          <td>
+            {% if payout.bank_transaction %}
+              {{ payout.bank_transaction.transaction_date.strftime('%d/%m/%Y') }}
+              — <span class="font-monospace">{{ payout.bank_transaction.amount_cents | euros }}</span>
+              {% if payout.bank_transaction.label %}<br><small class="text-muted">{{ payout.bank_transaction.label }}</small>{% endif %}
+            {% else %}
+              <span class="text-muted">non rapprochée</span>
+            {% endif %}
+          </td>
+        </tr>
+        <tr><th>Importé le</th><td>{{ payout.imported_at.strftime('%d/%m/%Y %H:%M') if payout.imported_at else '—' }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<h4>Paiements liés</h4>
+{% if payments %}
+<table class="table table-sm table-hover align-middle">
+  <thead class="table-light">
+    <tr>
+      <th>Date</th>
+      <th>ID Stancer</th>
+      <th>Méthode</th>
+      <th>Client</th>
+      <th>Description</th>
+      <th class="text-end">Montant</th>
+      <th>Statut</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for pm in payments %}
+    <tr>
+      <td>{{ pm.date_payment.strftime('%d/%m/%Y %H:%M') if pm.date_payment else (pm.created_at.strftime('%d/%m/%Y %H:%M') if pm.created_at else '—') }}</td>
+      <td class="font-monospace small">{{ pm.stancer_id }}</td>
+      <td>{{ pm.method or '—' }}</td>
+      <td>
+        {% if pm.customer_name %}{{ pm.customer_name }}{% endif %}
+        {% if pm.customer_email %}<br><small class="text-muted">{{ pm.customer_email }}</small>{% endif %}
+        {% if not pm.customer_name and not pm.customer_email %}—{% endif %}
+      </td>
+      <td>{{ pm.description or '' }}</td>
+      <td class="text-end font-monospace">{{ pm.amount_cents | euros }}</td>
+      <td>
+        {% set st = pm.status %}
+        {% if st in ('paid', 'captured') %}
+          <span class="badge bg-success">{{ payment_statuses.get(st, st) }}</span>
+        {% elif st in ('refused', 'failed', 'expired', 'canceled') %}
+          <span class="badge bg-danger">{{ payment_statuses.get(st, st) }}</span>
+        {% elif st == 'disputed' %}
+          <span class="badge bg-warning text-dark">{{ payment_statuses.get(st, st) }}</span>
+        {% else %}
+          <span class="badge bg-secondary">{{ payment_statuses.get(st, st or '—') }}</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot class="table-light">
+    <tr>
+      <th colspan="5" class="text-end">Total</th>
+      <th class="text-end font-monospace">
+        {{ payments | sum(attribute='amount_cents') | euros }}
+      </th>
+      <th></th>
+    </tr>
+  </tfoot>
+</table>
+<div class="text-muted small">{{ payments | length }} paiement(s).</div>
+{% else %}
+<p class="text-muted">Aucun paiement importé pour ce versement. Cliquez sur « Resynchroniser les paiements » pour les récupérer via l'API.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Grand livre{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Grand livre</h2>
+  <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">Imprimer</button>
+</div>
+
+<form class="row g-2 mb-3">
+  <div class="col-md-3">
+    <select name="fy_id" class="form-select form-select-sm" onchange="this.form.submit()">
+      {% for f in fiscal_years %}
+        <option value="{{ f.id }}" {{ 'selected' if fy and f.id == fy.id }}>{{ f.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-4">
+    <select name="account_id" class="form-select form-select-sm">
+      <option value="">— Sélectionner un compte —</option>
+      {% for acc in accounts %}
+        <option value="{{ acc.id }}" {{ 'selected' if acc.id == selected_account_id }}>
+          {{ acc.code }} — {{ acc.label }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary btn-sm">Afficher</button>
+  </div>
+</form>
+
+{% if account and rows %}
+<h5>{{ account.code }} — {{ account.label }}</h5>
+<table class="table table-sm table-hover table-bordered">
+  <thead class="table-dark">
+    <tr>
+      <th>Date</th><th>Réf.</th><th>Journal</th><th>Libellé</th>
+      <th class="text-end">Débit</th><th class="text-end">Crédit</th>
+      <th class="text-end">Solde</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+    <tr>
+      <td>{{ row.entry.entry_date.strftime('%d/%m/%Y') }}</td>
+      <td><a href="{{ url_for('entries.detail', entry_id=row.entry.id) }}">{{ row.entry.reference }}</a></td>
+      <td>{{ row.entry.journal.code }}</td>
+      <td>{{ row.line.label or row.entry.description }}</td>
+      <td class="text-end font-monospace">{% if row.line.debit_cents %}{{ row.line.debit_cents | euros }}{% endif %}</td>
+      <td class="text-end font-monospace">{% if row.line.credit_cents %}{{ row.line.credit_cents | euros }}{% endif %}</td>
+      <td class="text-end font-monospace {% if row.running_cents < 0 %}text-danger{% endif %}">
+        {{ row.running_cents | euros }}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% elif account %}
+  <p class="text-muted">Aucun mouvement pour ce compte sur cet exercice.</p>
+{% endif %}
+{% endblock %}

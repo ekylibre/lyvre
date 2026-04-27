@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Versements Stancer{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0">Versements Stancer</h2>
+    <small class="text-muted">Liste des Payouts récupérés via l'API Stancer.</small>
+  </div>
+  <form hx-post="{{ url_for('payouts.sync') }}"
+        hx-target="#sync-status-zone"
+        hx-swap="innerHTML">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-primary btn-sm" {% if not has_key %}disabled{% endif %}>
+      Récupérer les versements via l'API
+    </button>
+  </form>
+</div>
+
+{% if not has_key %}
+<div class="alert alert-warning small">
+  Définissez la variable d'environnement <code>STANCER_SECRET_KEY</code> avant de lancer la synchronisation.
+</div>
+{% endif %}
+
+<div id="sync-status-zone">
+  {% if last_job %}
+    {% with job = last_job %}{% include "payouts/_sync_status.html" %}{% endwith %}
+  {% endif %}
+</div>{# /sync-status-zone #}
+
+{% if payouts %}
+<table class="table table-sm table-hover align-middle">
+  <thead class="table-light">
+    <tr>
+      <th>Date versement</th>
+      <th>Date banque</th>
+      <th>ID Stancer</th>
+      <th>Description</th>
+      <th class="text-end">Montant</th>
+      <th class="text-end">Frais</th>
+      <th class="text-end">Paiements</th>
+      <th>Banque</th>
+      <th>Statut</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in payouts %}
+    <tr>
+      <td>{{ p.date_payout.strftime('%d/%m/%Y') if p.date_payout else '—' }}</td>
+      <td>{{ p.date_bank.strftime('%d/%m/%Y') if p.date_bank else '—' }}</td>
+      <td class="font-monospace small">
+        <a href="{{ url_for('payouts.detail', payout_id=p.id) }}">{{ p.stancer_id }}</a>
+      </td>
+      <td>{{ p.statement_description or p.description or '' }}</td>
+      <td class="text-end font-monospace">{{ p.amount_cents | euros }}</td>
+      <td class="text-end font-monospace text-muted">{{ p.fees_cents | euros }}</td>
+      <td class="text-end small text-muted">{{ p.payments.count() }}</td>
+      <td class="small">
+        {% if p.bank_transaction_id %}
+          <span class="badge bg-success-subtle text-success border border-success">rapprochée</span>
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endif %}
+      </td>
+      <td>
+        {% set st = p.status %}
+        {% if st in ('paid', 'done') %}
+          <span class="badge bg-success">{{ statuses.get(st, st) }}</span>
+        {% elif st == 'failed' %}
+          <span class="badge bg-danger">{{ statuses.get(st, st) }}</span>
+        {% elif st in ('in_progress', 'to_pay') %}
+          <span class="badge bg-info text-dark">{{ statuses.get(st, st) }}</span>
+        {% else %}
+          <span class="badge bg-warning text-dark">{{ statuses.get(st, st) }}</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<div class="text-muted small">{{ payouts | length }} versement(s).</div>
+{% else %}
+<p class="text-muted">Aucun versement importé pour le moment.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Écriture {{ entry.reference }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h2>{{ entry.reference }}</h2>
+    <p class="text-muted mb-0">
+      {{ entry.journal.label }} —
+      {{ entry.entry_date.strftime('%d/%m/%Y') }} —
+      {{ entry.fiscal_year.label }}
+    </p>
+    {% if entry.description %}<p>{{ entry.description }}</p>{% endif %}
+    {% if entry.source_ref %}
+      <span class="badge bg-info text-dark">{{ entry.source }} : {{ entry.source_ref }}</span>
+    {% endif %}
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('entries.index') }}" class="btn btn-outline-secondary btn-sm">← Retour</a>
+    {% if not entry.fiscal_year.closed %}
+    <a href="{{ url_for('entries.edit', entry_id=entry.id) }}"
+       class="btn btn-outline-secondary btn-sm">Modifier</a>
+    <form method="post" action="{{ url_for('entries.delete', entry_id=entry.id) }}"
+          onsubmit="return confirm('Supprimer cette écriture ?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-outline-danger btn-sm">Supprimer</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<table class="table table-sm table-bordered">
+  <thead class="table-light">
+    <tr>
+      <th>Compte</th><th>Libellé</th>
+      <th class="text-end">Débit</th><th class="text-end">Crédit</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for line in entry.lines %}
+    <tr>
+      <td class="font-monospace">{{ line.account.code }} — {{ line.account.label }}</td>
+      <td>{{ line.label }}</td>
+      <td class="text-end font-monospace">{% if line.debit_cents %}{{ line.debit_cents | euros }}{% endif %}</td>
+      <td class="text-end font-monospace">{% if line.credit_cents %}{{ line.credit_cents | euros }}{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot class="table-secondary fw-bold">
+    <tr>
+      <td colspan="2">Total</td>
+      <td class="text-end font-monospace">{{ entry.total_debit | euros }}</td>
+      <td class="text-end font-monospace">{{ entry.total_credit | euros }}</td>
+    </tr>
+  </tfoot>
+</table>
+
+{% if not entry.is_balanced %}
+  <div class="alert alert-danger">Cette écriture n'est pas équilibrée.</div>
+{% endif %}
+{% endblock %}

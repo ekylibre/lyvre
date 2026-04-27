@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Import OFX{% endblock %}
+{% block content %}
+<h2>Import de fichier OFX</h2>
+<form method="post" enctype="multipart/form-data" class="col-md-6 mt-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="mb-3">
+    <label class="form-label">Compte bancaire</label>
+    <select name="bank_account_id" class="form-select" required>
+      <option value="">— Sélectionner —</option>
+      {% for ba in bank_accounts %}
+        <option value="{{ ba.id }}">{{ ba.label }}{% if ba.iban %} ({{ ba.iban }}){% endif %}</option>
+      {% endfor %}
+    </select>
+    {% if not bank_accounts %}
+      <div class="form-text text-warning">
+        Aucun compte bancaire configuré.
+        <a href="{{ url_for('bank_accounts.new') }}">Créer un compte bancaire</a>.
+      </div>
+    {% endif %}
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Fichier OFX</label>
+    <input type="file" name="ofx_file" class="form-control" accept=".ofx,.qfx" required>
+    <div class="form-text">Formats acceptés : .ofx, .qfx (OFX 1.x SGML ou 2.x XML)</div>
+  </div>
+  <button type="submit" class="btn btn-primary">Importer</button>
+</form>
+
+{% if result %}
+<div class="mt-4 col-md-6">
+  <h5>Résultat de l'import</h5>
+  <ul class="list-group">
+    <li class="list-group-item d-flex justify-content-between">
+      Nouvelles transactions <span class="badge bg-success">{{ result.imported }}</span>
+    </li>
+    <li class="list-group-item d-flex justify-content-between">
+      Doublons ignorés <span class="badge bg-secondary">{{ result.duplicates }}</span>
+    </li>
+  </ul>
+  {% if result.errors %}
+  <div class="alert alert-warning mt-2">
+    <strong>Erreurs :</strong>
+    <ul class="mb-0">{% for e in result.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
