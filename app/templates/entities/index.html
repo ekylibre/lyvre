@@ -3,15 +3,38 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h2>Entités</h2>
-  <a href="{{ url_for('entities.new') }}" class="btn btn-primary btn-sm">+ Nouvelle entité</a>
+  <div class="d-flex gap-2">
+    <form method="post" action="{{ url_for('entities.sync_helloasso_route') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-outline-primary btn-sm" {% if not helloasso_configured %}disabled{% endif %}>
+        Synchroniser HelloAsso
+      </button>
+    </form>
+    <button type="button" class="btn btn-outline-warning btn-sm" disabled
+            title="Indisponible : l'API HelloAsso v5 ne permet pas de créer une adhésion manuelle.">
+      Créer Adhésion HelloAsso
+    </button>
+    <a href="{{ url_for('entities.new') }}" class="btn btn-primary btn-sm">+ Nouvelle entité</a>
+  </div>
 </div>
 
+{% if not helloasso_configured %}
+<div class="alert alert-warning small">
+  HelloAsso non configuré. Définissez dans <code>.env</code> :
+  <code>HELLOASSO_CLIENT_ID</code>, <code>HELLOASSO_CLIENT_SECRET</code>, <code>HELLOASSO_ORG_SLUG</code>.
+</div>
+{% endif %}
+
 {% if entities %}
-<table class="table table-sm table-hover">
+<table class="table table-sm table-hover align-middle">
   <thead class="table-light">
     <tr>
       <th>Nom</th>
       <th>Type</th>
+      <th>Email</th>
+      <th>Adhérent</th>
+      <th>Dernière adhésion HA</th>
+      <th>Dernière adhésion POS</th>
       <th>Compte</th>
       <th>Transactions</th>
       <th>Notes</th>
@@ -21,8 +44,26 @@
   <tbody>
     {% for e in entities %}
     <tr>
-      <td class="fw-semibold">{{ e.name }}</td>
+      <td class="fw-semibold">
+        <a href="{{ url_for('entities.detail', entity_id=e.id) }}">{{ e.name }}</a>
+      </td>
       <td><span class="badge bg-secondary">{{ entity_types.get(e.entity_type, e.entity_type) }}</span></td>
+      <td class="small text-muted">{{ e.email or '' }}</td>
+      <td>
+        {% if e.is_member %}
+          <span class="badge bg-success">Adhérent</span>
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endif %}
+      </td>
+      <td class="small">
+        {% set last = last_membership_by_entity.get(e.id) %}
+        {% if last %}{{ last.strftime('%d/%m/%Y') }}{% else %}<span class="text-muted">—</span>{% endif %}
+      </td>
+      <td class="small">
+        {% set last_pos = last_odoo_membership_by_entity.get(e.id) %}
+        {% if last_pos %}{{ last_pos.strftime('%d/%m/%Y') }}{% else %}<span class="text-muted">—</span>{% endif %}
+      </td>
       <td class="font-monospace small">{{ e.account_code or '—' }}</td>
       <td>{{ e.transactions.count() }}</td>
       <td class="text-muted small">{{ e.notes or '' }}</td>

@@ -1,12 +1,28 @@
 {% extends "base.html" %}
+{% from "_list_helpers.html" import sortable_date_header, month_filter_select %}
 {% block title %}Lot {{ batch_name }}{% endblock %}
 {% block content %}
 <h2>Lot Odoo : {{ batch_name }}</h2>
 <a href="{{ url_for('imports.odoo') }}" class="btn btn-outline-secondary btn-sm mb-3">← Retour</a>
+
+<form method="get" class="row g-2 mb-3 align-items-end">
+  <input type="hidden" name="sort" value="{{ current_sort }}">
+  <div class="col-md-3">
+    <label class="form-label small mb-0">Mois</label>
+    {{ month_filter_select('month', month_options, current_month) }}
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-outline-secondary btn-sm">Filtrer</button>
+    {% if current_month %}
+    <a href="{{ url_for('imports.odoo_batch', batch_name=batch_name) }}" class="btn btn-link btn-sm">Réinitialiser</a>
+    {% endif %}
+  </div>
+</form>
+
 <table class="table table-sm table-hover">
   <thead class="table-light">
     <tr>
-      <th>Facture</th><th>Date</th><th>Client</th><th>Produit</th>
+      <th>Facture</th><th>{{ sortable_date_header('Date', current_sort, 'imports.odoo_batch', {'batch_name': batch_name, 'month': current_month}) }}</th><th>Client</th><th>Produit</th>
       <th class="text-end">HT</th><th class="text-end">TVA</th><th class="text-end">TTC</th>
       <th>Compte</th><th>Écriture</th>
     </tr>

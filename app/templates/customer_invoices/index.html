@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% from "_list_helpers.html" import sortable_date_header, month_filter_select %}
+{% block title %}Factures clients{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0">Factures clients</h2>
+    <small class="text-muted">Factures Odoo (modèle <code>account.move</code> · <code>out_invoice</code>) synchronisées via XML-RPC.</small>
+  </div>
+  <form method="post" action="{{ url_for('customer_invoices.sync') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-primary btn-sm" {% if not configured %}disabled{% endif %}>
+      Synchroniser depuis Odoo
+    </button>
+  </form>
+</div>
+
+{% if not configured %}
+<div class="alert alert-warning small">
+  Configuration Odoo incomplète. Définissez dans <code>.env</code> :
+  <code>ODOO_URL</code>, <code>ODOO_DB</code>, <code>ODOO_USERNAME</code> et <code>ODOO_API_KEY</code>.
+</div>
+{% endif %}
+
+<form method="get" class="row g-2 mb-3 align-items-end">
+  <div class="col-md-3">
+    <label class="form-label small mb-0">Recherche</label>
+    <input type="text" name="q" class="form-control form-control-sm" value="{{ q }}"
+           placeholder="Numéro, client, email…">
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small mb-0">État comptable</label>
+    <select name="state" class="form-select form-select-sm">
+      <option value="">Tous</option>
+      {% for code, label in states.items() %}
+        <option value="{{ code }}" {% if state == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small mb-0">État paiement</label>
+    <select name="payment_state" class="form-select form-select-sm">
+      <option value="">Tous</option>
+      {% for code, label in payment_states.items() %}
+        <option value="{{ code }}" {% if payment_state == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small mb-0">Mois</label>
+    {{ month_filter_select('month', month_options, current_month) }}
+  </div>
+  <input type="hidden" name="sort" value="{{ current_sort }}">
+  <div class="col-md-auto">
+    <button type="submit" class="btn btn-outline-secondary btn-sm">Filtrer</button>
+    {% if q or state or payment_state or current_month %}
+    <a href="{{ url_for('customer_invoices.index') }}" class="btn btn-link btn-sm">Réinitialiser</a>
+    {% endif %}
+  </div>
+</form>
+
+{% if invoices %}
+<table class="table table-sm table-hover align-middle">
+  <thead class="table-light">
+    <tr>
+      <th>{{ sortable_date_header('Date', current_sort, 'customer_invoices.index', {'state': state, 'payment_state': payment_state, 'q': q, 'month': current_month}) }}</th>
+      <th>Numéro</th>
+      <th>Référence</th>
+      <th>Client</th>
+      <th class="text-end">Total HT</th>
+      <th class="text-end">TVA</th>
+      <th class="text-end">Total TTC</th>
+      <th class="text-end">Reste dû</th>
+      <th>État</th>
+      <th>Paiement</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for inv in invoices %}
+    <tr>
+      <td>{{ inv.invoice_date.strftime('%d/%m/%Y') if inv.invoice_date else '—' }}</td>
+      <td class="font-monospace small">
+        <a href="{{ url_for('customer_invoices.detail', invoice_id=inv.id) }}">{{ inv.name or inv.odoo_id }}</a>
+      </td>
+      <td class="small text-muted">{{ inv.ref or '' }}</td>
+      <td class="small">
+        {% if inv.entity_id %}
+          <a href="{{ url_for('entities.detail', entity_id=inv.entity_id) }}">{{ inv.partner_name or inv.partner_email or '—' }}</a>
+        {% else %}
+          {{ inv.partner_name or inv.partner_email or '—' }}
+        {% endif %}
+      </td>
+      <td class="text-end font-monospace">{{ inv.amount_untaxed_cents | euros }}</td>
+      <td class="text-end font-monospace text-muted">{{ inv.amount_tax_cents | euros }}</td>
+      <td class="text-end font-monospace">{{ inv.amount_total_cents | euros }}</td>
+      <td class="text-end font-monospace {% if inv.amount_residual_cents > 0 and inv.state == 'posted' %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+        {{ inv.amount_residual_cents | euros }}
+      </td>
+      <td>
+        {% set st = inv.state %}
+        {% if st == 'posted' %}
+          <span class="badge bg-success">{{ states.get(st, st) }}</span>
+        {% elif st == 'cancel' %}
+          <span class="badge bg-danger">{{ states.get(st, st) }}</span>
+        {% else %}
+          <span class="badge bg-secondary">{{ states.get(st, st or '—') }}</span>
+        {% endif %}
+      </td>
+      <td>
+        {% set ps = inv.payment_state %}
+        {% if ps == 'paid' %}
+          <span class="badge bg-success">{{ payment_states.get(ps, ps) }}</span>
+        {% elif ps == 'partial' %}
+          <span class="badge bg-warning text-dark">{{ payment_states.get(ps, ps) }}</span>
+        {% elif ps == 'in_payment' %}
+          <span class="badge bg-info text-dark">{{ payment_states.get(ps, ps) }}</span>
+        {% elif ps == 'reversed' %}
+          <span class="badge bg-dark">{{ payment_states.get(ps, ps) }}</span>
+        {% elif ps == 'not_paid' %}
+          <span class="badge bg-danger">{{ payment_states.get(ps, ps) }}</span>
+        {% else %}
+          <span class="badge bg-secondary">{{ payment_states.get(ps, ps or '—') }}</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<div class="text-muted small">{{ invoices | length }} facture(s) — limite d'affichage 500.</div>
+{% else %}
+<p class="text-muted">Aucune facture correspondante.</p>
+{% endif %}
+{% endblock %}

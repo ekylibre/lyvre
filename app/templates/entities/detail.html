@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% block title %}{{ entity.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0">
+      {{ entity.name }}
+      {% if entity.is_member %}
+        <span class="badge bg-success align-middle">Adhérent</span>
+      {% endif %}
+    </h2>
+    <small class="text-muted">
+      {{ entity_types.get(entity.entity_type, entity.entity_type) }}
+      {% if entity.email %} · {{ entity.email }}{% endif %}
+      {% if entity.account_code %} · compte <code>{{ entity.account_code }}</code>{% endif %}
+    </small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('entities.edit', entity_id=entity.id) }}" class="btn btn-outline-secondary btn-sm">Modifier</a>
+    <a href="{{ url_for('entities.index') }}" class="btn btn-outline-secondary btn-sm">← Retour</a>
+  </div>
+</div>
+
+{% if entity.notes %}
+<p class="text-muted">{{ entity.notes }}</p>
+{% endif %}
+
+{% if odoo_orders %}
+<h5 class="mt-4">Commandes POS Odoo ({{ odoo_orders | length }})</h5>
+{% for o in odoo_orders %}
+  {% set lines = odoo_lines_by_order.get(o.id, []) %}
+  {% set pmts  = odoo_payments_by_order.get(o.id, []) %}
+  <details class="card mb-2">
+    <summary class="card-header d-flex justify-content-between align-items-center" style="cursor: pointer; list-style: revert;">
+      <div>
+        <span class="fw-semibold">{{ o.name or ('POS #' ~ o.odoo_id) }}</span>
+        <span class="text-muted small ms-2">
+          {{ o.date_order.strftime('%d/%m/%Y %H:%M') if o.date_order else '—' }}
+          {% if o.session_name %} · session {{ o.session_name }}{% endif %}
+        </span>
+      </div>
+      <div>
+        {% set st = o.state %}
+        {% if st in ('done', 'invoiced') %}
+          <span class="badge bg-success me-2">{{ odoo_states.get(st, st) }}</span>
+        {% elif st == 'paid' %}
+          <span class="badge bg-info text-dark me-2">{{ odoo_states.get(st, st) }}</span>
+        {% elif st == 'cancel' %}
+          <span class="badge bg-danger me-2">{{ odoo_states.get(st, st) }}</span>
+        {% else %}
+          <span class="badge bg-secondary me-2">{{ odoo_states.get(st, st or '—') }}</span>
+        {% endif %}
+        <span class="font-monospace fw-semibold">{{ o.amount_total_cents | euros }}</span>
+      </div>
+    </summary>
+    <div class="card-body">
+      <h6 class="text-muted small">Lignes ({{ lines | length }})</h6>
+      <table class="table table-sm mb-3">
+        <thead class="table-light">
+          <tr>
+            <th>Produit</th>
+            <th class="text-end">Qté</th>
+            <th class="text-end">PU</th>
+            <th class="text-end">Remise %</th>
+            <th class="text-end">Sous-total HT</th>
+            <th class="text-end">Sous-total TTC</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for l in lines %}
+          <tr>
+            <td>{{ l.full_product_name or l.product_name or l.product_id }}</td>
+            <td class="text-end">{{ '%g' % l.qty }}</td>
+            <td class="text-end font-monospace">{{ l.price_unit_cents | euros }}</td>
+            <td class="text-end small text-muted">{{ '%g' % l.discount }}</td>
+            <td class="text-end font-monospace">{{ l.price_subtotal_cents | euros }}</td>
+            <td class="text-end font-monospace">{{ l.price_subtotal_incl_cents | euros }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-muted text-center small">Aucune ligne.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <h6 class="text-muted small">Paiements ({{ pmts | length }})</h6>
+      <table class="table table-sm mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Date</th>
+            <th>Mode</th>
+            <th>Carte</th>
+            <th>Référence</th>
+            <th class="text-end">Montant</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in pmts %}
+          <tr>
+            <td>{{ p.payment_date.strftime('%d/%m/%Y %H:%M') if p.payment_date else '—' }}</td>
+            <td>{{ p.payment_method_name or '—' }}</td>
+            <td class="small text-muted">{{ p.card_type or '' }}</td>
+            <td class="font-monospace small">{{ p.transaction_id or p.name or '' }}</td>
+            <td class="text-end font-monospace">{{ p.amount_cents | euros }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-muted text-center small">Aucun paiement.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{% endfor %}
+{% endif %}
+
+{% if customer_invoices %}
+<h5 class="mt-4">Factures clients ({{ customer_invoices | length }})</h5>
+<table class="table table-sm table-hover align-middle">
+  <thead class="table-light">
+    <tr>
+      <th>Date</th>
+      <th>Numéro</th>
+      <th>Référence</th>
+      <th class="text-end">Total TTC</th>
+      <th class="text-end">Reste dû</th>
+      <th>État</th>
+      <th>Paiement</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for inv in customer_invoices %}
+    <tr>
+      <td>{{ inv.invoice_date.strftime('%d/%m/%Y') if inv.invoice_date else '—' }}</td>
+      <td class="font-monospace small">
+        <a href="{{ url_for('customer_invoices.detail', invoice_id=inv.id) }}">{{ inv.name or inv.odoo_id }}</a>
+      </td>
+      <td class="small text-muted">{{ inv.ref or '' }}</td>
+      <td class="text-end font-monospace">{{ inv.amount_total_cents | euros }}</td>
+      <td class="text-end font-monospace {% if inv.amount_residual_cents > 0 and inv.state == 'posted' %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+        {{ inv.amount_residual_cents | euros }}
+      </td>
+      <td>
+        {% set st = inv.state %}
+        {% if st == 'posted' %}
+          <span class="badge bg-success">{{ invoice_states.get(st, st) }}</span>
+        {% elif st == 'cancel' %}
+          <span class="badge bg-danger">{{ invoice_states.get(st, st) }}</span>
+        {% else %}
+          <span class="badge bg-secondary">{{ invoice_states.get(st, st or '—') }}</span>
+        {% endif %}
+      </td>
+      <td>
+        {% set ps = inv.payment_state %}
+        {% if ps == 'paid' %}
+          <span class="badge bg-success">{{ invoice_payment_states.get(ps, ps) }}</span>
+        {% elif ps == 'partial' %}
+          <span class="badge bg-warning text-dark">{{ invoice_payment_states.get(ps, ps) }}</span>
+        {% elif ps == 'in_payment' %}
+          <span class="badge bg-info text-dark">{{ invoice_payment_states.get(ps, ps) }}</span>
+        {% elif ps == 'reversed' %}
+          <span class="badge bg-dark">{{ invoice_payment_states.get(ps, ps) }}</span>
+        {% elif ps == 'not_paid' %}
+          <span class="badge bg-danger">{{ invoice_payment_states.get(ps, ps) }}</span>
+        {% else %}
+          <span class="badge bg-secondary">{{ invoice_payment_states.get(ps, ps or '—') }}</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if entity.is_member %}
+
+<h5 class="mt-4">Commandes HelloAsso ({{ orders | length }})</h5>
+{% if orders %}
+<table class="table table-sm table-hover align-middle">
+  <thead class="table-light">
+    <tr>
+      <th>Date</th>
+      <th>Formulaire</th>
+      <th>Type</th>
+      <th class="text-end">Montant</th>
+      <th>Payeur</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for o in orders %}
+    <tr>
+      <td>{{ o.date.strftime('%d/%m/%Y') if o.date else '—' }}</td>
+      <td class="small">{{ o.form_slug or '—' }}</td>
+      <td class="small text-muted">{{ o.form_type or '' }}</td>
+      <td class="text-end font-monospace">{{ o.amount_total_cents | euros }}</td>
+      <td class="small">{{ o.payer_first_name or '' }} {{ o.payer_last_name or '' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="text-muted small">Aucune commande HelloAsso rattachée.</p>
+{% endif %}
+
+<h5 class="mt-4">Articles ({{ items | length }})</h5>
+{% if items %}
+<table class="table table-sm table-hover align-middle">
+  <thead class="table-light">
+    <tr>
+      <th>Article</th>
+      <th>Type</th>
+      <th>État</th>
+      <th class="text-end">Montant</th>
+      <th>Bénéficiaire</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for it in items %}
+    <tr>
+      <td>{{ it.name or '—' }}</td>
+      <td>
+        {% if it.type == 'Membership' %}
+          <span class="badge bg-success">{{ it.type }}</span>
+        {% else %}
+          <span class="badge bg-secondary">{{ it.type or '—' }}</span>
+        {% endif %}
+      </td>
+      <td class="small text-muted">{{ it.state or '' }}</td>
+      <td class="text-end font-monospace">{{ it.amount_cents | euros }}</td>
+      <td class="small">
+        {{ it.user_first_name or '' }} {{ it.user_last_name or '' }}
+        {% if it.user_email %}<br><span class="text-muted">{{ it.user_email }}</span>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="text-muted small">Aucun article HelloAsso.</p>
+{% endif %}
+
+<h5 class="mt-4">Paiements ({{ payments | length }})</h5>
+{% if payments %}
+<table class="table table-sm table-hover align-middle">
+  <thead class="table-light">
+    <tr>
+      <th>Date</th>
+      <th>Mode</th>
+      <th>État</th>
+      <th class="text-end">Montant</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in payments %}
+    <tr>
+      <td>{{ p.payment_date.strftime('%d/%m/%Y') if p.payment_date else '—' }}</td>
+      <td class="small">{{ p.payment_means or '—' }}</td>
+      <td class="small text-muted">{{ p.state or '' }}</td>
+      <td class="text-end font-monospace">{{ p.amount_cents | euros }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="text-muted small">Aucun paiement HelloAsso.</p>
+{% endif %}
+
+{% else %}
+<div class="alert alert-info small mt-4">
+  Cette entité n'est pas marquée comme adhérente. Cochez "Adhérent" dans son formulaire,
+  ou lancez la synchronisation HelloAsso : un article de type <code>Membership</code> rattaché
+  à son email la marquera automatiquement.
+</div>
+{% endif %}
+{% endblock %}

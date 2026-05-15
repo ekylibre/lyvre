@@ -49,6 +49,13 @@ rules:
     category: "Eco-organisme"
     account: "758"
 
+  - name: "Ecologic"
+    label_contains: "VIREMENT EN VOTRE FAVEUR ECOLOGIC"
+    entity: "ECOLOGIC"
+    entity_type: CLIENT
+    category: "Eco-organisme"
+    account: "758"
+
   - name: "Salaires"
     label_regex: "(?i)amandine mouret|Amandine mouret"
     entity: "Amandine Mouret"

@@ -180,7 +180,7 @@ FiscalYear ──────────────────── JournalE
 
 ---
 
-## Entity — Tiers (clients, fournisseurs, salariés…)
+## Entity — Tiers (clients, fournisseurs, adhérents, salariés…)
 
 **Table :** `entities`
 
@@ -190,6 +190,8 @@ FiscalYear ──────────────────── JournalE
 | `name` | String(200) UNIQUE NOT NULL | Nom affiché (ex : `"URSSAF"`, `"EDF"`) |
 | `entity_type` | String(20) NOT NULL default=`AUTRE` | Type parmi les valeurs ci-dessous |
 | `account_code` | String(20) nullable | Code compte GL associé (ex : `"401000"`) |
+| `email` | String(200) nullable (indexé) | Clé de rattachement HelloAsso / Odoo |
+| `is_member` | Boolean default=False | `True` pour les adhérents (basculé auto par les syncs) |
 | `notes` | Text nullable | Informations libres |
 | `created_at` | DateTime | |
 
@@ -197,13 +199,20 @@ FiscalYear ──────────────────── JournalE
 
 | Valeur | Signification |
 |--------|---------------|
-| `CLIENT` | Client / adhérent |
+| `CLIENT` | Client (créé auto par sync POS / factures Odoo) |
 | `FOURNISSEUR` | Fournisseur |
 | `SALARIE` | Salarié |
+| `ADHERENT` | Adhérent (basculé auto si item Membership HelloAsso ou ligne `Adhésion` POS) |
 | `ORGANISME` | Organisme public ou social (URSSAF, DGFIP…) |
 | `AUTRE` | Autre |
 
-**Relations :** `transactions` → `BankTransaction[]` (lazy dynamic)
+**Relations :**
+- `transactions` → `BankTransaction[]` (lazy dynamic)
+- côté inverse non déclaré, mais référencé via FK `entity_id` (ON DELETE SET NULL) par : `Order`, `CustomerInvoice`, `HelloAssoOrder`, `HelloAssoItem`.
+
+**Helpers de résolution** (`app/services/entity_resolver.py`) :
+- `entity_by_email(cache, email)` — recherche insensible à la casse avec cache local au sync.
+- `unique_entity_name(base_name, email=None)` — garantit l'unicité de `Entity.name` (suffixe par email puis `#N`).
 
 ---
 
@@ -316,3 +325,171 @@ Suit l'exécution d'une synchronisation Stancer lancée en arrière-plan (thread
 | `imported_at` | DateTime | |
 
 **Flux :** Les lignes arrivent dans cette table en état "en attente". Elles sont examinées par le comptable, puis comptabilisées (création d'une `JournalEntry` liée).
+
+---
+
+## Order — Commande POS Odoo
+
+**Table :** `orders` — miroir local du modèle Odoo `pos.order`, synchronisé via XML-RPC par `app/services/odoo_pos_sync.py`.
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| `id` | Integer PK | |
+| `odoo_id` | Integer UNIQUE NOT NULL (indexé) | ID Odoo — clé d'idempotence |
+| `name` | String(200) | Nom Odoo (ex : `POS/0042`) |
+| `pos_reference` | String(200) (indexé) | Référence POS |
+| `state` | String(20) | `draft`, `paid`, `done`, `invoiced`, `cancel` |
+| `session_id` / `session_name` | Integer / String(200) | Session POS |
+| `partner_id` / `partner_name` / `partner_email` | Integer / String(200) / String(200) (indexé) | Partenaire Odoo |
+| `entity_id` | Integer FK→entities ON DELETE SET NULL (indexé) | Tiers local rattaché par email |
+| `user_id` / `user_name` | Integer / String(200) | Vendeur |
+| `company_id` | Integer | Société Odoo |
+| `date_order` | DateTime (indexé) | Date de la commande |
+| `amount_total_cents` / `amount_tax_cents` / `amount_paid_cents` / `amount_return_cents` | Integer NOT NULL default=0 | Montants TTC / TVA / payé / rendu monnaie |
+| `currency` | String(3) NOT NULL default `EUR` | |
+| `note`, `raw_payload` | Text | Note + JSON brut de la réponse Odoo |
+| `created_at`, `imported_at` | DateTime | |
+
+**Relations :**
+- `lines` (lazy dynamic, cascade) → `OrderLine[]`
+- `payments` (lazy dynamic, cascade) → `OrderPayment[]`
+- `entity` → `Entity` (par FK `entity_id`)
+
+**Constantes** (`app/models/order.py`) :
+
+```python
+POS_ORDER_STATES = [
+    ("draft", "Brouillon"), ("paid", "Payée"), ("done", "Comptabilisée"),
+    ("invoiced", "Facturée"), ("cancel", "Annulée"),
+]
+```
+
+---
+
+## OrderLine — Ligne de commande POS
+
+**Table :** `order_lines` (FK CASCADE depuis `orders`)
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| `id` | Integer PK | |
+| `odoo_id` | Integer UNIQUE NOT NULL (indexé) | `pos.order.line.id` |
+| `order_id` | Integer FK→orders ON DELETE CASCADE (indexé) | |
+| `product_id` / `product_name` / `full_product_name` | Integer / String(300) / String(500) | Produit |
+| `qty` / `discount` | Float NOT NULL default=0 | |
+| `price_unit_cents` / `price_subtotal_cents` / `price_subtotal_incl_cents` | Integer NOT NULL default=0 | |
+| `tax_ids` | String(200) | CSV des IDs taxes Odoo |
+| `note`, `raw_payload` | Text | |
+| `imported_at` | DateTime | |
+
+> Le matching d'adhérent utilise `LIKE '%adh%sion%'` sur `product_name` / `full_product_name` (insensible à la casse).
+
+---
+
+## OrderPayment — Paiement POS
+
+**Table :** `order_payments` (FK CASCADE depuis `orders`)
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| `id` | Integer PK | |
+| `odoo_id` | Integer UNIQUE NOT NULL (indexé) | `pos.payment.id` |
+| `order_id` | Integer FK→orders ON DELETE CASCADE (indexé) | |
+| `name` | String(200) | |
+| `payment_method_id` / `payment_method_name` | Integer / String(200) | |
+| `amount_cents` | Integer NOT NULL default=0 | |
+| `currency` | String(3) NOT NULL default `EUR` | |
+| `payment_date` | DateTime (indexé) | |
+| `card_type`, `transaction_id` | String | |
+| `raw_payload` | Text | |
+| `imported_at` | DateTime | |
+
+---
+
+## CustomerInvoice — Facture client Odoo
+
+**Table :** `customer_invoices` — miroir local d'`account.move` filtré sur `move_type='out_invoice'`, synchronisé via XML-RPC par `app/services/odoo_invoice_sync.py`.
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| `id` | Integer PK | |
+| `odoo_id` | Integer UNIQUE NOT NULL (indexé) | `account.move.id` — clé d'idempotence |
+| `name` | String(100) (indexé) | Numéro de facture (ex : `INV/2026/00042`) |
+| `ref` | String(200) | Référence libre |
+| `state` | String(20) (indexé) | `draft`, `posted`, `cancel` |
+| `payment_state` | String(20) (indexé) | `not_paid`, `in_payment`, `partial`, `paid`, `reversed`, `invoicing_legacy` |
+| `partner_id` / `partner_name` / `partner_email` | Integer / String(200) / String(200) (indexé) | Client Odoo |
+| `entity_id` | Integer FK→entities ON DELETE SET NULL (indexé) | Tiers local rattaché par email |
+| `invoice_date` | Date (indexé) | Date d'émission |
+| `invoice_date_due` | Date | Échéance |
+| `currency` | String(3) NOT NULL default `EUR` | |
+| `amount_untaxed_cents` / `amount_tax_cents` / `amount_total_cents` / `amount_residual_cents` | Integer NOT NULL default=0 | HT / TVA / TTC / Reste dû |
+| `invoice_origin` | String(200) | Origine (ex : `SO/2026/0042`) |
+| `journal_name` | String(100) | Nom du journal de ventes Odoo |
+| `narration`, `raw_payload` | Text | Note bas de facture + JSON brut |
+| `created_at`, `imported_at` | DateTime | |
+
+**Relations :**
+- `lines` (lazy dynamic, cascade) → `CustomerInvoiceLine[]`
+- `entity` → `Entity` (par FK `entity_id`)
+
+**Constantes** (`app/models/customer_invoice.py`) :
+
+```python
+CUSTOMER_INVOICE_STATES = [
+    ("draft", "Brouillon"), ("posted", "Comptabilisée"), ("cancel", "Annulée"),
+]
+CUSTOMER_INVOICE_PAYMENT_STATES = [
+    ("not_paid", "Non payée"), ("in_payment", "En cours de paiement"),
+    ("partial", "Partiellement payée"), ("paid", "Payée"),
+    ("reversed", "Annulée par avoir"), ("invoicing_legacy", "Hérité"),
+]
+```
+
+> **Différence métier avec POS** : aucune notion de `is_member` n'est dérivée des factures clients. Le marquage d'adhérent reste exclusivement piloté par HelloAsso et les lignes `Adhésion` POS.
+
+---
+
+## CustomerInvoiceLine — Ligne de facture client
+
+**Table :** `customer_invoice_lines` (FK CASCADE depuis `customer_invoices`)
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| `id` | Integer PK | |
+| `odoo_id` | Integer UNIQUE NOT NULL (indexé) | `account.move.line.id` |
+| `invoice_id` | Integer FK→customer_invoices ON DELETE CASCADE (indexé) | |
+| `product_id` / `product_name` | Integer / String(300) | |
+| `description` | String(500) | Champ Odoo `name` (souvent verbeux) |
+| `qty` / `discount` | Float NOT NULL default=0 | |
+| `price_unit_cents` / `price_subtotal_cents` / `price_total_cents` | Integer NOT NULL default=0 | HT / TTC |
+| `tax_ids` | String(200) | CSV des IDs taxes Odoo |
+| `account_code` | String(20) | Préfixe extrait du nom de compte produit Odoo |
+| `raw_payload` | Text | |
+| `imported_at` | DateTime | |
+
+**Filtrage** : seules les lignes "produit" sont synchronisées. Le filtre côté `odoo_invoice_sync._is_product_line()` accepte `display_type='product'` (Odoo ≥ 16) ou — en fallback — toute ligne ayant un `product_id` non vide.
+
+---
+
+## HelloAssoForm / Order / Item / Payment
+
+**Tables :** `helloasso_forms`, `helloasso_orders`, `helloasso_items`, `helloasso_payments` — miroir des formulaires HelloAsso et de leurs commandes. Synchronisé par `app/services/helloasso_sync.py` (API v5, OAuth2 client_credentials).
+
+Schéma simplifié :
+
+| Table | FK | Champs notables |
+|-------|-----|-----------------|
+| `helloasso_forms` | — | `form_slug` (PK fonctionnelle), `form_type`, `title`, `currency` |
+| `helloasso_orders` | `entity_id` ON DELETE SET NULL | `helloasso_id`, `date`, `amount_total_cents`, `payer_*`, `form_slug`/`form_type` |
+| `helloasso_items` | `order_id` CASCADE + `entity_id` ON DELETE SET NULL | `helloasso_id`, `name`, `type` (`Membership`, `Donation`, ...), `state`, `amount_cents`, `user_first_name`/`user_last_name`/`user_email` |
+| `helloasso_payments` | `order_id` CASCADE | `helloasso_id`, `payment_date`, `payment_means`, `state`, `amount_cents` |
+
+**Règle métier** : toute Entity ayant ≥ 1 `helloasso_items.type='Membership'` (ou ligne POS `Adhésion`) bascule en `is_member=True` + `entity_type='ADHERENT'`. Cette logique est centralisée dans `helloasso_sync.py` (création) et `odoo_pos_sync._refresh_pos_member_flag` (rattrapage).
+
+**Endpoints HelloAsso utilisés** :
+- `POST /oauth2/token` (token ~30 min)
+- `GET /v5/organizations/{slug}/forms`
+- `GET /v5/organizations/{slug}/orders?withDetails=true` (items + payments embarqués, pagination `pageIndex`/`totalPages`)
+
+Les montants HelloAsso sont **déjà en centimes entiers** dans l'API.

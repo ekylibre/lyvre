@@ -5,6 +5,7 @@ ENTITY_TYPES = [
     ("CLIENT", "Client"),
     ("FOURNISSEUR", "Fournisseur"),
     ("SALARIE", "Salarié"),
+    ("ADHERENT", "Adhérent"),
     ("ORGANISME", "Organisme public / social"),
     ("AUTRE", "Autre"),
 ]
@@ -17,6 +18,8 @@ class Entity(db.Model):
     name = db.Column(db.String(200), unique=True, nullable=False)
     entity_type = db.Column(db.String(20), nullable=False, default="AUTRE")
     account_code = db.Column(db.String(20))
+    email = db.Column(db.String(200), index=True)
+    is_member = db.Column(db.Boolean, nullable=False, default=False)
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

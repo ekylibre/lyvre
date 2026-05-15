@@ -2,6 +2,10 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from app.extensions import db
 from app.models import BankAccount, Account, BankTransaction
+from app.utils.list_filters import (
+    parse_sort, parse_month, apply_date_sort, apply_month_filter,
+    sort_and_filter_context,
+)
 
 bp = Blueprint("bank_accounts", __name__, url_prefix="/bank-accounts")
 
@@ -89,13 +93,20 @@ def delete(ba_id):
 def transactions(ba_id):
     ba = BankAccount.query.get_or_404(ba_id)
     only_unreconciled = request.args.get("unreconciled", "0") == "1"
-    query = ba.transactions.order_by(BankTransaction.transaction_date.desc())
+    sort = parse_sort(request.args.get("sort"))
+    month_arg = request.args.get("month")
+    month_tuple = parse_month(month_arg)
+
+    query = ba.transactions
     if only_unreconciled:
         query = query.filter_by(reconciled=False)
+    query = apply_month_filter(query, BankTransaction.transaction_date, month_tuple)
+    query = apply_date_sort(query, BankTransaction.transaction_date, sort)
     txns = query.all()
     return render_template(
         "bank_accounts/transactions.html",
         ba=ba,
         txns=txns,
         only_unreconciled=only_unreconciled,
+        **sort_and_filter_context(sort, month_arg),
     )

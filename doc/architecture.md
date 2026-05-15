@@ -27,7 +27,13 @@ compta-asso/
 │   │   ├── payout.py             # Versements Stancer
 │   │   ├── payment.py            # Paiements Stancer rattachés à un payout
 │   │   ├── sync_job.py           # Suivi des syncs Stancer asynchrones
-│   │   └── odoo_import.py
+│   │   ├── odoo_import.py
+│   │   ├── order.py              # Commandes POS Odoo (pos.order)
+│   │   ├── order_line.py         # Lignes de commande POS
+│   │   ├── order_payment.py      # Paiements POS
+│   │   ├── customer_invoice.py   # Factures clients Odoo (account.move)
+│   │   ├── customer_invoice_line.py
+│   │   └── helloasso.py          # Forms / Orders / Items / Payments HelloAsso
 │   │
 │   ├── views/                    # Blueprints Flask (un fichier par domaine)
 │   │   ├── auth.py
@@ -39,22 +45,35 @@ compta-asso/
 │   │   ├── imports.py
 │   │   ├── reconciliation.py
 │   │   ├── reports.py
-│   │   ├── entities.py           # CRUD tiers
+│   │   ├── entities.py           # CRUD tiers + listes HelloAsso/POS/factures par tiers
 │   │   ├── rules.py              # Affichage règles + application
-│   │   └── payouts.py            # Liste + détail + sync Payouts/Payments Stancer
+│   │   ├── payouts.py            # Liste + détail + sync Payouts/Payments Stancer
+│   │   ├── orders.py             # Commandes POS Odoo : liste + détail + sync
+│   │   └── customer_invoices.py  # Factures clients Odoo : liste + détail + sync
 │   │
 │   ├── services/                 # Logique métier (sans dépendance Flask)
 │   │   ├── ledger.py             # Moteur comptable : validation, saisie, soldes
 │   │   ├── reports.py            # Calcul Bilan et Compte de résultat
 │   │   ├── reconciler.py         # Rapprochement bancaire
 │   │   ├── ofx_importer.py       # Import fichiers OFX
-│   │   ├── odoo_importer.py      # Import CSV Odoo
+│   │   ├── odoo_importer.py      # Import CSV Odoo (staging)
 │   │   ├── rules_engine.py       # Catégorisation automatique des transactions
 │   │   ├── stancer_sync.py       # Synchronisation Payouts + Payments Stancer (API v2)
-│   │   └── stancer_async.py      # Wrapper threading + suivi via SyncJob
+│   │   ├── stancer_async.py      # Wrapper threading + suivi via SyncJob
+│   │   ├── odoo_client.py        # Client XML-RPC Odoo (commun POS + factures)
+│   │   ├── odoo_pos_sync.py      # Sync pos.order → orders / order_lines / order_payments
+│   │   ├── odoo_invoice_sync.py  # Sync account.move → customer_invoices / lines
+│   │   ├── entity_resolver.py    # Helpers email → Entity (cache + unicité du nom)
+│   │   ├── helloasso_client.py   # OAuth2 + REST v5 HelloAsso
+│   │   ├── helloasso_sync.py     # Sync forms/orders/items/payments + flag is_member
+│   │   └── helloasso_create.py   # Création de Memberships côté HelloAsso
+│   │
+│   ├── utils/                    # Helpers transverses (sans dépendance Flask hors `request`)
+│   │   └── list_filters.py       # Parse sort/month, calcule les options de mois pour le FY courant
 │   │
 │   ├── templates/                # Templates Jinja2
 │   │   ├── base.html             # Layout principal (nav, Bootstrap, HTMX)
+│   │   ├── _list_helpers.html    # Macros partagées : sortable_date_header, month_filter_select
 │   │   ├── auth/
 │   │   ├── dashboard/
 │   │   ├── accounts/
@@ -66,7 +85,9 @@ compta-asso/
 │   │   ├── reports/
 │   │   ├── entities/
 │   │   ├── rules/
-│   │   └── payouts/
+│   │   ├── payouts/
+│   │   ├── orders/               # Commandes POS Odoo
+│   │   └── customer_invoices/    # Factures clients Odoo
 │   │
 │   └── static/
 │       ├── css/app.css           # Surcharges Bootstrap + styles impression
@@ -99,7 +120,8 @@ compta-asso/
 | **PyYAML** | Lecture du fichier de règles de catégorisation |
 | **odfpy** | Génération des exports ODS du compte de résultat |
 | **echarts-python** | Construction côté serveur des options ECharts pour le tableau de bord |
-| **requests** | Appels REST à l'API Stancer v2 (Payouts + Payments) — auth HTTP Basic |
+| **requests** | Appels REST à l'API Stancer v2 + HelloAsso v5 (OAuth2 client_credentials) |
+| **xmlrpc.client** (stdlib) | Client XML-RPC Odoo — endpoints `/xmlrpc/2/common` + `/xmlrpc/2/object`, API key passée comme password |
 
 ### Frontend
 
@@ -243,6 +265,55 @@ POST /reconciliation/link
           └── SET bank_transaction.reconciled = True
 ```
 
+### Synchronisation Odoo POS / Factures clients
+
+```
+POST /orders/sync            (sync POS, synchrone)
+POST /customer-invoices/sync (sync factures clients, synchrone)
+    │
+    └── odoo_pos_sync.sync_pos_orders()        OU
+        odoo_invoice_sync.sync_customer_invoices()
+          ├── odoo_client.from_app_config() → OdooClient (XML-RPC, auth via API key)
+          ├── Étape 1 — pagination search_read sur le modèle Odoo principal :
+          │     pos.order            (POS)
+          │     account.move filtré move_type='out_invoice' (factures)
+          │     UPSERT sur odoo_id dans la table locale (orders ou customer_invoices)
+          ├── Étape 2 — search_read par lots d'IDs sur les lignes :
+          │     pos.order.line       (POS)
+          │     account.move.line filtrée display_type='product' ou product_id≠False
+          │     UPSERT sur odoo_id (order_lines ou customer_invoice_lines, CASCADE)
+          ├── Étape 3 (POS uniquement) — pos.payment → order_payments (CASCADE)
+          ├── Étape 4 — _fetch_partners(client, partner_ids) → res.partner
+          │     entity_resolver.entity_by_email + unique_entity_name
+          │     Création auto Entity(entity_type='CLIENT') par email
+          ├── Étape 5 (POS uniquement) — _refresh_pos_member_flag :
+          │     Toute Entity ayant une OrderLine "Adhésion" → is_member=True
+          │     + bascule entity_type=ADHERENT
+          └── commit unique en fin de sync
+```
+
+### Synchronisation HelloAsso
+
+```
+POST /entities/sync-helloasso
+    │
+    └── helloasso_sync.sync_helloasso()
+          ├── helloasso_client.from_app_config() → token OAuth2 client_credentials
+          ├── GET /v5/organizations/{slug}/forms       → helloasso_forms
+          ├── GET /v5/organizations/{slug}/orders?withDetails=true
+          │     (items + payments embarqués dans la réponse)
+          │     UPSERT helloasso_orders / _items / _payments
+          ├── entity_resolver.entity_by_email pour rattacher orders + items :
+          │     items rattachés par user_email, fallback payer email
+          │     Entity créée si besoin (entity_type='ADHERENT' pour items Membership)
+          └── Pour toute Entity avec ≥ 1 item Membership → is_member=True
+
+POST /entities/create-helloasso-memberships
+    │
+    └── helloasso_create.create_membership_for_entity(...)
+          (création côté HelloAsso pour tiers ayant adhésion POS sans HA)
+```
+
 ### États financiers (Bilan / CdR)
 
 ```
@@ -258,6 +329,79 @@ GET /reports/bilan
                        JOIN journal_entries ON ...
                        JOIN accounts ON code LIKE "211%"
                        WHERE fiscal_year_id = fy.id
+```
+
+---
+
+## Tri & filtre par mois sur les listes
+
+Les 8 listes datées de l'application partagent un mécanisme commun de tri par date + filtre par mois, factorisé dans `app/utils/list_filters.py` et `app/templates/_list_helpers.html`.
+
+**Listes concernées** :
+
+| Liste | Endpoint Flask | Colonne triée |
+|-------|---------------|---------------|
+| Écritures | `entries.index` | `JournalEntry.entry_date` |
+| Transactions bancaires | `bank_accounts.transactions` | `BankTransaction.transaction_date` |
+| Versements Stancer | `payouts.index` | `Payout.date_payout` |
+| Paiements d'un versement | `payouts.detail` | `Payment.date_payment` |
+| Commandes POS | `orders.index` | `Order.date_order` |
+| Factures clients | `customer_invoices.index` | `CustomerInvoice.invoice_date` |
+| Rapprochement | `reconciliation.index` | `BankTransaction.transaction_date` |
+| Lot Odoo CSV | `imports.odoo_batch` | `OdooImportLine.invoice_date` |
+
+**Convention des paramètres GET** :
+
+- `sort` = `asc` | `desc` (défaut `desc`)
+- `month` = `YYYY-MM` (ex : `2026-03` → filtre `WHERE column >= 2026-03-01 AND column < 2026-04-01`)
+
+**Helpers Python** (`app.utils.list_filters`) :
+
+```python
+parse_sort(arg, default='desc')         # → 'asc' | 'desc'
+parse_month(arg)                        # → (year, month) | None
+apply_date_sort(query, column, sort)    # → query.order_by(column.desc().nullslast()) ou .asc().nullsfirst()
+apply_month_filter(query, column, ym)   # → query.filter(column >= start, column < end)
+month_options_for_fy(fy=None)           # → [{value:'2026-03', label:'mars 2026'}, ...]
+sort_and_filter_context(sort, month)    # sucre qui prépare le dict pour le template
+```
+
+`month_options_for_fy()` lit l'exercice non clôturé le plus récent (sinon le plus récent tout court) et génère les 12 mois en français (`janvier 2026`, `février 2026`, ...).
+
+**Macros Jinja** (`templates/_list_helpers.html`) :
+
+- `sortable_date_header(label, current_sort, endpoint, extra_args)` — génère le `<th>` avec lien qui bascule `asc ↔ desc` à chaque clic, indicateur ▲/▼, en préservant les autres query args (filtre les valeurs nulles/vides). Exemple :
+
+  ```jinja
+  {% from "_list_helpers.html" import sortable_date_header, month_filter_select %}
+  <th>{{ sortable_date_header('Date', current_sort, 'orders.index', {'month': current_month}) }}</th>
+  ```
+
+- `month_filter_select(name, options, selected)` — `<select>` Bootstrap-friendly avec option « Tous les mois » en tête.
+
+**Pattern d'intégration dans une vue** :
+
+```python
+from app.utils.list_filters import (
+    parse_sort, parse_month, apply_date_sort, apply_month_filter,
+    sort_and_filter_context,
+)
+
+@bp.route("/")
+@login_required
+def index():
+    sort = parse_sort(request.args.get("sort"))
+    month_arg = request.args.get("month")
+    month_tuple = parse_month(month_arg)
+
+    query = MyModel.query
+    query = apply_month_filter(query, MyModel.my_date, month_tuple)
+    query = apply_date_sort(query, MyModel.my_date, sort)
+    rows = query.all()
+    return render_template(
+        "my/index.html", rows=rows,
+        **sort_and_filter_context(sort, month_arg),
+    )
 ```
 
 ---

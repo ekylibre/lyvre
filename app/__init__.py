@@ -38,6 +38,7 @@ def create_app(config_name=None):
     from .views.rules import bp as rules_bp
     from .views.payouts import bp as payouts_bp
     from .views.orders import bp as orders_bp
+    from .views.customer_invoices import bp as customer_invoices_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -53,6 +54,7 @@ def create_app(config_name=None):
     app.register_blueprint(rules_bp)
     app.register_blueprint(payouts_bp)
     app.register_blueprint(orders_bp)
+    app.register_blueprint(customer_invoices_bp)
 
     _register_template_filters(app)
 

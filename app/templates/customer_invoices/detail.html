@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Facture {{ invoice.name or invoice.odoo_id }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0">{{ invoice.name or ('Facture #' ~ invoice.odoo_id) }}</h2>
+    <small class="text-muted">
+      {% if invoice.invoice_date %}Émise le {{ invoice.invoice_date.strftime('%d/%m/%Y') }}{% endif %}
+      {% if invoice.invoice_date_due %} · échéance {{ invoice.invoice_date_due.strftime('%d/%m/%Y') }}{% endif %}
+      {% if invoice.journal_name %} · {{ invoice.journal_name }}{% endif %}
+    </small>
+  </div>
+  <a href="{{ url_for('customer_invoices.index') }}" class="btn btn-sm btn-outline-secondary">← Retour</a>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="card"><div class="card-body">
+    <div class="small text-muted">Total HT</div>
+    <div class="fs-4 fw-bold">{{ invoice.amount_untaxed_cents | euros }}</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card"><div class="card-body">
+    <div class="small text-muted">TVA</div>
+    <div class="fs-4 fw-bold">{{ invoice.amount_tax_cents | euros }}</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card"><div class="card-body">
+    <div class="small text-muted">Total TTC</div>
+    <div class="fs-4 fw-bold">{{ invoice.amount_total_cents | euros }}</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card"><div class="card-body">
+    <div class="small text-muted">Reste dû</div>
+    <div class="fs-4 fw-bold {% if invoice.amount_residual_cents > 0 and invoice.state == 'posted' %}text-danger{% endif %}">
+      {{ invoice.amount_residual_cents | euros }}
+    </div>
+  </div></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card"><div class="card-body small">
+      <div class="row">
+        <div class="col-5 text-muted">Numéro</div>
+        <div class="col-7 font-monospace">{{ invoice.name or '—' }}</div>
+      </div>
+      <div class="row">
+        <div class="col-5 text-muted">Référence</div>
+        <div class="col-7">{{ invoice.ref or '—' }}</div>
+      </div>
+      <div class="row">
+        <div class="col-5 text-muted">Origine</div>
+        <div class="col-7">{{ invoice.invoice_origin or '—' }}</div>
+      </div>
+      <div class="row">
+        <div class="col-5 text-muted">Devise</div>
+        <div class="col-7">{{ invoice.currency }}</div>
+      </div>
+    </div></div>
+  </div>
+  <div class="col-md-6">
+    <div class="card"><div class="card-body small">
+      <div class="row">
+        <div class="col-5 text-muted">Client</div>
+        <div class="col-7">
+          {% if invoice.entity_id %}
+            <a href="{{ url_for('entities.detail', entity_id=invoice.entity_id) }}">{{ invoice.partner_name or '—' }}</a>
+          {% else %}
+            {{ invoice.partner_name or '—' }}
+          {% endif %}
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-5 text-muted">Email</div>
+        <div class="col-7">{{ invoice.partner_email or '—' }}</div>
+      </div>
+      <div class="row">
+        <div class="col-5 text-muted">État comptable</div>
+        <div class="col-7">
+          {% set st = invoice.state %}
+          {% if st == 'posted' %}
+            <span class="badge bg-success">{{ states.get(st, st) }}</span>
+          {% elif st == 'cancel' %}
+            <span class="badge bg-danger">{{ states.get(st, st) }}</span>
+          {% else %}
+            <span class="badge bg-secondary">{{ states.get(st, st or '—') }}</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-5 text-muted">État paiement</div>
+        <div class="col-7">
+          {% set ps = invoice.payment_state %}
+          {% if ps == 'paid' %}
+            <span class="badge bg-success">{{ payment_states.get(ps, ps) }}</span>
+          {% elif ps == 'partial' %}
+            <span class="badge bg-warning text-dark">{{ payment_states.get(ps, ps) }}</span>
+          {% elif ps == 'in_payment' %}
+            <span class="badge bg-info text-dark">{{ payment_states.get(ps, ps) }}</span>
+          {% elif ps == 'reversed' %}
+            <span class="badge bg-dark">{{ payment_states.get(ps, ps) }}</span>
+          {% elif ps == 'not_paid' %}
+            <span class="badge bg-danger">{{ payment_states.get(ps, ps) }}</span>
+          {% else %}
+            <span class="badge bg-secondary">{{ payment_states.get(ps, ps or '—') }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<h5>Lignes</h5>
+<table class="table table-sm table-hover align-middle">
+  <thead class="table-light">
+    <tr>
+      <th>Produit</th>
+      <th>Description</th>
+      <th class="text-end">Qté</th>
+      <th class="text-end">PU HT</th>
+      <th class="text-end">Remise %</th>
+      <th class="text-end">Sous-total HT</th>
+      <th class="text-end">Sous-total TTC</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for l in lines %}
+    <tr>
+      <td>{{ l.product_name or '—' }}</td>
+      <td class="small text-muted">{{ l.description or '' }}</td>
+      <td class="text-end">{{ '%g' % l.qty }}</td>
+      <td class="text-end font-monospace">{{ l.price_unit_cents | euros }}</td>
+      <td class="text-end small text-muted">{{ '%g' % l.discount }}</td>
+      <td class="text-end font-monospace">{{ l.price_subtotal_cents | euros }}</td>
+      <td class="text-end font-monospace">{{ l.price_total_cents | euros }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" class="text-muted text-center">Aucune ligne produit.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if invoice.narration %}
+<h5 class="mt-4">Note</h5>
+<div class="card"><div class="card-body small text-muted">{{ invoice.narration | safe }}</div></div>
+{% endif %}
+{% endblock %}

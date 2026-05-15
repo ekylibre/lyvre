@@ -4,6 +4,10 @@ from datetime import date
 from app.extensions import db
 from app.models import JournalEntry, JournalLine, FiscalYear, Journal, Account, BankTransaction
 from app.services.ledger import post_entry, validate_lines, LedgerError
+from app.utils.list_filters import (
+    parse_sort, parse_month, apply_date_sort, apply_month_filter,
+    sort_and_filter_context,
+)
 
 bp = Blueprint("entries", __name__, url_prefix="/entries")
 
@@ -13,6 +17,9 @@ bp = Blueprint("entries", __name__, url_prefix="/entries")
 def index():
     fy_id = request.args.get("fy_id", type=int)
     journal_id = request.args.get("journal_id", type=int)
+    sort = parse_sort(request.args.get("sort"))
+    month_arg = request.args.get("month")
+    month_tuple = parse_month(month_arg)
 
     fiscal_years = FiscalYear.query.order_by(FiscalYear.start_date.desc()).all()
     journals = Journal.query.order_by(Journal.code).all()
@@ -26,7 +33,9 @@ def index():
         query = query.filter_by(fiscal_year_id=fy_id)
     if journal_id:
         query = query.filter_by(journal_id=journal_id)
-    entries = query.order_by(JournalEntry.entry_date.desc(), JournalEntry.id.desc()).all()
+    query = apply_month_filter(query, JournalEntry.entry_date, month_tuple)
+    query = apply_date_sort(query, JournalEntry.entry_date, sort)
+    entries = query.order_by(JournalEntry.id.desc()).all()
 
     return render_template(
         "entries/index.html",
@@ -35,6 +44,7 @@ def index():
         journals=journals,
         selected_fy_id=fy_id,
         selected_journal_id=journal_id,
+        **sort_and_filter_context(sort, month_arg),
     )
 
 

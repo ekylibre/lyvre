@@ -1,10 +1,14 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, current_app, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, abort
 from flask_login import login_required
 
 from app.models import Payout, Payment, SyncJob
 from app.models.payout import PAYOUT_STATUSES
 from app.models.payment import PAYMENT_STATUSES
 from app.services import stancer_async
+from app.utils.list_filters import (
+    parse_sort, parse_month, apply_date_sort, apply_month_filter,
+    sort_and_filter_context,
+)
 
 bp = Blueprint("payouts", __name__, url_prefix="/payouts")
 
@@ -12,7 +16,14 @@ bp = Blueprint("payouts", __name__, url_prefix="/payouts")
 @bp.route("/")
 @login_required
 def index():
-    payouts = Payout.query.order_by(Payout.date_payout.desc().nullslast()).all()
+    sort = parse_sort(request.args.get("sort"))
+    month_arg = request.args.get("month")
+    month_tuple = parse_month(month_arg)
+
+    query = Payout.query
+    query = apply_month_filter(query, Payout.date_payout, month_tuple)
+    query = apply_date_sort(query, Payout.date_payout, sort)
+    payouts = query.all()
     has_key = bool(current_app.config.get("STANCER_SECRET_KEY"))
     last_job = stancer_async.latest_payouts_job()
     return render_template(
@@ -21,6 +32,7 @@ def index():
         statuses=dict(PAYOUT_STATUSES),
         has_key=has_key,
         last_job=last_job,
+        **sort_and_filter_context(sort, month_arg),
     )
 
 
@@ -28,11 +40,14 @@ def index():
 @login_required
 def detail(payout_id):
     payout = Payout.query.get_or_404(payout_id)
-    payments = (
-        Payment.query.filter_by(payout_id=payout.id)
-        .order_by(Payment.date_payment.desc().nullslast(), Payment.created_at.desc())
-        .all()
-    )
+    sort = parse_sort(request.args.get("sort"))
+    month_arg = request.args.get("month")
+    month_tuple = parse_month(month_arg)
+
+    query = Payment.query.filter_by(payout_id=payout.id)
+    query = apply_month_filter(query, Payment.date_payment, month_tuple)
+    query = apply_date_sort(query, Payment.date_payment, sort)
+    payments = query.order_by(Payment.created_at.desc()).all()
     last_job = stancer_async.latest_job_for_payout(payout.id)
     return render_template(
         "payouts/detail.html",
@@ -41,6 +56,7 @@ def detail(payout_id):
         payout_statuses=dict(PAYOUT_STATUSES),
         payment_statuses=dict(PAYMENT_STATUSES),
         last_job=last_job,
+        **sort_and_filter_context(sort, month_arg),
     )
 
 

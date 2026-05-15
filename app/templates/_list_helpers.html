@@ -1,0 +1,35 @@
+{# Macros partagées pour les listes : en-tête triable + sélecteur de mois.
+   - sortable_date_header(label, current_sort, endpoint, extra_args={}, sort_arg='sort')
+   - month_filter_select(name, options, selected)
+#}
+
+{% macro sortable_date_header(label, current_sort, endpoint, extra_args=None, sort_arg='sort') -%}
+  {%- set extra_args = extra_args or {} -%}
+  {# On bascule asc ↔ desc à chaque clic. 'desc' est l'état par défaut. #}
+  {%- set next_sort = 'asc' if current_sort == 'desc' else 'desc' -%}
+  {%- set args = {} -%}
+  {%- for k, v in extra_args.items() if v is not none and v != '' -%}
+    {%- set _ = args.update({k: v}) -%}
+  {%- endfor -%}
+  {%- set _ = args.update({sort_arg: next_sort}) -%}
+  <a href="{{ url_for(endpoint, **args) }}"
+     class="text-decoration-none text-reset d-inline-flex align-items-center gap-1"
+     title="Trier par date">
+    {{ label }}
+    {%- if current_sort == 'asc' -%}
+      <span class="text-primary small">▲</span>
+    {%- else -%}
+      <span class="text-primary small">▼</span>
+    {%- endif -%}
+  </a>
+{%- endmacro %}
+
+
+{% macro month_filter_select(name, options, selected, css_class='form-select form-select-sm') -%}
+  <select name="{{ name }}" class="{{ css_class }}">
+    <option value="">Tous les mois</option>
+    {%- for opt in options %}
+      <option value="{{ opt.value }}" {% if selected == opt.value %}selected{% endif %}>{{ opt.label }}</option>
+    {%- endfor %}
+  </select>
+{%- endmacro %}

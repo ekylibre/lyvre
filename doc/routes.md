@@ -5,6 +5,19 @@ Les formulaires POST sont protégés par un token CSRF (Flask-WTF).
 
 ---
 
+## Paramètres communs des listes datées
+
+Les 8 listes datées de l'application (`/entries/`, `/bank-accounts/<id>/transactions`, `/payouts/`, `/payouts/<id>`, `/orders/`, `/customer-invoices/`, `/reconciliation/`, `/imports/odoo/batch/<name>`) acceptent en plus de leurs filtres spécifiques :
+
+| Paramètre | Valeur | Description |
+|-----------|--------|-------------|
+| `sort` | `asc` ou `desc` (défaut `desc`) | Sens de tri de la colonne date principale |
+| `month` | `YYYY-MM` (ex : `2026-03`) | Filtre `WHERE date >= 1er du mois AND date < 1er du mois suivant` |
+
+Le dropdown de mois est alimenté par les **12 mois de l'exercice comptable courant** (`FiscalYear.closed=False` le plus récent). Le clic sur l'en-tête de date bascule `asc ↔ desc` et conserve tous les autres filtres GET en cours (cf. macros `sortable_date_header` / `month_filter_select` dans `templates/_list_helpers.html`).
+
+---
+
 ## Authentification
 
 | Méthode | URL | Description |
@@ -187,20 +200,28 @@ L'écriture est refusée si Σ débit ≠ Σ crédit (message flash d'erreur).
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/entities/` | Liste toutes les entités avec le nombre de transactions liées |
+| GET | `/entities/` | Liste toutes les entités (hors `ADHERENT`) avec dates de dernière adhésion HelloAsso et POS |
+| GET | `/entities/members` | Liste des adhérents (`entity_type='ADHERENT'`). Paramètres : `?q=`, `?date_from=`, `?date_to=` (filtrage par plage d'adhésion) |
+| GET | `/entities/members.csv` | Export CSV des adhérents (mêmes filtres que `/members`) |
+| GET | `/entities/<id>` | Vue détail : commandes POS Odoo + factures clients + (si adhérent) commandes/articles/paiements HelloAsso |
 | GET | `/entities/new` | Formulaire de création |
 | POST | `/entities/new` | Crée l'entité |
 | GET | `/entities/<id>/edit` | Formulaire de modification |
 | POST | `/entities/<id>/edit` | Enregistre les modifications |
 | POST | `/entities/<id>/delete` | Supprime l'entité (interdit si des transactions y sont liées) |
+| POST | `/entities/sync-helloasso` | Lance la synchronisation HelloAsso (synchrone, voir [services.md](services.md#helloasso_syncpy--synchronisation-helloasso)) |
+| GET | `/entities/create-helloasso-memberships` | Preview des tiers ayant une adhésion POS sans adhésion HelloAsso |
+| POST | `/entities/create-helloasso-memberships` | Crée les adhésions manquantes côté HelloAsso via l'API |
 
 **Paramètres POST `/entities/new` et `/entities/<id>/edit` :**
 
 | Champ | Obligatoire | Description |
 |-------|-------------|-------------|
 | `name` | oui | Nom unique (max 200 caractères) |
-| `entity_type` | non | `CLIENT`, `FOURNISSEUR`, `SALARIE`, `ORGANISME` ou `AUTRE` (défaut) |
+| `entity_type` | non | `CLIENT`, `FOURNISSEUR`, `SALARIE`, `ADHERENT`, `ORGANISME` ou `AUTRE` (défaut) |
 | `account_code` | non | Code compte GL associé |
+| `email` | non | Email — clé de rattachement HelloAsso/Odoo |
+| `is_member` | non (checkbox) | Marque le tiers comme adhérent |
 | `notes` | non | Notes libres |
 
 ---
@@ -249,6 +270,48 @@ La transaction bancaire est automatiquement rapprochée à la ligne d'écriture 
 Le bouton de synchronisation est désactivé tant que `STANCER_SECRET_KEY` n'est pas définie.
 
 **Auth Stancer** : HTTP Basic, login = `STANCER_SECRET_KEY`, password vide.
+
+---
+
+## Commandes POS Odoo (`/orders/`)
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/orders/` | Liste des commandes Point de Vente synchronisées (modèle Odoo `pos.order`). Limite d'affichage : 500. Tri/filtre mois standard. |
+| GET | `/orders/<id>` | Vue détail : en-tête + cartes Total / TVA / Payé / Rendu monnaie + tableau des lignes + tableau des paiements |
+| POST | `/orders/sync` | **Synchrone** — lance `sync_pos_orders()` (XML-RPC). Le bouton est désactivé si `ODOO_URL` / `ODOO_DB` / `ODOO_USERNAME` / `ODOO_API_KEY` ne sont pas définis dans `.env`. |
+
+**Effets de la sync** :
+- Upsert `pos.order` → `orders` (clé d'idempotence : `odoo_id`)
+- Upsert `pos.order.line` → `order_lines` (CASCADE)
+- Upsert `pos.payment` → `order_payments` (CASCADE)
+- Création auto d'`Entity(entity_type='CLIENT')` par email pour chaque `res.partner` rencontré
+- Bascule `is_member=True` + `entity_type='ADHERENT'` pour tout tiers ayant une ligne de commande "Adhésion" (matching `LIKE %adh%sion%`)
+
+---
+
+## Factures clients Odoo (`/customer-invoices/`)
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/customer-invoices/` | Liste des factures clients Odoo (modèle `account.move` filtré `move_type='out_invoice'`). Limite d'affichage : 500. Tri/filtre mois standard + filtres `state`, `payment_state`, `q`. |
+| GET | `/customer-invoices/<id>` | Vue détail : cartes HT / TVA / TTC / Reste dû + infos numéro/référence/origine/journal + double badge état comptable + état paiement + tableau des lignes |
+| POST | `/customer-invoices/sync` | **Synchrone** — lance `sync_customer_invoices()` (XML-RPC). Désactivé si les variables `ODOO_*` ne sont pas définies. |
+
+**Paramètres GET sur `/customer-invoices/` :**
+
+| Param | Description |
+|-------|-------------|
+| `state` | `draft`, `posted`, `cancel` |
+| `payment_state` | `not_paid`, `in_payment`, `partial`, `paid`, `reversed`, `invoicing_legacy` |
+| `q` | Recherche insensible à la casse sur `name`, `partner_name`, `partner_email`, `ref` |
+| `sort` / `month` | Voir paramètres communs en tête |
+
+**Effets de la sync** :
+- Upsert `account.move` → `customer_invoices`
+- Upsert `account.move.line` filtré produit (`display_type='product'` ou `product_id` non vide) → `customer_invoice_lines` (CASCADE)
+- Création auto d'`Entity(entity_type='CLIENT')` par email du partenaire (idempotent : si email déjà connu, le tiers existant est réutilisé)
+- **Aucun** marquage `is_member` (les factures clients n'impliquent pas d'adhésion)
 
 ---
 

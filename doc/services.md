@@ -542,3 +542,196 @@ La TVA est calculée : `tax_amount_cents = amount_ttc_cents - amount_ht_cents`.
     "batch": "odoo-20241115-143022",
 }
 ```
+
+---
+
+## odoo_client.py — Client XML-RPC Odoo
+
+Wrapper autour de `xmlrpc.client.ServerProxy` (stdlib). Partagé par les syncs POS et factures clients.
+
+### `OdooConfigError`
+
+Exception levée si la configuration Odoo est incomplète ou si l'authentification est refusée.
+
+### `OdooClient(url, db, username, password)`
+
+Le `password` est en réalité l'**API key** Odoo (depuis Odoo 14, on n'utilise plus le mot de passe). Endpoints :
+
+- `/xmlrpc/2/common` — `authenticate(db, login, password) → uid` (lazy, cached)
+- `/xmlrpc/2/object` — `execute_kw(db, uid, password, model, method, args, kwargs)`
+
+Méthodes :
+- `execute_kw(model, method, args=None, kwargs=None)` — appel générique
+- `search_read(model, domain=None, fields=None, limit=None, offset=0, order=None)` — sucre pour la pagination
+
+### `from_app_config() → OdooClient`
+
+Construit un client à partir des 4 variables de config Flask `ODOO_URL`, `ODOO_DB`, `ODOO_USERNAME`, `ODOO_API_KEY`. Lève `OdooConfigError` si une variable manque.
+
+---
+
+## odoo_pos_sync.py — Synchronisation POS Odoo
+
+### `sync_pos_orders(domain=None, limit=None, progress_cb=None) → dict`
+
+Synchronise `pos.order` (+ lignes + paiements + partenaires) depuis Odoo via XML-RPC.
+
+**Étapes** :
+
+1. Pagination `search_read` sur `pos.order` (PAGE_SIZE=200) → upsert sur `odoo_id` dans `orders`.
+2. `db.session.flush()` puis `search_read` par lots d'IDs sur `pos.order.line` → upsert dans `order_lines` (FK CASCADE).
+3. Même chose pour `pos.payment` → `order_payments`.
+4. `_fetch_partners(client, partner_ids)` : `res.partner` par lots de 200 (champs `id`, `name`, `email`, `phone`, `mobile`). `_resolve_partner_entity` crée une `Entity(entity_type='CLIENT')` par email si nouvelle. Rattachement `Order.entity_id` + `Order.partner_email`.
+5. `_refresh_pos_member_flag()` : tout tiers ayant ≥ 1 ligne de commande POS matchant `LIKE '%adh%sion%'` (sur `full_product_name` ou `product_name`, insensible casse) bascule `is_member=True` + `entity_type='ADHERENT'`.
+6. Commit unique en fin de sync.
+
+**Retourne** :
+
+```python
+{
+    "orders_imported": int, "orders_updated": int, "orders_total": int,
+    "lines_imported": int, "lines_updated": int, "lines_total": int,
+    "payments_imported": int, "payments_updated": int, "payments_total": int,
+    "entities_created": int, "entities_updated": int,
+    "members_flagged": int,
+}
+```
+
+**Mapping pos.order → modèle Order** :
+
+| Champ Odoo | Champ modèle |
+|------------|--------------|
+| `id` | `odoo_id` |
+| `name` | `name` |
+| `state` | `state` (`draft`/`paid`/`done`/`invoiced`/`cancel`) |
+| `partner_id` (m2o) | `partner_id` + `partner_name` |
+| `session_id` (m2o) | `session_id` + `session_name` |
+| `date_order` | `date_order` (parsé `%Y-%m-%d %H:%M:%S` ou ISO) |
+| `amount_total` / `amount_tax` / `amount_paid` / `amount_return` | `*_cents` (×100 entier) |
+| `currency_id` (m2o) | `currency` (extrait des 3 premiers caractères du nom) |
+| (réponse) | `raw_payload` (JSON brut) |
+
+---
+
+## odoo_invoice_sync.py — Synchronisation des factures clients
+
+Service miroir du précédent, ciblant `account.move` filtré `move_type='out_invoice'`. Les helpers internes (`_to_cents`, `_m2o_id`, `_chunked`, `_fetch_partners`, `_resolve_partner_entity`) sont volontairement dupliqués depuis `odoo_pos_sync.py` plutôt que factorisés — l'objectif est de garder les deux modules indépendants l'un de l'autre.
+
+### `sync_customer_invoices(domain=None, limit=None, progress_cb=None) → dict`
+
+**Étapes** :
+
+1. Pagination `search_read` sur `account.move` avec `DEFAULT_DOMAIN = [("move_type", "=", "out_invoice")]` (+ `domain` utilisateur en AND) → upsert dans `customer_invoices`.
+2. `search_read` par lots d'IDs sur `account.move.line`. Le filtre `_is_product_line` ne garde que les lignes "produit" :
+   - `display_type='product'` (Odoo ≥ 16), OU
+   - `product_id` non vide (fallback Odoo < 16).
+   Lignes de TVA et de contrepartie tiers ignorées.
+3. `_fetch_partners` + `_resolve_partner_entity` (idem POS) → création auto d'`Entity(entity_type='CLIENT')` par email.
+4. **Pas** de `_refresh_member_flag` (différence métier voulue : facture client ≠ adhésion).
+5. Commit unique en fin de sync.
+
+**Retourne** :
+
+```python
+{
+    "invoices_imported": int, "invoices_updated": int, "invoices_total": int,
+    "lines_imported": int, "lines_updated": int, "lines_total": int,
+    "entities_created": int, "entities_updated": int,
+}
+```
+
+**Mapping account.move → modèle CustomerInvoice** :
+
+| Champ Odoo | Champ modèle |
+|------------|--------------|
+| `id` | `odoo_id` |
+| `name` | `name` (ex : `INV/2026/00042`) |
+| `state` | `state` (`draft`/`posted`/`cancel`) |
+| `payment_state` | `payment_state` (`not_paid`/`in_payment`/`partial`/`paid`/`reversed`/`invoicing_legacy`) — valeur brute, non validée côté Python |
+| `partner_id` (m2o) | `partner_id` + `partner_name` |
+| `invoice_date` / `invoice_date_due` | parsés en `date` (pas `datetime`) |
+| `amount_untaxed` / `amount_tax` / `amount_total` / `amount_residual` | `*_cents` |
+| `journal_id` (m2o) | `journal_name` |
+| `invoice_origin` | `invoice_origin` |
+| `narration` | `narration` |
+
+**Mapping account.move.line → CustomerInvoiceLine** :
+
+| Champ Odoo | Champ modèle |
+|------------|--------------|
+| `product_id` (m2o) | `product_id` + `product_name` |
+| `name` | `description` |
+| `quantity` / `discount` | `qty` / `discount` |
+| `price_unit` / `price_subtotal` / `price_total` | `*_cents` |
+| `account_id` (m2o) | `account_code` (préfixe extrait du nom : `"707100 Ventes"` → `"707100"`) |
+| `tax_ids` | CSV des IDs |
+
+---
+
+## entity_resolver.py — Résolution Entity par email
+
+Helpers utilisés conjointement par `odoo_pos_sync`, `odoo_invoice_sync` et `helloasso_sync`.
+
+### `entity_by_email(cache, email) → Entity | None`
+
+Recherche une `Entity` par email **insensible à la casse**. `cache` est un dict `{email_lower: Entity|None}` mémoire, partagé pour la durée d'un sync, qui évite les requêtes répétées sur les mêmes emails. Retourne `None` si email vide ou non trouvé.
+
+### `unique_entity_name(base_name, email=None) → str`
+
+Garantit l'unicité de `Entity.name` :
+1. Si `base_name` est libre → retourné tel quel.
+2. Sinon essaye `"{base_name} ({email})"`.
+3. Sinon `"{base_name} #2"`, `"#3"`, ... jusqu'à trouver libre.
+
+---
+
+## helloasso_client.py — Client HelloAsso v5
+
+### `HelloAssoConfigError`
+
+Exception levée si `HELLOASSO_CLIENT_ID` / `HELLOASSO_CLIENT_SECRET` / `HELLOASSO_ORG_SLUG` ne sont pas définis.
+
+### `HelloAssoClient`
+
+OAuth2 client_credentials sur `POST /oauth2/token`. Token mis en cache (~30 min, refresh transparent). Méthode utilitaire `paginate(path, params=None)` pour itérer toutes les pages d'une collection.
+
+### `from_app_config() → HelloAssoClient`
+
+Construit un client à partir de la config Flask.
+
+---
+
+## helloasso_sync.py — Synchronisation HelloAsso
+
+### `sync_helloasso() → dict`
+
+Synchronise les formulaires + commandes + items + paiements de l'organisation HelloAsso configurée.
+
+**Étapes** :
+
+1. `GET /v5/organizations/{slug}/forms` → upsert dans `helloasso_forms`.
+2. `GET /v5/organizations/{slug}/orders?withDetails=true` (pagination `pageIndex`/`totalPages`) → upsert dans `helloasso_orders`. Le `withDetails=true` embarque items + payments dans la même réponse — pas d'appel supplémentaire.
+3. Pour chaque order : upsert des `items[]` et `payments[]` (FK CASCADE).
+4. Rattachement Entity : `entity_resolver.entity_by_email` par email du payeur (order) ou de l'user (item). Création auto si nouvel email.
+5. Création auto `Entity(entity_type='ADHERENT', is_member=True)` pour toute Entity ayant ≥ 1 item de type `Membership`.
+
+**Retourne** :
+
+```python
+{
+    "orders_imported": int, "orders_updated": int,
+    "items_imported": int, "items_updated": int,
+    "payments_imported": int, "payments_updated": int,
+    "members_created": int, "members_flagged": int,
+}
+```
+
+> Les montants HelloAsso sont **déjà en centimes entiers** dans l'API — aucune conversion `×100` n'est appliquée.
+
+---
+
+## helloasso_create.py — Création d'adhésions HelloAsso
+
+### `create_membership_for_entity(entity, amount_cents, payment_date, form_type, form_slug, client) → (bool, str)`
+
+Crée une adhésion côté HelloAsso pour un tiers ayant une adhésion POS mais pas encore d'adhésion HA. Retourne `(True, info)` en succès, `(False, message_erreur)` sinon. Utilisé par `/entities/create-helloasso-memberships`.

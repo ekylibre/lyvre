@@ -40,6 +40,15 @@ Variables disponibles :
 | `ADMIN_PASSWORD` | `admin` | Mot de passe de l'utilisateur administrateur |
 | `STANCER_SECRET_KEY` | (vide) | Clé secrète Stancer (`sk_xxx`) utilisée pour interroger l'API v2 (`/v2/payouts` et `/v2/payouts/{id}/payments`). Tant qu'elle n'est pas définie, le bouton de synchronisation des Versements Stancer reste désactivé. |
 | `STANCER_MODE` | `live` | Mode Stancer : `live` ou `test` |
+| `ODOO_URL` | (vide) | URL de l'instance Odoo (ex : `https://erp.example.org`). Requise par la sync POS (`/orders/sync`) et factures clients (`/customer-invoices/sync`). |
+| `ODOO_DB` | (vide) | Nom de la base Odoo. |
+| `ODOO_USERNAME` | (vide) | Login Odoo (souvent un email). |
+| `ODOO_API_KEY` | (vide) | API key Odoo (générée dans Préférences → Compte → Clés API). Passée comme `password` aux endpoints XML-RPC. |
+| `HELLOASSO_CLIENT_ID` | (vide) | Identifiant client OAuth2 HelloAsso (généré dans l'espace admin HelloAsso). |
+| `HELLOASSO_CLIENT_SECRET` | (vide) | Secret OAuth2 HelloAsso. |
+| `HELLOASSO_ORG_SLUG` | (vide) | Slug de l'organisation HelloAsso (visible dans l'URL : `helloasso.com/associations/{slug}`). |
+
+Tant que les 4 variables `ODOO_*` ne sont pas définies, les boutons de synchronisation POS et factures clients restent désactivés. Idem pour les 3 variables `HELLOASSO_*`.
 
 ### 4. Initialiser la base de données
 

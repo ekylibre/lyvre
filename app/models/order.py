@@ -24,6 +24,13 @@ class Order(db.Model):
     session_name = db.Column(db.String(200))
     partner_id = db.Column(db.Integer)
     partner_name = db.Column(db.String(200))
+    partner_email = db.Column(db.String(200), index=True)
+    entity_id = db.Column(
+        db.Integer,
+        db.ForeignKey("entities.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     user_id = db.Column(db.Integer)
     user_name = db.Column(db.String(200))
     company_id = db.Column(db.Integer)
@@ -37,6 +44,8 @@ class Order(db.Model):
     raw_payload = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     imported_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    entity = db.relationship("Entity", foreign_keys=[entity_id])
 
     lines = db.relationship(
         "OrderLine",

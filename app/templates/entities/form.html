@@ -38,6 +38,20 @@
       </div>
 
       <div class="mb-3">
+        <label class="form-label fw-semibold">Email</label>
+        <input type="email" name="email" class="form-control"
+               value="{{ entity.email if entity and entity.email else '' }}"
+               maxlength="200" placeholder="prenom.nom@exemple.fr">
+        <div class="form-text">Sert au rattachement automatique des commandes HelloAsso.</div>
+      </div>
+
+      <div class="mb-3 form-check">
+        <input type="checkbox" name="is_member" id="is_member" class="form-check-input"
+               value="1" {{ 'checked' if entity and entity.is_member else '' }}>
+        <label for="is_member" class="form-check-label fw-semibold">Adhérent de l'association</label>
+      </div>
+
+      <div class="mb-3">
         <label class="form-label fw-semibold">Notes</label>
         <textarea name="notes" class="form-control" rows="3">{{ entity.notes if entity and entity.notes else '' }}</textarea>
       </div>

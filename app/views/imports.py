@@ -6,6 +6,10 @@ from app.extensions import db
 from app.models import BankAccount, OdooImportLine
 from app.services.ofx_importer import import_ofx
 from app.services.odoo_importer import import_odoo_csv
+from app.utils.list_filters import (
+    parse_sort, parse_month, apply_date_sort, apply_month_filter,
+    sort_and_filter_context,
+)
 
 bp = Blueprint("imports", __name__, url_prefix="/imports")
 
@@ -73,5 +77,17 @@ def odoo():
 @bp.route("/odoo/batch/<batch_name>")
 @login_required
 def odoo_batch(batch_name):
-    lines = OdooImportLine.query.filter_by(import_batch=batch_name).order_by(OdooImportLine.id).all()
-    return render_template("imports/odoo_batch.html", lines=lines, batch_name=batch_name)
+    sort = parse_sort(request.args.get("sort"))
+    month_arg = request.args.get("month")
+    month_tuple = parse_month(month_arg)
+
+    query = OdooImportLine.query.filter_by(import_batch=batch_name)
+    query = apply_month_filter(query, OdooImportLine.invoice_date, month_tuple)
+    query = apply_date_sort(query, OdooImportLine.invoice_date, sort)
+    lines = query.order_by(OdooImportLine.id).all()
+    return render_template(
+        "imports/odoo_batch.html",
+        lines=lines,
+        batch_name=batch_name,
+        **sort_and_filter_context(sort, month_arg),
+    )

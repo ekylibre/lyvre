@@ -13,6 +13,9 @@ from .sync_job import SyncJob
 from .order import Order
 from .order_line import OrderLine
 from .order_payment import OrderPayment
+from .customer_invoice import CustomerInvoice
+from .customer_invoice_line import CustomerInvoiceLine
+from .helloasso import HelloAssoForm, HelloAssoOrder, HelloAssoItem, HelloAssoPayment
 
 __all__ = [
     "FiscalYear",
@@ -30,4 +33,10 @@ __all__ = [
     "Order",
     "OrderLine",
     "OrderPayment",
+    "CustomerInvoice",
+    "CustomerInvoiceLine",
+    "HelloAssoForm",
+    "HelloAssoOrder",
+    "HelloAssoItem",
+    "HelloAssoPayment",
 ]

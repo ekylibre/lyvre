@@ -9,7 +9,8 @@ import json
 from datetime import datetime
 
 from app.extensions import db
-from app.models import Order, OrderLine, OrderPayment
+from app.models import Entity, Order, OrderLine, OrderPayment
+from app.services.entity_resolver import entity_by_email, unique_entity_name
 from app.services.odoo_client import from_app_config
 
 
@@ -32,6 +33,7 @@ PAYMENT_FIELDS = [
     "id", "pos_order_id", "name", "payment_method_id",
     "amount", "payment_date", "card_type", "transaction_id", "currency_id",
 ]
+PARTNER_FIELDS = ["id", "name", "email", "phone", "mobile"]
 
 
 def _to_cents(value):
@@ -165,6 +167,48 @@ def _chunked(seq, n):
         yield seq[i:i + n]
 
 
+def _fetch_partners(client, partner_ids):
+    """Renvoie {partner_id: partner_data} depuis res.partner."""
+    result = {}
+    for chunk in _chunked(list(partner_ids), PAGE_SIZE):
+        rows = client.search_read(
+            "res.partner", domain=[["id", "in", chunk]],
+            fields=PARTNER_FIELDS,
+        )
+        for row in rows:
+            result[row["id"]] = row
+    return result
+
+
+def _resolve_partner_entity(partner, cache):
+    """Crée/récupère l'Entity correspondant à un partner Odoo.
+
+    Priorité : email. Sans email → pas de rattachement (risque de faux positif).
+    Renvoie (entity, created, updated).
+    """
+    email = (partner.get("email") or "").strip() or None
+    name = (partner.get("name") or "").strip() or None
+    if not email:
+        return None, False, False
+
+    existing = entity_by_email(cache, email)
+    if existing is not None:
+        # On met juste à jour le name si le tiers existant n'a pas encore de nom propre
+        # (cas extrême ; Entity.name est obligatoire donc rarement vide).
+        return existing, False, False
+
+    base_name = name or email
+    ent = Entity(
+        name=unique_entity_name(base_name, email),
+        entity_type="CLIENT",
+        email=email,
+    )
+    db.session.add(ent)
+    db.session.flush()
+    cache[email.lower()] = ent
+    return ent, True, False
+
+
 def sync_pos_orders(domain=None, limit=None, progress_cb=None):
     """Synchronise les commandes POS Odoo.
 
@@ -261,6 +305,37 @@ def sync_pos_orders(domain=None, limit=None, progress_cb=None):
                 f"Paiements : {payments_imported + payments_updated}/{len(all_payment_ids)}",
             )
 
+    # 4. partenaires (res.partner) → email + Entity
+    partner_ids = {o.partner_id for o in order_by_id.values() if o.partner_id}
+    entities_created = entities_updated = 0
+    members_flagged = 0
+    if partner_ids:
+        partners = _fetch_partners(client, partner_ids)
+        entity_cache = {}
+        partner_to_entity = {}
+        for pid, partner in partners.items():
+            ent, created, updated = _resolve_partner_entity(partner, entity_cache)
+            if created:
+                entities_created += 1
+            if updated:
+                entities_updated += 1
+            if ent is not None:
+                partner_to_entity[pid] = ent.id
+        # rattacher les Order à leur Entity et stocker l'email du partner
+        for order in order_by_id.values():
+            partner = partners.get(order.partner_id) if order.partner_id else None
+            if partner:
+                order.partner_email = (partner.get("email") or "").strip() or None
+            order.entity_id = partner_to_entity.get(order.partner_id)
+        if progress_cb:
+            progress_cb(
+                entities_created + entities_updated, len(partner_ids),
+                f"Tiers : {entities_created} créé(s), {entities_updated} maj",
+            )
+
+    # 5. is_member : tout tiers avec une commande POS contenant un article "Adhésion"
+    members_flagged = _refresh_pos_member_flag()
+
     db.session.commit()
     return {
         "orders_imported": orders_imported,
@@ -272,4 +347,44 @@ def sync_pos_orders(domain=None, limit=None, progress_cb=None):
         "payments_imported": payments_imported,
         "payments_updated": payments_updated,
         "payments_total": payments_imported + payments_updated,
+        "entities_created": entities_created,
+        "entities_updated": entities_updated,
+        "members_flagged": members_flagged,
     }
+
+
+def _refresh_pos_member_flag():
+    """Met `is_member=True` sur toute Entity ayant une OrderLine "Adhésion" en POS.
+
+    Idempotent : peut être appelé n'importe quand pour rattrapper d'anciens tiers.
+    Renvoie le nombre de tiers passés à True (count des passés-à-True nouveaux).
+    """
+    member_ids = {
+        eid for (eid,) in (
+            db.session.query(Order.entity_id)
+            .join(OrderLine, OrderLine.order_id == Order.id)
+            .filter(Order.entity_id.isnot(None))
+            .filter(db.or_(
+                db.func.lower(OrderLine.full_product_name).like("%adh%sion%"),
+                db.func.lower(OrderLine.product_name).like("%adh%sion%"),
+            ))
+            .distinct()
+            .all()
+        ) if eid is not None
+    }
+    if not member_ids:
+        return 0
+    # On ne flippe que ceux qui ne le sont pas déjà
+    to_flag = [eid for (eid,) in (
+        db.session.query(Entity.id)
+        .filter(Entity.id.in_(member_ids))
+        .filter(Entity.is_member.is_(False))
+        .all()
+    )]
+    if not to_flag:
+        return 0
+    Entity.query.filter(Entity.id.in_(to_flag)).update(
+        {"is_member": True, "entity_type": "ADHERENT"},
+        synchronize_session=False,
+    )
+    return len(to_flag)

@@ -2,6 +2,10 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required
 from app.models import BankAccount, BankTransaction, JournalLine
 from app.services.reconciler import reconcile, unreconcile, suggest_matches, auto_reconcile
+from app.utils.list_filters import (
+    parse_sort, parse_month, apply_date_sort, apply_month_filter,
+    sort_and_filter_context,
+)
 
 bp = Blueprint("reconciliation", __name__, url_prefix="/reconciliation")
 
@@ -14,19 +18,25 @@ def index():
     if selected_id is None and bank_accounts:
         selected_id = bank_accounts[0].id
 
+    sort = parse_sort(request.args.get("sort"))
+    month_arg = request.args.get("month")
+    month_tuple = parse_month(month_arg)
+
     unreconciled = []
     if selected_id:
-        unreconciled = (
-            BankTransaction.query.filter_by(bank_account_id=selected_id, reconciled=False)
-            .order_by(BankTransaction.transaction_date.desc())
-            .all()
+        query = BankTransaction.query.filter_by(
+            bank_account_id=selected_id, reconciled=False,
         )
+        query = apply_month_filter(query, BankTransaction.transaction_date, month_tuple)
+        query = apply_date_sort(query, BankTransaction.transaction_date, sort)
+        unreconciled = query.all()
 
     return render_template(
         "reconciliation/index.html",
         bank_accounts=bank_accounts,
         selected_id=selected_id,
         unreconciled=unreconciled,
+        **sort_and_filter_context(sort, month_arg),
     )
 
 
