@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Instances — Compta Asso{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">Instances</h2>
+  <a href="{{ url_for('instances.new') }}" class="btn btn-primary">Nouvelle instance</a>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Slug</th>
+          <th>Libellé</th>
+          <th>Base de données</th>
+          <th>Statut</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inst in instances %}
+          <tr>
+            <td><code>{{ inst.slug }}</code></td>
+            <td>{{ inst.label }}</td>
+            <td><small class="text-muted">{{ inst.database_url }}</small></td>
+            <td>
+              {% if inst.is_active %}
+                <span class="badge bg-success">Active</span>
+              {% else %}
+                <span class="badge bg-secondary">Désactivée</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <a href="{{ url_for('instances.detail', instance_id=inst.id) }}"
+                 class="btn btn-sm btn-outline-primary">Détail</a>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="text-center text-muted py-4">Aucune instance.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

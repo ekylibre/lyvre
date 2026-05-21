@@ -22,9 +22,8 @@ bp = Blueprint("entities", __name__, url_prefix="/entities")
 
 
 def _helloasso_configured():
-    return all(current_app.config.get(k) for k in (
-        "HELLOASSO_CLIENT_ID", "HELLOASSO_CLIENT_SECRET", "HELLOASSO_ORG_SLUG",
-    ))
+    from app.services import external_config
+    return external_config.is_configured("helloasso")
 
 
 @bp.route("/")

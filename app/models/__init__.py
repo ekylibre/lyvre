@@ -1,3 +1,5 @@
+from .user import User
+from .instance import Instance
 from .fiscal_year import FiscalYear
 from .account import Account
 from .journal import Journal
@@ -16,8 +18,12 @@ from .order_payment import OrderPayment
 from .customer_invoice import CustomerInvoice
 from .customer_invoice_line import CustomerInvoiceLine
 from .helloasso import HelloAssoForm, HelloAssoOrder, HelloAssoItem, HelloAssoPayment
+from .external_connection import ExternalConnection
+from .rule import Rule
 
 __all__ = [
+    "User",
+    "Instance",
     "FiscalYear",
     "Account",
     "Journal",
@@ -39,4 +45,6 @@ __all__ = [
     "HelloAssoOrder",
     "HelloAssoItem",
     "HelloAssoPayment",
+    "ExternalConnection",
+    "Rule",
 ]

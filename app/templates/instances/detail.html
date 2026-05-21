@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}{{ instance.label }} — Instances — Compta Asso{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0">{{ instance.label }}</h2>
+    <small class="text-muted">slug : <code>{{ instance.slug }}</code></small>
+  </div>
+  <div>
+    <a href="{{ url_for('instances.edit', instance_id=instance.id) }}"
+       class="btn btn-outline-primary">Modifier</a>
+    <a href="{{ url_for('instances.index') }}" class="btn btn-link">Retour</a>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Base de données</dt>
+      <dd class="col-sm-9"><code>{{ instance.database_url }}</code></dd>
+      <dt class="col-sm-3">Statut</dt>
+      <dd class="col-sm-9">
+        {% if instance.is_active %}
+          <span class="badge bg-success">Active</span>
+        {% else %}
+          <span class="badge bg-secondary">Désactivée</span>
+        {% endif %}
+      </dd>
+      <dt class="col-sm-3">Créée le</dt>
+      <dd class="col-sm-9">{{ instance.created_at.strftime('%Y-%m-%d %H:%M') if instance.created_at else '—' }}</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <strong>Sauvegardes</strong>
+    {% if sqlite_instance %}
+      <div>
+        <form method="post" action="{{ url_for('instances.create_backup', instance_id=instance.id) }}"
+              class="d-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-sm btn-primary">Créer une sauvegarde</button>
+        </form>
+        <a href="{{ url_for('instances.restore', instance_id=instance.id) }}"
+           class="btn btn-sm btn-outline-warning">Restaurer un fichier…</a>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if not sqlite_instance %}
+    <div class="card-body">
+      <p class="text-muted mb-0">
+        Les sauvegardes automatiques ne sont disponibles que pour les instances SQLite.
+        Pour cette instance ({{ instance.database_url.split(':')[0] }}), utilisez les outils
+        natifs (<code>pg_dump</code> / <code>pg_restore</code>) côté serveur.
+      </p>
+    </div>
+  {% else %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Fichier</th>
+            <th>Type</th>
+            <th>Date</th>
+            <th class="text-end">Taille</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in backups %}
+            <tr>
+              <td><code>{{ b.filename }}</code></td>
+              <td>
+                {% if b.is_pre_restore %}
+                  <span class="badge bg-warning text-dark">Pré-restauration</span>
+                {% else %}
+                  <span class="badge bg-light text-dark">Manuelle</span>
+                {% endif %}
+              </td>
+              <td>{{ b.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+              <td class="text-end">{{ '{:,.1f}'.format(b.size_bytes / 1024 / 1024).replace(',', ' ') }} Mo</td>
+              <td class="text-end">
+                <a href="{{ url_for('instances.download_backup', instance_id=instance.id, filename=b.filename) }}"
+                   class="btn btn-sm btn-outline-primary">Télécharger</a>
+                <form method="post"
+                      action="{{ url_for('instances.delete_backup', instance_id=instance.id, filename=b.filename) }}"
+                      class="d-inline"
+                      onsubmit="return confirm('Supprimer définitivement {{ b.filename }} ?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
+                </form>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-4">Aucune sauvegarde.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,10 +1,10 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import login_required
 
 from app.models import Payout, Payment, SyncJob
 from app.models.payout import PAYOUT_STATUSES
 from app.models.payment import PAYMENT_STATUSES
-from app.services import stancer_async
+from app.services import external_config, stancer_async
 from app.utils.list_filters import (
     parse_sort, parse_month, apply_date_sort, apply_month_filter,
     sort_and_filter_context,
@@ -24,7 +24,7 @@ def index():
     query = apply_month_filter(query, Payout.date_payout, month_tuple)
     query = apply_date_sort(query, Payout.date_payout, sort)
     payouts = query.all()
-    has_key = bool(current_app.config.get("STANCER_SECRET_KEY"))
+    has_key = external_config.is_configured("stancer")
     last_job = stancer_async.latest_payouts_job()
     return render_template(
         "payouts/index.html",

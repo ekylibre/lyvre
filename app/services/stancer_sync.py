@@ -10,10 +10,10 @@ import json
 from datetime import datetime
 
 import requests
-from flask import current_app
 
 from app.extensions import db
 from app.models import Payout, Payment, BankTransaction
+from app.services import external_config
 
 
 API_BASE = "https://api.stancer.com/v2"
@@ -21,10 +21,11 @@ PAGE_SIZE = 100
 
 
 def _get_secret_key():
-    key = current_app.config.get("STANCER_SECRET_KEY")
+    key = external_config.get("stancer", "secret_key")
     if not key:
         raise RuntimeError(
-            "Clé secrète Stancer manquante : définissez STANCER_SECRET_KEY dans .env"
+            "Clé secrète Stancer manquante : renseignez-la dans "
+            "Configuration → Connexions externes."
         )
     return key
 

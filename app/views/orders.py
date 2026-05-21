@@ -1,8 +1,9 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 
 from app.models import Order, OrderLine, OrderPayment
 from app.models.order import POS_ORDER_STATES
+from app.services import external_config
 from app.services.odoo_client import OdooConfigError
 from app.services.odoo_pos_sync import sync_pos_orders
 from app.utils.list_filters import (
@@ -14,9 +15,7 @@ bp = Blueprint("orders", __name__, url_prefix="/orders")
 
 
 def _odoo_configured():
-    return all(current_app.config.get(k) for k in (
-        "ODOO_URL", "ODOO_DB", "ODOO_USERNAME", "ODOO_API_KEY",
-    ))
+    return external_config.is_configured("odoo")
 
 
 @bp.route("/")

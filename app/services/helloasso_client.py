@@ -6,7 +6,6 @@ Doc  : https://api.helloasso.com/v5/swagger/index.html
 import time
 
 import requests
-from flask import current_app
 
 
 class HelloAssoConfigError(RuntimeError):
@@ -97,18 +96,14 @@ class HelloAssoClient:
 
 
 def from_app_config():
-    cid = current_app.config.get("HELLOASSO_CLIENT_ID")
-    sec = current_app.config.get("HELLOASSO_CLIENT_SECRET")
-    org = current_app.config.get("HELLOASSO_ORG_SLUG")
-    base = current_app.config.get("HELLOASSO_API_BASE") or "https://api.helloasso.com"
-    missing = [k for k, v in (
-        ("HELLOASSO_CLIENT_ID", cid),
-        ("HELLOASSO_CLIENT_SECRET", sec),
-        ("HELLOASSO_ORG_SLUG", org),
-    ) if not v]
+    from app.services import external_config
+
+    cfg = external_config.get_all("helloasso")
+    base = cfg.get("api_base") or "https://api.helloasso.com"
+    missing = [k for k in ("client_id", "client_secret", "org_slug") if not cfg.get(k)]
     if missing:
         raise HelloAssoConfigError(
-            "Configuration HelloAsso incomplète : " + ", ".join(missing)
-            + " — à définir dans .env"
+            "Configuration HelloAsso incomplète (manquant : " + ", ".join(missing)
+            + ") — renseignez-la dans Configuration → Connexions externes."
         )
-    return HelloAssoClient(cid, sec, org, base)
+    return HelloAssoClient(cfg["client_id"], cfg["client_secret"], cfg["org_slug"], base)

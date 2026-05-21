@@ -7,8 +7,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key")
     SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL", f"sqlite:///{BASE_DIR / 'instance' / 'compta.db'}"
+        "DATABASE_URL", f"sqlite:///{BASE_DIR / 'instance' / 'seconde-nature.db'}"
     )
+    META_DATABASE_URL = os.environ.get(
+        "META_DATABASE_URL", f"sqlite:///{BASE_DIR / 'instance' / 'meta.db'}"
+    )
+    SQLALCHEMY_BINDS = {"meta": META_DATABASE_URL}
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     WTF_CSRF_ENABLED = True
     STANCER_SECRET_KEY = os.environ.get("STANCER_SECRET_KEY", "")

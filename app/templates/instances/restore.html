@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Restaurer — {{ instance.label }}{% endblock %}
+{% block content %}
+<h2 class="mb-3">Restaurer une sauvegarde</h2>
+<p class="text-muted">
+  Instance cible : <strong>{{ instance.label }}</strong>
+  (<code>{{ instance.database_url }}</code>)
+</p>
+
+<div class="alert alert-warning">
+  <strong>Attention</strong> — La base actuelle sera écrasée par le fichier importé.
+  Une sauvegarde de sécurité (<code>pre-restore-…</code>) est créée automatiquement
+  avant l'opération.
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data"
+          onsubmit="return confirm('Confirmer la restauration de l\'instance « {{ instance.label }} » ?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="mb-3">
+        <label class="form-label">Fichier de sauvegarde (.db SQLite)</label>
+        <input type="file" name="backup_file" class="form-control" accept=".db,.sqlite,application/x-sqlite3" required>
+      </div>
+      <button type="submit" class="btn btn-warning">Restaurer</button>
+      <a href="{{ url_for('instances.detail', instance_id=instance.id) }}"
+         class="btn btn-link">Annuler</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 
 from app.extensions import db
@@ -7,6 +7,7 @@ from app.models.customer_invoice import (
     CUSTOMER_INVOICE_STATES,
     CUSTOMER_INVOICE_PAYMENT_STATES,
 )
+from app.services import external_config
 from app.services.odoo_client import OdooConfigError
 from app.services.odoo_invoice_sync import sync_customer_invoices
 from app.utils.list_filters import (
@@ -18,9 +19,7 @@ bp = Blueprint("customer_invoices", __name__, url_prefix="/customer-invoices")
 
 
 def _odoo_configured():
-    return all(current_app.config.get(k) for k in (
-        "ODOO_URL", "ODOO_DB", "ODOO_USERNAME", "ODOO_API_KEY",
-    ))
+    return external_config.is_configured("odoo")
 
 
 @bp.route("/")

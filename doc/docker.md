@@ -1,0 +1,206 @@
+# Déploiement Docker
+
+L'application est packagée dans une image unique. Toutes les données persistantes vivent dans un volume bind-mount sur `./instance/`.
+
+```
+┌─────────────────────────────────────┐
+│ Image compta-asso:latest            │
+│  - Python 3.12-slim                 │
+│  - Gunicorn (1 worker, 4 threads)   │
+│  - User non-root (UID/GID 1000)     │
+│  - Port 5000                        │
+└─────────────────────────────────────┘
+            │
+            │ volume bind
+            ▼
+   ./instance/   ◀── méta DB + tenant DBs + sauvegardes
+```
+
+---
+
+## Prérequis
+
+- Docker Engine ≥ 24 et le plugin Compose v2.
+- Sur l'hôte : le dossier `./instance/` (créé automatiquement par le bind-mount) doit être **inscriptible par UID 1000**. Si votre utilisateur hôte n'est pas UID 1000, voir [§ permissions](#permissions-sur-le-volume) ci-dessous.
+- Un fichier `.env` à la racine du projet (cf. [installation.md](installation.md#configuration-de-lenvironnement)).
+
+---
+
+## Premier démarrage
+
+```bash
+git clone <repo>
+cd compta-asso
+
+# Configurer les secrets — au minimum SECRET_KEY, ADMIN_EMAIL, ADMIN_PASSWORD
+cp .env .env.example   # gardez-en une copie
+$EDITOR .env
+
+# Build + run
+docker compose up -d --build
+docker compose logs -f web
+```
+
+Sortie attendue :
+
+```
+[entrypoint] Applying database migrations…
+[entrypoint] Seeding accounts (idempotent)…
+[entrypoint] Seeding meta DB (idempotent)…
+[entrypoint] Seeding rules (idempotent)…
+[entrypoint] Starting: gunicorn -w 1 -k gthread --threads 4 -b 0.0.0.0:5000 --timeout 120 app:create_app()
+[INFO] Booting worker with pid: 71
+```
+
+Aller sur **http://localhost:5000**, se connecter avec l'`ADMIN_EMAIL` / `ADMIN_PASSWORD` du `.env`.
+
+---
+
+## Variables d'environnement
+
+Le `.env` est injecté dans le conteneur via `env_file:` dans `docker-compose.yml`. Variables clés :
+
+| Variable | Rôle |
+|----------|------|
+| `SECRET_KEY` | **À changer impérativement** — clé de signature des sessions Flask. Générer via `python -c "import secrets; print(secrets.token_hex(32))"`. |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Compte admin créé au premier démarrage par `seed_meta.py`. Lus une fois ; les modifications ultérieures se font via `/users/`. |
+| `DATABASE_URL` | URL de la base tenant par défaut. Pour Docker, garder `sqlite:///seconde-nature.db` (résolu dans `instance/`). |
+| `META_DATABASE_URL` | URL de la méta-base. Garder `sqlite:///instance/meta.db`. |
+| `APP_PORT` | Port hôte → conteneur (défaut `5000`). Utile si 5000 est pris : `APP_PORT=8000 docker compose up -d`. |
+| `APP_UID` / `APP_GID` | UID/GID au sein du conteneur (défaut `1000:1000`). À builder avec `--build-arg APP_UID=$(id -u)` pour matcher un hôte différent. |
+
+Les credentials externes (`STANCER_*`, `ODOO_*`, `HELLOASSO_*`) restent pris en charge via `.env` comme **repli global**. Pour les surcharger par instance, utiliser **Configuration → Connexions externes** dans l'UI.
+
+---
+
+## Mise à jour de l'application
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+L'entrypoint applique les migrations Alembic automatiquement au démarrage. **Aucune commande manuelle n'est nécessaire** côté DB.
+
+---
+
+## Mise à jour depuis une install non-Docker
+
+Si vous aviez déjà l'application en `python run.py` :
+
+```bash
+# Sauvegarde de précaution
+cp -a instance instance.bak
+
+# Lancement
+docker compose up -d --build
+```
+
+Le volume bind-mount partage `./instance/` ; l'app dans le conteneur voit la DB existante. Les seeds sont strictement idempotents (rien n'est ré-écrit). Login : email/mot de passe **inchangés** — les utilisateurs en méta-base restent valides.
+
+---
+
+## Sauvegardes
+
+Les fichiers `instance/seconde-nature.db`, `instance/meta.db` et `instance/tenants/*.db` sont **directement accessibles depuis l'hôte** :
+
+```bash
+# Backup ad-hoc d'une instance tenant
+cp instance/seconde-nature.db /backup/$(date +%Y%m%d)-seconde-nature.db
+
+# Backup complet (méta + tenants + sauvegardes UI déjà faites)
+tar czf compta-asso-$(date +%Y%m%d).tar.gz instance/
+```
+
+L'UI **Instances → Détail → Sauvegardes** reste disponible (les fichiers atterrissent dans `instance/backups/`, visibles depuis l'hôte).
+
+---
+
+## Permissions sur le volume
+
+L'utilisateur dans le conteneur est `appuser` (UID/GID 1000 par défaut). Si l'utilisateur hôte qui fait `docker compose up` n'est pas UID 1000, le conteneur n'aura pas les droits d'écriture sur `./instance/`.
+
+**Option A — Builder avec l'UID hôte (recommandé)** :
+
+```bash
+APP_UID=$(id -u) APP_GID=$(id -g) docker compose up -d --build
+```
+
+Ou en persistant via `.env` (lu par compose pour les `${VARS}`) :
+
+```
+APP_UID=1001
+APP_GID=1001
+```
+
+**Option B — Aligner le owner du dossier existant** :
+
+```bash
+sudo chown -R 1000:1000 instance/
+```
+
+---
+
+## Troubleshooting
+
+### Le conteneur démarre puis s'arrête immédiatement
+
+```bash
+docker compose logs web
+```
+
+Causes fréquentes :
+
+- `.env` absent → message clair de compose au démarrage.
+- Permission denied sur `instance/` → cf. § permissions ci-dessus.
+- Migration Alembic échouée (rare) → la sortie des logs indique le revision concerné.
+
+### Healthcheck en `unhealthy`
+
+```bash
+docker compose ps
+docker inspect compta-asso --format '{{.State.Health}}'
+```
+
+Le bootstrap (migrations + seeds) peut prendre > 30 s sur une grosse DB. Allonger `start_period` dans `docker-compose.yml` si nécessaire.
+
+### Logs trop verbeux ou absents
+
+- `print()` côté Python sort grâce à `PYTHONUNBUFFERED=1` (déjà posé dans le Dockerfile).
+- Gunicorn log access + erreurs sur stdout/stderr → `docker compose logs -f web`.
+- Pour filtrer : `docker compose logs --tail=100 web | grep -i error`.
+
+### Threads de sync Stancer interrompus par un restart
+
+Lors d'un `docker compose down` ou d'un déploiement, Gunicorn reçoit SIGTERM et ferme proprement les requêtes en cours. **Les threads daemon Stancer sont tués brutalement** — les `SyncJob` correspondants restent en état `running` en DB. Au prochain démarrage, l'utilisateur peut relancer la synchro depuis `/payouts/` (idempotent grâce au modèle SyncJob).
+
+### Build trop lent (pandas)
+
+Pandas + numpy = ~250 Mo. Sur lien lent, le premier `docker compose build` peut prendre plusieurs minutes. Une fois l'image construite, les builds suivants ne refont pas cette étape (layer caché par `requirements.txt` inchangé).
+
+### SECRET_KEY par défaut détectée en prod
+
+Aucune alerte automatique en v1. **Vérifier manuellement** avant déploiement que `SECRET_KEY` n'est pas la valeur par défaut `change-me-in-production`. Une session sous cette clé peut être forgée par n'importe qui ayant accès au code public.
+
+---
+
+## Limitations connues
+
+- **1 seul worker Gunicorn** — SQLite verrouille en écriture. Si la charge dépasse quelques requêtes/seconde soutenues, basculer vers Postgres (l'app supporte déjà via `database_url` de l'`Instance`). Hors périmètre du compose actuel.
+- **Pas de reverse proxy** intégré — pas de TLS, pas de cache statique. Pour la prod publique, mettre nginx / Caddy devant.
+- **Pas de service Postgres** dans le compose — si vous voulez Postgres pour une instance, créer un 2ᵉ service `db:` à part et configurer l'URL d'instance via l'UI Instances.
+- **Pas de backup auto** — l'admin gère manuellement (UI ou tar côté hôte).
+
+---
+
+## Référence rapide
+
+| Action | Commande |
+|--------|----------|
+| Démarrer | `docker compose up -d --build` |
+| Stopper | `docker compose down` |
+| Logs en direct | `docker compose logs -f web` |
+| Shell dans le conteneur | `docker compose exec web bash` |
+| Re-jouer le bootstrap | `docker compose restart web` |
+| Détruire (mais garder `./instance/`) | `docker compose down` |
+| Reset complet (⚠ supprime les DBs) | `docker compose down && rm -rf instance/` |

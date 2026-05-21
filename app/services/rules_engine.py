@@ -1,41 +1,56 @@
 import re
-import yaml
-from pathlib import Path
+
 from app.extensions import db
-from app.models import BankTransaction, Entity, Account, FiscalYear, Journal
-from app.services.ledger import post_entry, LedgerError
+from app.models import (
+    Account,
+    BankTransaction,
+    Entity,
+    FiscalYear,
+    Journal,
+    Rule,
+)
+from app.services.ledger import LedgerError, post_entry
 
-DEFAULT_RULES_PATH = Path(__file__).parent.parent.parent / "data" / "rules.yml"
+
+class RuleValidationError(ValueError):
+    """Raised by validate_rule_data when a form payload is rejected."""
 
 
-def load_rules(path=None):
-    rules_path = Path(path) if path else DEFAULT_RULES_PATH
-    with open(rules_path, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-    return data.get("rules", [])
+def load_rules():
+    """Active rules for the current tenant, ordered by evaluation priority."""
+    return (
+        db.session.query(Rule)
+        .filter(Rule.is_active.is_(True))
+        .order_by(Rule.position.asc())
+        .all()
+    )
 
 
 def _match_rule(rule, txn):
-    label = (txn.label or "").upper()
+    label_upper = (txn.label or "").upper()
+    label_raw = txn.label or ""
 
-    if "label_contains" in rule:
-        if rule["label_contains"].upper() not in label:
+    if rule.label_contains:
+        if rule.label_contains.upper() not in label_upper:
             return False
 
-    if "label_regex" in rule:
-        if not re.search(rule["label_regex"], txn.label or "", re.IGNORECASE):
+    if rule.label_regex:
+        try:
+            if not re.search(rule.label_regex, label_raw, re.IGNORECASE):
+                return False
+        except re.error:
             return False
 
-    if "amount_min" in rule:
-        if txn.amount_cents < int(rule["amount_min"] * 100):
+    if rule.amount_min_cents is not None:
+        if txn.amount_cents < rule.amount_min_cents:
             return False
 
-    if "amount_max" in rule:
-        if txn.amount_cents > int(rule["amount_max"] * 100):
+    if rule.amount_max_cents is not None:
+        if txn.amount_cents > rule.amount_max_cents:
             return False
 
-    if "raw_type" in rule:
-        if txn.raw_type != rule["raw_type"]:
+    if rule.raw_type:
+        if txn.raw_type != rule.raw_type:
             return False
 
     return True
@@ -53,15 +68,12 @@ def _get_or_create_entity(name, entity_type):
 def _post_entry_for_transaction(txn, account_code, description):
     """Create a balanced journal entry for a categorized bank transaction.
 
-    Convention :
-      - account_code commence par 6 (charge) → débit 6xx, crédit compte bancaire
-      - account_code commence par 7 (produit) → débit compte bancaire, crédit 7xx
+    Convention:
+      - account_code starts with 6 (expense) → debit 6xx, credit bank
+      - account_code starts with 7 (revenue) → debit bank, credit 7xx
 
-    Le montant utilisé est abs(amount_cents). Le signe de la transaction n'est
-    pas pris en compte : c'est le préfixe du compte qui détermine le sens.
-
-    Returns the bank-side JournalLine (to be linked to the BankTransaction)
-    or raises LedgerError if posting is impossible.
+    The amount used is abs(amount_cents). The transaction sign is ignored;
+    the account prefix drives the direction.
     """
     counterpart = Account.query.filter_by(code=account_code).first()
     if counterpart is None:
@@ -116,29 +128,30 @@ def _post_entry_for_transaction(txn, account_code, description):
     return bank_line
 
 
-def apply_rules(transactions=None, rules_path=None, overwrite=False):
-    """Apply YAML rules to bank transactions.
+def apply_rules(transactions=None, overwrite=False):
+    """Apply rules (from the tenant DB) to bank transactions.
 
-    Each rule may include an `account` field. When present, the matching
-    transaction triggers the automatic creation of a balanced journal entry
-    (BQ journal, fiscal year derived from transaction date), and the bank
-    transaction is reconciled against the bank-side journal line.
+    Each rule may set `account_code`. When present, the matching transaction
+    triggers the automatic creation of a balanced journal entry (BQ journal,
+    fiscal year derived from the transaction date), and the bank transaction
+    is reconciled against the bank-side journal line.
 
     Args:
-        transactions: list of BankTransaction, or None to process all unclassified ones
-        rules_path: path to YAML file, defaults to data/rules.yml
-        overwrite: if True, re-classify already-categorized transactions
+        transactions: list of BankTransaction, or None to process all
+            unclassified ones.
+        overwrite: if True, re-classify already-categorized transactions.
 
     Returns:
-        dict with keys: matched, posted, skipped, total, errors
+        dict with keys: matched, posted, skipped, total, errors.
     """
-    rules = load_rules(rules_path)
+    rules = load_rules()
 
     if transactions is None:
         query = BankTransaction.query
         if not overwrite:
             query = query.filter(
-                (BankTransaction.category == None) | (BankTransaction.entity_id == None)
+                (BankTransaction.category == None)  # noqa: E711
+                | (BankTransaction.entity_id == None)
             )
         transactions = query.all()
 
@@ -157,21 +170,22 @@ def apply_rules(transactions=None, rules_path=None, overwrite=False):
             skipped += 1
             continue
 
-        if matched_rule.get("entity"):
+        if matched_rule.entity_name:
             entity = _get_or_create_entity(
-                matched_rule["entity"],
-                matched_rule.get("entity_type", "AUTRE"),
+                matched_rule.entity_name,
+                matched_rule.entity_type or "AUTRE",
             )
             txn.entity_id = entity.id
-        if matched_rule.get("category"):
-            txn.category = matched_rule["category"]
+        if matched_rule.category:
+            txn.category = matched_rule.category
         matched += 1
 
-        account_code = matched_rule.get("account")
-        if account_code and not txn.journal_line_id:
-            description = matched_rule.get("name", "") or matched_rule.get("category", "")
+        if matched_rule.account_code and not txn.journal_line_id:
+            description = matched_rule.name or matched_rule.category or ""
             try:
-                bank_line = _post_entry_for_transaction(txn, str(account_code), description)
+                bank_line = _post_entry_for_transaction(
+                    txn, matched_rule.account_code, description
+                )
                 txn.journal_line_id = bank_line.id
                 txn.reconciled = True
                 posted += 1
@@ -185,4 +199,99 @@ def apply_rules(transactions=None, rules_path=None, overwrite=False):
         "skipped": skipped,
         "total": len(transactions),
         "errors": errors,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Form validation
+# ---------------------------------------------------------------------------
+
+VALID_ENTITY_TYPES = {"CLIENT", "FOURNISSEUR", "SALARIE", "ADHERENT", "ORGANISME", "AUTRE"}
+
+
+def _clean(value):
+    if value is None:
+        return None
+    s = str(value).strip()
+    return s or None
+
+
+def _parse_amount_cents(value):
+    if value is None or value == "":
+        return None
+    return int(round(float(value) * 100))
+
+
+def validate_rule_data(form) -> dict:
+    """Validate a CRUD form payload. Returns a dict ready for `Rule(**data)`.
+
+    Raises RuleValidationError with a user-facing message.
+    """
+    name = _clean(form.get("name"))
+    if not name:
+        raise RuleValidationError("Le nom est obligatoire.")
+
+    label_contains = _clean(form.get("label_contains"))
+    label_regex = _clean(form.get("label_regex"))
+    raw_type = _clean(form.get("raw_type"))
+
+    try:
+        amount_min_cents = _parse_amount_cents(form.get("amount_min"))
+        amount_max_cents = _parse_amount_cents(form.get("amount_max"))
+    except (TypeError, ValueError):
+        raise RuleValidationError("Montants min/max invalides.")
+
+    if not any([
+        label_contains, label_regex, raw_type,
+        amount_min_cents is not None, amount_max_cents is not None,
+    ]):
+        raise RuleValidationError(
+            "Au moins une condition doit être renseignée (libellé, montant ou type)."
+        )
+
+    if (
+        amount_min_cents is not None
+        and amount_max_cents is not None
+        and amount_min_cents > amount_max_cents
+    ):
+        raise RuleValidationError("Le montant min doit être ≤ au montant max.")
+
+    if label_regex:
+        try:
+            re.compile(label_regex)
+        except re.error as e:
+            raise RuleValidationError(f"Expression régulière invalide : {e}")
+
+    entity_type = _clean(form.get("entity_type"))
+    if entity_type and entity_type not in VALID_ENTITY_TYPES:
+        raise RuleValidationError(f"Type d'entité invalide : {entity_type}")
+
+    account_code = _clean(form.get("account_code"))
+    if account_code:
+        if not (account_code.startswith("6") or account_code.startswith("7")):
+            raise RuleValidationError(
+                "Le code compte doit commencer par 6 (charge) ou 7 (produit)."
+            )
+        account = Account.query.filter_by(code=account_code).first()
+        if account is None:
+            raise RuleValidationError(
+                f"Compte « {account_code} » introuvable dans le plan comptable."
+            )
+        if account.is_header:
+            raise RuleValidationError(
+                f"Compte « {account_code} » est un compte d'en-tête, non utilisable."
+            )
+
+    return {
+        "name": name,
+        "label_contains": label_contains,
+        "label_regex": label_regex,
+        "amount_min_cents": amount_min_cents,
+        "amount_max_cents": amount_max_cents,
+        "raw_type": raw_type,
+        "entity_name": _clean(form.get("entity_name")),
+        "entity_type": entity_type,
+        "category": _clean(form.get("category")),
+        "account_code": account_code,
+        "is_active": bool(form.get("is_active")),
     }

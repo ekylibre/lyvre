@@ -267,27 +267,34 @@ Parse un fichier OFX et insère les transactions nouvelles en base.
 
 ## rules_engine.py — Moteur de règles de catégorisation
 
-### `load_rules(path=None) → list[dict]`
+### `load_rules() → list[Rule]`
 
-Charge les règles depuis le fichier YAML (par défaut `data/rules.yml`).
+Charge les règles **actives** de l'instance courante depuis la table `rules`, ordonnées par `position` croissante.
 
 ```python
 rules = load_rules()
-# [{"name": "EDF", "label_contains": "EDF", "entity": "EDF", "entity_type": "FOURNISSEUR", "category": "Énergie"}, ...]
+# [<Rule 1:TPE>, <Rule 2:TPE>, <Rule 3:MAIF / Assurance>, ...]
 ```
+
+> Avant mai 2026, les règles vivaient dans `data/rules.yml`. Ce fichier sert désormais uniquement de gabarit pour `seed_rules.py` (one-shot par instance, idempotent).
+
+### `validate_rule_data(form) → dict`
+
+Valide un payload de formulaire CRUD. Renvoie un dict prêt à passer à `Rule(**data)`. Lève `RuleValidationError(message)` avec message FR-friendly sinon.
+
+Checks effectués : nom non vide, au moins une condition, `re.compile(label_regex)`, `account_code` ∈ {6xx, 7xx, existant, non en-tête}, `amount_min ≤ amount_max`.
 
 ---
 
-### `apply_rules(transactions=None, rules_path=None, overwrite=False) → dict`
+### `apply_rules(transactions=None, overwrite=False) → dict`
 
-Applique les règles sur une liste de transactions bancaires.
+Applique les règles (de la table `rules`) sur une liste de transactions bancaires.
 
 **Paramètres :**
 
 | Paramètre | Défaut | Description |
 |-----------|--------|-------------|
 | `transactions` | `None` | Liste de `BankTransaction`. Si `None`, traite toutes les transactions non catégorisées |
-| `rules_path` | `None` | Chemin vers le fichier YAML. Si `None`, utilise `data/rules.yml` |
 | `overwrite` | `False` | Si `True`, ré-applique même sur les transactions déjà catégorisées |
 
 **Comportement :** les règles sont évaluées dans l'ordre de déclaration ; la première règle qui correspond est appliquée et les suivantes sont ignorées.
@@ -342,23 +349,14 @@ Les `LedgerError` sont collectées dans la clé `errors` du dictionnaire de reto
 
 ---
 
-### Syntaxe du fichier YAML
+### Édition des règles
 
-```yaml
-rules:
-  - name: "Nom lisible de la règle"        # obligatoire
-    label_contains: "MOT_CLE"              # correspondance insensible à la casse
-    label_regex: "(?i)pattern|autre"       # regex Python
-    amount_min: 100.00                     # montant en euros (centimes internement)
-    amount_max: 500.00
-    raw_type: "DEBIT"                      # type OFX brut
-    entity: "Nom de l'entité"             # facultatif — crée l'entité si inexistante
-    entity_type: FOURNISSEUR              # CLIENT | FOURNISSEUR | SALARIE | ORGANISME | AUTRE
-    category: "Libellé de catégorie"
-    account: "707"                         # facultatif — déclenche la création d'une écriture
-```
+L'édition se fait depuis l'UI `/rules/` (création, modification, suppression, activation, réordonnancement ↑↓). La page d'édition embarque un testeur REGEX live (JS pur) et une cheat sheet des syntaxes Python courantes (`(?i)`, `|`, `\d`, `\s`, classes, ancres, échappement…).
 
-Les conditions (`label_contains`, `label_regex`, `amount_min/max`, `raw_type`) sont cumulatives (ET logique). Le champ `account` doit être un code du plan comptable, exact, non en-tête, commençant par `6` ou `7`.
+Validation serveur (cf. `validate_rule_data`) :
+- Au moins une condition (`label_contains`, `label_regex`, `amount_min_cents`, `amount_max_cents`, `raw_type`)
+- `label_regex` doit compiler en Python
+- `account_code`, s'il est fourni : doit commencer par `6` ou `7`, exister dans `accounts`, ne pas être un compte d'en-tête
 
 ---
 

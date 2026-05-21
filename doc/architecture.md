@@ -33,7 +33,11 @@ compta-asso/
 │   │   ├── order_payment.py      # Paiements POS
 │   │   ├── customer_invoice.py   # Factures clients Odoo (account.move)
 │   │   ├── customer_invoice_line.py
-│   │   └── helloasso.py          # Forms / Orders / Items / Payments HelloAsso
+│   │   ├── helloasso.py          # Forms / Orders / Items / Payments HelloAsso
+│   │   ├── rule.py               # Règles de catégorisation (per-instance)
+│   │   ├── external_connection.py # Credentials services externes (per-instance)
+│   │   ├── user.py               # Utilisateurs (méta-base)
+│   │   └── instance.py           # Déclaration d'instance (méta-base)
 │   │
 │   ├── views/                    # Blueprints Flask (un fichier par domaine)
 │   │   ├── auth.py
@@ -98,7 +102,7 @@ compta-asso/
 │   └── rules.yml                 # Règles de catégorisation (éditable sans redémarrage)
 │
 ├── migrations/                   # Migrations Alembic (versioning schéma)
-├── instance/                     # compta.db (gitignorée)
+├── instance/                     # seconde-nature.db (gitignorée)
 └── doc/                          # Cette documentation
 ```
 
@@ -132,6 +136,32 @@ compta-asso/
 | **Apache ECharts 5** (CDN) | Rendu des graphiques du tableau de bord (les options sont préparées côté serveur) |
 
 Pas de build step JavaScript.
+
+---
+
+## Architecture multi-tenant
+
+Depuis mai 2026, l'application gère plusieurs associations (« instances »), chacune avec sa propre base de données. Une **méta-base** (`instance/meta.db`) globale stocke les utilisateurs et la liste des instances. Voir [multi_tenant.md](multi_tenant.md) pour le détail.
+
+```
+                  ┌──────────────────┐
+                  │ instance/meta.db │  ← users, instances
+                  └──────────────────┘
+                          ▲
+   Login                  │ __bind_key__='meta'
+   ─────────────► db.session ◄───── all models without __bind_key__
+                          │
+                          ▼ g.tenant_engine (rebindé par requête)
+                  ┌────────────────────────────┐
+                  │ instance/seconde-nature.db │  ← écritures, comptes…
+                  ├────────────────────────────┤
+                  │ instance/tenants/asso2.db  │  ← écritures, comptes…
+                  ├────────────────────────────┤
+                  │ instance/tenants/asso3.db  │  ← …
+                  └────────────────────────────┘
+```
+
+Routage géré par `MultiTenantSession.get_bind` (`app/extensions.py`) + hook `before_request` (`app/tenant.py`).
 
 ---
 
@@ -426,7 +456,11 @@ Cela évite tout problème d'arrondi flottant dans les calculs comptables.
 
 | Mécanisme | Implémentation |
 |-----------|---------------|
-| Authentification | Flask-Login, mot de passe hashé (Werkzeug `pbkdf2:sha256`) |
+| Credentials services externes | Table tenant `external_connections(service, key, value)` (voir [multi_tenant.md](multi_tenant.md#credentials-externes-per-instance)). Repli sur `.env` global quand la ligne est absente. UI : **Configuration → Connexions externes** (admin uniquement). |
+| Sauvegardes d'instance | Copie SQLite atomique (`sqlite3.Connection.backup`) déposée dans `instance/backups/`. Restauration via upload + `PRAGMA integrity_check` + snapshot `pre-restore-…`. Voir [backups.md](backups.md). |
+| Authentification | Flask-Login, utilisateurs stockés en méta-base avec `password_hash` (Werkzeug `pbkdf2:sha256`) |
+| Autorisation admin | Décorateur `@admin_required` (`app/decorators.py`) — 403 si `current_user.is_admin` est faux |
+| Isolation multi-tenant | `before_request` charge l'instance depuis `session["instance_id"]` ; les requêtes SQLAlchemy par défaut sont rebindées vers l'engine tenant correspondant |
 | CSRF | Flask-WTF, token dans chaque formulaire POST |
 | Injection SQL | Impossible via SQLAlchemy ORM (requêtes paramétrées) |
 | Clôture d'exercice | `FiscalYear.closed` vérifié avant toute mutation d'écriture |

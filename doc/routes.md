@@ -18,20 +18,109 @@ Le dropdown de mois est alimenté par les **12 mois de l'exercice comptable cour
 
 ---
 
-## Authentification
+## Authentification et sélection d'instance
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/login` | Affiche le formulaire de connexion |
-| POST | `/login` | Vérifie le mot de passe, crée la session, redirige vers `/` ou `?next=` |
-| GET | `/logout` | Détruit la session, redirige vers `/login` |
+| GET | `/login` | Formulaire de connexion (email + mot de passe) |
+| POST | `/login` | Vérifie les credentials, crée la session, redirige vers `/select-instance` |
+| GET | `/select-instance` | Liste les instances actives. Si une seule, auto-sélection et redirection. |
+| POST | `/select-instance` | Pose `session["instance_id"]`, redirige vers `?next=` ou `/` |
+| GET | `/logout` | Détruit la session (login + instance), redirige vers `/login` |
 
 **Paramètres POST `/login` :**
 
 | Champ | Type | Description |
 |-------|------|-------------|
-| `password` | string | Mot de passe admin (défini par `ADMIN_PASSWORD`) |
+| `email` | string | Email de l'utilisateur (case-insensitive) |
+| `password` | string | Mot de passe (vérifié contre `User.password_hash`) |
 | `csrf_token` | string | Token CSRF fourni par le formulaire |
+
+**Paramètres POST `/select-instance` :**
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `instance_id` | int | ID de l'instance choisie (parmi celles actives) |
+| `csrf_token` | string | Token CSRF |
+
+> Toutes les routes ci-dessous nécessitent d'avoir choisi une instance. Sinon, redirection vers `/select-instance`. Les routes `/users/*` et `/instances/*` font exception : elles ne tapent que dans la méta-base et restent accessibles sans instance sélectionnée.
+
+---
+
+## Utilisateurs (`/users/`) — admin uniquement
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/users/` | Liste tous les utilisateurs |
+| GET | `/users/new` | Formulaire de création |
+| POST | `/users/new` | Crée l'utilisateur (email unique, mot de passe hashé) |
+| GET | `/users/<id>/edit` | Formulaire de modification |
+| POST | `/users/<id>/edit` | Met à jour. Champ `password` vide = inchangé. |
+| POST | `/users/<id>/delete` | Supprime (interdit sur soi-même) |
+| POST | `/users/<id>/toggle-active` | Bascule `is_active` (interdit sur soi-même) |
+
+**Paramètres POST `/users/new` et `/users/<id>/edit` :**
+
+| Champ | Obligatoire | Description |
+|-------|-------------|-------------|
+| `email` | oui | Email unique (case-insensitive) |
+| `password` | oui (création) / non (édition) | Mot de passe en clair, hashé via `pbkdf2:sha256` |
+| `full_name` | non | Nom affiché |
+| `is_admin` | non (checkbox) | Donne accès aux CRUD users + instances |
+| `is_active` | non (checkbox) | Permet la connexion ; faux = login refusé |
+
+Un admin ne peut pas retirer son propre `is_admin`, se désactiver, ni se supprimer.
+
+---
+
+## Instances (`/instances/`) — admin uniquement
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/instances/` | Liste toutes les instances |
+| GET | `/instances/<id>` | Vue détail : infos + liste des sauvegardes |
+| GET | `/instances/new` | Formulaire de création |
+| POST | `/instances/new` | Crée l'instance + provisionne la DB (mode auto) ou enregistre l'URL (mode manuel) |
+| GET | `/instances/<id>/edit` | Formulaire de modification (slug + URL non modifiables) |
+| POST | `/instances/<id>/edit` | Met à jour `label` et `is_active`. Vide le cache d'engine de cette instance. |
+| POST | `/instances/<id>/backup` | Crée une sauvegarde atomique SQLite. Refus en non-SQLite. |
+| GET | `/instances/<id>/backups/<filename>/download` | Télécharge un fichier de sauvegarde |
+| POST | `/instances/<id>/backups/<filename>/delete` | Supprime un fichier de sauvegarde |
+| GET | `/instances/<id>/restore` | Formulaire d'upload de sauvegarde |
+| POST | `/instances/<id>/restore` | Restaure la DB depuis l'upload (snapshot de sécurité créé avant) |
+
+Le nom de fichier (`<filename>`) doit matcher `(pre-restore-)?<slug>-\d{8}-\d{6}\.db` pour éviter le path traversal.
+
+Voir [doc/backups.md](backups.md) pour le workflow utilisateur détaillé.
+
+## Configuration (`/configuration/external-connections/`) — admin uniquement
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/configuration/external-connections/` | Affiche 3 cartes (Stancer / Odoo / HelloAsso) avec les credentials de l'instance courante |
+| POST | `/configuration/external-connections/<service>` | Upsert les credentials d'un service. Champ vide = ligne DB supprimée → repli `.env` actif. |
+
+Les valeurs sont stockées dans `external_connections` de la base **tenant** (donc per-instance). Les variables d'environnement `STANCER_*`, `ODOO_*`, `HELLOASSO_*` servent de **repli global** quand la table est vide.
+
+---
+
+**Paramètres POST `/instances/new` :**
+
+| Champ | Obligatoire | Description |
+|-------|-------------|-------------|
+| `slug` | oui | `^[a-z0-9][a-z0-9-]{0,48}[a-z0-9]$`. Sert de nom de fichier SQLite. |
+| `label` | oui | Libellé affiché |
+| `provisioning_mode` | oui | `auto` (crée le SQLite local + migrations + seed) ou `manual` (URL fournie) |
+| `database_url` | oui en mode manuel | URL SQLAlchemy (SQLite ou Postgres) pointant sur une base **déjà** prête |
+
+En mode `auto`, le service `instance_provisioning.provision_sqlite_database` exécute :
+
+1. Validation du slug
+2. Refus si `instance/tenants/<slug>.db` existe déjà avec du contenu
+3. `flask db upgrade` (subprocess, `DATABASE_URL` surchargé)
+4. `python seed_accounts.py` (subprocess) — charge les 783 comptes PCA + 6 journaux
+
+Voir [doc/multi_tenant.md](multi_tenant.md) pour le détail de l'architecture.
 
 ---
 
@@ -230,8 +319,32 @@ L'écriture est refusée si Σ débit ≠ Σ crédit (message flash d'erreur).
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/rules/` | Affiche toutes les règles chargées depuis `data/rules.yml` |
-| POST | `/rules/apply` | Applique les règles sur les transactions non catégorisées et génère les écritures comptables des règles disposant d'un `account` |
+| GET | `/rules/` | Liste toutes les règles (table `rules` de l'instance courante) avec actions Modifier / Activer-Désactiver / ↑↓ / Supprimer |
+| GET | `/rules/new` | Formulaire de création (inclut l'aide REGEX + testeur live) |
+| POST | `/rules/new` | Crée la règle (position = max+1) |
+| GET | `/rules/<id>/edit` | Formulaire de modification |
+| POST | `/rules/<id>/edit` | Met à jour la règle |
+| POST | `/rules/<id>/delete` | Supprime la règle |
+| POST | `/rules/<id>/toggle-active` | Bascule `is_active` |
+| POST | `/rules/<id>/move-up` | Échange position avec la règle au-dessus |
+| POST | `/rules/<id>/move-down` | Échange position avec la règle au-dessous |
+| POST | `/rules/apply` | Applique les règles aux transactions non catégorisées et génère les écritures pour celles avec `account_code` |
+
+**Paramètres POST `/rules/new` et `/rules/<id>/edit` :**
+
+| Champ | Obligatoire | Description |
+|-------|-------------|-------------|
+| `name` | oui | Libellé court |
+| `label_contains` | non | Sous-chaîne (case-insensitive) |
+| `label_regex` | non | Regex Python (validée serveur via `re.compile`) |
+| `amount_min` / `amount_max` | non | En euros, convertis en centimes |
+| `raw_type` | non | Filtre type OFX |
+| `entity_name` / `entity_type` | non | Tiers à rattacher (créé si nécessaire) |
+| `category` | non | Étiquette libre |
+| `account_code` | non | Code 6xx/7xx du plan comptable — déclenche la génération d'écriture |
+| `is_active` | non (checkbox) | Activer la règle |
+
+Au moins une condition (`label_contains`, `label_regex`, `amount_min`, `amount_max`, `raw_type`) est obligatoire — sinon le formulaire est refusé.
 
 **Paramètres POST `/rules/apply` :**
 

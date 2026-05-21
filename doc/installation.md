@@ -35,9 +35,14 @@ Variables disponibles :
 | Variable | Défaut | Description |
 |----------|--------|-------------|
 | `SECRET_KEY` | `change-me-in-production` | Clé de signature des sessions Flask. **À changer impérativement en production.** |
-| `DATABASE_URL` | `sqlite:///instance/compta.db` | URL de connexion SQLAlchemy. Supporte PostgreSQL : `postgresql://user:pass@host/db` |
+| `DATABASE_URL` | `sqlite:///instance/seconde-nature.db` | URL SQLAlchemy de la base **tenant par défaut** (sert de fallback pour les scripts CLI ; chaque instance gère ensuite sa propre URL en base de méta). |
+| `META_DATABASE_URL` | `sqlite:///instance/meta.db` | URL SQLAlchemy de la **méta-base** (tables `users` + `instances`). |
 | `FLASK_ENV` | `development` | Mode de démarrage (`development` ou `production`) |
-| `ADMIN_PASSWORD` | `admin` | Mot de passe de l'utilisateur administrateur |
+| `ADMIN_EMAIL` | `admin@local` | Email du premier utilisateur admin créé par `seed_meta.py`. |
+| `ADMIN_PASSWORD` | `admin` | Mot de passe du premier admin (uniquement utilisé par `seed_meta.py`). |
+| `DEFAULT_INSTANCE_SLUG` | `seconde-nature` | Slug de la 1ère instance créée par `seed_meta.py`. |
+| `DEFAULT_INSTANCE_LABEL` | `Seconde Nature` | Libellé de la 1ère instance. |
+| `DEFAULT_INSTANCE_URL` | `sqlite:///seconde-nature.db` | URL de la base tenant de la 1ère instance (relative au dossier `instance/`). |
 | `STANCER_SECRET_KEY` | (vide) | Clé secrète Stancer (`sk_xxx`) utilisée pour interroger l'API v2 (`/v2/payouts` et `/v2/payouts/{id}/payments`). Tant qu'elle n'est pas définie, le bouton de synchronisation des Versements Stancer reste désactivé. |
 | `STANCER_MODE` | `live` | Mode Stancer : `live` ou `test` |
 | `ODOO_URL` | (vide) | URL de l'instance Odoo (ex : `https://erp.example.org`). Requise par la sync POS (`/orders/sync`) et factures clients (`/customer-invoices/sync`). |
@@ -48,12 +53,14 @@ Variables disponibles :
 | `HELLOASSO_CLIENT_SECRET` | (vide) | Secret OAuth2 HelloAsso. |
 | `HELLOASSO_ORG_SLUG` | (vide) | Slug de l'organisation HelloAsso (visible dans l'URL : `helloasso.com/associations/{slug}`). |
 
-Tant que les 4 variables `ODOO_*` ne sont pas définies, les boutons de synchronisation POS et factures clients restent désactivés. Idem pour les 3 variables `HELLOASSO_*`.
+Tant que les 4 variables `ODOO_*` ne sont pas définies (et qu'aucune valeur n'est saisie dans l'UI), les boutons de synchronisation POS et factures clients restent désactivés. Idem pour les 3 variables `HELLOASSO_*` et `STANCER_SECRET_KEY`.
 
-### 4. Initialiser la base de données
+> **Depuis mai 2026** : les credentials Stancer / Odoo / HelloAsso peuvent aussi être saisis depuis l'UI (**Configuration → Connexions externes**, admin uniquement). Les variables ci-dessus servent alors de **repli global** quand la table `external_connections` (per-instance) est vide. Voir [multi_tenant.md](multi_tenant.md) et [models.md](models.md#externalconnection--credentials-services-externes-tenant).
+
+### 4. Initialiser la base tenant (1ère association)
 
 ```bash
-# Créer les tables
+# Créer les tables comptables dans instance/seconde-nature.db
 FLASK_APP=run.py flask db upgrade
 
 # Charger le plan comptable (783 comptes) et les journaux par défaut
@@ -67,7 +74,23 @@ Plan comptable: 783 comptes créés (783 au total).
 Journaux: 6 journaux créés.
 ```
 
-### 5. Démarrer l'application
+### 5. Initialiser la méta-base (users + instances)
+
+```bash
+# Crée instance/meta.db, le 1er utilisateur admin et l'instance par défaut
+python seed_meta.py
+```
+
+La sortie attendue :
+
+```
+Admin user created: admin@local
+Default instance created: seconde-nature → sqlite:///seconde-nature.db
+```
+
+> Le script est idempotent : un second lancement n'écrase ni l'admin ni l'instance par défaut.
+
+### 6. Démarrer l'application
 
 ```bash
 python run.py
@@ -75,7 +98,28 @@ python run.py
 
 L'application est accessible sur **http://127.0.0.1:5000**.
 
-Connexion avec le mot de passe `admin` (ou la valeur de `ADMIN_PASSWORD`).
+Connexion avec **l'email** (`ADMIN_EMAIL`) et **le mot de passe** (`ADMIN_PASSWORD`) renseignés en étape 5. Si une seule instance est active, elle est auto-sélectionnée après login.
+
+### 7. Déploiement Docker (alternative à la procédure manuelle)
+
+Pour la production ou un setup reproductible, l'application fournit un `Dockerfile` et un `docker-compose.yml` (1 seul service, volume sur `instance/`). Voir [doc/docker.md](docker.md) pour le guide complet.
+
+```bash
+docker compose up -d --build
+# → http://localhost:5000
+```
+
+Le bootstrap (migrations + seeds) est exécuté automatiquement par l'entrypoint.
+
+### 8. Provisionner d'autres instances (optionnel)
+
+Depuis l'UI, un admin peut créer d'autres instances via le menu **Utilisateur → Instances → Nouvelle instance**. En mode "Automatique", le système :
+
+1. Crée le fichier SQLite `instance/tenants/<slug>.db`
+2. Applique les migrations du schéma comptable
+3. Charge les 783 comptes PCA + 6 journaux
+
+En mode "Manuel", l'admin fournit lui-même une URL (utile pour Postgres ou base préexistante).
 
 ---
 
@@ -121,11 +165,16 @@ Aller sur **Paramètres → Comptes bancaires → Nouveau compte**, sélectionne
 
 ```
 instance/
-└── compta.db          # Base de données SQLite (gitignorée)
+├── meta.db              # Méta-base (users + instances)
+├── seconde-nature.db    # Base tenant de la 1ère association
+└── tenants/
+    └── *.db             # Bases tenant des autres instances
 
-migrations/
+migrations/              # Migrations Alembic du schéma tenant (default bind)
 ├── alembic.ini
 ├── env.py
 └── versions/
-    └── *.py           # Fichiers de migration Alembic
+    └── *.py
 ```
+
+> Le schéma de la méta-base (`users`, `instances`) n'a pas de pipeline Alembic dédié dans cette version. Il est créé par `seed_meta.py` via `db.create_all(bind_key=['meta'])`. Une migration manuelle sera nécessaire si ce schéma évolue.

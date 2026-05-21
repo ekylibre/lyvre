@@ -1,0 +1,37 @@
+# Local development artifacts
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Source-control noise
+.git/
+.gitignore
+.gitattributes
+
+# Secrets and runtime state — must NEVER be baked into the image
+.env
+.env.local
+.env.*
+instance/
+
+# Documentation and project planning — not needed at runtime
+claudedocs/
+doc/
+tests/
+README.md
+LICENSE
+Modele-document-Nouveau-Plan-comptable-Bilan-CDR.xls
+
+# Editor / agent metadata
+.claude/
+.vscode/
+.idea/
+*.swp
+
+# Build outputs (not used by this project but defensive)
+dist/
+build/
+*.egg-info/

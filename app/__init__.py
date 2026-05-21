@@ -10,6 +10,7 @@ def create_app(config_name=None):
 
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(config.get(config_name, config["default"]))
+    app.config.setdefault("MAX_CONTENT_LENGTH", 500 * 1024 * 1024)
 
     os.makedirs(app.instance_path, exist_ok=True)
 
@@ -23,6 +24,9 @@ def create_app(config_name=None):
 
     # Import models so Alembic can detect them
     from . import models  # noqa: F401
+
+    from .tenant import register_tenant_hooks
+    register_tenant_hooks(app)
 
     from .views.dashboard import bp as dashboard_bp
     from .views.accounts import bp as accounts_bp
@@ -39,6 +43,9 @@ def create_app(config_name=None):
     from .views.payouts import bp as payouts_bp
     from .views.orders import bp as orders_bp
     from .views.customer_invoices import bp as customer_invoices_bp
+    from .views.users import bp as users_bp
+    from .views.instances import bp as instances_bp
+    from .views.external_connections import bp as external_connections_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -55,6 +62,9 @@ def create_app(config_name=None):
     app.register_blueprint(payouts_bp)
     app.register_blueprint(orders_bp)
     app.register_blueprint(customer_invoices_bp)
+    app.register_blueprint(users_bp)
+    app.register_blueprint(instances_bp)
+    app.register_blueprint(external_connections_bp)
 
     _register_template_filters(app)
 

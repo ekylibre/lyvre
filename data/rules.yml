@@ -1,7 +1,14 @@
-# Règles de catégorisation automatique des transactions bancaires
-# Chaque règle peut utiliser : label_contains, label_regex, amount_min, amount_max, raw_type
-# Résultat : entity (nom), entity_type, category, account
+# ⚠️ Ce fichier sert UNIQUEMENT de gabarit pour `seed_rules.py`.
+# Il n'est plus lu par l'application en runtime — chaque instance gère
+# ses propres règles dans sa table `rules` (modifiables via /rules/).
 #
+# Pour réimporter ces règles dans une instance vierge :
+#   DATABASE_URL=sqlite:///<tenant>.db python seed_rules.py
+# (Le seed est idempotent : refuse si la table contient déjà des règles.)
+#
+# Format conservé pour référence. Chaque règle peut utiliser :
+# label_contains, label_regex, amount_min, amount_max, raw_type.
+# Résultat : entity (nom), entity_type, category, account.
 # Si "account" est défini, une écriture comptable équilibrée est créée :
 #   - compte commençant par 6 (charge)  → débit 6xx, crédit compte bancaire
 #   - compte commençant par 7 (produit) → débit compte bancaire, crédit 7xx

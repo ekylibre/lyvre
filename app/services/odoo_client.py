@@ -9,8 +9,6 @@ L'API key (depuis Odoo 14) est passée à la place du password.
 from urllib.parse import urljoin
 from xmlrpc.client import ServerProxy
 
-from flask import current_app
-
 
 class OdooConfigError(RuntimeError):
     pass
@@ -56,18 +54,14 @@ class OdooClient:
 
 
 def from_app_config():
-    """Construit un OdooClient à partir de la config Flask."""
-    url = current_app.config.get("ODOO_URL")
-    db = current_app.config.get("ODOO_DB")
-    username = current_app.config.get("ODOO_USERNAME")
-    password = current_app.config.get("ODOO_API_KEY")
-    missing = [k for k, v in (
-        ("ODOO_URL", url), ("ODOO_DB", db),
-        ("ODOO_USERNAME", username), ("ODOO_API_KEY", password),
-    ) if not v]
+    """Build an OdooClient from the per-instance external_connections config."""
+    from app.services import external_config
+
+    cfg = external_config.get_all("odoo")
+    missing = [k for k, v in cfg.items() if not v]
     if missing:
         raise OdooConfigError(
-            "Configuration Odoo incomplète : " + ", ".join(missing)
-            + " — à définir dans .env"
+            "Configuration Odoo incomplète (manquant : " + ", ".join(missing)
+            + ") — renseignez-la dans Configuration → Connexions externes."
         )
-    return OdooClient(url, db, username, password)
+    return OdooClient(cfg["url"], cfg["db"], cfg["username"], cfg["api_key"])

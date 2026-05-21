@@ -1,6 +1,106 @@
 # Modèles de données
 
-Toutes les tables sont gérées par SQLAlchemy. Les migrations sont versionnées via Alembic (répertoire `migrations/`).
+Toutes les tables sont gérées par SQLAlchemy. Les migrations du schéma comptable sont versionnées via Alembic (`migrations/`).
+
+L'application sépare deux bases :
+- **Méta-base** (`instance/meta.db`) — tables `users` + `instances` (modèles portant `__bind_key__ = "meta"`).
+- **Bases tenant** (`instance/<slug>.db`) — toutes les autres tables, une base par instance/association.
+
+Voir [multi_tenant.md](multi_tenant.md) pour l'architecture du routage par requête.
+
+---
+
+## Rule — Règle de catégorisation (tenant)
+
+**Table :** `rules` (bind par défaut = tenant)
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| `id` | Integer PK | |
+| `position` | Integer NOT NULL (indexé) | Ordre d'évaluation croissant. Première règle qui matche → appliquée. |
+| `name` | String(200) NOT NULL | Libellé affiché |
+| `label_contains` | String(500) nullable | Sous-chaîne du libellé (case-insensitive) |
+| `label_regex` | String(500) nullable | Regex Python (`re.IGNORECASE` appliqué) |
+| `amount_min_cents` | Integer nullable | Montant min signé (centimes) |
+| `amount_max_cents` | Integer nullable | Montant max signé (centimes) |
+| `raw_type` | String(20) nullable | Type OFX brut (`DEBIT`, `CREDIT`, `INT`…) |
+| `entity_name` | String(200) nullable | Nom de l'entité à rattacher (créée si absente) |
+| `entity_type` | String(20) nullable | `CLIENT`/`FOURNISSEUR`/`SALARIE`/`ADHERENT`/`ORGANISME`/`AUTRE` |
+| `category` | String(200) nullable | Étiquette libre posée sur la transaction |
+| `account_code` | String(20) nullable | Code 6xx/7xx du plan comptable — déclenche la création d'écriture |
+| `is_active` | Boolean default=True | Désactivable sans suppression |
+| `created_at` / `updated_at` | DateTime | |
+
+**Validations** (côté service `rules_engine.validate_rule_data`) :
+- `name` obligatoire
+- Au moins une condition (label_contains, label_regex, amount_min, amount_max, raw_type)
+- `label_regex` doit compiler (`re.compile`)
+- `account_code` doit commencer par 6 ou 7, exister, ne pas être un en-tête
+- `amount_min_cents ≤ amount_max_cents` si les deux fournis
+
+**Origine** : seed initial via `seed_rules.py` qui importe `data/rules.yml`. Idempotent. Appelé automatiquement par le provisioning de nouvelle instance.
+
+---
+
+## ExternalConnection — Credentials services externes (tenant)
+
+**Table :** `external_connections` (bind par défaut = tenant)
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| `id` | Integer PK | |
+| `service` | String(30) NOT NULL (indexé) | `stancer`, `odoo`, `helloasso` |
+| `key` | String(50) NOT NULL | `secret_key`, `mode`, `url`, `db`, `username`, `api_key`, `client_id`, `client_secret`, `org_slug`, `api_base` |
+| `value` | Text nullable | Valeur en clair (ou NULL = non configurée) |
+| `updated_at` | DateTime NOT NULL default=utcnow onupdate=utcnow | Horodatage de la dernière modification |
+
+**Contrainte unique** : `(service, key)`.
+
+**Sémantique** : chaque tenant gère ses propres credentials. Le helper `app.services.external_config` lit en base, puis tombe en repli sur le `.env` global si la ligne est absente — la migration vers la nouvelle UI est donc progressive (aucun big-bang).
+
+**Clés attendues par service** (validation côté Python uniquement, voir `SERVICE_KEYS` / `SERVICE_REQUIRED_KEYS`) :
+
+| `service` | Clés `key` | Origine `.env` (repli) |
+|-----------|-----------|-------------------------|
+| `stancer` | `secret_key`, `mode` | `STANCER_SECRET_KEY`, `STANCER_MODE` |
+| `odoo` | `url`, `db`, `username`, `api_key` | `ODOO_URL`, `ODOO_DB`, `ODOO_USERNAME`, `ODOO_API_KEY` |
+| `helloasso` | `client_id`, `client_secret`, `org_slug`, `api_base` | `HELLOASSO_CLIENT_ID`, `HELLOASSO_CLIENT_SECRET`, `HELLOASSO_ORG_SLUG`, `HELLOASSO_API_BASE` |
+
+---
+
+## User — Utilisateur (méta-base)
+
+**Table :** `users` (bind `meta`)
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| `id` | Integer PK | |
+| `email` | String(200) UNIQUE NOT NULL | Login (case-insensitive) |
+| `password_hash` | String(255) NOT NULL | Hash Werkzeug `pbkdf2:sha256` |
+| `full_name` | String(200) nullable | Nom affiché |
+| `is_admin` | Boolean default=False | Donne accès aux CRUD users + instances |
+| `is_active` | Boolean default=True | Faux = login refusé, déconnexion forcée |
+| `last_login_at` | DateTime nullable | Mis à jour à chaque login réussi |
+| `created_at` | DateTime default=utcnow | |
+
+Hérite de `flask_login.UserMixin`. Méthodes `set_password(p)` / `check_password(p)`.
+
+---
+
+## Instance — Instance/Association (méta-base)
+
+**Table :** `instances` (bind `meta`)
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| `id` | Integer PK | |
+| `slug` | String(50) UNIQUE NOT NULL | Identifiant URL-safe, sert de nom de fichier SQLite (`tenants/<slug>.db`) |
+| `label` | String(200) NOT NULL | Nom affiché (ex : « Seconde Nature ») |
+| `database_url` | String(500) NOT NULL | URL SQLAlchemy de la base tenant (SQLite relatif au dossier `instance/`, ou Postgres) |
+| `is_active` | Boolean default=True | Faux = retirée du sélecteur d'instance ; sortie de session forcée si elle était choisie |
+| `created_at` | DateTime default=utcnow | |
+
+`slug` et `database_url` sont **immuables** en UI après création (édition `label` + `is_active` uniquement). Cette contrainte évite les fuites du cache d'engines (`app/tenant.py:_ENGINE_CACHE`).
 
 ---
 
