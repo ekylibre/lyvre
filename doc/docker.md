@@ -139,6 +139,33 @@ APP_GID=1001
 sudo chown -R 1000:1000 instance/
 ```
 
+**Option C — Déploiement Dokploy (ou autre PaaS qui provisionne le volume)** :
+
+Dokploy crée typiquement le volume avec `root:root`, ce qui empêche l'`appuser` (UID 1000) du conteneur d'écrire dedans — symptôme : `sqlite3.OperationalError: unable to open database file` au démarrage, dans `flask db upgrade`.
+
+Fix manuel côté hôte Dokploy (à refaire après chaque recréation du volume) :
+
+```bash
+# 1. Identifier le chemin du volume
+docker volume inspect <nom_du_volume>
+# → cherche "Mountpoint" dans la sortie JSON
+
+# 2. Aligner le propriétaire
+sudo chown -R 1000:1000 <Mountpoint>
+
+# 3. Redémarrer le conteneur
+docker restart <container_id>
+```
+
+Pour un bind-mount déclaré dans le `docker-compose.yml` Dokploy :
+
+```bash
+sudo chown -R 1000:1000 /chemin/hôte/vers/instance
+docker restart <container_id>
+```
+
+Alternative permanente : adapter le Dockerfile + l'entrypoint pour démarrer en `root`, chown le volume au boot, puis dropper les privilèges vers `appuser` via `gosu`. Voir `/sc:troubleshoot "container Dokploy"` pour le détail du correctif.
+
 ---
 
 ## Troubleshooting
