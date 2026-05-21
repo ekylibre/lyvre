@@ -3,7 +3,12 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h2 class="mb-0">Instances</h2>
-  <a href="{{ url_for('instances.new') }}" class="btn btn-primary">Nouvelle instance</a>
+  <div>
+    <a href="{{ url_for('instances.import_upload') }}" class="btn btn-outline-primary">
+      Parcourir un fichier…
+    </a>
+    <a href="{{ url_for('instances.new') }}" class="btn btn-primary">Nouvelle instance</a>
+  </div>
 </div>
 
 <div class="card">

@@ -81,6 +81,8 @@ Un admin ne peut pas retirer son propre `is_admin`, se désactiver, ni se suppri
 | GET | `/instances/<id>` | Vue détail : infos + liste des sauvegardes |
 | GET | `/instances/new` | Formulaire de création |
 | POST | `/instances/new` | Crée l'instance + provisionne la DB (mode auto) ou enregistre l'URL (mode manuel) |
+| GET | `/instances/import` | Formulaire d'upload (.db / .backup SQLite) |
+| POST | `/instances/import` | Si le slug du fichier matche une instance → **restauration** ; sinon → **création** d'une nouvelle instance utilisant le fichier comme seed |
 | GET | `/instances/<id>/edit` | Formulaire de modification (slug + URL non modifiables) |
 | POST | `/instances/<id>/edit` | Met à jour `label` et `is_active`. Vide le cache d'engine de cette instance. |
 | POST | `/instances/<id>/backup` | Crée une sauvegarde atomique SQLite. Refus en non-SQLite. |

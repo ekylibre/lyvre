@@ -154,19 +154,15 @@ def _validate_uploaded_sqlite(uploaded_file) -> bytes:
     return head + body
 
 
-def restore_from_upload(instance, uploaded_file) -> tuple[Path, Path]:
-    """Replace the instance DB with the uploaded SQLite file.
+def _stage_and_validate(blob: bytes, target_path: Path) -> Path:
+    """Write blob next to target_path, integrity-check, return temp path.
 
-    Returns (pre_restore_backup_path, restored_target_path).
+    Caller is responsible for the final os.replace(tmp, target). On failure
+    the temp file is removed and BackupError is raised.
     """
-    target_path = _resolve_sqlite_path(instance.database_url)
-    blob = _validate_uploaded_sqlite(uploaded_file)
-
-    # Stage the uploaded bytes to a temp file alongside the target.
+    target_path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = target_path.with_suffix(target_path.suffix + ".incoming")
     tmp_path.write_bytes(blob)
-
-    # Integrity check on the uploaded copy before doing anything destructive.
     try:
         conn = sqlite3.connect(str(tmp_path))
         try:
@@ -180,6 +176,20 @@ def restore_from_upload(instance, uploaded_file) -> tuple[Path, Path]:
     except sqlite3.DatabaseError as e:
         tmp_path.unlink(missing_ok=True)
         raise BackupError(f"Fichier SQLite invalide : {e}") from e
+    except BackupError:
+        tmp_path.unlink(missing_ok=True)
+        raise
+    return tmp_path
+
+
+def restore_from_upload(instance, uploaded_file) -> tuple[Path, Path]:
+    """Replace the instance DB with the uploaded SQLite file.
+
+    Returns (pre_restore_backup_path, restored_target_path).
+    """
+    target_path = _resolve_sqlite_path(instance.database_url)
+    blob = _validate_uploaded_sqlite(uploaded_file)
+    tmp_path = _stage_and_validate(blob, target_path)
 
     # Safety: snapshot the current DB before overwriting.
     pre_backup = create_backup(instance, prefix=PRE_RESTORE_PREFIX)
@@ -191,6 +201,46 @@ def restore_from_upload(instance, uploaded_file) -> tuple[Path, Path]:
     clear_engine_cache(instance.id)
 
     return pre_backup, target_path
+
+
+_TIMESTAMPED_RE = re.compile(
+    r"^(?P<slug>[a-z0-9][a-z0-9-]*[a-z0-9])-\d{8}-\d{6}\.(?:db|sqlite|backup)$",
+    re.IGNORECASE,
+)
+_PLAIN_RE = re.compile(
+    r"^(?P<slug>[a-z0-9][a-z0-9-]*[a-z0-9])\.(?:db|sqlite|backup)$",
+    re.IGNORECASE,
+)
+
+
+def extract_slug_from_filename(filename: str) -> str | None:
+    """Best-effort slug extraction from an uploaded filename.
+
+    - 'seconde-nature.db'                       → 'seconde-nature'
+    - 'seconde-nature-20260521-175502.db'       → 'seconde-nature'
+    - 'pre-restore-seconde-nature-20260521-…' → 'seconde-nature'
+    - 'export.backup'                           → 'export'
+    - 'archive.zip'                             → None
+    """
+    if not filename:
+        return None
+    stem = Path(filename).name
+    if stem.lower().startswith("pre-restore-"):
+        stem = stem[len("pre-restore-"):]
+    match = _TIMESTAMPED_RE.match(stem) or _PLAIN_RE.match(stem)
+    if not match:
+        return None
+    return match.group("slug").lower()
+
+
+def stage_upload_to_path(uploaded_file, target_path: Path) -> None:
+    """Validate the upload and atomically write it to target_path.
+
+    Used for NEW instance creation from upload (no pre-restore backup).
+    """
+    blob = _validate_uploaded_sqlite(uploaded_file)
+    tmp_path = _stage_and_validate(blob, target_path)
+    os.replace(tmp_path, target_path)
 
 
 def is_sqlite_instance(instance) -> bool:

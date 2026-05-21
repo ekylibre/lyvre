@@ -48,6 +48,21 @@ Cliquer **Télécharger** envoie le fichier `.db` au navigateur en `application/
 
 ---
 
+## Importer un fichier (créer ou restaurer depuis la liste)
+
+Depuis **Instances → Parcourir un fichier…**, vous pouvez uploader un fichier `.db` ou `.backup` SQLite. Comportement automatique :
+
+- **Si le slug** déduit du nom de fichier (`<slug>[-YYYYMMDD-HHMMSS]?.db|sqlite|backup`) **correspond à une instance existante** → restauration de cette instance (snapshot de sécurité `pre-restore-…` créé automatiquement).
+- **Sinon** → création d'une nouvelle instance utilisant le fichier comme base. Le slug et le libellé sont modifiables avant l'envoi.
+
+Cas d'usage typique :
+
+- Migration entre serveurs (téléchargez un backup, copiez le fichier, uploadez côté cible).
+- Restauration au sein du même serveur (équivalent à passer par l'écran de détail).
+- Création rapide d'une nouvelle instance à partir d'un gabarit existant (clonez `seconde-nature.db` sous un autre nom).
+
+---
+
 ## Restaurer une instance
 
 1. **Instances → Détail → Restaurer un fichier…**
