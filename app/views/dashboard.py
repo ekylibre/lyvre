@@ -5,8 +5,10 @@ from sqlalchemy import func, extract
 from echarts import Echart, Bar, Line, Axis, Legend
 from app.extensions import db
 from app.models import (
-    FiscalYear, BankTransaction, JournalEntry, JournalLine, Account, Order,
+    FiscalYear, BankTransaction, JournalEntry, JournalLine, Account,
+    Order, OrderLine, CustomerInvoice, Payout, HelloAssoOrder, HelloAssoItem,
 )
+from app.services.reports import build_compte_resultat
 
 bp = Blueprint("dashboard", __name__)
 
@@ -62,7 +64,7 @@ def _monthly_result(fy):
 
 
 def _monthly_sales(fy):
-    """Monthly net credit on 70x accounts (ventes) + monthly POS Odoo orders total."""
+    """Monthly net credit on 70x accounts + POS Odoo orders + non-POS Odoo invoices."""
     months = _months_in_fy(fy)
     rows = (
         db.session.query(
@@ -96,10 +98,26 @@ def _monthly_sales(fy):
     )
     pos_bucket = {(int(y), int(m)): val / 100 for y, m, val in pos_rows}
 
+    inv_rows = (
+        db.session.query(
+            extract('year', CustomerInvoice.invoice_date).label('y'),
+            extract('month', CustomerInvoice.invoice_date).label('m'),
+            func.coalesce(func.sum(CustomerInvoice.amount_total_cents), 0),
+        )
+        .filter(CustomerInvoice.invoice_date >= fy.start_date)
+        .filter(CustomerInvoice.invoice_date <= fy.end_date)
+        .filter(CustomerInvoice.state == "posted")
+        .filter(CustomerInvoice.ref == None)  # exclude POS orders which are also recorded as invoices")
+        .group_by('y', 'm')
+        .all()
+    )
+    inv_bucket = {(int(y), int(m)): val / 100 for y, m, val in inv_rows}
+
     labels = [_month_label(y, m) for y, m in months]
     values = [round(bucket.get(k, 0), 2) for k in months]
     pos_values = [round(pos_bucket.get(k, 0), 2) for k in months]
-    return labels, values, pos_values
+    inv_values = [round(inv_bucket.get(k, 0), 2) for k in months]
+    return labels, values, pos_values, inv_values
 
 
 def _bank_balance_evolution(fy):
@@ -131,10 +149,96 @@ def _bank_balance_evolution(fy):
     return labels, balances
 
 
+# ---------------------------------------------------------------------------
+# Top-line KPIs
+# ---------------------------------------------------------------------------
+
+
+def _total_sales_cents(fy):
+    """Total sales = POS orders (paid/done/invoiced) + posted Odoo invoices."""
+    pos_total = db.session.query(
+        func.coalesce(func.sum(Order.amount_total_cents), 0)
+    ).filter(
+        Order.date_order >= fy.start_date,
+        Order.date_order <= fy.end_date,
+        Order.state.in_(("paid", "done", "invoiced")),
+    ).scalar() or 0
+    inv_total = db.session.query(
+        func.coalesce(func.sum(CustomerInvoice.amount_total_cents), 0)
+    ).filter(
+        CustomerInvoice.invoice_date >= fy.start_date,
+        CustomerInvoice.invoice_date <= fy.end_date,
+        CustomerInvoice.state == "posted",
+        CustomerInvoice.ref == None,
+    ).scalar() or 0
+    return int(pos_total) + int(inv_total)
+
+
+def _new_members_count(fy):
+    """Distinct entities with at least one membership event in the fiscal year.
+
+    Membership events:
+      - HelloAsso item type='Membership' on an order dated in the FY
+      - POS OrderLine matching '%adh%sion%' (product name) on an order in the FY
+    """
+    ha_ids = {
+        row[0] for row in
+        db.session.query(HelloAssoOrder.entity_id)
+        .join(HelloAssoItem, HelloAssoItem.order_id == HelloAssoOrder.id)
+        .filter(HelloAssoItem.type == "Membership")
+        .filter(HelloAssoOrder.entity_id.isnot(None))
+        .filter(HelloAssoOrder.date >= fy.start_date)
+        .filter(HelloAssoOrder.date <= fy.end_date)
+        .distinct()
+        .all()
+    }
+    pos_ids = {
+        row[0] for row in
+        db.session.query(Order.entity_id)
+        .join(OrderLine, OrderLine.order_id == Order.id)
+        .filter(Order.entity_id.isnot(None))
+        .filter(
+            db.or_(
+                db.func.lower(OrderLine.full_product_name).like("%adh%sion%"),
+                db.func.lower(OrderLine.product_name).like("%adh%sion%"),
+            )
+        )
+        .filter(Order.date_order >= fy.start_date)
+        .filter(Order.date_order <= fy.end_date)
+        .distinct()
+        .all()
+    }
+    return len(ha_ids | pos_ids)
+
+
+def _resultat_courant_cents(fy):
+    """Résultat courant avant impôts = (produits expl + produits fin) - (charges expl + charges fin).
+
+    Aggregated from build_compte_resultat to stay aligned with the official PCA report.
+    """
+    data = build_compte_resultat(fy)
+    p_expl = sum(v[0] for v in data["produits_exploitation"].values())
+    c_expl = sum(v[0] for v in data["charges_exploitation"].values())
+    p_fin = sum(v[0] for v in data["produits_financiers"].values())
+    c_fin = sum(v[0] for v in data["charges_financieres"].values())
+    return int(p_expl + p_fin - c_expl - c_fin)
+
+
+def _total_payouts_cents(fy):
+    """Sum of Stancer payouts whose date_payout falls within the fiscal year."""
+    total = db.session.query(
+        func.coalesce(func.sum(Payout.amount_cents), 0)
+    ).filter(
+        Payout.date_bank >= fy.start_date,
+        Payout.date_bank <= fy.end_date,
+    ).scalar() or 0
+    return int(total)
+
+
 def _build_charts(fy):
     """Returns dict of ECharts JSON options for dashboard charts."""
     res_labels, produits, charges, nets = _monthly_result(fy)
-    sales_labels, sales, pos_sales = _monthly_sales(fy)
+    sales_labels, sales, pos_sales, inv_sales = _monthly_sales(fy)
     bank_labels, balances = _bank_balance_evolution(fy)
 
     # Résultat (produits/charges/net)
@@ -147,10 +251,11 @@ def _build_charts(fy):
     cdr.use(Axis("value", "left"))
 
     # Ventes
-    ventes = Echart("Ventes mensuelles", "Comptabilité 70x vs commandes POS Odoo")
+    ventes = Echart("Ventes mensuelles")
     ventes.use(Bar("Ventes (70x)", sales))
     ventes.use(Bar("Commandes POS", pos_sales))
-    ventes.use(Legend(["Ventes (70x)", "Commandes POS"]))
+    ventes.use(Bar("Factures Odoo", inv_sales))
+    ventes.use(Legend(["Ventes (70x)", "Commandes POS", "Factures Odoo"]))
     ventes.use(Axis("category", "bottom", data=sales_labels))
     ventes.use(Axis("value", "left"))
 
@@ -203,7 +308,7 @@ def _build_charts(fy):
 
     return {
         "resultat": adapt(cdr.json, color_series=["#1abc9c", "#e74c3c", "#34495e"]),
-        "ventes": adapt(ventes.json, color_series=["#3498db", "#f39c12"]),
+        "ventes": adapt(ventes.json, color_series=["#3498db", "#f39c12", "#27ae60"]),
         "solde": adapt(solde.json, area_lines=True, color_series=["#9b59b6"]),
     }
 
@@ -223,17 +328,10 @@ def index():
     stats = {}
     charts = None
     if selected_fy:
-        stats["entries_count"] = JournalEntry.query.filter_by(fiscal_year_id=selected_fy.id).count()
-        stats["unreconciled"] = (
-            BankTransaction.query
-            .filter_by(reconciled=False)
-            .filter(BankTransaction.transaction_date >= selected_fy.start_date)
-            .filter(BankTransaction.transaction_date <= selected_fy.end_date)
-            .count()
-        )
-        stats["unbalanced"] = JournalEntry.query.filter_by(
-            fiscal_year_id=selected_fy.id, is_balanced=False
-        ).count()
+        stats["total_sales_cents"] = _total_sales_cents(selected_fy)
+        stats["new_members"] = _new_members_count(selected_fy)
+        stats["resultat_courant_cents"] = _resultat_courant_cents(selected_fy)
+        stats["total_payouts_cents"] = _total_payouts_cents(selected_fy)
         stats["recent_entries"] = (
             JournalEntry.query.filter_by(fiscal_year_id=selected_fy.id)
             .order_by(JournalEntry.entry_date.desc())

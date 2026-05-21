@@ -26,32 +26,32 @@
   <div class="col-md-3">
     <div class="card text-bg-primary">
       <div class="card-body">
-        <div class="fs-2 fw-bold">{{ stats.entries_count }}</div>
-        <div>Écritures — {{ active_fy.label }}</div>
+        <div class="fs-3 fw-bold">{{ stats.total_sales_cents | euros }}</div>
+        <div>Total ventes — POS + Factures Odoo</div>
       </div>
     </div>
   </div>
   <div class="col-md-3">
-    <div class="card {% if stats.unreconciled > 0 %}text-bg-warning{% else %}text-bg-success{% endif %}">
+    <div class="card text-bg-info">
       <div class="card-body">
-        <div class="fs-2 fw-bold">{{ stats.unreconciled }}</div>
-        <div>Transactions non rapprochées sur l'exercice</div>
+        <div class="fs-2 fw-bold">{{ stats.new_members }}</div>
+        <div>Nouveaux adhérents</div>
       </div>
     </div>
   </div>
   <div class="col-md-3">
-    <div class="card {% if stats.unbalanced > 0 %}text-bg-danger{% else %}text-bg-success{% endif %}">
+    <div class="card {% if stats.resultat_courant_cents >= 0 %}text-bg-success{% else %}text-bg-danger{% endif %}">
       <div class="card-body">
-        <div class="fs-2 fw-bold">{{ stats.unbalanced }}</div>
-        <div>Écritures déséquilibrées</div>
+        <div class="fs-3 fw-bold">{{ stats.resultat_courant_cents | euros }}</div>
+        <div>Résultat courant avant impôts</div>
       </div>
     </div>
   </div>
   <div class="col-md-3">
-    <div class="card {% if active_fy.closed %}text-bg-dark{% else %}text-bg-secondary{% endif %}">
+    <div class="card text-bg-secondary">
       <div class="card-body">
-        <div class="fs-6 fw-bold">{{ active_fy.start_date.strftime('%d/%m/%Y') }} → {{ active_fy.end_date.strftime('%d/%m/%Y') }}</div>
-        <div>Exercice {% if active_fy.closed %}clôturé{% else %}ouvert{% endif %}</div>
+        <div class="fs-3 fw-bold">{{ stats.total_payouts_cents | euros }}</div>
+        <div>CB Stancer</div>
       </div>
     </div>
   </div>

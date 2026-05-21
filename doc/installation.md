@@ -35,8 +35,21 @@ Variables disponibles :
 | Variable | Défaut | Description |
 |----------|--------|-------------|
 | `SECRET_KEY` | `change-me-in-production` | Clé de signature des sessions Flask. **À changer impérativement en production.** |
-| `DATABASE_URL` | `sqlite:///instance/seconde-nature.db` | URL SQLAlchemy de la base **tenant par défaut** (sert de fallback pour les scripts CLI ; chaque instance gère ensuite sa propre URL en base de méta). |
-| `META_DATABASE_URL` | `sqlite:///instance/meta.db` | URL SQLAlchemy de la **méta-base** (tables `users` + `instances`). |
+| `DATABASE_URL` | (chemin absolu vers `instance/seconde-nature.db`) | URL SQLAlchemy de la base **tenant par défaut** (sert de fallback pour les scripts CLI ; chaque instance gère ensuite sa propre URL en base de méta). Voir le piège SQLite ci-dessous. |
+| `META_DATABASE_URL` | (chemin absolu vers `instance/meta.db`) | URL SQLAlchemy de la **méta-base** (tables `users` + `instances`). |
+
+> ⚠️ **Piège des URLs SQLite relatives**
+>
+> Flask-SQLAlchemy 3 résout les URLs SQLite **relatives** (`sqlite:///nom.db`, 3 slashes) **par rapport au dossier `instance/`** de Flask. Conséquences pratiques pour `DATABASE_URL` / `META_DATABASE_URL` :
+>
+> | Valeur dans `.env` | Fichier réellement ouvert | Statut |
+> |--------------------|---------------------------|--------|
+> | `sqlite:///seconde-nature.db` | `instance/seconde-nature.db` | ✅ correct (recommandé) |
+> | `sqlite:///instance/seconde-nature.db` | `instance/**instance**/seconde-nature.db` (double `instance/`) | ❌ erreur `unable to open database file` |
+> | `sqlite:////chemin/absolu/seconde-nature.db` (**4 slashes**) | `/chemin/absolu/seconde-nature.db` | ✅ correct, explicite |
+> | variable absente | fallback `config.py` → chemin absolu calculé sur `instance/` | ✅ correct |
+>
+> Si tu écris ces variables en `.env` ou en config Dokploy / Kubernetes, utilise soit `sqlite:///<nom>.db` (sans `instance/`), soit un chemin absolu à 4 slashes, soit n'écris rien et laisse le fallback faire le travail.
 | `FLASK_ENV` | `development` | Mode de démarrage (`development` ou `production`) |
 | `ADMIN_EMAIL` | `admin@local` | Email du premier utilisateur admin créé par `seed_meta.py`. |
 | `ADMIN_PASSWORD` | `admin` | Mot de passe du premier admin (uniquement utilisé par `seed_meta.py`). |

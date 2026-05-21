@@ -65,7 +65,7 @@ Le `.env` est injecté dans le conteneur via `env_file:` dans `docker-compose.ym
 | `SECRET_KEY` | **À changer impérativement** — clé de signature des sessions Flask. Générer via `python -c "import secrets; print(secrets.token_hex(32))"`. |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Compte admin créé au premier démarrage par `seed_meta.py`. Lus une fois ; les modifications ultérieures se font via `/users/`. |
 | `DATABASE_URL` | URL de la base tenant par défaut. Pour Docker, garder `sqlite:///seconde-nature.db` (résolu dans `instance/`). |
-| `META_DATABASE_URL` | URL de la méta-base. Garder `sqlite:///instance/meta.db`. |
+| `META_DATABASE_URL` | URL SQLAlchemy de la méta-base. **À laisser non définie** (le fallback `config.py` calcule un chemin absolu correct), ou écrire `sqlite:///meta.db` (sans `instance/`) — voir [le piège SQLite relatif](installation.md#3-configurer-lenvironnement) dans la doc installation. |
 | `APP_PORT` | Port hôte → conteneur (défaut `5000`). Utile si 5000 est pris : `APP_PORT=8000 docker compose up -d`. |
 | `APP_UID` / `APP_GID` | UID/GID au sein du conteneur (défaut `1000:1000`). À builder avec `--build-arg APP_UID=$(id -u)` pour matcher un hôte différent. |
 
@@ -181,6 +181,7 @@ Causes fréquentes :
 - `.env` absent → message clair de compose au démarrage.
 - Permission denied sur `instance/` → cf. § permissions ci-dessus.
 - Migration Alembic échouée (rare) → la sortie des logs indique le revision concerné.
+- `sqlalchemy.exc.OperationalError: unable to open database file` au `flask db upgrade` → souvent une URL SQLite **relative avec `instance/` dans le path** (`DATABASE_URL=sqlite:///instance/...`). Flask-SQLAlchemy double-préfixe — voir [le piège SQLite relatif](installation.md#3-configurer-lenvironnement). Corriger en retirant `instance/` ou en passant un chemin absolu à 4 slashes.
 
 ### Healthcheck en `unhealthy`
 
