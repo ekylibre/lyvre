@@ -18,6 +18,11 @@
   'client_secret': ('Client Secret',      'password', ""),
   'org_slug':     ('Slug organisation',   'text',     "helloasso.com/associations/<slug>"),
   'api_base':     ('Base API (optionnel)', 'text',    "https://api.helloasso.com"),
+  'host':         ('Serveur SMTP',        'text',     "smtp.gmail.com"),
+  'port':         ('Port',                'text',     "587"),
+  'use_tls':      ('TLS (true/false)',    'text',     "true"),
+  'password':     ('Mot de passe',        'password', "Mot de passe ou app password"),
+  'sender':       ('Expéditeur',          'text',     "Association <contact@exemple.org>"),
 } %}
 
 <div class="row g-3">
@@ -67,6 +72,18 @@
           </div>
         </form>
       </div>
+      {% if svc.slug == 'smtp' %}
+      <div class="card-footer d-flex justify-content-between align-items-center">
+        <small class="text-muted">Enregistrez avant de tester la configuration.</small>
+        <form method="post" action="{{ url_for('external_connections.test_smtp') }}" class="m-0">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline-secondary btn-sm"
+                  {% if not svc.configured %}disabled{% endif %}>
+            Tester la connexion
+          </button>
+        </form>
+      </div>
+      {% endif %}
     </div>
   </div>
 {% endfor %}

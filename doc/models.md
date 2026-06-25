@@ -314,6 +314,29 @@ FiscalYear ──────────────────── JournalE
 - `entity_by_email(cache, email)` — recherche insensible à la casse avec cache local au sync.
 - `unique_entity_name(base_name, email=None)` — garantit l'unicité de `Entity.name` (suffixe par email puis `#N`).
 
+**Statut d'adhésion** (`app/services/membership_status.py`, fonctions pures) — la date anniversaire et le statut sont **calculés**, non stockés :
+- `member_birthday(last_ha, last_pos)` → échéance = date d'adhésion la plus récente + 365 j (date du jour si aucune).
+- `member_status(last_ha, last_pos)` → `{status, color, label, css}`. `status` ∈ `?`/`asha`/`ok` (présence de données) ; `color` ∈ `red` (échéance ≤ aujourd'hui) / `orange` (≤ +30 j) / `green` (à jour).
+- `build_member_rows(...)`, `sort_member_rows(rows, sort_by, sort)` — utilisés par la liste, les exports et la relance.
+
+---
+
+## EmailTemplate — Gabarit d'email éditable
+
+**Table :** `email_templates` (base tenant) — migration `b3e1a7c2d9f4`.
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| `id` | Integer PK | |
+| `key` | String(50) UNIQUE NOT NULL | Identifiant du gabarit (ex. `membership_reminder`) |
+| `subject` | String(300) NOT NULL | Sujet (rendu Jinja) |
+| `body_html` | Text NOT NULL | Corps HTML (rendu Jinja) |
+| `updated_at` | DateTime | Dernière modification |
+
+Variables de rendu de la relance : `{{ nom }}`, `{{ email }}`, `{{ date_anniversaire }}`, `{{ lien_helloasso }}`.
+`EmailTemplate.get_or_default(key)` retourne le gabarit en base ou un objet par défaut non persisté.
+Le gabarit `membership_reminder` est seedé par la migration.
+
 ---
 
 ## Payout — Versement Stancer

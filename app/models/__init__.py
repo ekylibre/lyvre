@@ -20,6 +20,7 @@ from .customer_invoice_line import CustomerInvoiceLine
 from .helloasso import HelloAssoForm, HelloAssoOrder, HelloAssoItem, HelloAssoPayment
 from .external_connection import ExternalConnection
 from .rule import Rule
+from .email_template import EmailTemplate
 
 __all__ = [
     "User",
@@ -47,4 +48,5 @@ __all__ = [
     "HelloAssoPayment",
     "ExternalConnection",
     "Rule",
+    "EmailTemplate",
 ]

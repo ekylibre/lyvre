@@ -1,22 +1,27 @@
 import csv
 from datetime import datetime
-from io import StringIO
+from io import StringIO, BytesIO
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, Response
 from flask_login import login_required
 from app.extensions import db
 from app.models import (
     Entity, HelloAssoOrder, HelloAssoItem, HelloAssoPayment,
     Order, OrderLine, OrderPayment,
-    CustomerInvoice,
+    CustomerInvoice, EmailTemplate,
 )
 from app.models.order import POS_ORDER_STATES
 from app.models.customer_invoice import (
     CUSTOMER_INVOICE_STATES, CUSTOMER_INVOICE_PAYMENT_STATES,
 )
 from app.models.entity import ENTITY_TYPES
+from app.models.email_template import (
+    MEMBERSHIP_REMINDER_KEY, DEFAULT_REMINDER_SUBJECT, DEFAULT_REMINDER_BODY,
+)
 from app.services.helloasso_client import HelloAssoConfigError, from_app_config as helloasso_client
 from app.services.helloasso_create import create_membership_for_entity
 from app.services.helloasso_sync import sync_helloasso
+from app.services.membership_status import build_member_rows, sort_member_rows
+from app.services import membership_reminders
 
 bp = Blueprint("entities", __name__, url_prefix="/entities")
 
@@ -24,6 +29,39 @@ bp = Blueprint("entities", __name__, url_prefix="/entities")
 def _helloasso_configured():
     from app.services import external_config
     return external_config.is_configured("helloasso")
+
+
+def _smtp_configured():
+    return membership_reminders.smtp_configured()
+
+
+VALID_SORT_BY = ("name", "birthday", "status")
+
+
+def _parse_member_sort(args):
+    sort_by = (args.get("sort_by") or "name").strip().lower()
+    if sort_by not in VALID_SORT_BY:
+        sort_by = "name"
+    sort = (args.get("sort") or "asc").strip().lower()
+    if sort not in ("asc", "desc"):
+        sort = "asc"
+    return sort_by, sort
+
+
+def _member_rows(args):
+    """Construit la liste filtrée + triée des adhérents (partagée liste/export)."""
+    q = (args.get("q") or "").strip()
+    date_from = _parse_date(args.get("date_from"))
+    date_to = _parse_date(args.get("date_to"))
+    sort_by, sort = _parse_member_sort(args)
+
+    members_list = _members_query(q).all()
+    last_ha, last_pos = _last_membership_dates([m.id for m in members_list])
+    members_list = _filter_by_date_range(members_list, last_ha, last_pos, date_from, date_to)
+
+    rows = build_member_rows(members_list, last_ha, last_pos)
+    rows = sort_member_rows(rows, sort_by, sort)
+    return rows, q, sort_by, sort
 
 
 @bp.route("/")
@@ -157,67 +195,228 @@ def _last_membership_dates(member_ids):
 @bp.route("/members")
 @login_required
 def members():
-    q = (request.args.get("q") or "").strip()
-    date_from_raw = (request.args.get("date_from") or "").strip()
-    date_to_raw = (request.args.get("date_to") or "").strip()
-    date_from = _parse_date(date_from_raw)
-    date_to = _parse_date(date_to_raw)
-
-    members_list = _members_query(q).all()
-    last_membership_by_entity, last_odoo_membership_by_entity = _last_membership_dates(
-        [m.id for m in members_list]
-    )
-    members_list = _filter_by_date_range(
-        members_list, last_membership_by_entity, last_odoo_membership_by_entity,
-        date_from, date_to,
-    )
-
+    rows, q, sort_by, sort = _member_rows(request.args)
     return render_template(
         "entities/members.html",
-        members=members_list,
+        rows=rows,
         q=q,
-        date_from=date_from_raw,
-        date_to=date_to_raw,
-        last_membership_by_entity=last_membership_by_entity,
-        last_odoo_membership_by_entity=last_odoo_membership_by_entity,
+        date_from=(request.args.get("date_from") or "").strip(),
+        date_to=(request.args.get("date_to") or "").strip(),
+        sort_by=sort_by,
+        sort=sort,
         helloasso_configured=_helloasso_configured(),
+        smtp_configured=_smtp_configured(),
     )
+
+
+EXPORT_HEADERS = [
+    "Nom", "Email", "Adhérent",
+    "Dernière adhésion HelloAsso", "Dernière adhésion POS",
+    "Date anniversaire", "Statut", "Couleur", "Notes",
+]
+
+
+def _export_record(row):
+    """Transforme une row enrichie en liste de valeurs prêtes à exporter."""
+    ha = row["last_ha"]
+    pos = row["last_pos"]
+    return [
+        row["name"],
+        row["email"] or "",
+        "Oui" if row["is_member"] else "Non",
+        ha.strftime("%d/%m/%Y") if ha else "",
+        pos.strftime("%d/%m/%Y") if pos else "",
+        row["birthday"].strftime("%d/%m/%Y"),
+        row["status"],
+        row["color"],
+        row["notes"] or "",
+    ]
+
+
+def _render_members_csv(rows):
+    output = StringIO()
+    writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
+    writer.writerow(EXPORT_HEADERS)
+    for row in rows:
+        writer.writerow(_export_record(row))
+    csv_bytes = output.getvalue().encode("utf-8-sig")
+    response = Response(csv_bytes, mimetype="text/csv")
+    response.headers["Content-Disposition"] = 'attachment; filename="adherents.csv"'
+    return response
+
+
+def _render_members_xlsx(rows):
+    import pandas as pd
+    from openpyxl.styles import PatternFill
+
+    records = [_export_record(row) for row in rows]
+    df = pd.DataFrame(records, columns=EXPORT_HEADERS)
+    buf = BytesIO()
+    with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Adhérents")
+        ws = writer.sheets["Adhérents"]
+        # Colore la cellule "Statut" (colonne 7) selon la couleur d'échéance.
+        fills = {
+            "red": PatternFill("solid", fgColor="F8D7DA"),
+            "orange": PatternFill("solid", fgColor="FFF3CD"),
+            "green": PatternFill("solid", fgColor="D1E7DD"),
+        }
+        for i, row in enumerate(rows, start=2):  # ligne 1 = en-têtes
+            fill = fills.get(row["color"])
+            if fill:
+                ws.cell(row=i, column=7).fill = fill
+
+    response = Response(
+        buf.getvalue(),
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response.headers["Content-Disposition"] = 'attachment; filename="adherents.xlsx"'
+    return response
+
+
+@bp.route("/members/export")
+@login_required
+def members_export():
+    fmt = (request.args.get("format") or "csv").strip().lower()
+    if fmt == "xls":  # alias legacy -> xlsx
+        fmt = "xlsx"
+    rows, _, _, _ = _member_rows(request.args)
+    if fmt == "xlsx":
+        return _render_members_xlsx(rows)
+    return _render_members_csv(rows)
 
 
 @bp.route("/members.csv")
 @login_required
 def members_csv():
-    q = (request.args.get("q") or "").strip()
-    date_from = _parse_date(request.args.get("date_from"))
-    date_to = _parse_date(request.args.get("date_to"))
+    """Compat : ancien lien d'export CSV."""
+    args = request.args.to_dict()
+    args["format"] = "csv"
+    return redirect(url_for("entities.members_export", **args))
 
-    members_list = _members_query(q).all()
-    last_ha, last_pos = _last_membership_dates([m.id for m in members_list])
-    members_list = _filter_by_date_range(members_list, last_ha, last_pos, date_from, date_to)
 
-    output = StringIO()
-    writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
-    writer.writerow([
-        "Nom", "Email", "Adhérent",
-        "Dernière adhésion HelloAsso", "Dernière adhésion POS",
-        "Notes",
-    ])
-    for e in members_list:
-        ha = last_ha.get(e.id)
-        pos = last_pos.get(e.id)
-        writer.writerow([
-            e.name,
-            e.email or "",
-            "Oui" if e.is_member else "Non",
-            ha.strftime("%d/%m/%Y") if ha else "",
-            pos.strftime("%d/%m/%Y") if pos else "",
-            e.notes or "",
-        ])
+@bp.route("/members/reminders", methods=["GET", "POST"])
+@login_required
+def members_reminders():
+    """Relance email des adhérents expirés (statut rouge)."""
+    rows, q, _, _ = _member_rows(request.args)
+    targets = membership_reminders.members_to_remind(rows)
 
-    csv_bytes = output.getvalue().encode("utf-8-sig")
-    response = Response(csv_bytes, mimetype="text/csv")
-    response.headers["Content-Disposition"] = 'attachment; filename="adherents.csv"'
-    return response
+    if request.method == "POST":
+        if not _smtp_configured():
+            flash("SMTP non configuré — abandon.", "warning")
+            return redirect(url_for("entities.members"))
+        # Ne relance que les adhérents cochés dans le sélecteur.
+        selected_ids = set(request.form.getlist("selected"))
+        chosen = [
+            t for t in targets
+            if t["entity"] is not None and str(t["entity"].id) in selected_ids
+        ]
+        if not chosen:
+            flash("Aucun adhérent sélectionné.", "warning")
+            return redirect(url_for("entities.members_reminders", q=q))
+        try:
+            result = membership_reminders.send_reminders(chosen)
+        except Exception as exc:
+            current_app.logger.exception("Relance adhérents échouée")
+            flash(f"Erreur lors de l'envoi : {exc}", "danger")
+            return redirect(url_for("entities.members"))
+        msg = (
+            f"Relance : {result['sent']} email(s) envoyé(s), "
+            f"{result['errors']} erreur(s)."
+        )
+        if result["errors"]:
+            flash(msg + " Détail : " + " | ".join(result["error_lines"][:5]),
+                  "warning" if result["sent"] else "danger")
+        else:
+            flash(msg, "success")
+        return redirect(url_for("entities.members"))
+
+    return render_template(
+        "entities/reminder_preview.html",
+        targets=targets,
+        q=q,
+        helloasso_url=membership_reminders.helloasso_renewal_url(),
+        smtp_configured=_smtp_configured(),
+    )
+
+
+def _sample_expired_row():
+    """Retourne (row, is_real) : un adhérent expiré réel pour l'aperçu, sinon
+    un exemple fictif si aucun adhérent n'est en relance."""
+    rows, _, _, _ = _member_rows(request.args)
+    targets = membership_reminders.members_to_remind(rows)
+    if targets:
+        return targets[0], True
+    from datetime import date, timedelta
+    sample = {
+        "name": "Jean Dupont",
+        "email": "jean.dupont@example.org",
+        "birthday": date.today() - timedelta(days=10),
+        "status": "ok", "color": "red", "label": "ok", "css": "bg-danger",
+        "entity": None,
+    }
+    return sample, False
+
+
+@bp.route("/members/reminder-template", methods=["GET", "POST"])
+@login_required
+def reminder_template():
+    """Édition du gabarit d'email de relance (stocké en base) + aperçu HTML."""
+    tpl = EmailTemplate.query.filter_by(key=MEMBERSHIP_REMINDER_KEY).first()
+    action = request.form.get("action", "save")
+
+    if request.method == "POST" and action == "save":
+        subject = (request.form.get("subject") or "").strip()
+        body_html = request.form.get("body_html") or ""
+        if not subject or not body_html.strip():
+            flash("Le sujet et le corps sont obligatoires.", "danger")
+        else:
+            if tpl is None:
+                tpl = EmailTemplate(key=MEMBERSHIP_REMINDER_KEY)
+                db.session.add(tpl)
+            tpl.subject = subject
+            tpl.body_html = body_html
+            db.session.commit()
+            flash("Gabarit d'email mis à jour.", "success")
+            return redirect(url_for("entities.members"))
+
+    # Contenu courant des champs : valeurs soumises (aperçu/échec) sinon en base
+    # sinon gabarit par défaut.
+    if request.method == "POST":
+        cur_subject = request.form.get("subject") or ""
+        cur_body = request.form.get("body_html") or ""
+    elif tpl is not None:
+        cur_subject, cur_body = tpl.subject, tpl.body_html
+    else:
+        cur_subject, cur_body = DEFAULT_REMINDER_SUBJECT, DEFAULT_REMINDER_BODY
+
+    # Aperçu rendu avec les données d'un adhérent expiré.
+    sample_row, sample_is_real = _sample_expired_row()
+    helloasso_url = membership_reminders.helloasso_renewal_url()
+    preview_tpl = EmailTemplate(
+        key=MEMBERSHIP_REMINDER_KEY, subject=cur_subject, body_html=cur_body,
+    )
+    try:
+        preview_subject, preview_body = membership_reminders.render_reminder(
+            preview_tpl, sample_row, helloasso_url,
+        )
+        preview_error = None
+    except Exception as exc:  # erreur de syntaxe Jinja dans le gabarit
+        preview_subject = preview_body = ""
+        preview_error = str(exc)
+
+    return render_template(
+        "entities/reminder_template_form.html",
+        subject=cur_subject,
+        body_html=cur_body,
+        preview_subject=preview_subject,
+        preview_body=preview_body,
+        preview_error=preview_error,
+        sample_row=sample_row,
+        sample_is_real=sample_is_real,
+        helloasso_url=helloasso_url,
+    )
 
 
 @bp.route("/<int:entity_id>")

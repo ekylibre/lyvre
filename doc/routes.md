@@ -99,10 +99,11 @@ Voir [doc/backups.md](backups.md) pour le workflow utilisateur détaillé.
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/configuration/external-connections/` | Affiche 3 cartes (Stancer / Odoo / HelloAsso) avec les credentials de l'instance courante |
+| GET | `/configuration/external-connections/` | Affiche 4 cartes (Stancer / Odoo / HelloAsso / SMTP) avec les credentials de l'instance courante |
 | POST | `/configuration/external-connections/<service>` | Upsert les credentials d'un service. Champ vide = ligne DB supprimée → repli `.env` actif. |
+| POST | `/configuration/external-connections/smtp/test` | Teste la connexion au serveur SMTP configuré (NOOP) et affiche le résultat en flash |
 
-Les valeurs sont stockées dans `external_connections` de la base **tenant** (donc per-instance). Les variables d'environnement `STANCER_*`, `ODOO_*`, `HELLOASSO_*` servent de **repli global** quand la table est vide.
+Les valeurs sont stockées dans `external_connections` de la base **tenant** (donc per-instance). Les variables d'environnement `STANCER_*`, `ODOO_*`, `HELLOASSO_*`, `MAIL_*` servent de **repli global** quand la table est vide. Service `smtp` : clés `host`, `port`, `use_tls`, `username`, `password`, `sender` (repli `MAIL_SERVER`/`MAIL_PORT`/`MAIL_USE_TLS`/`MAIL_USERNAME`/`MAIL_PASSWORD`/`MAIL_DEFAULT_SENDER`).
 
 ---
 
@@ -292,8 +293,11 @@ L'écriture est refusée si Σ débit ≠ Σ crédit (message flash d'erreur).
 | Méthode | URL | Description |
 |---------|-----|-------------|
 | GET | `/entities/` | Liste toutes les entités (hors `ADHERENT`) avec dates de dernière adhésion HelloAsso et POS |
-| GET | `/entities/members` | Liste des adhérents (`entity_type='ADHERENT'`). Paramètres : `?q=`, `?date_from=`, `?date_to=` (filtrage par plage d'adhésion) |
-| GET | `/entities/members.csv` | Export CSV des adhérents (mêmes filtres que `/members`) |
+| GET | `/entities/members` | Liste des adhérents (`entity_type='ADHERENT'`). Colonnes calculées **Date anniversaire** et **Statut** (pilule de couleur). Paramètres : `?q=`, `?date_from=`, `?date_to=`, `?sort_by=name\|birthday\|status`, `?sort=asc\|desc` |
+| GET | `/entities/members/export` | Export des adhérents — `?format=csv\|xlsx` (alias `xls`→`xlsx`), mêmes filtres + tri que `/members`. Colonnes : Nom, Email, Adhérent, Dernière adh. HA, Dernière adh. POS, Date anniversaire, Statut, Couleur, Notes |
+| GET | `/entities/members.csv` | Compat : redirige (302) vers `/members/export?format=csv` |
+| GET/POST | `/entities/members/reminders` | GET = preview des adhérents expirés (statut rouge + email) ; POST = envoie les relances par email (Flask-Mail) |
+| GET/POST | `/entities/members/reminder-template` | Édition du gabarit d'email de relance (modèle `EmailTemplate`, clé `membership_reminder`) |
 | GET | `/entities/<id>` | Vue détail : commandes POS Odoo + factures clients + (si adhérent) commandes/articles/paiements HelloAsso |
 | GET | `/entities/new` | Formulaire de création |
 | POST | `/entities/new` | Crée l'entité |

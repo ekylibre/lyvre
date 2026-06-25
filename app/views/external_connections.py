@@ -51,3 +51,15 @@ def save(service):
     external_config.set_many(service, values)
     flash(f"Configuration {external_config.SERVICE_LABELS[service]} enregistrée.", "success")
     return redirect(url_for("external_connections.index"))
+
+
+@bp.route("/smtp/test", methods=["POST"])
+@login_required
+@admin_required
+def test_smtp():
+    """Teste la connexion au serveur SMTP configuré pour l'instance."""
+    from app.services.membership_reminders import check_smtp_connection
+
+    ok, message = check_smtp_connection()
+    flash(message, "success" if ok else "danger")
+    return redirect(url_for("external_connections.index"))

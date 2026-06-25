@@ -733,3 +733,30 @@ Synchronise les formulaires + commandes + items + paiements de l'organisation He
 ### `create_membership_for_entity(entity, amount_cents, payment_date, form_type, form_slug, client) → (bool, str)`
 
 Crée une adhésion côté HelloAsso pour un tiers ayant une adhésion POS mais pas encore d'adhésion HA. Retourne `(True, info)` en succès, `(False, message_erreur)` sinon. Utilisé par `/entities/create-helloasso-memberships`.
+
+## membership_reminders.py — Relance email des adhérents expirés
+
+Relance par email des adhérents dont l'adhésion est échue (statut `red`). Le service reçoit les `rows` déjà construites par la vue (`membership_status.build_member_rows`) pour éviter toute dépendance circulaire avec le blueprint `entities`.
+
+**Config SMTP per-tenant** : lue via `external_config` (service `smtp`, table `external_connections` de la base tenant) avec repli `.env` (`MAIL_*`). L'envoi se fait en **`smtplib`** (et non Flask-Mail) pour rester correct en multi-tenant.
+
+### `smtp_settings() → dict`
+`{host, port, use_tls, username, password, sender}` depuis `external_config` (DB puis repli `.env`).
+
+### `smtp_configured() → bool`
+Délègue à `external_config.is_configured("smtp")` (requiert `host` + `sender`).
+
+### `check_smtp_connection() → (ok: bool, message: str)`
+Ouvre une connexion SMTP (TLS + login si fourni), envoie un `NOOP`, ferme. Alimente le bouton « Tester la connexion » de l'écran `/configuration/external-connections/`.
+
+### `members_to_remind(rows) → list[dict]`
+Filtre : `color == "red"`, email présent, `status != "?"` (exclut les adhérents sans aucune donnée d'adhésion).
+
+### `helloasso_renewal_url() → str`
+Construit `https://www.helloasso.com/associations/{org_slug}/adhesions/{form_slug}`, où `org_slug` vient de `external_config` (per-tenant) et `form_slug` = formulaire Membership le plus fréquent (fallback `adhesion`). Vide si slug non configuré.
+
+### `render_reminder(template, row, helloasso_url) → (subject, html)`
+Rend le gabarit `EmailTemplate` pour un adhérent (variables `nom`, `email`, `date_anniversaire`, `lien_helloasso`).
+
+### `send_reminders(rows, dry_run=False) → dict`
+Ouvre une connexion `smtplib` unique (`_open_smtp`) selon `smtp_settings()`, envoie un email HTML par adhérent (`EmailMessage` multipart text+html). Une erreur par adhérent est isolée (n'interrompt pas le lot) ; si SMTP non configuré → `skipped`. Retourne `{sent, skipped, errors, error_lines, targets}`.
