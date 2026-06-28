@@ -52,6 +52,15 @@ class OdooClient:
             kwargs["order"] = order
         return self.execute_kw(model, "search_read", [domain or []], kwargs)
 
+    def write(self, model, ids, values):
+        """Met à jour un ou plusieurs enregistrements Odoo.
+
+        `ids` : un entier ou une liste d'entiers. Retourne True en cas de succès.
+        """
+        if isinstance(ids, int):
+            ids = [ids]
+        return self.execute_kw(model, "write", [list(ids), values])
+
 
 def from_app_config():
     """Build an OdooClient from the per-instance external_connections config."""

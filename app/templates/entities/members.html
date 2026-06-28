@@ -103,6 +103,12 @@
     <button type="submit" name="action" value="unset" class="btn btn-sm btn-outline-secondary">
       Retirer bénévole
     </button>
+    <button type="submit"
+            formaction="{{ url_for('entities.update_odoo_notes') }}"
+            class="btn btn-sm btn-outline-primary {% if not odoo_configured %}disabled{% endif %}"
+            title="Écrire la date anniversaire et le statut d'adhésion dans le champ « Notes interne » d'Odoo">
+      Mettre à jour les fiches Odoo
+    </button>
   </div>
 
 <table class="table table-sm table-hover align-middle">

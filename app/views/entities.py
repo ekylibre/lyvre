@@ -22,6 +22,8 @@ from app.services.helloasso_create import create_membership_for_entity
 from app.services.helloasso_sync import sync_helloasso
 from app.services.membership_status import build_member_rows, sort_member_rows
 from app.services import membership_reminders
+from app.services import odoo_partner_update
+from app.services.odoo_client import OdooConfigError
 
 bp = Blueprint("entities", __name__, url_prefix="/entities")
 
@@ -33,6 +35,10 @@ def _helloasso_configured():
 
 def _smtp_configured():
     return membership_reminders.smtp_configured()
+
+
+def _odoo_configured():
+    return odoo_partner_update.is_configured()
 
 
 VALID_SORT_BY = ("name", "birthday", "status")
@@ -206,6 +212,7 @@ def members():
         sort=sort,
         helloasso_configured=_helloasso_configured(),
         smtp_configured=_smtp_configured(),
+        odoo_configured=_odoo_configured(),
     )
 
 
@@ -324,6 +331,61 @@ def bulk_benevole():
         flash(f"{updated} adhérent(s) marqué(s) bénévole(s).", "success")
     else:
         flash(f"{updated} adhérent(s) retiré(s) des bénévoles.", "success")
+    return redirect(url_for("entities.members", **redirect_args))
+
+
+@bp.route("/members/update-odoo-notes", methods=["POST"])
+@login_required
+def update_odoo_notes():
+    """Met à jour la fiche Odoo (Notes interne) des adhérents cochés."""
+    redirect_args = {
+        k: v for k, v in {
+            "q": (request.form.get("q") or "").strip(),
+            "date_from": (request.form.get("date_from") or "").strip(),
+            "date_to": (request.form.get("date_to") or "").strip(),
+            "sort_by": (request.form.get("sort_by") or "").strip(),
+            "sort": (request.form.get("sort") or "").strip(),
+        }.items() if v
+    }
+
+    if not _odoo_configured():
+        flash("Odoo non configuré — abandon.", "warning")
+        return redirect(url_for("entities.members", **redirect_args))
+
+    selected_ids = {i for i in request.form.getlist("selected") if i.isdigit()}
+    if not selected_ids:
+        flash("Aucun adhérent sélectionné.", "warning")
+        return redirect(url_for("entities.members", **redirect_args))
+
+    rows, _, _, _ = _member_rows(request.form)
+    chosen = [
+        r for r in rows
+        if r["entity"] is not None and str(r["entity"].id) in selected_ids
+    ]
+    if not chosen:
+        flash("Aucun adhérent sélectionné.", "warning")
+        return redirect(url_for("entities.members", **redirect_args))
+
+    try:
+        result = odoo_partner_update.update_member_notes(chosen)
+    except OdooConfigError as e:
+        flash(str(e), "warning")
+        return redirect(url_for("entities.members", **redirect_args))
+    except Exception as e:  # noqa: BLE001 — remonte l'erreur à l'UI
+        current_app.logger.exception("Mise à jour notes Odoo échouée")
+        flash(f"Erreur Odoo : {e}", "danger")
+        return redirect(url_for("entities.members", **redirect_args))
+
+    msg = (
+        f"Odoo : {result['updated']} fiche(s) mise(s) à jour, "
+        f"{result['skipped']} ignorée(s), {result['errors']} erreur(s)."
+    )
+    if result["errors"] or result["skipped"]:
+        flash(msg + (" Détail : " + " | ".join(result["error_lines"][:5])
+                     if result["error_lines"] else ""),
+              "warning" if result["updated"] else "danger")
+    else:
+        flash(msg, "success")
     return redirect(url_for("entities.members", **redirect_args))
 
 
@@ -535,7 +597,34 @@ def detail(entity_id):
         work_times=work_times,
         work_times_total_hours=work_times_total_hours,
         work_times_total_valuation_cents=work_times_total_valuation_cents,
+        odoo_configured=_odoo_configured(),
     )
+
+
+@bp.route("/<int:entity_id>/update-odoo-note", methods=["POST"])
+@login_required
+def update_odoo_note(entity_id):
+    """Met à jour la fiche Odoo (Notes interne) d'un seul adhérent."""
+    entity = Entity.query.get_or_404(entity_id)
+    if not _odoo_configured():
+        flash("Odoo non configuré — abandon.", "warning")
+        return redirect(url_for("entities.detail", entity_id=entity.id))
+
+    last_ha, last_pos = _last_membership_dates([entity.id])
+    try:
+        ok, message = odoo_partner_update.update_single_member(
+            entity, last_ha.get(entity.id), last_pos.get(entity.id),
+        )
+    except OdooConfigError as e:
+        flash(str(e), "warning")
+        return redirect(url_for("entities.detail", entity_id=entity.id))
+    except Exception as e:  # noqa: BLE001 — remonte l'erreur à l'UI
+        current_app.logger.exception("Mise à jour note Odoo échouée")
+        flash(f"Erreur Odoo : {e}", "danger")
+        return redirect(url_for("entities.detail", entity_id=entity.id))
+
+    flash(message, "success" if ok else "warning")
+    return redirect(url_for("entities.detail", entity_id=entity.id))
 
 
 @bp.route("/create-helloasso-memberships", methods=["GET", "POST"])

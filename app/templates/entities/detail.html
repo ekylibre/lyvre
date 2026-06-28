@@ -19,6 +19,15 @@
     </small>
   </div>
   <div class="d-flex gap-2">
+    {% if entity.is_member %}
+    <form method="post" action="{{ url_for('entities.update_odoo_note', entity_id=entity.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-outline-primary btn-sm {% if not odoo_configured %}disabled{% endif %}"
+              title="Écrire la date anniversaire et le statut d'adhésion dans le champ « Notes interne » d'Odoo">
+        Mettre à jour la fiche Odoo
+      </button>
+    </form>
+    {% endif %}
     <a href="{{ url_for('entities.edit', entity_id=entity.id) }}" class="btn btn-outline-secondary btn-sm">Modifier</a>
     <a href="{{ url_for('entities.index') }}" class="btn btn-outline-secondary btn-sm">← Retour</a>
   </div>
