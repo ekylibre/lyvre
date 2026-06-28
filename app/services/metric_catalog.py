@@ -90,21 +90,14 @@ METRICS = [
     Metric("social.renewal_rate", "Taux d'adhésions à jour", "social", "internal",
            "live", "ratio", "percent", aggregation="last"),
 
-    # --- Environnemental --------------------------------------------------
-    # Saisies manuelles (entrées du calcul d'impact) :
-    Metric("env.items_collected", "Articles collectés", "environmental",
-           "internal", "manual", "count", "int", aggregation="sum"),
-    Metric("env.items_donated", "Articles donnés", "environmental",
-           "internal", "manual", "count", "int", aggregation="sum"),
-    # Calculés :
-    Metric("env.items_reused", "Articles remis en circulation", "environmental",
-           "computed", "live", "count", "int", aggregation="sum"),
-    Metric("env.weight_kg", "Poids détourné du déchet", "environmental",
+    # --- Environnemental (déclarations éco-organismes, cf. EcoDeclaration) -
+    # Dérivés des tonnages déclarés (import /rapport-activite/eco) :
+    Metric("env.collected_kg", "Collecté", "environmental", "computed",
+           "live", "kg", "decimal", aggregation="sum"),
+    Metric("env.weight_kg", "Réemployé (détourné du déchet)", "environmental",
            "computed", "live", "kg", "decimal", aggregation="sum"),
     Metric("env.co2e_avoided_kg", "CO₂ évité", "environmental", "computed",
            "live", "co2e_kg", "decimal", aggregation="sum"),
-    Metric("env.water_saved_l", "Eau économisée", "environmental", "computed",
-           "live", "liters", "decimal", aggregation="sum"),
     Metric("env.reuse_rate", "Taux de réemploi", "environmental", "computed",
            "live", "ratio", "percent", aggregation="last"),
     Metric("env.car_km_equiv", "Équivalent km voiture évités", "environmental",

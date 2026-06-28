@@ -89,3 +89,41 @@ class GA4Client:
             except (ValueError, IndexError):
                 continue
         return result
+
+    def fetch_year(self, year):
+        """Retourne {(year, month): {metric_key: value}} pour toute l'année,
+        en **un seul appel** GA4 (dimension `yearMonth`). Les mois sans données
+        sont simplement absents."""
+        from google.analytics.data_v1beta.types import (
+            DateRange, Dimension, Metric, RunReportRequest,
+        )
+        from datetime import date
+
+        client = self._client()
+        request = RunReportRequest(
+            property=f"properties/{self.property_id}",
+            date_ranges=[DateRange(
+                start_date=date(year, 1, 1).isoformat(),
+                end_date=date(year, 12, 31).isoformat(),
+            )],
+            dimensions=[Dimension(name="yearMonth")],   # ex. "202503"
+            metrics=[Metric(name=name) for name in _GA4_METRICS],
+        )
+        response = client.run_report(request)
+
+        by_month = {}
+        for row in (response.rows or []):
+            try:
+                ym = row.dimension_values[0].value          # "YYYYMM"
+                m = int(ym[4:6])
+            except (ValueError, IndexError):
+                continue
+            metrics = {}
+            for i, ga4_name in enumerate(_GA4_METRICS):
+                key = _GA4_METRICS[ga4_name]
+                try:
+                    metrics[key] = float(row.metric_values[i].value)
+                except (ValueError, IndexError):
+                    continue
+            by_month[(year, m)] = metrics
+        return by_month

@@ -464,3 +464,40 @@ Tous les rapports acceptent le paramètre `?fy_id=` pour sélectionner l'exercic
 | GET | `/reports/compte-de-resultat.ods` | Export ODS (OpenDocument Spreadsheet) avec formules `=SUM`, `[.B<row>]`, styles et format monétaire |
 
 Tous les rapports disposent d'un bouton "Imprimer" qui déclenche `window.print()` avec les éléments de navigation masqués (CSS `@media print`).
+
+---
+
+## Indicateurs — Visibilité & Impact (`/impact/`)
+
+Regroupées dans le menu **« Indicateurs »**. Période sélectionnable (`?gran=month|quarter|year|custom`, `?month=`, `?quarter=`, `?year=`, `?start=&end=`).
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/impact/` | Tableau de bord (4 dimensions : visibilité, **environnemental**, social, économique) + agrégats phares |
+| GET | `/impact/report` | Vue rapport imprimable (impression navigateur) |
+| GET | `/impact/export.xlsx` | Export XLSX des métriques de la période |
+| GET, POST | `/impact/factors` | Facteurs d'impact ADEME éditables (**admin**) |
+| GET, POST | `/impact/manual` | Saisie manuelle mensuelle (Vinted, Facebook…) |
+| POST | `/impact/sync` | Synchronisation des connecteurs externes (GA4, Facebook) |
+
+> **Impact environnemental** : `CO₂ évité`, `poids réemployé`, `taux de réemploi`, `km voiture` sont calculés (`impact_engine.compute`) à partir des **tonnages éco-organismes** (table `eco_declarations`, cf. import ci-dessous), et **non** des ventes. Le dashboard et le rapport d'activité affichent donc le même CO₂.
+
+## Indicateurs — Rapport d'activité (`/rapport-activite/`)
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/rapport-activite/` | Aperçu du rapport (sélecteur d'exercice, mode prorata éco `?prorata=`) |
+| GET | `/rapport-activite/pdf` | PDF serveur (weasyprint), rendu inline |
+| GET | `/rapport-activite/export/<fmt>` | Export `html` \| `docx` \| `odt` (pièce jointe, **styles inclus**). HTML autonome (CSS inliné, images data-URI, graphes SVG) ; DOCX/ODT via LibreOffice headless |
+| GET, POST | `/rapport-activite/edit` | Éditeur des blocs narratifs — **WYSIWYG Quill** (**admin**) |
+| POST | `/rapport-activite/edit/import-site` | Pré-remplissage des blocs depuis le site (**admin**) |
+| GET, POST | `/rapport-activite/eco` | Table des **tonnages éco-organismes** : édition + import `.xlsx` (**admin**) |
+| POST | `/rapport-activite/eco/import` | Upload `.xlsx` (feuille `Bilan`) → `import_eco_xlsx` (**admin**) |
+| GET, POST | `/rapport-activite/photos` | Upload / légendes des photos (**admin**) |
+| GET | `/rapport-activite/photo/<id>` | Sert une photo (authentifié) |
+| POST | `/rapport-activite/logo` · `/logo/delete` | Logo de structure (**admin**) |
+| GET | `/rapport-activite/logo-file` | Sert le logo |
+| POST | `/rapport-activite/archive` | Fige une version PDF archivée (**admin**) |
+| GET | `/rapport-activite/archives` · `/archive/<id>` | Liste / consultation des archives ; `/archive/<id>/delete` (POST, **admin**) |
+
+L'**import de tonnages** (`/rapport-activite/eco`) est également proposé dans le menu **Imports/Exports** (admin). Le bouton « Imprimer » a été remplacé par les exports PDF / HTML / DOCX / ODT.

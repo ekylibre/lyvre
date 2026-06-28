@@ -71,6 +71,77 @@ def sync_metrics(year, month):
     return result
 
 
+def sync_metrics_year(year):
+    """Synchronise GA4 sur **toute l'année** (snapshots mensuels, 1 appel API) +
+    Facebook (valeur courante, uniquement si l'année demandée est l'année en cours).
+    Retourne un récap par source."""
+    from datetime import date
+
+    result = {}
+    job = SyncJob(kind=SYNC_KIND_METRICS, status="running")
+    db.session.add(job)
+    db.session.commit()
+
+    try:
+        result["ga4"] = _sync_ga4_year(year)
+        # Facebook ne fournit que la valeur courante (stock) : on ne l'enregistre
+        # que pour l'année en cours, au mois courant.
+        today = date.today()
+        if year == today.year:
+            result["facebook"] = _sync_facebook(date(year, today.month, 1))
+        else:
+            result["facebook"] = {
+                "imported": 0,
+                "errors": ["Facebook : pas d'historique — non synchronisé pour une année passée."],
+            }
+        job.status = SYNC_STATUS_DONE
+    except Exception as exc:
+        job.status = SYNC_STATUS_FAILED
+        job.message = str(exc)
+    finally:
+        import json
+        job.finished_at = datetime.utcnow()
+        try:
+            job.result_json = json.dumps(result, default=str)
+        except (TypeError, ValueError):
+            job.result_json = None
+        db.session.commit()
+    return result
+
+
+def _sync_ga4_year(year):
+    """Récupère les métriques GA4 de toute l'année et upsert un snapshot par mois."""
+    from datetime import date
+
+    info = {"imported": 0, "errors": []}
+    try:
+        from app.services.ga4_client import from_app_config, GA4ConfigError
+    except Exception as exc:
+        info["errors"].append(f"GA4 indisponible : {exc}")
+        return info
+    try:
+        client = from_app_config()
+    except GA4ConfigError as exc:
+        info["errors"].append(str(exc))
+        return info
+    try:
+        by_month = client.fetch_year(year)   # {(year, month): {key: value}}
+    except Exception as exc:
+        info["errors"].append(f"GA4 : {exc}")
+        return info
+
+    from app.services import metric_catalog
+    for (y, m), metrics in sorted(by_month.items()):
+        period_start = date(y, m, 1)
+        for key, value in metrics.items():
+            meta = metric_catalog.get(key)
+            unit = meta.unit if meta else "count"
+            upsert_snapshot("ga4", key, period_start, value, unit)
+            info["imported"] += 1
+    db.session.commit()
+    return info
+
+
 def _sync_ga4(year, month, period_start):
     """Récupère les métriques GA4 du mois (tolérant aux erreurs/non-configuré)."""
     info = {"imported": 0, "errors": []}

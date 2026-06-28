@@ -86,6 +86,33 @@ def month_options_for_fy(fy=None):
     return options
 
 
+def month_options_all_fy():
+    """Mois de **tous** les exercices comptables (chronologique, sans doublon).
+
+    Utilisé par le dashboard Visibilité & Impact pour pouvoir consulter des mois
+    d'exercices antérieurs (ex. 2025) et pas seulement l'exercice courant.
+    """
+    fys = FiscalYear.query.order_by(FiscalYear.start_date).all()
+    seen, options = set(), []
+    for fy in fys:
+        for opt in month_options_for_fy(fy):
+            if opt["value"] not in seen:
+                seen.add(opt["value"])
+                options.append(opt)
+    options.sort(key=lambda o: o["value"])
+    return options
+
+
+def year_options_all_fy():
+    """Années couvertes par les exercices comptables, du plus récent au plus ancien."""
+    fys = FiscalYear.query.all()
+    if not fys:
+        return []
+    lo = min(fy.start_date.year for fy in fys)
+    hi = max(fy.end_date.year for fy in fys)
+    return list(range(hi, lo - 1, -1))
+
+
 def apply_date_sort(query, column, sort):
     """Ajoute un ORDER BY column ASC/DESC sur la query (nullslast en DESC)."""
     if sort == "asc":

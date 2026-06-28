@@ -10,7 +10,7 @@ import os
 
 from flask import current_app, render_template, url_for
 
-from app.services import activity_report_service, chart_svg
+from app.services import activity_report_service, chart_svg, branding
 
 
 def photo_srcs(view, pdf=False):
@@ -45,6 +45,7 @@ def build_pdf(fy, prorata=None, view=None):
         "activity_report/pdf.html",
         fy=fy, view=view, pdf=True,
         chart_svgs=chart_svgs, photo_srcs=photo_srcs(view, pdf=True),
+        structure_logo=branding.logo_src(pdf=True),
     )
     css_path = os.path.join(current_app.static_folder, "css", "report.css")
     return HTML(string=html, base_url=current_app.instance_path).write_pdf(

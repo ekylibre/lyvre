@@ -13,7 +13,9 @@ from app.services import dashboard_service
 from app.services import metric_catalog
 from app.services import impact_engine
 from app.services import metrics_sync
-from app.utils.list_filters import month_options_for_fy, parse_month
+from app.utils.list_filters import (
+    month_options_for_fy, month_options_all_fy, year_options_all_fy, parse_month,
+)
 
 bp = Blueprint("impact", __name__, url_prefix="/impact")
 
@@ -24,10 +26,12 @@ def _period_context():
     return period, {
         "period": period,
         "gran": period.gran,
-        "month_options": month_options_for_fy(),
-        "current_month": request.args.get("month", ""),
+        "month_options": month_options_all_fy(),
+        "year_options": year_options_all_fy(),
+        # Présélectionne le mois/l'année effectifs de la période courante.
+        "current_month": request.args.get("month") or period.start.strftime("%Y-%m"),
         "current_quarter": request.args.get("quarter", ""),
-        "current_year": request.args.get("year", ""),
+        "current_year": request.args.get("year") or str(period.start.year),
         "current_start": request.args.get("start", ""),
         "current_end": request.args.get("end", ""),
     }
@@ -76,7 +80,7 @@ def export_xlsx():
                 "Valeur": kpi.formatted,
                 "Variation %": (round(kpi.delta_pct, 1)
                                 if kpi.delta_pct is not None else ""),
-                "Source": kpi.source,
+                "Source": kpi.source_label or kpi.source,
             })
     df = pd.DataFrame(records, columns=[
         "Dimension", "Indicateur", "Valeur", "Variation %", "Source",
@@ -189,18 +193,25 @@ def manual():
 @login_required
 def sync():
     from datetime import date
-    parsed = parse_month((request.form.get("month") or "").strip())
-    if parsed:
-        year, month = parsed
+    today = date.today()
+    scope = (request.form.get("scope") or "month").strip()
+
+    if scope == "year":
+        try:
+            year = int(request.form.get("year") or today.year)
+        except ValueError:
+            year = today.year
+        result = metrics_sync.sync_metrics_year(year)
+        label = f"année {year}"
     else:
-        today = date.today()
-        year, month = today.year, today.month
-    result = metrics_sync.sync_metrics(year, month)
+        parsed = parse_month((request.form.get("month") or "").strip())
+        year, month = parsed if parsed else (today.year, today.month)
+        result = metrics_sync.sync_metrics(year, month)
+        label = f"{year}-{month:02d}"
+
     imported = sum(v.get("imported", 0) for v in result.values())
     errors = [e for v in result.values() for e in v.get("errors", [])]
-    msg = f"Synchronisation : {imported} métrique(s) importée(s)."
-    if errors:
-        flash(msg + " " + " | ".join(errors[:4]), "warning")
-    else:
-        flash(msg, "success")
-    return redirect(url_for("impact.index"))
+    msg = f"Synchronisation ({label}) : {imported} métrique(s) importée(s)."
+    flash(msg + (" " + " | ".join(errors[:4]) if errors else ""),
+          "warning" if errors else "success")
+    return redirect(request.referrer or url_for("impact.index"))

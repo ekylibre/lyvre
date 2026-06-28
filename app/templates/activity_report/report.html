@@ -33,8 +33,10 @@
          title="Répartition des trimestres éco à cheval sur l'exercice">
         Éco : {{ 'pro-rata' if view.prorata else 'indivisible' }}
       </a>
-      <a href="{{ url_for('activity_report.print_view', fy_id=fy.id, prorata=1 if view.prorata else None) }}" target="_blank" class="btn btn-outline-primary btn-sm">Imprimer</a>
       <a href="{{ url_for('activity_report.pdf_view', fy_id=fy.id, prorata=1 if view.prorata else None) }}" target="_blank" class="btn btn-primary btn-sm">PDF</a>
+      <a href="{{ url_for('activity_report.export_view', fmt='html', fy_id=fy.id, prorata=1 if view.prorata else None) }}" class="btn btn-outline-primary btn-sm">HTML</a>
+      <a href="{{ url_for('activity_report.export_view', fmt='docx', fy_id=fy.id, prorata=1 if view.prorata else None) }}" class="btn btn-outline-primary btn-sm">DOCX</a>
+      <a href="{{ url_for('activity_report.export_view', fmt='odt', fy_id=fy.id, prorata=1 if view.prorata else None) }}" class="btn btn-outline-primary btn-sm">ODT</a>
     {% endif %}
   </div>
 </div>

@@ -42,7 +42,7 @@ SECTIONS = [
     {"key": "vie_associative", "number": 4, "title": "Vie associative",
      "blocks": ["intro_vie_associative"], "dimensions": ["social"]},
     {"key": "reemploi", "number": 5, "title": "Réemploi & impact",
-     "blocks": ["intro_reemploi"], "dimensions": ["environmental"]},
+     "blocks": ["intro_reemploi"]},
     {"key": "boutique", "number": 6, "title": "Boutique & ventes",
      "blocks": ["intro_boutique"], "dimensions": ["economic"]},
     {"key": "communication", "number": 7, "title": "Communication & visibilité",

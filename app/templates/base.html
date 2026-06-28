@@ -68,19 +68,22 @@
             <li><a class="dropdown-item" href="{{ url_for('customer_invoices.index') }}">Factures clients</a></li>
           </ul>
         </li>
-        <li class="nav-item">
-          <a class="nav-link {% if request.blueprint == 'impact' %}active{% endif %}"
-             href="{{ url_for('impact.index') }}">Visibilité &amp; Impact</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link {% if request.blueprint == 'activity_report' %}active{% endif %}"
-             href="{{ url_for('activity_report.index') }}">Rapport d'activité</a>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle {% if request.blueprint in ('impact', 'activity_report') %}active{% endif %}"
+             href="#" data-bs-toggle="dropdown">Indicateurs</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{{ url_for('impact.index') }}">Visibilité &amp; Impact</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('activity_report.index') }}">Rapport d'activité</a></li>
+          </ul>
         </li>
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle {% if request.blueprint == 'imports' %}active{% endif %}"
              href="#" data-bs-toggle="dropdown">Imports/Exports</a>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="{{ url_for('imports.ofx') }}">Fichier OFX</a></li>
+            {% if current_user.is_admin %}
+            <li><a class="dropdown-item" href="{{ url_for('activity_report.eco') }}">Import de tonnages</a></li>
+            {% endif %}
           </ul>
         </li>
         {% if current_user.is_admin %}

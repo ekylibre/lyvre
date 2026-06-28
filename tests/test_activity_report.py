@@ -229,6 +229,62 @@ def test_create_and_version_archive(app, session, tmp_path):
     assert ReportArchive.query.filter_by(fiscal_year_id=fy.id).count() == 3
 
 
+def test_branding_logo_roundtrip(app, tmp_path):
+    """Logo de structure : upload, détection, remplacement sans doublon, suppression."""
+    import glob
+    import io as _io
+    import os
+    from werkzeug.datastructures import FileStorage
+    from app.services import branding
+    app.instance_path = str(tmp_path)
+
+    assert branding.logo_relpath() is None
+    branding.save_logo(FileStorage(stream=_io.BytesIO(b"\x89PNG\r\n"), filename="mon-logo.png"))
+    rel = branding.logo_relpath()
+    assert rel and rel.endswith("logo.png")
+    assert os.path.isfile(branding.logo_abspath())
+    assert branding.logo_src(pdf=True).startswith("file://")
+    with app.test_request_context():
+        assert "/rapport-activite/logo-file" in branding.logo_src(pdf=False)
+
+    # Remplacer par une autre extension ne laisse pas de doublon.
+    branding.save_logo(FileStorage(stream=_io.BytesIO(b"<svg/>"), filename="x.svg"))
+    found = glob.glob(os.path.join(str(tmp_path), "uploads", "branding", "logo.*"))
+    assert len(found) == 1 and found[0].endswith("logo.svg")
+
+    branding.delete_logo()
+    assert branding.logo_relpath() is None
+
+
+def test_branding_rejects_bad_extension(app, tmp_path):
+    import io as _io
+    from werkzeug.datastructures import FileStorage
+    from app.services import branding
+    app.instance_path = str(tmp_path)
+    with pytest.raises(ValueError):
+        branding.save_logo(FileStorage(stream=_io.BytesIO(b"x"), filename="logo.txt"))
+
+
+def test_uploaded_logo_used_in_report(app, session, tmp_path):
+    """Le logo uploadé remplace le pictogramme SVG dans le rendu du rapport."""
+    import io as _io
+    from werkzeug.datastructures import FileStorage
+    from flask import render_template
+    from app.services import branding
+    app.instance_path = str(tmp_path)
+
+    fy = _fy_2025()
+    branding.save_logo(FileStorage(stream=_io.BytesIO(b"\x89PNG\r\n"), filename="logo.png"))
+    view = ars.build_report(fy)
+    html = render_template(
+        "activity_report/pdf.html", fy=fy, view=view, pdf=True,
+        chart_svgs={}, photo_srcs={}, structure_logo=branding.logo_src(pdf=True),
+    )
+    assert 'class="brand-logo' in html         # logo uploadé
+    assert "<svg class=\"sn-logo" not in html  # plus le pictogramme par défaut
+    assert "file://" in html and "logo.png" in html
+
+
 def test_period_for_fiscal_year(session):
     fy = _fy_2025()
     p = ars.dashboard_service.period_for_fiscal_year(fy)

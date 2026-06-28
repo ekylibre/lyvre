@@ -1,14 +1,18 @@
 """Moteur d'impact environnemental (réemploi).
 
-Convertit les ventes/dons en indicateurs physiques (kg détournés, CO₂ évité, eau
-économisée) via des facteurs ADEME paramétrables (`impact_factors`). Calculé en
-direct ; les saisies manuelles (Vinted, dons, collectés) sont lues depuis
-`metric_snapshots`.
+Dérive les indicateurs physiques (kg collectés/réemployés, CO₂ évité, équivalent
+km voiture) des tonnages déclarés aux éco-organismes (`EcoDeclaration`, alimentée
+par l'import /rapport-activite/eco), via les facteurs matière ADEME paramétrables
+(`impact_factors`). Calcul par période (rattachement d'un trimestre par sa date
+de début, cohérent avec l'agrégation des `metric_snapshots`).
 """
-from app.extensions import db
-from app.models import Order, OrderLine, ImpactFactor, MetricSnapshot
+import unicodedata
 
-POS_REVENUE_STATES = ("paid", "done", "invoiced")
+from app.extensions import db
+from app.models import EcoDeclaration, ImpactFactor
+
+# Ligne « Facturation » des déclarations éco : financement, pas un tonnage.
+FINANCING_MATERIAL = "Facturation"
 
 
 # Valeurs par défaut — ordres de grandeur ADEME / Refashion, **à valider** par le
@@ -56,47 +60,47 @@ def factor(key, default=None):
     return default
 
 
-def _manual_sum(period, metric_key):
-    """Somme des saisies manuelles d'une métrique sur la période."""
-    total = db.session.query(
-        db.func.coalesce(db.func.sum(MetricSnapshot.value), 0)
-    ).filter(
-        MetricSnapshot.metric_key == metric_key,
-        MetricSnapshot.period_start >= period.start,
-        MetricSnapshot.period_start < period.end,
-    ).scalar() or 0
-    return float(total)
+def _material_slug(material):
+    """Normalise une matière en clé de facteur (« Brico-Jardin » → « brico-jardin »)."""
+    s = unicodedata.normalize("NFKD", material).encode("ascii", "ignore").decode()
+    return s.strip().lower().replace(" ", "-")
+
+
+def _eco_tonnages(period):
+    """Agrège les déclarations éco dont le trimestre démarre dans la période.
+
+    Retourne (collecte_t, reemploye_t, co2e_kg). CO₂ = Σ sortant × facteur matière,
+    même formule que la section « Réemploi & impact » du rapport d'activité."""
+    rows = db.session.query(EcoDeclaration).filter(
+        EcoDeclaration.period_start >= period.start,
+        EcoDeclaration.period_start < period.end,
+    ).all()
+    collecte = reemploye = co2e = 0.0
+    for r in rows:
+        if r.material == FINANCING_MATERIAL:
+            continue
+        entrant, sortant = float(r.entrant_t), float(r.sortant_t)
+        collecte += entrant
+        reemploye += sortant
+        co2e += sortant * factor(f"reemploi.{_material_slug(r.material)}.co2e_per_t", 0)
+    return collecte, reemploye, co2e
 
 
 def compute(period) -> dict:
-    # Articles vendus en boutique (quantités des lignes POS).
-    pos_items = db.session.query(
-        db.func.coalesce(db.func.sum(OrderLine.qty), 0)
-    ).join(Order, Order.id == OrderLine.order_id).filter(
-        Order.date_order >= period.start,
-        Order.date_order < period.end,
-        Order.state.in_(POS_REVENUE_STATES),
-    ).scalar() or 0
+    """Impact environnemental de la période, dérivé des tonnages éco-organismes
+    (table `EcoDeclaration`, alimentée par l'import /rapport-activite/eco).
 
-    vinted_items = _manual_sum(period, "vinted.items_sold")
-    donated = _manual_sum(period, "env.items_donated")
-    collected = _manual_sum(period, "env.items_collected")
-
-    items_reused = float(pos_items) + vinted_items + donated
-
-    weight_kg = items_reused * factor("textile.avg_weight_kg")
-    co2e = weight_kg * factor("textile.co2e_per_kg")
-    water = weight_kg * factor("textile.water_l_per_kg")
-    car_km = co2e * factor("equiv.car_km_per_co2e_kg")
-    reuse_rate = (items_reused / collected) if collected > 0 else None
+    Sans déclaration sur la période, renvoie {} (indicateurs affichés « — »)."""
+    collecte_t, reemploye_t, co2e = _eco_tonnages(period)
+    if collecte_t <= 0 and reemploye_t <= 0:
+        return {}
 
     return {
-        "env.items_reused": items_reused,
-        "env.weight_kg": weight_kg,
+        "env.collected_kg": collecte_t * 1000.0,
+        "env.weight_kg": reemploye_t * 1000.0,
         "env.co2e_avoided_kg": co2e,
-        "env.water_saved_l": water,
-        "env.reuse_rate": reuse_rate,
-        "env.car_km_equiv": car_km,
+        "env.reuse_rate": (reemploye_t / collecte_t) if collecte_t > 0 else None,
+        "env.car_km_equiv": co2e * factor("equiv.car_km_per_co2e_kg"),
     }
 
 

@@ -9,6 +9,36 @@
   <a href="{{ url_for('activity_report.index', fy_id=fy.id) }}" class="btn btn-outline-secondary btn-sm">← Aperçu</a>
 </div>
 
+{# Logo de la structure : commun à tous les exercices. #}
+<div class="card mb-4 col-lg-8">
+  <div class="card-header py-2"><strong>Logo de la structure</strong>
+    <span class="small text-muted ms-2">Commun à tous les exercices — utilisé sur la couverture et les pieds de page.</span>
+  </div>
+  <div class="card-body d-flex align-items-center gap-3 flex-wrap">
+    {% if logo_src %}
+      <img src="{{ logo_src }}" alt="Logo" style="height:48px;width:auto;max-width:160px;object-fit:contain;border:1px solid var(--bs-border-color);border-radius:4px;padding:4px;background:#fff">
+    {% else %}
+      <span class="text-muted small">Aucun logo — le pictogramme par défaut est utilisé.</span>
+    {% endif %}
+    <form method="post" action="{{ url_for('activity_report.logo_upload', fy_id=fy.id) }}" enctype="multipart/form-data" class="d-flex align-items-end gap-2 ms-auto">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label class="form-label small text-muted mb-1">Image (PNG, JPG, SVG…)</label>
+        <input type="file" name="file" accept="image/*" class="form-control form-control-sm" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">{{ 'Remplacer' if logo_src else 'Téléverser' }}</button>
+    </form>
+    {% if logo_src %}
+    <form method="post" action="{{ url_for('activity_report.logo_delete', fy_id=fy.id) }}"
+          onsubmit="return confirm('Supprimer le logo de la structure ?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-outline-danger btn-sm">Supprimer</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<h5 class="mb-2">Photos de l'exercice {{ fy.label }}</h5>
 <form method="post" enctype="multipart/form-data" class="row g-2 align-items-end mb-4">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="col-md-4">

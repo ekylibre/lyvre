@@ -26,6 +26,30 @@ SOURCE_LABELS = {
     "vinted": "Vinted",
 }
 
+# Libellés des sources pour la provenance affichée sous chaque indicateur.
+SOURCE_DISPLAY = {
+    "ga4": "Google Analytics (GA4)",
+    "facebook_page": "Facebook — Page",
+    "facebook_group": "Facebook — Groupe",
+    "vinted": "Vinted",
+    "internal": "Données internes",
+    "computed": "Calculé",
+}
+
+
+def source_label(metric) -> str:
+    """Provenance lisible d'un indicateur (source + mode d'obtention)."""
+    if metric.source == "computed":
+        return "Calculé (facteurs d'impact)"
+    if metric.source == "internal":
+        return "Données internes (compta, adhésions, bénévolat)"
+    base = SOURCE_DISPLAY.get(metric.source, metric.source)
+    if metric.origin == "manual":
+        return f"{base} — saisie manuelle"
+    if metric.origin == "snapshot":
+        return f"{base} — API synchronisée"
+    return base
+
 
 # ---------------------------------------------------------------------------
 # Période
@@ -155,6 +179,7 @@ class Kpi:
     trend: list = field(default_factory=list)
     source: str = ""
     origin: str = ""
+    source_label: str = ""
     higher_is_better: bool = True
     available: bool = False
 
@@ -346,6 +371,7 @@ def build_dashboard(period: Period) -> DashboardView:
                 delta_pct=_delta_pct(value, prev),
                 trend=[tv.get(metric.key) for tv in trend_values],
                 source=metric.source, origin=metric.origin,
+                source_label=source_label(metric),
                 higher_is_better=metric.higher_is_better,
                 available=value is not None,
             ))

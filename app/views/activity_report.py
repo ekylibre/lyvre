@@ -17,6 +17,8 @@ from app.services.activity_report_service import NARRATIVE_BLOCKS, SECTIONS
 from app.services.eco_declaration_import import import_eco_xlsx
 from app.services import site_content_import
 from app.services import report_pdf
+from app.services import report_export
+from app.services import branding
 
 bp = Blueprint("activity_report", __name__, url_prefix="/rapport-activite")
 
@@ -50,6 +52,7 @@ def index():
         "activity_report/report.html",
         fiscal_years=fiscal_years, fy=fy, view=view,
         photo_srcs=report_pdf.photo_srcs(view) if view else {},
+        structure_logo=branding.logo_src(),
     )
 
 
@@ -224,6 +227,7 @@ def photos():
     return render_template(
         "activity_report/photos.html",
         fiscal_years=fiscal_years, fy=fy, slots=_photo_slots(), assets=assets,
+        logo_src=branding.logo_src(),
     )
 
 
@@ -252,17 +256,41 @@ def photo_file(asset_id):
     return send_file(os.path.join(current_app.instance_path, asset.path))
 
 
-@bp.route("/print")
+@bp.route("/logo", methods=["POST"])
 @login_required
-def print_view():
-    _, fy = _selected_fiscal_year()
-    if fy is None:
+@admin_required
+def logo_upload():
+    """Logo de la structure, commun à tous les exercices."""
+    fy_id = request.form.get("fy_id", type=int)
+    file = request.files.get("file")
+    if not file or not file.filename:
+        flash("Choisissez un fichier image.", "danger")
+    else:
+        try:
+            branding.save_logo(file)
+            flash("Logo de la structure enregistré.", "success")
+        except ValueError as e:
+            flash(str(e), "danger")
+    return redirect(url_for("activity_report.photos", fy_id=fy_id))
+
+
+@bp.route("/logo/delete", methods=["POST"])
+@login_required
+@admin_required
+def logo_delete():
+    fy_id = request.form.get("fy_id", type=int)
+    branding.delete_logo()
+    flash("Logo de la structure supprimé.", "success")
+    return redirect(url_for("activity_report.photos", fy_id=fy_id))
+
+
+@bp.route("/logo-file")
+@login_required
+def logo_file():
+    path = branding.logo_abspath()
+    if not path or not os.path.isfile(path):
         abort(404)
-    view = activity_report_service.build_report(fy, prorata=_prorata_arg())
-    return render_template(
-        "activity_report/print.html", fy=fy, view=view,
-        photo_srcs=report_pdf.photo_srcs(view),
-    )
+    return send_file(path)
 
 
 @bp.route("/pdf")
@@ -277,6 +305,37 @@ def pdf_view():
     return send_file(
         io.BytesIO(pdf_bytes), mimetype="application/pdf",
         as_attachment=False, download_name=f"rapport-activite-{fy.label}.pdf",
+    )
+
+
+# Exports « ensemble du rapport » (avec styles) : HTML autonome, DOCX, ODT.
+@bp.route("/export/<fmt>")
+@login_required
+def export_view(fmt):
+    """Exporte tout le rapport en HTML autonome, DOCX ou ODT (styles inclus)."""
+    import io
+    _, fy = _selected_fiscal_year()
+    if fy is None:
+        abort(404)
+    view = activity_report_service.build_report(fy, prorata=_prorata_arg())
+    base = f"rapport-activite-{fy.label}"
+
+    if fmt == "html":
+        data = report_export.build_html(fy, view=view).encode("utf-8")
+        mime = "text/html; charset=utf-8"
+    elif fmt == "docx":
+        data = report_export.build_docx(fy, view=view)
+        mime = ("application/vnd.openxmlformats-officedocument"
+                ".wordprocessingml.document")
+    elif fmt == "odt":
+        data = report_export.build_odt(fy, view=view)
+        mime = "application/vnd.oasis.opendocument.text"
+    else:
+        abort(404)
+
+    return send_file(
+        io.BytesIO(data), mimetype=mime,
+        as_attachment=True, download_name=f"{base}.{fmt}",
     )
 
 

@@ -1,10 +1,18 @@
 {% extends "base.html" %}
 {% block title %}Éditer le rapport — {{ fy.label }}{% endblock %}
 {% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
+<style>
+  .rb-editor { min-height: 160px; background: #fff; }
+  .rb-editor .ql-editor { font-size: .95rem; }
+  .rb-editor .ql-container { border-bottom-left-radius: .375rem; border-bottom-right-radius: .375rem; }
+  .rb-editor .ql-toolbar { border-top-left-radius: .375rem; border-top-right-radius: .375rem; }
+</style>
+
 <div class="d-flex justify-content-between align-items-center mb-3">
   <div>
     <h2 class="mb-0">Textes du rapport — exercice {{ fy.label }}</h2>
-    <small class="text-muted">Blocs narratifs (HTML simple autorisé).</small>
+    <small class="text-muted">Éditeur visuel ; le code HTML brut reste accessible par bloc.</small>
   </div>
   <a href="{{ url_for('activity_report.index', fy_id=fy.id) }}" class="btn btn-outline-secondary btn-sm">← Aperçu</a>
 </div>
@@ -32,10 +40,10 @@
 </div>
 {% endif %}
 
-<form method="post" action="{{ url_for('activity_report.edit', fy_id=fy.id) }}" class="col-lg-9">
+<form method="post" action="{{ url_for('activity_report.edit', fy_id=fy.id) }}" class="col-lg-9" id="report-edit-form">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   {% for b in blocks %}
-  <div class="card mb-3">
+  <div class="card mb-3 report-block" data-key="{{ b.key }}">
     <div class="card-header py-2">
       <strong>{{ b.label }}</strong>
       <code class="small text-muted ms-2">{{ b.key }}</code>
@@ -47,11 +55,73 @@
       </div>
       <div>
         <label class="form-label small text-muted mb-1">Contenu</label>
-        <textarea name="body_{{ b.key }}" rows="4" class="form-control">{{ b.body }}</textarea>
+        {# Champ réellement soumis : initialisé au HTML pré-généré et laissé
+           intact tant que l'utilisateur n'édite pas réellement ce bloc. #}
+        <input type="hidden" name="body_{{ b.key }}" class="rb-field" value="{{ b.body }}">
+        <div class="rb-editor"></div>
+        <div class="mt-1">
+          <button class="btn btn-link btn-sm px-0 rb-toggle-src" type="button">Afficher / éditer le code HTML</button>
+          <div class="rb-src-panel d-none mt-1">
+            <textarea class="form-control font-monospace small rb-src" rows="6">{{ b.body }}</textarea>
+            <div class="form-text d-flex justify-content-between align-items-center">
+              <span>Modifiez le HTML brut puis chargez-le dans l'éditeur visuel.</span>
+              <button type="button" class="btn btn-outline-secondary btn-sm rb-apply">Charger dans l'éditeur</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
   {% endfor %}
   <button type="submit" class="btn btn-primary">Enregistrer</button>
 </form>
+
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<script>
+  (function () {
+    if (typeof Quill === 'undefined') return;
+    var toolbar = [
+      [{ header: [2, 3, false] }],
+      ['bold', 'italic', 'underline'],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      ['link', 'clean'],
+    ];
+
+    document.querySelectorAll('.report-block').forEach(function (block) {
+      var field = block.querySelector('.rb-field');     // champ soumis (caché)
+      var src = block.querySelector('.rb-src');          // HTML brut
+      var editorEl = block.querySelector('.rb-editor');
+      if (!field || !editorEl) return;
+
+      var quill = new Quill(editorEl, { theme: 'snow', modules: { toolbar: toolbar } });
+      // Affiche le contenu pré-généré sans déclencher de synchronisation : le
+      // champ soumis n'est PAS réécrit, donc le HTML d'origine reste intact.
+      quill.clipboard.dangerouslyPasteHTML(0, field.value, 'silent');
+
+      // Réécrit le champ soumis uniquement sur une vraie édition utilisateur.
+      quill.on('text-change', function (delta, oldDelta, source) {
+        if (source !== 'user') return;
+        var html = quill.root.innerHTML;
+        field.value = html;
+        if (src) src.value = html;
+      });
+
+      // Panneau code source.
+      var toggle = block.querySelector('.rb-toggle-src');
+      var panel = block.querySelector('.rb-src-panel');
+      if (toggle && panel) {
+        toggle.addEventListener('click', function () { panel.classList.toggle('d-none'); });
+      }
+      // Charge le HTML brut édité à la main dans l'éditeur visuel (et le soumet).
+      var apply = block.querySelector('.rb-apply');
+      if (apply && src) {
+        apply.addEventListener('click', function () {
+          field.value = src.value;
+          quill.setContents([]);
+          quill.clipboard.dangerouslyPasteHTML(0, src.value, 'silent');
+        });
+      }
+    });
+  })();
+</script>
 {% endblock %}

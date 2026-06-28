@@ -193,7 +193,13 @@ Extrait du catalogue v1 :
 | `econ.pos_revenue_cents`, `econ.donations_cents`, `econ.memberships_cents` | economic | internal | live | cents |
 | `social.active_volunteers`, `social.volunteer_hours`, `social.volunteer_value_cents` | social | internal | live | count/hours/cents |
 | `social.members_count`, `social.renewal_rate` | social | internal | live | count/ratio |
-| `env.items_reused`, `env.weight_kg`, `env.co2e_avoided_kg`, `env.water_saved_l`, `env.reuse_rate` | environmental | computed | live | count/kg/ratio |
+| `env.collected_kg`, `env.weight_kg`, `env.co2e_avoided_kg`, `env.reuse_rate`, `env.car_km_equiv` | environmental | computed | live | kg/co2e_kg/ratio |
+
+> **MàJ 2026-06-28** — La dimension environnementale dérive désormais des **tonnages
+> éco-organismes** (`EcoDeclaration`), plus des ventes textiles. Métriques retirées :
+> `env.items_reused`, `env.water_saved_l`, et les saisies manuelles
+> `env.items_collected` / `env.items_donated` (qui n'alimentaient plus aucun calcul).
+> `env.weight_kg` = tonnage **réemployé** (détourné du déchet) ; `env.collected_kg` = collecté.
 
 **Agrégats / indicateurs phares** (dérivés, calculés par `dashboard_service`) :
 - `agg.total_audience` = `ga4.active_users` + `facebook_page.followers` +
@@ -250,14 +256,22 @@ def social(period: "Period") -> dict[str, float]:     # bénévoles/heures/adhé
 ```
 
 ### 5.4 Moteur d'impact (live)
+
+> **MàJ 2026-06-28 — source = tonnages éco-organismes.** L'impact environnemental
+> ne dérive plus des ventes/dons textiles mais des **tonnages déclarés aux
+> éco-organismes** (table `EcoDeclaration`, alimentée par l'import
+> `/rapport-activite/eco`). Même formule et mêmes facteurs matière que la section
+> « Réemploi & impact » du rapport d'activité → les deux chiffres concordent.
+
 ```python
 # app/services/impact_engine.py
 def compute(period: "Period") -> dict[str, float]:
-    """items_reused = ventes POS + vinted.items_sold (+ dons manuels).
-    weight_kg = items_reused * factor('textile.avg_weight_kg').
-    co2e_avoided_kg = weight_kg * factor('textile.co2e_per_kg').
-    water_saved_l   = weight_kg * factor('textile.water_l_per_kg').
-    reuse_rate      = items_reused / items_collected (si collecté saisi)."""
+    """Agrège les EcoDeclaration dont le trimestre démarre dans la période :
+    collected_kg = Σ entrant_t × 1000 ; weight_kg = Σ sortant_t × 1000 (réemployé).
+    co2e_avoided_kg = Σ sortant_t × factor('reemploi.<matière>.co2e_per_t').
+    reuse_rate      = Σ sortant_t / Σ entrant_t.
+    car_km_equiv    = co2e_avoided_kg × factor('equiv.car_km_per_co2e_kg').
+    Sans déclaration sur la période → {} (indicateurs « — »)."""
 def factor(key: str) -> float          # lit impact_factors, défaut documenté
 ```
 

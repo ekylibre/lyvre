@@ -79,6 +79,11 @@
 }
 .report-cover__brand .sn-logo { color: var(--paper); }
 
+/* Logo de la structure (uploadé) — couverture & pied de page. */
+.brand-logo { height: 26px; width: auto; max-width: 150px; object-fit: contain; vertical-align: middle; }
+.report-cover__brand .brand-logo { height: 32px; background: #fff; border-radius: 4px; padding: 3px; }
+.section-footer .brand-logo { height: 14px; width: auto; }
+
 /* --- Sommaire ------------------------------------------------------------ */
 .report-toc { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 1.2rem 1.4rem; }
 .report-toc ol { list-style: none; margin: 0; padding: 0; }
@@ -198,6 +203,8 @@
 .reuse-gauge__fill { height: 100%; background: var(--green); }
 .reuse-gauge__pct { font-family: var(--display); font-weight: 700; color: var(--green-deep); }
 .eco-note { font-size: .8rem; color: var(--ink-soft); font-style: italic; margin: .2rem 0 0; }
+.eco-impactco2 { margin: 1.2rem 0; max-width: 640px; }
+.eco-impactco2 iframe { width: 100%; border: 0; }
 
 /* --- Tableau financier --------------------------------------------------- */
 .financial-table { width: 100%; border-collapse: collapse; margin: 1rem 0; max-width: 640px; }
@@ -226,16 +233,26 @@
   .report-page:not(:first-child) { break-before: page; }
   .report-page { padding-top: 2mm; }
 
-  /* Couverture pleine page. */
-  .report-cover { min-height: 250mm; border-radius: 0; }
+  /* Couverture pleine page, à fond perdu (la 1ʳᵉ page n'a pas de marge,
+     cf. @page :first). box-sizing pour que le padding tienne dans la page. */
+  .report-cover {
+    box-sizing: border-box;
+    min-height: 297mm;
+    border-radius: 0;
+    padding-top: 2rem;
+  }
 
-  /* Ne pas couper les éléments structurants. */
+  /* Ne pas couper les éléments structurants. Une carte partenaire / un membre
+     (logo + texte) doit rester d'un seul tenant entre deux pages. */
   .section-tag { break-after: avoid; }
   .figure-tag, .flow-node, .flow-reuse, .reuse-gauge,
-  .financial-table, .report-toc, .report-chart { break-inside: avoid; }
+  .financial-table, .report-toc, .report-chart,
+  .partner-item, .team-item, .photo-full { break-inside: avoid; }
   .report-section { margin-bottom: 0; }
 
   /* Le pied de page reste en bas, contre le filet. */
   .section-footer { break-before: avoid; }
 }
 @page { size: A4; margin: 16mm; }
+/* Couverture à fond perdu : pas de marge sur la première page. */
+@page :first { margin: 0; }

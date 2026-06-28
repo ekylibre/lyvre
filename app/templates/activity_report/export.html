@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rapport d'activité {{ fy.label }} — Seconde Nature</title>
+  {# CSS inliné (variables résolues) + images en data-URI : fichier autonome,
+     servant aussi de source à la conversion DOCX/ODT (LibreOffice). #}
+  <style>{{ inline_css | safe }}</style>
+</head>
+<body>
+  {% include "activity_report/_body.html" %}
+</body>
+</html>

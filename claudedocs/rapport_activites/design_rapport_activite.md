@@ -282,19 +282,32 @@ narrative_html, assets[]}` — le template n'a qu'à itérer.
 | Route | Méthode | Rôle |
 |---|---|---|
 | `/` | GET | Aperçu du rapport (sélecteur d'exercice) |
-| `/print` | GET | Vue imprimable A4 (→ PDF navigateur) |
-| `/edit` | GET, POST | Éditeur des blocs narratifs (**admin**) |
-| `/eco` | GET, POST | Table tonnages éditable (**admin**) |
+| `/pdf` | GET | PDF serveur (weasyprint, inline) |
+| `/export/<fmt>` | GET | Export `html` \| `docx` \| `odt` (pièce jointe, styles inclus) |
+| `/edit` | GET, POST | Éditeur des blocs narratifs — **WYSIWYG Quill** (**admin**) |
+| `/eco` | GET, POST | Table tonnages éditable + import (**admin**) |
 | `/eco/import` | POST | Upload `.xlsx` → `import_eco_xlsx` (**admin**) |
 | `/photos` | GET, POST | Upload/légendes (**admin**) |
 
-Templates `app/templates/activity_report/` : `report.html` (aperçu),
-`print.html` (impression, scope `.report` + tokens SN), `edit.html`, `eco.html`,
-`photos.html`. SCSS dédié `assets/css/report.scss` (tokens + composants §2).
-Réutilise ECharts (déjà chargé) pour les graphes.
+> **MàJ 2026-06-28** — Le bouton **« Imprimer »** (route `/print`, ex `print.html`)
+> est **supprimé**, remplacé par les exports **PDF / HTML / DOCX / ODT**. Les exports
+> HTML/DOCX/ODT passent par `report_export.py` : un **HTML autonome** (CSS inliné,
+> variables CSS résolues, images en data-URI, graphes SVG) servi tel quel ou converti
+> par **LibreOffice headless** (`soffice --convert-to`). L'éditeur `/edit` intègre
+> **Quill 2.0.3** (lib déjà présente) ; le champ soumis reste le HTML pré-généré et
+> n'est réécrit qu'en cas d'édition réelle (non destructif). La section
+> « Réemploi & impact » affiche en plus l'**étiquette ADEME** (`impactco2.fr`,
+> iframe JS, absente du PDF/DOCX/ODT) ; ses KPI environnementaux ne sont plus tirés
+> du dashboard (évite le doublon avec le bloc éco natif).
 
-**Navigation** : entrée sous « Visibilité & Impact » ou Tiers — ou bouton
-« Rapport d'activité » depuis le dashboard Impact. (À trancher au workflow.)
+Templates `app/templates/activity_report/` : `report.html` (aperçu),
+`pdf.html` (PDF weasyprint), `export.html` (HTML autonome / source DOCX-ODT),
+`edit.html` (Quill), `eco.html`, `photos.html`. CSS `static/css/report.css`
+(tokens + composants §2). Réutilise ECharts (écran) / `chart_svg` (PDF & exports).
+
+**Navigation** : menu **« Indicateurs »** regroupant « Visibilité & Impact »
+(`/impact`) et « Rapport d'activité » (`/rapport-activite`). L'**import de tonnages**
+(`/rapport-activite/eco`) est aussi accessible depuis **Imports/Exports** (admin).
 
 ---
 
@@ -313,7 +326,7 @@ sequenceDiagram
   S->>DB: tonnages éco + blocs narratifs + photos
   S-->>V: ReportView (sections ordonnées)
   V-->>U: report.html (identité Seconde Nature)
-  U->>V: GET /print → impression → PDF
+  U->>V: GET /pdf | /export/{html,docx,odt} → téléchargement (styles inclus)
 ```
 
 ---
