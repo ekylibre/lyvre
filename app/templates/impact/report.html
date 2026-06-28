@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Rapport — Visibilité & Impact{% endblock %}
+{% block content %}
+<style>
+  @media print {
+    .navbar, .d-print-none { display: none !important; }
+    .container-fluid { padding: 0 !important; }
+    .card { break-inside: avoid; }
+  }
+  .report-section table { width: 100%; }
+</style>
+
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h2 class="mb-0">Rapport « Visibilité &amp; Impact »</h2>
+    <div class="text-muted">Seconde Nature — {{ view.period.label }}</div>
+  </div>
+  <div class="d-print-none d-flex gap-2">
+    <a href="{{ url_for('impact.index', gran=gran, month=current_month, quarter=current_quarter, year=current_year, start=current_start, end=current_end) }}"
+       class="btn btn-outline-secondary btn-sm">← Dashboard</a>
+    <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">Imprimer / PDF</button>
+  </div>
+</div>
+
+{# Indicateurs phares #}
+<div class="row row-cols-2 row-cols-md-4 g-2 mb-4">
+  {% for h in view.highlights %}
+  <div class="col">
+    <div class="border rounded p-2 text-center">
+      <div class="fs-5 fw-bold">{{ h.formatted }}</div>
+      <div class="text-muted small">{{ h.label }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{# Sections #}
+{% for dim, label in dimensions %}
+  {% set kpis = view.sections.get(dim, []) %}
+  <div class="report-section mb-4">
+    <h5 class="border-bottom pb-1">{{ label }}</h5>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Indicateur</th><th class="text-end">Valeur</th><th class="text-end">Évolution</th><th>Source</th></tr>
+      </thead>
+      <tbody>
+        {% for kpi in kpis %}
+        <tr {% if not kpi.available %}class="text-muted"{% endif %}>
+          <td>{{ kpi.label }}</td>
+          <td class="text-end fw-semibold">{{ kpi.formatted }}</td>
+          <td class="text-end">
+            {% if kpi.delta_pct is not none %}
+              {{ '▲' if kpi.delta_pct >= 0 else '▼' }} {{ '%.1f'|format(kpi.delta_pct | abs) | replace('.', ',') }} %
+            {% else %}—{% endif %}
+          </td>
+          <td class="small text-muted">{{ kpi.source }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endfor %}
+
+{# Méthodologie / sources #}
+<div class="small text-muted mt-4 border-top pt-2">
+  <p class="mb-1"><strong>Sources &amp; méthode.</strong> Données internes (boutique POS,
+  HelloAsso, bénévolat) calculées sur la période. Visibilité web : Google Analytics.
+  Réseaux sans API (Vinted, groupe Facebook) : saisie manuelle. Impact environnemental :
+  estimé à partir des articles remis en circulation et des facteurs ADEME Base Empreinte.</p>
+  <p class="mb-0">Fraîcheur des sources externes :
+    {% for s in view.sources_status %}
+      {{ s.label }} —
+      {% if s.fresh_at %}{{ s.fresh_at.strftime('%d/%m/%Y') }}{% else %}non synchronisé{% endif %}{% if not loop.last %} · {% endif %}
+    {% endfor %}
+  </p>
+</div>
+{% endblock %}

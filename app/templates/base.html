@@ -49,11 +49,12 @@
           </ul>
         </li>
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle {% if request.blueprint in ('entities','rules') %}active{% endif %}"
+          <a class="nav-link dropdown-toggle {% if request.blueprint in ('entities','rules','work_times') %}active{% endif %}"
              href="#" data-bs-toggle="dropdown">Tiers</a>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="{{ url_for('entities.index') }}">Entités</a></li>
             <li><a class="dropdown-item" href="{{ url_for('entities.members') }}">Adhérents</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('work_times.index') }}">Temps de travaux</a></li>
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="{{ url_for('rules.index') }}">Règles de catégorisation</a></li>
           </ul>
@@ -66,6 +67,14 @@
             <li><a class="dropdown-item" href="{{ url_for('orders.index') }}">Commandes POS</a></li>
             <li><a class="dropdown-item" href="{{ url_for('customer_invoices.index') }}">Factures clients</a></li>
           </ul>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.blueprint == 'impact' %}active{% endif %}"
+             href="{{ url_for('impact.index') }}">Visibilité &amp; Impact</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.blueprint == 'activity_report' %}active{% endif %}"
+             href="{{ url_for('activity_report.index') }}">Rapport d'activité</a>
         </li>
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle {% if request.blueprint == 'imports' %}active{% endif %}"

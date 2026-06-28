@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Rapport d'activité{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/report.css') }}">
+
+<div class="d-flex justify-content-between align-items-center mb-3 d-print-none">
+  <div>
+    <h2 class="mb-0">Rapport d'activité</h2>
+    <small class="text-muted">{% if fy %}Exercice {{ fy.label }}{% else %}Aucun exercice{% endif %}</small>
+  </div>
+  <div class="d-flex gap-2 align-items-end">
+    <form method="get" class="d-flex gap-2 align-items-end">
+      <div>
+        <label class="form-label small text-muted mb-1">Exercice</label>
+        <select name="fy_id" class="form-select form-select-sm" onchange="this.form.submit()">
+          {% for f in fiscal_years %}
+            <option value="{{ f.id }}" {{ 'selected' if fy and f.id == fy.id }}>{{ f.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </form>
+    {% if current_user.is_admin %}
+      <a href="{{ url_for('activity_report.edit', fy_id=fy.id) if fy }}" class="btn btn-outline-secondary btn-sm {{ 'disabled' if not fy }}">Éditer les textes</a>
+      <a href="{{ url_for('activity_report.eco') }}" class="btn btn-outline-secondary btn-sm">Tonnages éco</a>
+      <a href="{{ url_for('activity_report.photos', fy_id=fy.id) if fy }}" class="btn btn-outline-secondary btn-sm {{ 'disabled' if not fy }}">Photos</a>
+    {% endif %}
+    {% if fy %}
+      <a href="{{ url_for('activity_report.archives', fy_id=fy.id) }}" class="btn btn-outline-secondary btn-sm">Archives</a>
+    {% endif %}
+    {% if fy and view %}
+      <a href="{{ url_for('activity_report.index', fy_id=fy.id, prorata=0 if view.prorata else 1) }}"
+         class="btn btn-outline-secondary btn-sm"
+         title="Répartition des trimestres éco à cheval sur l'exercice">
+        Éco : {{ 'pro-rata' if view.prorata else 'indivisible' }}
+      </a>
+      <a href="{{ url_for('activity_report.print_view', fy_id=fy.id, prorata=1 if view.prorata else None) }}" target="_blank" class="btn btn-outline-primary btn-sm">Imprimer</a>
+      <a href="{{ url_for('activity_report.pdf_view', fy_id=fy.id, prorata=1 if view.prorata else None) }}" target="_blank" class="btn btn-primary btn-sm">PDF</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if view %}
+  {% include "activity_report/_body.html" %}
+{% else %}
+  <div class="alert alert-info">Aucun exercice comptable. Créez-en un dans Compta → Exercices.</div>
+{% endif %}
+{% endblock %}

@@ -86,6 +86,7 @@ def _entity(eid, name, **kw):
     return SimpleNamespace(
         id=eid, name=name,
         email=kw.get("email"), is_member=kw.get("is_member", False),
+        is_benevole=kw.get("is_benevole", False),
         notes=kw.get("notes"),
     )
 

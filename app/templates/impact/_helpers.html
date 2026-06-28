@@ -1,0 +1,106 @@
+{# Macros partagées du dashboard Visibilité & Impact (dashboard + rapport). #}
+
+{% macro sparkline(points, width=90, height=24) -%}
+  {%- set vals = points | select('ne', None) | list -%}
+  {%- if vals | length >= 2 -%}
+    {%- set vmin = vals | min -%}
+    {%- set vmax = vals | max -%}
+    {%- set span = (vmax - vmin) if (vmax - vmin) != 0 else 1 -%}
+    {%- set n = points | length -%}
+    {%- set step = width / (n - 1) -%}
+    <svg width="{{ width }}" height="{{ height }}" viewBox="0 0 {{ width }} {{ height }}"
+         preserveAspectRatio="none" class="align-middle">
+      <polyline fill="none" stroke="#0d6efd" stroke-width="1.5"
+        points="
+        {%- for p in points -%}
+          {%- if p is not none -%}
+            {{ '%.1f'|format(loop.index0 * step) }},{{ '%.1f'|format(height - 2 - ((p - vmin) / span) * (height - 4)) }}{{ ' ' }}
+          {%- endif -%}
+        {%- endfor -%}" />
+    </svg>
+  {%- else -%}
+    <span class="text-muted small">—</span>
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro delta_badge(kpi) -%}
+  {%- if kpi.delta_pct is not none -%}
+    {%- set up = kpi.delta_pct >= 0 -%}
+    {%- set good = (up and kpi.higher_is_better) or (not up and not kpi.higher_is_better) -%}
+    <span class="badge {{ 'bg-success-subtle text-success-emphasis' if good else 'bg-danger-subtle text-danger-emphasis' }}">
+      {{ '▲' if up else '▼' }} {{ '%.1f'|format(kpi.delta_pct | abs) | replace('.', ',') }} %
+    </span>
+  {%- else -%}
+    <span class="text-muted small">—</span>
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro kpi_card(kpi) -%}
+  <div class="col">
+    <div class="card h-100 {{ '' if kpi.available else 'opacity-50' }}">
+      <div class="card-body py-2 px-3">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="text-muted small">{{ kpi.label }}</div>
+          {{ sparkline(kpi.trend) }}
+        </div>
+        <div class="d-flex justify-content-between align-items-end mt-1">
+          <div class="fs-5 fw-semibold">{{ kpi.formatted }}</div>
+          {{ delta_badge(kpi) }}
+        </div>
+        {% if not kpi.available %}
+          <div class="small text-muted mt-1">
+            {% if kpi.origin == 'manual' %}En attente de saisie{% elif kpi.origin == 'snapshot' %}Source non synchronisée{% else %}Indisponible{% endif %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{%- endmacro %}
+
+{% macro period_filter(endpoint, gran, month_options, current_month, current_quarter, current_year, current_start, current_end) -%}
+  <form method="get" action="{{ url_for(endpoint) }}" class="row g-2 align-items-end">
+    <div class="col-auto">
+      <label class="form-label small text-muted mb-1">Granularité</label>
+      <select name="gran" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value="month" {{ 'selected' if gran == 'month' }}>Mois</option>
+        <option value="quarter" {{ 'selected' if gran == 'quarter' }}>Trimestre</option>
+        <option value="year" {{ 'selected' if gran == 'year' }}>Année</option>
+        <option value="custom" {{ 'selected' if gran == 'custom' }}>Plage</option>
+      </select>
+    </div>
+    {% if gran == 'month' %}
+      <div class="col-auto">
+        <label class="form-label small text-muted mb-1">Mois</label>
+        <select name="month" class="form-select form-select-sm">
+          {% for opt in month_options %}
+            <option value="{{ opt.value }}" {{ 'selected' if current_month == opt.value }}>{{ opt.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    {% elif gran == 'quarter' %}
+      <div class="col-auto">
+        <label class="form-label small text-muted mb-1">Trimestre (AAAA-Qn)</label>
+        <input type="text" name="quarter" value="{{ current_quarter }}" placeholder="2026-Q2"
+               class="form-control form-control-sm">
+      </div>
+    {% elif gran == 'year' %}
+      <div class="col-auto">
+        <label class="form-label small text-muted mb-1">Année</label>
+        <input type="number" name="year" value="{{ current_year }}" placeholder="2026"
+               class="form-control form-control-sm">
+      </div>
+    {% else %}
+      <div class="col-auto">
+        <label class="form-label small text-muted mb-1">Du</label>
+        <input type="date" name="start" value="{{ current_start }}" class="form-control form-control-sm">
+      </div>
+      <div class="col-auto">
+        <label class="form-label small text-muted mb-1">au</label>
+        <input type="date" name="end" value="{{ current_end }}" class="form-control form-control-sm">
+      </div>
+    {% endif %}
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary btn-sm">Afficher</button>
+    </div>
+  </form>
+{%- endmacro %}

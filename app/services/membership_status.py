@@ -97,6 +97,7 @@ def build_member_rows(members_list, last_ha, last_pos, today=None):
             "name": e.name,
             "email": e.email,
             "is_member": e.is_member,
+            "is_benevole": e.is_benevole,
             "notes": e.notes,
             "last_ha": ha,
             "last_pos": pos,

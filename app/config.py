@@ -28,6 +28,19 @@ class Config:
         "HELLOASSO_API_BASE", "https://api.helloasso.com"
     )
 
+    # Site Jekyll (import optionnel des contenus _data/*.yml dans le rapport).
+    # Accepte soit un chemin local vers le dossier `_data`, soit une URL GitHub
+    # (le dépôt est lu à distance → fonctionne hors localhost, sans clone).
+    SITE_DATA_PATH = os.environ.get(
+        "SITE_DATA_PATH",
+        "https://github.com/asso-seconde-nature/seconde-nature.github.io/tree/main/",
+    )
+
+    # Rapport d'activité : répartition des trimestres éco à cheval sur l'exercice.
+    # False = rattachement indivisible par date de début (défaut design) ;
+    # True = pro-rata des jours. Surcharge ponctuelle via ?prorata=1.
+    ECO_PRORATA = os.environ.get("ECO_PRORATA", "false").lower() in ("1", "true", "yes")
+
     # SMTP / Flask-Mail (relance des adhérents)
     MAIL_SERVER = os.environ.get("MAIL_SERVER", "")
     MAIL_PORT = int(os.environ.get("MAIL_PORT", "587"))

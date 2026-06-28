@@ -23,6 +23,12 @@
   'use_tls':      ('TLS (true/false)',    'text',     "true"),
   'password':     ('Mot de passe',        'password', "Mot de passe ou app password"),
   'sender':       ('Expéditeur',          'text',     "Association <contact@exemple.org>"),
+  'property_id':  ('ID de propriété GA4', 'text',     "Ex : 472641442"),
+  'credentials_json': ('Clé JSON du compte de service', 'textarea', "Coller le contenu du fichier .json"),
+  'page_id':      ('ID de la Page',       'text',     "ID numérique de la Page Facebook"),
+  'page_token':   ('Page Access Token',   'password', "Token longue durée (n'expire pas)"),
+  'app_id':       ('App ID Meta',         'text',     ""),
+  'app_secret':   ('App Secret Meta',     'password', ""),
 } %}
 
 <div class="row g-3">
@@ -55,9 +61,14 @@
                   <small class="text-muted">(depuis <code>.env</code>)</small>
                 {% endif %}
               </label>
-              <input type="{{ meta[1] }}" name="{{ f.key }}" class="form-control"
-                     value="{{ f.value if f.source == 'db' else '' }}"
-                     placeholder="{{ '••••••••' if meta[1] == 'password' and f.source == 'env' else meta[2] }}">
+              {% if meta[1] == 'textarea' %}
+                <textarea name="{{ f.key }}" class="form-control font-monospace" rows="4"
+                          placeholder="{{ meta[2] }}">{{ f.value if f.source == 'db' else '' }}</textarea>
+              {% else %}
+                <input type="{{ meta[1] }}" name="{{ f.key }}" class="form-control"
+                       value="{{ f.value if f.source == 'db' else '' }}"
+                       placeholder="{{ '••••••••' if meta[1] == 'password' and f.source == 'env' else meta[2] }}">
+              {% endif %}
               {% if meta[1] == 'password' and f.source == 'env' %}
                 <div class="form-text">Repli <code>.env</code> actif — laisser vide pour le garder.</div>
               {% endif %}

@@ -21,6 +21,14 @@ from .helloasso import HelloAssoForm, HelloAssoOrder, HelloAssoItem, HelloAssoPa
 from .external_connection import ExternalConnection
 from .rule import Rule
 from .email_template import EmailTemplate
+from .task_type import TaskType
+from .work_time import WorkTime
+from .metric_snapshot import MetricSnapshot
+from .impact_factor import ImpactFactor
+from .eco_declaration import EcoDeclaration
+from .report_content import ReportContent
+from .report_asset import ReportAsset
+from .report_archive import ReportArchive
 
 __all__ = [
     "User",
@@ -49,4 +57,12 @@ __all__ = [
     "ExternalConnection",
     "Rule",
     "EmailTemplate",
+    "TaskType",
+    "WorkTime",
+    "MetricSnapshot",
+    "ImpactFactor",
+    "EcoDeclaration",
+    "ReportContent",
+    "ReportAsset",
+    "ReportArchive",
 ]

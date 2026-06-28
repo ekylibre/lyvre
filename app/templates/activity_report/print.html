@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rapport d'activité {{ fy.label }} — Seconde Nature</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/report.css') }}">
+</head>
+<body>
+  {% include "activity_report/_body.html" %}
+  {# Attend le chargement réel des images (logos/photos distants, y compris
+     les anciennes images en `lazy`) puis laisse les graphes ECharts se
+     dessiner avant de lancer l'impression. #}
+  <script>
+    window.addEventListener('load', function () {
+      var imgs = Array.prototype.slice.call(document.images);
+      // Force le chargement immédiat (anciennes images en `lazy` incluses).
+      imgs.forEach(function (img) { try { img.loading = 'eager'; } catch (e) {} });
+      var pending = imgs
+        .filter(function (img) { return !(img.complete && img.naturalWidth > 0); })
+        .map(function (img) {
+          return new Promise(function (res) {
+            img.addEventListener('load', res, { once: true });
+            img.addEventListener('error', res, { once: true });
+          });
+        });
+      // Garde-fou : on imprime au plus tard après 4 s même si une image traîne.
+      var timeout = new Promise(function (res) { setTimeout(res, 4000); });
+      Promise.race([Promise.all(pending), timeout]).then(function () {
+        setTimeout(function () { window.print(); }, 400);  // rendu des graphes ECharts
+      });
+    });
+  </script>
+</body>
+</html>

@@ -51,6 +51,12 @@
         <label for="is_member" class="form-check-label fw-semibold">Adhérent de l'association</label>
       </div>
 
+      <div class="mb-3 form-check">
+        <input type="checkbox" name="is_benevole" id="is_benevole" class="form-check-input"
+               value="1" {{ 'checked' if entity and entity.is_benevole else '' }}>
+        <label for="is_benevole" class="form-check-label fw-semibold">Bénévole</label>
+      </div>
+
       <div class="mb-3">
         <label class="form-label fw-semibold">Notes</label>
         <textarea name="notes" class="form-control" rows="3">{{ entity.notes if entity and entity.notes else '' }}</textarea>

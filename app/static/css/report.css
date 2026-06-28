@@ -1,0 +1,241 @@
+/* Rapport d'activité — identité Seconde Nature (kraft / vert réemploi).
+   Tokens repris du site seconde-nature.net (assets/css/custom.scss).
+   Signature : l'étiquette kraft (section-tag) + le gros chiffre sur étiquette. */
+
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:wght@400;500;600&family=Spline+Sans+Mono:wght@400;500&display=swap');
+
+.report {
+  --kraft:      #e7dcc4;
+  --kraft-deep: #dccfb2;
+  --paper:      #f4eee0;
+  --ink:        #26231d;
+  --ink-soft:   #5b5446;
+  --green:      #1c7a33;
+  --green-deep: #0f3d1c;
+  --red:        #c2452d;
+  --line:       #cdbf9f;
+
+  --display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --body:    'Instrument Sans', system-ui, -apple-system, sans-serif;
+  --mono:    'Spline Sans Mono', ui-monospace, monospace;
+
+  background: var(--kraft);
+  color: var(--ink);
+  font-family: var(--body);
+  line-height: 1.5;
+  padding: 1.5rem;
+  border-radius: 8px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.sn-logo { color: var(--green); vertical-align: -.2em; }
+
+.report h1, .report h2, .report h3, .report h4 {
+  font-family: var(--display);
+  color: var(--green-deep);
+  line-height: 1.05;
+  margin: 0 0 .4em;
+}
+
+/* --- Couverture ---------------------------------------------------------- */
+.report-cover {
+  position: relative;
+  background: var(--green-deep);
+  color: var(--paper);
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: 360px;
+  display: flex;
+  align-items: flex-end;
+  padding: 2rem;
+}
+.report-cover__photo {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  opacity: .55;
+}
+.report-cover__tag {
+  position: relative;
+  background: var(--kraft);
+  color: var(--ink);
+  padding: 1.2rem 1.6rem;
+  border-radius: 4px;
+  box-shadow: 0 12px 30px -18px rgba(0,0,0,.6);
+  max-width: 70%;
+}
+.report-cover__year {
+  font-family: var(--mono);
+  color: var(--red);
+  font-weight: 500;
+  letter-spacing: .04em;
+}
+.report-cover__title { font-size: 2.4rem; font-weight: 800; }
+.report-cover__sub { margin-top: .5rem; color: var(--ink-soft); }
+.report-cover__brand {
+  position: absolute; top: 1.4rem; right: 1.6rem;
+  display: inline-flex; align-items: center; gap: .4rem;
+  font-family: var(--display); font-weight: 700; color: var(--paper);
+}
+.report-cover__brand .sn-logo { color: var(--paper); }
+
+/* --- Sommaire ------------------------------------------------------------ */
+.report-toc { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 1.2rem 1.4rem; }
+.report-toc ol { list-style: none; margin: 0; padding: 0; }
+.report-toc li { display: flex; gap: .8rem; padding: .25rem 0; align-items: baseline; }
+.report-toc .num { font-family: var(--mono); color: var(--green); font-weight: 500; min-width: 2.2rem; }
+
+/* --- Signature : l'étiquette kraft (section-tag) ------------------------- */
+.section-tag {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  background: var(--kraft-deep);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: .5rem 1rem .5rem 1.6rem;
+  margin: 1.4rem 0 .8rem;
+}
+.section-tag::before {            /* l'œillet de l'étiquette */
+  content: "";
+  position: absolute; left: .55rem; top: 50%;
+  width: 9px; height: 9px; margin-top: -4px;
+  border-radius: 50%;
+  background: var(--kraft);
+  border: 1.5px solid var(--ink-soft);
+}
+.section-tag::after {             /* la ficelle */
+  content: "";
+  position: absolute; left: -8px; top: 50%;
+  width: 14px; height: 2px;
+  background: var(--red);
+  transform: rotate(-18deg);
+}
+.section-tag .num { font-family: var(--mono); color: var(--red); font-size: .82rem; letter-spacing: .05em; }
+.section-tag .title { font-family: var(--display); font-weight: 700; color: var(--green-deep); font-size: 1.35rem; }
+
+.report-section { margin-bottom: 1.8rem; }
+.report-section__narrative { color: var(--ink); max-width: 62ch; }
+.report-section__empty { color: var(--ink-soft); font-style: italic; }
+
+.section-footer {
+  margin-top: 1.6rem; padding-top: .5rem; border-top: 1px solid var(--line);
+  font-family: var(--mono); font-size: .72rem; color: var(--ink-soft);
+  text-align: right;
+}
+.section-footer__logo { width: 13px; height: 15px; }
+
+/* Citation (édito) + bande de stats — composants disponibles pour le narratif. */
+.report-quote {
+  border-left: 3px solid var(--red); padding: .4rem 0 .4rem 1rem;
+  font-family: var(--display); font-size: 1.3rem; color: var(--green-deep);
+}
+.stat-band { display: flex; flex-wrap: wrap; gap: 1.5rem; padding: 1rem 0; }
+.stat-band .stat { font-family: var(--display); }
+.stat-band .stat b { display: block; font-size: 1.8rem; color: var(--green-deep); line-height: 1; }
+
+/* Grille partenaires + liste équipe (import des _data/*.yml du site). */
+.partner-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .8rem 1.5rem; margin: .5rem 0; }
+.partner-item { display: flex; gap: .8rem; align-items: flex-start; border-left: 2px solid var(--kraft-deep); padding-left: .8rem; }
+.partner-logo { flex: 0 0 auto; width: 56px; height: 56px; object-fit: contain; background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 4px; }
+.partner-body { min-width: 0; }
+.partner-item a, .partner-item strong { color: var(--green-deep); font-weight: 700; }
+.partner-item p { margin: .15rem 0 0; font-size: .85rem; color: var(--ink-soft); }
+.team-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem 1.2rem; margin: .5rem 0; }
+.team-item { display: flex; gap: .7rem; align-items: center; break-inside: avoid; }
+.team-photo { flex: 0 0 auto; width: 54px; height: 54px; object-fit: cover; border-radius: 50%; border: 1px solid var(--line); background: #fff; }
+.team-body { display: flex; flex-direction: column; min-width: 0; }
+.team-body strong { color: var(--green-deep); }
+.team-role { font-size: .85rem; color: var(--ink-soft); }
+
+/* --- Gros chiffre sur étiquette ----------------------------------------- */
+.figure-grid { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0; }
+.figure-tag {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: .9rem 1.1rem;
+  min-width: 140px;
+}
+.figure-tag .value { font-family: var(--display); font-weight: 800; color: var(--green-deep); font-size: 2rem; line-height: 1; }
+.figure-tag .label { font-family: var(--mono); font-size: .78rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+.figure-tag .delta { font-family: var(--mono); font-size: .78rem; }
+.figure-tag .delta.up { color: var(--green); }
+.figure-tag .delta.down { color: var(--red); }
+
+.report-chart { width: 100%; height: 280px; margin: 1rem 0; }
+
+/* --- Photo pleine largeur ------------------------------------------------ */
+.photo-full { margin: 1rem 0; }
+.photo-full img { width: 100%; max-height: 360px; object-fit: cover; border-radius: 6px; display: block; }
+.photo-full figcaption { font-family: var(--mono); font-size: .76rem; color: var(--ink-soft); margin-top: .3rem; }
+
+/* --- Frise historique (composant pour le narratif 'frise') -------------- */
+.timeline { border-left: 2px solid var(--green); margin: 1rem 0 1rem .4rem; padding-left: 1.2rem; }
+.timeline .tl-item { position: relative; padding-bottom: 1rem; }
+.timeline .tl-item::before {
+  content: ""; position: absolute; left: -1.55rem; top: .35rem;
+  width: 10px; height: 10px; border-radius: 50%; background: var(--green); border: 2px solid var(--kraft);
+}
+.timeline .tl-year { font-family: var(--mono); font-weight: 500; color: var(--red); margin-right: .5rem; }
+
+/* --- Flux Collecté ▶ Réemployé (signature impact) ----------------------- */
+.flow-reuse { display: flex; align-items: stretch; gap: 1rem; margin: 1rem 0; }
+.flow-node {
+  flex: 1; background: var(--paper); border: 1px solid var(--line);
+  border-radius: 6px; padding: 1rem 1.2rem; text-align: center;
+}
+.flow-node--green { background: var(--green-deep); color: var(--paper); border-color: var(--green-deep); }
+.flow-node .flow-val { font-family: var(--display); font-weight: 800; font-size: 2rem; color: var(--green-deep); line-height: 1; }
+.flow-node--green .flow-val { color: #fff; }
+.flow-node .flow-lbl { font-family: var(--mono); font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-soft); }
+.flow-node--green .flow-lbl { color: #eaf6ea; }
+.flow-arrow { align-self: center; color: var(--red); font-size: 1.6rem; }
+
+.reuse-gauge { display: flex; align-items: center; gap: .8rem; margin: .6rem 0 1rem; }
+.reuse-gauge__label { font-family: var(--mono); font-size: .8rem; color: var(--ink-soft); min-width: 9rem; }
+.reuse-gauge__track { flex: 1; height: 12px; background: var(--kraft-deep); border-radius: 6px; overflow: hidden; }
+.reuse-gauge__fill { height: 100%; background: var(--green); }
+.reuse-gauge__pct { font-family: var(--display); font-weight: 700; color: var(--green-deep); }
+.eco-note { font-size: .8rem; color: var(--ink-soft); font-style: italic; margin: .2rem 0 0; }
+
+/* --- Tableau financier --------------------------------------------------- */
+.financial-table { width: 100%; border-collapse: collapse; margin: 1rem 0; max-width: 640px; }
+.financial-table th, .financial-table td { padding: .4rem .6rem; border-bottom: 1px solid var(--line); }
+.financial-table thead th { font-family: var(--mono); font-size: .78rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+.financial-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.financial-table .fin-subtotal td { font-weight: 600; }
+.financial-table .fin-result td { font-family: var(--display); font-weight: 800; color: var(--green-deep); border-top: 2px solid var(--green-deep); font-size: 1.05rem; }
+.financial-table .fin-memo td { font-size: .82rem; color: var(--ink-soft); font-style: italic; border-bottom: none; }
+
+/* --- Accessibilité ------------------------------------------------------- */
+.report a:focus-visible,
+.report button:focus-visible { outline: 2px solid var(--green-deep); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .report * { animation: none !important; transition: none !important; }
+}
+
+/* --- Impression A4 ------------------------------------------------------- */
+@media print {
+  .d-print-none { display: none !important; }
+  /* Imprimer les fonds (kraft/vert), la photo de couverture et les logos. */
+  .report, .report * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .report { background: #fff; padding: 0; border-radius: 0; }
+
+  /* Une page A4 par bloc : couverture, sommaire, puis chaque section. */
+  .report-page:not(:first-child) { break-before: page; }
+  .report-page { padding-top: 2mm; }
+
+  /* Couverture pleine page. */
+  .report-cover { min-height: 250mm; border-radius: 0; }
+
+  /* Ne pas couper les éléments structurants. */
+  .section-tag { break-after: avoid; }
+  .figure-tag, .flow-node, .flow-reuse, .reuse-gauge,
+  .financial-table, .report-toc, .report-chart { break-inside: avoid; }
+  .report-section { margin-bottom: 0; }
+
+  /* Le pied de page reste en bas, contre le filet. */
+  .section-footer { break-before: avoid; }
+}
+@page { size: A4; margin: 16mm; }

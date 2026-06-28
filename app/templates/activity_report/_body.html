@@ -1,0 +1,160 @@
+{# Corps du rapport — partagé entre l'aperçu (report.html) et l'impression (print.html). #}
+{% macro sn_logo(cls='') -%}
+<svg class="sn-logo {{ cls }}" viewBox="0 0 24 28" width="22" height="26" aria-hidden="true">
+  <path fill="currentColor" d="M12 1 4 11h3L2 19h7v8h6v-8h7l-5-8h3z"/>
+</svg>
+{%- endmacro %}
+
+<div class="report">
+
+  {# --- Couverture (page 1) --- #}
+  <div class="report-cover report-page">
+    {% if view.cover.photo_asset %}<div class="report-cover__photo" style="background-image:url('{{ photo_srcs[view.cover.photo_asset.id] }}')"></div>{% endif %}
+    <div class="report-cover__brand">{{ sn_logo() }} <span>Seconde Nature</span></div>
+    <div class="report-cover__tag">
+      <div class="report-cover__year">{{ view.cover.year_label }}</div>
+      <div class="report-cover__title">{{ view.cover.title }}</div>
+      {% if view.cover.subtitle %}<div class="report-cover__sub">{{ view.cover.subtitle | safe }}</div>{% endif %}
+    </div>
+  </div>
+
+  {# --- Sommaire (page 2) --- #}
+  <div class="report-page report-toc-page">
+    <h2>Sommaire</h2>
+    <div class="report-toc">
+      <ol>
+        {% for s in view.sections %}
+        <li><span class="num">{{ '%02d'|format(s.number) }}</span> <span>{{ s.title }}</span></li>
+        {% endfor %}
+      </ol>
+    </div>
+  </div>
+
+  {# --- Sections (une par page) --- #}
+  {% for s in view.sections %}
+  <section class="report-section report-page">
+    <div class="section-tag">
+      <span class="num">{{ '%02d'|format(s.number) }}</span>
+      <span class="title">{{ s.title }}</span>
+    </div>
+
+    {% for block in s.narrative %}
+      {% if block.title %}<h3>{{ block.title }}</h3>{% endif %}
+      <div class="report-section__narrative">{{ block.body_html | safe }}</div>
+    {% endfor %}
+
+    {% if s.photo %}
+    <figure class="photo-full">
+      <img src="{{ photo_srcs[s.photo.id] }}" alt="{{ s.photo.caption or s.title }}">
+      {% if s.photo.caption %}<figcaption>{{ s.photo.caption }}</figcaption>{% endif %}
+    </figure>
+    {% endif %}
+
+    {% if s.eco and s.eco.has_data %}
+    <div class="flow-reuse">
+      <div class="flow-node">
+        <div class="flow-val">{{ '%.1f'|format(s.eco.collecte_t)|replace('.', ',') }} t</div>
+        <div class="flow-lbl">Collecté</div>
+      </div>
+      <div class="flow-arrow">▶</div>
+      <div class="flow-node flow-node--green">
+        <div class="flow-val">{{ '%.1f'|format(s.eco.reemploye_t)|replace('.', ',') }} t</div>
+        <div class="flow-lbl">Réemployé</div>
+      </div>
+    </div>
+    {% if s.eco.reuse_rate is not none %}
+    <div class="reuse-gauge">
+      <div class="reuse-gauge__label">Taux de réemploi</div>
+      <div class="reuse-gauge__track"><div class="reuse-gauge__fill" style="width: {{ (s.eco.reuse_rate * 100) | round(0) }}%"></div></div>
+      <div class="reuse-gauge__pct">{{ '%.0f'|format(s.eco.reuse_rate * 100) }} %</div>
+    </div>
+    {% endif %}
+    <div class="figure-grid">
+      <div class="figure-tag"><div class="value">{{ '%.0f'|format(s.eco.co2e_avoided_kg)|replace('.', ',') }}</div><div class="label">kg CO₂e évités</div></div>
+      <div class="figure-tag"><div class="value">{{ '%.0f'|format(s.eco.car_km)|replace('.', ',') }}</div><div class="label">km voiture évités</div></div>
+      <div class="figure-tag"><div class="value">{{ s.eco.financing_cents | euros }}</div><div class="label">financement éco-organismes</div></div>
+    </div>
+    {% if s.eco.prorata %}<p class="eco-note">Tonnages répartis au pro-rata des trimestres à cheval sur l'exercice.</p>{% endif %}
+    {% endif %}
+
+    {% if s.kpis %}
+    <div class="figure-grid">
+      {% for kpi in s.kpis %}
+        {% if kpi.available %}
+        <div class="figure-tag">
+          <div class="value">{{ kpi.formatted }}</div>
+          <div class="label">{{ kpi.label }}</div>
+          {% if kpi.delta_pct is not none %}
+            {% set up = kpi.delta_pct >= 0 %}
+            <div class="delta {{ 'up' if (up == kpi.higher_is_better) else 'down' }}">
+              {{ '▲' if up else '▼' }} {{ '%.1f'|format(kpi.delta_pct | abs) | replace('.', ',') }} %
+            </div>
+          {% endif %}
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if s.financial %}
+    <table class="financial-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th class="num">{{ view.cover.year_label }}</th>
+          {% if s.financial.has_prev %}<th class="num">{{ s.financial.prev_label }}</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for line in s.financial.lines %}
+        <tr class="fin-{{ line.kind }}">
+          <td>{{ line.label }}</td>
+          <td class="num">{{ line.n | euros }}</td>
+          {% if s.financial.has_prev %}<td class="num">{{ line.prev | euros }}</td>{% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+      {% if s.financial.memos %}
+      <tfoot>
+        {% for memo in s.financial.memos %}
+        <tr class="fin-memo"><td>{{ memo.label }}</td><td class="num">{{ memo.n | euros }}</td>{% if s.financial.has_prev %}<td></td>{% endif %}</tr>
+        {% endfor %}
+      </tfoot>
+      {% endif %}
+    </table>
+    {% endif %}
+
+    {% if s.charts %}
+      {% for chart_id in s.charts %}
+        {% if pdf %}<div class="report-chart">{{ chart_svgs[chart_id] | safe }}</div>
+        {% else %}<div class="report-chart" id="{{ chart_id }}"></div>{% endif %}
+      {% endfor %}
+    {% endif %}
+
+    {% if not s.narrative and not s.kpis and not (s.eco and s.eco.has_data) and not s.financial %}
+      <p class="report-section__empty">Section à compléter.</p>
+    {% endif %}
+
+    <div class="section-footer">{{ sn_logo('section-footer__logo') }} Seconde Nature · Rapport d'activité {{ view.cover.year_label }}</div>
+  </section>
+  {% endfor %}
+
+</div>
+
+{% if view.charts and not pdf %}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script>
+(function () {
+  const charts = {{ view.charts | tojson }};
+  const instances = [];
+  Object.keys(charts).forEach(function (id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const inst = echarts.init(el);
+    inst.setOption(charts[id]);
+    instances.push(inst);
+  });
+  window.addEventListener('resize', function () { instances.forEach(function (i) { i.resize(); }); });
+})();
+</script>
+{% endif %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Facteurs d'impact{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0">Facteurs d'impact environnemental</h2>
+    <small class="text-muted">Conversion ventes → kg / CO₂ / eau. Source : ADEME Base Empreinte.</small>
+  </div>
+  <a href="{{ url_for('impact.index') }}" class="btn btn-outline-secondary btn-sm">← Dashboard</a>
+</div>
+
+<div class="alert alert-info small">
+  Les valeurs par défaut sont des ordres de grandeur <strong>à valider</strong> par le
+  bureau à partir de la <a href="https://base-empreinte.ademe.fr" target="_blank" rel="noopener">Base Empreinte ADEME</a>
+  avant toute communication externe.
+</div>
+
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <table class="table table-sm align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Facteur</th>
+        <th style="width:160px;">Valeur</th>
+        <th>Unité</th>
+        <th>Source</th>
+        <th>URL</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in factors %}
+      <tr>
+        <td class="font-monospace small">{{ f.key }}</td>
+        <td>
+          <input type="number" step="0.000001" name="value_{{ f.id }}"
+                 value="{{ f.value }}" class="form-control form-control-sm">
+        </td>
+        <td class="small text-muted">{{ f.unit }}</td>
+        <td>
+          <input type="text" name="source_label_{{ f.id }}"
+                 value="{{ f.source_label or '' }}" class="form-control form-control-sm">
+        </td>
+        <td>
+          <input type="url" name="source_url_{{ f.id }}"
+                 value="{{ f.source_url or '' }}" class="form-control form-control-sm">
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <button type="submit" class="btn btn-primary">Enregistrer</button>
+</form>
+{% endblock %}

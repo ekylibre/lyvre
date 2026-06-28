@@ -40,6 +40,9 @@ def create_app(config_name=None):
     from .views.auth import bp as auth_bp
     from .views.entities import bp as entities_bp
     from .views.rules import bp as rules_bp
+    from .views.work_times import bp as work_times_bp
+    from .views.impact import bp as impact_bp
+    from .views.activity_report import bp as activity_report_bp
     from .views.payouts import bp as payouts_bp
     from .views.orders import bp as orders_bp
     from .views.customer_invoices import bp as customer_invoices_bp
@@ -59,6 +62,9 @@ def create_app(config_name=None):
     app.register_blueprint(reports_bp)
     app.register_blueprint(entities_bp)
     app.register_blueprint(rules_bp)
+    app.register_blueprint(work_times_bp)
+    app.register_blueprint(impact_bp)
+    app.register_blueprint(activity_report_bp)
     app.register_blueprint(payouts_bp)
     app.register_blueprint(orders_bp)
     app.register_blueprint(customer_invoices_bp)

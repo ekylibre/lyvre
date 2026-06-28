@@ -8,7 +8,8 @@ from app.views.entities import (
 
 def _row(**kw):
     base = {
-        "name": "Dupont", "email": "a@b.fr", "is_member": True, "notes": "note",
+        "name": "Dupont", "email": "a@b.fr", "is_member": True,
+        "is_benevole": False, "notes": "note",
         "last_ha": None, "last_pos": None,
         "birthday": date(2026, 1, 1), "status": "ok", "color": "red",
         "label": "ok", "css": "bg-danger",
@@ -18,9 +19,9 @@ def _row(**kw):
 
 
 def test_export_headers_have_new_columns():
-    for col in ("Date anniversaire", "Statut", "Couleur"):
+    for col in ("Bénévole", "Date anniversaire", "Statut", "Couleur"):
         assert col in EXPORT_HEADERS
-    assert len(EXPORT_HEADERS) == 9
+    assert len(EXPORT_HEADERS) == 10
 
 
 def test_export_record_values():
@@ -28,14 +29,16 @@ def test_export_record_values():
     assert len(rec) == len(EXPORT_HEADERS)
     assert rec[0] == "Dupont"
     assert rec[2] == "Oui"          # Adhérent
-    assert rec[5] == "01/01/2026"   # Date anniversaire
-    assert rec[6] == "ok"           # Statut
-    assert rec[7] == "red"          # Couleur
+    assert rec[3] == "Non"          # Bénévole
+    assert rec[6] == "01/01/2026"   # Date anniversaire
+    assert rec[7] == "ok"           # Statut
+    assert rec[8] == "red"          # Couleur
 
 
 def test_export_record_non_member():
-    rec = _export_record(_row(is_member=False))
+    rec = _export_record(_row(is_member=False, is_benevole=True))
     assert rec[2] == "Non"
+    assert rec[3] == "Oui"          # Bénévole
 
 
 def test_render_csv(app):

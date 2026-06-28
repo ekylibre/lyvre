@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Tonnages éco-organismes{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0">Tonnages éco-organismes</h2>
+    <small class="text-muted">Ecomaison / Ecologic — collecté (entrant) vs réemployé (sortant), par trimestre.</small>
+  </div>
+  <a href="{{ url_for('activity_report.index') }}" class="btn btn-outline-secondary btn-sm">← Rapport</a>
+</div>
+
+<form method="post" action="{{ url_for('activity_report.eco_import') }}" enctype="multipart/form-data"
+      class="row g-2 align-items-end mb-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="col-auto">
+    <label class="form-label small text-muted mb-1">Importer la déclaration (.xlsx)</label>
+    <input type="file" name="file" accept=".xlsx" class="form-control form-control-sm" required>
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary btn-sm">Importer</button>
+  </div>
+  <div class="col-12"><small class="text-muted">Feuille « Bilan ». L'import met à jour les lignes existantes (par organisme / matière / trimestre).</small></div>
+</form>
+
+{% if rows %}
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <table class="table table-sm align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Organisme</th><th>Matière</th><th>Trimestre</th>
+        <th class="text-end">Entrant (t)</th><th class="text-end">Sortant (t)</th>
+        <th class="text-end">Financement (€)</th><th>Source</th><th>Suppr.</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td class="small">{{ r.organism }}</td>
+        <td class="small">{{ r.material }}</td>
+        <td class="small">{{ r.quarter_label }}</td>
+        <td><input type="number" step="0.001" name="entrant_{{ r.id }}" value="{{ r.entrant_t }}" class="form-control form-control-sm text-end"></td>
+        <td><input type="number" step="0.001" name="sortant_{{ r.id }}" value="{{ r.sortant_t }}" class="form-control form-control-sm text-end"></td>
+        <td><input type="number" step="0.01" name="financing_{{ r.id }}" value="{{ '%.2f'|format(r.financing_cents / 100) }}" class="form-control form-control-sm text-end"></td>
+        <td class="small text-muted">{{ r.source }}</td>
+        <td class="text-center"><input type="checkbox" name="delete_{{ r.id }}" value="1"></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <button type="submit" class="btn btn-primary">Enregistrer</button>
+</form>
+{% else %}
+<div class="alert alert-info">Aucun tonnage. Importez la déclaration éco-organismes ci-dessus.</div>
+{% endif %}
+{% endblock %}

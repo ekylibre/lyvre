@@ -20,10 +20,19 @@ class Entity(db.Model):
     account_code = db.Column(db.String(20))
     email = db.Column(db.String(200), index=True)
     is_member = db.Column(db.Boolean, nullable=False, default=False)
+    is_benevole = db.Column(
+        db.Boolean, nullable=False, default=False, server_default="false"
+    )
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     transactions = db.relationship("BankTransaction", back_populates="entity", lazy="dynamic")
+    work_times = db.relationship(
+        "WorkTime",
+        back_populates="entity",
+        cascade="all, delete-orphan",
+        lazy="dynamic",
+    )
 
     def __repr__(self):
         return f"<Entity {self.name}>"

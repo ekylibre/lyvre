@@ -7,7 +7,7 @@ from app.extensions import db
 from app.models import (
     Entity, HelloAssoOrder, HelloAssoItem, HelloAssoPayment,
     Order, OrderLine, OrderPayment,
-    CustomerInvoice, EmailTemplate,
+    CustomerInvoice, EmailTemplate, WorkTime,
 )
 from app.models.order import POS_ORDER_STATES
 from app.models.customer_invoice import (
@@ -210,7 +210,7 @@ def members():
 
 
 EXPORT_HEADERS = [
-    "Nom", "Email", "Adhérent",
+    "Nom", "Email", "Adhérent", "Bénévole",
     "Dernière adhésion HelloAsso", "Dernière adhésion POS",
     "Date anniversaire", "Statut", "Couleur", "Notes",
 ]
@@ -224,6 +224,7 @@ def _export_record(row):
         row["name"],
         row["email"] or "",
         "Oui" if row["is_member"] else "Non",
+        "Oui" if row["is_benevole"] else "Non",
         ha.strftime("%d/%m/%Y") if ha else "",
         pos.strftime("%d/%m/%Y") if pos else "",
         row["birthday"].strftime("%d/%m/%Y"),
@@ -255,7 +256,8 @@ def _render_members_xlsx(rows):
     with pd.ExcelWriter(buf, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="Adhérents")
         ws = writer.sheets["Adhérents"]
-        # Colore la cellule "Statut" (colonne 7) selon la couleur d'échéance.
+        # Colore la cellule "Statut" (colonne 8) selon la couleur d'échéance.
+        status_col = EXPORT_HEADERS.index("Statut") + 1
         fills = {
             "red": PatternFill("solid", fgColor="F8D7DA"),
             "orange": PatternFill("solid", fgColor="FFF3CD"),
@@ -264,7 +266,7 @@ def _render_members_xlsx(rows):
         for i, row in enumerate(rows, start=2):  # ligne 1 = en-têtes
             fill = fills.get(row["color"])
             if fill:
-                ws.cell(row=i, column=7).fill = fill
+                ws.cell(row=i, column=status_col).fill = fill
 
     response = Response(
         buf.getvalue(),
@@ -284,6 +286,45 @@ def members_export():
     if fmt == "xlsx":
         return _render_members_xlsx(rows)
     return _render_members_csv(rows)
+
+
+@bp.route("/members/bulk-benevole", methods=["POST"])
+@login_required
+def bulk_benevole():
+    """Marque/retire en masse le statut bénévole des adhérents cochés."""
+    action = (request.form.get("action") or "").strip().lower()
+    if action not in ("set", "unset"):
+        flash("Action invalide.", "danger")
+        return redirect(url_for("entities.members"))
+
+    selected_ids = [int(i) for i in request.form.getlist("selected") if i.isdigit()]
+    redirect_args = {
+        k: v for k, v in {
+            "q": (request.form.get("q") or "").strip(),
+            "date_from": (request.form.get("date_from") or "").strip(),
+            "date_to": (request.form.get("date_to") or "").strip(),
+            "sort_by": (request.form.get("sort_by") or "").strip(),
+            "sort": (request.form.get("sort") or "").strip(),
+        }.items() if v
+    }
+
+    if not selected_ids:
+        flash("Aucun adhérent sélectionné.", "warning")
+        return redirect(url_for("entities.members", **redirect_args))
+
+    new_value = action == "set"
+    updated = (
+        Entity.query
+        .filter(Entity.id.in_(selected_ids))
+        .update({Entity.is_benevole: new_value}, synchronize_session=False)
+    )
+    db.session.commit()
+
+    if new_value:
+        flash(f"{updated} adhérent(s) marqué(s) bénévole(s).", "success")
+    else:
+        flash(f"{updated} adhérent(s) retiré(s) des bénévoles.", "success")
+    return redirect(url_for("entities.members", **redirect_args))
 
 
 @bp.route("/members.csv")
@@ -470,6 +511,15 @@ def detail(entity_id):
         .all()
     )
 
+    # Temps de travaux du bénévole (si rattachés), avec totaux.
+    work_times = (
+        entity.work_times
+        .order_by(WorkTime.work_date.desc(), WorkTime.id.desc())
+        .all()
+    )
+    work_times_total_hours = sum(float(wt.hours) for wt in work_times)
+    work_times_total_valuation_cents = sum(wt.valuation_cents for wt in work_times)
+
     return render_template(
         "entities/detail.html",
         entity=entity,
@@ -482,6 +532,9 @@ def detail(entity_id):
         customer_invoices=customer_invoices,
         invoice_states=dict(CUSTOMER_INVOICE_STATES),
         invoice_payment_states=dict(CUSTOMER_INVOICE_PAYMENT_STATES),
+        work_times=work_times,
+        work_times_total_hours=work_times_total_hours,
+        work_times_total_valuation_cents=work_times_total_valuation_cents,
     )
 
 
@@ -644,6 +697,7 @@ def new():
                 account_code=request.form.get("account_code", "").strip() or None,
                 email=request.form.get("email", "").strip() or None,
                 is_member=bool(request.form.get("is_member")),
+                is_benevole=bool(request.form.get("is_benevole")),
                 notes=request.form.get("notes", "").strip() or None,
             )
             db.session.add(entity)
@@ -672,6 +726,7 @@ def edit(entity_id):
                 entity.account_code = request.form.get("account_code", "").strip() or None
                 entity.email = request.form.get("email", "").strip() or None
                 entity.is_member = bool(request.form.get("is_member"))
+                entity.is_benevole = bool(request.form.get("is_benevole"))
                 entity.notes = request.form.get("notes", "").strip() or None
                 db.session.commit()
                 flash("Entité mise à jour.", "success")

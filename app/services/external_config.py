@@ -18,6 +18,8 @@ SERVICE_KEYS: dict[str, list[str]] = {
     "odoo":      ["url", "db", "username", "api_key"],
     "helloasso": ["client_id", "client_secret", "org_slug", "api_base"],
     "smtp":      ["host", "port", "use_tls", "username", "password", "sender"],
+    "ga4":       ["property_id", "credentials_json"],
+    "facebook":  ["page_id", "page_token", "app_id", "app_secret"],
 }
 
 SERVICE_LABELS: dict[str, str] = {
@@ -25,6 +27,13 @@ SERVICE_LABELS: dict[str, str] = {
     "odoo":      "Odoo",
     "helloasso": "HelloAsso",
     "smtp":      "SMTP (relance email)",
+    "ga4":       "Google Analytics (GA4)",
+    "facebook":  "Facebook (Page)",
+}
+
+# Champs à rendre en <textarea> (valeurs longues / secrets multilignes).
+SERVICE_TEXTAREA_KEYS: set[tuple[str, str]] = {
+    ("ga4", "credentials_json"),
 }
 
 # Keys required for a service to be considered "configured" (a subset of SERVICE_KEYS).
@@ -33,6 +42,8 @@ SERVICE_REQUIRED_KEYS: dict[str, list[str]] = {
     "odoo":      ["url", "db", "username", "api_key"],
     "helloasso": ["client_id", "client_secret", "org_slug"],
     "smtp":      ["host", "sender"],
+    "ga4":       ["property_id", "credentials_json"],
+    "facebook":  ["page_id", "page_token"],
 }
 
 ENV_FALLBACK: dict[tuple[str, str], str] = {
@@ -52,6 +63,12 @@ ENV_FALLBACK: dict[tuple[str, str], str] = {
     ("smtp",      "username"):     "MAIL_USERNAME",
     ("smtp",      "password"):     "MAIL_PASSWORD",
     ("smtp",      "sender"):       "MAIL_DEFAULT_SENDER",
+    ("ga4",       "property_id"):     "GA4_PROPERTY_ID",
+    ("ga4",       "credentials_json"): "GA4_CREDENTIALS_JSON",
+    ("facebook",  "page_id"):         "FACEBOOK_PAGE_ID",
+    ("facebook",  "page_token"):      "FACEBOOK_PAGE_TOKEN",
+    ("facebook",  "app_id"):          "FACEBOOK_APP_ID",
+    ("facebook",  "app_secret"):      "FACEBOOK_APP_SECRET",
 }
 
 

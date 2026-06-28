@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Photos du rapport — {{ fy.label }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0">Photos — exercice {{ fy.label }}</h2>
+    <small class="text-muted">Couverture et illustrations de section.</small>
+  </div>
+  <a href="{{ url_for('activity_report.index', fy_id=fy.id) }}" class="btn btn-outline-secondary btn-sm">← Aperçu</a>
+</div>
+
+<form method="post" enctype="multipart/form-data" class="row g-2 align-items-end mb-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="col-md-4">
+    <label class="form-label small text-muted mb-1">Emplacement</label>
+    <select name="slot" class="form-select form-select-sm">
+      {% for value, label in slots %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-md-5">
+    <label class="form-label small text-muted mb-1">Image (JPG / PNG)</label>
+    <input type="file" name="file" accept="image/*" class="form-control form-control-sm">
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary btn-sm">Téléverser</button>
+  </div>
+  <div class="col-12"><small class="text-muted">Un upload remplace l'image existante pour cet emplacement.</small></div>
+</form>
+
+{% if assets %}
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="row g-3">
+    {% for slot, label in slots %}
+      {% set a = assets.get(slot) %}
+      {% if a %}
+      <div class="col-md-4">
+        <div class="card h-100">
+          <img src="{{ url_for('activity_report.photo_file', asset_id=a.id) }}" class="card-img-top" style="height:160px;object-fit:cover">
+          <div class="card-body">
+            <div class="small fw-semibold mb-1">{{ label }}</div>
+            <input type="text" name="caption_{{ a.id }}" value="{{ a.caption or '' }}"
+                   class="form-control form-control-sm mb-2" placeholder="Légende">
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" name="delete_{{ a.id }}" id="del_{{ a.id }}" value="1">
+              <label class="form-check-label small text-danger" for="del_{{ a.id }}">Supprimer</label>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  <button type="submit" class="btn btn-primary mt-3">Enregistrer</button>
+</form>
+{% else %}
+<div class="alert alert-info">Aucune photo. Téléversez-en une ci-dessus.</div>
+{% endif %}
+{% endblock %}

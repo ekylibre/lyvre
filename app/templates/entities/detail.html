@@ -8,6 +8,9 @@
       {% if entity.is_member %}
         <span class="badge bg-success align-middle">Adhérent</span>
       {% endif %}
+      {% if entity.is_benevole %}
+        <span class="badge bg-info text-dark align-middle">Bénévole</span>
+      {% endif %}
     </h2>
     <small class="text-muted">
       {{ entity_types.get(entity.entity_type, entity.entity_type) }}
@@ -168,6 +171,44 @@
     {% endfor %}
   </tbody>
 </table>
+{% endif %}
+
+{% if entity.is_benevole or work_times %}
+<h5 class="mt-4">Temps de travaux ({{ work_times | length }})</h5>
+{% if work_times %}
+<table class="table table-sm table-hover align-middle">
+  <thead class="table-light">
+    <tr>
+      <th>Date</th>
+      <th>Type de tâche</th>
+      <th class="text-end">Heures</th>
+      <th class="text-end">Valorisation</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for wt in work_times %}
+    <tr>
+      <td class="small">{{ wt.work_date.strftime('%d/%m/%Y') }}</td>
+      <td>{{ wt.task_type.name }}</td>
+      <td class="text-end">{{ '%.2f' | format(wt.hours) | replace('.', ',') }} h</td>
+      <td class="text-end font-monospace">{{ wt.valuation_cents | euros }}</td>
+      <td class="text-muted small">{{ wt.notes or '' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot class="table-light">
+    <tr>
+      <th colspan="2" class="text-end">Total</th>
+      <th class="text-end">{{ '%.2f' | format(work_times_total_hours) | replace('.', ',') }} h</th>
+      <th class="text-end font-monospace">{{ work_times_total_valuation_cents | euros }}</th>
+      <th></th>
+    </tr>
+  </tfoot>
+</table>
+{% else %}
+<p class="text-muted small">Aucun temps de travaux saisi pour ce bénévole.</p>
+{% endif %}
 {% endif %}
 
 {% if entity.is_member %}
