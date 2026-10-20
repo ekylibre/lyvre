@@ -3,7 +3,12 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h2>Comptes bancaires</h2>
-  <a href="{{ url_for('bank_accounts.new') }}" class="btn btn-primary btn-sm">+ Nouveau compte</a>
+  <div class="d-flex gap-2">
+    {% if current_user.is_admin %}
+      <a href="{{ url_for('bank_accounts.qonto_accounts') }}" class="btn btn-outline-primary btn-sm">Comptes Qonto</a>
+    {% endif %}
+    <a href="{{ url_for('bank_accounts.new') }}" class="btn btn-primary btn-sm">+ Nouveau compte</a>
+  </div>
 </div>
 
 {% if bank_accounts %}
@@ -21,7 +26,10 @@
   <tbody>
     {% for ba in bank_accounts %}
     <tr>
-      <td class="fw-semibold">{{ ba.label }}</td>
+      <td class="fw-semibold">
+        {{ ba.label }}
+        {% if ba.qonto_account_id %}<span class="badge bg-info text-dark ms-1" title="Synchronisé avec Qonto">Qonto</span>{% endif %}
+      </td>
       <td class="font-monospace text-muted small">{{ ba.iban or '—' }}</td>
       <td class="font-monospace">{{ ba.account.code }} — {{ ba.account.label }}</td>
       <td class="text-end">

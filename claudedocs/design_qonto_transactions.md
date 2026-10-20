@@ -310,3 +310,16 @@ sync_jobs), `doc/imports.md` (Qonto à côté d'OFX), `doc/installation.md` / `d
 - Variables `QONTO_*` ajoutées à `app/config.py` (repli `.env`). Constat hors lot : `GA4_*` et
   `FACEBOOK_*` sont déclarées dans `ENV_FALLBACK` mais absentes de `config.py`, donc leur repli `.env`
   ne fonctionne pas (sans effet aujourd'hui : configurées en base).
+
+**Phase C (2026-10-20)** :
+- Essais réels avec les accès **lecture seule de la SCI des Chênes Verts** (`QONTO_API_ID` /
+  `QONTO_API_SECRET` dans `.env`, noms acceptés en plus de `QONTO_LOGIN` / `QONTO_SECRET_KEY`), sur un
+  **serveur isolé** (port 5001, copie de la méta-base dont l'instance pointe vers une base SCI neuve),
+  jamais dans la base de Seconde Nature.
+- Structure réelle des transactions conforme au §5.3 : `amount_cents` toujours positif + `side`,
+  pas de date de valeur, `clean_counterparty_name`, `attachment_ids` / `attachment_required` / `attachment_lost`.
+- Le plan comptable ne marque pas la classe `51` comme en-tête : l'écran de rattachement présélectionne
+  le premier compte `512…` (le formulaire « Nouveau compte » existant garde son comportement).
+- `set_sync_from` : reculer la date de début remet le curseur à zéro (synchro complète, sans doublon).
+- Attention : le repli `.env` vaut pour **toutes** les instances ; des identifiants Qonto d'une
+  organisation précise doivent être saisis **dans l'instance concernée** (Intégrations), pas dans `.env`.
