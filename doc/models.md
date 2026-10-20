@@ -277,6 +277,9 @@ FiscalYear ──────────────────── JournalE
 | `label` | String(100) NOT NULL | Ex : `"CIC Compte courant"` |
 | `iban` | String(34) | Ex : `"FR76 3000 6000 0112 3456 7890 189"` |
 | `account_id` | Integer FK→accounts NOT NULL | Compte GL associé (ex : compte `512xxx`) |
+| `qonto_account_id` | String(36) UNIQUE nullable | Compte Qonto rattaché (UUID) ; NULL = pas synchronisé avec Qonto |
+| `qonto_sync_from` | Date nullable | Date de début de la synchronisation Qonto |
+| `qonto_synced_at` | DateTime nullable | Curseur : début de la dernière synchronisation Qonto **réussie** (UTC) ; NULL = jamais (prochaine synchro complète) |
 | `created_at` | DateTime | |
 
 **Relations :** `transactions` → `BankTransaction[]` (lazy dynamic)
@@ -291,19 +294,34 @@ FiscalYear ──────────────────── JournalE
 |---------|------|-------------|
 | `id` | Integer PK | |
 | `bank_account_id` | Integer FK→bank_accounts | |
-| `fitid` | String(100) NOT NULL | Identifiant unique OFX (`<FITID>`) |
+| `fitid` | String(100) NOT NULL | Identifiant unique : `<FITID>` OFX, ou UUID de la transaction Qonto |
+| `source` | String(10) NOT NULL default `ofx` | Origine : `ofx` ou `qonto` |
 | `transaction_date` | Date NOT NULL | Date de l'opération (`<DTPOSTED>`) |
 | `value_date` | Date | Date de valeur (`<DTAVAIL>`) |
 | `amount_cents` | Integer NOT NULL | Signé : négatif = débit, positif = crédit |
 | `label` | String(500) | Libellé (`<MEMO>` ou `<NAME>`) |
-| `raw_type` | String(20) | Type OFX : `DEBIT`, `CREDIT`, `INT`, etc. |
+| `raw_type` | String(40) | Type OFX (`DEBIT`, `CREDIT`, `INT`…) ou `operation_type` Qonto (`transfer`, `card`, `qonto_fee`…) — filtrable par les règles |
 | `reconciled` | Boolean default=False | `True` si liée à une ligne d'écriture |
 | `journal_line_id` | Integer FK→journal_lines nullable | Lien de rapprochement |
 | `entity_id` | Integer FK→entities nullable | Tiers assigné (par règle ou manuellement) |
 | `category` | String(100) | Catégorie libre assignée par le moteur de règles |
 | `imported_at` | DateTime | |
+| `counterparty` | String(200) | Contrepartie normalisée (Qonto `clean_counterparty_name`) |
+| `note` | Text | Note saisie dans Qonto |
+| `is_reversed` | Boolean NOT NULL default=False | Annulée par la banque après règlement : plus rapprochable, ignorée par les règles |
+| `attachment_count` | Integer nullable | Nombre de justificatifs dans Qonto (NULL pour l'OFX) |
+| `attachment_required` / `attachment_lost` | Boolean nullable | Justificatif exigé / déclaré perdu (Qonto) |
+| `source_updated_at` | DateTime nullable | `updated_at` Qonto de la dernière mise à jour reçue |
 
-**Contrainte unique :** `(bank_account_id, fitid)` — empêche les doublons à la réimportation.
+**Contrainte unique :** `(bank_account_id, fitid)` — empêche les doublons à la réimportation et entre deux synchronisations Qonto.
+
+---
+
+## IgnoredCounterparty — Contrepartie à ne plus proposer (tenant)
+
+**Table :** `ignored_counterparties` — `id`, `name_key` (String(200) UNIQUE, nom normalisé), `label`, `created_at`.
+Une contrepartie de débit ignorée sur l'écran « Contreparties à valider » n'est plus jamais proposée
+comme fournisseur, pour les transactions présentes et futures.
 
 ---
 
@@ -426,17 +444,18 @@ Le gabarit `membership_reminder` est seedé par la migration.
 
 ---
 
-## SyncJob — Job de synchronisation Stancer
+## SyncJob — Job de synchronisation en arrière-plan
 
 **Table :** `sync_jobs`
 
-Suit l'exécution d'une synchronisation Stancer lancée en arrière-plan (thread daemon). Permet à l'UI HTMX d'afficher la progression sans bloquer la requête HTTP.
+Suit l'exécution d'une synchronisation lancée en arrière-plan (thread daemon, voir `services/sync_jobs.py`) : Stancer, Qonto, et métriques (GA4 / Facebook, synchrones). Permet à l'UI HTMX d'afficher la progression sans bloquer la requête HTTP.
 
 | Colonne | Type | Description |
 |---------|------|-------------|
 | `id` | Integer PK | |
-| `kind` | String(40) NOT NULL (indexé) | `payouts` (sync globale) ou `payout_payments` (sync ciblée d'un payout) |
+| `kind` | String(40) NOT NULL (indexé) | `payouts`, `payout_payments`, `qonto_transactions`, `metrics` |
 | `payout_id` | Integer FK→payouts ON DELETE SET NULL (indexé) | Renseigné uniquement pour `kind='payout_payments'` |
+| `bank_account_id` | Integer FK→bank_accounts ON DELETE SET NULL (indexé) | Renseigné pour `kind='qonto_transactions'` |
 | `status` | String(20) NOT NULL default=`running` (indexé) | `running`, `done`, `failed` |
 | `started_at` | DateTime NOT NULL | |
 | `finished_at` | DateTime | Renseigné quand `status` passe à `done` ou `failed` |
@@ -449,9 +468,9 @@ Suit l'exécution d'une synchronisation Stancer lancée en arrière-plan (thread
 - `is_running` — `True` si `status == 'running'`
 - `is_terminal` — `True` si `status in ('done', 'failed')`
 
-**Idempotence :** `stancer_async.start_sync_payouts` et `start_sync_payments_for_payout` refusent de créer un nouveau job si un job de même `(kind, payout_id)` est déjà `running` — ils retournent le job existant. L'utilisateur peut donc cliquer plusieurs fois sans déclencher de doublon.
+**Idempotence :** `sync_jobs.start` refuse de créer un nouveau job si un job de même type et mêmes champs (`payout_id`, `bank_account_id`) est déjà `running` — il retourne le job existant. L'utilisateur peut donc cliquer plusieurs fois sans déclencher de doublon.
 
-**Throttle :** la progression n'est persistée en DB qu'à chaque 5e tick du callback (constante `_PROGRESS_THROTTLE` dans `stancer_async.py`) pour ne pas saturer SQLite. Le statut terminal (`done` / `failed`) est toujours écrit.
+**Throttle :** la progression n'est persistée en DB qu'à chaque 5e tick du callback (`sync_jobs.PROGRESS_THROTTLE`) pour ne pas saturer SQLite. Le statut terminal (`done` / `failed`) est toujours écrit.
 
 ---
 

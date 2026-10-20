@@ -215,7 +215,15 @@ Les anciennes routes `POST /entries/new`, `POST /entries/<id>/edit`, `/entries/n
 | GET | `/bank-accounts/<id>/edit` | Formulaire de modification |
 | POST | `/bank-accounts/<id>/edit` | Enregistre les modifications |
 | POST | `/bank-accounts/<id>/delete` | Supprime le compte (interdit s'il a des transactions) |
-| GET | `/bank-accounts/<id>/transactions` | Liste les transactions importées. Paramètre `?unreconciled=1` pour filtrer les non rapprochées |
+| GET | `/bank-accounts/<id>/transactions` | Liste les transactions importées. `?unreconciled=1` : non rapprochées ; `?missing=1` : justificatif manquant ou perdu (Qonto). Bloc Qonto (synchro), bandeaux « contreparties à valider » et « annulées encore rapprochées » |
+| GET | `/bank-accounts/qonto` | **Admin.** Comptes Qonto de l'organisation (solde, IBAN) et leur rattachement ; même IBAN proposé d'office. Aucun appel à Qonto si l'intégration est indisponible |
+| POST | `/bank-accounts/qonto/link` | **Admin.** `qonto_account_id`, `mode=existing` + `bank_account_id`, ou `mode=new` + `label` + `gl_account_id` ; `sync_from` (défaut : début de l'exercice ouvert) |
+| POST | `/bank-accounts/<id>/qonto/settings` | **Admin.** `sync_from` ; reculer la date remet le curseur à zéro (synchro complète, sans doublon) |
+| POST | `/bank-accounts/<id>/qonto/unlink` | **Admin.** Détache le compte Qonto (transactions conservées) |
+| POST | `/bank-accounts/<id>/qonto/sync` | Lance la synchronisation Qonto en arrière-plan (une à la fois par compte) ; en HTMX, renvoie le fragment de suivi |
+| GET | `/bank-accounts/<id>/qonto/sync/<job_id>` | Fragment de suivi (rafraîchi toutes les 2 s tant que la synchro tourne), puis résumé |
+| GET | `/bank-accounts/<id>/counterparties` | Contreparties de débits sans tiers, groupées, à valider |
+| POST | `/bank-accounts/<id>/counterparties` | `action=create` (+ `name`), `link` (+ `entity_id`) ou `ignore`, avec `name_key` / `label` : s'applique à toutes les transactions sans tiers de cette contrepartie |
 
 **Paramètres POST `/bank-accounts/new` et `/bank-accounts/<id>/edit` :**
 

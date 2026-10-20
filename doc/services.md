@@ -848,3 +848,67 @@ la source lue dans `result_json`) ; Odoo, HelloAsso et SMTP ne sont pas suivis.
 
 En test, remplacer une sonde : `monkeypatch.setitem(integrations.PROBES, "odoo", lambda: "OK")`.
 
+---
+
+## sync_jobs.py — Synchronisations en arrière-plan
+
+| Fonction | Rôle |
+|----------|------|
+| `start(app, kind, work, *, message, error_message, **job_fields)` | Crée le `SyncJob` (ou renvoie celui déjà en cours avec les mêmes champs), capture l'instance courante et exécute `work(job_id)` dans un thread **sur la base de cette instance** |
+| `run(app, instance_id, job_id, work, error_message)` | Corps du thread (appelable directement en test) : finalise le job `done` (avec `result_json`) ou `failed` (message de `error_message(exc)`) |
+| `progress_callback(job_id, throttle=5)` | Callback `(done, total, message)` qui met à jour le job une fois sur `throttle` |
+| `running_job(kind, **filters)` | Job en cours de ce type, ou None |
+
+Utilisé par `stancer_async` et `qonto_sync.start_sync`. En test, remplacer `sync_jobs.threading.Thread`
+par une exécution immédiate.
+
+---
+
+## qonto_client.py — Client de l'API Business Qonto
+
+`QontoClient(login, secret_key, staging_token=None, timeout=30, retry=True)` : en-tête
+`Authorization: login:secret` (pas du Basic) ; bac à sable (`thirdparty-sandbox.staging.qonto.co`,
+en-tête `X-Qonto-Staging-Token`) si `staging_token`. Méthodes : `organization()`, `bank_accounts()`,
+`list_transactions(bank_account_id, statuses, page, per_page, updated_from/to, settled_from/to)`,
+`iter_transactions(...)`.
+
+- **429** : jusqu'à 3 nouvelles tentatives (`Retry-After`, sinon 2 s, 4 s, 8 s) ; **5xx / réseau** :
+  2 nouvelles tentatives ; **401 / 403** → `QontoAuthError` immédiat (Qonto bloque après 200 réponses
+  401 par heure) ; `retry=False` pour le test de l'intégration.
+- `from_app_config()` lève `QontoConfigError` si l'intégration est désactivée ou incomplète.
+
+---
+
+## qonto_sync.py — Comptes et transactions Qonto
+
+| Fonction | Rôle |
+|----------|------|
+| `list_accounts(qonto_accounts)` | Comptes Qonto + compte bancaire rattaché, ou proposé (même IBAN) |
+| `link_account(qonto_account, bank_account_id=… \| label=…, gl_account_id=…, sync_from=…)` | Rattache à un compte existant ou en crée un ; `QontoLinkError` si déjà rattaché |
+| `unlink_account(ba)` / `set_sync_from(ba, date)` | Détache (transactions conservées) / change la date de début (reculer = synchro complète) |
+| `sync_bank_account(bank_account_id, client=None, progress_cb=None)` | Synchronise un compte (voir ci-dessous) ; renvoie le résumé |
+| `start_sync(app, bank_account_id)` / `latest_job(bank_account_id)` | Lancement en arrière-plan via `sync_jobs` / dernier job |
+
+**`sync_bank_account`** : fenêtres mensuelles sur `settled_at` (statut `completed`) au premier passage,
+puis une fenêtre sur `updated_at` depuis le curseur − 10 min (`completed` + `reversed`) ; une fenêtre de
+plus de 9 000 résultats est coupée en deux (limite `page × per_page ≤ 10 000`). Pour chaque transaction
+(`upsert_transaction`) : création si absente, sinon mise à jour de libellé, contrepartie, type, note,
+justificatifs (jamais montant, date, rapprochement, tiers, catégorie ; un montant différent est
+signalé) ; `reversed` → `is_reversed`. Commit **par page**, puis règles et rattachement des tiers sur
+les nouvelles de la page ; le curseur n'avance qu'après un succès complet.
+
+Résumé : `created`, `updated`, `unchanged`, `reversed`, `reversed_reconciled`, `skipped`, `conflicts`,
+`rules_matched`, `rules_posted`, `linked_entities`, `proposed_counterparties`, `read`, `errors`.
+
+---
+
+## counterparties.py — Contreparties bancaires → tiers
+
+| Fonction | Rôle |
+|----------|------|
+| `name_key(name)` | Nom normalisé (casse et espaces ignorés, accents conservés) |
+| `link_existing(transactions)` | Rattache les transactions sans tiers à l'entité de même nom (débits et crédits), sans créer |
+| `proposals(bank_account_id)` | Débits sans tiers groupés par contrepartie (hors `NO_SUPPLIER_TYPES`, annulées, ignorées), avec suggestions d'entités au nom proche |
+| `accept(key, entity_id=… \| create_name=…)` | Rattache toutes les transactions sans tiers de la contrepartie (crée un `FOURNISSEUR` si besoin) |
+| `ignore(key, label)` | Mémorise la contrepartie dans `ignored_counterparties` |
+

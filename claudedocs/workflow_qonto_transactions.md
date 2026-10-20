@@ -1,6 +1,6 @@
 # Workflow — Qonto, lot 1 : comptes et transactions bancaires
 
-> **Statut : EN COURS** — phases A à F faites (révision Alembic `d7a2e6f0b318`). Sources : [`besoins_qonto_transactions.md`](besoins_qonto_transactions.md),
+> **Statut : EN COURS** — phases A à F faites, G.1–G.2 faites ; reste la mise en service (G.3) (révision Alembic `d7a2e6f0b318`). Sources : [`besoins_qonto_transactions.md`](besoins_qonto_transactions.md),
 > [`design_qonto_transactions.md`](design_qonto_transactions.md) (décisions D1 à D10).
 
 ## 1. Objectif

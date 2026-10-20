@@ -192,7 +192,7 @@ manuellement :
 | Sujet | Comportement |
 |-------|--------------|
 | **Cache d'engines** | Mémoïsé par `instance_id`. Reconstruit après `clear_engine_cache`, lui-même appelé sur edit d'instance. Le `database_url` est intentionnellement en lecture seule en UI pour éviter d'oublier le purge. |
-| **Threads asynchrones (Stancer)** | Les threads démarrés depuis une vue capturent `g.tenant_engine` **avant** de rendre la main. À l'intérieur du thread, ils créent un `app.app_context()` et **posent eux-mêmes `g.tenant_engine`** pour que les requêtes SQLAlchemy à l'intérieur du thread tapent dans la bonne base. Voir `stancer_async.py` pour le pattern à appliquer si on touche au code. |
+| **Threads asynchrones (Stancer, Qonto)** | Toujours passer par `services/sync_jobs.start` : il capture l'instance courante avant de rendre la main, puis, dans le thread, crée un `app.app_context()` et **pose `g.current_instance` / `g.tenant_engine`** pour que les requêtes SQLAlchemy tapent dans la base de l'instance (sans cela, elles retomberaient sur la base par défaut — anomalie corrigée en octobre 2026). |
 | **Désactivation d'utilisateur** | Vérifiée à chaque `before_request`. Un user désactivé pendant qu'il est connecté est déconnecté de force au prochain hit. |
 | **Désactivation d'instance** | Une instance désactivée disparaît du `/select-instance`. Si elle était sélectionnée, le `before_request` vide la session et redirige. |
 | **Suppression d'instance** | **Pas exposée en UI.** Désactiver suffit pour la 1ère version. Une suppression nécessiterait de purger le cache + supprimer le fichier ; à ajouter plus tard avec une vraie confirmation. |
@@ -203,6 +203,8 @@ manuellement :
 ## Credentials externes per-instance
 
 Depuis mai 2026, les credentials Stancer / Odoo / HelloAsso ne vivent plus dans le `.env` global mais dans la table `external_connections` **de chaque base tenant**. Chaque association a donc ses propres clés API.
+
+Qonto suit la même règle : ses identifiants identifient **une** organisation, ils doivent donc être saisis dans l'instance concernée, pas dans le `.env` (repli commun à toutes les instances).
 
 L'UI **Configuration › Intégrations** (admin uniquement) permet de saisir / vider ces valeurs, d'**activer ou désactiver** chaque intégration (table `integration_states`, l'interrupteur prime aussi sur le `.env`) et de **tester** son fonctionnement. Une valeur vide en DB réactive le repli sur le `.env` global, ce qui rend la migration progressive (aucun big-bang).
 

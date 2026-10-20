@@ -52,6 +52,7 @@ compta-asso/
 │   │   ├── rule.py               # Règles de catégorisation (per-instance)
 │   │   ├── external_connection.py # Credentials services externes (per-instance)
 │   │   ├── integration_state.py  # Activation + dernier test d'une intégration (per-instance)
+│   │   ├── ignored_counterparty.py # Contreparties à ne plus proposer comme fournisseurs
 │   │   ├── user.py               # Utilisateurs (méta-base)
 │   │   └── instance.py           # Déclaration d'instance (méta-base)
 │   │
@@ -83,6 +84,10 @@ compta-asso/
 │   │   ├── stancer_sync.py       # Synchronisation Payouts + Payments Stancer (API v2)
 │   │   ├── external_config.py    # Config + activation des intégrations (base, repli .env)
 │   │   ├── integrations.py       # Statut + test de fonctionnement des intégrations (sondes)
+│   │   ├── sync_jobs.py          # Synchros en arrière-plan (SyncJob + thread sur la base de l'instance)
+│   │   ├── qonto_client.py       # Client API Business Qonto (clé API, pagination, 429)
+│   │   ├── qonto_sync.py         # Rattachement des comptes + synchro des transactions Qonto
+│   │   ├── counterparties.py     # Contreparties bancaires → tiers / propositions de fournisseurs
 │   │   ├── stancer_async.py      # Wrapper threading + suivi via SyncJob
 │   │   ├── odoo_client.py        # Client XML-RPC Odoo (commun POS + factures)
 │   │   ├── odoo_pos_sync.py      # Sync pos.order → orders / order_lines / order_payments

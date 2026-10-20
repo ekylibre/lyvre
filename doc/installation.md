@@ -61,6 +61,9 @@ Variables disponibles :
 | `DEFAULT_INSTANCE_URL` | `sqlite:///seconde-nature.db` | URL de la base tenant de la 1ère instance (relative au dossier `instance/`). |
 | `STANCER_SECRET_KEY` | (vide) | Clé secrète Stancer (`sk_xxx`) utilisée pour interroger l'API v2 (`/v2/payouts` et `/v2/payouts/{id}/payments`). Tant qu'elle n'est pas définie, le bouton de synchronisation des Versements Stancer reste désactivé. |
 | `STANCER_MODE` | `live` | Mode Stancer : `live` ou `test` |
+| `QONTO_LOGIN` (ou `QONTO_API_ID`) | (vide) | Identifiant de l'organisation Qonto (clé API, menu Qonto › Intégrations et partenariats). **Repli commun à toutes les instances** : préférer la saisie dans Configuration › Intégrations › Qonto de l'instance concernée. |
+| `QONTO_SECRET_KEY` (ou `QONTO_API_SECRET`) | (vide) | Clé secrète Qonto (même remarque). |
+| `QONTO_STAGING_TOKEN` | (vide) | Jeton du bac à sable Qonto ; renseigné = bac à sable, vide = production. |
 | `ODOO_URL` | (vide) | URL de l'instance Odoo (ex : `https://erp.example.org`). Requise par la sync POS (`/orders/sync`) et factures clients (`/customer-invoices/sync`). |
 | `ODOO_DB` | (vide) | Nom de la base Odoo. |
 | `ODOO_USERNAME` | (vide) | Login Odoo (souvent un email). |

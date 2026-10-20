@@ -116,6 +116,33 @@ INV/2024/002,2024-01-20,Fondation ABC,TVA 20%,0.00,160.00,44571
 
 ---
 
+## Synchronisation Qonto
+
+Pour un compte Qonto, plus besoin de fichier OFX : les transactions sont lues par l'API (clé API,
+lecture seule). Guide d'utilisation :
+
+1. **Configurer** (admin) : Configuration › Intégrations › Qonto — identifiant (login), clé secrète ;
+   le jeton de bac à sable est réservé aux essais. Le test affiche l'organisation et son nombre de comptes.
+   Saisir les identifiants **dans l'instance concernée** : le repli `.env` vaut pour toutes les instances.
+2. **Rattacher** (admin) : Comptes bancaires › Comptes Qonto. Chaque compte Qonto est rattaché à un
+   compte bancaire existant (même IBAN proposé) ou créé sur un compte `512…`, avec une date de début.
+3. **Synchroniser** : bouton « Synchroniser Qonto » dans la vue du compte bancaire. La synchro tourne en
+   arrière-plan ; le résumé indique les transactions nouvelles, mises à jour, annulées et les erreurs.
+   - Première synchro : toutes les transactions réglées depuis la date de début (lecture mois par mois).
+   - Ensuite : seulement ce qui a changé dans Qonto (marge de 10 minutes, sans doublon).
+   - Une synchro relancée ne crée jamais de doublon ; une note ou un justificatif ajouté dans Qonto
+     est repris, mais jamais le montant, la date, le rapprochement, le tiers ni la catégorie.
+   - Date : la date de règlement en heure de Paris. Montant : négatif pour un débit.
+4. **Après la synchro**, automatiquement : règles de catégorisation sur les nouvelles transactions
+   (le type d'opération Qonto est dans « Type », utilisable par les règles), puis rattachement aux
+   tiers de même nom.
+5. **Contreparties à valider** : les débits restés sans tiers sont regroupés ; créer le fournisseur,
+   rattacher à un tiers existant ou ignorer. Les frais Qonto, rémunérations et encaissements ne sont
+   pas proposés.
+6. **Contrôles** : filtre « Justificatif manquant » ; une transaction **annulée** par Qonto est
+   marquée « Annulée » et ne peut plus être rapprochée ; si elle l'était déjà, un bandeau rouge le signale
+   (rapprochement et écriture à revoir à la main).
+
 ## Après les imports : le rapprochement
 
-Une fois les transactions OFX importées et les écritures saisies (manuellement ou via Odoo), procéder au [rapprochement bancaire](reports.md#rapprochement-bancaire).
+Une fois les transactions importées (OFX ou Qonto) et les écritures saisies (manuellement ou via Odoo), procéder au [rapprochement bancaire](reports.md#rapprochement-bancaire).
