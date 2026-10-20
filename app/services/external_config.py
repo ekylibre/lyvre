@@ -7,10 +7,13 @@ deployments working while letting admins migrate progressively to the UI.
 
 from __future__ import annotations
 
+import hashlib
+import json
+
 from flask import current_app, g, has_app_context
 
 from app.extensions import db
-from app.models import ExternalConnection
+from app.models import ExternalConnection, IntegrationState
 
 
 SERVICE_KEYS: dict[str, list[str]] = {
@@ -29,6 +32,27 @@ SERVICE_LABELS: dict[str, str] = {
     "smtp":      "SMTP (relance email)",
     "ga4":       "Google Analytics (GA4)",
     "facebook":  "Facebook (Page)",
+}
+
+# Usage de chaque intégration dans l'application (page index des intégrations).
+SERVICE_DESCRIPTIONS: dict[str, str] = {
+    "stancer":   "Versements et paiements par carte, rapprochés des relevés bancaires",
+    "odoo":      "Commandes, factures clients et mise à jour des partenaires",
+    "helloasso": "Adhésions et formulaires des adhérents",
+    "smtp":      "Envoi des emails de relance d'adhésion",
+    "ga4":       "Fréquentation du site pour Visibilité & Impact",
+    "facebook":  "Abonnés de la Page pour Visibilité & Impact",
+}
+
+# Secrets : jamais réaffichés dans l'interface ni dans les messages de test.
+SECRET_KEYS: set[tuple[str, str]] = {
+    ("stancer",   "secret_key"),
+    ("odoo",      "api_key"),
+    ("helloasso", "client_secret"),
+    ("smtp",      "password"),
+    ("ga4",       "credentials_json"),
+    ("facebook",  "page_token"),
+    ("facebook",  "app_secret"),
 }
 
 # Champs à rendre en <textarea> (valeurs longues / secrets multilignes).
@@ -158,3 +182,46 @@ def set_many(service: str, values: dict[str, str | None]) -> None:
     for k in list(cache.keys()):
         if k[0] == service:
             cache.pop(k, None)
+
+
+def _state(service: str) -> IntegrationState | None:
+    return db.session.query(IntegrationState).filter_by(service=service).first()
+
+
+def is_enabled(service: str) -> bool:
+    """False only when the integration was switched off; a missing row means enabled.
+
+    The switch takes precedence over both the DB values and the .env fallback.
+    """
+    cache = _cache()
+    cache_key = (service, "__enabled__")
+    if cache_key not in cache:
+        state = _state(service)
+        cache[cache_key] = True if state is None else bool(state.enabled)
+    return cache[cache_key]
+
+
+def set_enabled(service: str, enabled: bool) -> None:
+    if service not in SERVICE_KEYS:
+        raise ValueError(f"Unknown service: {service}")
+    state = _state(service)
+    if state is None:
+        state = IntegrationState(service=service)
+        db.session.add(state)
+    state.enabled = bool(enabled)
+    db.session.commit()
+    _cache().pop((service, "__enabled__"), None)
+
+
+def is_available(service: str) -> bool:
+    """True if the integration can be used: switched on and fully configured."""
+    return is_enabled(service) and is_configured(service)
+
+
+def fingerprint(service: str) -> str:
+    """SHA-256 of the effective configuration (DB, else .env), keys sorted.
+
+    Used to tell whether the last check still applies; never displayed.
+    """
+    payload = json.dumps(get_all(service), sort_keys=True)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()

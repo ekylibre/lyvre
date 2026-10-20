@@ -19,6 +19,7 @@ from .customer_invoice import CustomerInvoice
 from .customer_invoice_line import CustomerInvoiceLine
 from .helloasso import HelloAssoForm, HelloAssoOrder, HelloAssoItem, HelloAssoPayment
 from .external_connection import ExternalConnection
+from .integration_state import IntegrationState
 from .rule import Rule
 from .email_template import EmailTemplate
 from .task_type import TaskType
@@ -55,6 +56,7 @@ __all__ = [
     "HelloAssoItem",
     "HelloAssoPayment",
     "ExternalConnection",
+    "IntegrationState",
     "Rule",
     "EmailTemplate",
     "TaskType",
