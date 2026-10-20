@@ -52,6 +52,8 @@ export interface EntryFormProps {
   recentsScope: string;
   /** Intégration dans un autre îlot : appelé à la place de la navigation. */
   onSaved?: (entry: EntryResponse) => void;
+  /** Intégration : bouton Annuler sans navigation. */
+  onCancel?: () => void;
 }
 
 type Column = "debit" | "credit";
@@ -371,7 +373,9 @@ export default function EntryForm(props: EntryFormProps) {
               Enregistrer et nouvelle
             </button>
           )}
-          <a href={urls.cancel} className="btn btn-outline-secondary btn-sm">Annuler</a>
+          {props.onCancel
+            ? <button type="button" className="btn btn-outline-secondary btn-sm" onClick={props.onCancel}>Annuler</button>
+            : <a href={urls.cancel} className="btn btn-outline-secondary btn-sm">Annuler</a>}
           <span className={`ms-auto small ${totals.gap === 0 && totals.debit > 0 ? "text-success" : "text-danger"}`}
                 role="status" aria-live="polite">
             {totals.gap === 0

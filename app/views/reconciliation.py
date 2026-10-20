@@ -1,11 +1,9 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request
 from flask_login import login_required
-from app.models import BankAccount, BankTransaction, JournalLine
-from app.services.reconciler import reconcile, unreconcile, suggest_matches, auto_reconcile
-from app.utils.list_filters import (
-    parse_sort, parse_month, apply_date_sort, apply_month_filter,
-    sort_and_filter_context,
-)
+
+from app.models import BankAccount, Journal
+from app.utils.list_filters import month_options_for_fy
+from app.views.entries import api_base_url, entry_form_options
 
 bp = Blueprint("reconciliation", __name__, url_prefix="/reconciliation")
 
@@ -13,65 +11,29 @@ bp = Blueprint("reconciliation", __name__, url_prefix="/reconciliation")
 @bp.route("/")
 @login_required
 def index():
+    """Espace de rapprochement (îlot React ReconcileWorkspace, actions via /api/v1)."""
     bank_accounts = BankAccount.query.order_by(BankAccount.label).all()
     selected_id = request.args.get("bank_account_id", type=int)
-    if selected_id is None and bank_accounts:
-        selected_id = bank_accounts[0].id
+    if selected_id not in {ba.id for ba in bank_accounts}:
+        selected_id = bank_accounts[0].id if bank_accounts else None
 
-    sort = parse_sort(request.args.get("sort"))
-    month_arg = request.args.get("month")
-    month_tuple = parse_month(month_arg)
-
-    unreconciled = []
-    if selected_id:
-        query = BankTransaction.query.filter_by(
-            bank_account_id=selected_id, reconciled=False,
-        )
-        query = apply_month_filter(query, BankTransaction.transaction_date, month_tuple)
-        query = apply_date_sort(query, BankTransaction.transaction_date, sort)
-        unreconciled = query.all()
-
-    return render_template(
-        "reconciliation/index.html",
-        bank_accounts=bank_accounts,
-        selected_id=selected_id,
-        unreconciled=unreconciled,
-        **sort_and_filter_context(sort, month_arg),
-    )
-
-
-@bp.route("/suggest/<int:bt_id>")
-@login_required
-def suggest(bt_id):
-    """HTMX: returns candidate journal lines for a bank transaction."""
-    matches = suggest_matches(bt_id)
-    bt = BankTransaction.query.get_or_404(bt_id)
-    return render_template("reconciliation/_suggestions.html", bt=bt, matches=matches)
-
-
-@bp.route("/link", methods=["POST"])
-@login_required
-def link():
-    bt_id = request.form.get("bank_transaction_id", type=int)
-    line_id = request.form.get("journal_line_id", type=int)
-    reconcile(bt_id, line_id)
-    flash("Transaction rapprochée.", "success")
-    bank_account_id = BankTransaction.query.get(bt_id).bank_account_id
-    return redirect(url_for("reconciliation.index", bank_account_id=bank_account_id))
-
-
-@bp.route("/unlink/<int:bt_id>", methods=["POST"])
-@login_required
-def unlink(bt_id):
-    bt = unreconcile(bt_id)
-    flash("Rapprochement annulé.", "info")
-    return redirect(url_for("reconciliation.index", bank_account_id=bt.bank_account_id))
-
-
-@bp.route("/auto", methods=["POST"])
-@login_required
-def auto():
-    bank_account_id = request.form.get("bank_account_id", type=int)
-    count = auto_reconcile(bank_account_id)
-    flash(f"{count} transaction(s) rapprochée(s) automatiquement.", "success")
-    return redirect(url_for("reconciliation.index", bank_account_id=bank_account_id))
+    options = entry_form_options()
+    bq = Journal.query.filter_by(code="BQ").first()
+    props = {
+        "bankAccounts": [
+            {"id": ba.id, "label": ba.label,
+             "account": {"id": ba.account.id, "code": ba.account.code, "label": ba.account.label}}
+            for ba in bank_accounts
+        ],
+        "bankAccountId": selected_id,
+        "month": request.args.get("month") or "",
+        "monthOptions": month_options_for_fy(),
+        "urls": {"api": api_base_url(), "page": request.path},
+        "entryForm": {
+            "fiscalYears": options["fiscalYears"],
+            "journals": options["journals"],
+            "defaultJournalId": bq.id if bq else None,
+            "recentsScope": options["recentsScope"],
+        },
+    }
+    return render_template("reconciliation/index.html", props=props, has_accounts=bool(bank_accounts))

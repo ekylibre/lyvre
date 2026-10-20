@@ -142,7 +142,8 @@ def apply_rules(transactions=None, overwrite=False):
         overwrite: if True, re-classify already-categorized transactions.
 
     Returns:
-        dict with keys: matched, posted, skipped, total, errors.
+        dict with keys: matched, posted, skipped, total, errors and
+        created_entry_ids (entries generated, e.g. to undo the run).
     """
     rules = load_rules()
 
@@ -159,6 +160,7 @@ def apply_rules(transactions=None, overwrite=False):
     posted = 0
     skipped = 0
     errors = []
+    created_entry_ids = []
 
     for txn in transactions:
         if not overwrite and (txn.category and txn.entity_id):
@@ -189,6 +191,7 @@ def apply_rules(transactions=None, overwrite=False):
                 txn.journal_line_id = bank_line.id
                 txn.reconciled = True
                 posted += 1
+                created_entry_ids.append(bank_line.entry_id)
             except LedgerError as e:
                 errors.append(f"FITID {txn.fitid}: {e}")
 
@@ -199,6 +202,7 @@ def apply_rules(transactions=None, overwrite=False):
         "skipped": skipped,
         "total": len(transactions),
         "errors": errors,
+        "created_entry_ids": created_entry_ids,
     }
 
 

@@ -103,4 +103,4 @@ def register_api(app):
 
 
 # Routes are attached to ``bp`` by these modules (import for side effects).
-from . import entries, lookups  # noqa: E402,F401
+from . import entries, lookups, reconciliation  # noqa: E402,F401

@@ -11,4 +11,5 @@ export type IslandLoader = () => Promise<{ default: ComponentType<any> }>;
  */
 export const islands: Record<string, IslandLoader> = {
   "entry-form": () => import("./EntryForm/EntryForm"),
+  "reconcile-workspace": () => import("./ReconcileWorkspace/Workspace"),
 };

@@ -14,3 +14,8 @@ if (typeof globalThis.localStorage?.clear !== "function") {
   };
   Object.defineProperty(globalThis, "localStorage", { value: storage, configurable: true });
 }
+
+// jsdom n'implémente pas le défilement.
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}

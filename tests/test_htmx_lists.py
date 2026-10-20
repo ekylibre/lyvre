@@ -57,7 +57,6 @@ def test_no_full_reload_selectors_left_in_templates():
 @pytest.mark.parametrize("url_name, target", [
     ("entries", "#list"),
     ("transactions", "#page-content"),
-    ("reconciliation", "#page-content"),
     ("payouts", "#page-content"),
     ("orders", "#page-content"),
     ("customer_invoices", "#list"),
@@ -74,7 +73,6 @@ def test_filter_form_is_htmx(client, data, url_name, target):
     urls = {
         "entries": "/entries/",
         "transactions": f"/bank-accounts/{data['ba'].id}/transactions",
-        "reconciliation": "/reconciliation/",
         "payouts": "/payouts/",
         "orders": "/orders/",
         "customer_invoices": "/customer-invoices/",
@@ -143,10 +141,3 @@ def test_flash_messages_not_rendered_in_htmx_page(app, client, data):
     resp = client.get("/_t/flash-page", headers=HX)
     assert "Filtre appliqué" not in resp.get_data(as_text=True)
     assert "Filtre appliqu" in resp.headers["HX-Trigger"]  # échappé en ASCII
-
-
-def test_reconciliation_auto_form_not_nested(client, data):
-    html = client.get("/reconciliation/").get_data(as_text=True)
-    filter_form = html.split(_filter_form(html), 1)[1].split("</form>", 1)[0]
-    assert "reconciliation/auto" not in filter_form
-    assert 'action="/reconciliation/auto"' in html

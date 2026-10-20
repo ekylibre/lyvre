@@ -1,70 +1,16 @@
 {% extends "base.html" %}
-{% from "_list_helpers.html" import sortable_date_header, month_filter_select, hx_filter %}
+{% from "_island.html" import island %}
 {% block title %}Rapprochement bancaire{% endblock %}
 {% block content %}
 <h2>Rapprochement bancaire</h2>
 
-<div class="d-flex flex-wrap gap-2 align-items-end mb-3">
-<form method="get" class="row g-2 align-items-end flex-grow-1" {{ hx_filter() }}>
-  <div class="col-md-4">
-    <label class="form-label small mb-0">Compte bancaire</label>
-    <select name="bank_account_id" class="form-select form-select-sm">
-      {% for ba in bank_accounts %}
-        <option value="{{ ba.id }}" {{ 'selected' if ba.id == selected_id }}>{{ ba.label }}</option>
-      {% endfor %}
-    </select>
+{% if has_accounts %}
+  {{ island("reconcile-workspace", props) }}
+  {# Dans la zone de contenu : la page peut être affichée par une navigation HTMX. #}
+  {{ vite_assets() }}
+{% else %}
+  <div class="alert alert-info">
+    Aucun compte bancaire. <a href="{{ url_for('bank_accounts.new') }}" class="alert-link">Créer un compte bancaire</a>.
   </div>
-  <div class="col-md-3">
-    <label class="form-label small mb-0">Mois</label>
-    {{ month_filter_select('month', month_options, current_month) }}
-  </div>
-  <input type="hidden" name="sort" value="{{ current_sort }}">
-  <div class="col-auto">
-    <button type="submit" class="btn btn-outline-secondary btn-sm">Filtrer</button>
-  </div>
-</form>
-{% if selected_id %}
-<form method="post" action="{{ url_for('reconciliation.auto') }}">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <input type="hidden" name="bank_account_id" value="{{ selected_id }}">
-  <button type="submit" class="btn btn-outline-primary btn-sm">
-    Rapprochement automatique
-  </button>
-</form>
-{% endif %}
-</div>
-
-{% if unreconciled %}
-<table class="table table-sm table-hover">
-  <thead class="table-light">
-    <tr>
-      <th>{{ sortable_date_header('Date', current_sort, 'reconciliation.index', {'bank_account_id': selected_id, 'month': current_month}) }}</th><th>Libellé</th><th class="text-end">Montant</th><th>Suggestions</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for bt in unreconciled %}
-    <tr>
-      <td>{{ bt.transaction_date.strftime('%d/%m/%Y') }}</td>
-      <td>{{ bt.label }}</td>
-      <td class="text-end font-monospace {% if bt.amount_cents < 0 %}text-danger{% else %}text-success{% endif %}">
-        {{ bt.amount_cents | euros }}
-      </td>
-      <td>
-        <button class="btn btn-outline-secondary btn-sm py-0"
-                hx-get="{{ url_for('reconciliation.suggest', bt_id=bt.id) }}"
-                hx-target="#suggestions-{{ bt.id }}"
-                hx-swap="innerHTML">
-          Voir suggestions
-        </button>
-        <a href="{{ url_for('entries.new', bt_id=bt.id) }}"
-           class="btn btn-outline-primary btn-sm py-0">Créer écriture</a>
-        <div id="suggestions-{{ bt.id }}" class="mt-1"></div>
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% elif selected_id %}
-  <div class="alert alert-success">Toutes les transactions sont rapprochées.</div>
 {% endif %}
 {% endblock %}

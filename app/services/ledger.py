@@ -321,3 +321,35 @@ def general_ledger(account_id, fiscal_year_id):
             "running_cents": running,
         })
     return account, rows
+
+
+def delete_entries(entry_ids):
+    """Delete entries in one transaction, undoing their bank reconciliations
+    first (a deleted line must not stay linked to a bank transaction).
+
+    Entries of a closed fiscal year are refused. Returns
+    ``[{entry_id, status, reference?, message?}]``.
+    """
+    results = []
+    for entry_id in entry_ids:
+        entry = db.session.get(JournalEntry, entry_id) if isinstance(entry_id, int) else None
+        if entry is None:
+            results.append({"entry_id": entry_id, "status": "error",
+                            "message": "Écriture introuvable."})
+            continue
+        if entry.fiscal_year.closed:
+            results.append({"entry_id": entry_id, "status": "error",
+                            "message": "Exercice clôturé : suppression impossible."})
+            continue
+        line_ids = [l.id for l in entry.lines]
+        if line_ids:
+            BankTransaction.query.filter(BankTransaction.journal_line_id.in_(line_ids)).update(
+                {"journal_line_id": None, "reconciled": False}, synchronize_session="fetch")
+        results.append({"entry_id": entry_id, "status": "ok", "reference": entry.reference})
+        db.session.delete(entry)
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+    return results

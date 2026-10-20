@@ -3,7 +3,7 @@ from flask_login import login_required
 from datetime import date
 from app.extensions import db
 from app.models import JournalEntry, FiscalYear, Journal, BankTransaction
-from app.services.ledger import entry_is_reconciled
+from app.services.ledger import delete_entries, entry_is_reconciled
 from app.utils.list_filters import (
     parse_sort, parse_month, apply_date_sort, apply_month_filter,
     sort_and_filter_context,
@@ -60,14 +60,18 @@ def _account_json(account):
     return {"id": account.id, "code": account.code, "label": account.label}
 
 
-def _form_props(mode, initial, *, entry=None, bank_transaction=None, cancel_url, after_save=None):
-    """Props of the EntryForm island (frontend/src/islands/EntryForm)."""
+def api_base_url():
+    """Base de l'API (/api/v1), déduite d'une de ses routes."""
+    return url_for("api.session_info").rsplit("/", 1)[0]
+
+
+def entry_form_options():
+    """Options partagées par les îlots qui embarquent EntryForm."""
     fiscal_years = (
         FiscalYear.query.filter_by(closed=False).order_by(FiscalYear.start_date.desc()).all()
     )
     instance = getattr(g, "current_instance", None)
-    props = {
-        "mode": mode,
+    return {
         "fiscalYears": [
             {"id": fy.id, "label": fy.label,
              "start_date": fy.start_date.isoformat(), "end_date": fy.end_date.isoformat()}
@@ -77,10 +81,17 @@ def _form_props(mode, initial, *, entry=None, bank_transaction=None, cancel_url,
             {"id": j.id, "code": j.code, "label": j.label}
             for j in Journal.query.order_by(Journal.code).all()
         ],
-        "initial": initial,
-        # Base de l'API (/api/v1), déduite d'une de ses routes.
-        "urls": {"api": url_for("api.session_info").rsplit("/", 1)[0], "cancel": cancel_url},
         "recentsScope": instance.slug if instance else "default",
+    }
+
+
+def _form_props(mode, initial, *, entry=None, bank_transaction=None, cancel_url, after_save=None):
+    """Props of the EntryForm island (frontend/src/islands/EntryForm)."""
+    props = {
+        "mode": mode,
+        **entry_form_options(),
+        "initial": initial,
+        "urls": {"api": api_base_url(), "cancel": cancel_url},
     }
     if after_save:
         props["urls"]["afterSave"] = after_save
@@ -190,11 +201,10 @@ def edit(entry_id):
 @bp.route("/<int:entry_id>/delete", methods=["POST"])
 @login_required
 def delete(entry_id):
-    entry = JournalEntry.query.get_or_404(entry_id)
-    if entry.fiscal_year.closed:
-        flash("Impossible de supprimer une écriture d'un exercice clôturé.", "danger")
+    JournalEntry.query.get_or_404(entry_id)
+    result = delete_entries([entry_id])[0]
+    if result["status"] != "ok":
+        flash(f"Impossible de supprimer l'écriture : {result['message']}", "danger")
         return redirect(url_for("entries.detail", entry_id=entry_id))
-    db.session.delete(entry)
-    db.session.commit()
-    flash("Écriture supprimée.", "success")
+    flash(f"Écriture {result['reference']} supprimée.", "success")
     return redirect(url_for("entries.index"))
