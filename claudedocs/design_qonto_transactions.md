@@ -346,3 +346,13 @@ sync_jobs), `doc/imports.md` (Qonto à côté d'OFX), `doc/installation.md` / `d
   l'écran, mais qui faisait planter la page).
 - Vérifié sur la SCI : 2 propositions (DUPRE MAINTENANCE ENERGIES, SARL PAPIN) ; frais Qonto et
   crédits exclus ; création du fournisseur depuis l'écran.
+
+**Phase F (2026-10-20)** :
+- Une transaction annulée est aussi refusée par `ledger.post_validated_entry` (création d'écriture
+  depuis la transaction) et ignorée par `rules_engine.apply_rules` (ni catégorie ni écriture).
+- `attachment_status` : `ok` aussi quand aucun justificatif n'est exigé ; `null` pour l'OFX.
+- Le filtre « Justificatif manquant » inclut les justificatifs déclarés perdus ; il n'apparaît que
+  pour un compte rattaché à Qonto. La note Qonto s'affiche sous le libellé.
+- Bandeau des annulées encore rapprochées : liste les transactions avec un lien vers l'écriture.
+- Vérifié dans Chrome (instance de test SCI, une transaction marquée annulée à la main) : badges dans
+  la liste et dans l'espace de rapprochement, panneau rouge, Entrée et N refusés avec un message.

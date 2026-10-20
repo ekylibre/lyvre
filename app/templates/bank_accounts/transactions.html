@@ -49,6 +49,20 @@
 <p class="small"><a href="{{ url_for('bank_accounts.qonto_accounts') }}">Rattacher ce compte à Qonto</a></p>
 {% endif %}
 
+{% if reversed_reconciled %}
+<div class="alert alert-danger small">
+  <strong>{{ reversed_reconciled | length }} transaction(s) annulée(s) par la banque encore rapprochée(s)</strong> :
+  l'écriture liée est à revoir (défaire le rapprochement, puis corriger ou supprimer l'écriture).
+  <ul class="mb-0">
+    {% for t in reversed_reconciled %}
+      <li>{{ t.transaction_date.strftime('%d/%m/%Y') }} — {{ t.label }} — {{ t.amount_cents | euros }}
+        {% if t.journal_line %} — <a href="{{ url_for('entries.detail', entry_id=t.journal_line.entry_id) }}">{{ t.journal_line.entry.reference }}</a>{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
 {% if proposal_count %}
 <div class="alert alert-info small d-flex justify-content-between align-items-center">
   <span>{{ proposal_count }} contrepartie(s) de débits sans tiers à valider (créer le fournisseur, rattacher ou ignorer).</span>
@@ -65,10 +79,17 @@
      class="btn btn-sm {{ 'btn-warning' if only_unreconciled else 'btn-outline-warning' }}">
     Non rapprochées
   </a>
+  {% if ba.qonto_account_id %}
+  <a href="{{ url_for('bank_accounts.transactions', ba_id=ba.id, missing=1) }}"
+     class="btn btn-sm {{ 'btn-danger' if only_missing else 'btn-outline-danger' }}">
+    Justificatif manquant
+  </a>
+  {% endif %}
 </div>
 
 <form method="get" class="row g-2 mb-3 align-items-end" {{ hx_filter() }}>
   {% if only_unreconciled %}<input type="hidden" name="unreconciled" value="1">{% endif %}
+  {% if only_missing %}<input type="hidden" name="missing" value="1">{% endif %}
   <input type="hidden" name="sort" value="{{ current_sort }}">
   <div class="col-md-3">
     <label class="form-label small mb-0">Mois</label>
@@ -85,7 +106,7 @@
 <table class="table table-sm table-hover">
   <thead class="table-light">
     <tr>
-      <th>{{ sortable_date_header('Date', current_sort, 'bank_accounts.transactions', {'ba_id': ba.id, 'unreconciled': 1 if only_unreconciled else None, 'month': current_month}) }}</th>
+      <th>{{ sortable_date_header('Date', current_sort, 'bank_accounts.transactions', {'ba_id': ba.id, 'unreconciled': 1 if only_unreconciled else None, 'missing': 1 if only_missing else None, 'month': current_month}) }}</th>
       <th>Libellé</th>
       <th>Type</th>
       <th class="text-end">Montant</th>
@@ -99,7 +120,18 @@
     {% for txn in txns %}
     <tr>
       <td>{{ txn.transaction_date.strftime('%d/%m/%Y') }}</td>
-      <td>{{ txn.label or '—' }}</td>
+      <td>
+        {{ txn.label or '—' }}
+        {% if txn.is_reversed %}<span class="badge bg-danger ms-1" title="Annulée par la banque : ne peut plus être rapprochée">Annulée</span>{% endif %}
+        {% if txn.attachment_lost %}
+          <span class="badge bg-secondary ms-1">Justificatif perdu</span>
+        {% elif txn.attachment_count is not none and txn.attachment_count == 0 and txn.attachment_required %}
+          <span class="badge bg-warning text-dark ms-1">Justificatif manquant</span>
+        {% elif txn.attachment_count %}
+          <span class="badge bg-light text-success border ms-1" title="{{ txn.attachment_count }} justificatif(s) dans Qonto">Justificatif</span>
+        {% endif %}
+        {% if txn.note %}<div class="small text-muted">{{ txn.note }}</div>{% endif %}
+      </td>
       <td><span class="badge bg-light text-dark border">{{ txn.raw_type or '—' }}</span></td>
       <td class="text-end font-monospace {% if txn.amount_cents < 0 %}text-danger{% else %}text-success{% endif %}">
         {{ txn.amount_cents | euros }}

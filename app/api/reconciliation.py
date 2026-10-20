@@ -44,6 +44,17 @@ def _counters_for(bt_ids):
     return counters(bt.bank_account_id) if bt else None
 
 
+def attachment_status(bt):
+    """ok | missing | lost | None (source sans justificatifs, ex. OFX)."""
+    if bt.attachment_count is None:
+        return None
+    if bt.attachment_lost:
+        return "lost"
+    if bt.attachment_count == 0 and bt.attachment_required:
+        return "missing"
+    return "ok"
+
+
 def serialize_transaction(bt):
     line = bt.journal_line
     return {
@@ -52,6 +63,8 @@ def serialize_transaction(bt):
         "label": bt.label or "",
         "amount_cents": bt.amount_cents,
         "reconciled": bt.reconciled,
+        "is_reversed": bt.is_reversed,
+        "attachment_status": attachment_status(bt),
         "category": bt.category,
         "entity": bt.entity.name if bt.entity else None,
         "entry": (

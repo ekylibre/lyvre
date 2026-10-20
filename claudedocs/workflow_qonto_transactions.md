@@ -1,6 +1,6 @@
 # Workflow — Qonto, lot 1 : comptes et transactions bancaires
 
-> **Statut : EN COURS** — phases A à E faites (révision Alembic `d7a2e6f0b318`). Sources : [`besoins_qonto_transactions.md`](besoins_qonto_transactions.md),
+> **Statut : EN COURS** — phases A à F faites (révision Alembic `d7a2e6f0b318`). Sources : [`besoins_qonto_transactions.md`](besoins_qonto_transactions.md),
 > [`design_qonto_transactions.md`](design_qonto_transactions.md) (décisions D1 à D10).
 
 ## 1. Objectif
@@ -161,7 +161,7 @@ B.1 → B.2 → B.3 → B.4 → B.5 → B.6             ✅ CP B  (fait)
 C.1 → C.2 → C.3 → C.4                         ✅ CP C  (fait)
 D.1 → D.2 → D.3 → D.4 → D.5 → D.6             ✅ CP D  (fait, compte réel SCI en lecture seule au lieu du bac à sable)
 E.1 → E.2 → E.3 → E.4                         ✅ CP E  (fait)
-F.1 → F.2 → F.3 → F.4 → F.5                   ✅ CP F
+F.1 → F.2 → F.3 → F.4 → F.5                   ✅ CP F  (fait)
 G.1 → G.2 → G.3 → G.4                         ✅ CP final (clé de production + accord)
 ```
 

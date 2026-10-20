@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeAfterRemoval, bestSuggestion, rangeIds } from "./logic";
+import { activeAfterRemoval, attachmentBadge, bestSuggestion, rangeIds } from "./logic";
 import type { Suggestion } from "../../lib/types";
 
 const s = (id: number, score: number): Suggestion => ({
@@ -39,5 +39,14 @@ describe("rangeIds", () => {
   it("dans les deux sens", () => {
     expect(rangeIds([1, 2, 3, 4], 2, 4)).toEqual([2, 3, 4]);
     expect(rangeIds([1, 2, 3, 4], 4, 2)).toEqual([2, 3, 4]);
+  });
+});
+
+describe("attachmentBadge", () => {
+  it("donne un libellé par état et rien quand la source ne connaît pas les justificatifs", () => {
+    expect(attachmentBadge("ok")?.label).toBe("Justificatif");
+    expect(attachmentBadge("missing")?.label).toBe("Justificatif manquant");
+    expect(attachmentBadge("lost")?.label).toBe("Justificatif perdu");
+    expect(attachmentBadge(null)).toBeNull();
   });
 });

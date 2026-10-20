@@ -197,6 +197,9 @@ def post_validated_entry(clean, bank_transaction=None):
         if bank_transaction is not None:
             if bank_transaction.reconciled:
                 raise LedgerError("La transaction bancaire est déjà rapprochée.")
+            if bank_transaction.is_reversed:
+                from app.services.reconciler import REVERSED_MESSAGE
+                raise LedgerError(REVERSED_MESSAGE)
             account_id = bank_transaction.bank_account.account_id
             bank_line = next(
                 (l for l in entry.lines

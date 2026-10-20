@@ -35,12 +35,18 @@ export type FieldErrors = Record<string, string>;
 
 // --- Rapprochement (app/api/reconciliation.py) -----------------------------
 
+export type AttachmentStatus = "ok" | "missing" | "lost" | null;
+
 export interface BankTransaction {
   id: number;
   date: string;
   label: string;
   amount_cents: number;
   reconciled: boolean;
+  /** Annulée par la banque après règlement : plus rapprochable. */
+  is_reversed: boolean;
+  /** Justificatif : null quand la source ne le connaît pas (OFX). */
+  attachment_status: AttachmentStatus;
   category: string | null;
   entity: string | null;
   entry: { id: number; reference: string; url: string } | null;

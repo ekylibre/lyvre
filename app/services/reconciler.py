@@ -2,8 +2,11 @@
 
 A valid link: the journal line is on the bank account's ledger account, with
 the same signed amount (debit for money in, credit for money out), and neither
-the transaction nor the line is already reconciled.
+the transaction nor the line is already reconciled. A transaction reversed by the
+bank (``is_reversed``) can no longer be reconciled.
 """
+
+REVERSED_MESSAGE = "Transaction annulée par la banque : elle ne peut pas être rapprochée."
 from datetime import timedelta
 
 from app.extensions import db
@@ -18,6 +21,8 @@ def suggest_matches_scored(bank_transaction_id, window_days=3):
     (score 2 = same date, 1 = within the window).
     """
     bt = BankTransaction.query.get_or_404(bank_transaction_id)
+    if bt.is_reversed:
+        return []
     target = bt.amount_cents
     date_from = bt.transaction_date - timedelta(days=window_days)
     date_to = bt.transaction_date + timedelta(days=window_days)
@@ -60,6 +65,8 @@ def check_link(bt, line, lines_taken=()):
         return "Ligne d'écriture introuvable."
     if bt.reconciled or bt.journal_line_id:
         return "Transaction déjà rapprochée."
+    if bt.is_reversed:
+        return REVERSED_MESSAGE
     if line.bank_transaction is not None or line.id in lines_taken:
         return "Ligne d'écriture déjà rapprochée."
     if line.account_id != bt.bank_account.account_id:
@@ -144,7 +151,8 @@ def unreconcile_many(bank_transaction_ids):
 def auto_pairs(bank_account_id, bank_transaction_ids=None):
     """Unambiguous pairs: exactly one same-date candidate line, not claimed
     by another transaction of the batch."""
-    query = BankTransaction.query.filter_by(bank_account_id=bank_account_id, reconciled=False)
+    query = BankTransaction.query.filter_by(bank_account_id=bank_account_id, reconciled=False,
+                                            is_reversed=False)
     if bank_transaction_ids is not None:
         query = query.filter(BankTransaction.id.in_(bank_transaction_ids))
     pairs = []

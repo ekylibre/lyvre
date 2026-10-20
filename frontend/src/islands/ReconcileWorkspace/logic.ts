@@ -1,4 +1,4 @@
-import type { Suggestion } from "../../lib/types";
+import type { AttachmentStatus, Suggestion } from "../../lib/types";
 
 /**
  * Suggestion retenue pour un rapprochement « en un geste » (Entrée, ★ en masse) :
@@ -32,4 +32,20 @@ export function rangeIds(ids: number[], fromId: number, toId: number): number[] 
 
 export function plural(n: number, one: string, many: string): string {
   return `${n} ${n > 1 ? many : one}`;
+}
+
+export const REVERSED_MESSAGE = "Transaction annulée par la banque : elle ne peut pas être rapprochée.";
+
+/** Pastille de justificatif : libellé et classe Bootstrap, ou null (source sans justificatifs). */
+export function attachmentBadge(status: AttachmentStatus): { label: string; className: string } | null {
+  switch (status) {
+    case "ok":
+      return { label: "Justificatif", className: "bg-light text-success border" };
+    case "missing":
+      return { label: "Justificatif manquant", className: "bg-warning text-dark" };
+    case "lost":
+      return { label: "Justificatif perdu", className: "bg-secondary" };
+    default:
+      return null;
+  }
 }

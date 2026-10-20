@@ -269,6 +269,7 @@ def delete(ba_id):
 def transactions(ba_id):
     ba = BankAccount.query.get_or_404(ba_id)
     only_unreconciled = request.args.get("unreconciled", "0") == "1"
+    only_missing = request.args.get("missing", "0") == "1"
     sort = parse_sort(request.args.get("sort"))
     month_arg = request.args.get("month")
     month_tuple = parse_month(month_arg)
@@ -276,6 +277,13 @@ def transactions(ba_id):
     query = ba.transactions
     if only_unreconciled:
         query = query.filter_by(reconciled=False)
+    if only_missing:
+        # Justificatif exigé mais absent, ou déclaré perdu (transactions Qonto).
+        query = query.filter(db.or_(
+            db.and_(BankTransaction.attachment_required.is_(True),
+                    BankTransaction.attachment_count == 0),
+            BankTransaction.attachment_lost.is_(True),
+        ))
     query = apply_month_filter(query, BankTransaction.transaction_date, month_tuple)
     query = apply_date_sort(query, BankTransaction.transaction_date, sort)
     txns = query.all()
@@ -286,5 +294,7 @@ def transactions(ba_id):
         qonto_job=qonto_sync.latest_job(ba.id) if ba.qonto_account_id else None,
         proposal_count=counterparties.count_proposals(ba.id),
         only_unreconciled=only_unreconciled,
+        only_missing=only_missing,
+        reversed_reconciled=ba.transactions.filter_by(is_reversed=True, reconciled=True).all(),
         **sort_and_filter_context(sort, month_arg),
     )

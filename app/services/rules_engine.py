@@ -163,6 +163,9 @@ def apply_rules(transactions=None, overwrite=False):
     created_entry_ids = []
 
     for txn in transactions:
+        if txn.is_reversed:  # annulée par la banque : ni catégorie ni écriture
+            skipped += 1
+            continue
         if not overwrite and (txn.category and txn.entity_id):
             skipped += 1
             continue

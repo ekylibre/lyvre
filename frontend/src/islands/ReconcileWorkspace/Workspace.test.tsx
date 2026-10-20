@@ -4,9 +4,10 @@ import userEvent from "@testing-library/user-event";
 import Workspace, { type WorkspaceProps } from "./Workspace";
 import type { BankTransaction, Suggestion } from "../../lib/types";
 
-const tx = (id: number, label: string, amount: number): BankTransaction => ({
-  id, date: "2026-03-10", label, amount_cents: amount, reconciled: false,
-  category: null, entity: null, entry: null, new_entry_url: `/entries/new?bt_id=${id}`,
+const tx = (id: number, label: string, amount: number, extra: Partial<BankTransaction> = {}): BankTransaction => ({
+  id, date: "2026-03-10", label, amount_cents: amount, reconciled: false, is_reversed: false,
+  attachment_status: null, category: null, entity: null, entry: null,
+  new_entry_url: `/entries/new?bt_id=${id}`, ...extra,
 });
 const sugg = (line: number, score: number, amount: number): Suggestion => ({
   journal_line_id: line, entry_id: line, reference: `BQ-${line}`, entry_date: "2026-03-10",
@@ -201,5 +202,33 @@ describe("ReconcileWorkspace", () => {
     expect(dialog.contains(document.activeElement)).toBe(true);
     for (let i = 0; i < 40; i++) await user.keyboard("{Tab}");
     expect(dialog.contains(document.activeElement)).toBe(true);
+  });
+
+  it("affiche une transaction annulée sans permettre de la rapprocher ni d'en créer l'écriture", async () => {
+    server.transactions[0] = tx(1, "PRLV EDF", -100, { is_reversed: true });
+    server.suggestions[1] = [];
+    const user = userEvent.setup();
+    render(<Workspace {...props} />);
+    await waitFor(() => expect(rows()).toHaveLength(3));
+    expect(within(rows()[0]).getByText("Annulée")).toBeInTheDocument();
+    expect(screen.getByText(/Transaction annulée par la banque/, { selector: ".alert" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Créer l'écriture (N)" })).not.toBeInTheDocument();
+
+    region().focus();
+    await user.keyboard("{Enter}");
+    await user.keyboard("n");
+    expect(window.showToast).toHaveBeenCalledWith("info", expect.stringContaining("annulée par la banque"));
+    expect(calls.some((c) => c.url === "/api/v1/reconciliations")).toBe(false);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("affiche l'état du justificatif", async () => {
+    server.transactions[0] = tx(1, "PRLV EDF", -100, { attachment_status: "missing" });
+    server.transactions[1] = tx(2, "CB LEROY", -250, { attachment_status: "ok" });
+    render(<Workspace {...props} />);
+    await waitFor(() => expect(rows()).toHaveLength(3));
+    expect(within(rows()[0]).getByText("Justificatif manquant")).toBeInTheDocument();
+    expect(within(rows()[1]).getByText("Justificatif")).toBeInTheDocument();
+    expect(within(rows()[2]).queryByText(/Justificatif/)).not.toBeInTheDocument();
   });
 });

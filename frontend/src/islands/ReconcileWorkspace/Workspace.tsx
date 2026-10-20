@@ -7,7 +7,7 @@ import type {
   Account, ApplyRulesResponse, BankTransaction, BatchResponse, Counters, EntryResponse,
   Suggestion, UndoRequest,
 } from "../../lib/types";
-import { activeAfterRemoval, bestSuggestion, plural, rangeIds } from "./logic";
+import { activeAfterRemoval, attachmentBadge, bestSuggestion, plural, rangeIds, REVERSED_MESSAGE } from "./logic";
 
 const UNDO_VISIBLE_MS = 10_000;
 const PREFETCH_NEXT = 3;
@@ -181,6 +181,10 @@ export default function Workspace(props: WorkspaceProps) {
 
   function reconcileActive(index = 0) {
     if (!active) return;
+    if (active.is_reversed) {
+      toast("info", REVERSED_MESSAGE);
+      return;
+    }
     const list = suggestions.get(active.id);
     const choice = index === 0 ? bestSuggestion(list) : list?.[index - 1];
     if (!choice) {
@@ -193,7 +197,7 @@ export default function Workspace(props: WorkspaceProps) {
   }
 
   async function reconcileSelectionBest() {
-    const targets = [...selected];
+    const targets = [...selected].filter((id) => !transactions.find((t) => t.id === id)?.is_reversed);
     const lists = await Promise.all(
       targets.map((id) => suggestions.get(id) ?? loadSuggestions(id)));
     const items = targets.flatMap((id, i) => {
@@ -300,7 +304,8 @@ export default function Workspace(props: WorkspaceProps) {
       reconcileActive(Number(key));
     } else if (key.toLowerCase() === "n" && active) {
       e.preventDefault();
-      setPanelFor(active);
+      if (active.is_reversed) toast("info", REVERSED_MESSAGE);
+      else setPanelFor(active);
     } else if (key.toLowerCase() === "r") {
       e.preventDefault();
       void applyRules();
@@ -386,6 +391,7 @@ export default function Workspace(props: WorkspaceProps) {
                 {transactions.map((t) => {
                   const isActive = t.id === activeId;
                   const hasBest = !!bestSuggestion(suggestions.get(t.id));
+                  const attachment = attachmentBadge(t.attachment_status);
                   return (
                     <tr key={t.id} data-bt={t.id} aria-current={isActive || undefined}
                         className={isActive ? "table-primary" : selected.has(t.id) ? "table-info" : ""}
@@ -403,6 +409,8 @@ export default function Workspace(props: WorkspaceProps) {
                       <td>
                         {t.label}
                         {hasBest && <span className="ms-1 text-warning" title="Suggestion unique">★</span>}
+                        {t.is_reversed && <span className="badge bg-danger ms-1" title={REVERSED_MESSAGE}>Annulée</span>}
+                        {attachment && <span className={`badge ms-1 ${attachment.className}`}>{attachment.label}</span>}
                       </td>
                       <td className={`text-end font-monospace text-nowrap ${t.amount_cents < 0 ? "text-danger" : "text-success"}`}>
                         {formatEuros(t.amount_cents)}
@@ -427,8 +435,9 @@ export default function Workspace(props: WorkspaceProps) {
                 : "Suggestions"}
             </div>
             <div className="card-body p-2">
-              {active && activeSuggestions === undefined && <div className="text-muted small">Recherche…</div>}
-              {active && activeSuggestions?.length === 0 && (
+              {active?.is_reversed && <div className="alert alert-danger small mb-2">{REVERSED_MESSAGE}</div>}
+              {active && !active.is_reversed && activeSuggestions === undefined && <div className="text-muted small">Recherche…</div>}
+              {active && !active.is_reversed && activeSuggestions?.length === 0 && (
                 <div className="text-muted small">Aucune écriture correspondante (même compte, même montant, ±3 jours).</div>
               )}
               {active && !!activeSuggestions?.length && (
@@ -449,7 +458,7 @@ export default function Workspace(props: WorkspaceProps) {
                   ))}
                 </ol>
               )}
-              {active && (
+              {active && !active.is_reversed && (
                 <button type="button" className="btn btn-sm btn-outline-primary mt-2" onClick={() => setPanelFor(active)}>
                   Créer l'écriture (N)
                 </button>
