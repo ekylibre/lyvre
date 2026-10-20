@@ -3,6 +3,13 @@
    - month_filter_select(name, options, selected)
    - hx_nav(target)    : attributs HTMX de navigation sans rechargement
    - hx_filter(target) : attributs d'un formulaire de filtre GET appliqué à chaque changement
+   - hx_submit(target, confirm) : formulaire POST envoyé en AJAX (hx-boost) ; la
+     réponse (page re-rendue ou redirection → HX-Location) remplace ``target``.
+     ⚠️ Pour confirmer, passer ``confirm`` (hx-confirm) : HTMX ignore un
+     ``onsubmit="return confirm(...)"`` qui renvoie false.
+   - upload_progress() : barre de progression d'envoi (formulaire multipart)
+   - field_attrs(errors, name) / field_error(errors, name) : erreur de validation
+     serveur affichée sous le champ (classe is-invalid + aria-describedby)
 
    Navigation HTMX : la requête renvoie la page complète, HTMX n'en extrait que
    la zone ``target`` (``hx-select``) et met l'URL à jour (F5 / Précédent OK).
@@ -49,4 +56,32 @@ hx-get="{{ url or request.path }}" hx-trigger="change, submit{% if search %}, in
       <option value="{{ opt.value }}" {% if selected == opt.value %}selected{% endif %}>{{ opt.label }}</option>
     {%- endfor %}
   </select>
+{%- endmacro %}
+
+
+{% macro hx_submit(target='#page-content', confirm=None) -%}
+hx-boost="true" hx-target="{{ target }}" hx-select="{{ target }}" hx-swap="outerHTML show:none" hx-push-url="false" hx-disabled-elt="find [type=submit]"{% if confirm %} hx-confirm="{{ confirm }}"{% endif %}
+{%- endmacro %}
+
+
+{% macro upload_progress() -%}
+<div class="progress mt-2 d-none" role="progressbar" aria-label="Envoi du fichier"
+     aria-valuemin="0" aria-valuemax="100" data-upload-progress>
+  <div class="progress-bar" style="width: 0%"></div>
+</div>
+{%- endmacro %}
+
+
+{% macro field_attrs(errors, name) -%}
+{% if errors and errors.get(name) %}aria-invalid="true" aria-describedby="err-{{ name }}"{% endif %}
+{%- endmacro %}
+
+
+{% macro invalid(errors, name) -%}
+{% if errors and errors.get(name) %} is-invalid{% endif %}
+{%- endmacro %}
+
+
+{% macro field_error(errors, name) -%}
+{% if errors and errors.get(name) %}<div class="invalid-feedback d-block" id="err-{{ name }}">{{ errors[name] }}</div>{% endif %}
 {%- endmacro %}

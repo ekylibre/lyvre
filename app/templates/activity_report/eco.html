@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_list_helpers.html" import hx_submit, upload_progress %}
 {% block title %}Tonnages éco-organismes{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -10,7 +11,7 @@
 </div>
 
 <form method="post" action="{{ url_for('activity_report.eco_import') }}" enctype="multipart/form-data"
-      class="row g-2 align-items-end mb-4">
+      class="row g-2 align-items-end mb-4" {{ hx_submit() }}>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="col-auto">
     <label class="form-label small text-muted mb-1">Importer la déclaration (.xlsx)</label>
@@ -19,6 +20,7 @@
   <div class="col-auto">
     <button type="submit" class="btn btn-primary btn-sm">Importer</button>
   </div>
+  <div class="col-12">{{ upload_progress() }}</div>
   <div class="col-12"><small class="text-muted">Feuille « Bilan ». L'import met à jour les lignes existantes (par organisme / matière / trimestre).</small></div>
 </form>
 

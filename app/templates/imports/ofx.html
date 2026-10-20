@@ -1,8 +1,9 @@
 {% extends "base.html" %}
+{% from "_list_helpers.html" import hx_submit, upload_progress %}
 {% block title %}Import OFX{% endblock %}
 {% block content %}
 <h2>Import de fichier OFX</h2>
-<form method="post" enctype="multipart/form-data" class="col-md-6 mt-3">
+<form method="post" enctype="multipart/form-data" class="col-md-6 mt-3" {{ hx_submit() }}>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="mb-3">
     <label class="form-label">Compte bancaire</label>
@@ -25,6 +26,7 @@
     <div class="form-text">Formats acceptés : .ofx, .qfx (OFX 1.x SGML ou 2.x XML)</div>
   </div>
   <button type="submit" class="btn btn-primary">Importer</button>
+  {{ upload_progress() }}
 </form>
 
 {% if result %}

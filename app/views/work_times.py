@@ -101,25 +101,27 @@ def index():
 
 
 def _save_work_time(work_time, is_new):
-    """Lit le formulaire, valide, et persiste. Retourne True si OK, sinon flash + False."""
+    """Lit le formulaire, valide, et persiste.
+
+    Retourne un dict ``{champ: message}`` d'erreurs (vide si enregistré).
+    """
     entity_id = request.form.get("entity_id", type=int)
     task_type_id = request.form.get("task_type_id", type=int)
     work_date = _parse_date(request.form.get("work_date"))
     hours = _parse_hours(request.form.get("hours"))
     notes = (request.form.get("notes") or "").strip() or None
 
-    if not entity_id or Entity.query.get(entity_id) is None:
-        flash("Bénévole obligatoire.", "danger")
-        return False
-    if not task_type_id or TaskType.query.get(task_type_id) is None:
-        flash("Type de tâche obligatoire.", "danger")
-        return False
+    errors = {}
+    if not entity_id or db.session.get(Entity, entity_id) is None:
+        errors["entity_id"] = "Bénévole obligatoire."
+    if not task_type_id or db.session.get(TaskType, task_type_id) is None:
+        errors["task_type_id"] = "Type de tâche obligatoire."
     if work_date is None:
-        flash("Date obligatoire.", "danger")
-        return False
+        errors["work_date"] = "Date obligatoire (format AAAA-MM-JJ)."
     if hours is None or hours <= 0:
-        flash("Le nombre d'heures doit être supérieur à 0.", "danger")
-        return False
+        errors["hours"] = "Le nombre d'heures doit être supérieur à 0."
+    if errors:
+        return errors
 
     work_time.entity_id = entity_id
     work_time.task_type_id = task_type_id
@@ -129,7 +131,7 @@ def _save_work_time(work_time, is_new):
     if is_new:
         db.session.add(work_time)
     db.session.commit()
-    return True
+    return {}
 
 
 @bp.route("/new", methods=["GET", "POST"])
@@ -137,13 +139,14 @@ def _save_work_time(work_time, is_new):
 def new():
     if request.method == "POST":
         work_time = WorkTime()
-        if _save_work_time(work_time, is_new=True):
+        errors = _save_work_time(work_time, is_new=True)
+        if not errors:
             flash("Temps de travaux enregistré.", "success")
             return redirect(url_for("work_times.index"))
         return render_template(
-            "work_times/form.html", work_time=None, form=request.form,
+            "work_times/form.html", work_time=None, form=request.form, errors=errors,
             benevoles=_benevoles(), task_types=_active_task_types(),
-        )
+        ), 422
 
     return render_template(
         "work_times/form.html", work_time=None, form={},
@@ -156,13 +159,14 @@ def new():
 def edit(work_time_id):
     work_time = WorkTime.query.get_or_404(work_time_id)
     if request.method == "POST":
-        if _save_work_time(work_time, is_new=False):
+        errors = _save_work_time(work_time, is_new=False)
+        if not errors:
             flash("Temps de travaux mis à jour.", "success")
             return redirect(url_for("work_times.index"))
         return render_template(
-            "work_times/form.html", work_time=work_time, form=request.form,
+            "work_times/form.html", work_time=work_time, form=request.form, errors=errors,
             benevoles=_benevoles(), task_types=_active_task_types(),
-        )
+        ), 422
 
     return render_template(
         "work_times/form.html", work_time=work_time, form=None,
@@ -222,10 +226,11 @@ def task_types():
 def task_type_new():
     if request.method == "POST":
         name = (request.form.get("name") or "").strip()
+        errors = {}
         if not name:
-            flash("Le nom est obligatoire.", "danger")
+            errors["name"] = "Le nom est obligatoire."
         elif TaskType.query.filter(db.func.lower(TaskType.name) == name.lower()).first():
-            flash(f"Un type nommé « {name} » existe déjà.", "danger")
+            errors["name"] = f"Un type nommé « {name} » existe déjà."
         else:
             tt = TaskType(
                 name=name,
@@ -237,8 +242,8 @@ def task_type_new():
             flash(f"Type de tâche « {name} » créé.", "success")
             return redirect(url_for("work_times.task_types"))
         return render_template(
-            "work_times/task_type_form.html", task_type=None, form=request.form,
-        )
+            "work_times/task_type_form.html", task_type=None, form=request.form, errors=errors,
+        ), 422
 
     return render_template(
         "work_times/task_type_form.html", task_type=None,
@@ -255,10 +260,11 @@ def task_type_edit(task_type_id):
         existing = TaskType.query.filter(
             db.func.lower(TaskType.name) == name.lower(), TaskType.id != tt.id
         ).first()
+        errors = {}
         if not name:
-            flash("Le nom est obligatoire.", "danger")
+            errors["name"] = "Le nom est obligatoire."
         elif existing:
-            flash(f"Un autre type nommé « {name} » existe déjà.", "danger")
+            errors["name"] = f"Un autre type nommé « {name} » existe déjà."
         else:
             tt.name = name
             tt.hourly_rate_cents = _parse_rate_to_cents(request.form.get("hourly_rate"))
@@ -267,8 +273,8 @@ def task_type_edit(task_type_id):
             flash(f"Type de tâche « {name} » mis à jour.", "success")
             return redirect(url_for("work_times.task_types"))
         return render_template(
-            "work_times/task_type_form.html", task_type=tt, form=request.form,
-        )
+            "work_times/task_type_form.html", task_type=tt, form=request.form, errors=errors,
+        ), 422
 
     return render_template(
         "work_times/task_type_form.html", task_type=tt, form=None,

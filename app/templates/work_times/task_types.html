@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_list_helpers.html" import hx_submit %}
 {% block title %}Types de tâches{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -39,7 +40,7 @@
            class="btn btn-sm btn-outline-primary">Modifier</a>
         <form method="post" action="{{ url_for('work_times.task_type_delete', task_type_id=tt.id) }}"
               class="d-inline"
-              onsubmit="return confirm('Supprimer le type « {{ tt.name }} » ?');">
+              {{ hx_submit(confirm='Supprimer le type « ' ~ tt.name ~ ' » ?') }}>
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
         </form>

@@ -168,6 +168,17 @@ La page inclut le fragment (`{% include "entries/_table.html" %}`) : une seule s
 > une zone `#list` qui n'inclut pas le champ saisi. `render_page` reste disponible pour les fragments
 > dédiés (actions sur une ligne, phase C).
 
+> **Mise en œuvre (phase C, 2026-10-20)** : les formulaires POST (imports, actions sur une ligne,
+> formulaires simples, synchronisations) utilisent la macro `hx_submit` (`hx-boost` + même zone
+> `#page-content`). Les vues ne changent pas : une réponse re-rendue remplace la zone, et une
+> **redirection après action devient `HX-Location`** (rechargement AJAX de la zone, URL mise à jour,
+> message en toast) quand la requête cible la zone de contenu ; vers `/login` ou le choix d'instance,
+> elle reste `HX-Redirect`. Formulaire invalide → **422** + erreurs sous les champs
+> (macros `field_attrs` / `invalid` / `field_error`, `responseHandling` HTMX configuré pour afficher les 422).
+> Confirmations via `hx-confirm` (HTMX ignore `onsubmit="return confirm()"`). Les synchronisations
+> Odoo / HelloAsso restent synchrones (bouton désactivé + barre de chargement + toast) : la
+> généralisation de `sync_jobs` n'a pas été jugée nécessaire.
+
 ### 5.2 Filtres sans rechargement (F1.1, F1.2)
 
 ```html

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_list_helpers.html" import hx_filter %}
+{% from "_list_helpers.html" import hx_filter, hx_submit %}
 {% block title %}Adhérents{% endblock %}
 
 {% macro sort_header(label, col, sort_by, sort, q, date_from, date_to) %}
@@ -38,7 +38,7 @@
        class="btn btn-outline-warning btn-sm {% if not smtp_configured %}disabled{% endif %}">
       Relancer les expirés
     </a>
-    <form method="post" action="{{ url_for('entities.sync_helloasso_route') }}">
+    <form method="post" action="{{ url_for('entities.sync_helloasso_route') }}" {{ hx_submit() }}>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn btn-primary btn-sm" {% if not helloasso_configured %}disabled{% endif %}>
         Synchroniser HelloAsso
@@ -89,7 +89,7 @@
 
 <div id="list">
 {% if rows %}
-<form method="post" action="{{ url_for('entities.bulk_benevole') }}">
+<form method="post" action="{{ url_for('entities.bulk_benevole') }}" {{ hx_submit() }}>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <input type="hidden" name="q" value="{{ q }}">
   <input type="hidden" name="date_from" value="{{ date_from }}">

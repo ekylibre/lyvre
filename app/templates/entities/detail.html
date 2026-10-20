@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_list_helpers.html" import hx_submit %}
 {% block title %}{{ entity.name }}{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -20,7 +21,7 @@
   </div>
   <div class="d-flex gap-2">
     {% if entity.is_member %}
-    <form method="post" action="{{ url_for('entities.update_odoo_note', entity_id=entity.id) }}">
+    <form method="post" action="{{ url_for('entities.update_odoo_note', entity_id=entity.id) }}" {{ hx_submit() }}>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn btn-outline-primary btn-sm {% if not odoo_configured %}disabled{% endif %}"
               title="Écrire la date anniversaire et le statut d'adhésion dans le champ « Notes interne » d'Odoo">

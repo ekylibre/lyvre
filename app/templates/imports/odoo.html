@@ -1,8 +1,9 @@
 {% extends "base.html" %}
+{% from "_list_helpers.html" import hx_submit, upload_progress %}
 {% block title %}Import Odoo{% endblock %}
 {% block content %}
 <h2>Import de lignes Odoo</h2>
-<form method="post" enctype="multipart/form-data" class="col-md-6 mt-3">
+<form method="post" enctype="multipart/form-data" class="col-md-6 mt-3" {{ hx_submit() }}>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="mb-3">
     <label class="form-label">Nom du lot (optionnel)</label>
@@ -20,6 +21,7 @@
     </div>
   </div>
   <button type="submit" class="btn btn-primary">Importer</button>
+  {{ upload_progress() }}
 </form>
 
 {% if result %}

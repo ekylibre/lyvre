@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_list_helpers.html" import sortable_date_header, month_filter_select, hx_filter %}
+{% from "_list_helpers.html" import sortable_date_header, month_filter_select, hx_filter, hx_submit %}
 {% block title %}Temps de travaux{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -75,7 +75,7 @@
         <a href="{{ url_for('work_times.edit', work_time_id=wt.id) }}"
            class="btn btn-sm btn-outline-primary">Modifier</a>
         <form method="post" action="{{ url_for('work_times.delete', work_time_id=wt.id) }}"
-              class="d-inline" onsubmit="return confirm('Supprimer ce temps de travaux ?');">
+              class="d-inline" {{ hx_submit(confirm='Supprimer ce temps de travaux ?') }}>
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
         </form>

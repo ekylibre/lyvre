@@ -80,6 +80,18 @@ document.addEventListener('htmx:afterRequest', () => {
   }
 });
 
+// Upload progress for multipart forms containing a [data-upload-progress] bar.
+document.addEventListener('htmx:xhr:progress', e => {
+  const form = e.target.closest && e.target.closest('form');
+  const bar = form && form.querySelector('[data-upload-progress]');
+  if (!bar || !e.detail.lengthComputable) return;
+  const pct = Math.round((e.detail.loaded / e.detail.total) * 100);
+  bar.classList.remove('d-none');
+  bar.setAttribute('aria-valuenow', pct);
+  bar.firstElementChild.style.width = `${pct}%`;
+  bar.firstElementChild.textContent = pct < 100 ? `${pct} %` : 'Traitement…';
+});
+
 // Keep the keyboard focus across a content swap: htmx only restores it for
 // elements with an id, filter fields usually only have a name.
 let focusedField = null;

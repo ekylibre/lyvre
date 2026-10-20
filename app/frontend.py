@@ -6,13 +6,21 @@ HTMX conventions (see claudedocs/design_front_reactif.md §5):
   the full page otherwise (the page includes the fragment).
 - Flash messages of an HTMX response are sent as an ``HX-Trigger`` "toast"
   event instead of waiting for the next full page.
-- A redirect answering an HTMX request becomes an ``HX-Redirect`` (full page
-  navigation): otherwise the browser would follow it silently and HTMX would
-  swap the whole target page (e.g. the login page) into the fragment zone.
+- A redirect answering an HTMX request is never followed silently by the
+  browser (HTMX would swap the whole target page, e.g. the login page, into
+  the fragment zone):
+  - request targeting the content zone (``#page-content``, see the
+    ``hx_nav`` / ``hx_submit`` macros) → ``HX-Location``: HTMX loads the new
+    page with an AJAX request, swaps only the content zone and pushes the URL;
+  - otherwise, or towards the login / instance selection pages →
+    ``HX-Redirect`` (full page navigation).
 """
 import json
+from urllib.parse import urlsplit
 
-from flask import get_flashed_messages, render_template, request
+from flask import get_flashed_messages, render_template, request, url_for
+
+CONTENT_ZONE = "page-content"
 
 
 def is_htmx() -> bool:
@@ -41,6 +49,12 @@ def _merge_trigger(response, name, value):
     response.headers["HX-Trigger"] = json.dumps(events, ensure_ascii=True)
 
 
+def _full_page_only(location):
+    """Pages outside the main layout (no content zone to swap into)."""
+    path = urlsplit(location).path
+    return path in (url_for("auth.login"), url_for("auth.select_instance"))
+
+
 def register_htmx_hooks(app):
     @app.after_request
     def _htmx_response(response):
@@ -51,9 +65,18 @@ def register_htmx_hooks(app):
             location = response.location
             response.status_code = 200
             response.headers.pop("Location", None)
-            response.headers["HX-Redirect"] = location
             response.set_data(b"")
-            # Flash messages stay in the session for the next full page.
+            target = request.headers.get("HX-Target")
+            if target == CONTENT_ZONE and not _full_page_only(location):
+                zone = f"#{CONTENT_ZONE}"
+                response.headers["HX-Location"] = json.dumps({
+                    "path": location, "target": zone, "select": zone,
+                    "swap": "outerHTML show:none",
+                })
+            else:
+                response.headers["HX-Redirect"] = location
+            # Flash messages stay in the session: they are sent with the
+            # follow-up request (HX-Location) or shown on the next full page.
             return response
 
         messages = get_flashed_messages(with_categories=True)
