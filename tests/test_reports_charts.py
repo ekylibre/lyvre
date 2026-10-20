@@ -116,6 +116,48 @@ def test_asso_dont_lines_not_summed(session):
     assert rows["TOTAL I — Produits d'exploitation"][0] == 1500
 
 
+@pytest.mark.parametrize("chart", ["asso", "sci"])
+def test_bilan_balances_with_every_account(session, chart):
+    """Une écriture équilibrée sur chaque compte (classes 1 à 7) du référentiel
+    donne un bilan équilibré : aucun compte oublié ni compté deux fois."""
+    path = os.path.join(os.path.dirname(__file__), "..", "data", f"plan_comptable_{chart}.json")
+    with open(path, encoding="utf-8") as fh:
+        codes = [a["code"] for a in json.load(fh)
+                 if a["code"][0] in "1234567" and not a["is_header"] and a["code"] != "512"]
+    fy = _fy(session)
+    lines, counter = [], 0
+    for i, code in enumerate(codes):
+        amount = 100 + i  # montants distincts : pas de compensation fortuite
+        if i % 2:
+            lines.append((code, amount, 0))
+            counter -= amount
+        else:
+            lines.append((code, 0, amount))
+            counter += amount
+    lines.append(("512", max(counter, 0), max(-counter, 0)))
+    _post(session, fy, lines)
+
+    data = build_bilan(fy, chart=chart)
+    total_actif = next(l for l in data["actif"] if l["kind"] == "total")["n"]
+    total_passif = next(l for l in data["passif"] if l["kind"] == "total")["n"]
+    assert total_actif == total_passif
+
+
+def test_asso_bilan_includes_current_result(session):
+    fy = _fy(session)
+    _post(session, fy, [("1022", 0, 100000), ("512", 100000, 0)])
+    _post(session, fy, [("756", 0, 30000), ("512", 30000, 0)])
+    _post(session, fy, [("6063", 5000, 0), ("401", 0, 5000)])
+    data = build_bilan(fy, chart="asso")
+    passif = {l["label"]: l["n"] for l in data["passif"] if l["kind"] != "section"}
+    actif = {l["label"]: l["n"] for l in data["actif"] if l["kind"] != "section"}
+    assert passif["Excédent ou déficit de l'exercice"] == 25000
+    assert passif["Dettes fournisseurs et comptes rattachés"] == 5000
+    assert actif["Autres créances"] == 0
+    assert actif["Disponibilités"] == 130000
+    assert actif["TOTAL ACTIF"] == passif["TOTAL PASSIF"] == 130000
+
+
 def test_sci_bilan_balances_and_splits_tiers(session):
     fy = _sci_year(session)
     data = build_bilan(fy, chart="sci")
@@ -155,7 +197,6 @@ def test_asso_layout_unchanged(session):
     assert labels.count("EXCÉDENT") == 1
     bilan = build_bilan(fy)
     assert any(l["label"] == "Fonds dédiés" for l in bilan["passif"])
-    assert not any(l["kind"] == "total" for l in bilan["actif"])
 
 
 def test_report_templates_render_for_both_charts(app, session):
@@ -175,7 +216,7 @@ def test_report_templates_render_for_both_charts(app, session):
                 "reports/bilan.html", data=build_bilan(fy, chart=chart),
                 fy=fy, fy_prev=None, fiscal_years=[fy], chart=chart,
             )
-            assert ("TOTAL ACTIF" in html) == (chart == "sci")
+            assert "TOTAL ACTIF" in html
             assert ("Fonds dédiés" in html) == (chart == "asso")
 
 
