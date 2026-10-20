@@ -1,10 +1,15 @@
 from datetime import date
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import (
+    Blueprint, abort, current_app, flash, redirect, render_template, request, url_for,
+)
 from flask_login import login_required
+from markupsafe import escape
 from app.decorators import admin_required
 from app.extensions import db
-from app.models import BankAccount, Account, BankTransaction
+from app.frontend import is_htmx
+from app.models import BankAccount, Account, BankTransaction, SyncJob
+from app.models.sync_job import SYNC_KIND_QONTO
 from app.services import external_config, qonto_sync
 from app.utils.list_filters import (
     parse_sort, parse_month, apply_date_sort, apply_month_filter,
@@ -134,6 +139,37 @@ def qonto_settings(ba_id):
     return redirect(url_for("bank_accounts.edit", ba_id=ba.id))
 
 
+@bp.route("/<int:ba_id>/qonto/sync", methods=["POST"])
+@login_required
+def qonto_sync_start(ba_id):
+    ba = BankAccount.query.get_or_404(ba_id)
+    message = None
+    if not ba.qonto_account_id:
+        message = "Ce compte bancaire n'est pas rattaché à Qonto."
+    else:
+        message = external_config.unavailable_message("qonto")
+    if message:
+        if is_htmx():
+            return f'<div id="qonto-sync-status" class="alert alert-warning small">{escape(message)}</div>'
+        flash(message, "warning")
+        return redirect(url_for("bank_accounts.transactions", ba_id=ba.id))
+    job = qonto_sync.start_sync(current_app._get_current_object(), ba.id)
+    if is_htmx():
+        return render_template("bank_accounts/_qonto_sync_status.html", ba=ba, job=job)
+    flash("Synchronisation Qonto lancée en arrière-plan.", "info")
+    return redirect(url_for("bank_accounts.transactions", ba_id=ba.id))
+
+
+@bp.route("/<int:ba_id>/qonto/sync/<int:job_id>")
+@login_required
+def qonto_sync_status(ba_id, job_id):
+    ba = BankAccount.query.get_or_404(ba_id)
+    job = db.session.get(SyncJob, job_id)
+    if job is None or job.kind != SYNC_KIND_QONTO or job.bank_account_id != ba.id:
+        abort(404)
+    return render_template("bank_accounts/_qonto_sync_status.html", ba=ba, job=job)
+
+
 @bp.route("/new", methods=["GET", "POST"])
 @login_required
 def new():
@@ -217,6 +253,7 @@ def transactions(ba_id):
         "bank_accounts/transactions.html",
         ba=ba,
         txns=txns,
+        qonto_job=qonto_sync.latest_job(ba.id) if ba.qonto_account_id else None,
         only_unreconciled=only_unreconciled,
         **sort_and_filter_context(sort, month_arg),
     )

@@ -364,7 +364,7 @@ def describe_error(service: str, exc: BaseException) -> str:
             and not isinstance(exc, QontoConfigError) and response is not None:
         return _http_message(service, response.status_code, _api_detail(response))
     if isinstance(exc, (OdooConfigError, HelloAssoConfigError, GA4ConfigError,
-                        FacebookConfigError, QontoConfigError)):
+                        FacebookConfigError, QontoError)):  # QontoError sans réponse HTTP
         return str(exc)
     if isinstance(exc, (requests.Timeout, TimeoutError)) or name == "DeadlineExceeded":
         return timeout_msg

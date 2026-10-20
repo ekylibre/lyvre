@@ -323,3 +323,15 @@ sync_jobs), `doc/imports.md` (Qonto à côté d'OFX), `doc/installation.md` / `d
 - `set_sync_from` : reculer la date de début remet le curseur à zéro (synchro complète, sans doublon).
 - Attention : le repli `.env` vaut pour **toutes** les instances ; des identifiants Qonto d'une
   organisation précise doivent être saisis **dans l'instance concernée** (Intégrations), pas dans `.env`.
+
+**Phase D (2026-10-20)** :
+- **Règles appliquées page par page**, juste après le commit de la page : si une synchro échoue en
+  cours de route, les transactions déjà enregistrées ont leurs règles (sinon, existant déjà, elles ne
+  seraient plus « nouvelles » à la reprise).
+- Fenêtres : même mécanisme de découpage (> 9 000 résultats) pour les fenêtres mensuelles initiales et
+  la fenêtre incrémentale ; date de début dans le futur → aucune lecture.
+- Messages d'échec : une `QontoError` sans réponse HTTP est affichée telle quelle ; une `RuntimeError`
+  métier (compte non rattaché) aussi.
+- Vérifié sur le **compte réel de la SCI** (lecture seule, instance de test isolée) : 5 transactions
+  importées en un clic, somme = **X XXX,XX €** = solde Qonto ; seconde synchro incrémentale : 0 lue ;
+  date de début reculée d'un an → 13 fenêtres mensuelles relues, 5 inchangées, aucun doublon.

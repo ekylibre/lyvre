@@ -1,0 +1,37 @@
+{# Fragment HTMX : état de la synchronisation Qonto d'un compte. Rafraîchi toutes les 2 s tant qu'elle tourne. #}
+<div id="qonto-sync-status"
+     class="alert alert-{{ 'info' if job.is_running else ('success' if job.status == 'done' else 'danger') }} small mb-0 mt-2"
+     {% if job.is_running %}
+     hx-get="{{ url_for('bank_accounts.qonto_sync_status', ba_id=ba.id, job_id=job.id) }}"
+     hx-trigger="every 2s" hx-swap="outerHTML"
+     {% endif %}
+     role="status" aria-live="polite">
+  <div class="d-flex justify-content-between align-items-center gap-2">
+    <strong>
+      {% if job.is_running %}
+        <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span> Synchronisation en cours…
+      {% elif job.status == 'done' %}✓ Synchronisation terminée
+      {% else %}✗ Échec de la synchronisation{% endif %}
+    </strong>
+    <small class="text-muted">{{ (job.finished_at or job.started_at) | local_dt }}</small>
+  </div>
+  {% if job.is_running %}
+    <div>{{ job.message or '' }}</div>
+  {% elif job.status == 'done' and job.result_json %}
+    {% set r = job.result_json | from_json %}
+    <div>
+      {{ r.get('created', 0) }} nouvelle(s), {{ r.get('updated', 0) }} mise(s) à jour,
+      {{ r.get('reversed', 0) }} annulée(s) sur {{ r.get('read', 0) }} lue(s).
+      {% if r.get('rules_matched') %}Règles : {{ r.rules_matched }} catégorisée(s), {{ r.get('rules_posted', 0) }} écriture(s).{% endif %}
+    </div>
+    {% if r.get('reversed_reconciled') %}
+      <div class="text-danger">{{ r.reversed_reconciled }} transaction(s) annulée(s) par Qonto étai(en)t déjà rapprochée(s) : à revoir.</div>
+    {% endif %}
+    {% for e in r.get('errors', [])[:5] %}<div class="text-danger">{{ e }}</div>{% endfor %}
+    {% if job.finished_at and r.get('created') %}
+      <a href="{{ url_for('bank_accounts.transactions', ba_id=ba.id) }}">Afficher les nouvelles transactions</a>
+    {% endif %}
+  {% else %}
+    <div>{{ job.message }}</div>
+  {% endif %}
+</div>
