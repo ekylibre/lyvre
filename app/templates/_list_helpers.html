@@ -1,7 +1,24 @@
 {# Macros partagées pour les listes : en-tête triable + sélecteur de mois.
    - sortable_date_header(label, current_sort, endpoint, extra_args={}, sort_arg='sort')
    - month_filter_select(name, options, selected)
+   - hx_nav(target)    : attributs HTMX de navigation sans rechargement
+   - hx_filter(target) : attributs d'un formulaire de filtre GET appliqué à chaque changement
+
+   Navigation HTMX : la requête renvoie la page complète, HTMX n'en extrait que
+   la zone ``target`` (``hx-select``) et met l'URL à jour (F5 / Précédent OK).
+   Cible par défaut : ``#page-content`` (le <main> de base.html). Pour une
+   recherche au fil de la frappe, cibler une zone de résultats (ex. ``#list``)
+   qui n'inclut pas le champ saisi, afin de ne pas l'écraser pendant la frappe.
 #}
+
+{% macro hx_nav(target='#page-content') -%}
+hx-target="{{ target }}" hx-select="{{ target }}" hx-swap="outerHTML show:none" hx-push-url="true"
+{%- endmacro %}
+
+
+{% macro hx_filter(target='#page-content', url=None, search=False) -%}
+hx-get="{{ url or request.path }}" hx-trigger="change, submit{% if search %}, input changed delay:300ms from:find input[type=search]{% endif %}" {{ hx_nav(target) }}
+{%- endmacro %}
 
 {% macro sortable_date_header(label, current_sort, endpoint, extra_args=None, sort_arg='sort') -%}
   {%- set extra_args = extra_args or {} -%}
@@ -12,7 +29,7 @@
     {%- set _ = args.update({k: v}) -%}
   {%- endfor -%}
   {%- set _ = args.update({sort_arg: next_sort}) -%}
-  <a href="{{ url_for(endpoint, **args) }}"
+  <a href="{{ url_for(endpoint, **args) }}" hx-get="{{ url_for(endpoint, **args) }}" {{ hx_nav() }}
      class="text-decoration-none text-reset d-inline-flex align-items-center gap-1"
      title="Trier par date">
     {{ label }}

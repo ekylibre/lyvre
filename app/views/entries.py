@@ -17,6 +17,7 @@ bp = Blueprint("entries", __name__, url_prefix="/entries")
 def index():
     fy_id = request.args.get("fy_id", type=int)
     journal_id = request.args.get("journal_id", type=int)
+    q = (request.args.get("q") or "").strip()
     sort = parse_sort(request.args.get("sort"))
     month_arg = request.args.get("month")
     month_tuple = parse_month(month_arg)
@@ -33,6 +34,12 @@ def index():
         query = query.filter_by(fiscal_year_id=fy_id)
     if journal_id:
         query = query.filter_by(journal_id=journal_id)
+    if q:
+        like = f"%{q}%"
+        query = query.filter(db.or_(
+            JournalEntry.reference.ilike(like),
+            JournalEntry.description.ilike(like),
+        ))
     query = apply_month_filter(query, JournalEntry.entry_date, month_tuple)
     query = apply_date_sort(query, JournalEntry.entry_date, sort)
     entries = query.order_by(JournalEntry.id.desc()).all()
@@ -44,6 +51,7 @@ def index():
         journals=journals,
         selected_fy_id=fy_id,
         selected_journal_id=journal_id,
+        q=q,
         **sort_and_filter_context(sort, month_arg),
     )
 

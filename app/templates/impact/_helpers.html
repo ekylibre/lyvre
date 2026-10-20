@@ -1,4 +1,5 @@
 {# Macros partagées du dashboard Visibilité & Impact (dashboard + rapport). #}
+{% from "_list_helpers.html" import hx_filter %}
 
 {% macro sparkline(points, width=90, height=24) -%}
   {%- set vals = points | select('ne', None) | list -%}
@@ -63,10 +64,10 @@
 {%- endmacro %}
 
 {% macro period_filter(endpoint, gran, month_options, current_month, current_quarter, current_year, current_start, current_end, year_options=None) -%}
-  <form method="get" action="{{ url_for(endpoint) }}" class="row g-2 align-items-end">
+  <form method="get" action="{{ url_for(endpoint) }}" class="row g-2 align-items-end" {{ hx_filter(url=url_for(endpoint)) }}>
     <div class="col-auto">
       <label class="form-label small text-muted mb-1">Granularité</label>
-      <select name="gran" class="form-select form-select-sm" onchange="this.form.submit()">
+      <select name="gran" class="form-select form-select-sm">
         <option value="month" {{ 'selected' if gran == 'month' }}>Mois</option>
         <option value="quarter" {{ 'selected' if gran == 'quarter' }}>Trimestre</option>
         <option value="year" {{ 'selected' if gran == 'year' }}>Année</option>

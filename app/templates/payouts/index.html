@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_list_helpers.html" import sortable_date_header, month_filter_select %}
+{% from "_list_helpers.html" import sortable_date_header, month_filter_select, hx_filter %}
 {% block title %}Versements Stancer{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -29,7 +29,7 @@
   {% endif %}
 </div>{# /sync-status-zone #}
 
-<form method="get" class="row g-2 mb-3 align-items-end">
+<form method="get" class="row g-2 mb-3 align-items-end" {{ hx_filter() }}>
   <input type="hidden" name="sort" value="{{ current_sort }}">
   <div class="col-md-3">
     <label class="form-label small mb-0">Mois</label>

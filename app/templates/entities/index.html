@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_list_helpers.html" import hx_filter %}
 {% block title %}Entités{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -25,6 +26,14 @@
 </div>
 {% endif %}
 
+<form method="get" class="row g-2 mb-3" role="search" {{ hx_filter('#list', search=True) }}>
+  <div class="col-md-5">
+    <input type="search" name="q" value="{{ q }}" class="form-control form-control-sm"
+           placeholder="Nom ou email…" aria-label="Rechercher une entité">
+  </div>
+</form>
+
+<div id="list">
 {% if entities %}
 <table class="table table-sm table-hover align-middle">
   <thead class="table-light">
@@ -81,7 +90,10 @@
   </tbody>
 </table>
 <div class="text-muted small">{{ entities | length }} entité(s).</div>
+{% elif q %}
+<p class="text-muted">Aucune entité ne correspond à « {{ q }} ».</p>
 {% else %}
 <p class="text-muted">Aucune entité. <a href="{{ url_for('entities.new') }}">Créer la première.</a></p>
 {% endif %}
+</div>
 {% endblock %}

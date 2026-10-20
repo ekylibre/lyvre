@@ -1,13 +1,14 @@
 {% extends "base.html" %}
+{% from "_list_helpers.html" import hx_filter %}
 {% block title %}Tableau de bord{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h2 class="mb-0">Tableau de bord</h2>
   {% if fiscal_years %}
-  <form method="get" class="d-flex align-items-center gap-2">
+  <form method="get" class="d-flex align-items-center gap-2" {{ hx_filter() }}>
     <label for="fy_id" class="form-label mb-0 small text-muted">Exercice<label>
     <select name="fy_id" id="fy_id" class="form-select form-select-sm"
-            onchange="this.form.submit()" style="min-width: 12rem;">
+            style="min-width: 12rem;">
       {% for fy in fiscal_years %}
         <option value="{{ fy.id }}"
           {% if active_fy and active_fy.id == fy.id %}selected{% endif %}>
@@ -129,14 +130,23 @@
     { id: 'chart-ventes',   opt: charts.ventes },
     { id: 'chart-solde',    opt: charts.solde },
   ];
-  const instances = targets.map(({ id, opt }) => {
-    const el = document.getElementById(id);
-    if (!el) return null;
-    const inst = echarts.init(el);
-    inst.setOption(patch(opt));
-    return inst;
-  });
-  window.addEventListener('resize', () => instances.forEach((i) => i && i.resize()));
+
+  function init() {
+    const instances = targets.map(({ id, opt }) => {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const inst = echarts.init(el);
+      inst.setOption(patch(opt));
+      return inst;
+    });
+    window.addEventListener('resize', () => instances.forEach(
+      (i) => i && !i.isDisposed() && i.getDom().isConnected && i.resize()));
+  }
+
+  // Après un remplacement HTMX (changement d'exercice), le script ECharts peut
+  // être encore en cours de chargement : attendre son événement load.
+  if (window.echarts) init();
+  else document.querySelector('script[src*="echarts"]').addEventListener('load', init, { once: true });
 })();
 </script>
 {% endif %}

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_list_helpers.html" import hx_filter %}
 {% block title %}Rapport d'activité{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/report.css') }}">
@@ -9,10 +10,10 @@
     <small class="text-muted">{% if fy %}Exercice {{ fy.label }}{% else %}Aucun exercice{% endif %}</small>
   </div>
   <div class="d-flex gap-2 align-items-end">
-    <form method="get" class="d-flex gap-2 align-items-end">
+    <form method="get" class="d-flex gap-2 align-items-end" {{ hx_filter() }}>
       <div>
         <label class="form-label small text-muted mb-1">Exercice</label>
-        <select name="fy_id" class="form-select form-select-sm" onchange="this.form.submit()">
+        <select name="fy_id" class="form-select form-select-sm">
           {% for f in fiscal_years %}
             <option value="{{ f.id }}" {{ 'selected' if fy and f.id == fy.id }}>{{ f.label }}</option>
           {% endfor %}

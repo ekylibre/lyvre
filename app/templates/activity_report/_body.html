@@ -166,15 +166,22 @@
 <script>
 (function () {
   const charts = {{ view.charts | tojson }};
-  const instances = [];
-  Object.keys(charts).forEach(function (id) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const inst = echarts.init(el);
-    inst.setOption(charts[id]);
-    instances.push(inst);
-  });
-  window.addEventListener('resize', function () { instances.forEach(function (i) { i.resize(); }); });
+  function init() {
+    const instances = [];
+    Object.keys(charts).forEach(function (id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const inst = echarts.init(el);
+      inst.setOption(charts[id]);
+      instances.push(inst);
+    });
+    window.addEventListener('resize', function () {
+      instances.forEach(function (i) { if (!i.isDisposed() && i.getDom().isConnected) i.resize(); });
+    });
+  }
+  // Après un remplacement HTMX, ECharts peut être encore en cours de chargement.
+  if (window.echarts) init();
+  else document.querySelector('script[src*="echarts"]').addEventListener('load', init, { once: true });
 })();
 </script>
 {% endif %}

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_list_helpers.html" import hx_filter %}
 {% block title %}Compte de résultat{% endblock %}
 
 {% macro row(label, n_val, p_val, indent=0) %}
@@ -39,9 +40,9 @@
   </div>
 </div>
 
-<form class="row g-2 mb-3 no-print">
+<form class="row g-2 mb-3 no-print" {{ hx_filter() }}>
   <div class="col-md-3">
-    <select name="fy_id" class="form-select form-select-sm" onchange="this.form.submit()">
+    <select name="fy_id" class="form-select form-select-sm">
       {% for f in fiscal_years %}
         <option value="{{ f.id }}" {{ 'selected' if fy and f.id == fy.id }}>{{ f.label }}</option>
       {% endfor %}

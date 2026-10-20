@@ -73,12 +73,12 @@ def _member_rows(args):
 @bp.route("/")
 @login_required
 def index():
-    entities = (
-        Entity.query
-        .filter(Entity.entity_type != "ADHERENT")
-        .order_by(Entity.name)
-        .all()
-    )
+    q = (request.args.get("q") or "").strip()
+    query = Entity.query.filter(Entity.entity_type != "ADHERENT")
+    if q:
+        like = f"%{q}%"
+        query = query.filter(db.or_(Entity.name.ilike(like), Entity.email.ilike(like)))
+    entities = query.order_by(Entity.name).all()
     # Date de la dernière commande HelloAsso avec au moins un item Membership,
     # par tiers — une seule requête agrégée pour éviter le N+1.
     rows = (
@@ -116,6 +116,7 @@ def index():
     return render_template(
         "entities/index.html",
         entities=entities,
+        q=q,
         entity_types=dict(ENTITY_TYPES),
         helloasso_configured=_helloasso_configured(),
         last_membership_by_entity=last_membership_by_entity,

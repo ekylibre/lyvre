@@ -75,6 +75,9 @@ def create_app(config_name=None):
     _register_template_filters(app)
     _register_context_processors(app)
 
+    from .frontend import register_htmx_hooks
+    register_htmx_hooks(app)
+
     return app
 
 

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_list_helpers.html" import hx_filter %}
 {% block title %}Grand livre{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -6,9 +7,9 @@
   <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">Imprimer</button>
 </div>
 
-<form class="row g-2 mb-3">
+<form class="row g-2 mb-3" {{ hx_filter() }}>
   <div class="col-md-3">
-    <select name="fy_id" class="form-select form-select-sm" onchange="this.form.submit()">
+    <select name="fy_id" class="form-select form-select-sm">
       {% for f in fiscal_years %}
         <option value="{{ f.id }}" {{ 'selected' if fy and f.id == fy.id }}>{{ f.label }}</option>
       {% endfor %}

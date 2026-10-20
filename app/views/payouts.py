@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, abort
+from app.frontend import is_htmx
 from flask_login import login_required
 
 from app.models import Payout, Payment, SyncJob
@@ -66,7 +67,7 @@ def sync():
     """Démarre la sync globale en arrière-plan et renvoie un fragment HTMX
     qui s'auto-rafraîchit. En non-HTMX, redirige vers la liste."""
     job = stancer_async.start_sync_payouts(current_app._get_current_object())
-    if request_is_htmx():
+    if is_htmx():
         return render_template("payouts/_sync_status.html", job=job)
     flash("Synchronisation lancée en arrière-plan.", "info")
     return redirect(url_for("payouts.index"))
@@ -79,7 +80,7 @@ def sync_payments_route(payout_id):
     job = stancer_async.start_sync_payments_for_payout(
         current_app._get_current_object(), payout.id,
     )
-    if request_is_htmx():
+    if is_htmx():
         return render_template("payouts/_sync_status.html", job=job)
     flash("Synchronisation des paiements lancée en arrière-plan.", "info")
     return redirect(url_for("payouts.detail", payout_id=payout.id))
@@ -93,8 +94,3 @@ def sync_status(job_id):
     if job is None:
         abort(404)
     return render_template("payouts/_sync_status.html", job=job)
-
-
-def request_is_htmx():
-    from flask import request
-    return request.headers.get("HX-Request") == "true"

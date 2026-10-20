@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_list_helpers.html" import sortable_date_header, month_filter_select %}
+{% from "_list_helpers.html" import sortable_date_header, month_filter_select, hx_filter %}
 {% block title %}Transactions — {{ ba.label }}{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-start mb-3">
@@ -30,7 +30,7 @@
   </a>
 </div>
 
-<form method="get" class="row g-2 mb-3 align-items-end">
+<form method="get" class="row g-2 mb-3 align-items-end" {{ hx_filter() }}>
   {% if only_unreconciled %}<input type="hidden" name="unreconciled" value="1">{% endif %}
   <input type="hidden" name="sort" value="{{ current_sort }}">
   <div class="col-md-3">
