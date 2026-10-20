@@ -76,9 +76,13 @@ Tant que les 4 variables `ODOO_*` ne sont pas définies (et qu'aucune valeur n'e
 # Créer les tables comptables dans instance/seconde-nature.db
 FLASK_APP=run.py flask db upgrade
 
-# Charger le plan comptable (783 comptes) et les journaux par défaut
-python seed_accounts.py
+# Charger le plan comptable et les journaux par défaut
+python seed_accounts.py          # plan associatif (783 comptes) — défaut
+# python seed_accounts.py sci    # plan SCI (576 comptes)
 ```
+
+L'argument choisit le référentiel : `asso` (`data/plan_comptable_asso.json`) ou
+`sci` (`data/plan_comptable_sci.json`, généré depuis `doc/plan-comptable-SCI.pdf`).
 
 La sortie attendue :
 
@@ -130,7 +134,10 @@ Depuis l'UI, un admin peut créer d'autres instances via le menu **Utilisateur �
 
 1. Crée le fichier SQLite `instance/tenants/<slug>.db`
 2. Applique les migrations du schéma comptable
-3. Charge les 783 comptes PCA + 6 journaux
+3. Charge le plan comptable choisi dans le formulaire (**Association** : 783 comptes, **SCI** : 576 comptes) + 6 journaux
+
+Le plan comptable est mémorisé sur l'instance (`Instance.chart`) et adapte les menus et la
+présentation du Bilan / Compte de résultat (voir [multi_tenant.md](multi_tenant.md#plan-comptable-de-linstance)).
 
 En mode "Manuel", l'admin fournit lui-même une URL (utile pour Postgres ou base préexistante).
 

@@ -97,10 +97,13 @@ Hérite de `flask_login.UserMixin`. Méthodes `set_password(p)` / `check_passwor
 | `slug` | String(50) UNIQUE NOT NULL | Identifiant URL-safe, sert de nom de fichier SQLite (`tenants/<slug>.db`) |
 | `label` | String(200) NOT NULL | Nom affiché (ex : « Seconde Nature ») |
 | `database_url` | String(500) NOT NULL | URL SQLAlchemy de la base tenant (SQLite relatif au dossier `instance/`, ou Postgres) |
+| `chart` | String(20) NOT NULL default=`asso` | Plan comptable de l'instance : `asso` (associations) ou `sci` (SCI). Choisi à la création, non modifiable ensuite ; pilote le référentiel chargé, les menus et la présentation du Bilan / Compte de résultat |
 | `is_active` | Boolean default=True | Faux = retirée du sélecteur d'instance ; sortie de session forcée si elle était choisie |
 | `created_at` | DateTime default=utcnow | |
 
-`slug` et `database_url` sont **immuables** en UI après création (édition `label` + `is_active` uniquement). Cette contrainte évite les fuites du cache d'engines (`app/tenant.py:_ENGINE_CACHE`).
+`slug`, `database_url` et `chart` sont **immuables** en UI après création (édition `label` + `is_active` uniquement). Cette contrainte évite les fuites du cache d'engines (`app/tenant.py:_ENGINE_CACHE`).
+
+La méta-base n'étant pas gérée par Alembic, `seed_meta.py` ajoute la colonne `chart` aux bases existantes (`ALTER TABLE` idempotent, valeur `asso`).
 
 ---
 

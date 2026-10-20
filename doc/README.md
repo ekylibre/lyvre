@@ -1,6 +1,6 @@
 # Compta Asso — Documentation
 
-Application web de comptabilité pour associations loi 1901, conforme au Plan Comptable Associatif (PCA 1999).
+Application web de comptabilité pour associations loi 1901 (plan comptable des associations) et SCI (plan comptable général adapté aux SCI). Le plan comptable est choisi par instance.
 
 ## Sommaire
 
@@ -15,16 +15,17 @@ Application web de comptabilité pour associations loi 1901, conforme au Plan Co
 | [Routes](routes.md) | Référence complète de toutes les URLs |
 | [Services](services.md) | Logique métier : comptabilité, imports, rapprochement |
 | [Imports](imports.md) | Guide import OFX (banque) et CSV Odoo |
-| [États financiers](reports.md) | Balance, grand livre, Bilan, Compte de résultat |
+| [États financiers](reports.md) | Balance, grand livre, Bilan, Compte de résultat (asso / SCI) |
 
 ## Fonctionnalités
 
-- **Plan comptable** — 783 comptes du PCA chargés, arborescence hiérarchique, recherche instantanée
+- **Plan comptable** — choisi à la création de l'instance : **association** (783 comptes du PCA) ou **SCI** (576 comptes, dont les sous-comptes des lignes de la déclaration 2072) ; arborescence hiérarchique, recherche instantanée
+- **Menus par plan comptable** — navigation déclarée dans `app/menu_config.py` ; les menus propres aux associations (adhérents, bénévolat, Stancer, Odoo, indicateurs) sont masqués pour une SCI
 - **Saisie comptable** — Écritures en partie double, validation débit = crédit, génération automatique des références
 - **Import bancaire** — Fichiers OFX/QFX (banques françaises), déduplication automatique par FITID
 - **Import Odoo** — CSV de lignes de facturation, table de staging avant comptabilisation
 - **Rapprochement bancaire** — Suggestions automatiques par montant/date, rapprochement en un clic
-- **États financiers** — Balance, grand livre, Bilan et Compte de résultat au format PCA avec comparaison N/N-1
+- **États financiers** — Balance, grand livre, Bilan et Compte de résultat au format du plan de l'instance (associatif ou SCI) avec comparaison N/N-1 ; chaque compte compté une seule fois, tiers ventilés selon le sens du solde, bilan équilibré avant comme après clôture
 - **Clôture d'exercice** — Verrouillage des écritures (obligation légale française)
 - **Entités** — Répertoire de tiers (clients, fournisseurs, salariés, organismes) liés aux transactions bancaires
 - **Moteur de règles** — Fichier YAML de règles pour catégoriser automatiquement les transactions importées et générer les écritures comptables associées (charges 6xx / produits 7xx)
@@ -36,7 +37,7 @@ Application web de comptabilité pour associations loi 1901, conforme au Plan Co
 - **Tri & filtre temporel** — Sur les 8 listes datées (écritures, transactions, versements, paiements, commandes POS, factures clients, rapprochement, lot Odoo) : clic sur l'en-tête `Date` pour basculer asc/desc (avec indicateur ▲/▼) et filtre par mois (dropdown alimenté par les 12 mois de l'exercice courant).
 - **Indicateurs — Visibilité & Impact** (`/impact`) — Tableau de bord 4 dimensions (visibilité, environnemental, social, économique). L'**impact environnemental** (CO₂ évité, poids réemployé, taux de réemploi) est calculé à partir des **tonnages déclarés aux éco-organismes** (`eco_declarations`). Connecteurs GA4 / Facebook + saisie manuelle.
 - **Indicateurs — Rapport d'activité** (`/rapport-activite`) — Rapport annuel mis en page (identité Seconde Nature), blocs narratifs éditables en **WYSIWYG (Quill)**, photos, tonnages éco-organismes (import `.xlsx`), étiquette ADEME `impactco2.fr`. Exports **PDF** (weasyprint), **HTML** autonome, **DOCX** et **ODT** (LibreOffice headless) avec styles.
-- **Exports** — CSV (séparateur `;`, UTF-8 BOM, virgule décimale) et ODS (OpenDocument avec formules `=SUM`, références de cellules et styles) pour le compte de résultat ; impression PDF stylisée pour tous les états
+- **Exports** — CSV (séparateur `;`, UTF-8 BOM, virgule décimale) et ODS (OpenDocument avec formules de totaux, références de cellules et styles) pour le compte de résultat ; impression PDF stylisée pour tous les états
 
 ## Démarrage rapide
 

@@ -6,12 +6,15 @@
 compta-asso/
 │
 ├── run.py                        # Point d'entrée : charge .env, crée l'app Flask
-├── seed_accounts.py              # Script one-shot : charge PCA + journaux en base
+├── seed_accounts.py              # Script one-shot : charge le plan comptable (asso|sci) + journaux
+├── seed_meta.py                  # Méta-base : admin, instance par défaut, migration instances.chart
 ├── requirements.txt
 ├── .env                          # Variables d'environnement (gitignorée)
 │
 ├── app/
-│   ├── __init__.py               # App factory : create_app(), filtres Jinja2
+│   ├── __init__.py               # App factory : create_app(), filtres Jinja2, menus (nav_menus)
+│   ├── menu_config.py            # Menus de navigation par plan comptable (MENUS, build_nav)
+│   ├── tenant.py                 # Routage multi-tenant, current_instance(), current_chart()
 │   ├── config.py                 # Classes de configuration (Dev / Prod)
 │   ├── extensions.py             # Singletons : db, migrate, login_manager, csrf
 │   │
@@ -57,7 +60,8 @@ compta-asso/
 │   │
 │   ├── services/                 # Logique métier (sans dépendance Flask)
 │   │   ├── ledger.py             # Moteur comptable : validation, saisie, soldes
-│   │   ├── reports.py            # Calcul Bilan et Compte de résultat
+│   │   ├── reports.py            # Bilan et Compte de résultat par plan comptable (asso|sci)
+│   │   ├── instance_provisioning.py  # Création des bases d'instance (migrations + plan comptable)
 │   │   ├── reconciler.py         # Rapprochement bancaire
 │   │   ├── ofx_importer.py       # Import fichiers OFX
 │   │   ├── odoo_importer.py      # Import CSV Odoo (staging)
@@ -76,7 +80,7 @@ compta-asso/
 │   │   └── list_filters.py       # Parse sort/month, calcule les options de mois pour le FY courant
 │   │
 │   ├── templates/                # Templates Jinja2
-│   │   ├── base.html             # Layout principal (nav, Bootstrap, HTMX)
+│   │   ├── base.html             # Layout principal (nav générée depuis menu_config, Bootstrap, HTMX)
 │   │   ├── _list_helpers.html    # Macros partagées : sortable_date_header, month_filter_select
 │   │   ├── auth/
 │   │   ├── dashboard/
@@ -99,6 +103,7 @@ compta-asso/
 │
 ├── data/
 │   ├── plan_comptable_asso.json  # 783 comptes PCA (source : fichier XLS)
+│   ├── plan_comptable_sci.json   # 576 comptes SCI (source : doc/plan-comptable-SCI.pdf)
 │   └── rules.yml                 # Règles de catégorisation (éditable sans redémarrage)
 │
 ├── migrations/                   # Migrations Alembic (versioning schéma)

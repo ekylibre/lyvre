@@ -113,10 +113,34 @@ Le service `app/services/instance_provisioning.py` :
 3. Crée `instance/tenants/` si besoin.
 4. Refuse de continuer si le fichier existe déjà avec du contenu.
 5. Lance `flask db upgrade` dans un subprocess avec `DATABASE_URL` surchargé.
-6. Lance `python seed_accounts.py` dans un subprocess.
+6. Lance `python seed_accounts.py <chart>` dans un subprocess (plan comptable choisi dans le formulaire).
 
 Coût : ~3-5 secondes pour 1 instance neuve. Subprocess isolé pour ne pas
 perturber l'état Flask-Migrate de l'app principale.
+
+### Plan comptable de l'instance
+
+Le formulaire de création propose un **plan comptable** (`chart`), mémorisé dans
+`instances.chart` et non modifiable ensuite :
+
+| Valeur | Référentiel | Usage |
+|--------|-------------|-------|
+| `asso` (défaut) | `data/plan_comptable_asso.json` — 783 comptes | Association loi 1901 |
+| `sci` | `data/plan_comptable_sci.json` — 576 comptes | Société civile immobilière |
+
+Le plan comptable de l'instance courante (`app.tenant.current_chart()`) pilote :
+
+- **le référentiel chargé** au provisioning automatique (`seed_accounts.py <chart>`) ;
+- **les menus** : `app/menu_config.py` déclare tous les menus et sous-menus avec la liste des
+  plans pour lesquels ils apparaissent (`charts`). Les fonctionnalités propres aux associations
+  (Adhérents, Temps de travaux, Versements Stancer, menus Odoo et Indicateurs, Import de
+  tonnages) sont masquées pour une SCI. `build_nav(chart, is_admin)` filtre aussi par droits
+  admin et masque les menus déroulants vides ; le résultat est injecté dans `base.html`
+  (variable `nav_menus`) ;
+- **le Bilan et le Compte de résultat** (voir [reports.md](reports.md)).
+
+En mode manuel, le plan est mémorisé mais aucun compte n'est chargé : l'admin lance
+lui-même `seed_accounts.py <chart>` sur la base.
 
 ### Mode "Manuel"
 

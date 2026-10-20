@@ -120,87 +120,82 @@ for row in rows:
 
 ## reports.py — États financiers
 
-Ce module calcule les agrégats du Bilan et du Compte de résultat en regroupant les comptes par **préfixe de code**.
+Ce module calcule le Bilan et le Compte de résultat **selon le plan comptable de l'instance**
+(`asso` ou `sci`, voir `app.tenant.current_chart()`), en regroupant les comptes par **préfixe de code**.
+Le détail des rubriques et des comptes est dans [reports.md](reports.md).
 
-### Principe
+### Primitives
 
 ```python
-# "Tous les comptes dont le code commence par '211'"
-_net(["211"], fiscal_year_id)   # → débit - crédit = solde net
-_net_credit(["756"], fy_id)     # → crédit - débit (comptes de produits)
+_net(["211"], fy_id)                      # débit - crédit
+_net_credit(["756"], fy_id)               # crédit - débit (comptes de produits)
+_net(["60", "61", "62"], fy_id, exclude=["603", "607"])   # préfixes avec exclusions
+_amount("debit_only", ["41"], fy_id)      # somme des comptes à solde débiteur (actif)
+_amount("credit_only", ["40"], fy_id)     # somme des comptes à solde créditeur (passif)
 ```
 
-Les lignes du Bilan et du CdR correspondent exactement aux rubriques du fichier XLS de référence `Modele-document-Nouveau-Plan-comptable-Bilan-CDR.xls`.
+`_amount(mode, prefixes, fy_id, exclude=None)` accepte les modes `debit`, `credit`,
+`debit_only` et `credit_only` ; les deux derniers ventilent les comptes de tiers et de
+trésorerie **compte par compte** selon le sens de leur solde.
+
+### Mises en page déclaratives
+
+| Constante | Contenu |
+|-----------|---------|
+| `BILAN_LAYOUTS[chart]["actif" \| "passif"]` | Lignes `("section", libellé)`, `("row", libellé, préfixes, indentation[, mode[, exclusions]])`, `("total", libellé)` |
+| `CDR_SECTIONS[chart]` | `(section, sens, [(clé, libellé, préfixes, exclusions), …])` — `ASSO_CDR_SECTIONS`, `SCI_CDR_SECTIONS` |
+| `PARTICIPATION`, `IMPOTS_BENEFICES` | `691` et `69 sauf 691`, communs aux deux plans |
+
+Les préfixes sont **disjoints** : chaque compte des référentiels `data/plan_comptable_{asso,sci}.json`
+est compté une seule fois (tests de couverture dans `tests/test_reports_charts.py`).
+Pour ajouter ou corriger une rubrique, il suffit d'éditer ces constantes.
 
 ---
 
-### `build_bilan(fy, fy_prev=None) → dict`
-
-Construit la structure du bilan actif/passif.
+### `build_bilan(fy, fy_prev=None, chart="asso") → dict`
 
 ```python
-data = build_bilan(fy, fy_prev)
-
-# Structure retournée :
-data["actif"]["disponibilites"]         # → (net_N_cents, net_N1_cents)
-data["passif"]["excedent_deficit"]      # → (net_N_cents, net_N1_cents)
+data = build_bilan(fy, fy_prev, chart)
+data["actif"]    # → [ {"kind": "section", "label": …},
+                 #     {"kind": "row", "label": …, "indent": 1, "n": cents, "p": cents|None},
+                 #     {"kind": "total", "label": "TOTAL ACTIF", "n": …, "p": …} ]
+data["passif"]   # idem, se termine par "TOTAL PASSIF"
 ```
 
-Chaque valeur est un tuple `(valeur_exercice_N, valeur_exercice_N1)`. La valeur N-1 est `None` si `fy_prev` n'est pas fourni.
-
-**Rubriques de l'actif :**
-- Immobilisations incorporelles (201, 203, 204, 205, 232, 237)
-- Immobilisations corporelles (211, 213-214, 215, 231, 238)
-- Biens reçus par legs ou donations (24x)
-- Immobilisations financières (261, 267, 271, 272, 274, 275, 276)
-- Stocks (31x–37x)
-- Créances clients (411, 413, 416, 418)
-- Créances reçues par legs (461)
-- Autres créances (40x, 42x–47x)
-- Valeurs mobilières de placement (50x)
-- Disponibilités (51x, 53x, 54x)
-- Charges constatées d'avance (486)
-
-**Rubriques du passif :**
-- Fonds propres sans/avec droit de reprise (102x, 103x)
-- Réserves, report à nouveau, résultat (106x, 110, 115, 119, 120, 129)
-- Fonds propres consomptibles (108x)
-- Subventions d'investissement (131, 138, 139)
-- **Fonds reportés et dédiés** (191–196) ← spécifique associations
-- Provisions (15x)
-- Dettes (163–168, 401–408, 43x, 44x, 46x, 47x)
+`p` vaut `None` sans exercice N-1. Le résultat de l'exercice au passif agrège
+`12 + classes 6/7` : le bilan est équilibré avant comme après clôture.
 
 ---
 
-### `build_compte_resultat(fy, fy_prev=None) → dict`
-
-Construit la structure du compte de résultat.
+### `build_compte_resultat(fy, fy_prev=None, chart="asso") → dict`
 
 ```python
-data = build_compte_resultat(fy, fy_prev)
-
-# Accès aux valeurs :
-data["produits_exploitation"]["cotisations"]          # (N_cents, N1_cents)
-data["charges_exploitation"]["salaires_traitements"]  # (N_cents, N1_cents)
-data["contributions_produits"]["benevolat"]           # (N_cents, N1_cents)
+data = build_compte_resultat(fy, fy_prev, chart)
+data["produits_exploitation"]["cotisations"]     # (N_cents, N1_cents)  — asso
+data["produits_exploitation"]["loyers"]          # (N_cents, N1_cents)  — sci
+data["participation_salaries"]                   # (N_cents, N1_cents)
 ```
 
-**Sections :**
+Les clés de premier niveau sont **les mêmes pour les deux plans** (le tableau de bord
+s'en sert quel que soit le plan) :
 
 | Clé | Contenu |
 |-----|---------|
-| `produits_exploitation` | Cotisations, ventes, subventions, générosité du public, fonds dédiés |
-| `charges_exploitation` | Achats, personnel, dotations, reports en fonds dédiés |
-| `produits_financiers` | Participations, intérêts, cessions VMP |
-| `charges_financieres` | Intérêts, pertes de change |
-| `produits_exceptionnels` | Opérations de gestion et en capital |
-| `charges_exceptionnelles` | Opérations de gestion et en capital |
-| `contributions_produits` | **Dons en nature, prestations, bénévolat (classe 87)** |
-| `contributions_charges` | **Secours, mise à disposition, personnel bénévole (classe 86)** |
-| `participation_salaries` | Participation des salariés (691) |
-| `impots_benefices` | Impôts sur les sociétés (695, 696, 699) |
+| `produits_exploitation` / `charges_exploitation` | Rubriques d'exploitation du plan |
+| `produits_financiers` / `charges_financieres` | Rubriques financières |
+| `produits_exceptionnels` / `charges_exceptionnelles` | Opérations de gestion, en capital, reprises / dotations |
+| `contributions_produits` / `contributions_charges` | Classes 87 / 86 (asso) ; dictionnaires vides pour une SCI |
+| `participation_salaries` | 691 |
+| `impots_benefices` | 69 sauf 691 |
 
-Les contributions volontaires en nature (classes 86/87) sont affichées séparément après le résultat, conformément au modèle PCA.
+`section_total(section) → (N, N-1)` additionne une section en **excluant les lignes `dont_*`**.
+
+### `compte_resultat_rows(data, chart="asso")`
+
+Génère la liste à plat `(kind, libellé, N, N-1)` — `kind` ∈ `section`, `subhead`, `row`,
+`total`, `result` — utilisée par la page HTML, l'export CSV et l'export ODS. Les espaces en
+tête de libellé donnent l'indentation (2 espaces par niveau). La ligne finale est
+`EXCÉDENT` / `DÉFICIT` (asso) ou `BÉNÉFICE` / `PERTE` (sci).
 
 ---
 

@@ -115,13 +115,14 @@ Les valeurs sont stockées dans `external_connections` de la base **tenant** (do
 | `label` | oui | Libellé affiché |
 | `provisioning_mode` | oui | `auto` (crée le SQLite local + migrations + seed) ou `manual` (URL fournie) |
 | `database_url` | oui en mode manuel | URL SQLAlchemy (SQLite ou Postgres) pointant sur une base **déjà** prête |
+| `chart` | non (défaut `asso`) | Plan comptable : `asso` (associations) ou `sci` (SCI). Mémorisé sur l'instance ; en mode `auto`, détermine le référentiel chargé |
 
 En mode `auto`, le service `instance_provisioning.provision_sqlite_database` exécute :
 
 1. Validation du slug
 2. Refus si `instance/tenants/<slug>.db` existe déjà avec du contenu
 3. `flask db upgrade` (subprocess, `DATABASE_URL` surchargé)
-4. `python seed_accounts.py` (subprocess) — charge les 783 comptes PCA + 6 journaux
+4. `python seed_accounts.py <chart>` (subprocess) — charge le plan comptable choisi (783 comptes asso ou 576 comptes SCI) + 6 journaux
 
 Voir [doc/multi_tenant.md](multi_tenant.md) pour le détail de l'architecture.
 
@@ -458,10 +459,10 @@ Tous les rapports acceptent le paramètre `?fy_id=` pour sélectionner l'exercic
 |---------|-----|-------------|
 | GET | `/reports/balance` | Balance des comptes (tous les comptes avec mouvements) |
 | GET | `/reports/grand-livre` | Grand livre d'un compte. Paramètre supplémentaire : `?account_id=` |
-| GET | `/reports/bilan` | Bilan actif/passif, comparaison N / N-1 |
-| GET | `/reports/compte-de-resultat` | Compte de résultat, comparaison N / N-1 |
+| GET | `/reports/bilan` | Bilan actif/passif selon le plan comptable de l'instance, comparaison N / N-1 |
+| GET | `/reports/compte-de-resultat` | Compte de résultat selon le plan comptable de l'instance, comparaison N / N-1 |
 | GET | `/reports/compte-de-resultat.csv` | Export CSV (séparateur `;`, UTF-8 BOM, virgule décimale) du compte de résultat |
-| GET | `/reports/compte-de-resultat.ods` | Export ODS (OpenDocument Spreadsheet) avec formules `=SUM`, `[.B<row>]`, styles et format monétaire |
+| GET | `/reports/compte-de-resultat.ods` | Export ODS (OpenDocument Spreadsheet) avec formules de totaux (somme des cellules, lignes « dont » exclues), références `[.B<row>]`, styles et format monétaire |
 
 Tous les rapports disposent d'un bouton "Imprimer" qui déclenche `window.print()` avec les éléments de navigation masqués (CSS `@media print`).
 
