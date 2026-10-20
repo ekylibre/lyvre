@@ -51,8 +51,9 @@ class Config:
     MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", "")
 
     # Qonto (API Business, clé API) : repli global, surchargé par Configuration › Intégrations.
-    QONTO_LOGIN = os.environ.get("QONTO_LOGIN", "")
-    QONTO_SECRET_KEY = os.environ.get("QONTO_SECRET_KEY", "")
+    # Noms alternatifs acceptés : QONTO_API_ID / QONTO_API_SECRET.
+    QONTO_LOGIN = os.environ.get("QONTO_LOGIN") or os.environ.get("QONTO_API_ID", "")
+    QONTO_SECRET_KEY = os.environ.get("QONTO_SECRET_KEY") or os.environ.get("QONTO_API_SECRET", "")
     QONTO_STAGING_TOKEN = os.environ.get("QONTO_STAGING_TOKEN", "")
 
 
