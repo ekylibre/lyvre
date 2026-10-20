@@ -595,9 +595,9 @@ Méthodes :
 - `execute_kw(model, method, args=None, kwargs=None)` — appel générique
 - `search_read(model, domain=None, fields=None, limit=None, offset=0, order=None)` — sucre pour la pagination
 
-### `from_app_config() → OdooClient`
+### `from_app_config(timeout=None) → OdooClient`
 
-Construit un client à partir des 4 variables de config Flask `ODOO_URL`, `ODOO_DB`, `ODOO_USERNAME`, `ODOO_API_KEY`. Lève `OdooConfigError` si une variable manque.
+Construit un client à partir de la configuration de l'instance (`external_config`, repli `ODOO_*`). Lève `OdooConfigError` si l'intégration est désactivée ou si une valeur manque. `timeout` (secondes) borne chaque appel XML-RPC ; par défaut aucun (synchros inchangées). `version()` renvoie la version du serveur sans authentification.
 
 ---
 
@@ -777,10 +777,9 @@ Relance par email des adhérents dont l'adhésion est échue (statut `red`). Le 
 `{host, port, use_tls, username, password, sender}` depuis `external_config` (DB puis repli `.env`).
 
 ### `smtp_configured() → bool`
-Délègue à `external_config.is_configured("smtp")` (requiert `host` + `sender`).
+Délègue à `external_config.is_available("smtp")` : intégration activée **et** `host` + `sender` renseignés.
 
-### `check_smtp_connection() → (ok: bool, message: str)`
-Ouvre une connexion SMTP (TLS + login si fourni), envoie un `NOOP`, ferme. Alimente le bouton « Tester la connexion » de l'écran `/configuration/external-connections/`.
+Le test de connexion SMTP est fait par la sonde de `integrations.py` (voir plus bas).
 
 ### `members_to_remind(rows) → list[dict]`
 Filtre : `color == "red"`, email présent, `status != "?"` (exclut les adhérents sans aucune donnée d'adhésion).
@@ -793,3 +792,59 @@ Rend le gabarit `EmailTemplate` pour un adhérent (variables `nom`, `email`, `da
 
 ### `send_reminders(rows, dry_run=False) → dict`
 Ouvre une connexion `smtplib` unique (`_open_smtp`) selon `smtp_settings()`, envoie un email HTML par adhérent (`EmailMessage` multipart text+html). Une erreur par adhérent est isolée (n'interrompt pas le lot) ; si SMTP non configuré → `skipped`. Retourne `{sent, skipped, errors, error_lines, targets}`.
+
+---
+
+## external_config.py — Configuration et activation des intégrations
+
+Lecture par instance (table `external_connections`, repli `.env`) ; voir aussi
+[models.md](models.md#integrationstate--activation-et-dernier-test-dune-intégration-tenant).
+
+| Fonction | Rôle |
+|----------|------|
+| `get(service, key)` / `get_all(service)` / `source(service, key)` | Valeur effective (base puis `.env`) et son origine (`db`, `env`, `none`) |
+| `set_many(service, values)` | Upsert ; valeur vide = ligne supprimée |
+| `is_configured(service)` | Clés obligatoires renseignées (`SERVICE_REQUIRED_KEYS`) |
+| `is_enabled(service)` / `set_enabled(service, bool)` | Interrupteur (`integration_states`) ; ligne absente = activée |
+| `is_available(service)` | Activée **et** configurée : à utiliser avant toute action qui dépend du service |
+| `unavailable_reason(service)` / `unavailable_message(service)` | `"disabled"` / `"unconfigured"` / `None`, et message français associé (bandeaux, flash, exceptions) |
+| `fingerprint(service)` | SHA-256 de la configuration effective (détecte un test périmé) |
+
+Constantes : `SERVICE_KEYS`, `SERVICE_LABELS`, `SERVICE_DESCRIPTIONS`, `SERVICE_REQUIRED_KEYS`,
+`SECRET_KEYS` (jamais réaffichées), `ENV_FALLBACK`.
+
+Les fabriques des clients (`odoo_client`, `helloasso_client`, `ga4_client`, `facebook_client`,
+`stancer_sync._get_secret_key`) refusent de construire un client pour une intégration désactivée.
+
+---
+
+## integrations.py — Statut et test de fonctionnement des intégrations
+
+### `run_check(service) → CheckResult`
+Exécute la sonde du service (`PROBES`) : un appel léger en lecture, borné par `CHECK_TIMEOUT = 10` s
+pour toute la sonde. Refuse sans appel réseau une intégration désactivée ou incomplète. Traduit
+l'échec en message français (`describe_error` : délai dépassé, serveur injoignable, identifiants
+refusés, ressource introuvable…, avec l'explication renvoyée par l'API), **masque les secrets**
+(message et journaux), tronque à 500 caractères et enregistre le résultat avec l'empreinte de la
+configuration.
+
+| Service | Vérification |
+|---------|-------------|
+| Stancer | `GET /v2/payouts?limit=1` ; avertit si le préfixe de clé (`stest_`/`sprod_`) contredit le mode |
+| Odoo | `version()` puis `authenticate()` |
+| HelloAsso | jeton OAuth2 puis organisation `org_slug` |
+| SMTP | connexion, `STARTTLS`, login, `NOOP` (délai unique partagé entre les étapes) |
+| GA4 | rapport minimal (`activeUsers`, hier) |
+| Facebook | lecture du nom de la Page |
+
+Limite : la connexion TCP essaie chaque adresse du serveur (IPv6 puis IPv4) avec le délai restant ;
+un serveur injoignable sur deux adresses peut porter un test à ~20 s.
+
+### `status(service)` / `overview()` / `detail(service)`
+Statut affiché, **sans appel réseau** : `disabled` › `unconfigured` › `untested` (jamais testé ou
+configuration modifiée depuis le test) › `ok` / `error`. `detail` ajoute `last_sync(service)` : dernier
+`SyncJob` suivi (Stancer : `payouts`/`payout_payments` ; GA4 et Facebook : `metrics`, avec la part de
+la source lue dans `result_json`) ; Odoo, HelloAsso et SMTP ne sont pas suivis.
+
+En test, remplacer une sonde : `monkeypatch.setitem(integrations.PROBES, "odoo", lambda: "OK")`.
+

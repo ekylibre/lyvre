@@ -69,9 +69,9 @@ Variables disponibles :
 | `HELLOASSO_CLIENT_SECRET` | (vide) | Secret OAuth2 HelloAsso. |
 | `HELLOASSO_ORG_SLUG` | (vide) | Slug de l'organisation HelloAsso (visible dans l'URL : `helloasso.com/associations/{slug}`). |
 
-Tant que les 4 variables `ODOO_*` ne sont pas définies (et qu'aucune valeur n'est saisie dans l'UI), les boutons de synchronisation POS et factures clients restent désactivés. Idem pour les 3 variables `HELLOASSO_*` et `STANCER_SECRET_KEY`.
+Tant que les 4 variables `ODOO_*` ne sont pas définies (et qu'aucune valeur n'est saisie dans l'UI), ou si l'intégration est désactivée, les boutons de synchronisation POS et factures clients restent désactivés. Idem pour les 3 variables `HELLOASSO_*` et `STANCER_SECRET_KEY`.
 
-> **Depuis mai 2026** : les credentials Stancer / Odoo / HelloAsso peuvent aussi être saisis depuis l'UI (**Configuration → Connexions externes**, admin uniquement). Les variables ci-dessus servent alors de **repli global** quand la table `external_connections` (per-instance) est vide. Voir [multi_tenant.md](multi_tenant.md) et [models.md](models.md#externalconnection--credentials-services-externes-tenant).
+> **Depuis mai 2026** : les credentials Stancer / Odoo / HelloAsso peuvent aussi être saisis depuis l'UI (**Configuration › Intégrations**, admin uniquement). Les variables ci-dessus servent alors de **repli global** quand la table `external_connections` (per-instance) est vide. Le même écran permet de désactiver une intégration (même configurée par `.env`) et de tester son fonctionnement. Voir [multi_tenant.md](multi_tenant.md) et [models.md](models.md#externalconnection--credentials-services-externes-tenant).
 
 ### 4. Initialiser la base tenant (1ère association)
 

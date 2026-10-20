@@ -65,6 +65,30 @@ Voir [multi_tenant.md](multi_tenant.md) pour l'architecture du routage par requ�
 | `stancer` | `secret_key`, `mode` | `STANCER_SECRET_KEY`, `STANCER_MODE` |
 | `odoo` | `url`, `db`, `username`, `api_key` | `ODOO_URL`, `ODOO_DB`, `ODOO_USERNAME`, `ODOO_API_KEY` |
 | `helloasso` | `client_id`, `client_secret`, `org_slug`, `api_base` | `HELLOASSO_CLIENT_ID`, `HELLOASSO_CLIENT_SECRET`, `HELLOASSO_ORG_SLUG`, `HELLOASSO_API_BASE` |
+| `smtp` | `host`, `port`, `use_tls`, `username`, `password`, `sender` | `MAIL_SERVER`, `MAIL_PORT`, `MAIL_USE_TLS`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_DEFAULT_SENDER` |
+| `ga4` | `property_id`, `credentials_json` | `GA4_PROPERTY_ID`, `GA4_CREDENTIALS_JSON` |
+| `facebook` | `page_id`, `page_token`, `app_id`, `app_secret` | `FACEBOOK_PAGE_ID`, `FACEBOOK_PAGE_TOKEN`, `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` |
+
+---
+
+## IntegrationState — Activation et dernier test d'une intégration (tenant)
+
+**Table :** `integration_states` (bind par défaut = tenant ; migration `c3f8a1d5e297`)
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| `id` | Integer PK | |
+| `service` | String(30) NOT NULL UNIQUE | slug du service (`stancer`, `odoo`…) |
+| `enabled` | Boolean NOT NULL default `True` | interrupteur ; prime sur la base **et** sur le repli `.env` |
+| `checked_at` | DateTime nullable | date du dernier test (UTC) |
+| `check_ok` | Boolean nullable | résultat ; `NULL` = jamais testé |
+| `check_message` | Text nullable | message lisible, secrets masqués |
+| `check_duration_ms` | Integer nullable | durée du test |
+| `checked_fingerprint` | String(64) nullable | SHA-256 de la configuration effective testée : si elle a changé depuis (base ou `.env`), le statut redevient « Non testée » |
+| `updated_at` | DateTime NOT NULL | |
+
+**Ligne absente = intégration activée, jamais testée** : la table n'est remplie qu'au premier
+changement d'interrupteur ou au premier test.
 
 ---
 

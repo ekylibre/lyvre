@@ -1,7 +1,7 @@
 # Configuration des accès — Google Analytics (GA4) & Facebook
 
 > Guide pas-à-pas pour obtenir les identifiants à saisir dans
-> **Configuration → Connexions externes** de l'application (table
+> **Configuration › Intégrations** de l'application (table
 > `external_connections`, par instance). Les clés ci-dessous correspondent au
 > design (`design_dashboard_visibilite_impact.md` §6).
 >
@@ -62,7 +62,7 @@ sans intervention humaine après configuration.
 > renverra une erreur de permission.
 
 ## A.6 Renseigner l'application
-Dans **Configuration → Connexions externes → Google Analytics (GA4)** :
+Dans **Configuration › Intégrations › Google Analytics (GA4)** :
 - `property_id` : `472641442`
 - `credentials_json` : **copier-coller le contenu complet** du fichier `.json`
   (de `{` à `}`).
@@ -150,7 +150,7 @@ Le token obtenu en B.4 expire vite (~1–2 h). Pour un token **longue durée** :
 > d'accès** (Access Token Debugger) → champ *Expire* doit indiquer *Jamais*.
 
 ## B.6 Renseigner l'application
-Dans **Configuration → Connexions externes → Facebook Page** :
+Dans **Configuration › Intégrations › Facebook (Page)** :
 - `page_id`, `page_token`, `app_id`, `app_secret`.
 
 ## B.7 Vérifier que ça marche

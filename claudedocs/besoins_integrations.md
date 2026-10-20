@@ -1,7 +1,7 @@
 # Besoins — Écran des intégrations
 
-> Statut : besoins validés (brainstorm du 2026-10-20). Questions ouvertes tranchées dans
-> `design_integrations.md` §1. Étape suivante : `/sc:workflow` pour le plan.
+> Statut : **RÉALISÉ** (2026-10-20). Questions ouvertes tranchées dans `design_integrations.md` §1 ;
+> écarts de mise en œuvre dans `design_integrations.md` §13.
 
 ## 1. Contexte
 
@@ -115,26 +115,26 @@ Accès inchangé : réservé aux administrateurs (`admin_required`), par instanc
 
 **US1 — Vue d'ensemble.** En tant qu'admin, j'ouvre Paramètres › Connexions externes et je vois
 les 6 intégrations avec leur statut.
-- [ ] L'index n'affiche aucun champ de configuration.
-- [ ] Une intégration désactivée apparaît « Désactivée » même si elle est configurée.
-- [ ] L'ouverture de l'index ne déclenche aucun appel réseau.
+- [x] L'index n'affiche aucun champ de configuration.
+- [x] Une intégration désactivée apparaît « Désactivée » même si elle est configurée.
+- [x] L'ouverture de l'index ne déclenche aucun appel réseau.
 
 **US2 — Configurer une intégration.** Je clique sur Odoo, je saisis les identifiants et j'enregistre.
-- [ ] La page de détail ne montre que les champs d'Odoo.
-- [ ] Après enregistrement, un test est lancé et son résultat est affiché (succès ou cause de l'échec).
-- [ ] Le statut de l'index reflète ce résultat.
+- [x] La page de détail ne montre que les champs d'Odoo.
+- [x] Après enregistrement, un test est lancé et son résultat est affiché (succès ou cause de l'échec).
+- [x] Le statut de l'index reflète ce résultat.
 
 **US3 — Diagnostiquer.** Une synchro Stancer échoue ; j'ouvre Stancer et je clique « Tester maintenant ».
-- [ ] Le résultat indique la cause (clé refusée, délai dépassé, mode incohérent…).
-- [ ] Je vois aussi la date et le statut de la dernière synchronisation des versements.
+- [x] Le résultat indique la cause (clé refusée, délai dépassé, mode incohérent…).
+- [x] Je vois aussi la date et le statut de la dernière synchronisation des versements.
 
 **US4 — Couper une intégration.** Je désactive Facebook sans effacer le token.
-- [ ] Le token reste enregistré ; réactiver suffit à reprendre.
-- [ ] Les actions qui dépendent de Facebook ne sont plus proposées, avec un message renvoyant vers l'intégration.
+- [x] Le token reste enregistré ; réactiver suffit à reprendre.
+- [x] Les actions qui dépendent de Facebook ne sont plus proposées, avec un message renvoyant vers l'intégration.
 
 **US5 — Rien ne casse.** Après migration, une instance existante fonctionne comme avant.
-- [ ] Toutes les intégrations sont activées ; leur statut est « Non testée » (ou « À configurer »).
-- [ ] Le repli `.env` fonctionne toujours.
+- [x] Toutes les intégrations sont activées ; leur statut est « Non testée » (ou « À configurer »).
+- [x] Le repli `.env` fonctionne toujours.
 
 ## 7. Hors périmètre
 

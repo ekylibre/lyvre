@@ -204,9 +204,9 @@ manuellement :
 
 Depuis mai 2026, les credentials Stancer / Odoo / HelloAsso ne vivent plus dans le `.env` global mais dans la table `external_connections` **de chaque base tenant**. Chaque association a donc ses propres clés API.
 
-L'UI **Configuration → Connexions externes** (admin uniquement) permet de saisir / vider ces valeurs. Une valeur vide en DB réactive le repli sur le `.env` global, ce qui rend la migration progressive (aucun big-bang).
+L'UI **Configuration › Intégrations** (admin uniquement) permet de saisir / vider ces valeurs, d'**activer ou désactiver** chaque intégration (table `integration_states`, l'interrupteur prime aussi sur le `.env`) et de **tester** son fonctionnement. Une valeur vide en DB réactive le repli sur le `.env` global, ce qui rend la migration progressive (aucun big-bang).
 
-Voir [models.md](models.md#externalconnection--credentials-services-externes-tenant) pour le schéma et [routes.md](routes.md#configuration-configurationexternal-connections--admin-uniquement) pour les endpoints.
+Voir [models.md](models.md#externalconnection--credentials-services-externes-tenant) pour le schéma et [routes.md](routes.md#intégrations-configurationintegrations--admin-uniquement) pour les endpoints.
 
 ## Règles de catégorisation per-instance
 

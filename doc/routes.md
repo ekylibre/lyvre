@@ -95,13 +95,22 @@ Le nom de fichier (`<filename>`) doit matcher `(pre-restore-)?<slug>-\d{8}-\d{6}
 
 Voir [doc/backups.md](backups.md) pour le workflow utilisateur détaillé.
 
-## Configuration (`/configuration/external-connections/`) — admin uniquement
+## Intégrations (`/configuration/integrations/`) — admin uniquement
+
+Blueprint `integrations` (`app/views/integrations.py`). Services : `stancer`, `odoo`, `helloasso`,
+`smtp`, `ga4`, `facebook`.
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/configuration/external-connections/` | Affiche 4 cartes (Stancer / Odoo / HelloAsso / SMTP) avec les credentials de l'instance courante |
-| POST | `/configuration/external-connections/<service>` | Upsert les credentials d'un service. Champ vide = ligne DB supprimée → repli `.env` actif. |
-| POST | `/configuration/external-connections/smtp/test` | Teste la connexion au serveur SMTP configuré (NOOP) et affiche le résultat en flash |
+| GET | `/configuration/integrations/` | Index : une carte par intégration avec son statut (Opérationnelle, En erreur, Non testée, À configurer, Désactivée) et son dernier test. **Aucun appel réseau.** |
+| GET | `/configuration/integrations/<service>` | Détail : interrupteur, formulaire de configuration, dernier test, dernière synchronisation suivie. 404 si service inconnu. |
+| POST | `/configuration/integrations/<service>` | Enregistre la configuration puis, si l'intégration est activée et complète, **lance son test**. Champ secret vide = valeur conservée ; case `clear_<clé>` = valeur effacée ; champ non secret vide = ligne supprimée (repli `.env`). |
+| POST | `/configuration/integrations/<service>/enabled` | `enabled=1\|0` : active ou désactive l'intégration (l'interrupteur prime sur la base et sur `.env`). |
+| POST | `/configuration/integrations/<service>/check` | Lance le test de fonctionnement (« Tester maintenant ») et affiche le résultat en toast. |
+| GET | `/configuration/external-connections/` | Ancienne adresse : redirection 301 vers l'index. |
+
+Les secrets (`SECRET_KEYS` de `external_config`) ne sont jamais renvoyés au navigateur. La route
+`/configuration/external-connections/smtp/test` a été supprimée (remplacée par `/check`).
 
 Les valeurs sont stockées dans `external_connections` de la base **tenant** (donc per-instance). Les variables d'environnement `STANCER_*`, `ODOO_*`, `HELLOASSO_*`, `MAIL_*` servent de **repli global** quand la table est vide. Service `smtp` : clés `host`, `port`, `use_tls`, `username`, `password`, `sender` (repli `MAIL_SERVER`/`MAIL_PORT`/`MAIL_USE_TLS`/`MAIL_USERNAME`/`MAIL_PASSWORD`/`MAIL_DEFAULT_SENDER`).
 

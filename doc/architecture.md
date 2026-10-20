@@ -51,6 +51,7 @@ compta-asso/
 │   │   ├── helloasso.py          # Forms / Orders / Items / Payments HelloAsso
 │   │   ├── rule.py               # Règles de catégorisation (per-instance)
 │   │   ├── external_connection.py # Credentials services externes (per-instance)
+│   │   ├── integration_state.py  # Activation + dernier test d'une intégration (per-instance)
 │   │   ├── user.py               # Utilisateurs (méta-base)
 │   │   └── instance.py           # Déclaration d'instance (méta-base)
 │   │
@@ -67,6 +68,7 @@ compta-asso/
 │   │   ├── entities.py           # CRUD tiers + listes HelloAsso/POS/factures par tiers
 │   │   ├── rules.py              # Affichage règles + application
 │   │   ├── payouts.py            # Liste + détail + sync Payouts/Payments Stancer
+│   │   ├── integrations.py       # Écran Intégrations : index, détail, interrupteur, test (admin)
 │   │   ├── orders.py             # Commandes POS Odoo : liste + détail + sync
 │   │   └── customer_invoices.py  # Factures clients Odoo : liste + détail + sync
 │   │
@@ -79,6 +81,8 @@ compta-asso/
 │   │   ├── odoo_importer.py      # Import CSV Odoo (staging)
 │   │   ├── rules_engine.py       # Catégorisation automatique des transactions
 │   │   ├── stancer_sync.py       # Synchronisation Payouts + Payments Stancer (API v2)
+│   │   ├── external_config.py    # Config + activation des intégrations (base, repli .env)
+│   │   ├── integrations.py       # Statut + test de fonctionnement des intégrations (sondes)
 │   │   ├── stancer_async.py      # Wrapper threading + suivi via SyncJob
 │   │   ├── odoo_client.py        # Client XML-RPC Odoo (commun POS + factures)
 │   │   ├── odoo_pos_sync.py      # Sync pos.order → orders / order_lines / order_payments
@@ -489,7 +493,7 @@ Cela évite tout problème d'arrondi flottant dans les calculs comptables.
 
 | Mécanisme | Implémentation |
 |-----------|---------------|
-| Credentials services externes | Table tenant `external_connections(service, key, value)` (voir [multi_tenant.md](multi_tenant.md#credentials-externes-per-instance)). Repli sur `.env` global quand la ligne est absente. UI : **Configuration → Connexions externes** (admin uniquement). |
+| Credentials services externes | Table tenant `external_connections(service, key, value)` (voir [multi_tenant.md](multi_tenant.md#credentials-externes-per-instance)). Repli sur `.env` global quand la ligne est absente. Activation et dernier test : table `integration_states`. UI : **Configuration › Intégrations** (admin uniquement), services `external_config` + `integrations`. |
 | Sauvegardes d'instance | Copie SQLite atomique (`sqlite3.Connection.backup`) déposée dans `instance/backups/`. Restauration via upload + `PRAGMA integrity_check` + snapshot `pre-restore-…`. Voir [backups.md](backups.md). |
 | Authentification | Flask-Login, utilisateurs stockés en méta-base avec `password_hash` (Werkzeug `pbkdf2:sha256`) |
 | Autorisation admin | Décorateur `@admin_required` (`app/decorators.py`) — 403 si `current_user.is_admin` est faux |

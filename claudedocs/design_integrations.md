@@ -1,6 +1,6 @@
 # Design — Écran des intégrations
 
-> Statut : design proposé (2026-10-20), à valider. Source : `besoins_integrations.md`.
+> Statut : **réalisé** (2026-10-20) — écarts de mise en œuvre au §13. Source : `besoins_integrations.md`.
 > Étape suivante : `/sc:workflow` pour le plan d'implémentation.
 
 ## 1. Décisions (questions ouvertes des besoins)
@@ -378,3 +378,7 @@ ajouts `external_config`), `doc/installation.md` et `doc/docker.md` (l'interrupt
 - Synchros Stancer (globale et par versement) refusées dès la vue, sans créer de `SyncJob`.
 - Boutons Odoo par adhérent (`entities/detail`, `members`) : désactivés, sans bandeau supplémentaire.
 - Fixture `login_as` ajoutée à `tests/conftest.py` (premiers tests de vues réservées aux admins).
+
+**Phase E (2026-10-20)** : docs `routes`, `models`, `services`, `architecture`, `multi_tenant`,
+`installation`, `docker`, `config_acces_ga4_facebook` à jour ; image Docker construite et vérifiée
+(routes, templates, fuseau Europe/Paris disponible). Tests : 340 pytest, 38 Vitest.
