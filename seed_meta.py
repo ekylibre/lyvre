@@ -14,9 +14,32 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from sqlalchemy import inspect, text  # noqa: E402
+
 from app import create_app  # noqa: E402
 from app.extensions import db  # noqa: E402
 from app.models import Instance, User  # noqa: E402
+
+
+def _ensure_instance_chart_column() -> None:
+    """Add the ``instances.chart`` column to a pre-existing meta database.
+
+    ``db.create_all`` only creates missing tables, never ALTERs existing ones,
+    so meta databases created before the column was introduced need this
+    lightweight, idempotent migration.
+    """
+    engine = db.engines.get("meta") or db.engine
+    inspector = inspect(engine)
+    if "instances" not in inspector.get_table_names():
+        return  # create_all will build it with the column
+    columns = {col["name"] for col in inspector.get_columns("instances")}
+    if "chart" in columns:
+        return
+    with engine.begin() as conn:
+        conn.execute(
+            text("ALTER TABLE instances ADD COLUMN chart VARCHAR(20) NOT NULL DEFAULT 'asso'")
+        )
+    print("Colonne instances.chart ajoutée.")
 
 
 DEFAULT_ADMIN_EMAIL = "admin@local"
@@ -31,6 +54,7 @@ def main() -> int:
     with app.app_context():
         # Create meta tables.
         db.create_all(bind_key=["meta"])
+        _ensure_instance_chart_column()
 
         admin_email = (os.environ.get("ADMIN_EMAIL") or DEFAULT_ADMIN_EMAIL).strip().lower()
         admin_password = os.environ.get("ADMIN_PASSWORD") or DEFAULT_ADMIN_PASSWORD

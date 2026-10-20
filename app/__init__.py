@@ -73,8 +73,22 @@ def create_app(config_name=None):
     app.register_blueprint(external_connections_bp)
 
     _register_template_filters(app)
+    _register_context_processors(app)
 
     return app
+
+
+def _register_context_processors(app):
+    from flask import g
+    from flask_login import current_user
+    from .menu_config import build_nav, DEFAULT_CHART
+
+    @app.context_processor
+    def inject_nav_menus():
+        instance = getattr(g, "current_instance", None)
+        chart = getattr(instance, "chart", None) or DEFAULT_CHART
+        is_admin = bool(getattr(current_user, "is_admin", False))
+        return {"nav_menus": build_nav(chart=chart, is_admin=is_admin)}
 
 
 def _register_template_filters(app):

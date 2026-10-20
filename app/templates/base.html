@@ -17,88 +17,31 @@
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navMain">
+      {# Navigation construite depuis app/menu_config.py, filtrée selon le plan
+         comptable de l'instance courante (voir _register_context_processors). #}
       <ul class="navbar-nav me-auto">
-        <li class="nav-item">
-          <a class="nav-link {% if request.blueprint == 'dashboard' %}active{% endif %}"
-             href="{{ url_for('dashboard.index') }}">Tableau de bord</a>
-        </li>
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle {% if request.blueprint in ('accounts','journals','fiscal_years','entries','reports') %}active{% endif %}"
-             href="#" data-bs-toggle="dropdown">Compta</a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{{ url_for('entries.index') }}">Écritures</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="{{ url_for('reports.balance') }}">Balance</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('reports.grand_livre') }}">Grand livre</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('reports.bilan') }}">Bilan</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('reports.compte_resultat') }}">Compte de résultat</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="{{ url_for('accounts.index') }}">Plan comptable</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('journals.index') }}">Journaux</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('fiscal_years.index') }}">Exercices</a></li>
-          </ul>
-        </li>
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle {% if request.blueprint in ('imports.ofx','bank_accounts','reconciliation','payouts') %}active{% endif %}"
-             href="#" data-bs-toggle="dropdown">Banque</a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{{ url_for('bank_accounts.index') }}">Comptes bancaires</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('reconciliation.index') }}">Rapprochement</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="{{ url_for('payouts.index') }}">Versements Stancer</a></li>
-          </ul>
-        </li>
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle {% if request.blueprint in ('entities','rules','work_times') %}active{% endif %}"
-             href="#" data-bs-toggle="dropdown">Tiers</a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{{ url_for('entities.index') }}">Entités</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('entities.members') }}">Adhérents</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('work_times.index') }}">Temps de travaux</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="{{ url_for('rules.index') }}">Règles de catégorisation</a></li>
-          </ul>
-        </li>
-
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle {% if request.blueprint in ('orders','customer_invoices') %}active{% endif %}"
-             href="#" data-bs-toggle="dropdown">Odoo</a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{{ url_for('orders.index') }}">Commandes POS</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('customer_invoices.index') }}">Factures clients</a></li>
-          </ul>
-        </li>
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle {% if request.blueprint in ('impact', 'activity_report') %}active{% endif %}"
-             href="#" data-bs-toggle="dropdown">Indicateurs</a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{{ url_for('impact.index') }}">Visibilité &amp; Impact</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('activity_report.index') }}">Rapport d'activité</a></li>
-          </ul>
-        </li>
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle {% if request.blueprint == 'imports' %}active{% endif %}"
-             href="#" data-bs-toggle="dropdown">Imports/Exports</a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{{ url_for('imports.ofx') }}">Fichier OFX</a></li>
-            {% if current_user.is_admin %}
-            <li><a class="dropdown-item" href="{{ url_for('activity_report.eco') }}">Import de tonnages</a></li>
-            {% endif %}
-          </ul>
-        </li>
-        {% if current_user.is_admin %}
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle {% if request.blueprint == 'external_connections' %}active{% endif %}"
-               href="#" data-bs-toggle="dropdown">Configuration</a>
-            <ul class="dropdown-menu">
-              <li>
-                <a class="dropdown-item" href="{{ url_for('external_connections.index') }}">
-                  Connexions externes
-                </a>
-              </li>
-            </ul>
-          </li>
-        {% endif %}
+        {% for menu in nav_menus %}
+          {% if 'items' in menu %}
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle {% if request.blueprint in menu.active %}active{% endif %}"
+                 href="#" data-bs-toggle="dropdown">{{ menu.label }}</a>
+              <ul class="dropdown-menu">
+                {% for item in menu['items'] %}
+                  {% if item.divider %}
+                    <li><hr class="dropdown-divider"></li>
+                  {% else %}
+                    <li><a class="dropdown-item" href="{{ url_for(item.endpoint) }}">{{ item.label }}</a></li>
+                  {% endif %}
+                {% endfor %}
+              </ul>
+            </li>
+          {% else %}
+            <li class="nav-item">
+              <a class="nav-link {% if request.blueprint in menu.active %}active{% endif %}"
+                 href="{{ url_for(menu.endpoint) }}">{{ menu.label }}</a>
+            </li>
+          {% endif %}
+        {% endfor %}
       </ul>
       <ul class="navbar-nav">
         {% if g.current_instance %}

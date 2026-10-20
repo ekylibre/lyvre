@@ -16,6 +16,13 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,48}[a-z0-9]$")
 
+# Available charts of accounts: key -> human label. Keys must match seed_accounts.py.
+CHARTS = {
+    "asso": "Association (loi 1901)",
+    "sci": "SCI (société civile immobilière)",
+}
+DEFAULT_CHART = "asso"
+
 
 class ProvisioningError(Exception):
     pass
@@ -68,8 +75,21 @@ def _run(cmd: list[str], database_url: str) -> None:
         )
 
 
-def provision_sqlite_database(database_url: str) -> None:
-    """Create the SQLite file (if absent), apply migrations, seed accounts."""
+def validate_chart(chart: str) -> str:
+    chart = (chart or DEFAULT_CHART).strip().lower()
+    if chart not in CHARTS:
+        raise ProvisioningError(
+            f"Plan comptable invalide. Choix : {', '.join(CHARTS)}."
+        )
+    return chart
+
+
+def provision_sqlite_database(database_url: str, chart: str = DEFAULT_CHART) -> None:
+    """Create the SQLite file (if absent), apply migrations, seed accounts.
+
+    ``chart`` selects the plan comptable to load ("asso" or "sci").
+    """
+    chart = validate_chart(chart)
     path = database_file_for_url(database_url)
     if path is not None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -79,5 +99,5 @@ def provision_sqlite_database(database_url: str) -> None:
             )
 
     _run([sys.executable, "-m", "flask", "db", "upgrade"], database_url)
-    _run([sys.executable, "seed_accounts.py"], database_url)
+    _run([sys.executable, "seed_accounts.py", chart], database_url)
     _run([sys.executable, "seed_rules.py"], database_url)

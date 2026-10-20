@@ -10,6 +10,8 @@ from app.models import Instance
 from app.services import instance_backup
 from app.services.instance_backup import BackupError
 from app.services.instance_provisioning import (
+    CHARTS,
+    DEFAULT_CHART,
     ProvisioningError,
     build_sqlite_url,
     database_file_for_url,
@@ -38,38 +40,40 @@ def new():
         label = (request.form.get("label") or "").strip()
         provisioning_mode = request.form.get("provisioning_mode") or "auto"
         custom_url = (request.form.get("database_url") or "").strip()
+        chart = request.form.get("chart") or DEFAULT_CHART
 
         try:
             slug = validate_slug(raw_slug)
         except ProvisioningError as e:
             flash(str(e), "danger")
-            return render_template("instances/form.html", form=request.form)
+            return render_template("instances/form.html", form=request.form, charts=CHARTS)
 
         if not label:
             flash("Le libellé est obligatoire.", "danger")
-            return render_template("instances/form.html", form=request.form)
+            return render_template("instances/form.html", form=request.form, charts=CHARTS)
 
         if db.session.query(Instance).filter(Instance.slug == slug).first():
             flash(f"L'instance « {slug} » existe déjà.", "danger")
-            return render_template("instances/form.html", form=request.form)
+            return render_template("instances/form.html", form=request.form, charts=CHARTS)
 
         if provisioning_mode == "auto":
             database_url = build_sqlite_url(slug)
             try:
-                provision_sqlite_database(database_url)
+                provision_sqlite_database(database_url, chart=chart)
             except ProvisioningError as e:
                 flash(f"Échec du provisioning : {e}", "danger")
-                return render_template("instances/form.html", form=request.form)
+                return render_template("instances/form.html", form=request.form, charts=CHARTS)
         else:
             if not custom_url:
                 flash("URL de base de données obligatoire en mode manuel.", "danger")
-                return render_template("instances/form.html", form=request.form)
+                return render_template("instances/form.html", form=request.form, charts=CHARTS)
             database_url = custom_url
 
         inst = Instance(
             slug=slug,
             label=label,
             database_url=database_url,
+            chart=chart if chart in CHARTS else DEFAULT_CHART,
             is_active=True,
         )
         db.session.add(inst)
@@ -77,7 +81,7 @@ def new():
         flash(f"Instance « {label} » créée.", "success")
         return redirect(url_for("instances.index"))
 
-    return render_template("instances/form.html", form={})
+    return render_template("instances/form.html", form={}, charts=CHARTS)
 
 
 @bp.route("/import", methods=["GET", "POST"])

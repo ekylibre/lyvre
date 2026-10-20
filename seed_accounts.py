@@ -1,18 +1,32 @@
 """
-One-time script to load the Plan Comptable Associatif from JSON into the database.
-Usage: flask shell < seed_accounts.py  OR  python seed_accounts.py
+One-time script to load a plan comptable from JSON into the database.
+Usage: python seed_accounts.py [asso|sci]  (defaults to asso)
+       flask shell < seed_accounts.py
 """
 import json
+import sys
 from pathlib import Path
 from app import create_app
 from app.extensions import db
 from app.models import Account, Journal
 
+# Available charts of accounts: key -> JSON file under data/
+CHARTS = {
+    "asso": "plan_comptable_asso.json",
+    "sci": "plan_comptable_sci.json",
+}
+
+chart = (sys.argv[1] if len(sys.argv) > 1 else "asso").strip().lower()
+if chart not in CHARTS:
+    raise SystemExit(
+        f"Plan comptable inconnu : « {chart} ». Choix : {', '.join(CHARTS)}."
+    )
+
 app = create_app()
 
 with app.app_context():
     # Seed plan comptable
-    data_path = Path(__file__).parent / "data" / "plan_comptable_asso.json"
+    data_path = Path(__file__).parent / "data" / CHARTS[chart]
     accounts_data = json.loads(data_path.read_text(encoding="utf-8"))
 
     created = 0
@@ -42,7 +56,7 @@ with app.app_context():
                 break
 
     db.session.commit()
-    print(f"Plan comptable: {created} comptes créés ({len(all_accounts)} au total).")
+    print(f"Plan comptable « {chart} »: {created} comptes créés ({len(all_accounts)} au total).")
 
     # Seed default journals
     default_journals = [
