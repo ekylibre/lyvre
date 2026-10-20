@@ -84,7 +84,7 @@
           <button type="submit" class="btn btn-outline-danger btn-sm">Détacher de Qonto</button>
         </form>
       {% else %}
-        <p class="small text-muted mb-0">Synchronisation à partir du {{ bank_account.qonto_sync_from.strftime('%d/%m/%Y') }}.</p>
+        <p class="small text-muted mb-0">Synchronisation à partir du {{ bank_account.qonto_sync_from.strftime('%d/%m/%Y') if bank_account.qonto_sync_from else '—' }}.</p>
       {% endif %}
     {% else %}
       <p class="small text-muted mb-0">

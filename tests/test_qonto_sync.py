@@ -301,3 +301,16 @@ def test_last_sync_shown_in_integration(admin, ba, monkeypatch):
     admin.post(f"/bank-accounts/{ba.id}/qonto/sync")
     html = admin.get("/configuration/integrations/qonto").get_data(as_text=True)
     assert "Terminée" in html and "Comptes bancaires →" in html
+
+
+def test_sync_links_existing_entities_and_counts_proposals(ba):
+    from app.models import Entity
+
+    db.session.add(Entity(name="EDF"))
+    db.session.commit()
+    client = FakeClient([tx("t1", 1000, clean_counterparty_name="EDF"),
+                         tx("t2", 2000, clean_counterparty_name="SARL Papin"),
+                         tx("t3", 122, operation_type="qonto_fee", clean_counterparty_name="Qonto")])
+    result = _sync(ba, client)
+    assert result["linked_entities"] == 1
+    assert result["proposed_counterparties"] == 1  # SARL Papin ; les frais Qonto ne sont pas proposés

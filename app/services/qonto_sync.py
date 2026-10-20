@@ -192,7 +192,8 @@ def signed_amount(tx: dict) -> int:
 
 def _new_result() -> dict:
     return {"created": 0, "updated": 0, "unchanged": 0, "reversed": 0, "reversed_reconciled": 0,
-            "skipped": 0, "conflicts": 0, "rules_matched": 0, "rules_posted": 0, "errors": []}
+            "skipped": 0, "conflicts": 0, "rules_matched": 0, "rules_posted": 0,
+            "linked_entities": 0, "proposed_counterparties": 0, "errors": []}
 
 
 def upsert_transaction(bank_account: BankAccount, tx: dict, result: dict, created: list) -> None:
@@ -289,7 +290,7 @@ def _iter_pages(client, qonto_account_id, window):
 
 def sync_bank_account(bank_account_id, client=None, progress_cb=None) -> dict:
     """Synchronise les transactions Qonto d'un compte bancaire rattaché."""
-    from app.services import qonto_client, rules_engine
+    from app.services import counterparties, qonto_client, rules_engine
 
     bank_account = db.session.get(BankAccount, bank_account_id)
     if bank_account is None or not bank_account.qonto_account_id:
@@ -315,7 +316,10 @@ def sync_bank_account(bank_account_id, client=None, progress_cb=None) -> dict:
                 result["rules_matched"] += rules["matched"]
                 result["rules_posted"] += rules["posted"]
                 result["errors"].extend(rules["errors"])
+                # Après les règles : tiers existant de même nom pour celles restées sans tiers.
+                result["linked_entities"] += counterparties.link_existing(created)
 
+    result["proposed_counterparties"] = counterparties.count_proposals(bank_account.id)
     bank_account.qonto_synced_at = started
     db.session.commit()
     result["read"] = done

@@ -8,9 +8,9 @@ from markupsafe import escape
 from app.decorators import admin_required
 from app.extensions import db
 from app.frontend import is_htmx
-from app.models import BankAccount, Account, BankTransaction, SyncJob
+from app.models import BankAccount, Account, BankTransaction, Entity, SyncJob
 from app.models.sync_job import SYNC_KIND_QONTO
-from app.services import external_config, qonto_sync
+from app.services import counterparties, external_config, qonto_sync
 from app.utils.list_filters import (
     parse_sort, parse_month, apply_date_sort, apply_month_filter,
     sort_and_filter_context,
@@ -170,6 +170,36 @@ def qonto_sync_status(ba_id, job_id):
     return render_template("bank_accounts/_qonto_sync_status.html", ba=ba, job=job)
 
 
+@bp.route("/<int:ba_id>/counterparties", methods=["GET", "POST"])
+@login_required
+def counterparties_view(ba_id):
+    ba = BankAccount.query.get_or_404(ba_id)
+    if request.method == "POST":
+        action = request.form.get("action")
+        key = request.form.get("name_key", "")
+        label = request.form.get("label", "")
+        try:
+            if action == "ignore":
+                counterparties.ignore(key, label)
+                flash(f"« {label} » ne sera plus proposé.", "success")
+            elif action == "link":
+                entity, n = counterparties.accept(key, entity_id=request.form.get("entity_id", type=int))
+                flash(f"{n} transaction(s) rattachée(s) à « {entity.name} ».", "success")
+            else:
+                entity, n = counterparties.accept(key, create_name=request.form.get("name"))
+                flash(f"Fournisseur « {entity.name} » : {n} transaction(s) rattachée(s).", "success")
+        except ValueError as exc:
+            flash(str(exc), "danger")
+        return redirect(url_for("bank_accounts.counterparties_view", ba_id=ba.id))
+
+    return render_template(
+        "bank_accounts/counterparties.html",
+        ba=ba,
+        proposals=counterparties.proposals(ba.id),
+        entities=Entity.query.order_by(Entity.name).all(),
+    )
+
+
 @bp.route("/new", methods=["GET", "POST"])
 @login_required
 def new():
@@ -254,6 +284,7 @@ def transactions(ba_id):
         ba=ba,
         txns=txns,
         qonto_job=qonto_sync.latest_job(ba.id) if ba.qonto_account_id else None,
+        proposal_count=counterparties.count_proposals(ba.id),
         only_unreconciled=only_unreconciled,
         **sort_and_filter_context(sort, month_arg),
     )

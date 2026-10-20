@@ -29,7 +29,7 @@
       <p class="mb-0">
         ✓ Rattaché à
         <a href="{{ url_for('bank_accounts.transactions', ba_id=acc.linked.id) }}">{{ acc.linked.label }}</a>
-        — synchronisation à partir du {{ acc.linked.qonto_sync_from.strftime('%d/%m/%Y') }}.
+        — synchronisation à partir du {{ acc.linked.qonto_sync_from.strftime('%d/%m/%Y') if acc.linked.qonto_sync_from else '—' }}.
         <a href="{{ url_for('bank_accounts.edit', ba_id=acc.linked.id) }}" class="small ms-2">Paramètres</a>
       </p>
     {% else %}

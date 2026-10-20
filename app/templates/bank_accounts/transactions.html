@@ -26,7 +26,7 @@
     <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
       <div class="small">
         <span class="badge bg-info text-dark">Qonto</span>
-        Synchronisé à partir du {{ ba.qonto_sync_from.strftime('%d/%m/%Y') }}
+        Synchronisé à partir du {{ ba.qonto_sync_from.strftime('%d/%m/%Y') if ba.qonto_sync_from else '—' }}
         · dernière synchronisation : {{ ba.qonto_synced_at | local_dt if ba.qonto_synced_at else 'jamais' }}
       </div>
       <form method="post" action="{{ url_for('bank_accounts.qonto_sync_start', ba_id=ba.id) }}"
@@ -47,6 +47,13 @@
 </div>
 {% elif current_user.is_admin and not integration_state('qonto') %}
 <p class="small"><a href="{{ url_for('bank_accounts.qonto_accounts') }}">Rattacher ce compte à Qonto</a></p>
+{% endif %}
+
+{% if proposal_count %}
+<div class="alert alert-info small d-flex justify-content-between align-items-center">
+  <span>{{ proposal_count }} contrepartie(s) de débits sans tiers à valider (créer le fournisseur, rattacher ou ignorer).</span>
+  <a href="{{ url_for('bank_accounts.counterparties_view', ba_id=ba.id) }}" class="alert-link">Valider les contreparties</a>
+</div>
 {% endif %}
 
 <div class="mb-3">

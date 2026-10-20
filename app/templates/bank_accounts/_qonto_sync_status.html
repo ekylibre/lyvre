@@ -23,6 +23,10 @@
       {{ r.get('created', 0) }} nouvelle(s), {{ r.get('updated', 0) }} mise(s) à jour,
       {{ r.get('reversed', 0) }} annulée(s) sur {{ r.get('read', 0) }} lue(s).
       {% if r.get('rules_matched') %}Règles : {{ r.rules_matched }} catégorisée(s), {{ r.get('rules_posted', 0) }} écriture(s).{% endif %}
+      {% if r.get('linked_entities') %}{{ r.linked_entities }} rattachée(s) à un tiers existant.{% endif %}
+      {% if r.get('proposed_counterparties') %}
+        <a href="{{ url_for('bank_accounts.counterparties_view', ba_id=ba.id) }}">{{ r.proposed_counterparties }} contrepartie(s) à valider</a>.
+      {% endif %}
     </div>
     {% if r.get('reversed_reconciled') %}
       <div class="text-danger">{{ r.reversed_reconciled }} transaction(s) annulée(s) par Qonto étai(en)t déjà rapprochée(s) : à revoir.</div>

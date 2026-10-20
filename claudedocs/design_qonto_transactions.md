@@ -335,3 +335,14 @@ sync_jobs), `doc/imports.md` (Qonto à côté d'OFX), `doc/installation.md` / `d
 - Vérifié sur le **compte réel de la SCI** (lecture seule, instance de test isolée) : 5 transactions
   importées en un clic, somme = **X XXX,XX €** = solde Qonto ; seconde synchro incrémentale : 0 lue ;
   date de début reculée d'un an → 13 fenêtres mensuelles relues, 5 inchangées, aucun doublon.
+
+**Phase E (2026-10-20)** :
+- `accept` s'applique à **toutes** les transactions sans tiers de la contrepartie, quel que soit le
+  compte bancaire (le tiers est global) ; un fournisseur de même nom exact est réutilisé.
+- Suggestions d'entités : même premier mot (≥ 3 caractères) que la contrepartie, 3 au plus.
+- Écran ouvert aux utilisateurs connectés (comme la synchronisation) ; bandeau dans la vue du compte
+  et lien dans le résumé de synchro.
+- Correction : les gabarits supportent un compte rattaché sans date de début (cas impossible via
+  l'écran, mais qui faisait planter la page).
+- Vérifié sur la SCI : 2 propositions (DUPRE MAINTENANCE ENERGIES, SARL PAPIN) ; frais Qonto et
+  crédits exclus ; création du fournisseur depuis l'écran.
