@@ -37,8 +37,13 @@ def app():
     try:
         yield app
     finally:
+        from app.tenant import clear_engine_cache
+
         db.session.remove()
         db.drop_all()
+        # Les moteurs tenant sont mis en cache par id d'instance ; les ids repartent à 1
+        # à chaque test (méta-base recréée) : un moteur d'un test précédent serait réutilisé.
+        clear_engine_cache()
         ctx.pop()
 
 
