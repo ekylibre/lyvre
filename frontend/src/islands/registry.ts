@@ -9,4 +9,6 @@ export type IslandLoader = () => Promise<{ default: ComponentType<any> }>;
  * Îlots disponibles, chargés à la demande (un fichier JS par îlot).
  * Le nom correspond au premier argument de la macro Jinja island(name, props).
  */
-export const islands: Record<string, IslandLoader> = {};
+export const islands: Record<string, IslandLoader> = {
+  "entry-form": () => import("./EntryForm/EntryForm"),
+};

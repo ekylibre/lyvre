@@ -100,3 +100,7 @@ def register_api(app):
         if is_api_request():
             return error_response("server_error", "Erreur interne du serveur.", 500)
         return e
+
+
+# Routes are attached to ``bp`` by these modules (import for side effects).
+from . import entries, lookups  # noqa: E402,F401

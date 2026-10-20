@@ -48,14 +48,18 @@ def suggest_matches(bank_transaction_id, window_days=3):
     return sorted(candidates, key=score, reverse=True)
 
 
-def reconcile(bank_transaction_id, journal_line_id):
-    """Link a bank transaction to a journal line."""
+def reconcile(bank_transaction_id, journal_line_id, commit=True):
+    """Link a bank transaction to a journal line.
+
+    ``commit=False`` lets the caller include it in a larger transaction.
+    """
     bt = BankTransaction.query.get_or_404(bank_transaction_id)
-    line = JournalLine.query.get_or_404(journal_line_id)
+    JournalLine.query.get_or_404(journal_line_id)
 
     bt.journal_line_id = journal_line_id
     bt.reconciled = True
-    db.session.commit()
+    if commit:
+        db.session.commit()
     return bt
 
 

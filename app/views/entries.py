@@ -1,9 +1,9 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, g, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from datetime import date
 from app.extensions import db
-from app.models import JournalEntry, JournalLine, FiscalYear, Journal, Account, BankTransaction
-from app.services.ledger import post_entry, validate_lines, LedgerError
+from app.models import JournalEntry, FiscalYear, Journal, BankTransaction
+from app.services.ledger import entry_is_reconciled
 from app.utils.list_filters import (
     parse_sort, parse_month, apply_date_sort, apply_month_filter,
     sort_and_filter_context,
@@ -56,100 +56,96 @@ def index():
     )
 
 
-@bp.route("/new", methods=["GET", "POST"])
+def _account_json(account):
+    return {"id": account.id, "code": account.code, "label": account.label}
+
+
+def _form_props(mode, initial, *, entry=None, bank_transaction=None, cancel_url, after_save=None):
+    """Props of the EntryForm island (frontend/src/islands/EntryForm)."""
+    fiscal_years = (
+        FiscalYear.query.filter_by(closed=False).order_by(FiscalYear.start_date.desc()).all()
+    )
+    instance = getattr(g, "current_instance", None)
+    props = {
+        "mode": mode,
+        "fiscalYears": [
+            {"id": fy.id, "label": fy.label,
+             "start_date": fy.start_date.isoformat(), "end_date": fy.end_date.isoformat()}
+            for fy in fiscal_years
+        ],
+        "journals": [
+            {"id": j.id, "code": j.code, "label": j.label}
+            for j in Journal.query.order_by(Journal.code).all()
+        ],
+        "initial": initial,
+        # Base de l'API (/api/v1), déduite d'une de ses routes.
+        "urls": {"api": url_for("api.session_info").rsplit("/", 1)[0], "cancel": cancel_url},
+        "recentsScope": instance.slug if instance else "default",
+    }
+    if after_save:
+        props["urls"]["afterSave"] = after_save
+    if entry is not None:
+        props["entryId"] = entry.id
+        props["reference"] = entry.reference
+    if bank_transaction is not None:
+        props["bankTransaction"] = {
+            "id": bank_transaction.id,
+            "date": bank_transaction.transaction_date.isoformat(),
+            "label": bank_transaction.label or "",
+            "amount_cents": bank_transaction.amount_cents,
+        }
+    return props
+
+
+def _default_fiscal_year(on_date):
+    open_years = FiscalYear.query.filter_by(closed=False).order_by(FiscalYear.start_date.desc()).all()
+    return next((fy for fy in open_years if fy.start_date <= on_date <= fy.end_date),
+                open_years[0] if open_years else None)
+
+
+@bp.route("/new")
 @login_required
 def new():
-    from types import SimpleNamespace
-    from app.services.reconciler import reconcile
-    fiscal_years = FiscalYear.query.filter_by(closed=False).order_by(FiscalYear.start_date.desc()).all()
+    """Saisie d'une écriture (îlot React EntryForm, enregistrement via /api/v1)."""
+    bt_id = request.args.get("bt_id", type=int)
+    bt = db.session.get(BankTransaction, bt_id) if bt_id else None
+    if bt is not None and bt.reconciled:
+        flash("Cette transaction bancaire est déjà rapprochée.", "warning")
+        return redirect(url_for("reconciliation.index", bank_account_id=bt.bank_account_id))
+
     journals = Journal.query.order_by(Journal.code).all()
-
-    bt_id = request.values.get("bt_id", type=int)
-    bt = BankTransaction.query.get(bt_id) if bt_id else None
-
-    if request.method == "POST":
-        try:
-            fy_id = int(request.form["fiscal_year_id"])
-            journal_id = int(request.form["journal_id"])
-            entry_date = date.fromisoformat(request.form["entry_date"])
-            description = request.form.get("description", "").strip()
-
-            account_ids = request.form.getlist("account_id[]")
-            labels = request.form.getlist("line_label[]")
-            debits = request.form.getlist("debit[]")
-            credits = request.form.getlist("credit[]")
-
-            lines = []
-            for acc_id, lbl, deb, crd in zip(account_ids, labels, debits, credits):
-                if not acc_id:
-                    continue
-                debit_cents = int(round(float(deb or 0) * 100))
-                credit_cents = int(round(float(crd or 0) * 100))
-                lines.append({
-                    "account_id": int(acc_id),
-                    "label": lbl,
-                    "debit_cents": debit_cents,
-                    "credit_cents": credit_cents,
-                })
-
-            entry = post_entry(fy_id, journal_id, entry_date, description, lines)
-
-            if bt and not bt.journal_line_id:
-                bank_line = next(
-                    (l for l in entry.lines if l.account_id == bt.bank_account.account_id),
-                    None,
-                )
-                if bank_line:
-                    reconcile(bt.id, bank_line.id)
-                    flash(
-                        f"Écriture {entry.reference} créée et transaction bancaire rapprochée.",
-                        "success",
-                    )
-                    return redirect(url_for(
-                        "reconciliation.index", bank_account_id=bt.bank_account_id
-                    ))
-
-            flash(f"Écriture {entry.reference} créée.", "success")
-            return redirect(url_for("entries.detail", entry_id=entry.id))
-
-        except LedgerError as e:
-            flash(str(e), "danger")
-        except (ValueError, KeyError) as e:
-            flash(f"Données invalides : {e}", "danger")
-
-    prefill = None
-    if bt:
-        bq = Journal.query.filter_by(code="BQ").first()
-        fy_match = next(
-            (fy for fy in fiscal_years
-             if fy.start_date <= bt.transaction_date <= fy.end_date),
-            None,
-        )
+    if bt is None:
+        today = date.today()
+        fy = _default_fiscal_year(today)
+        initial = {
+            "fiscal_year_id": fy.id if fy else None,
+            "journal_id": journals[0].id if journals else None,
+            "entry_date": today.isoformat(),
+            "description": "",
+            "lines": [],
+        }
+        props = _form_props("create", initial, cancel_url=url_for("entries.index"))
+    else:
+        fy = _default_fiscal_year(bt.transaction_date)
+        bq = next((j for j in journals if j.code == "BQ"), journals[0] if journals else None)
         amount = abs(bt.amount_cents)
-        is_inflow = bt.amount_cents >= 0
-        gl = bt.bank_account.account
-        bank_line = SimpleNamespace(
-            account=SimpleNamespace(id=gl.id, code=gl.code, label=gl.label),
-            label=bt.label or "",
-            debit_cents=amount if is_inflow else 0,
-            credit_cents=0 if is_inflow else amount,
-        )
-        prefill = SimpleNamespace(
-            entry_date=bt.transaction_date,
-            description=bt.label or "",
-            fiscal_year_id=fy_match.id if fy_match else None,
-            journal_id=bq.id if bq else None,
-            lines=[bank_line, None],  # bank line + empty placeholder for counterpart
-            bank_transaction=bt,
-        )
-
-    return render_template(
-        "entries/form.html",
-        fiscal_years=fiscal_years,
-        journals=journals,
-        prefill=prefill,
-        bt_id=bt_id,
-    )
+        inflow = bt.amount_cents >= 0
+        initial = {
+            "fiscal_year_id": fy.id if fy else None,
+            "journal_id": bq.id if bq else None,
+            "entry_date": bt.transaction_date.isoformat(),
+            "description": bt.label or "",
+            "lines": [{
+                "account": _account_json(bt.bank_account.account),
+                "label": bt.label or "",
+                "debit_cents": amount if inflow else 0,
+                "credit_cents": 0 if inflow else amount,
+            }],
+        }
+        back = url_for("reconciliation.index", bank_account_id=bt.bank_account_id)
+        props = _form_props("create", initial, bank_transaction=bt,
+                            cancel_url=back, after_save=back)
+    return render_template("entries/form.html", props=props, entry=None, bank_transaction=bt)
 
 
 @bp.route("/<int:entry_id>")
@@ -159,93 +155,36 @@ def detail(entry_id):
     return render_template("entries/detail.html", entry=entry)
 
 
-@bp.route("/<int:entry_id>/edit", methods=["GET", "POST"])
+@bp.route("/<int:entry_id>/edit")
 @login_required
 def edit(entry_id):
+    """Modification d'une écriture (îlot React EntryForm, enregistrement via /api/v1)."""
     entry = JournalEntry.query.get_or_404(entry_id)
-
     if entry.fiscal_year.closed:
         flash("Impossible de modifier une écriture d'un exercice clôturé.", "danger")
         return redirect(url_for("entries.detail", entry_id=entry_id))
-
-    fiscal_years = FiscalYear.query.filter_by(closed=False).order_by(FiscalYear.start_date.desc()).all()
-    journals = Journal.query.order_by(Journal.code).all()
-
-    if request.method == "POST":
-        line_ids = [l.id for l in entry.lines]
-        linked = (
-            BankTransaction.query.filter(BankTransaction.journal_line_id.in_(line_ids)).first()
-            if line_ids else None
+    if entry_is_reconciled(entry):
+        flash(
+            "Cette écriture est rapprochée à une transaction bancaire. "
+            "Annulez le rapprochement avant de la modifier.",
+            "danger",
         )
-        if linked:
-            flash(
-                "Cette écriture est rapprochée à une transaction bancaire. "
-                "Annulez le rapprochement avant de la modifier.",
-                "danger",
-            )
-            return redirect(url_for("entries.detail", entry_id=entry_id))
+        return redirect(url_for("entries.detail", entry_id=entry_id))
 
-        try:
-            fy_id = int(request.form["fiscal_year_id"])
-            journal_id = int(request.form["journal_id"])
-            entry_date = date.fromisoformat(request.form["entry_date"])
-            description = request.form.get("description", "").strip()
-
-            account_ids = request.form.getlist("account_id[]")
-            labels = request.form.getlist("line_label[]")
-            debits = request.form.getlist("debit[]")
-            credits = request.form.getlist("credit[]")
-
-            new_lines = []
-            for acc_id, lbl, deb, crd in zip(account_ids, labels, debits, credits):
-                if not acc_id:
-                    continue
-                new_lines.append({
-                    "account_id": int(acc_id),
-                    "label": lbl,
-                    "debit_cents": int(round(float(deb or 0) * 100)),
-                    "credit_cents": int(round(float(crd or 0) * 100)),
-                })
-
-            validate_lines(new_lines)
-
-            new_fy = FiscalYear.query.get(fy_id)
-            if new_fy is None:
-                raise LedgerError("Exercice introuvable.")
-            if new_fy.closed:
-                raise LedgerError(f"L'exercice « {new_fy.label} » est clôturé.")
-
-            for line in list(entry.lines):
-                db.session.delete(line)
-            db.session.flush()
-
-            entry.fiscal_year_id = fy_id
-            entry.journal_id = journal_id
-            entry.entry_date = entry_date
-            entry.description = description
-            entry.is_balanced = True
-
-            for l in new_lines:
-                db.session.add(JournalLine(
-                    entry_id=entry.id,
-                    account_id=l["account_id"],
-                    label=l.get("label", ""),
-                    debit_cents=l["debit_cents"],
-                    credit_cents=l["credit_cents"],
-                ))
-
-            db.session.commit()
-            flash(f"Écriture {entry.reference} modifiée.", "success")
-            return redirect(url_for("entries.detail", entry_id=entry.id))
-
-        except LedgerError as e:
-            db.session.rollback()
-            flash(str(e), "danger")
-        except (ValueError, KeyError) as e:
-            db.session.rollback()
-            flash(f"Données invalides : {e}", "danger")
-
-    return render_template("entries/form.html", fiscal_years=fiscal_years, journals=journals, entry=entry)
+    initial = {
+        "fiscal_year_id": entry.fiscal_year_id,
+        "journal_id": entry.journal_id,
+        "entry_date": entry.entry_date.isoformat(),
+        "description": entry.description or "",
+        "lines": [
+            {"account": _account_json(l.account), "label": l.label or "",
+             "debit_cents": l.debit_cents, "credit_cents": l.credit_cents}
+            for l in entry.lines
+        ],
+    }
+    props = _form_props("edit", initial, entry=entry,
+                        cancel_url=url_for("entries.detail", entry_id=entry.id))
+    return render_template("entries/form.html", props=props, entry=entry, bank_transaction=None)
 
 
 @bp.route("/<int:entry_id>/delete", methods=["POST"])
@@ -259,11 +198,3 @@ def delete(entry_id):
     db.session.commit()
     flash("Écriture supprimée.", "success")
     return redirect(url_for("entries.index"))
-
-
-@bp.route("/new-line")
-@login_required
-def new_line():
-    """HTMX: returns a new empty line row for the entry form."""
-    index = request.args.get("index", 0, type=int)
-    return render_template("entries/_line_row.html", index=index, line=None)

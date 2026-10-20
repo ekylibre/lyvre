@@ -59,25 +59,3 @@ def edit(account_id):
 
     from app.models.account import ACCOUNT_TYPES
     return render_template("accounts/form.html", account=account, account_types=ACCOUNT_TYPES)
-
-
-@bp.route("/search")
-@login_required
-def search():
-    """HTMX endpoint: returns account options for a given query."""
-    q = request.args.get("q", "").strip()
-    accounts = []
-    if q:
-        accounts = (
-            Account.query.filter(
-                db.or_(
-                    Account.code.ilike(f"%{q}%"),
-                    Account.label.ilike(f"%{q}%"),
-                ),
-                Account.is_header == False,
-            )
-            .order_by(Account.code)
-            .limit(20)
-            .all()
-        )
-    return render_template("accounts/_search_results.html", accounts=accounts)
