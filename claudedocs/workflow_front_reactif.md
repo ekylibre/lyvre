@@ -240,7 +240,7 @@ flowchart TD
 2. **`entries.delete` laisse des rapprochements orphelins** : supprimer une écriture rapprochée supprime ses lignes (cascade) mais laisse `bank_transactions.journal_line_id` et `reconciled=True` → corrigé en F.2.
 3. **Logique de modification d'écriture dans la vue** (`entries.edit`) → `ledger.update_entry` (E.2).
 4. **Création + rapprochement non atomiques** dans `entries.new` (deux commits) → E.3.
-5. **`docker/entrypoint.sh` appelle `seed_accounts.py` sans argument** (plan associatif) : sans impact ici, à garder en tête si une instance SCI devient la base par défaut.
+5. ~~**`docker/entrypoint.sh` appelle `seed_accounts.py` sans argument** (plan associatif)~~ — corrigé : sans argument, le script détecte le plan déjà chargé (base vide → `DEFAULT_INSTANCE_CHART`).
 
 ## 7. Ordre d'exécution (commits)
 

@@ -6,7 +6,7 @@
 compta-asso/
 │
 ├── run.py                        # Point d'entrée : charge .env, crée l'app Flask
-├── seed_accounts.py              # Script one-shot : charge le plan comptable (asso|sci) + journaux
+├── seed_accounts.py              # Charge le plan comptable (asso|sci, détecté si omis) + journaux
 ├── seed_meta.py                  # Méta-base : admin, instance par défaut, migration instances.chart
 ├── requirements.txt
 ├── Makefile                      # make check : typecheck + tests front + build + pytest

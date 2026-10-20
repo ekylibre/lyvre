@@ -10,8 +10,9 @@ echo "[entrypoint] Applying database migrations…"
 flask db upgrade
 
 echo "[entrypoint] Seeding accounts (idempotent)…"
-# seed_accounts.py iterates with INSERT-if-absent; failure is non-fatal once
-# the chart of accounts already exists (e.g. mid-migration).
+# No argument: seed_accounts.py completes the chart already in the database
+# (asso or sci); an empty database gets DEFAULT_INSTANCE_CHART (default asso).
+# Failure is non-fatal once the chart of accounts already exists.
 python seed_accounts.py || echo "[entrypoint] seed_accounts.py reported issues — continuing."
 
 echo "[entrypoint] Seeding meta DB (idempotent)…"

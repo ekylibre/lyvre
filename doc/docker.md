@@ -68,6 +68,7 @@ Le `.env` est injecté dans le conteneur via `env_file:` dans `docker-compose.ym
 |----------|------|
 | `SECRET_KEY` | **À changer impérativement** — clé de signature des sessions Flask. Générer via `python -c "import secrets; print(secrets.token_hex(32))"`. |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Compte admin créé au premier démarrage par `seed_meta.py`. Lus une fois ; les modifications ultérieures se font via `/users/`. |
+| `DEFAULT_INSTANCE_CHART` | Plan comptable (`asso` ou `sci`) chargé dans la base tenant par défaut **si elle est vide** (défaut `asso`). Une base existante garde son plan : `seed_accounts.py` le détecte et le complète, sans jamais y mélanger l'autre. |
 | `DATABASE_URL` | URL de la base tenant par défaut. Pour Docker, garder `sqlite:///seconde-nature.db` (résolu dans `instance/`). |
 | `META_DATABASE_URL` | URL SQLAlchemy de la méta-base. **À laisser non définie** (le fallback `config.py` calcule un chemin absolu correct), ou écrire `sqlite:///meta.db` (sans `instance/`) — voir [le piège SQLite relatif](installation.md#3-configurer-lenvironnement) dans la doc installation. |
 | `APP_PORT` | Port hôte → conteneur (défaut `5000`). Utile si 5000 est pris : `APP_PORT=8000 docker compose up -d`. |

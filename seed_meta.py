@@ -49,6 +49,18 @@ DEFAULT_INSTANCE_LABEL = "Seconde Nature"
 DEFAULT_INSTANCE_URL = "sqlite:///seconde-nature.db"
 
 
+def _default_instance_chart() -> str:
+    """Chart of the default instance: the one already loaded in the tenant
+    database, else $DEFAULT_INSTANCE_CHART, else "asso" (same rule as
+    seed_accounts.resolve_chart, which runs first in the Docker entrypoint)."""
+    from seed_accounts import resolve_chart
+
+    codes = []
+    if "accounts" in inspect(db.engine).get_table_names():
+        codes = [code for (code,) in db.session.execute(text("SELECT code FROM accounts"))]
+    return resolve_chart(None, codes, os.environ.get("DEFAULT_INSTANCE_CHART"))
+
+
 def main() -> int:
     app = create_app()
     with app.app_context():
@@ -79,14 +91,16 @@ def main() -> int:
 
         existing = db.session.query(Instance).filter(Instance.slug == instance_slug).first()
         if existing is None:
+            chart = _default_instance_chart()
             instance = Instance(
                 slug=instance_slug,
                 label=instance_label,
                 database_url=instance_url,
+                chart=chart,
                 is_active=True,
             )
             db.session.add(instance)
-            print(f"Default instance created: {instance_slug} → {instance_url}")
+            print(f"Default instance created: {instance_slug} → {instance_url} (plan {chart})")
         else:
             print(f"Default instance already exists: {instance_slug}")
 
