@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "integrations/_macros.html" import unavailable_notice with context %}
 {% from "_list_helpers.html" import hx_filter, hx_submit %}
 {% block title %}Adhérents{% endblock %}
 
@@ -48,20 +49,9 @@
   </div>
 </div>
 
-{% if not helloasso_configured %}
-<div class="alert alert-warning small">
-  HelloAsso non configuré. Définissez dans <code>.env</code> :
-  <code>HELLOASSO_CLIENT_ID</code>, <code>HELLOASSO_CLIENT_SECRET</code>, <code>HELLOASSO_ORG_SLUG</code>.
-</div>
-{% endif %}
+{{ unavailable_notice('helloasso', 'synchronisation des adhérents indisponible') }}
 
-{% if not smtp_configured %}
-<div class="alert alert-info small">
-  Relance email indisponible : SMTP non configuré. Définissez dans <code>.env</code> :
-  <code>MAIL_SERVER</code>, <code>MAIL_DEFAULT_SENDER</code> (et au besoin <code>MAIL_PORT</code>,
-  <code>MAIL_USERNAME</code>, <code>MAIL_PASSWORD</code>, <code>MAIL_USE_TLS</code>).
-</div>
-{% endif %}
+{{ unavailable_notice('smtp', 'relance email indisponible') }}
 
 <form method="get" class="row g-2 mb-3 align-items-end" {{ hx_filter('#list', search=True) }}>
   <input type="hidden" name="sort_by" value="{{ sort_by }}">

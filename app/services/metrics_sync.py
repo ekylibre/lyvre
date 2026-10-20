@@ -8,6 +8,7 @@ from datetime import datetime
 
 from app.extensions import db
 from app.models import MetricSnapshot, SyncJob
+from app.services import external_config
 from app.models.sync_job import (
     SYNC_KIND_METRICS, SYNC_STATUS_DONE, SYNC_STATUS_FAILED,
 )
@@ -119,6 +120,9 @@ def _sync_ga4_year(year):
     except Exception as exc:
         info["errors"].append(f"GA4 indisponible : {exc}")
         return info
+    if not external_config.is_enabled("ga4"):
+        info["disabled"] = True
+        return info
     try:
         client = from_app_config()
     except GA4ConfigError as exc:
@@ -150,6 +154,9 @@ def _sync_ga4(year, month, period_start):
     except Exception as exc:
         info["errors"].append(f"GA4 indisponible : {exc}")
         return info
+    if not external_config.is_enabled("ga4"):
+        info["disabled"] = True
+        return info
     try:
         client = from_app_config()
     except GA4ConfigError as exc:
@@ -177,6 +184,9 @@ def _sync_facebook(period_start):
         from app.services.facebook_client import from_app_config, FacebookConfigError
     except Exception as exc:
         info["errors"].append(f"Facebook indisponible : {exc}")
+        return info
+    if not external_config.is_enabled("facebook"):
+        info["disabled"] = True
         return info
     try:
         client = from_app_config()

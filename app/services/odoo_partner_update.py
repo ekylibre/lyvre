@@ -201,4 +201,4 @@ def update_single_member(entity, last_ha, last_pos, today=None, client=None):
 
 def is_configured():
     from app.services import external_config
-    return external_config.is_configured("odoo")
+    return external_config.is_available("odoo")

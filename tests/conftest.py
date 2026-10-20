@@ -45,3 +45,27 @@ def app():
 @pytest.fixture()
 def session(app):
     return db.session
+
+
+@pytest.fixture()
+def login_as(app):
+    """Client authentifié (utilisateur méta + instance pointant sur la base de test).
+
+    Usage : ``client = login_as(is_admin=True)``.
+    """
+    from app.models import Instance, User
+
+    def _login(is_admin=False):
+        user = User(email=f"{'admin' if is_admin else 'user'}@example.org", is_admin=is_admin)
+        user.set_password("x")
+        instance = Instance(slug="test", label="Test", database_url=os.environ["DATABASE_URL"])
+        db.session.add_all([user, instance])
+        db.session.commit()
+        client = app.test_client()
+        with client.session_transaction() as sess:
+            sess["_user_id"] = str(user.id)
+            sess["_fresh"] = True
+            sess["instance_id"] = instance.id
+        return client
+
+    return _login

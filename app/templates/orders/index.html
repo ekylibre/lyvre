@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "integrations/_macros.html" import unavailable_notice with context %}
 {% from "_list_helpers.html" import sortable_date_header, month_filter_select, hx_filter, hx_submit %}
 {% block title %}Commandes POS Odoo{% endblock %}
 {% block content %}
@@ -15,12 +16,7 @@
   </form>
 </div>
 
-{% if not configured %}
-<div class="alert alert-warning small">
-  Configuration Odoo incomplète. Définissez dans <code>.env</code> :
-  <code>ODOO_URL</code>, <code>ODOO_DB</code>, <code>ODOO_USERNAME</code> et <code>ODOO_API_KEY</code>.
-</div>
-{% endif %}
+{{ unavailable_notice('odoo', 'synchronisation des commandes indisponible') }}
 
 <form method="get" class="row g-2 mb-3 align-items-end" {{ hx_filter() }}>
   <input type="hidden" name="sort" value="{{ current_sort }}">

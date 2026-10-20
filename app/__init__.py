@@ -93,6 +93,11 @@ def _register_context_processors(app):
     from .menu_config import build_nav
     from .tenant import current_chart
 
+    from .services import external_config
+
+    # "disabled" / "unconfigured" / None — used by integrations/_macros.html.
+    app.jinja_env.globals["integration_state"] = external_config.unavailable_reason
+
     @app.context_processor
     def inject_nav_menus():
         is_admin = bool(getattr(current_user, "is_admin", False))
@@ -111,6 +116,11 @@ def _register_template_filters(app):
     @app.template_filter("abs_euros")
     def abs_euros_filter(cents):
         return euros_filter(abs(cents) if cents else 0)
+
+    @app.template_filter("integration_label")
+    def integration_label_filter(slug):
+        from .services.external_config import SERVICE_LABELS
+        return SERVICE_LABELS.get(slug, slug)
 
     @app.template_filter("local_dt")
     def local_dt_filter(value, fmt="%d/%m/%Y %H:%M"):

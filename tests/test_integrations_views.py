@@ -1,32 +1,16 @@
 """Écran des intégrations : index, détail, enregistrement + test, interrupteur, secrets."""
-import os
-
 import pytest
 
 from app.extensions import db
-from app.models import ExternalConnection, Instance, User
+from app.models import ExternalConnection
 from app.services import external_config, integrations
 
 ODOO = {"url": "https://erp.example.org", "db": "prod", "username": "a@b.fr", "api_key": "odoo-secret-key"}
 
 
-def _login(app, is_admin):
-    user = User(email=f"{'admin' if is_admin else 'user'}@example.org", is_admin=is_admin)
-    user.set_password("x")
-    instance = Instance(slug="test", label="Test", database_url=os.environ["DATABASE_URL"])
-    db.session.add_all([user, instance])
-    db.session.commit()
-    client = app.test_client()
-    with client.session_transaction() as sess:
-        sess["_user_id"] = str(user.id)
-        sess["_fresh"] = True
-        sess["instance_id"] = instance.id
-    return client
-
-
 @pytest.fixture()
-def client(app):
-    return _login(app, is_admin=True)
+def client(login_as):
+    return login_as(is_admin=True)
 
 
 @pytest.fixture()
@@ -160,8 +144,8 @@ def test_legacy_url_redirects(client):
     assert resp.headers["Location"].endswith("/configuration/integrations/")
 
 
-def test_non_admin_forbidden(app):
-    client = _login(app, is_admin=False)
+def test_non_admin_forbidden(login_as):
+    client = login_as(is_admin=False)
     assert client.get("/configuration/integrations/").status_code == 403
     assert client.post("/configuration/integrations/smtp/check").status_code == 403
 

@@ -19,7 +19,7 @@ bp = Blueprint("customer_invoices", __name__, url_prefix="/customer-invoices")
 
 
 def _odoo_configured():
-    return external_config.is_configured("odoo")
+    return external_config.is_available("odoo")
 
 
 @bp.route("/")

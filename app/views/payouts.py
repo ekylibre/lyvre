@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, abort
+from markupsafe import escape
 from app.frontend import is_htmx
 from flask_login import login_required
 
@@ -25,7 +26,7 @@ def index():
     query = apply_month_filter(query, Payout.date_payout, month_tuple)
     query = apply_date_sort(query, Payout.date_payout, sort)
     payouts = query.all()
-    has_key = external_config.is_configured("stancer")
+    has_key = external_config.is_available("stancer")
     last_job = stancer_async.latest_payouts_job()
     return render_template(
         "payouts/index.html",
@@ -66,6 +67,12 @@ def detail(payout_id):
 def sync():
     """Démarre la sync globale en arrière-plan et renvoie un fragment HTMX
     qui s'auto-rafraîchit. En non-HTMX, redirige vers la liste."""
+    message = external_config.unavailable_message("stancer")
+    if message:
+        if is_htmx():
+            return f'<div class="alert alert-warning small">{escape(message)}</div>'
+        flash(message, "warning")
+        return redirect(url_for("payouts.index"))
     job = stancer_async.start_sync_payouts(current_app._get_current_object())
     if is_htmx():
         return render_template("payouts/_sync_status.html", job=job)
@@ -77,6 +84,12 @@ def sync():
 @login_required
 def sync_payments_route(payout_id):
     payout = Payout.query.get_or_404(payout_id)
+    message = external_config.unavailable_message("stancer")
+    if message:
+        if is_htmx():
+            return f'<div class="alert alert-warning small">{escape(message)}</div>'
+        flash(message, "warning")
+        return redirect(url_for("payouts.detail", payout_id=payout.id))
     job = stancer_async.start_sync_payments_for_payout(
         current_app._get_current_object(), payout.id,
     )

@@ -105,13 +105,15 @@ class HelloAssoClient:
 def from_app_config(timeout=30):
     from app.services import external_config
 
+    if not external_config.is_enabled("helloasso"):
+        raise HelloAssoConfigError(external_config.unavailable_message("helloasso"))
     cfg = external_config.get_all("helloasso")
     base = cfg.get("api_base") or "https://api.helloasso.com"
     missing = [k for k in ("client_id", "client_secret", "org_slug") if not cfg.get(k)]
     if missing:
         raise HelloAssoConfigError(
             "Configuration HelloAsso incomplète (manquant : " + ", ".join(missing)
-            + ") — renseignez-la dans Configuration → Connexions externes."
+            + ") — renseignez-la dans Configuration › Intégrations."
         )
     return HelloAssoClient(
         cfg["client_id"], cfg["client_secret"], cfg["org_slug"], base, timeout=timeout

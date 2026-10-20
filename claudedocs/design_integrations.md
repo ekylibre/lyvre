@@ -367,3 +367,14 @@ ajouts `external_config`), `doc/installation.md` et `doc/docker.md` (l'interrupt
   injoignable sur deux adresses peut porter la sonde à ~20 s.
 - `SMTPServerDisconnected` traduit en « Le serveur SMTP a fermé la connexion… » (ou « Délai dépassé »
   si la cause est un timeout).
+
+**Phase D (2026-10-20)** — écarts et précisions :
+- `external_config.unavailable_reason` / `unavailable_message` : une seule source pour les bandeaux,
+  les messages flash des vues et les exceptions des fabriques.
+- Macro `unavailable_notice(slug, consequence)` (import `with context`) : lien vers l'intégration pour
+  un admin, « Contactez un administrateur » sinon (l'écran Intégrations est réservé aux admins).
+- `metrics_sync` **ignore silencieusement** une source désactivée (`{"disabled": True}`) au lieu
+  d'ajouter une erreur à chaque synchronisation.
+- Synchros Stancer (globale et par versement) refusées dès la vue, sans créer de `SyncJob`.
+- Boutons Odoo par adhérent (`entities/detail`, `members`) : désactivés, sans bandeau supplémentaire.
+- Fixture `login_as` ajoutée à `tests/conftest.py` (premiers tests de vues réservées aux admins).

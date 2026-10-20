@@ -17,6 +17,8 @@ class FacebookConfigError(Exception):
 
 
 def from_app_config(timeout=TIMEOUT):
+    if not external_config.is_enabled("facebook"):
+        raise FacebookConfigError(external_config.unavailable_message("facebook"))
     page_id = external_config.get("facebook", "page_id")
     page_token = external_config.get("facebook", "page_token")
     if not page_id or not page_token:

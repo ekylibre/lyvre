@@ -17,6 +17,7 @@ from app.models.entity import ENTITY_TYPES
 from app.models.email_template import (
     MEMBERSHIP_REMINDER_KEY, DEFAULT_REMINDER_SUBJECT, DEFAULT_REMINDER_BODY,
 )
+from app.services import external_config
 from app.services.helloasso_client import HelloAssoConfigError, from_app_config as helloasso_client
 from app.services.helloasso_create import create_membership_for_entity
 from app.services.helloasso_sync import sync_helloasso
@@ -30,7 +31,7 @@ bp = Blueprint("entities", __name__, url_prefix="/entities")
 
 def _helloasso_configured():
     from app.services import external_config
-    return external_config.is_configured("helloasso")
+    return external_config.is_available("helloasso")
 
 
 def _smtp_configured():
@@ -350,7 +351,7 @@ def update_odoo_notes():
     }
 
     if not _odoo_configured():
-        flash("Odoo non configuré — abandon.", "warning")
+        flash(external_config.unavailable_message("odoo"), "warning")
         return redirect(url_for("entities.members", **redirect_args))
 
     selected_ids = {i for i in request.form.getlist("selected") if i.isdigit()}
@@ -408,7 +409,7 @@ def members_reminders():
 
     if request.method == "POST":
         if not _smtp_configured():
-            flash("SMTP non configuré — abandon.", "warning")
+            flash(external_config.unavailable_message("smtp"), "warning")
             return redirect(url_for("entities.members"))
         # Ne relance que les adhérents cochés dans le sélecteur.
         selected_ids = set(request.form.getlist("selected"))
@@ -608,7 +609,7 @@ def update_odoo_note(entity_id):
     """Met à jour la fiche Odoo (Notes interne) d'un seul adhérent."""
     entity = Entity.query.get_or_404(entity_id)
     if not _odoo_configured():
-        flash("Odoo non configuré — abandon.", "warning")
+        flash(external_config.unavailable_message("odoo"), "warning")
         return redirect(url_for("entities.detail", entity_id=entity.id))
 
     last_ha, last_pos = _last_membership_dates([entity.id])
@@ -700,7 +701,7 @@ def create_helloasso_memberships():
 
     if request.method == "POST":
         if not _helloasso_configured():
-            flash("HelloAsso non configuré — abandon.", "warning")
+            flash(external_config.unavailable_message("helloasso"), "warning")
             return redirect(url_for("entities.index"))
         try:
             client = helloasso_client()

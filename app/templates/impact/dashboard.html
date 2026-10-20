@@ -23,13 +23,15 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="scope" value="month">
     <input type="hidden" name="month" value="{{ current_month }}">
-    <button type="submit" class="btn btn-outline-primary btn-sm">Synchroniser le mois</button>
+    <button type="submit" class="btn btn-outline-primary btn-sm"
+            {% if integration_state('ga4') and integration_state('facebook') %}disabled title="GA4 et Facebook indisponibles"{% endif %}>Synchroniser le mois</button>
   </form>
   <form method="post" action="{{ url_for('impact.sync') }}" class="d-inline">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="scope" value="year">
     <input type="hidden" name="year" value="{{ current_year }}">
-    <button type="submit" class="btn btn-primary btn-sm">Synchroniser l'année {{ current_year }} (GA4)</button>
+    <button type="submit" class="btn btn-primary btn-sm"
+            {% if integration_state('ga4') %}disabled title="GA4 indisponible"{% endif %}>Synchroniser l'année {{ current_year }} (GA4)</button>
   </form>
   <a href="{{ url_for('impact.report', gran=gran, month=current_month, quarter=current_quarter, year=current_year, start=current_start, end=current_end) }}"
      class="btn btn-outline-secondary btn-sm">Rapport imprimable</a>

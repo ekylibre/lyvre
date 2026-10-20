@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "integrations/_macros.html" import unavailable_notice with context %}
 {% from "_list_helpers.html" import hx_filter, hx_submit %}
 {% block title %}Entités{% endblock %}
 {% block content %}
@@ -19,12 +20,7 @@
   </div>
 </div>
 
-{% if not helloasso_configured %}
-<div class="alert alert-warning small">
-  HelloAsso non configuré. Définissez dans <code>.env</code> :
-  <code>HELLOASSO_CLIENT_ID</code>, <code>HELLOASSO_CLIENT_SECRET</code>, <code>HELLOASSO_ORG_SLUG</code>.
-</div>
-{% endif %}
+{{ unavailable_notice('helloasso', 'synchronisation des adhérents indisponible') }}
 
 <form method="get" class="row g-2 mb-3" role="search" {{ hx_filter('#list', search=True) }}>
   <div class="col-md-5">

@@ -218,6 +218,24 @@ def is_available(service: str) -> bool:
     return is_enabled(service) and is_configured(service)
 
 
+def unavailable_reason(service: str) -> str | None:
+    """None if usable, else "disabled" or "unconfigured" (the switch wins)."""
+    if not is_enabled(service):
+        return "disabled"
+    if not is_configured(service):
+        return "unconfigured"
+    return None
+
+
+def unavailable_message(service: str) -> str | None:
+    """French message for screens and errors when the integration cannot be used."""
+    reason = unavailable_reason(service)
+    if reason is None:
+        return None
+    state = "désactivée" if reason == "disabled" else "non configurée"
+    return f"Intégration {SERVICE_LABELS[service]} {state} (Configuration › Intégrations)."
+
+
 def fingerprint(service: str) -> str:
     """SHA-256 of the effective configuration (DB, else .env), keys sorted.
 

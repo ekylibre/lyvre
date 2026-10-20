@@ -14,3 +14,22 @@
 {{ check.checked_at | local_dt }}
 · {{ '%.1f'|format(check.duration_ms / 1000) | replace('.', ',') }} s
 {%- endmacro %}
+
+
+
+{# Bandeau des écrans qui dépendent d'une intégration indisponible (désactivée ou non configurée).
+   À importer « with context » (current_user). #}
+{% macro unavailable_notice(slug, consequence=None) -%}
+{% set reason = integration_state(slug) %}
+{% if reason %}
+<div class="alert alert-warning small">
+  Intégration <strong>{{ slug | integration_label }}</strong>
+  {{ 'désactivée' if reason == 'disabled' else 'non configurée' }}{% if consequence %} : {{ consequence }}{% endif %}.
+  {% if current_user.is_admin %}
+    <a href="{{ url_for('integrations.detail', service=slug) }}" class="alert-link">Ouvrir l'intégration</a>
+  {% else %}
+    Contactez un administrateur.
+  {% endif %}
+</div>
+{% endif %}
+{%- endmacro %}

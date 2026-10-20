@@ -94,11 +94,13 @@ def from_app_config(timeout=None):
     """Build an OdooClient from the per-instance external_connections config."""
     from app.services import external_config
 
+    if not external_config.is_enabled("odoo"):
+        raise OdooConfigError(external_config.unavailable_message("odoo"))
     cfg = external_config.get_all("odoo")
     missing = [k for k, v in cfg.items() if not v]
     if missing:
         raise OdooConfigError(
             "Configuration Odoo incomplète (manquant : " + ", ".join(missing)
-            + ") — renseignez-la dans Configuration → Connexions externes."
+            + ") — renseignez-la dans Configuration › Intégrations."
         )
     return OdooClient(cfg["url"], cfg["db"], cfg["username"], cfg["api_key"], timeout=timeout)

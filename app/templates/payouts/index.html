@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "integrations/_macros.html" import unavailable_notice with context %}
 {% from "_list_helpers.html" import sortable_date_header, month_filter_select, hx_filter %}
 {% block title %}Versements Stancer{% endblock %}
 {% block content %}
@@ -17,11 +18,7 @@
   </form>
 </div>
 
-{% if not has_key %}
-<div class="alert alert-warning small">
-  Définissez la variable d'environnement <code>STANCER_SECRET_KEY</code> avant de lancer la synchronisation.
-</div>
-{% endif %}
+{{ unavailable_notice('stancer', 'synchronisation des versements indisponible') }}
 
 <div id="sync-status-zone">
   {% if last_job %}

@@ -24,6 +24,8 @@ _GA4_METRICS = {
 
 
 def from_app_config():
+    if not external_config.is_enabled("ga4"):
+        raise GA4ConfigError(external_config.unavailable_message("ga4"))
     property_id = external_config.get("ga4", "property_id")
     credentials_json = external_config.get("ga4", "credentials_json")
     if not property_id or not credentials_json:

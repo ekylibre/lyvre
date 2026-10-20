@@ -45,8 +45,8 @@ def smtp_settings():
 
 
 def smtp_configured():
-    """Vrai si le serveur SMTP minimal (host + expéditeur) est paramétré."""
-    return external_config.is_configured("smtp")
+    """Vrai si l'intégration SMTP est activée et paramétrée (host + expéditeur)."""
+    return external_config.is_available("smtp")
 
 
 def _open_smtp(settings, timeout=20):

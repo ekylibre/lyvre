@@ -21,11 +21,13 @@ PAGE_SIZE = 100
 
 
 def _get_secret_key():
+    if not external_config.is_enabled("stancer"):
+        raise RuntimeError(external_config.unavailable_message("stancer"))
     key = external_config.get("stancer", "secret_key")
     if not key:
         raise RuntimeError(
             "Clé secrète Stancer manquante : renseignez-la dans "
-            "Configuration → Connexions externes."
+            "Configuration › Intégrations."
         )
     return key
 

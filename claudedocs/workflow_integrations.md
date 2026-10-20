@@ -1,6 +1,6 @@
 # Workflow — Écran des intégrations
 
-> **Statut : EN COURS** — phases A, B et C faites (révision Alembic `c3f8a1d5e297`). Sources : [`besoins_integrations.md`](besoins_integrations.md),
+> **Statut : EN COURS** — phases A à D faites (révision Alembic `c3f8a1d5e297`). Sources : [`besoins_integrations.md`](besoins_integrations.md),
 > [`design_integrations.md`](design_integrations.md) (décisions D1 à D7).
 
 ## 1. Objectif
@@ -133,7 +133,7 @@ intégrations réellement configurées en local (résultat et message plausibles
 A.1 → A.2 → A.3 → A.4                   ✅ CP A  (fait)
 B.1 → B.2 → B.3 → B.4 → B.5 → B.6       ✅ CP B  (fait)
 C.1 → C.2 → C.3 → C.4 → C.5 → C.6       ✅ CP C  (fait)
-D.1 → D.2 → D.3 → D.4                   ✅ CP D
+D.1 → D.2 → D.3 → D.4                   ✅ CP D  (fait)
 E.1 → E.2 → E.3                         ✅ CP final
 ```
 
