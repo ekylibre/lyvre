@@ -8,7 +8,8 @@ from app.models import (
     FiscalYear, BankTransaction, JournalEntry, JournalLine, Account,
     Order, OrderLine, CustomerInvoice, Payout, HelloAssoOrder, HelloAssoItem,
 )
-from app.services.reports import build_compte_resultat
+from app.services.reports import build_compte_resultat, section_total
+from app.tenant import current_chart
 
 bp = Blueprint("dashboard", __name__)
 
@@ -214,13 +215,13 @@ def _new_members_count(fy):
 def _resultat_courant_cents(fy):
     """Résultat courant avant impôts = (produits expl + produits fin) - (charges expl + charges fin).
 
-    Aggregated from build_compte_resultat to stay aligned with the official PCA report.
+    Aggregated from build_compte_resultat to stay aligned with the official report of the instance chart.
     """
-    data = build_compte_resultat(fy)
-    p_expl = sum(v[0] for v in data["produits_exploitation"].values())
-    c_expl = sum(v[0] for v in data["charges_exploitation"].values())
-    p_fin = sum(v[0] for v in data["produits_financiers"].values())
-    c_fin = sum(v[0] for v in data["charges_financieres"].values())
+    data = build_compte_resultat(fy, chart=current_chart())
+    p_expl = section_total(data["produits_exploitation"])[0]
+    c_expl = section_total(data["charges_exploitation"])[0]
+    p_fin = section_total(data["produits_financiers"])[0]
+    c_fin = section_total(data["charges_financieres"])[0]
     return int(p_expl + p_fin - c_expl - c_fin)
 
 

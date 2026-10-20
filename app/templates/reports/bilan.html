@@ -40,97 +40,37 @@
   </div>
 </form>
 
+{% macro side(title, lines, n_label, p_label) %}
+<h5>{{ title }}</h5>
+<table class="table table-sm table-bordered">
+  <thead class="table-dark">
+    <tr>
+      <th>{{ title }}</th>
+      <th class="text-end">{{ n_label }}</th>
+      <th class="text-end text-muted">{{ p_label }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for line in lines %}
+      {% if line.kind == 'section' %}
+        {{ section_header(line.label) }}
+      {% elif line.kind == 'total' %}
+        {{ subtotal(line.label, line.n, line.p) }}
+      {% else %}
+        {{ row(line.label, line.n, line.p, line.indent) }}
+      {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+{% endmacro %}
+
 {% if data %}
 <div class="row">
-  <!-- ACTIF -->
   <div class="col-md-6">
-    <h5>ACTIF</h5>
-    <table class="table table-sm table-bordered">
-      <thead class="table-dark">
-        <tr>
-          <th>ACTIF</th>
-          <th class="text-end">Net N</th>
-          <th class="text-end text-muted">Net N-1</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% set a = data.actif %}
-        {{ section_header("ACTIF IMMOBILISÉ") }}
-        {{ section_header("Immobilisations incorporelles") }}
-        {{ row("Frais d'établissement", a.immobilisations_incorporelles.frais_etablissement[0], a.immobilisations_incorporelles.frais_etablissement[1], 2) }}
-        {{ row("Frais de recherche et développement", a.immobilisations_incorporelles.frais_recherche_dev[0], a.immobilisations_incorporelles.frais_recherche_dev[1], 2) }}
-        {{ row("Donations temporaires d'usufruit", a.immobilisations_incorporelles.donations_usufruit[0], a.immobilisations_incorporelles.donations_usufruit[1], 2) }}
-        {{ row("Concessions, brevets, licences…", a.immobilisations_incorporelles.concessions_brevets[0], a.immobilisations_incorporelles.concessions_brevets[1], 2) }}
-        {{ row("Immobilisations incorporelles en cours", a.immobilisations_incorporelles.immo_incorporelles_en_cours[0], a.immobilisations_incorporelles.immo_incorporelles_en_cours[1], 2) }}
-        {{ section_header("Immobilisations corporelles") }}
-        {{ row("Terrains", a.immobilisations_corporelles.terrains[0], a.immobilisations_corporelles.terrains[1], 2) }}
-        {{ row("Constructions", a.immobilisations_corporelles.constructions[0], a.immobilisations_corporelles.constructions[1], 2) }}
-        {{ row("Installations techniques, matériel…", a.immobilisations_corporelles.installations_techniques[0], a.immobilisations_corporelles.installations_techniques[1], 2) }}
-        {{ row("Biens reçus par legs ou donations", a.biens_legs_donations[0], a.biens_legs_donations[1], 1) }}
-        {{ section_header("Immobilisations financières") }}
-        {{ row("Participations et créances rattachées", a.immobilisations_financieres.participations_creances[0], a.immobilisations_financieres.participations_creances[1], 2) }}
-        {{ row("Autres titres immobilisés", a.immobilisations_financieres.autres_titres_immobilises[0], a.immobilisations_financieres.autres_titres_immobilises[1], 2) }}
-        {{ row("Prêts", a.immobilisations_financieres.prets[0], a.immobilisations_financieres.prets[1], 2) }}
-        {{ row("Autres", a.immobilisations_financieres.autres[0], a.immobilisations_financieres.autres[1], 2) }}
-        {{ section_header("ACTIF CIRCULANT") }}
-        {{ row("Stocks et en-cours", a.stocks[0], a.stocks[1], 1) }}
-        {{ row("Créances clients, usagers", a.creances_clients[0], a.creances_clients[1], 1) }}
-        {{ row("Créances reçues par legs ou donations", a.creances_legs_donations[0], a.creances_legs_donations[1], 1) }}
-        {{ row("Autres créances", a.autres_creances[0], a.autres_creances[1], 1) }}
-        {{ row("Valeurs mobilières de placement", a.valeurs_mobilières_placement[0], a.valeurs_mobilières_placement[1], 1) }}
-        {{ row("Disponibilités", a.disponibilites[0], a.disponibilites[1], 1) }}
-        {{ row("Charges constatées d'avance", a.charges_constatees_avance[0], a.charges_constatees_avance[1], 1) }}
-      </tbody>
-    </table>
+    {{ side("ACTIF", data.actif, "Net N", "Net N-1") }}
   </div>
-
-  <!-- PASSIF -->
   <div class="col-md-6">
-    <h5>PASSIF</h5>
-    <table class="table table-sm table-bordered">
-      <thead class="table-dark">
-        <tr>
-          <th>PASSIF</th>
-          <th class="text-end">N</th>
-          <th class="text-end text-muted">N-1</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% set p = data.passif %}
-        {{ section_header("FONDS PROPRES") }}
-        {{ section_header("Fonds propres sans droit de reprise") }}
-        {{ row("Fonds propres statutaires", p.fonds_propres_sans_reprise_statutaires[0], p.fonds_propres_sans_reprise_statutaires[1], 2) }}
-        {{ row("Fonds propres complémentaires", p.fonds_propres_sans_reprise_complementaires[0], p.fonds_propres_sans_reprise_complementaires[1], 2) }}
-        {{ section_header("Fonds propres avec droit de reprise") }}
-        {{ row("Fonds statutaires", p.fonds_propres_avec_reprise_statutaires[0], p.fonds_propres_avec_reprise_statutaires[1], 2) }}
-        {{ row("Fonds propres complémentaires", p.fonds_propres_avec_reprise_complementaires[0], p.fonds_propres_avec_reprise_complementaires[1], 2) }}
-        {{ row("Écarts de réévaluation", p.ecarts_reevaluation[0], p.ecarts_reevaluation[1], 1) }}
-        {{ section_header("Réserves") }}
-        {{ row("Réserves statutaires ou contractuelles", p.reserves_statutaires[0], p.reserves_statutaires[1], 2) }}
-        {{ row("Réserves pour projet de l'entité", p.reserves_projet[0], p.reserves_projet[1], 2) }}
-        {{ row("Autres réserves", p.autres_reserves[0], p.autres_reserves[1], 2) }}
-        {{ row("Report à nouveau", p.report_a_nouveau[0], p.report_a_nouveau[1], 1) }}
-        {{ row("Excédent ou déficit de l'exercice", p.excedent_deficit[0], p.excedent_deficit[1], 1) }}
-        {{ row("Fonds propres consomptibles", p.fonds_propres_consomptibles[0], p.fonds_propres_consomptibles[1], 1) }}
-        {{ row("Subventions d'investissement", p.subventions_investissement[0], p.subventions_investissement[1], 1) }}
-        {{ row("Provisions réglementées", p.provisions_reglementees[0], p.provisions_reglementees[1], 1) }}
-        {{ section_header("FONDS REPORTÉS ET DÉDIÉS") }}
-        {{ row("Fonds reportés liés aux legs ou donations", p.fonds_reportes_legs[0], p.fonds_reportes_legs[1], 1) }}
-        {{ row("Fonds dédiés", p.fonds_dedies[0], p.fonds_dedies[1], 1) }}
-        {{ section_header("PROVISIONS") }}
-        {{ row("Provisions pour risques", p.provisions_risques[0], p.provisions_risques[1], 1) }}
-        {{ row("Provisions pour charges", p.provisions_charges[0], p.provisions_charges[1], 1) }}
-        {{ section_header("DETTES") }}
-        {{ row("Emprunts obligataires", p.emprunts_obligataires[0], p.emprunts_obligataires[1], 1) }}
-        {{ row("Emprunts établissements de crédit", p.emprunts_etablissements_credit[0], p.emprunts_etablissements_credit[1], 1) }}
-        {{ row("Emprunts et dettes financières diverses", p.emprunts_dettes_diverses[0], p.emprunts_dettes_diverses[1], 1) }}
-        {{ row("Dettes fournisseurs et comptes rattachés", p.dettes_fournisseurs[0], p.dettes_fournisseurs[1], 1) }}
-        {{ row("Dettes des legs ou donations", p.dettes_legs_donations[0], p.dettes_legs_donations[1], 1) }}
-        {{ row("Dettes fiscales et sociales", p.dettes_fiscales_sociales[0], p.dettes_fiscales_sociales[1], 1) }}
-        {{ row("Autres dettes", p.autres_dettes[0], p.autres_dettes[1], 1) }}
-        {{ row("Produits constatés d'avance", p.produits_constates_avance[0], p.produits_constates_avance[1], 1) }}
-      </tbody>
-    </table>
+    {{ side("PASSIF", data.passif, "N", "N-1") }}
   </div>
 </div>
 {% endif %}

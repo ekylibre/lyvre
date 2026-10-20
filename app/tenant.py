@@ -71,6 +71,13 @@ def current_instance() -> Instance | None:
     return getattr(g, "current_instance", None)
 
 
+def current_chart() -> str:
+    """Plan comptable de l'instance courante ("asso" par défaut)."""
+    from app.menu_config import DEFAULT_CHART
+
+    return getattr(current_instance(), "chart", None) or DEFAULT_CHART
+
+
 def _is_tenant_free_endpoint() -> bool:
     if request.endpoint is None:
         return True
