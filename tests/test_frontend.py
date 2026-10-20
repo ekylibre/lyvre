@@ -1,5 +1,6 @@
 """Socle HTMX : rendu de fragments, notifications HX-Trigger, redirections, CSRF."""
 import json
+import re
 
 import pytest
 from flask import flash, redirect, render_template_string
@@ -144,3 +145,78 @@ def test_base_layout_has_csrf_meta_toasts_and_progress(app):
     assert "text-bg-success" in html and "Bonjour" in html
     assert 'id="htmx-progress"' in html
     assert 'class="alert alert-' not in html  # les flashes passent par les toasts
+
+
+# --- Îlots React : assets Vite et macro island (phase D) --------------------
+
+
+@pytest.fixture()
+def manifest(tmp_path, monkeypatch):
+    import app.frontend as frontend
+
+    path = tmp_path / "manifest.json"
+    monkeypatch.setattr(frontend, "_manifest_path", lambda: str(path))
+    monkeypatch.setitem(frontend._manifest_cache, "mtime", None)
+    return path
+
+
+def test_vite_assets_production_reads_manifest(app, manifest):
+    from app.frontend import vite_assets
+
+    manifest.write_text(json.dumps({
+        "src/main.tsx": {"file": "assets/main-abc.js", "css": ["assets/main-abc.css"],
+                         "imports": ["_vendor.js"], "isEntry": True},
+        "_vendor.js": {"file": "assets/vendor-xyz.js"},
+    }))
+    with app.test_request_context():
+        html = str(vite_assets())
+    assert '<script type="module" src="/static/dist/assets/main-abc.js"></script>' in html
+    assert '<link rel="stylesheet" href="/static/dist/assets/main-abc.css">' in html
+    assert '<link rel="modulepreload" href="/static/dist/assets/vendor-xyz.js">' in html
+
+
+def test_vite_assets_reloads_manifest_after_new_build(app, manifest):
+    import os
+    from app.frontend import vite_assets
+
+    manifest.write_text(json.dumps({"src/main.tsx": {"file": "assets/v1.js"}}))
+    with app.test_request_context():
+        assert "v1.js" in str(vite_assets())
+        manifest.write_text(json.dumps({"src/main.tsx": {"file": "assets/v2.js"}}))
+        os.utime(manifest, (1, 1))  # mtime différent
+        assert "v2.js" in str(vite_assets())
+
+
+def test_vite_assets_missing_build_shows_error(app, manifest):
+    from app.frontend import vite_assets
+
+    with app.test_request_context():
+        html = str(vite_assets())
+    assert "alert-danger" in html and "npm --prefix frontend run build" in html
+
+
+def test_vite_assets_dev_server(app):
+    from app.frontend import vite_assets
+
+    app.config["VITE_DEV_SERVER"] = "http://localhost:5173/"
+    with app.test_request_context():
+        html = str(vite_assets())
+    assert 'src="http://localhost:5173/static/dist/@vite/client"' in html
+    assert 'src="http://localhost:5173/static/dist/src/main.tsx"' in html
+    assert "@react-refresh" in html and "__vite_plugin_react_preamble_installed__" in html
+
+
+def test_island_macro_escapes_props(app):
+    from flask import render_template_string
+
+    with app.test_request_context():
+        html = render_template_string(
+            '{% from "_island.html" import island %}{{ island("entry-form", props) }}',
+            props={"label": 'Dupont "&" fils <b>', "amount": 1250},
+        )
+    m = re.search(r'data-island="entry-form" data-props="([^"]*)"', html)
+    assert m, html
+    # Attribut sûr : aucun guillemet ni balise brute, JSON restitué à l'identique.
+    from html import unescape
+    assert json.loads(unescape(m.group(1))) == {"label": 'Dupont "&" fils <b>', "amount": 1250}
+    assert "<b>" not in m.group(1)

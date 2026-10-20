@@ -21,6 +21,9 @@ def create_app(config_name=None):
 
     login_manager.login_view = "auth.login"
     login_manager.login_message = "Veuillez vous connecter."
+    # API JSON : pas de redirection vers la page de connexion, mais une 401
+    # (convertie en JSON par app.api.register_api).
+    login_manager.blueprint_login_views["api"] = None
 
     # Import models so Alembic can detect them
     from . import models  # noqa: F401
@@ -75,8 +78,11 @@ def create_app(config_name=None):
     _register_template_filters(app)
     _register_context_processors(app)
 
-    from .frontend import register_htmx_hooks
-    register_htmx_hooks(app)
+    from .frontend import register_frontend
+    register_frontend(app)
+
+    from .api import register_api
+    register_api(app)
 
     return app
 

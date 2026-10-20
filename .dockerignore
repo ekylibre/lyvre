@@ -31,6 +31,11 @@ Modele-document-Nouveau-Plan-comptable-Bilan-CDR.xls
 .idea/
 *.swp
 
+# Front-end: dependencies are installed and the bundle is built inside the
+# image (Dockerfile stage "front"); never copy a local build or node_modules.
+frontend/node_modules/
+app/static/dist/
+
 # Build outputs (not used by this project but defensive)
 dist/
 build/

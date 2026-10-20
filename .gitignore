@@ -9,3 +9,7 @@ venv/
 *.egg-info/
 dist/
 build/
+
+# Front-end (Vite) : dépendances et build
+frontend/node_modules/
+app/static/dist/

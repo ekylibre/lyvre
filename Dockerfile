@@ -1,3 +1,19 @@
+# ---------------------------------------------------------------------------
+# Étape 1 — build des îlots React (Vite). Node n'est présent que dans cette
+# étape : l'image finale ne contient que le résultat (app/static/dist).
+# ---------------------------------------------------------------------------
+FROM node:22-slim AS front
+
+WORKDIR /build/frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY frontend/ ./
+# vite.config.ts : outDir = ../app/static/dist → /build/app/static/dist
+RUN npm run build
+
+# ---------------------------------------------------------------------------
+# Étape 2 — image d'exécution Python
+# ---------------------------------------------------------------------------
 FROM python:3.12-slim-bookworm
 
 # Runtime tools : curl (healthcheck) + bibliothèques système requises par
@@ -24,6 +40,8 @@ RUN pip install --no-cache-dir -r requirements.txt gunicorn==23.*
 
 # Copy the rest of the project. .dockerignore excludes secrets, the venv, data state, etc.
 COPY --chown=appuser:appgrp . /app
+# Front compilé à l'étape 1 (manifest Vite lu par app/frontend.py).
+COPY --from=front --chown=appuser:appgrp /build/app/static/dist /app/app/static/dist
 
 # instance/ is a mount point — make sure the empty directory is owned by appuser
 # so the entrypoint can write to it before the volume is mounted (helpful when running

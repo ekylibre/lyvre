@@ -1,0 +1,9 @@
+{# Îlot React (voir frontend/src/islands/registry.ts). Les props sont passées
+   en JSON dans data-props ; la page doit charger les scripts avec
+   {{ vite_assets() }} (bloc scripts). #}
+{% macro island(name, props={}) -%}
+<div data-island="{{ name }}" data-props="{{ props | tojson | forceescape }}">
+  <noscript>Cette page nécessite JavaScript.</noscript>
+  <div class="text-muted small" aria-live="polite">Chargement…</div>
+</div>
+{%- endmacro %}

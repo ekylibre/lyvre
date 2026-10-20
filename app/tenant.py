@@ -12,6 +12,7 @@ from flask_login import current_user
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 
+from app.api import error_response, is_api_request
 from app.extensions import db
 from app.models import Instance
 
@@ -102,18 +103,19 @@ def register_tenant_hooks(app):
         if not current_user.is_active:
             from flask_login import logout_user
             logout_user()
+            if is_api_request():
+                return error_response("unauthenticated", "Compte désactivé.", 401)
             return redirect(url_for("auth.login"))
 
         if _is_tenant_free_endpoint():
             return None
 
         instance_id = flask_session.get("instance_id")
-        if instance_id is None:
-            return redirect(url_for("auth.select_instance", next=request.url))
-
-        inst = db.session.get(Instance, instance_id)
+        inst = db.session.get(Instance, instance_id) if instance_id is not None else None
         if inst is None or not inst.is_active:
             flask_session.pop("instance_id", None)
+            if is_api_request():
+                return error_response("no_instance", "Aucune instance sélectionnée.", 409)
             return redirect(url_for("auth.select_instance", next=request.url))
 
         g.current_instance = inst
