@@ -36,6 +36,40 @@ lines = [
 
 ---
 
+### `validate_entry_payload(data) → (clean, errors)`
+
+Validation d'une écriture soumise par l'îlot EntryForm / l'API (montants en centimes). Les lignes
+entièrement vides sont ignorées. `errors` associe un champ à un message :
+
+| Champ | Règle |
+|-------|-------|
+| `fiscal_year_id` | Exercice existant et **non clôturé** |
+| `journal_id` | Journal existant |
+| `entry_date` | Date ISO, **comprise dans l'exercice** |
+| `lines[i].account_id` | Compte existant et **non regroupement** (`is_header`) |
+| `lines[i].amount` | Montants entiers ≥ 0, **soit un débit, soit un crédit** |
+| `lines` | Au moins deux lignes, Σ débit = Σ crédit, total non nul |
+
+`clean` contient les objets résolus (`fiscal_year`, `journal`, `entry_date`, `description`, `lines`).
+
+### `post_validated_entry(clean, bank_transaction=None) → JournalEntry`
+
+Crée l'écriture validée. Avec `bank_transaction`, rapproche la ligne banque (même compte comptable,
+même montant signé) **dans la même transaction** ; sinon `LedgerError` et rien n'est enregistré.
+
+### `update_entry(entry, clean) → JournalEntry`
+
+Remplace l'en-tête et les lignes. `LedgerError` si l'exercice est clôturé ou si l'écriture est
+rapprochée (`entry_is_reconciled(entry)`).
+
+### `delete_entries(entry_ids) → list[dict]`
+
+Supprime des écritures dans une seule transaction en **défaisant d'abord leurs rapprochements**
+(une ligne supprimée ne doit pas rester liée à une transaction bancaire). Exercice clôturé →
+refus pour l'écriture concernée. Résultat par écriture : `{entry_id, status, reference | message}`.
+
+---
+
 ### `post_entry(...) → JournalEntry`
 
 Crée une écriture équilibrée dans la base de données.
@@ -62,6 +96,8 @@ entry = post_entry(
 - L'exercice est introuvable
 - L'exercice est clôturé
 - Les lignes ne sont pas équilibrées (appel interne à `validate_lines`)
+
+`commit=False` se contente d'un `flush` pour inclure la création dans une transaction englobante.
 
 ---
 
@@ -201,39 +237,41 @@ tête de libellé donnent l'indentation (2 espaces par niveau). La ligne finale 
 
 ## reconciler.py — Rapprochement bancaire
 
-### `suggest_matches(bank_transaction_id, window_days=3) → list[JournalLine]`
+Un rapprochement valide lie une transaction bancaire à la ligne d'écriture qui l'enregistre : ligne
+sur le **compte comptable du compte bancaire**, **même montant signé** (débit pour une entrée
+d'argent, crédit pour une sortie), ni la transaction ni la ligne n'étant déjà rapprochées.
 
-Propose des lignes d'écriture candidates pour rapprocher une transaction bancaire.
+### `suggest_matches_scored(bank_transaction_id, window_days=3) → list[(JournalLine, score)]`
 
-**Algorithme :**
-1. Lit la transaction bancaire et son montant signé
-2. Si montant < 0 (débit bancaire) → cherche des lignes avec `credit_cents = abs(montant)`
-3. Si montant > 0 (crédit bancaire) → cherche des lignes avec `debit_cents = montant`
-4. Filtre : lignes non encore liées, date dans `[transaction_date - window_days, +window_days]`
-5. Score : date exacte = 2pts, autres = 1pt
-6. Retourne trié par score décroissant
+Lignes candidates (compte du compte bancaire, même montant signé, non rapprochées, date à
+±`window_days`), triées par score (2 = même date, 1 = dans la fenêtre), puis par écart de date.
+`suggest_matches(...)` renvoie seulement les lignes.
 
----
+### `check_link(bt, line, lines_taken=()) → str | None`
 
-### `reconcile(bank_transaction_id, journal_line_id) → BankTransaction`
+Message d'erreur si le lien est invalide (introuvable, déjà rapprochée, autre compte, montant
+différent), sinon `None`.
 
-Lie une transaction bancaire à une ligne d'écriture.
+### `reconcile_many(pairs) → list[dict]`
 
-Positionne `bank_transaction.reconciled = True` et `bank_transaction.journal_line_id = journal_line_id`.
+Rapproche `[(bank_transaction_id, journal_line_id)]` dans **une seule transaction** ; chaque paire
+est contrôlée (`check_link`) et une ligne ne peut servir qu'une fois dans le lot. Résultat par
+paire : `{bank_transaction_id, journal_line_id, status: "ok" | "error", message?}`.
 
----
+### `unreconcile_many(bank_transaction_ids) → list[dict]`
 
-### `unreconcile(bank_transaction_id) → BankTransaction`
+Défait des rapprochements ; chaque résultat `ok` donne le `journal_line_id` qui était lié (pour
+refaire le lien en cas d'annulation).
 
-Annule un rapprochement. Remet `reconciled = False` et `journal_line_id = None`.
+### `auto_reconcile(bank_account_id, bank_transaction_ids=None, dry_run=False) → list[dict]`
 
----
+Ne retient que les paires **sans ambiguïté** (`auto_pairs`) : une seule ligne candidate de même
+date, candidate pour aucune autre transaction. `dry_run=True` renvoie les paires trouvées
+(`status: "found"`) sans rien enregistrer.
 
-### `auto_reconcile(bank_account_id) → int`
+### `reconcile(bank_transaction_id, journal_line_id, commit=True)`
 
-Rapprochement automatique : pour chaque transaction non rapprochée, si `suggest_matches` (avec `window_days=0`, même jour) ne retourne qu'**une seule** correspondance, lie automatiquement.
-
-Retourne le nombre de transactions rapprochées.
+Lien brut, sans contrôle (utilisé par `post_validated_entry` à l'intérieur de sa transaction).
 
 ---
 

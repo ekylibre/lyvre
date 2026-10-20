@@ -185,29 +185,14 @@ Voir [doc/multi_tenant.md](multi_tenant.md) pour le détail de l'architecture.
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/entries/` | Liste les écritures avec actions Modifier / Supprimer. Filtres : `?fy_id=` et `?journal_id=` |
-| GET | `/entries/new` | Formulaire de saisie multi-lignes. Paramètre optionnel `?bt_id=<bank_transaction_id>` pour pré-remplir depuis une transaction bancaire (date, journal `BQ`, exercice englobant la date, ligne 5121 au débit ou crédit selon le signe du montant). |
-| POST | `/entries/new` | Valide et enregistre l'écriture. Si `bt_id` est présent, rapproche automatiquement la transaction bancaire à la ligne d'écriture côté banque et redirige vers `/reconciliation/`. |
+| GET | `/entries/` | Liste les écritures avec actions Modifier / Supprimer. Filtres : `?fy_id=`, `?journal_id=`, `?month=`, `?q=` (référence ou description, recherche au fil de la frappe) |
+| GET | `/entries/new` | Page de saisie : îlot React **EntryForm** ([guide](saisie_rapprochement.md)). Paramètre optionnel `?bt_id=` pour préremplir depuis une transaction bancaire (date, journal `BQ`, exercice englobant la date, ligne banque au débit ou au crédit selon le signe) ; transaction déjà rapprochée → retour au rapprochement. L'enregistrement passe par `POST /api/v1/entries`. |
 | GET | `/entries/<id>` | Détail d'une écriture avec toutes ses lignes |
-| GET | `/entries/<id>/edit` | Formulaire pré-rempli pour modifier l'écriture (interdit si FY clôturé ou si une ligne est rapprochée à une transaction bancaire) |
-| POST | `/entries/<id>/edit` | Remplace les lignes existantes par les nouvelles, met à jour l'en-tête (date, journal, exercice, description). La référence d'origine est conservée. |
-| POST | `/entries/<id>/delete` | Supprime l'écriture (interdit si FY clôturé) |
-| GET | `/entries/new-line` | **HTMX** — Retourne une ligne HTML vide à ajouter au formulaire. Paramètre `?index=` |
+| GET | `/entries/<id>/edit` | Modification dans l'îlot EntryForm (`PUT /api/v1/entries/<id>`) ; refusée (redirection + message) si l'exercice est clôturé ou si une ligne est rapprochée |
+| POST | `/entries/<id>/delete` | Supprime l'écriture et **défait d'abord ses rapprochements** (`ledger.delete_entries`) ; interdit si l'exercice est clôturé |
 
-**Paramètres POST `/entries/new` (formulaire multi-valeurs) :**
-
-| Champ | Description |
-|-------|-------------|
-| `fiscal_year_id` | ID de l'exercice |
-| `journal_id` | ID du journal |
-| `entry_date` | Date au format `YYYY-MM-DD` |
-| `description` | Libellé libre |
-| `account_id[]` | IDs des comptes (tableau) |
-| `line_label[]` | Libellés des lignes (tableau) |
-| `debit[]` | Montants débit en euros avec décimales (tableau) |
-| `credit[]` | Montants crédit en euros avec décimales (tableau) |
-
-L'écriture est refusée si Σ débit ≠ Σ crédit (message flash d'erreur).
+Les anciennes routes `POST /entries/new`, `POST /entries/<id>/edit`, `/entries/new-line` et
+`/accounts/search` (formulaire HTMX) ont été supprimées.
 
 ---
 
@@ -274,18 +259,10 @@ L'écriture est refusée si Σ débit ≠ Σ crédit (message flash d'erreur).
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/reconciliation/` | Liste les transactions non rapprochées. Filtre : `?bank_account_id=` |
-| GET | `/reconciliation/suggest/<bt_id>` | **HTMX** — Retourne les lignes d'écriture candidates pour une transaction |
-| POST | `/reconciliation/link` | Lie une transaction à une ligne d'écriture |
-| POST | `/reconciliation/unlink/<bt_id>` | Supprime le lien de rapprochement |
-| POST | `/reconciliation/auto` | Rapprochement automatique (correspondances exactes date + montant) |
+| GET | `/reconciliation/` | Espace de rapprochement : îlot React **ReconcileWorkspace** ([guide](saisie_rapprochement.md)). Paramètres `?bank_account_id=` et `?month=YYYY-MM` (repris dans l'URL par l'îlot). Toutes les actions passent par `/api/v1` (ci-dessous). |
 
-**Paramètres POST `/reconciliation/link` :**
-
-| Champ | Description |
-|-------|-------------|
-| `bank_transaction_id` | ID de la transaction bancaire |
-| `journal_line_id` | ID de la ligne d'écriture à lier |
+Les anciennes routes `/reconciliation/suggest/<id>`, `/link`, `/unlink/<id>` et `/auto` ont été
+supprimées.
 
 ---
 
@@ -502,3 +479,43 @@ Regroupées dans le menu **« Indicateurs »**. Période sélectionnable (`?gran
 | GET | `/rapport-activite/archives` · `/archive/<id>` | Liste / consultation des archives ; `/archive/<id>/delete` (POST, **admin**) |
 
 L'**import de tonnages** (`/rapport-activite/eco`) est également proposé dans le menu **Imports/Exports** (admin). Le bouton « Imprimer » a été remplacé par les exports PDF / HTML / DOCX / ODT.
+
+---
+
+## API JSON (`/api/v1`)
+
+Utilisée par les îlots React (saisie, rapprochement). Mêmes règles que les pages : session
+Flask-Login, instance courante (`app/tenant.py`), CSRF obligatoire en POST/PUT/DELETE via l'en-tête
+`X-CSRFToken`. Montants en **centimes entiers**, dates ISO `YYYY-MM-DD`.
+
+**Erreurs** (format unique) :
+
+```json
+{"error": {"code": "validation_error", "message": "L'écriture contient des erreurs.",
+           "fields": {"lines[1].account_id": "Compte obligatoire."}}}
+```
+
+Codes : `bad_request` / `csrf_error` (400), `unauthenticated` (401, jamais de redirection),
+`forbidden` (403), `not_found` (404), `method_not_allowed` (405), `conflict` / `no_instance` (409),
+`validation_error` (422), `server_error` (500).
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/api/v1/session` | Utilisateur et instance courants (vérification de session) |
+| GET | `/api/v1/accounts?q=&limit=20` | Comptes utilisables (hors regroupement) : début de code, puis mots du libellé (sans accents) |
+| GET | `/api/v1/entities?q=&limit=20` | Tiers par nom ou email |
+| POST | `/api/v1/entries/validate` | Validation à blanc : `{"errors": {champ: message}}`, rien n'est enregistré |
+| POST | `/api/v1/entries` | Crée l'écriture (201 + `Location`) ; `bank_transaction_id` facultatif → création et rapprochement atomiques (409 si la ligne banque ne correspond pas ou si la transaction est déjà rapprochée) |
+| GET | `/api/v1/entries/<id>` | Écriture avec ses lignes, `reconciled`, `editable` |
+| PUT | `/api/v1/entries/<id>` | Modifie (409 si rapprochée ou exercice clôturé) |
+| POST | `/api/v1/entries/bulk-delete` | `{"entry_ids": [...]}` : supprime en défaisant les rapprochements (annulation des règles) |
+| GET | `/api/v1/bank-accounts/<id>/transactions` | `?status=unreconciled\|reconciled\|all&month=&sort=` → transactions + `counters` |
+| GET | `/api/v1/bank-transactions/<id>/suggestions` | Lignes candidates avec `score` (2 = même date, 1 = ±3 jours) |
+| POST | `/api/v1/reconciliations` | `{"items": [{bank_transaction_id, journal_line_id}]}` : rapproche, contrôle par élément |
+| POST | `/api/v1/reconciliations/delete` | `{"bank_transaction_ids": [...]}` : défait des rapprochements |
+| POST | `/api/v1/reconciliations/auto` | `{bank_account_id, bank_transaction_ids?, dry_run?}` : paires sans ambiguïté (même date, même montant) |
+| POST | `/api/v1/bank-transactions/apply-rules` | `{"ids": [...]}` : applique les règles à la sélection |
+
+Les écritures groupées renvoient `{"results": [...], "counters": {...}, "undo": {...}}` : `results`
+donne le statut de chaque élément (`ok` / `error` + `message`) et `undo` la requête qui annule la
+partie réussie (`{"method": "POST", "url": ..., "body": ...}`), rejouée par l'îlot pour « Annuler ».

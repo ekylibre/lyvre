@@ -6,9 +6,10 @@ it for "Annuler" / Ctrl+Z; nothing is stored on the server).
 """
 from flask import jsonify, request, url_for
 from flask_login import login_required
+from sqlalchemy.orm import joinedload
 
 from app.extensions import db
-from app.models import BankAccount, BankTransaction
+from app.models import BankAccount, BankTransaction, JournalLine
 from app.services.ledger import delete_entries
 from app.services.reconciler import (
     auto_reconcile, reconcile_many, suggest_matches_scored, unreconcile_many,
@@ -67,7 +68,11 @@ def serialize_transaction(bt):
 def bank_transactions(bank_account_id):
     ba = _bank_account(bank_account_id)
     status = request.args.get("status", "unreconciled")
-    query = BankTransaction.query.filter_by(bank_account_id=ba.id)
+    # Écriture et tiers chargés avec les transactions (pas une requête par ligne).
+    query = BankTransaction.query.filter_by(bank_account_id=ba.id).options(
+        joinedload(BankTransaction.journal_line).joinedload(JournalLine.entry),
+        joinedload(BankTransaction.entity),
+    )
     if status == "unreconciled":
         query = query.filter_by(reconciled=False)
     elif status == "reconciled":

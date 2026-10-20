@@ -5,7 +5,6 @@ import re
 import pytest
 from flask import flash, redirect, render_template_string
 
-from app.frontend import render_page
 
 HX = {"HX-Request": "true"}
 
@@ -14,10 +13,6 @@ HX = {"HX-Request": "true"}
 def client(app):
     """Routes de test sans authentification (le hook tenant ne fait rien
     pour un utilisateur anonyme)."""
-    @app.route("/_t/page")
-    def _t_page():
-        return render_page("_t_full.html", "_t_part.html")
-
     @app.route("/_t/flash")
     def _t_flash():
         flash("Écriture créée.", "success")
@@ -39,35 +34,6 @@ def client(app):
         return "ok"
 
     return app.test_client()
-
-
-@pytest.fixture(autouse=True)
-def _templates(app):
-    from jinja2 import ChoiceLoader, DictLoader
-
-    env = app.jinja_env
-    env.loader = ChoiceLoader([
-        DictLoader({
-            "_t_part.html": "<table id='part'></table>",
-            "_t_full.html": "<html><body>{% include '_t_part.html' %}</body></html>",
-        }),
-        env.loader,
-    ])
-
-
-def test_render_page_full_without_htmx(client):
-    body = client.get("/_t/page").get_data(as_text=True)
-    assert body.startswith("<html>") and "id='part'" in body
-
-
-def test_render_page_fragment_with_htmx(client):
-    body = client.get("/_t/page", headers=HX).get_data(as_text=True)
-    assert body == "<table id='part'></table>"
-
-
-def test_render_page_boosted_request_gets_full_page(client):
-    body = client.get("/_t/page", headers={**HX, "HX-Boosted": "true"}).get_data(as_text=True)
-    assert body.startswith("<html>")
 
 
 def test_flash_messages_sent_as_toast_trigger(client):

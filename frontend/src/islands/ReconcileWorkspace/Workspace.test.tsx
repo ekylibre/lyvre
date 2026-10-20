@@ -172,4 +172,34 @@ describe("ReconcileWorkspace", () => {
     await waitFor(() => expect(window.location.search).toBe("?bank_account_id=1&month=2026-03"));
     expect(calls.some((c) => c.url.includes("month=2026-03"))).toBe(true);
   });
+
+  it("annonce la transaction active aux lecteurs d'écran", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<Workspace {...props} />);
+    await ready();
+    const live = () => container.querySelector('.visually-hidden[aria-live="polite"]')!;
+    await waitFor(() => expect(live()).toHaveTextContent("Transaction 10/03/2026, PRLV EDF"));
+    expect(live()).toHaveTextContent("1 suggestion");
+    region().focus();
+    await user.keyboard("j");
+    await waitFor(() => expect(live()).toHaveTextContent("CB LEROY"));
+    await user.keyboard(" ");
+    expect(live()).toHaveTextContent("sélectionnée");
+    expect(rows()[1]).toHaveAttribute("aria-current", "true");
+  });
+
+  it("garde le focus dans le panneau de saisie", async () => {
+    const user = userEvent.setup();
+    render(<Workspace {...props} />);
+    await ready();
+    region().focus();
+    await user.keyboard("n");
+    const dialog = await screen.findByRole("dialog", { name: "Créer l'écriture" });
+    const close = within(dialog).getByRole("button", { name: "Fermer (Échap)" });
+    close.focus();
+    await user.keyboard("{Shift>}{Tab}{/Shift}");
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    for (let i = 0; i < 40; i++) await user.keyboard("{Tab}");
+    expect(dialog.contains(document.activeElement)).toBe(true);
+  });
 });

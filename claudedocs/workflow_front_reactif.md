@@ -1,7 +1,6 @@
 # Workflow — Front réactif hybride (HTMX + îlots React)
 
-> **Statut : PLAN UNIQUEMENT.** Aucun code n'est écrit ici. Exécuter ensuite avec `/sc:implement`
-> phase par phase, une étape = un commit.
+> **Statut : RÉALISÉ** (phases A à G, octobre 2026). Écarts et mesures : `design_front_reactif.md` §5 et §14.
 > Sources : [`besoins_front_reactif.md`](besoins_front_reactif.md), [`design_front_reactif.md`](design_front_reactif.md).
 
 ## 1. Objectif

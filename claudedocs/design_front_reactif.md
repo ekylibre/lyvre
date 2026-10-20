@@ -165,8 +165,8 @@ La page inclut le fragment (`{% include "entries/_table.html" %}`) : une seule s
 > `hx_nav` / `hx_filter` (`_list_helpers.html`) demandent la **page complète** et HTMX n'en extrait que
 > la zone ciblée (`hx-select`). Aucune vue n'est modifiée, l'URL et l'historique fonctionnent, et le
 > surcoût (rendu de la barre de navigation) est négligeable. Une recherche au fil de la frappe cible
-> une zone `#list` qui n'inclut pas le champ saisi. `render_page` reste disponible pour les fragments
-> dédiés (actions sur une ligne, phase C).
+> une zone `#list` qui n'inclut pas le champ saisi. `render_page` (fragments dédiés) s'est révélé
+> inutile et a été retiré en phase G.
 
 > **Mise en œuvre (phase C, 2026-10-20)** : les formulaires POST (imports, actions sur une ligne,
 > formulaires simples, synchronisations) utilisent la macro `hx_submit` (`hx-boost` + même zone
@@ -443,3 +443,31 @@ Node 22 LTS, build par Dokploy (pas de CI).
 | `reconcile` actuel sans contrôle | Rapprochements erronés en masse | Contrôles ajoutés dans `reconcile_many` (§6.5) avant d'exposer la masse |
 | Annulation perdue au rechargement | Confusion | Toast explicite, durée 10 s ; l'opération inverse reste possible manuellement |
 | Graphiques ECharts après remplacement HTMX | Graphiques vides | Réinitialisation sur `htmx:afterSettle` (§9) |
+
+---
+
+## 14. Bilan de la mise en œuvre (phase G, 2026-10-20)
+
+**Mesures NF6** — temps serveur (client de test Flask) sur une **copie de la base réelle**
+(185 écritures, 370 lignes, 783 comptes, 328 tiers, 185 transactions), médiane de 15 appels :
+
+| Requête | Médiane | Max |
+|---------|---------|-----|
+| `GET /entries/` (liste, requête HTMX) | 4,4 ms | 4,8 ms |
+| `GET /entries/?q=TPE` (recherche) | 3,8 ms | 3,9 ms |
+| `GET /entities/members?q=ma` | 6,4 ms | 12,5 ms |
+| `GET /` (tableau de bord) | 27,6 ms | 28,7 ms |
+| `GET /reports/bilan` | 47,7 ms | 51,4 ms |
+| `GET /api/v1/accounts?q=6` | 3,3 ms | 3,3 ms |
+| `GET /api/v1/accounts?q=electricite` | 4,0 ms | 19,7 ms |
+| `POST /api/v1/entries/validate` | 0,7 ms | 0,8 ms |
+| `GET /api/v1/bank-accounts/1/transactions?status=all` | 4,3 ms (47,3 ms avant chargement groupé) | 4,4 ms |
+| `GET /api/v1/bank-transactions/<id>/suggestions` | 0,9 ms | 1,1 ms |
+
+Objectif « action courante < 500 ms » largement tenu ; le seul point corrigé est une requête N+1
+sur la liste des transactions (`joinedload` de l'écriture et du tiers). Le retour visuel < 100 ms
+est assuré côté client (barre de chargement après 300 ms, écart et indications calculés localement).
+
+**Écarts assumés par rapport au design** : pas de fragments `_table.html` (approche `hx-select`),
+synchronisations Odoo / HelloAsso restées synchrones, pas d'animation de sortie des transactions
+rapprochées.

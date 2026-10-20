@@ -16,15 +16,17 @@ Application web de comptabilité pour associations loi 1901 (plan comptable des 
 | [Services](services.md) | Logique métier : comptabilité, imports, rapprochement |
 | [Imports](imports.md) | Guide import OFX (banque) et CSV Odoo |
 | [États financiers](reports.md) | Balance, grand livre, Bilan, Compte de résultat (asso / SCI) |
+| [Saisie et rapprochement](saisie_rapprochement.md) | Îlots React au clavier : saisie d'écriture, espace de rapprochement, raccourcis |
 
 ## Fonctionnalités
 
 - **Plan comptable** — choisi à la création de l'instance : **association** (783 comptes du PCA) ou **SCI** (576 comptes, dont les sous-comptes des lignes de la déclaration 2072) ; arborescence hiérarchique, recherche instantanée
 - **Menus par plan comptable** — navigation déclarée dans `app/menu_config.py` ; les menus propres aux associations (adhérents, bénévolat, Stancer, Odoo, indicateurs) sont masqués pour une SCI
-- **Saisie comptable** — Écritures en partie double, validation débit = crédit, génération automatique des références
+- **Interface réactive** — Filtres, tri, recherche, actions et formulaires sans rechargement de page (HTMX), messages en notifications
+- **Saisie comptable** — Écritures en partie double dans un formulaire **entièrement au clavier** (autocomplétion des comptes, écart en direct, ligne d'équilibre préremplie, enregistrer et enchaîner), validation serveur par champ, génération automatique des références
 - **Import bancaire** — Fichiers OFX/QFX (banques françaises), déduplication automatique par FITID
 - **Import Odoo** — CSV de lignes de facturation, table de staging avant comptabilisation
-- **Rapprochement bancaire** — Suggestions automatiques par montant/date, rapprochement en un clic
+- **Rapprochement bancaire** — Espace de travail au clavier : suggestions notées (compte bancaire, montant, date), rapprochement en un geste ou en masse, création d'écriture en panneau latéral, règles sur la sélection, annulation (Ctrl+Z), contrôles de montant et de compte
 - **États financiers** — Balance, grand livre, Bilan et Compte de résultat au format du plan de l'instance (associatif ou SCI) avec comparaison N/N-1 ; chaque compte compté une seule fois, tiers ventilés selon le sens du solde, bilan équilibré avant comme après clôture
 - **Clôture d'exercice** — Verrouillage des écritures (obligation légale française)
 - **Entités** — Répertoire de tiers (clients, fournisseurs, salariés, organismes) liés aux transactions bancaires
@@ -54,7 +56,7 @@ python run.py
 |--------|-------------|
 | Backend | Python 3 / Flask 3.1 |
 | Base de données | SQLite (SQLAlchemy + Alembic) |
-| Frontend | Jinja2 + Bootstrap 5 + HTMX |
+| Frontend | Jinja2 + Bootstrap 5 + HTMX ; îlots React 18 + TypeScript (build Vite, Node 22 au build uniquement) |
 | Import OFX | ofxtools |
 | Import CSV | pandas |
 | Moteur de règles | PyYAML |

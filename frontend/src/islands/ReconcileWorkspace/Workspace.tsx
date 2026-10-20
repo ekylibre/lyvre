@@ -363,6 +363,12 @@ export default function Workspace(props: WorkspaceProps) {
 
       <div className="row g-3">
         <div className="col-lg-7">
+          {/* Annonce de la transaction active pour les lecteurs d'écran. */}
+          <div className="visually-hidden" aria-live="polite" aria-atomic="true">
+            {active && `Transaction ${frDate(active.date)}, ${active.label}, ${formatEuros(active.amount_cents)}`
+              + (activeSuggestions ? `, ${plural(activeSuggestions.length, "suggestion", "suggestions")}` : "")
+              + (selected.has(active.id) ? ", sélectionnée" : "")}
+          </div>
           <div ref={tableRef} tabIndex={0} className="border rounded overflow-auto" style={{ maxHeight: "65vh" }}
                role="region" aria-label="Transactions à rapprocher (↑↓ pour naviguer, Entrée pour rapprocher)">
             <table className="table table-sm table-hover mb-0 align-middle">
@@ -381,7 +387,7 @@ export default function Workspace(props: WorkspaceProps) {
                   const isActive = t.id === activeId;
                   const hasBest = !!bestSuggestion(suggestions.get(t.id));
                   return (
-                    <tr key={t.id} data-bt={t.id} aria-selected={selected.has(t.id)}
+                    <tr key={t.id} data-bt={t.id} aria-current={isActive || undefined}
                         className={isActive ? "table-primary" : selected.has(t.id) ? "table-info" : ""}
                         onClick={(e) => {
                           if (e.shiftKey && anchorId !== null) setSelected(new Set(rangeIds(ids, anchorId, t.id)));
@@ -472,6 +478,25 @@ export default function Workspace(props: WorkspaceProps) {
   );
 }
 
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** Garde le focus clavier dans le panneau modal (Tab / Maj+Tab bouclent). */
+function trapFocus(e: KeyboardEvent<HTMLElement>, container: HTMLElement | null) {
+  if (!container) return;
+  const items = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE))
+    .filter((el) => el.tabIndex !== -1);
+  if (!items.length) return;
+  const first = items[0];
+  const last = items[items.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
 function EntryPanel({ bt, bankAccount, props, onClose, onSaved }: {
   bt: BankTransaction;
   bankAccount: BankAccountOption;
@@ -495,7 +520,14 @@ function EntryPanel({ bt, bankAccount, props, onClose, onSaved }: {
   return (
     <div className="offcanvas offcanvas-end show" style={{ width: "min(56rem, 100vw)", visibility: "visible" }}
          role="dialog" aria-modal="true" aria-label="Créer l'écriture" ref={panelRef}
-         onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } }}>
+         onKeyDown={(e) => {
+           if (e.key === "Escape") {
+             e.stopPropagation();
+             onClose();
+           } else if (e.key === "Tab") {
+             trapFocus(e, panelRef.current);
+           }
+         }}>
       <div className="offcanvas-header border-bottom">
         <h5 className="offcanvas-title">Créer l'écriture</h5>
         <button type="button" className="btn-close" aria-label="Fermer (Échap)" onClick={onClose} />

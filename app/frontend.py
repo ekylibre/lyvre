@@ -2,8 +2,9 @@
 
 HTMX conventions (see claudedocs/design_front_reactif.md §5):
 
-- ``render_page`` returns only the fragment template for an HTMX request,
-  the full page otherwise (the page includes the fragment).
+- Lists, filters and forms swap the ``#page-content`` zone: the server
+  renders the full page and HTMX keeps the zone (``hx-select``, macros in
+  ``_list_helpers.html``).
 - Flash messages of an HTMX response are sent as an ``HX-Trigger`` "toast"
   event instead of waiting for the next full page.
 - A redirect answering an HTMX request is never followed silently by the
@@ -19,7 +20,7 @@ import json
 import os
 from urllib.parse import urlsplit
 
-from flask import current_app, get_flashed_messages, render_template, request, url_for
+from flask import current_app, get_flashed_messages, request, url_for
 from markupsafe import Markup, escape
 
 CONTENT_ZONE = "page-content"
@@ -100,11 +101,6 @@ def vite_assets(entry=VITE_ENTRY):
 def is_htmx() -> bool:
     """True for a request issued by HTMX (outside of hx-boost navigation)."""
     return bool(request.headers.get("HX-Request")) and not request.headers.get("HX-Boosted")
-
-
-def render_page(template, partial, **context):
-    """Render ``partial`` alone for an HTMX request, ``template`` otherwise."""
-    return render_template(partial if is_htmx() else template, **context)
 
 
 def _merge_trigger(response, name, value):

@@ -112,15 +112,6 @@ def reconcile_many(pairs):
     return results
 
 
-def unreconcile(bank_transaction_id):
-    """Remove the link between a bank transaction and a journal line."""
-    bt = BankTransaction.query.get_or_404(bank_transaction_id)
-    bt.journal_line_id = None
-    bt.reconciled = False
-    db.session.commit()
-    return bt
-
-
 def unreconcile_many(bank_transaction_ids):
     """Undo the reconciliation of several transactions in one transaction.
 

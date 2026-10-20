@@ -4,6 +4,8 @@
 
 - Python 3.10 ou supérieur
 - pip
+- **Node.js 22** (`.nvmrc`) et npm — uniquement pour construire le front (îlots React) ; inutile
+  pour un déploiement Docker, où le build est fait dans l'image
 
 ## Installation
 
@@ -110,8 +112,25 @@ Default instance created: seconde-nature → sqlite:///seconde-nature.db
 ### 6. Démarrer l'application
 
 ```bash
+# Construire les îlots React (saisie d'écriture, rapprochement) une première fois
+npm --prefix frontend ci
+npm --prefix frontend run build      # → app/static/dist/
+
 python run.py
 ```
+
+Sans build, les pages de saisie et de rapprochement affichent un message
+« Interface indisponible : les fichiers du front ne sont pas construits ».
+
+**Développement du front** (rechargement à chaud) :
+
+```bash
+npm --prefix frontend run dev                      # serveur Vite sur :5173
+VITE_DEV_SERVER=http://localhost:5173 python run.py
+```
+
+**Vérification complète** avant de pousser : `make check` (typecheck TypeScript, tests Vitest,
+build, puis `pytest`).
 
 L'application est accessible sur **http://127.0.0.1:5000**.
 

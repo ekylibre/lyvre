@@ -4,8 +4,12 @@ L'application est packagée dans une image unique. Toutes les données persistan
 
 ```
 ┌─────────────────────────────────────┐
-│ Image compta-asso:latest            │
-│  - Python 3.12-slim                 │
+│ Étape « front » : node:22-slim      │
+│  npm ci + npm run build (Vite)      │──┐ app/static/dist/
+└─────────────────────────────────────┘  │ (seul le résultat est copié)
+┌─────────────────────────────────────┐  │
+│ Image compta-asso:latest            │◀─┘
+│  - Python 3.12-slim (sans Node)     │
 │  - Gunicorn (1 worker, 4 threads)   │
 │  - User non-root (UID/GID 1000)     │
 │  - Port 5000                        │
@@ -70,6 +74,23 @@ Le `.env` est injecté dans le conteneur via `env_file:` dans `docker-compose.ym
 | `APP_UID` / `APP_GID` | UID/GID au sein du conteneur (défaut `1000:1000`). À builder avec `--build-arg APP_UID=$(id -u)` pour matcher un hôte différent. |
 
 Les credentials externes (`STANCER_*`, `ODOO_*`, `HELLOASSO_*`) restent pris en charge via `.env` comme **repli global**. Pour les surcharger par instance, utiliser **Configuration → Connexions externes** dans l'UI.
+
+---
+
+## Build du front (îlots React)
+
+Le `Dockerfile` est **multi-étapes** : l'étape `front` (`node:22-slim`) installe les dépendances
+(`npm ci`, à partir de `frontend/package-lock.json`) et construit les îlots avec Vite ; l'image
+finale ne reçoit que `app/static/dist/` (bundle + manifest lu par `vite_assets()`). Aucune action
+manuelle : `docker compose build` (ou le build Dokploy) fait tout. `frontend/node_modules` et un
+éventuel `app/static/dist/` local sont exclus du contexte (`.dockerignore`).
+
+### Dokploy
+
+Le déploiement est construit par **Dokploy** à partir du dépôt, en service *Dockerfile* ou
+*Compose* (le `docker-compose.yml` garde `build: .`) : le build multi-étapes s'exécute sur le
+serveur, sans CI. Adapter dans Dokploy le volume persistant de `instance/` et les variables
+d'environnement (équivalent du `.env`).
 
 ---
 

@@ -9,12 +9,24 @@ compta-asso/
 ├── seed_accounts.py              # Script one-shot : charge le plan comptable (asso|sci) + journaux
 ├── seed_meta.py                  # Méta-base : admin, instance par défaut, migration instances.chart
 ├── requirements.txt
+├── Makefile                      # make check : typecheck + tests front + build + pytest
+├── .nvmrc                        # Node 22 (dev et build du front uniquement)
 ├── .env                          # Variables d'environnement (gitignorée)
+│
+├── frontend/                     # Îlots React (TypeScript + Vite), compilés vers app/static/dist/
+│   ├── vite.config.ts            # base /static/dist/, manifest, serveur de dev :5173
+│   └── src/
+│       ├── main.tsx              # Monte les éléments [data-island] (aussi après un swap HTMX)
+│       ├── islands/              # registry.ts, EntryForm/, ReconcileWorkspace/
+│       ├── components/           # AccountCombobox (ARIA combobox, comptes récents)
+│       └── lib/                  # api.ts (fetch + CSRF), money.ts, types.ts, toast.ts
 │
 ├── app/
 │   ├── __init__.py               # App factory : create_app(), filtres Jinja2, menus (nav_menus)
 │   ├── menu_config.py            # Menus de navigation par plan comptable (MENUS, build_nav)
 │   ├── tenant.py                 # Routage multi-tenant, current_instance(), current_chart()
+│   ├── frontend.py               # Conventions HTMX (toasts, HX-Location) + vite_assets()
+│   ├── api/                      # API JSON /api/v1 pour les îlots (entries, lookups, reconciliation)
 │   ├── config.py                 # Classes de configuration (Dev / Prod)
 │   ├── extensions.py             # Singletons : db, migrate, login_manager, csrf
 │   │
@@ -134,13 +146,32 @@ compta-asso/
 
 ### Frontend
 
+Architecture **hybride** (détail : `claudedocs/design_front_reactif.md`) :
+
 | Composant | Rôle |
 |-----------|------|
-| **Bootstrap 5.3** (CDN) | Grille, composants UI |
-| **HTMX 2.0** (CDN) | Chargement partiel : lignes d'écriture, suggestions de rapprochement, recherche de comptes |
-| **Apache ECharts 5** (CDN) | Rendu des graphiques du tableau de bord (les options sont préparées côté serveur) |
+| **Bootstrap 5.3** (CDN) | Grille, composants UI, toasts |
+| **HTMX 2.0** (CDN) | Toutes les pages Jinja : filtres, tri, recherche, actions et formulaires **sans rechargement** (zone `#page-content`, voir ci-dessous) |
+| **React 18 + TypeScript** (build Vite) | Deux îlots au clavier : saisie d'écriture (`EntryForm`) et espace de rapprochement (`ReconcileWorkspace`), via l'API `/api/v1` |
+| **Apache ECharts 5** (CDN) | Graphiques (options préparées côté serveur), réinitialisés après un swap HTMX |
 
-Pas de build step JavaScript.
+**Conventions HTMX** (`app/frontend.py`, macros `app/templates/_list_helpers.html`) :
+
+- `base.html` enveloppe le contenu dans `<main id="page-content">`. Les macros `hx_filter` (formulaire
+  de filtre GET), `hx_nav` (liens de tri) et `hx_submit` (formulaires POST, `hx-boost`) demandent la
+  page complète au serveur ; HTMX n'en garde que la zone (`hx-select`) et met l'URL à jour. Les vues
+  restent de simples vues Flask.
+- Une recherche au fil de la frappe cible une zone `#list` qui n'inclut pas le champ saisi.
+- Les messages `flash()` d'une réponse HTMX partent dans l'en-tête `HX-Trigger` (événement `toast`) ;
+  une redirection devient `HX-Location` (rechargement AJAX de la zone) ou, vers la connexion,
+  `HX-Redirect`.
+- Formulaire invalide → réponse **422** affichée (erreurs sous les champs, macros `field_error`).
+- Confirmations par `hx-confirm` : HTMX ignore un `onsubmit="return confirm()"`.
+
+**Îlots React** : la macro `island(name, props)` (`_island.html`) place un `<div data-island>` avec
+ses props JSON ; `vite_assets()` charge le bundle (manifest Vite en production, serveur Vite avec
+rechargement à chaud si `VITE_DEV_SERVER` est défini). Node n'est utilisé qu'en développement et à
+l'étape de build Docker.
 
 ---
 
@@ -197,19 +228,18 @@ Les services (`app/services/`) n'importent jamais de `flask` directement. Ils re
 ### Saisie d'une écriture manuelle
 
 ```
-POST /entries/new
+GET /entries/new  → page Jinja + îlot EntryForm (props : exercices ouverts, journaux, préremplissage)
     │
-    ├── Validation HTTP (blueprint entries.py)
-    │     └── parse form: fy_id, journal_id, lines[]
+    ├── POST /api/v1/entries/validate   (400 ms après chaque modification, rien n'est enregistré)
+    │     └── ledger.validate_entry_payload(data) → (clean, errors par champ)
     │
-    ├── ledger.validate_lines(lines)
-    │     └── Vérifie Σ débit = Σ crédit, total ≠ 0
-    │
-    └── ledger.post_entry(...)
-          ├── Vérifie FY non clôturé
-          ├── Génère référence auto (ex: BQ-2024-0001)
-          ├── Crée JournalEntry (is_balanced=True)
-          └── Crée N JournalLine (debit_cents / credit_cents)
+    └── POST /api/v1/entries
+          ├── validate_entry_payload → 422 + erreurs par champ si invalide
+          └── ledger.post_validated_entry(clean, bank_transaction=None)
+                ├── post_entry(..., commit=False) : référence auto (BQ-2024-0001), lignes
+                ├── si transaction bancaire : rapprochement de la ligne banque (même compte,
+                │   même montant signé) dans la même transaction, sinon 409 et rien n'est créé
+                └── commit
 ```
 
 ### Import OFX
@@ -286,18 +316,16 @@ POST /rules/apply
 ### Rapprochement bancaire
 
 ```
-GET /reconciliation/suggest/<bt_id>  [HTMX]
+GET /reconciliation/  → page Jinja + îlot ReconcileWorkspace
     │
-    └── reconciler.suggest_matches(bt_id, window_days=3)
-          ├── Lit la transaction (montant signé)
-          ├── Cherche JournalLine non liées, même montant, ±3 jours
-          └── Trie par score (date exacte=2pts, ±semaine=1pt)
-
-POST /reconciliation/link
+    ├── GET /api/v1/bank-accounts/<id>/transactions?status=unreconciled&month=
+    ├── GET /api/v1/bank-transactions/<id>/suggestions
+    │     └── reconciler.suggest_matches_scored : lignes du compte comptable du compte
+    │         bancaire, même montant signé, non rapprochées, ±3 jours ; score 2 (même date) / 1
     │
-    └── reconciler.reconcile(bt_id, line_id)
-          ├── SET bank_transaction.journal_line_id = line_id
-          └── SET bank_transaction.reconciled = True
+    └── POST /api/v1/reconciliations {items: [{bank_transaction_id, journal_line_id}]}
+          └── reconciler.reconcile_many : check_link par paire, une seule transaction SQL
+              → {results (par élément), counters, undo (requête inverse à rejouer)}
 ```
 
 ### Synchronisation Odoo POS / Factures clients
@@ -466,7 +494,8 @@ Cela évite tout problème d'arrondi flottant dans les calculs comptables.
 | Authentification | Flask-Login, utilisateurs stockés en méta-base avec `password_hash` (Werkzeug `pbkdf2:sha256`) |
 | Autorisation admin | Décorateur `@admin_required` (`app/decorators.py`) — 403 si `current_user.is_admin` est faux |
 | Isolation multi-tenant | `before_request` charge l'instance depuis `session["instance_id"]` ; les requêtes SQLAlchemy par défaut sont rebindées vers l'engine tenant correspondant |
-| CSRF | Flask-WTF, token dans chaque formulaire POST |
+| CSRF | Flask-WTF : jeton dans chaque formulaire POST ; en-tête `X-CSRFToken` (balise `<meta name="csrf-token">`) pour les requêtes HTMX et l'API JSON |
+| API JSON `/api/v1` | Même session et même routage d'instance que les pages ; non connecté → 401 JSON (pas de redirection) ; même origine uniquement (pas de CORS) |
 | Injection SQL | Impossible via SQLAlchemy ORM (requêtes paramétrées) |
 | Clôture d'exercice | `FiscalYear.closed` vérifié avant toute mutation d'écriture |
 | Sessions | Cookie signé par `SECRET_KEY` |

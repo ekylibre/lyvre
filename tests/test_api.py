@@ -19,7 +19,7 @@ def _error(resp):
 def test_unknown_api_url_is_json_404(client):
     resp = client.get("/api/v1/nope")
     assert resp.status_code == 404 and resp.is_json
-    assert _error(resp)["code"] == "not_found"
+    assert _error(resp) == {"code": "not_found", "message": "Ressource introuvable."}
 
 
 def test_wrong_method_is_json_405(client):
@@ -36,7 +36,8 @@ def test_html_404_unchanged(client):
 def test_unauthenticated_api_call_gets_401_json(app):
     resp = app.test_client().get("/api/v1/session")
     assert resp.status_code == 401
-    assert _error(resp)["code"] == "unauthenticated"
+    assert _error(resp) == {"code": "unauthenticated",
+                            "message": "Session expirée ou utilisateur non connecté : reconnectez-vous."}
     assert "Location" not in resp.headers
 
 
@@ -78,3 +79,10 @@ def test_api_error_and_json_body(app, client):
     assert resp.status_code == 400 and _error(resp)["code"] == "csrf_error"
     token = client.get("/_t/token").get_data(as_text=True)
     assert client.post("/api/v1/_t/ok", json={}, headers={"X-CSRFToken": token}).status_code == 200
+
+
+def test_custom_abort_message_kept(app, client):
+    from flask import abort
+
+    app.add_url_rule("/api/v1/_t/gone", "_t_gone", lambda: abort(404, "Écriture introuvable."))
+    assert _error(client.get("/api/v1/_t/gone"))["message"] == "Écriture introuvable."

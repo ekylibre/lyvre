@@ -29,6 +29,16 @@ _HTTP_CODES = {
     422: "validation_error",
 }
 
+# Messages affichés par les îlots (toasts) : Werkzeug les fournit en anglais.
+_HTTP_MESSAGES = {
+    400: "Requête invalide.",
+    401: "Session expirée ou utilisateur non connecté : reconnectez-vous.",
+    403: "Action non autorisée.",
+    404: "Ressource introuvable.",
+    405: "Méthode non autorisée pour cette adresse.",
+    413: "Contenu trop volumineux.",
+}
+
 
 class ApiError(Exception):
     """Error returned to the client as JSON."""
@@ -92,7 +102,10 @@ def register_api(app):
     @app.errorhandler(HTTPException)
     def _http_error(e):
         if is_api_request():
-            return error_response(_HTTP_CODES.get(e.code, "http_error"), e.description, e.code)
+            # Message explicite d'un abort(code, "…") conservé ; sinon message en français.
+            custom = e.description != type(e).description
+            message = e.description if custom else _HTTP_MESSAGES.get(e.code, e.description)
+            return error_response(_HTTP_CODES.get(e.code, "http_error"), message, e.code)
         return e
 
     @app.errorhandler(500)

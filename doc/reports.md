@@ -368,32 +368,5 @@ Pour obtenir un PDF, utiliser **Imprimer → Enregistrer en PDF** dans le naviga
 
 ## Rapprochement bancaire
 
-**URL :** `/reconciliation/`
-
-Interface de rapprochement entre les transactions bancaires importées (OFX) et les lignes d'écritures comptables.
-
-### Workflow
-
-1. Sélectionner le compte bancaire dans la liste déroulante
-2. Pour chaque transaction non rapprochée, cliquer sur **Voir suggestions**
-3. L'application propose les lignes d'écriture correspondantes (même montant, date proche)
-4. Cliquer sur **Rapprocher** pour lier la transaction à la ligne
-
-### Rapprochement automatique
-
-Le bouton **Rapprochement automatique** lie automatiquement toutes les transactions qui ont **exactement une** correspondance pour le même montant **à la même date**.
-
-Les transactions avec plusieurs correspondances ou sans correspondance restent en attente de traitement manuel.
-
-### Scores de correspondance
-
-| Situation | Score |
-|-----------|-------|
-| Même date exacte | 2 points |
-| Date dans la fenêtre (±3 jours) | 1 point |
-
-Les suggestions sont triées par score décroissant.
-
-### Annuler un rapprochement
-
-Un rapprochement peut être annulé depuis l'interface en cliquant sur **Annuler** sur les transactions déjà rapprochées (non visible par défaut — filtre les transactions `reconciled=True`).
+Voir [saisie_rapprochement.md](saisie_rapprochement.md#espace-de-rapprochement) (espace de
+rapprochement au clavier, contrôles, rapprochement automatique, annulation).
