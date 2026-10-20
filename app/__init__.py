@@ -51,7 +51,7 @@ def create_app(config_name=None):
     from .views.customer_invoices import bp as customer_invoices_bp
     from .views.users import bp as users_bp
     from .views.instances import bp as instances_bp
-    from .views.external_connections import bp as external_connections_bp
+    from .views.integrations import bp as integrations_bp, legacy_bp as external_connections_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -73,6 +73,7 @@ def create_app(config_name=None):
     app.register_blueprint(customer_invoices_bp)
     app.register_blueprint(users_bp)
     app.register_blueprint(instances_bp)
+    app.register_blueprint(integrations_bp)
     app.register_blueprint(external_connections_bp)
 
     _register_template_filters(app)
@@ -110,6 +111,20 @@ def _register_template_filters(app):
     @app.template_filter("abs_euros")
     def abs_euros_filter(cents):
         return euros_filter(abs(cents) if cents else 0)
+
+    @app.template_filter("local_dt")
+    def local_dt_filter(value, fmt="%d/%m/%Y %H:%M"):
+        """Naive UTC datetime (as stored) → Europe/Paris, formatted."""
+        from datetime import timezone
+        from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+        if value is None:
+            return ""
+        try:
+            tz = ZoneInfo("Europe/Paris")
+        except ZoneInfoNotFoundError:
+            tz = timezone.utc
+        return value.replace(tzinfo=timezone.utc).astimezone(tz).strftime(fmt)
 
     @app.template_filter("from_json")
     def from_json_filter(value):

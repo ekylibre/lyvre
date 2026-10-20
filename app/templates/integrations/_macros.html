@@ -1,0 +1,16 @@
+{% macro status_badge(view) -%}
+{% set classes = {
+  'ok': 'bg-success',
+  'error': 'bg-danger',
+  'untested': 'bg-info text-dark',
+  'unconfigured': 'bg-warning text-dark',
+  'disabled': 'bg-secondary',
+} %}
+<span class="badge {{ classes[view.status] }}">{{ view.status_label }}</span>
+{%- endmacro %}
+
+
+{% macro check_summary(check) -%}
+{{ check.checked_at | local_dt }}
+· {{ '%.1f'|format(check.duration_ms / 1000) | replace('.', ',') }} s
+{%- endmacro %}

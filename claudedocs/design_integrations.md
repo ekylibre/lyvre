@@ -353,3 +353,17 @@ ajouts `external_config`), `doc/installation.md` et `doc/docker.md` (l'interrupt
 - Vérifié avec de vrais appels (copie de la base) : SMTP et GA4 opérationnels (0,5 s et 4,4 s) ;
   identifiants factices Stancer / HelloAsso / Facebook et URL Odoo inexistante → messages corrects,
   secrets masqués jusque dans les journaux.
+
+**Phase C (2026-10-20)** — écarts et précisions :
+- Blueprint `integrations` + petit blueprint `external_connections` conservé pour la seule
+  redirection 301 de l'ancienne URL.
+- Interrupteur rendu par un bouton « Activer / Désactiver » (formulaire `hx_submit`) plutôt qu'un
+  `form-switch`, qui exigerait du JavaScript pour se soumettre.
+- Heures affichées en Europe/Paris (filtre Jinja `local_dt`) ; les dates restent stockées en UTC.
+- **Délai des sondes** : un timeout par opération laissait une sonde SMTP durer 25 à 50 s (connexion,
+  TLS, authentification, NOOP). La sonde SMTP partage désormais **un délai unique** entre ses étapes ;
+  Odoo et HelloAsso (deux appels) reçoivent chacun la moitié du budget. Limite connue : la connexion
+  TCP essaie chaque adresse du serveur (IPv6 puis IPv4) avec le délai restant, donc un serveur
+  injoignable sur deux adresses peut porter la sonde à ~20 s.
+- `SMTPServerDisconnected` traduit en « Le serveur SMTP a fermé la connexion… » (ou « Délai dépassé »
+  si la cause est un timeout).

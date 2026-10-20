@@ -220,43 +220,87 @@ def test_probe_helloasso(app, monkeypatch):
     result = integrations.run_check("helloasso")
     assert result.message == "Organisation « Seconde Nature » accessible."
     assert seen["url"].endswith("/v5/organizations/seconde-nature")
-    assert seen["post_timeout"] == seen["get_timeout"] == integrations.CHECK_TIMEOUT
+    # Deux appels : le budget de la sonde est partagé.
+    assert seen["post_timeout"] + seen["get_timeout"] == integrations.CHECK_TIMEOUT
+
+
+class FakeSMTP:
+    """Faux serveur SMTP : enregistre les étapes et les délais appliqués au socket."""
+
+    instances = []
+
+    def __init__(self, host, port, timeout=None):
+        self.timeout = timeout
+        self.steps = [("connect", host, port)]
+        self.sock = self
+        self.timeouts = []
+        FakeSMTP.instances.append(self)
+
+    def settimeout(self, value):
+        self.timeouts.append(value)
+
+    def starttls(self):
+        self.steps.append("starttls")
+
+    def login(self, user, password):
+        self.steps.append("login")
+
+    def noop(self):
+        self.steps.append("noop")
+        return (250, b"OK")
+
+    def quit(self):
+        self.steps.append("quit")
+
+    def close(self):
+        self.steps.append("close")
 
 
 def test_probe_smtp(app, monkeypatch):
-    from app.services import membership_reminders
-
-    class FakeSMTP:
-        quit_called = False
-
-        def noop(self):
-            return (250, b"OK")
-
-        def quit(self):
-            FakeSMTP.quit_called = True
-
-    seen = {}
-
-    def fake_open(settings, timeout):
-        seen["timeout"] = timeout
-        return FakeSMTP()
-    monkeypatch.setattr(membership_reminders, "_open_smtp", fake_open)
+    FakeSMTP.instances = []
+    monkeypatch.setattr(integrations.smtplib, "SMTP", FakeSMTP)
+    external_config.set_many("smtp", {"host": "smtp.example.org", "sender": "a@b.fr",
+                                      "username": "u", "password": "p", "use_tls": "true"})
     result = integrations.run_check("smtp")
     assert result.ok is True
-    assert result.message.startswith("Serveur smtp.example.org:587 joignable")
-    assert seen["timeout"] == integrations.CHECK_TIMEOUT
-    assert FakeSMTP.quit_called
+    assert result.message == "Serveur smtp.example.org:587 joignable, TLS activé, authentifié."
+    server = FakeSMTP.instances[0]
+    assert server.steps == [("connect", "smtp.example.org", 587), "starttls", "login", "noop", "quit"]
+    # Un seul délai pour toute la sonde : chaque étape reçoit le temps restant.
+    assert server.timeout <= integrations.CHECK_TIMEOUT
+    assert all(t <= integrations.CHECK_TIMEOUT for t in server.timeouts)
+    assert server.timeouts == sorted(server.timeouts, reverse=True)
+
+
+def test_probe_smtp_deadline_exceeded(app, monkeypatch):
+    class SlowSMTP(FakeSMTP):
+        def starttls(self):
+            clock["now"] += integrations.CHECK_TIMEOUT  # le handshake consomme tout le budget
+
+    clock = {"now": 1000.0}
+    monkeypatch.setattr(integrations.time, "monotonic", lambda: clock["now"])
+    monkeypatch.setattr(integrations.smtplib, "SMTP", SlowSMTP)
+    result = integrations.run_check("smtp")
+    assert result.ok is False
+    assert result.message.startswith("Délai dépassé (10 s)")
 
 
 def test_probe_smtp_failure(app, monkeypatch):
-    from app.services import membership_reminders
+    class Refused(FakeSMTP):
+        def __init__(self, host, port, timeout=None):
+            raise ConnectionRefusedError(111, "Connection refused")
 
-    def boom(settings, timeout):
-        raise ConnectionRefusedError(111, "Connection refused")
-    monkeypatch.setattr(membership_reminders, "_open_smtp", boom)
+    monkeypatch.setattr(integrations.smtplib, "SMTP", Refused)
     result = integrations.run_check("smtp")
     assert result.ok is False
     assert result.message.startswith("Serveur injoignable")
+
+
+def test_describe_error_smtp_disconnected(app):
+    closed = smtplib.SMTPServerDisconnected("Connection unexpectedly closed")
+    assert integrations.describe_error("smtp", closed).startswith("Le serveur SMTP a fermé")
+    timed_out = smtplib.SMTPServerDisconnected("Connection unexpectedly closed: timed out")
+    assert integrations.describe_error("smtp", timed_out).startswith("Délai dépassé")
 
 
 def test_probe_ga4(app, monkeypatch):

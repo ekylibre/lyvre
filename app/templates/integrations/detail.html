@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% from "_list_helpers.html" import hx_submit %}
+{% from "integrations/_macros.html" import status_badge, check_summary %}
+{% block title %}{{ view.label }} — Intégrations — Compta Asso{% endblock %}
+{% block content %}
+<a href="{{ url_for('integrations.index') }}" class="btn btn-link px-0">← Intégrations</a>
+<div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+  <h2 class="mb-0">{{ view.label }}</h2>
+  {{ status_badge(view) }}
+</div>
+<p class="text-muted">{{ view.description }}</p>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header"><strong>Configuration</strong></div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('integrations.save', service=view.slug) }}" {{ hx_submit() }}>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {% for f in fields %}
+            <div class="mb-3">
+              <label class="form-label" for="f-{{ f.key }}">
+                {{ f.label }}{% if f.required %} <span class="text-danger" aria-hidden="true">*</span>{% endif %}
+                {% if f.source == 'db' %}
+                  <small class="text-success">(en base)</small>
+                {% elif f.source == 'env' %}
+                  <small class="text-muted">(repli <code>.env</code>)</small>
+                {% endif %}
+              </label>
+              {% if f.input == 'textarea' %}
+                <textarea name="{{ f.key }}" id="f-{{ f.key }}" class="form-control font-monospace" rows="4"
+                          {% if f.required %}aria-required="true"{% endif %}
+                          placeholder="{{ '•••••••• (enregistré)' if f.secret and f.source != 'none' else f.help }}">{{ f.value }}</textarea>
+              {% else %}
+                <input type="{{ f.input }}" name="{{ f.key }}" id="f-{{ f.key }}" class="form-control"
+                       value="{{ f.value }}" autocomplete="off"
+                       {% if f.required %}aria-required="true"{% endif %}
+                       placeholder="{{ '•••••••• (enregistré)' if f.secret and f.source != 'none' else (f.env_value or f.help) }}">
+              {% endif %}
+              {% if f.secret and f.source == 'db' %}
+                <div class="form-text d-flex gap-3 align-items-center">
+                  <span>Laisser vide pour garder la valeur enregistrée.</span>
+                  <span class="form-check mb-0">
+                    <input class="form-check-input" type="checkbox" name="clear_{{ f.key }}" value="1" id="clear-{{ f.key }}">
+                    <label class="form-check-label" for="clear-{{ f.key }}">Effacer</label>
+                  </span>
+                </div>
+              {% elif f.secret and f.source == 'env' %}
+                <div class="form-text">Repli <code>.env</code> actif — laisser vide pour le garder.</div>
+              {% elif f.env_value %}
+                <div class="form-text">Valeur du <code>.env</code> utilisée tant que ce champ est vide.</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">Vider un champ supprime sa valeur en base (le repli <code>.env</code> reprend).</small>
+            <button type="submit" class="btn btn-primary">
+              {{ 'Enregistrer et tester' if view.enabled else 'Enregistrer' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card mb-3">
+      <div class="card-header"><strong>État</strong></div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('integrations.toggle', service=view.slug) }}"
+              class="d-flex justify-content-between align-items-center mb-3" {{ hx_submit() }}>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="enabled" value="{{ '0' if view.enabled else '1' }}">
+          <span>Intégration <strong>{{ 'activée' if view.enabled else 'désactivée' }}</strong></span>
+          <button type="submit" class="btn btn-sm {{ 'btn-outline-secondary' if view.enabled else 'btn-outline-success' }}">
+            {{ 'Désactiver' if view.enabled else 'Activer' }}
+          </button>
+        </form>
+
+        {% if view.last_check %}
+          <p class="mb-1 small text-muted">
+            Dernier test : {{ check_summary(view.last_check) }}
+            {% if view.check_outdated %}— configuration modifiée depuis{% endif %}
+          </p>
+          <p class="mb-3 {{ 'text-success' if view.last_check.ok else 'text-danger' }}">
+            {{ '✓' if view.last_check.ok else '✗' }} {{ view.last_check.message }}
+          </p>
+        {% else %}
+          <p class="mb-3 small text-muted">Jamais testée.</p>
+        {% endif %}
+
+        {% set can_check = view.enabled and view.configured %}
+        <form method="post" action="{{ url_for('integrations.check', service=view.slug) }}"
+              class="text-end" {{ hx_submit() }}>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline-primary btn-sm"
+                  {% if not can_check %}disabled
+                  title="{{ 'Intégration désactivée' if not view.enabled else 'Configuration incomplète' }}"{% endif %}>
+            Tester maintenant
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><strong>Dernière synchronisation</strong></div>
+      <div class="card-body">
+        {% if not view.sync_tracked %}
+          <p class="mb-0 small text-muted">Non suivie pour cette intégration.</p>
+        {% elif not view.last_sync %}
+          <p class="mb-0 small text-muted">Aucune synchronisation lancée.</p>
+        {% else %}
+          {% set s = view.last_sync %}
+          {% set sync_labels = {'done': 'Terminée', 'failed': 'En échec', 'running': 'En cours'} %}
+          <p class="mb-1">
+            <span class="badge {{ {'done': 'bg-success', 'failed': 'bg-danger'}.get(s.status, 'bg-info text-dark') }}">
+              {{ sync_labels.get(s.status, s.status) }}</span>
+            <small class="text-muted">{{ (s.finished_at or s.started_at) | local_dt }}</small>
+          </p>
+          {% if s.imported is not none %}<p class="mb-1 small">{{ s.imported }} élément(s) importé(s).</p>{% endif %}
+          {% if s.message %}<p class="mb-1 small">{{ s.message }}</p>{% endif %}
+          {% for e in s.errors %}<p class="mb-1 small text-danger">{{ e }}</p>{% endfor %}
+          <a href="{{ url_for(s.endpoint) }}" class="small">{{ sync_link_labels.get(s.endpoint, 'Voir') }} →</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

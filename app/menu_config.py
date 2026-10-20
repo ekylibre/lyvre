@@ -141,9 +141,9 @@ MENUS = [
         "label": "Configuration",
         "charts": _ALL,
         "admin_only": True,
-        "active": ["external_connections"],
+        "active": ["integrations"],
         "items": [
-            {"key": "external_connections", "label": "Connexions externes", "endpoint": "external_connections.index", "charts": _ALL},
+            {"key": "integrations", "label": "Intégrations", "endpoint": "integrations.index", "charts": _ALL},
         ],
     },
 ]

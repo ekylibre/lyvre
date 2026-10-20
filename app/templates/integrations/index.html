@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "integrations/_macros.html" import status_badge, check_summary %}
+{% block title %}Intégrations — Compta Asso{% endblock %}
+{% block content %}
+<h2 class="mb-3">Intégrations</h2>
+<p class="text-muted">
+  Services externes utilisés par cette instance. Ouvrez une intégration pour la configurer,
+  l'activer ou la désactiver et tester son fonctionnement.
+</p>
+
+<div class="row g-3">
+{% for v in views %}
+  <div class="col-lg-6">
+    <div class="card h-100 position-relative">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <h3 class="h5 mb-1">
+            <a href="{{ url_for('integrations.detail', service=v.slug) }}"
+               class="stretched-link text-reset text-decoration-none">{{ v.label }}</a>
+          </h3>
+          {{ status_badge(v) }}
+        </div>
+        <p class="text-muted small mb-2">{{ v.description }}</p>
+        {% if v.last_check %}
+          <div class="small">
+            Dernier test : {{ check_summary(v.last_check) }}
+            {% if v.check_outdated %}<span class="text-muted">(configuration modifiée depuis)</span>{% endif %}
+          </div>
+          {% if v.status == 'error' %}
+            <div class="small text-danger text-truncate">{{ v.last_check.message }}</div>
+          {% endif %}
+        {% else %}
+          <div class="small text-muted">Jamais testée</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endfor %}
+</div>
+{% endblock %}

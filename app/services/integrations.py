@@ -28,7 +28,7 @@ from app.models.sync_job import (
 )
 from app.services import external_config
 
-CHECK_TIMEOUT = 10  # secondes, par sonde
+CHECK_TIMEOUT = 10  # secondes, durée maximale d'une sonde (toutes étapes réseau comprises)
 MAX_MESSAGE_LENGTH = 500
 MASK = "••••"
 
@@ -215,7 +215,8 @@ def _probe_stancer() -> str:
 def _probe_odoo() -> str:
     from app.services import odoo_client
 
-    client = odoo_client.from_app_config(timeout=CHECK_TIMEOUT)
+    # Deux appels (version, authenticate) : le budget est partagé.
+    client = odoo_client.from_app_config(timeout=CHECK_TIMEOUT / 2)
     version = (client.version() or {}).get("server_version") or "?"
     uid = client.uid
     return f"Connecté à Odoo {version} (utilisateur n° {uid})."
@@ -224,20 +225,42 @@ def _probe_odoo() -> str:
 def _probe_helloasso() -> str:
     from app.services import helloasso_client
 
-    client = helloasso_client.from_app_config(timeout=CHECK_TIMEOUT)
+    # Deux appels (jeton OAuth2, organisation) : le budget est partagé.
+    client = helloasso_client.from_app_config(timeout=CHECK_TIMEOUT / 2)
     org = client.get_organization() or {}
     return f"Organisation « {org.get('name') or client.org_slug} » accessible."
 
 
 def _probe_smtp() -> str:
+    """Connexion, TLS, authentification et NOOP, avec un délai commun à toutes les étapes
+    (un délai par opération laisserait la sonde durer plusieurs fois CHECK_TIMEOUT)."""
     from app.services import membership_reminders
 
     settings = membership_reminders.smtp_settings()
-    server = membership_reminders._open_smtp(settings, timeout=CHECK_TIMEOUT)
+    deadline = time.monotonic() + CHECK_TIMEOUT
+
+    def remaining():
+        left = deadline - time.monotonic()
+        if left <= 0:
+            raise TimeoutError("SMTP check deadline exceeded")
+        return left
+
+    # Hôte passé au constructeur : starttls() en a besoin pour vérifier le certificat.
+    server = smtplib.SMTP(settings["host"], settings["port"], timeout=remaining())
     try:
+        if settings["use_tls"]:
+            server.sock.settimeout(remaining())
+            server.starttls()
+        if settings["username"]:
+            server.sock.settimeout(remaining())
+            server.login(settings["username"], settings["password"])
+        server.sock.settimeout(remaining())
         server.noop()
     finally:
-        server.quit()
+        try:
+            server.quit()
+        except (smtplib.SMTPException, OSError):
+            server.close()
     tls = "TLS activé" if settings["use_tls"] else "TLS désactivé"
     auth = ", authentifié" if settings["username"] else ""
     return f"Serveur {settings['host']}:{settings['port']} joignable, {tls}{auth}."
@@ -326,6 +349,10 @@ def describe_error(service: str, exc: BaseException) -> str:
         return timeout_msg
     if isinstance(exc, smtplib.SMTPAuthenticationError):
         return "Identifiant ou mot de passe SMTP refusé."
+    if isinstance(exc, smtplib.SMTPServerDisconnected):
+        if "timed out" in str(exc):
+            return timeout_msg
+        return "Le serveur SMTP a fermé la connexion (port, TLS ou serveur indisponible)."
     if isinstance(exc, smtplib.SMTPResponseException):
         return f"Le serveur SMTP a refusé la connexion ({exc.smtp_code})."
     if isinstance(exc, xmlrpc.client.Fault):
