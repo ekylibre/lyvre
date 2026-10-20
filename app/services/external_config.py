@@ -23,6 +23,7 @@ SERVICE_KEYS: dict[str, list[str]] = {
     "smtp":      ["host", "port", "use_tls", "username", "password", "sender"],
     "ga4":       ["property_id", "credentials_json"],
     "facebook":  ["page_id", "page_token", "app_id", "app_secret"],
+    "qonto":     ["login", "secret_key", "staging_token"],
 }
 
 SERVICE_LABELS: dict[str, str] = {
@@ -32,6 +33,7 @@ SERVICE_LABELS: dict[str, str] = {
     "smtp":      "SMTP (relance email)",
     "ga4":       "Google Analytics (GA4)",
     "facebook":  "Facebook (Page)",
+    "qonto":     "Qonto",
 }
 
 # Usage de chaque intégration dans l'application (page index des intégrations).
@@ -42,6 +44,7 @@ SERVICE_DESCRIPTIONS: dict[str, str] = {
     "smtp":      "Envoi des emails de relance d'adhésion",
     "ga4":       "Fréquentation du site pour Visibilité & Impact",
     "facebook":  "Abonnés de la Page pour Visibilité & Impact",
+    "qonto":     "Comptes et transactions bancaires, synchronisés dans les comptes bancaires",
 }
 
 # Secrets : jamais réaffichés dans l'interface ni dans les messages de test.
@@ -53,6 +56,8 @@ SECRET_KEYS: set[tuple[str, str]] = {
     ("ga4",       "credentials_json"),
     ("facebook",  "page_token"),
     ("facebook",  "app_secret"),
+    ("qonto",     "secret_key"),
+    ("qonto",     "staging_token"),
 }
 
 # Champs à rendre en <textarea> (valeurs longues / secrets multilignes).
@@ -68,6 +73,7 @@ SERVICE_REQUIRED_KEYS: dict[str, list[str]] = {
     "smtp":      ["host", "sender"],
     "ga4":       ["property_id", "credentials_json"],
     "facebook":  ["page_id", "page_token"],
+    "qonto":     ["login", "secret_key"],
 }
 
 ENV_FALLBACK: dict[tuple[str, str], str] = {
@@ -93,6 +99,9 @@ ENV_FALLBACK: dict[tuple[str, str], str] = {
     ("facebook",  "page_token"):      "FACEBOOK_PAGE_TOKEN",
     ("facebook",  "app_id"):          "FACEBOOK_APP_ID",
     ("facebook",  "app_secret"):      "FACEBOOK_APP_SECRET",
+    ("qonto",     "login"):           "QONTO_LOGIN",
+    ("qonto",     "secret_key"):      "QONTO_SECRET_KEY",
+    ("qonto",     "staging_token"):   "QONTO_STAGING_TOKEN",
 }
 
 

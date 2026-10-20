@@ -16,7 +16,13 @@ legacy_bp = Blueprint(
 )
 
 # Champ → (libellé, type d'entrée, aide). Le caractère secret vient de external_config.SECRET_KEYS.
+# Une entrée (service, champ) prime sur l'entrée par champ (même nom de clé, sens différent).
 FIELD_META = {
+    ("qonto", "login"):         ("Identifiant (login)", "text",
+                                 "Qonto › Intégrations et partenariats › Clé API"),
+    ("qonto", "secret_key"):    ("Clé secrète", "password", "Clé API générée dans Qonto"),
+    ("qonto", "staging_token"): ("Jeton bac à sable (optionnel)", "password",
+                                 "Renseigné = bac à sable Qonto ; vide = production"),
     "secret_key":       ("Clé secrète", "password", "Format sk_xxx, stest_xxx ou sprod_xxx"),
     "mode":             ("Mode", "text", "live ou test"),
     "url":              ("URL", "text", "https://erp.example.org"),
@@ -43,6 +49,7 @@ FIELD_META = {
 
 # Écran lié à la dernière synchronisation suivie.
 SYNC_LINK_LABELS = {
+    "bank_accounts.index": "Comptes bancaires",
     "payouts.index": "Versements Stancer",
     "impact.index": "Visibilité & Impact",
 }
@@ -64,7 +71,9 @@ def _fields(service):
     required = set(external_config.SERVICE_REQUIRED_KEYS[service])
     fields = []
     for key in external_config.SERVICE_KEYS[service]:
-        label, input_type, help_text = FIELD_META.get(key, (key, "text", ""))
+        label, input_type, help_text = FIELD_META.get(
+            (service, key), FIELD_META.get(key, (key, "text", ""))
+        )
         secret = (service, key) in external_config.SECRET_KEYS
         source = external_config.source(service, key)
         fields.append({

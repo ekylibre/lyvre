@@ -299,3 +299,14 @@ sync_jobs), `doc/imports.md` (Qonto à côté d'OFX), `doc/installation.md` / `d
   recréée à chaque test (ids qui repartent à 1) ; `conftest.py` vide désormais ce cache après chaque test.
 - Vérifié avec Stancer réel depuis l'interface : 27 versements et 154 paiements importés en 42 s,
   progression affichée, job enregistré dans la base de l'instance.
+
+**Phase B (2026-10-20)** :
+- Migration `d7a2e6f0b318` ; sur copie de la base réelle, les 185 transactions existantes passent en
+  `source = 'ofx'`, montée / descente / remontée OK.
+- `QontoClient(retry=False)` pour la sonde : un 429 ne déclenche pas d'attente qui dépasserait le
+  délai du test.
+- Erreurs Qonto au format `{"errors": [{"code", "detail"}]}` lues par `_api_detail` (vérifié en réel :
+  fausse clé → « Identifiants refusés par Qonto (HTTP 401). Détail : Invalid credentials », 133 ms).
+- Variables `QONTO_*` ajoutées à `app/config.py` (repli `.env`). Constat hors lot : `GA4_*` et
+  `FACEBOOK_*` sont déclarées dans `ENV_FALLBACK` mais absentes de `config.py`, donc leur repli `.env`
+  ne fonctionne pas (sans effet aujourd'hui : configurées en base).

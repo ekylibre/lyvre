@@ -5,6 +5,7 @@ from app.extensions import db
 SYNC_KIND_PAYOUTS = "payouts"
 SYNC_KIND_PAYOUT_PAYMENTS = "payout_payments"
 SYNC_KIND_METRICS = "metrics"
+SYNC_KIND_QONTO = "qonto_transactions"
 
 SYNC_STATUS_RUNNING = "running"
 SYNC_STATUS_DONE = "done"
@@ -19,6 +20,12 @@ class SyncJob(db.Model):
     payout_id = db.Column(
         db.Integer,
         db.ForeignKey("payouts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    bank_account_id = db.Column(
+        db.Integer,
+        db.ForeignKey("bank_accounts.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )

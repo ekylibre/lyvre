@@ -24,7 +24,7 @@ from flask import current_app
 from app.extensions import db
 from app.models import IntegrationState, SyncJob
 from app.models.sync_job import (
-    SYNC_KIND_METRICS, SYNC_KIND_PAYOUT_PAYMENTS, SYNC_KIND_PAYOUTS,
+    SYNC_KIND_METRICS, SYNC_KIND_PAYOUT_PAYMENTS, SYNC_KIND_PAYOUTS, SYNC_KIND_QONTO,
 )
 from app.services import external_config
 
@@ -53,6 +53,7 @@ _NOT_FOUND_HINTS = {
     "helloasso": "le slug de l'organisation",
     "ga4": "l'ID de propriété",
     "facebook": "l'ID de la Page",
+    "qonto": "l'identifiant de l'organisation",
 }
 
 # Synchronisations suivies par service : (types de SyncJob, clé dans result_json, écran).
@@ -60,6 +61,7 @@ _SYNC_SOURCES = {
     "stancer": ((SYNC_KIND_PAYOUTS, SYNC_KIND_PAYOUT_PAYMENTS), None, "payouts.index"),
     "ga4": ((SYNC_KIND_METRICS,), "ga4", "impact.index"),
     "facebook": ((SYNC_KIND_METRICS,), "facebook", "impact.index"),
+    "qonto": ((SYNC_KIND_QONTO,), None, "bank_accounts.index"),
 }
 
 
@@ -281,6 +283,18 @@ def _probe_facebook() -> str:
     return f"Page « {client.fetch_page_name()} » accessible."
 
 
+def _probe_qonto() -> str:
+    from app.services import qonto_client
+
+    # Un seul appel, sans nouvelle tentative : le test reste sous CHECK_TIMEOUT.
+    client = qonto_client.from_app_config(timeout=CHECK_TIMEOUT, retry=False)
+    org = client.organization()
+    accounts = org.get("bank_accounts") or []
+    sandbox = " (bac à sable)" if client.base_url == qonto_client.SANDBOX_BASE else ""
+    name = org.get("legal_name") or org.get("name") or org.get("slug") or "?"
+    return f"Organisation « {name} » accessible{sandbox}, {len(accounts)} compte(s)."
+
+
 PROBES: dict[str, Callable[[], str]] = {
     "stancer": _probe_stancer,
     "odoo": _probe_odoo,
@@ -288,6 +302,7 @@ PROBES: dict[str, Callable[[], str]] = {
     "smtp": _probe_smtp,
     "ga4": _probe_ga4,
     "facebook": _probe_facebook,
+    "qonto": _probe_qonto,
 }
 
 
@@ -317,6 +332,10 @@ def _api_detail(response) -> str | None:
         return None
     if not isinstance(body, dict):
         return None
+    errors = body.get("errors")
+    if isinstance(errors, list) and errors and isinstance(errors[0], dict):  # Qonto
+        detail = errors[0].get("detail") or errors[0].get("code")
+        return _first_line(detail)[:200] if detail else None
     error = body.get("error")
     if isinstance(error, dict):  # Graph API, Stancer
         detail = error.get("message")
@@ -335,15 +354,17 @@ def describe_error(service: str, exc: BaseException) -> str:
     from app.services.ga4_client import GA4ConfigError
     from app.services.helloasso_client import HelloAssoConfigError
     from app.services.odoo_client import OdooConfigError
+    from app.services.qonto_client import QontoConfigError, QontoError
 
     name = type(exc).__name__
     timeout_msg = f"Délai dépassé ({CHECK_TIMEOUT} s) : le service ne répond pas."
 
     response = getattr(exc, "response", None)
-    if isinstance(exc, (requests.HTTPError, HelloAssoConfigError)) and response is not None:
+    if isinstance(exc, (requests.HTTPError, HelloAssoConfigError, QontoError)) \
+            and not isinstance(exc, QontoConfigError) and response is not None:
         return _http_message(service, response.status_code, _api_detail(response))
     if isinstance(exc, (OdooConfigError, HelloAssoConfigError, GA4ConfigError,
-                        FacebookConfigError)):
+                        FacebookConfigError, QontoConfigError)):
         return str(exc)
     if isinstance(exc, (requests.Timeout, TimeoutError)) or name == "DeadlineExceeded":
         return timeout_msg

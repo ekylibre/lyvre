@@ -50,6 +50,11 @@ class Config:
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD", "")
     MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", "")
 
+    # Qonto (API Business, clé API) : repli global, surchargé par Configuration › Intégrations.
+    QONTO_LOGIN = os.environ.get("QONTO_LOGIN", "")
+    QONTO_SECRET_KEY = os.environ.get("QONTO_SECRET_KEY", "")
+    QONTO_STAGING_TOKEN = os.environ.get("QONTO_STAGING_TOKEN", "")
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

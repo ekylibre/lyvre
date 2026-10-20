@@ -9,6 +9,10 @@ class BankAccount(db.Model):
     label = db.Column(db.String(100), nullable=False)
     iban = db.Column(db.String(34))
     account_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), nullable=False)
+    # Lien Qonto : compte Qonto synchronisé, date de début, curseur de la dernière synchro réussie (UTC).
+    qonto_account_id = db.Column(db.String(36), unique=True, nullable=True)
+    qonto_sync_from = db.Column(db.Date, nullable=True)
+    qonto_synced_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     account = db.relationship("Account", back_populates="bank_accounts")
