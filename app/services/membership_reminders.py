@@ -59,25 +59,6 @@ def _open_smtp(settings, timeout=20):
     return server
 
 
-def check_smtp_connection():
-    """Teste la connexion SMTP. Retourne (ok: bool, message: str)."""
-    if not smtp_configured():
-        return False, "SMTP non configuré (host et expéditeur requis)."
-    settings = smtp_settings()
-    try:
-        server = _open_smtp(settings)
-        try:
-            server.noop()
-        finally:
-            server.quit()
-    except Exception as exc:  # noqa: BLE001 — message remonté à l'UI
-        return False, f"Échec de connexion : {exc}"
-    return True, (
-        f"Connexion SMTP réussie ({settings['host']}:{settings['port']}, "
-        f"TLS {'activé' if settings['use_tls'] else 'désactivé'})."
-    )
-
-
 def _build_message(sender, recipient, subject, html):
     msg = EmailMessage()
     msg["Subject"] = subject

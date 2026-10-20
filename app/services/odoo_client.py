@@ -7,22 +7,50 @@ Utilise les endpoints standard :
 L'API key (depuis Odoo 14) est passée à la place du password.
 """
 from urllib.parse import urljoin
-from xmlrpc.client import ServerProxy
+from xmlrpc.client import SafeTransport, ServerProxy, Transport
 
 
 class OdooConfigError(RuntimeError):
     pass
 
 
+def _timeout_transport(url, timeout):
+    """XML-RPC transport whose connections give up after `timeout` seconds."""
+    base = SafeTransport if url.startswith("https") else Transport
+
+    class _TimeoutTransport(base):
+        def make_connection(self, host):
+            conn = super().make_connection(host)
+            conn.timeout = timeout
+            return conn
+
+    return _TimeoutTransport()
+
+
 class OdooClient:
-    def __init__(self, url, db, username, password):
+    def __init__(self, url, db, username, password, timeout=None):
         self.url = url.rstrip("/") + "/"
         self.db = db
         self.username = username
         self.password = password
-        self._common = ServerProxy(urljoin(self.url, "xmlrpc/2/common"), allow_none=True)
-        self._object = ServerProxy(urljoin(self.url, "xmlrpc/2/object"), allow_none=True)
+        # No timeout by default (existing syncs unchanged); the integration check passes one.
+        common_url = urljoin(self.url, "xmlrpc/2/common")
+        object_url = urljoin(self.url, "xmlrpc/2/object")
+        if timeout is None:
+            self._common = ServerProxy(common_url, allow_none=True)
+            self._object = ServerProxy(object_url, allow_none=True)
+        else:
+            self._common = ServerProxy(
+                common_url, allow_none=True, transport=_timeout_transport(self.url, timeout)
+            )
+            self._object = ServerProxy(
+                object_url, allow_none=True, transport=_timeout_transport(self.url, timeout)
+            )
         self._uid = None
+
+    def version(self):
+        """Server version info (no authentication needed)."""
+        return self._common.version()
 
     @property
     def uid(self):
@@ -62,7 +90,7 @@ class OdooClient:
         return self.execute_kw(model, "write", [list(ids), values])
 
 
-def from_app_config():
+def from_app_config(timeout=None):
     """Build an OdooClient from the per-instance external_connections config."""
     from app.services import external_config
 
@@ -73,4 +101,4 @@ def from_app_config():
             "Configuration Odoo incomplète (manquant : " + ", ".join(missing)
             + ") — renseignez-la dans Configuration → Connexions externes."
         )
-    return OdooClient(cfg["url"], cfg["db"], cfg["username"], cfg["api_key"])
+    return OdooClient(cfg["url"], cfg["db"], cfg["username"], cfg["api_key"], timeout=timeout)

@@ -338,3 +338,18 @@ ajouts `external_config`), `doc/installation.md` et `doc/docker.md` (l'interrupt
 | Dépendance GA4 absente en environnement de dev | La sonde renvoie l'erreur `GA4ConfigError` « dépendance manquante » : statut En erreur, pas de plantage |
 | Oubli d'un point d'entrée dans la garde F4 | Garde placée dans les fabriques (un seul endroit par service) + test de gating par écran |
 | Changement de comportement pour les secrets (D7) | Couvert par tests ; un secret ne peut plus être effacé par erreur en vidant le champ |
+
+## 13. Bilan de la mise en œuvre
+
+**Phase B (2026-10-20)** — écarts et précisions :
+- Les erreurs HTTP reprennent l'explication fournie par l'API (`error.message` de Graph / Stancer,
+  `error_description` OAuth2) : « Facebook (Page) a répondu HTTP 400. Détail : Invalid OAuth access
+  token… ». Sans elle, un token Facebook invalide (HTTP 400) donnait un message inutilisable.
+- L'échec d'obtention du jeton HelloAsso garde son exception `HelloAssoConfigError` (utilisée
+  ailleurs) mais porte la réponse HTTP (`err.response`), traduite comme une erreur HTTP.
+- `check_smtp_connection` est supprimée ; l'ancien bouton SMTP appelle `run_check("smtp")` jusqu'au
+  remplacement de l'écran (phase C).
+- Erreurs `google.api_core` traduites par leur code HTTP (`exc.code`), quel que soit leur type.
+- Vérifié avec de vrais appels (copie de la base) : SMTP et GA4 opérationnels (0,5 s et 4,4 s) ;
+  identifiants factices Stancer / HelloAsso / Facebook et URL Odoo inexistante → messages corrects,
+  secrets masqués jusque dans les journaux.

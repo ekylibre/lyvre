@@ -58,8 +58,8 @@ def save(service):
 @admin_required
 def test_smtp():
     """Teste la connexion au serveur SMTP configuré pour l'instance."""
-    from app.services.membership_reminders import check_smtp_connection
+    from app.services import integrations
 
-    ok, message = check_smtp_connection()
-    flash(message, "success" if ok else "danger")
+    result = integrations.run_check("smtp")
+    flash(result.message, "success" if result.ok else "danger")
     return redirect(url_for("external_connections.index"))

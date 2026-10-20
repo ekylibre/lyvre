@@ -115,22 +115,6 @@ def test_send_reminders_isolates_per_recipient_error(app, monkeypatch):
     assert "Mauvais" in result["error_lines"][0]
 
 
-def test_check_smtp_connection_ok(app, monkeypatch):
-    monkeypatch.setattr(mr, "_open_smtp", lambda settings, **kw: FakeSMTP())
-    ok, message = mr.check_smtp_connection()
-    assert ok is True
-    assert "réussie" in message
-
-
-def test_check_smtp_connection_failure(app, monkeypatch):
-    def boom(settings, **kw):
-        raise OSError("connection refused")
-    monkeypatch.setattr(mr, "_open_smtp", boom)
-    ok, message = mr.check_smtp_connection()
-    assert ok is False
-    assert "Échec" in message
-
-
 def test_get_or_default_returns_seed_when_absent(app):
     tpl = EmailTemplate.get_or_default(MEMBERSHIP_REMINDER_KEY)
     assert tpl.subject  # gabarit par défaut non vide

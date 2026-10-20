@@ -13,7 +13,8 @@ class HelloAssoConfigError(RuntimeError):
 
 
 class HelloAssoClient:
-    def __init__(self, client_id, client_secret, org_slug, api_base):
+    def __init__(self, client_id, client_secret, org_slug, api_base, timeout=30):
+        self.timeout = timeout
         self.client_id = client_id
         self.client_secret = client_secret
         self.org_slug = org_slug
@@ -30,12 +31,14 @@ class HelloAssoClient:
                 "client_secret": self.client_secret,
             },
             headers={"Content-Type": "application/x-www-form-urlencoded"},
-            timeout=30,
+            timeout=self.timeout,
         )
         if resp.status_code != 200:
-            raise HelloAssoConfigError(
+            err = HelloAssoConfigError(
                 f"Auth HelloAsso refusée ({resp.status_code}) : {resp.text[:200]}"
             )
+            err.response = resp  # lu par le test d'intégration (statut HTTP + détail)
+            raise err
         data = resp.json()
         self._token = data["access_token"]
         # 60 s de marge avant expiration
@@ -53,7 +56,7 @@ class HelloAssoClient:
             url,
             headers={"Authorization": f"Bearer {self.token}"},
             params=params or {},
-            timeout=30,
+            timeout=self.timeout,
         )
         if resp.status_code == 401:
             # token peut-être expiré — on retry une fois après refresh
@@ -62,7 +65,7 @@ class HelloAssoClient:
                 url,
                 headers={"Authorization": f"Bearer {self.token}"},
                 params=params or {},
-                timeout=30,
+                timeout=self.timeout,
             )
         resp.raise_for_status()
         return resp.json()
@@ -94,8 +97,12 @@ class HelloAssoClient:
             raise HelloAssoConfigError("HELLOASSO_ORG_SLUG manquant.")
         return f"/v5/organizations/{self.org_slug}{suffix}"
 
+    def get_organization(self):
+        """Organization details (name, url…) of the configured slug."""
+        return self._get(self.org_path(""))
 
-def from_app_config():
+
+def from_app_config(timeout=30):
     from app.services import external_config
 
     cfg = external_config.get_all("helloasso")
@@ -106,4 +113,6 @@ def from_app_config():
             "Configuration HelloAsso incomplète (manquant : " + ", ".join(missing)
             + ") — renseignez-la dans Configuration → Connexions externes."
         )
-    return HelloAssoClient(cfg["client_id"], cfg["client_secret"], cfg["org_slug"], base)
+    return HelloAssoClient(
+        cfg["client_id"], cfg["client_secret"], cfg["org_slug"], base, timeout=timeout
+    )

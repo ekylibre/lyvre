@@ -55,6 +55,20 @@ class GA4Client:
         )
         return BetaAnalyticsDataClient(credentials=creds)
 
+    def ping(self, timeout=None):
+        """Rapport minimal (utilisateurs actifs d'hier) : vérifie la clé et l'accès à la propriété."""
+        from google.analytics.data_v1beta.types import (
+            DateRange, Metric, RunReportRequest,
+        )
+
+        request = RunReportRequest(
+            property=f"properties/{self.property_id}",
+            date_ranges=[DateRange(start_date="yesterday", end_date="yesterday")],
+            metrics=[Metric(name="activeUsers")],
+            limit=1,
+        )
+        self._client().run_report(request, timeout=timeout)
+
     def fetch_monthly(self, year, month):
         """Retourne {metric_key: value} pour le mois (year, month)."""
         from google.analytics.data_v1beta.types import (

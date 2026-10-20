@@ -56,13 +56,13 @@ def _to_datetime(value):
     return None
 
 
-def _api_get(path, **params):
+def _api_get(path, timeout=30, **params):
     url = f"{API_BASE}{path}"
     response = requests.get(
         url,
         auth=(_get_secret_key(), ""),
         params=params,
-        timeout=30,
+        timeout=timeout,
     )
     response.raise_for_status()
     return response.json()
