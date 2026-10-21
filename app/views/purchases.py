@@ -9,7 +9,7 @@ from markupsafe import escape
 from app.decorators import admin_required
 from app.extensions import db
 from app.frontend import is_htmx
-from app.models import Account, Entity, Purchase, SyncJob
+from app.models import Account, Entity, Purchase, PurchasePayment, SyncJob
 from app.models.purchase import PURCHASE_SOURCES
 from app.models.sync_job import SYNC_KIND_QONTO_INVOICES
 from app.services import (
@@ -51,7 +51,11 @@ def index():
     if entity_id:
         query = query.filter(Purchase.entity_id == entity_id)
     if unpaid:
-        query = query.filter(db.or_(Purchase.qonto_status.is_(None), Purchase.qonto_status != "paid"))
+        # Non réglée : ni payée selon Qonto, ni règlement comptabilisé dans l'application.
+        settled = (db.session.query(PurchasePayment.purchase_id)
+                   .filter(PurchasePayment.journal_entry_id.isnot(None)))
+        query = query.filter(db.or_(Purchase.qonto_status.is_(None), Purchase.qonto_status != "paid"),
+                             Purchase.id.notin_(settled))
     if no_supplier:
         query = query.filter(Purchase.entity_id.is_(None))
     if q:
@@ -146,7 +150,46 @@ def detail(purchase_id):
         "purchases/detail.html", purchase=purchase, state=purchase_state(purchase),
         fiscal_year=fy, status_labels=STATUS_LABELS, products=catalog.purchase_products(),
         charge_accounts=_charge_accounts(), rows=purchase_entry.line_rows(purchase.lines),
+        suggestions=(purchase_settlement.match_candidates(purchase)
+                     if purchase_settlement.awaiting_payment(purchase) else []),
+        awaiting_payment=purchase_settlement.awaiting_payment(purchase),
+        match_window=purchase_settlement.match_window(purchase) if purchase.issue_date else None,
     )
+
+
+@bp.route("/<int:purchase_id>/payments", methods=["POST"])
+@login_required
+def link_payment(purchase_id):
+    purchase = Purchase.query.get_or_404(purchase_id)
+    try:
+        outcome = purchase_settlement.link_manual(
+            purchase, request.form.get("bank_transaction_id", type=int))
+    except LedgerError as exc:
+        db.session.rollback()
+        flash(str(exc), "danger")
+        return redirect(url_for("purchases.detail", purchase_id=purchase.id))
+    if outcome["settled"]:
+        flash("Règlement passé et rapproché.", "success")
+    elif not outcome["errors"]:
+        flash("Paiement rattaché : la transaction est déjà passée par une règle, "
+              "remplacez son écriture (Règlements à remplacer).", "warning")
+    for error in outcome["errors"]:
+        flash(error, "danger")
+    return redirect(url_for("purchases.detail", purchase_id=purchase.id))
+
+
+@bp.route("/<int:purchase_id>/payments/<int:payment_id>/delete", methods=["POST"])
+@login_required
+def unlink_payment(purchase_id, payment_id):
+    payment = PurchasePayment.query.filter_by(id=payment_id, purchase_id=purchase_id).first_or_404()
+    try:
+        purchase_settlement.unlink(payment)
+        flash("Règlement défait : l'écriture est supprimée et la transaction n'est plus rapprochée.",
+              "success")
+    except LedgerError as exc:
+        db.session.rollback()
+        flash(str(exc), "danger")
+    return redirect(url_for("purchases.detail", purchase_id=purchase_id))
 
 
 # ------------------------------------------------------------------ saisie

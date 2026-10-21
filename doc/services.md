@@ -1012,6 +1012,10 @@ plus de 24 h (appelé à chaque dépôt).
 | `settle(purchases, transactions)` | Pour chaque transaction liée à des factures comptabilisées, non rapprochée : écriture BQ 401NNN / banque + rapprochement, atomiques ; fournisseurs différents ou transaction annulée → erreur |
 | `to_replace()` | Transactions liées rapprochées d'une autre écriture : `replaceable` si écriture de règle (2 lignes, 6… + banque, `FITID:`), sinon rapprochement manuel signalé |
 | `replace_many(ids)` | Supprime l'écriture de règle et passe le règlement, une transaction SQL par élément ; `{results, counters}` |
+| `match_candidates(p)` | Facture saisie : transactions de comptes **hors Qonto**, montant = −TTC (+TTC pour un avoir), date ∈ [date − 5 j ; échéance (ou date) + 60 j], ni annulées, ni déjà liées, ni rapprochées autrement que par une écriture de règle ; même tiers d'abord, puis date la plus proche (`match_window(p)`) |
+| `auto_match(purchases=None)` | Factures saisies comptabilisées sans paiement : lien `origin = match` si le candidat est **unique** et n'est candidat d'aucune autre facture en attente, puis `settle` ; `{matched, settled, errors}`. Appelé par `post_ready` (factures saisies) et après un import OFX |
+| `link_manual(p, bank_transaction_id)` | Lien choisi parmi les candidats (`origin = manual`) puis `settle` |
+| `unlink(payment)` | Lien hors Qonto : supprime l'écriture de règlement (rapprochement défait) et le lien |
 
 Dans `qonto_sync.sync_bank_account`, par page : `link_transactions` et `settle` **avant** `apply_rules`
 (résumé : `settled`).

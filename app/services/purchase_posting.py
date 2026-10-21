@@ -217,6 +217,11 @@ def post_ready(purchases) -> dict:
         settlement = purchase_settlement.settle(purchases=posted)
         result["settled"] = settlement["settled"]
         result["errors"].extend(settlement["errors"])
+        manual = [p for p in posted if p.source == "manual"]
+        if manual:  # payée hors Qonto : débit unique de même montant
+            matching = purchase_settlement.auto_match(manual)
+            result["settled"] += matching["settled"]
+            result["errors"].extend(matching["errors"])
     return result
 
 

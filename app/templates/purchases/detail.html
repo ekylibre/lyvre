@@ -91,10 +91,41 @@
 </details>
 {% endif %}
 
+{% if awaiting_payment %}
+<h5>Règlement</h5>
+{% if suggestions %}
+<p class="small text-muted mb-1">Transactions bancaires de même montant autour de la date de la facture :</p>
+<table class="table table-sm align-middle mb-4">
+  <thead class="table-light"><tr><th>Date</th><th>Compte bancaire</th><th>Libellé</th><th class="text-end">Montant</th><th></th></tr></thead>
+  <tbody>
+    {% for t in suggestions %}
+    <tr>
+      <td>{{ t.transaction_date.strftime('%d/%m/%Y') }}</td>
+      <td>{{ t.bank_account.label }}</td>
+      <td class="small">{{ t.label or '' }}{% if t.reconciled %} <span class="badge bg-warning text-dark" title="Déjà passée par une règle : son écriture sera à remplacer">règle</span>{% endif %}</td>
+      <td class="text-end">{{ t.amount_cents | euros }}</td>
+      <td class="text-end">
+        <form method="post" action="{{ url_for('purchases.link_payment', purchase_id=purchase.id) }}" class="m-0" {{ hx_submit() }}>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="bank_transaction_id" value="{{ t.id }}">
+          <button type="submit" class="btn btn-outline-primary btn-sm">Régler avec cette transaction</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="small text-muted mb-4">Non réglée : aucune transaction bancaire hors Qonto de {{ purchase.total_cents | euros }}
+  entre le {{ match_window[0].strftime('%d/%m/%Y') }} et le {{ match_window[1].strftime('%d/%m/%Y') }}.
+  Le règlement sera passé automatiquement à l'import du relevé (OFX) qui la contient.</p>
+{% endif %}
+{% endif %}
+
 {% if purchase.payments %}
 <h5>Règlements</h5>
 <table class="table table-sm align-middle mb-4">
-  <thead class="table-light"><tr><th>Date</th><th>Compte bancaire</th><th>Libellé</th><th class="text-end">Montant</th><th>État</th></tr></thead>
+  <thead class="table-light"><tr><th>Date</th><th>Compte bancaire</th><th>Libellé</th><th class="text-end">Montant</th><th>État</th><th></th></tr></thead>
   <tbody>
     {% for pay in purchase.payments %}
     {% set t = pay.bank_transaction %}
@@ -115,6 +146,16 @@
       <td colspan="4" class="text-muted small">Transaction Qonto pas encore importée ({{ pay.qonto_transaction_id }}) — synchronisez le compte bancaire.</td>
       <td><span class="badge bg-secondary">À importer</span></td>
       {% endif %}
+      <td class="text-end">
+        {% if pay.origin != 'qonto' %}
+        <small class="text-muted">{{ 'auto' if pay.origin == 'match' else 'choisi' }}</small>
+        <form method="post" action="{{ url_for('purchases.unlink_payment', purchase_id=purchase.id, payment_id=pay.id) }}" class="d-inline m-0"
+              {{ hx_submit(confirm='Défaire ce règlement ? Son écriture sera supprimée.') }}>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-link btn-sm text-danger p-0 ms-1">Défaire</button>
+        </form>
+        {% endif %}
+      </td>
     </tr>
     {% endfor %}
   </tbody>

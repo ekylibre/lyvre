@@ -253,7 +253,7 @@ Les anciennes routes `POST /entries/new`, `POST /entries/<id>/edit`, `/entries/n
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/purchases/` | Liste ; filtres `q`, `source` (`qonto` / `manual`), `state` (`to_complete`/`ready`/`posted`), `status` (statut Qonto), `entity_id`, `unpaid=1`, `no_supplier=1`, `hidden=1`, `month`, `sort`. Bandeaux : à compléter, à revoir, fournisseurs à valider, règlements à remplacer |
+| GET | `/purchases/` | Liste ; filtres `q`, `source` (`qonto` / `manual`), `state` (`to_complete`/`ready`/`posted`), `status` (statut Qonto), `entity_id`, `unpaid=1` (ni payée selon Qonto, ni règlement comptabilisé), `no_supplier=1`, `hidden=1`, `month`, `sort`. Bandeaux : à compléter, à revoir, fournisseurs à valider, règlements à remplacer |
 | POST | `/purchases/sync` | Lance la synchronisation des factures Qonto en arrière-plan ; en HTMX, fragment de suivi |
 | GET | `/purchases/sync/<job_id>` | Fragment de suivi puis résumé |
 | POST | `/purchases/sync/settings` | **Admin.** `sync_from` ; reculer la date remet le curseur à zéro (relecture complète, sans doublon) |
@@ -264,6 +264,8 @@ Les anciennes routes `POST /entries/new`, `POST /entries/<id>/edit`, `/entries/n
 | GET | `/purchases/<id>/attachment` | Pièce de la facture (`inline` ; `?download=1` : téléchargement) |
 | GET | `/purchases/<id>` | Fiche : état et motifs, montants, pièce (aperçu), règlements, lignes éditables, écriture |
 | POST | `/purchases/<id>/lines` | Champs répétés `product_id[]`, `account_code[]`, `label[]`, `untaxed[]`, `vat_rate[]`, `vat[]` ; refusé si comptabilisée ; comptabilise si complète |
+| POST | `/purchases/<id>/payments` | `bank_transaction_id` : règle une facture saisie par une transaction proposée |
+| POST | `/purchases/<id>/payments/<payment_id>/delete` | Défait un règlement hors Qonto (écriture supprimée, rapprochement défait) |
 | POST | `/purchases/<id>/post` | Comptabilise une facture prête |
 | POST | `/purchases/<id>/unpost` | Supprime l'écriture d'achat et réapplique les données Qonto |
 | POST | `/purchases/post-ready` | Comptabilise toutes les factures prêtes (puis leurs règlements) |
@@ -280,7 +282,7 @@ Les anciennes routes `POST /entries/new`, `POST /entries/<id>/edit`, `/entries/n
 | Méthode | URL | Description |
 |---------|-----|-------------|
 | GET | `/imports/ofx` | Formulaire d'import OFX avec liste des comptes bancaires |
-| POST | `/imports/ofx` | Upload du fichier, parse et insère les transactions non-dupliquées |
+| POST | `/imports/ofx` | Upload du fichier, parse et insère les transactions non-dupliquées ; puis règle les factures d'achat saisies en attente dont le débit est unique (`purchase_settlement.auto_match`) |
 
 **Paramètres POST :**
 

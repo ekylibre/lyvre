@@ -110,6 +110,17 @@ importé, annulé par la banque, ou passé par une autre écriture. Dans le comp
 transaction liée porte un badge « Facture n° … » et le filtre **Débit sans facture** liste les
 paiements sans justificatif comptable.
 
+### Factures payées hors Qonto (relevé OFX)
+
+Une facture **saisie** et comptabilisée attend son paiement : l'application cherche, sur les comptes
+bancaires non rattachés à Qonto, un débit du montant TTC entre la date de facture − 5 jours et
+l'échéance (à défaut la date) + 60 jours. **Un seul débit possible** (et propre à cette facture) :
+le règlement 401 / banque est passé et rapproché automatiquement, à la comptabilisation de la facture
+ou à l'import du relevé OFX qui le contient (message après l'import). **Plusieurs** : la fiche les
+propose, même fournisseur en premier — **Régler avec cette transaction**. Un règlement hors Qonto se
+**défait** depuis la fiche (écriture supprimée, transaction de nouveau à rapprocher). Un débit déjà
+passé par une règle peut être choisi : il rejoint les règlements à remplacer ci-dessous.
+
 ### Règlements à remplacer
 
 Une transaction passée en charge par une règle (6xx / banque) **avant** l'arrivée de sa facture

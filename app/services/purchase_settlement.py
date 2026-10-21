@@ -11,15 +11,23 @@ transaction SQL. Les règles de catégorisation ignorent les transactions liées
 Une transaction déjà passée par une règle (6xx / banque) avant l'arrivée de sa
 facture compterait la charge deux fois : elle est listée « à remplacer »
 (`to_replace`) et `replace_many` substitue un règlement à l'écriture de règle.
+
+Factures saisies payées hors Qonto (OFX) : `match_candidates` cherche les débits
+de même montant autour de la date ; `auto_match` lie un candidat **unique**
+(`origin = match`), `link_manual` un débit choisi sur la fiche (`origin = manual`),
+`unlink` défait un tel lien et son règlement.
 """
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import timedelta
 
 from app.extensions import db
-from app.models import BankTransaction, Journal, JournalEntry, Purchase, PurchasePayment
-from app.services.ledger import LedgerError, post_entry
+from app.models import (
+    BankAccount, BankTransaction, Journal, JournalEntry, Purchase, PurchasePayment,
+)
+from app.services.ledger import LedgerError, delete_entries, post_entry
 from app.services.purchase_posting import fiscal_year_for, supplier_account
 from app.services.reconciler import REVERSED_MESSAGE, reconcile
 
@@ -229,3 +237,107 @@ def replace_many(transaction_ids) -> dict:
     counters = {"ok": sum(r["status"] == "ok" for r in results),
                 "error": sum(r["status"] == "error" for r in results)}
     return {"results": results, "counters": counters}
+
+
+# ------------------------------------------------------------------ hors Qonto (OFX)
+
+MATCH_DAYS_BEFORE = 5
+MATCH_DAYS_AFTER = 60
+
+
+def _expected_amount(p: Purchase) -> int:
+    """Montant bancaire attendu : débit du TTC (net à payer s'il est connu), crédit pour un avoir."""
+    amount = p.payable_cents or p.total_cents
+    return amount if p.is_credit_note else -amount
+
+
+def _free_for_matching(txn: BankTransaction) -> bool:
+    """Ni annulée, ni rapprochée autrement que par une écriture de règle (alors à remplacer)."""
+    if txn.is_reversed:
+        return False
+    if not txn.reconciled and txn.journal_line_id is None:
+        return True
+    return txn.journal_line is not None and is_rule_entry(txn.journal_line.entry, txn)
+
+
+def awaiting_payment(p: Purchase) -> bool:
+    """Facture saisie, comptabilisée, sans aucun lien de paiement."""
+    return (p.source == "manual" and p.journal_entry_id is not None and not p.is_hidden
+            and not p.payments)
+
+
+def match_window(p: Purchase):
+    """(début, fin) : date − 5 jours ; échéance (à défaut date) + 60 jours."""
+    reference = max(p.due_date or p.issue_date, p.issue_date)
+    return (p.issue_date - timedelta(days=MATCH_DAYS_BEFORE),
+            reference + timedelta(days=MATCH_DAYS_AFTER))
+
+
+def match_candidates(p: Purchase) -> list[BankTransaction]:
+    """Transactions hors Qonto pouvant payer la facture, même tiers puis date la plus proche."""
+    if p.issue_date is None:
+        return []
+    reference = p.due_date or p.issue_date
+    start, end = match_window(p)
+    linked = db.session.query(PurchasePayment.bank_transaction_id).filter(
+        PurchasePayment.bank_transaction_id.isnot(None))
+    rows = (BankTransaction.query.join(BankAccount, BankTransaction.bank_account_id == BankAccount.id)
+            .filter(BankAccount.qonto_account_id.is_(None),
+                    BankTransaction.amount_cents == _expected_amount(p),
+                    BankTransaction.transaction_date.between(start, end),
+                    BankTransaction.id.notin_(linked))
+            .all())
+    rows = [t for t in rows if _free_for_matching(t)]
+    return sorted(rows, key=lambda t: (t.entity_id != p.entity_id if p.entity_id else True,
+                                       abs((t.transaction_date - reference).days), t.id))
+
+
+def auto_match(purchases=None) -> dict:
+    """Lie chaque facture en attente à son candidat s'il est unique, et unique à elle seule.
+
+    `purchases` : factures à traiter (défaut : toutes celles en attente). Un débit candidat de
+    plusieurs factures en attente n'est jamais lié automatiquement (choix sur la fiche).
+    """
+    pending = [p for p in Purchase.query.filter(Purchase.source == "manual",
+                                                Purchase.journal_entry_id.isnot(None),
+                                                Purchase.is_hidden.is_(False))
+               if awaiting_payment(p)]
+    targets = {p.id for p in (purchases if purchases is not None else pending) if awaiting_payment(p)}
+    candidates = {p.id: match_candidates(p) for p in pending}
+    claims: dict[int, int] = {}
+    for found in candidates.values():
+        for txn in found:
+            claims[txn.id] = claims.get(txn.id, 0) + 1
+    linked = []
+    for p in pending:
+        found = candidates[p.id]
+        if p.id in targets and len(found) == 1 and claims[found[0].id] == 1:
+            p.payments.append(PurchasePayment(bank_transaction=found[0], origin="match"))
+            linked.append(p)
+    db.session.commit()
+    result = settle(purchases=linked) if linked else {"settled": 0, "errors": []}
+    return {"matched": len(linked), "settled": result["settled"], "errors": result["errors"]}
+
+
+def link_manual(p: Purchase, bank_transaction_id: int) -> dict:
+    """Règle la facture par une transaction choisie parmi ses candidats ; LedgerError sinon."""
+    if not awaiting_payment(p):
+        raise LedgerError("Cette facture n'attend pas de règlement.")
+    txn = next((t for t in match_candidates(p) if t.id == bank_transaction_id), None)
+    if txn is None:
+        raise LedgerError("Cette transaction ne peut pas régler la facture.")
+    p.payments.append(PurchasePayment(bank_transaction=txn, origin="manual"))
+    db.session.commit()
+    return settle(purchases=[p])
+
+
+def unlink(payment: PurchasePayment) -> None:
+    """Défait un règlement hors Qonto : écriture supprimée, rapprochement défait, lien retiré."""
+    if payment.origin == "qonto":
+        raise LedgerError("Un paiement désigné par Qonto ne se défait pas ici.")
+    if payment.journal_entry_id is not None:
+        (outcome,) = delete_entries([payment.journal_entry_id])
+        if outcome["status"] != "ok":
+            raise LedgerError(outcome["message"])
+    db.session.delete(payment)
+    db.session.commit()

@@ -1,6 +1,7 @@
 import io
 from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash
+from app.services import purchase_settlement
 from flask_login import login_required
 from app.extensions import db
 from app.models import BankAccount, OdooImportLine
@@ -36,6 +37,14 @@ def ofx():
                     f"{result['duplicates']} doublon(s) ignoré(s).",
                     "success" if not result["errors"] else "warning",
                 )
+                if result["imported"]:
+                    # Factures d'achat saisies en attente : débit unique de même montant → réglées.
+                    matching = purchase_settlement.auto_match()
+                    if matching["matched"]:
+                        flash(f"{matching['matched']} facture(s) d'achat rattachée(s) à leur paiement, "
+                              f"{matching['settled']} règlement(s) passé(s).", "success")
+                    for error in matching["errors"]:
+                        flash(error, "danger")
             except Exception as e:
                 flash(f"Erreur lors de l'import OFX : {e}", "danger")
 

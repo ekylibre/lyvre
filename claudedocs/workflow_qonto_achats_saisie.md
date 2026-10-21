@@ -1,6 +1,6 @@
 # Workflow — Qonto, lot 2b : saisie de factures d'achat, pièce jointe et OCR
 
-> **Statut : en cours** — phases A, B et C réalisées (2026-10-22). Sources : [`besoins_qonto_achats_saisie.md`](besoins_qonto_achats_saisie.md)
+> **Statut : en cours** — phases A à D réalisées (2026-10-22). Sources : [`besoins_qonto_achats_saisie.md`](besoins_qonto_achats_saisie.md)
 > (QB1 à QB8), [`design_qonto_achats_saisie.md`](design_qonto_achats_saisie.md) (D1 à D13).
 
 ## 1. Objectif
@@ -106,6 +106,13 @@ obligatoire à la saisie.
 | D.4 | Tests | `tests/test_purchase_settlement.py`, `tests/test_purchases_views.py` |
 
 **✅ CP D** : US4 sur la copie Seconde Nature (débit OFX réel ou importé de test).
+— *Réalisé* : 599 tests. Essai Chrome sur la copie **Seconde Nature** : facture Free saisie depuis le
+PDF, rattachée à l'entité existante « FREE » dont le compte 411001 bloquait la comptabilisation
+(motif affiché ; code vidé sur la copie → 401021 attribué) ; comptabilisée « non réglée » avec la
+fenêtre de recherche ; import d'un relevé OFX de test (débit −39,99 le 04/09) → règlement BQ-2026-0081
+401021 / 5121, transaction rapprochée, lien `match`. Écarts : un débit déjà passé par une règle est
+candidat (lié puis « à remplacer ») ; filtre « Non payées » : ni payée selon Qonto, ni règlement
+comptabilisé ; candidat unique exigé pour l'ensemble des factures en attente.
 
 ### Phase E — Envoi à Qonto et retour (S3, S4, D8, D9)
 
