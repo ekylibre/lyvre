@@ -1,6 +1,6 @@
 # Workflow — Qonto, lot 2b : saisie de factures d'achat, pièce jointe et OCR
 
-> **Statut : en cours** — phase A réalisée (2026-10-22). Sources : [`besoins_qonto_achats_saisie.md`](besoins_qonto_achats_saisie.md)
+> **Statut : en cours** — phases A et B réalisées (2026-10-22). Sources : [`besoins_qonto_achats_saisie.md`](besoins_qonto_achats_saisie.md)
 > (QB1 à QB8), [`design_qonto_achats_saisie.md`](design_qonto_achats_saisie.md) (D1 à D13).
 
 ## 1. Objectif
@@ -66,6 +66,15 @@ hors Qonto.
 | B.5 | Essai sur de vraies factures fournies par l'utilisateur (PDF texte, scan, Factur-X si disponible) ; ajuster les motifs | — |
 
 **✅ CP B** : `make check` vert ; extraction correcte des totaux, dates et identifiants sur les factures réelles.
+— *Réalisé* : 554 tests (16 nouveaux, OCR compris). Factures réelles (`SCI Chenes verts/doc_facture`) :
+2 factures Free (PDF texte) lues entièrement (Free, TVA FR60421938861, n°, date, échéance,
+39,99 / 33,33 / 6,66) ; ticket Brico Dépôt (texte + logo image) : SIRET, date, 171,16 / 142,63 / 28,53,
+nom « Bricodepot » deviné depuis le site web (à vérifier) ; mêmes résultats en scan simulé (PDF image)
+et en photo JPEG via OCR (≈ 1 à 2 s par page ; SIRET bruité par l'OCR rejeté par la clé de Luhn).
+Écarts au design : un champ lu dans le texte natif n'est « à vérifier » que s'il est deviné (nom depuis
+le site web, date sans libellé), incohérent (HT + TVA ≠ TTC) ou un IBAN ; les champs OCR le sont
+toujours. IBAN masqué ou invalide (mod 97) ignoré ; `ignore_ibans` écarte les IBAN de l'organisation ;
+XML avec DOCTYPE refusé.
 
 ### Phase C — Pièces et saisie (S1, S5, S7, D2, D6, D7)
 
