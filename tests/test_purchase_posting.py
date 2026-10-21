@@ -117,6 +117,21 @@ def test_post_vat_liable_splits_vat(books):
                                ("6061", 10000, 0), ("6068", 1000, 0)]
 
 
+def test_discount_line_credited(books):
+    books["fy"].vat_liable = True
+    discount = Account(code="609", label="Rabais obtenus", account_type="EXPENSE")
+    lines = [
+        PurchaseLine(position=0, account=books["6061"], untaxed_cents=14263, vat_rate_bp=2000,
+                     vat_cents=2853, total_cents=17116),
+        PurchaseLine(position=1, account=discount, label="Remise fidélité", untaxed_cents=-320,
+                     vat_rate_bp=0, vat_cents=0, total_cents=-320),
+    ]
+    p = _purchase(books, lines=lines, total=16796)
+    purchase_posting.post(p)
+    assert _entry_lines(p) == [("401001", 0, 16796), ("44566", 2853, 0),
+                               ("6061", 14263, 0), ("609", 0, 320)]
+
+
 def test_vat_account_falls_back_to_4456(books):
     books["fy"].vat_liable = True
     db.session.delete(books["44566"])

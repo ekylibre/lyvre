@@ -164,8 +164,9 @@ def entry_lines(p: Purchase, fy: FiscalYear, supplier: Account) -> list[dict]:
     vat = sum(line.vat_cents for line in p.lines) if fy.vat_liable else 0
     if vat:
         debits.append((vat_account().id, f"TVA — {label}", vat))
-    lines = [{"account_id": acc, "label": text, "debit_cents": amount, "credit_cents": 0}
-             for acc, text, amount in debits]
+    # Une ligne négative (remise obtenue, 609) passe au crédit.
+    lines = [{"account_id": acc, "label": text, "debit_cents": max(amount, 0),
+              "credit_cents": max(-amount, 0)} for acc, text, amount in debits]
     lines.append({"account_id": supplier.id, "label": label, "debit_cents": 0,
                   "credit_cents": p.total_cents})
     if p.is_credit_note:

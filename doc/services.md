@@ -943,7 +943,7 @@ un succès complet. `start_sync(app)` / `latest_job()` : arrière-plan via `sync
 
 Par facture (`upsert_invoice`) : montants « 22.10 » → centimes (valeur absolue, `is_credit_note`
 porte le sens) ; `rejected` / `discarded` / non financière → `is_hidden` ; fournisseur reconnu par
-identifiant Qonto, puis n° de TVA, puis nom (`match_entity`, qui complète la fiche) ; lignes par défaut
+identifiant Qonto, puis n° de TVA, SIRET, IBAN, puis nom (`find_supplier` ; `match_entity` complète la fiche) ; lignes par défaut
 (`default_lines` : une par taux, HT de Qonto conservé si un seul taux, la dernière absorbe l'écart ;
 sinon une ligne TTC à taux à confirmer), régénérées tant que `lines_edited` est faux ; liens de
 paiement (`purchase_settlement.link_invoice`). Une facture **comptabilisée** n'est jamais modifiée sur
@@ -958,7 +958,7 @@ ses montants, sa date ou sa nature : le changement est noté dans `review_reason
 | Fonction | Rôle |
 |----------|------|
 | `purchase_state(p)` | `State(code, reasons)` : `hidden`, `to_complete` (motifs), `ready`, `posted` |
-| `post(p)` | Écriture AC à la date de facture : lignes en 6… (HT si l'exercice est `vat_liable`, sinon TTC), TVA en 44566 / 4456, crédit TTC au 401NNN du fournisseur ; avoir inversé ; `source = PURCHASE`, `source_ref = PURCHASE:<id>` |
+| `post(p)` | Écriture AC à la date de facture : lignes en 6… (HT si l'exercice est `vat_liable`, sinon TTC ; une ligne négative — remise obtenue 609 — passe au crédit), TVA en 44566 / 4456, crédit TTC au 401NNN du fournisseur ; avoir inversé ; `source = PURCHASE`, `source_ref = PURCHASE:<id>` |
 | `post_ready(purchases)` | Comptabilise les prêtes, une transaction SQL chacune, puis `settle` ; `{posted, settled, errors}` |
 | `supplier_account(entity)` / `next_supplier_code()` | Compte 401 du fournisseur (code de la fiche, sinon 401NNN suivant), créé dans le plan (parent 401, `TIERS`) |
 | `unpost(p)` | Supprime l'écriture AC et réapplique la dernière réponse Qonto (`purchase_sync.apply_payload`) |
@@ -966,11 +966,47 @@ ses montants, sa date ou sa nature : le changement est noté dans `review_reason
 
 ---
 
+## invoice_reader.py — Lecture des factures d'achat
+
+`read(path, mime, max_pages=3, ignore_ibans=())` → `Extraction(fields, taxes, source, warnings)` ;
+chaque champ est un `Field(value, origin, check)` (`origin` : `facturx`, `text`, `ocr` ; `check` : à
+vérifier). Ordre : XML CII embarqué (`factur-x.xml`, `zugferd-invoice.xml`, `xrechnung.xml`, ≤ 1 Mo,
+DOCTYPE refusé) qui fait foi ; texte natif des 3 premières pages ; OCR Tesseract `fra` pour une page de
+moins de 30 caractères et pour les images (JPEG, PNG). Tesseract absent : avertissement.
+`parse_text(text, origin)` : nom (forme juridique suivie du capital / RCS, sinon site web, deviné),
+TVA FR (clé contrôlée), SIRET (Luhn), IBAN (mod 97 ; IBAN masqués et ceux de l'organisation ignorés),
+n° de facture, dates (facture, échéance), TTC / HT / TVA et ventilation par taux, avoir, remise après
+le total (`discount`, points fidélité d'un ticket) ; HT + TVA = TTC complète le montant manquant ou
+signale l'incohérence. Champs OCR toujours à vérifier ; champs texte seulement s'ils sont devinés ou
+incohérents.
+
+## attachments.py — Pièces des factures saisies
+
+Dossier `instance/uploads/<slug>/` (`instance_dir`). `stage(file)` : 10 Mo maximum, type reconnu à
+l'en-tête (PDF, JPEG, PNG), mise en attente dans `tmp/<jeton>` (+ `.json` : nom, type, taille) ;
+`staged(token)` (jeton hexadécimal de 32 caractères) ; `store(purchase, token)` : déplace vers
+`achats/AAAA/MM/<id>-<nom assaini>` et renseigne `attachment_*` (l'ancienne pièce est supprimée) ;
+`path_of(purchase)` : chemin vérifié dans le dossier de l'instance ; `purge_staging()` : attentes de
+plus de 24 h (appelé à chaque dépôt).
+
+## purchase_entry.py — Saisie d'une facture d'achat
+
+| Fonction | Rôle |
+|----------|------|
+| `read_staged(token)` | Lit la pièce en attente (`invoice_reader.read`, IBAN des comptes bancaires ignorés) |
+| `form_from_extraction(ext)` | `EntryForm(values, checks, rows, warnings, source)` : fournisseur reconnu (`find_supplier`) ou « à créer », lignes proposées (produit du fournisseur, une par taux) ; une remise après le total devient une ligne négative 6098 / 609 et le TTC devient le montant payé |
+| `validate_header(form)` | `(clean, errors)` : date et TTC > 0 obligatoires, SIRET à 14 chiffres, fournisseur existant ou nom à créer |
+| `duplicates(entity_id, number, issue_date, total, supplier_name, exclude_id)` | Même fournisseur et même n° (sans n° : même date et TTC) |
+| `create(clean, rows, token)` | Facture `source = manual`, `lines_edited`, `idempotency_key` ; fournisseur créé au besoin (homonyme repris, identifiants complétés) ; lignes saisies ou par défaut ; pièce rangée ; `post_ready` |
+| `update(p, clean, token)` | En-tête d'une facture saisie non comptabilisée ; pièce remplaçable si non envoyée à Qonto |
+
+---
+
 ## purchase_settlement.py — Règlements des factures d'achat
 
 | Fonction | Rôle |
 |----------|------|
-| `link_invoice(p)` | Aligne `purchase_payments` sur `matched_transactions[].transaction_id` (= `fitid` de la transaction Qonto) ; un lien réglé qui disparaît → `review_reason` |
+| `link_invoice(p)` | Aligne les liens `origin = qonto` de `purchase_payments` sur `matched_transactions[].transaction_id` (= `fitid` de la transaction Qonto) ; un lien réglé qui disparaît → `review_reason` ; liens hors Qonto intacts |
 | `link_transactions(txns)` | Résout les liens en attente pour des transactions nouvellement importées |
 | `linked_transaction_ids(ids)` | Transactions liées à une facture (exclues des règles) |
 | `settle(purchases, transactions)` | Pour chaque transaction liée à des factures comptabilisées, non rapprochée : écriture BQ 401NNN / banque + rapprochement, atomiques ; fournisseurs différents ou transaction annulée → erreur |

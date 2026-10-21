@@ -253,11 +253,16 @@ Les anciennes routes `POST /entries/new`, `POST /entries/<id>/edit`, `/entries/n
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/purchases/` | Liste ; filtres `q`, `state` (`to_complete`/`ready`/`posted`), `status` (statut Qonto), `entity_id`, `unpaid=1`, `no_supplier=1`, `hidden=1`, `month`, `sort`. Bandeaux : à compléter, à revoir, fournisseurs à valider, règlements à remplacer |
+| GET | `/purchases/` | Liste ; filtres `q`, `source` (`qonto` / `manual`), `state` (`to_complete`/`ready`/`posted`), `status` (statut Qonto), `entity_id`, `unpaid=1`, `no_supplier=1`, `hidden=1`, `month`, `sort`. Bandeaux : à compléter, à revoir, fournisseurs à valider, règlements à remplacer |
 | POST | `/purchases/sync` | Lance la synchronisation des factures Qonto en arrière-plan ; en HTMX, fragment de suivi |
 | GET | `/purchases/sync/<job_id>` | Fragment de suivi puis résumé |
 | POST | `/purchases/sync/settings` | **Admin.** `sync_from` ; reculer la date remet le curseur à zéro (relecture complète, sans doublon) |
-| GET | `/purchases/<id>` | Fiche : état et motifs, montants Qonto, règlements, lignes éditables, écriture |
+| GET | `/purchases/new` | Dépôt du fichier (« Lire la facture ») ; `?manual=1` : formulaire vide |
+| POST | `/purchases/new` | `step=read` + `invoice_file` : mise en attente, lecture, formulaire prérempli avec aperçu ; `step=save` + `token`, en-tête (`entity_id` id / `new` + `new_name`, `supplier_vat`, `supplier_siret`, `supplier_iban`, `invoice_number`, `issue_date`, `due_date`, `is_credit_note`, `untaxed`, `tax`, `total`) et lignes (champs répétés) : création ; doublon → réaffichage, `confirm_duplicate=1` pour passer outre |
+| GET | `/purchases/staged/<token>` | Pièce en attente (aperçu du formulaire) |
+| GET/POST | `/purchases/<id>/edit` | En-tête d'une facture saisie non comptabilisée ; `invoice_file` facultatif remplace la pièce |
+| GET | `/purchases/<id>/attachment` | Pièce de la facture (`inline` ; `?download=1` : téléchargement) |
+| GET | `/purchases/<id>` | Fiche : état et motifs, montants, pièce (aperçu), règlements, lignes éditables, écriture |
 | POST | `/purchases/<id>/lines` | Champs répétés `product_id[]`, `account_code[]`, `label[]`, `untaxed[]`, `vat_rate[]`, `vat[]` ; refusé si comptabilisée ; comptabilise si complète |
 | POST | `/purchases/<id>/post` | Comptabilise une facture prête |
 | POST | `/purchases/<id>/unpost` | Supprime l'écriture d'achat et réapplique les données Qonto |

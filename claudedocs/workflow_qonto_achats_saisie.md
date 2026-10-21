@@ -1,6 +1,6 @@
 # Workflow — Qonto, lot 2b : saisie de factures d'achat, pièce jointe et OCR
 
-> **Statut : en cours** — phases A et B réalisées (2026-10-22). Sources : [`besoins_qonto_achats_saisie.md`](besoins_qonto_achats_saisie.md)
+> **Statut : en cours** — phases A, B et C réalisées (2026-10-22). Sources : [`besoins_qonto_achats_saisie.md`](besoins_qonto_achats_saisie.md)
 > (QB1 à QB8), [`design_qonto_achats_saisie.md`](design_qonto_achats_saisie.md) (D1 à D13).
 
 ## 1. Objectif
@@ -87,6 +87,14 @@ XML avec DOCTYPE refusé.
 | C.5 | Tests services + vues | `tests/test_attachments.py`, `tests/test_purchase_entry.py`, `tests/test_purchases_views.py` |
 
 **✅ CP C** : US1, US2, US3 dans Chrome (copie Seconde Nature) : facture déposée, préremplie, comptabilisée, pièce consultable, doublon signalé.
+— *Réalisé* : 583 tests. Essai Chrome sur la copie **SCI** (factures réelles de la SCI ; serveur d'essai
+avec dossier d'instance isolé `scratchpad/sci/instance`) : ticket Brico Dépôt lu, fournisseur
+« Brico Dépôt » créé (SIRET, 401003), remise fidélité 3,20 € en ligne 6098, écriture AC
+628 171,16 / 6098 3,20 / 401003 167,96 ; facture Free lue, comptabilisée, pièce consultable ;
+seconde saisie de la même facture : Free reconnu par sa TVA, doublon signalé, formulaire et aperçu
+conservés. Écarts : remise après le total (décision utilisateur : en remise, 6098 / 609) ; éditeur de
+lignes extrait en macro (`_lines_editor.html`), partagé par la fiche et la saisie ; date de facture
+obligatoire à la saisie.
 
 ### Phase D — Règlement hors Qonto (S6, D10, D11)
 

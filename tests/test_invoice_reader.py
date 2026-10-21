@@ -74,6 +74,8 @@ def test_parse_till_receipt():
     assert (values["total"], values["untaxed"], values["tax"]) == (17116, 14263, 2853)
     assert values["issue_date"] == date(2026, 9, 29) and ext.fields["issue_date"].check
     assert "invoice_number" not in values  # le n° de carte de fidélité n'est pas un n° de facture
+    # Points fidélité déduits après le total (le paiement carte n'en est pas un).
+    assert values["discount"] == 76 and ext.fields["discount"].check
     assert ext.taxes == [(2000, 14263, 2853)]
 
 

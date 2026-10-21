@@ -1,8 +1,10 @@
-# Factures d'achat (Qonto)
+# Factures d'achat
 
 Les factures fournisseurs reçues dans **Qonto** (facture électronique, transfert par e-mail, dépôt)
 arrivent dans l'application, y sont **comptabilisées en engagement** et **réglées** à partir des
-paiements Qonto. Qonto reste maître des factures : l'application ne les modifie jamais côté Qonto.
+paiements Qonto. Qonto reste maître de ces factures : l'application ne les modifie jamais côté Qonto.
+Les autres factures se **saisissent** dans l'application à partir de leur fichier (voir
+[Saisir une facture](#saisir-une-facture)).
 
 Menu **Factures d'achat** (`/purchases/`). Prérequis : intégration Qonto configurée
 (Configuration › Intégrations › Qonto) et compte Qonto rattaché à un compte bancaire pour les
@@ -70,6 +72,29 @@ son SIRET, son IBAN ou son nom est **à compléter**. Le lien « N fournisseur(s
 **Rattacher** à un tiers existant (noms ou IBAN proches suggérés) ou **Ignorer**. Le choix vaut pour
 toutes ses factures et ses transactions bancaires de même nom ; les factures devenues complètes sont
 aussitôt comptabilisées et réglées.
+
+## Saisir une facture
+
+**+ Nouvelle facture** (page Factures d'achat) : déposez le fichier (PDF, JPEG ou PNG, 10 Mo maximum)
+puis **Lire la facture**. L'application lit, dans cet ordre, la facture électronique **Factur-X**
+jointe au PDF (valeurs exactes), le texte du PDF, ou l'image par **OCR** (scan, photo : quelques
+secondes, 3 premières pages). Le formulaire s'ouvre prérempli, la pièce affichée à côté ; les champs
+**à vérifier** (lus par OCR, devinés ou incohérents : HT + TVA ≠ TTC) sont encadrés. Rien n'est
+enregistré avant **Enregistrer la facture**. **Saisir sans fichier** ouvre un formulaire vide.
+
+- **Fournisseur** : reconnu par son n° de TVA, son SIRET, son IBAN ou son nom ; sinon « Créer un
+  fournisseur » est proposé avec le nom lu (modifiable). Les identifiants lus complètent la fiche.
+- **Lignes** : une par taux de TVA, avec le produit par défaut du fournisseur ; modifiables comme sur
+  la fiche. Le total des lignes doit égaler le TTC.
+- **Remise après le total** (points fidélité d'un ticket de caisse) : déduite du TTC, qui devient le
+  montant payé, et portée en ligne négative au compte de rabais obtenus (6098, à défaut 609).
+- **Doublon** : même fournisseur et même n° (ou, sans n°, même date et même TTC) → avertissement ;
+  cochez « Ce n'est pas un doublon » pour enregistrer quand même.
+
+La facture complète est comptabilisée aussitôt (journal AC). Tant qu'elle ne l'est pas, **Modifier
+l'en-tête** (fiche) permet de corriger fournisseur, n°, dates, montants et de remplacer la pièce. La
+pièce se consulte et se télécharge depuis la fiche ; elle est rangée dans le dossier de l'instance
+(`instance/uploads/<instance>/achats/AAAA/MM/`). Filtre **Origine** de la liste : Qonto ou saisies.
 
 ## Règlements
 

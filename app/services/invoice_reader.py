@@ -175,6 +175,8 @@ _VAT_FR = re.compile(r"\bFR(?:[ .]?[0-9A-HJ-NP-Z]){2}(?:[ .]?\d){9}\b")
 _IBAN = re.compile(r"\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]){11,30}\b")
 _CREDIT_NOTE = re.compile(r"^\s*(?:facture\s+d'|)avoir\b|\bavoir\s+n[°º]|note\s+de\s+cr[ée]dit|"
                           r"credit\s+note", re.IGNORECASE | re.MULTILINE)
+_DISCOUNT_WORDS = re.compile(r"fid[ée]lit|remise|r[ée]duction|bon d'achat|coupon|ristourne",
+                             re.IGNORECASE)
 _OCR_DIGIT_O = re.compile(r"(?<=\d)[Oo]|[Oo](?=\d)")
 
 
@@ -190,15 +192,27 @@ def _keyword_amount(lines, i, match) -> int | None:
     return None
 
 
-def _find_total(lines) -> int | None:
+def _find_total(lines) -> tuple[int | None, int | None]:
+    """(TTC, index de sa ligne)."""
     for pattern in _TOTAL_WORDS:
         for i, line in enumerate(lines):
             m = pattern.search(line)
             if m:
                 amount = _keyword_amount(lines, i, m)
                 if amount is not None and amount > 0:
-                    return amount
-    return None
+                    return amount, i
+    return None, None
+
+
+def _find_discount(lines, total_index) -> int:
+    """Remises déduites après le total d'un ticket (« Fidélité Pros -0,76 € »), en centimes."""
+    if total_index is None:
+        return 0
+    discount = 0
+    for line in lines[total_index + 1:]:
+        if _DISCOUNT_WORDS.search(line):
+            discount += sum(-a for a in amounts_in(line) if a < 0)
+    return discount
 
 
 def _find_keyword(lines, pattern) -> int | None:
@@ -334,7 +348,7 @@ def parse_text(text: str, origin: str = "text", ignore_ibans=()) -> Extraction:
         ext.set("is_credit_note", True, origin, check=True)
 
     ext.taxes = _find_taxes(lines)
-    total = _find_total(lines)
+    total, total_index = _find_total(lines)
     untaxed = _find_keyword(lines, _UNTAXED_WORDS)
     tax = _find_keyword(lines, _TAX_TOTAL_WORDS)
     if ext.taxes:
@@ -344,6 +358,9 @@ def parse_text(text: str, origin: str = "text", ignore_ibans=()) -> Extraction:
             if total is None or sum(bases) + tax == total:
                 untaxed = sum(bases)
     _complete_amounts(ext, total, untaxed, tax, origin)
+    discount = _find_discount(lines, total_index)
+    if discount and total and discount < total:
+        ext.set("discount", discount, origin, check=True)
     return ext
 
 

@@ -198,3 +198,121 @@ def test_moving_sync_from_back_resets_cursor(app):
     assert purchase_sync.cursor().synced_at is not None
     purchase_sync.set_sync_from(date(2026, 1, 1))  # reculer : relecture complète
     assert purchase_sync.cursor().synced_at is None
+
+
+# ------------------------------------------------------------------ saisie (lot 2b)
+
+import io  # noqa: E402
+
+import pytest  # noqa: E402
+
+from app.models import Account, FiscalYear, Journal  # noqa: E402
+from test_invoice_reader import FREE, _pdf  # noqa: E402
+
+
+@pytest.fixture()
+def entry_books(app, tmp_path, monkeypatch):
+    monkeypatch.setattr(app, "instance_path", str(tmp_path))
+    for code in ("401", "44566", "6068", "6061"):
+        db.session.add(Account(code=code, label=f"Compte {code}", account_type="EXPENSE"))
+    db.session.add_all([FiscalYear(label="2026", start_date=date(2026, 1, 1),
+                                   end_date=date(2026, 12, 31), vat_liable=True),
+                        Journal(code="AC", label="Achats")])
+    db.session.commit()
+    return tmp_path
+
+
+def _save_form(token, **overrides):
+    data = {"step": "save", "token": token, "source": "text", "entity_id": "new",
+            "new_name": "Free", "supplier_name": "Free", "supplier_vat": "FR60421938861",
+            "invoice_number": "1400000013", "issue_date": "2026-09-02", "due_date": "2026-09-04",
+            "total": "39,99", "untaxed": "33,33", "tax": "6,66",
+            "product_id[]": [""], "account_code[]": ["6061"], "label[]": ["Freebox"],
+            "untaxed[]": ["33,33"], "vat_rate[]": ["20"], "vat[]": ["6,66"]}
+    data.update(overrides)
+    return data
+
+
+def _read(client, tmp_path, body=None, name="free.pdf"):
+    if body is None:
+        body = _pdf(tmp_path / "src.pdf", FREE).read_bytes()
+    return client.post("/purchases/new", data={"step": "read", "invoice_file": (io.BytesIO(body), name)},
+                       content_type="multipart/form-data")
+
+
+def test_new_invoice_flow(entry_books, login_as):
+    client = login_as()
+    assert "Lire la facture" in client.get("/purchases/new").get_data(as_text=True)
+    assert "+ Nouvelle facture" in client.get("/purchases/").get_data(as_text=True)
+
+    page = _read(client, entry_books).get_data(as_text=True)
+    assert 'value="1400000013"' in page and 'value="39,99"' in page
+    assert "Valeurs lues dans le texte du PDF" in page and "<iframe" in page
+    token = page.split('name="token" value="')[1].split('"')[0]
+    assert client.get(f"/purchases/staged/{token}").data.startswith(b"%PDF")
+
+    response = client.post("/purchases/new", data=_save_form(token))
+    assert response.status_code == 302
+    p = Purchase.query.one()
+    assert p.source == "manual" and p.journal_entry is not None and p.entity.name == "Free"
+    detail = client.get(f"/purchases/{p.id}").get_data(as_text=True)
+    assert "free.pdf" in detail and "Saisie" in detail and "Aperçu de la pièce" in detail
+    pdf = client.get(f"/purchases/{p.id}/attachment")
+    assert pdf.mimetype == "application/pdf" and pdf.data.startswith(b"%PDF")
+    download = client.get(f"/purchases/{p.id}/attachment?download=1")
+    assert "attachment" in download.headers["Content-Disposition"]
+    assert "saisie" in client.get("/purchases/?source=manual").get_data(as_text=True)
+    assert "1400000013" not in client.get("/purchases/?source=qonto").get_data(as_text=True)
+
+
+def test_duplicate_needs_confirmation(entry_books, login_as):
+    client = login_as()
+    client.post("/purchases/new", data=_save_form(""))
+    page = client.post("/purchases/new", data=_save_form("")).get_data(as_text=True)
+    assert "Doublon possible" in page and Purchase.query.count() == 1
+    client.post("/purchases/new", data=_save_form("", confirm_duplicate="1"))
+    assert Purchase.query.count() == 2
+
+
+def test_new_invoice_errors_keep_form(entry_books, login_as):
+    client = login_as()
+    page = client.post("/purchases/new", data=_save_form("", total="", invoice_number="ABC-1"))
+    page = page.get_data(as_text=True)
+    assert "Le montant TTC est obligatoire." in page and 'value="ABC-1"' in page
+    page = client.post("/purchases/new", data=_save_form("", **{"account_code[]": ["999"]}))
+    assert "Compte « 999 » introuvable" in page.get_data(as_text=True)
+    assert Purchase.query.count() == 0
+
+
+def test_rejected_upload_and_manual_entry(entry_books, login_as):
+    client = login_as()
+    page = _read(client, entry_books, body=b"MZ exe", name="virus.pdf").get_data(as_text=True)
+    assert "Type de fichier non accepté" in page
+    page = client.get("/purchases/new?manual=1").get_data(as_text=True)
+    assert 'name="invoice_number"' in page and "<iframe" not in page
+
+
+def test_edit_header_and_replace_attachment(entry_books, login_as):
+    client = login_as()
+    client.post("/purchases/new", data=_save_form("", entity_id=""))
+    p = Purchase.query.one()
+    assert p.journal_entry is None
+    page = client.get(f"/purchases/{p.id}/edit").get_data(as_text=True)
+    assert 'value="1400000013"' in page and "Joindre la pièce" in page
+
+    data = _save_form("", invoice_number="F-9", step="save")
+    data["invoice_file"] = (io.BytesIO(b"\x89PNG\r\n\x1a\nxx"), "photo.png")
+    response = client.post(f"/purchases/{p.id}/edit", data=data, content_type="multipart/form-data")
+    assert response.status_code == 302
+    db.session.refresh(p)
+    assert p.invoice_number == "F-9" and p.attachment_mime == "image/png" and p.journal_entry
+    # Comptabilisée : plus modifiable ici.
+    assert client.get(f"/purchases/{p.id}/edit").status_code == 302
+
+
+def test_qonto_invoice_not_editable(entry_books, login_as):
+    client = login_as()
+    _purchases()
+    p = Purchase.query.filter_by(qonto_id="si-2").one()
+    assert client.get(f"/purchases/{p.id}/edit").status_code == 302
+    assert client.get(f"/purchases/{p.id}/attachment").status_code == 404

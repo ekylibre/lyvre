@@ -1,0 +1,295 @@
+"""Saisie d'une facture d'achat dans l'application (`source = 'manual'`).
+
+Parcours : le fichier déposé est mis en attente (`attachments.stage`) et lu
+(`invoice_reader`) ; `form_from_extraction` prérempli le formulaire (fournisseur
+reconnu, champs à vérifier, lignes proposées) ; à l'enregistrement,
+`validate_header` puis `create` créent la facture, rangent la pièce et la
+comptabilisent si elle est complète (cycle du lot 2a). Une remise déduite après
+le total d'un ticket (points fidélité) devient une ligne négative au compte de
+rabais obtenus (6098, à défaut 609) : le TTC de la facture est le montant payé.
+"""
+from __future__ import annotations
+
+import uuid
+from dataclasses import dataclass, field
+from datetime import date
+
+from app.extensions import db
+from app.models import Account, BankAccount, Entity, Purchase, PurchaseLine
+from app.services import attachments, catalog, invoice_reader, purchase_posting, purchase_sync
+from app.services.counterparties import name_key
+from app.services.ledger import LedgerError
+
+DISCOUNT_ACCOUNTS = ("6098", "609")
+DISCOUNT_LABEL = "Remise fidélité"
+# Champ de l'extraction → champ du formulaire.
+FORM_NAMES = {
+    "supplier_name": "supplier_name", "vat_number": "supplier_vat", "siret": "supplier_siret",
+    "iban": "supplier_iban", "invoice_number": "invoice_number", "issue_date": "issue_date",
+    "due_date": "due_date", "is_credit_note": "is_credit_note", "total": "total",
+    "untaxed": "untaxed", "tax": "tax",
+}
+
+
+def fmt_cents(cents) -> str:
+    return "" if cents is None else f"{cents / 100:.2f}".replace(".", ",")
+
+
+@dataclass
+class EntryForm:
+    """Valeurs du formulaire (chaînes), champs à vérifier, lignes proposées."""
+    values: dict = field(default_factory=dict)
+    checks: set = field(default_factory=set)
+    rows: list = field(default_factory=list)
+    warnings: list = field(default_factory=list)
+    source: str = "none"
+
+
+# ------------------------------------------------------------------ lecture → formulaire
+
+def own_ibans() -> set[str]:
+    return {purchase_sync.normalize_iban(b.iban) for b in BankAccount.query if b.iban}
+
+
+def read_staged(token: str) -> invoice_reader.Extraction:
+    path, meta = attachments.staged(token)
+    return invoice_reader.read(path, meta["mime"], ignore_ibans=own_ibans())
+
+
+def discount_account() -> Account | None:
+    for code in DISCOUNT_ACCOUNTS:
+        account = Account.query.filter_by(code=code, is_header=False).first()
+        if account is not None:
+            return account
+    return None
+
+
+def line_rows(lines) -> list[dict]:
+    """Lignes (`PurchaseLine`) → lignes du formulaire."""
+    return [{
+        "product_id": str(line.product_id or ""),
+        "account_code": line.account.code if line.account else
+        (db.session.get(Account, line.account_id).code if line.account_id else ""),
+        "label": line.label or "",
+        "untaxed": fmt_cents(line.untaxed_cents),
+        "vat_rate": catalog.format_rate(line.vat_rate_bp).replace(" %", "")
+        if line.vat_rate_bp is not None else "",
+        "vat": fmt_cents(line.vat_cents),
+    } for line in lines]
+
+
+def proposed_lines(entity, total, untaxed, taxes, discount=0) -> list[PurchaseLine]:
+    """Lignes par défaut (produit du fournisseur, une par taux) et ligne de remise."""
+    draft = Purchase(total_cents=total, untaxed_cents=untaxed)
+    breakdown = sorted(((rate, vat) for rate, _, vat in taxes), key=lambda row: row[0] == 0)
+    lines = purchase_sync.default_lines(draft, catalog.product_for(entity), breakdown)
+    if discount:
+        account = discount_account()
+        lines.append(PurchaseLine(position=len(lines), account_id=account.id if account else None,
+                                  label=DISCOUNT_LABEL, untaxed_cents=-discount, vat_rate_bp=0,
+                                  vat_cents=0, total_cents=-discount))
+    return lines
+
+
+def form_from_extraction(ext: invoice_reader.Extraction) -> EntryForm:
+    form = EntryForm(source=ext.source, warnings=list(ext.warnings))
+    for name, form_name in FORM_NAMES.items():
+        f = ext.fields.get(name)
+        if f is None:
+            continue
+        value = f.value
+        if isinstance(value, date):
+            value = value.isoformat()
+        elif name in ("total", "untaxed", "tax"):
+            value = fmt_cents(value)
+        form.values[form_name] = value
+        if f.check:
+            form.checks.add(form_name)
+
+    entity = purchase_sync.find_supplier(None, ext.value("vat_number"), ext.value("siret"),
+                                         ext.value("iban"), ext.value("supplier_name"))
+    if entity is not None:
+        form.values["entity_id"] = str(entity.id)
+    elif ext.value("supplier_name"):
+        form.values["entity_id"] = "new"
+        form.values["new_name"] = ext.value("supplier_name")
+
+    total, untaxed = ext.value("total"), ext.value("untaxed")
+    discount = ext.value("discount") or 0
+    if total:
+        lines = proposed_lines(entity, total, untaxed, ext.taxes, discount)
+        form.rows = line_rows(lines)
+        if discount:
+            form.values["total"] = fmt_cents(total - discount)
+            if untaxed is not None:
+                form.values["untaxed"] = fmt_cents(untaxed - discount)
+            form.checks.update({"total", "untaxed"})
+            form.warnings.append(f"Remise de {fmt_cents(discount)} € déduite après le total : "
+                                 "ligne de rabais obtenu ajoutée, TTC = montant payé.")
+    return form
+
+
+# ------------------------------------------------------------------ validation
+
+def _date(value, label, errors) -> date | None:
+    if not (value or "").strip():
+        return None
+    try:
+        return date.fromisoformat(value.strip())
+    except ValueError:
+        errors.append(f"{label} invalide.")
+        return None
+
+
+def _cents(value, label, errors) -> int | None:
+    try:
+        return purchase_posting.parse_cents(value)
+    except LedgerError:
+        errors.append(f"{label} invalide : « {value} ».")
+        return None
+
+
+def validate_header(form) -> tuple[dict, list[str]]:
+    """Champs d'en-tête nettoyés et erreurs. `entity_id` : id, « new » (créer) ou vide."""
+    errors = []
+    clean = {
+        "supplier_name": (form.get("supplier_name") or "").strip()[:200] or None,
+        "supplier_vat": purchase_sync.normalize_vat(form.get("supplier_vat")),
+        "supplier_siret": purchase_sync.normalize_siret(form.get("supplier_siret")),
+        "supplier_iban": purchase_sync.normalize_iban(form.get("supplier_iban")),
+        "invoice_number": (form.get("invoice_number") or "").strip()[:100] or None,
+        "issue_date": _date(form.get("issue_date"), "Date de facture", errors),
+        "due_date": _date(form.get("due_date"), "Échéance", errors),
+        "is_credit_note": bool(form.get("is_credit_note")),
+        "total_cents": _cents(form.get("total"), "TTC", errors),
+        "untaxed_cents": _cents(form.get("untaxed"), "HT", errors),
+        "tax_cents": _cents(form.get("tax"), "TVA", errors),
+    }
+    if (form.get("supplier_siret") or "").strip() and clean["supplier_siret"] is None:
+        errors.append("Le SIRET doit comporter 14 chiffres.")
+    if clean["issue_date"] is None and not any("Date de facture" in e for e in errors):
+        errors.append("La date de facture est obligatoire.")
+    if clean["total_cents"] is not None and clean["total_cents"] <= 0:
+        errors.append("Le TTC doit être positif (cochez « Avoir » pour un avoir).")
+    elif clean["total_cents"] is None and not any(e.startswith("TTC") for e in errors):
+        errors.append("Le montant TTC est obligatoire.")
+
+    choice = (form.get("entity_id") or "").strip()
+    clean["entity"], clean["new_name"] = None, None
+    if choice == "new":
+        clean["new_name"] = (form.get("new_name") or "").strip()[:200] or None
+        if clean["new_name"] is None:
+            errors.append("Indiquez le nom du fournisseur à créer.")
+    elif choice:
+        clean["entity"] = db.session.get(Entity, int(choice)) if choice.isdigit() else None
+        if clean["entity"] is None:
+            errors.append("Fournisseur introuvable.")
+    return clean, errors
+
+
+def duplicates(entity_id, number, issue_date, total, supplier_name=None, exclude_id=None):
+    """Factures déjà saisies ou reçues : même fournisseur et même n°, sinon même date et TTC."""
+    query = Purchase.query.filter(Purchase.is_hidden.is_(False))
+    if exclude_id is not None:
+        query = query.filter(Purchase.id != exclude_id)
+    if entity_id is not None:
+        query = query.filter(Purchase.entity_id == entity_id)
+    elif supplier_name:
+        key = name_key(supplier_name)
+        candidates = [p for p in query.filter(Purchase.entity_id.is_(None))
+                      if name_key(p.supplier_name) == key]
+        return [p for p in candidates if _same(p, number, issue_date, total)]
+    else:
+        return []
+    return [p for p in query.all() if _same(p, number, issue_date, total)]
+
+
+def _same(p: Purchase, number, issue_date, total) -> bool:
+    if number:
+        return (p.invoice_number or "").strip().casefold() == number.strip().casefold()
+    return p.issue_date == issue_date and p.total_cents == total
+
+
+# ------------------------------------------------------------------ enregistrement
+
+def chosen_supplier(clean) -> Entity | None:
+    """Fournisseur choisi, ou homonyme existant du fournisseur à créer (sans rien créer)."""
+    if clean["entity"] is not None or not clean["new_name"]:
+        return clean["entity"]
+    key = name_key(clean["new_name"])
+    return next((e for e in Entity.query.order_by(Entity.id) if name_key(e.name) == key), None)
+
+
+def _supplier(clean) -> Entity | None:
+    """Fournisseur choisi, ou créé (un homonyme existant est repris) ; identifiants complétés."""
+    entity = chosen_supplier(clean)
+    if entity is None and clean["new_name"]:
+        entity = Entity(name=clean["new_name"], entity_type="FOURNISSEUR")
+        db.session.add(entity)
+    if entity is not None:
+        entity.vat_number = entity.vat_number or clean["supplier_vat"]
+        entity.siret = entity.siret or clean["supplier_siret"]
+        entity.iban = entity.iban or clean["supplier_iban"]
+    return entity
+
+
+HEADER_FIELDS = ("supplier_vat", "supplier_siret", "supplier_iban", "invoice_number", "issue_date",
+                 "due_date", "is_credit_note", "total_cents", "untaxed_cents", "tax_cents")
+
+
+def _apply(p: Purchase, clean) -> None:
+    for name in HEADER_FIELDS:
+        setattr(p, name, clean[name])
+    entity = _supplier(clean)
+    p.entity = entity
+    p.supplier_name = clean["supplier_name"] or (entity.name if entity else None)
+
+
+def _lines(p: Purchase, rows) -> list[PurchaseLine]:
+    lines = purchase_posting.build_lines(rows or [])
+    if lines:
+        return lines
+    return purchase_sync.default_lines(p, catalog.product_for(p.entity), [])
+
+
+def create(clean, rows, token=None) -> tuple[Purchase, dict]:
+    """Crée la facture, range la pièce, comptabilise si elle est prête. LedgerError sur les lignes."""
+    p = Purchase(source="manual", lines_edited=True, currency="EUR",
+                 idempotency_key=str(uuid.uuid4()))
+    db.session.add(p)
+    with db.session.no_autoflush:
+        _apply(p, clean)
+        p.lines = _lines(p, rows)
+    db.session.flush()
+    if token:
+        attachments.store(p, token)
+    db.session.commit()
+    return p, purchase_posting.post_ready([p])
+
+
+def update(p: Purchase, clean, token=None) -> dict:
+    """Modifie l'en-tête d'une facture saisie non comptabilisée (pièce remplaçable si non envoyée)."""
+    if p.source != "manual":
+        raise LedgerError("Seule une facture saisie dans l'application se modifie ici.")
+    if p.journal_entry_id is not None:
+        raise LedgerError("Facture comptabilisée : annulez la comptabilisation pour la modifier.")
+    if token and p.qonto_upload_status == "sent":
+        raise LedgerError("Pièce déjà envoyée à Qonto : elle ne peut plus être remplacée.")
+    _apply(p, clean)
+    if token:
+        attachments.store(p, token)
+    db.session.commit()
+    return purchase_posting.post_ready([p])
+
+
+def header_values(p: Purchase) -> dict:
+    """Valeurs du formulaire d'en-tête pour une facture existante."""
+    return {
+        "entity_id": str(p.entity_id or ""), "supplier_name": p.supplier_name or "",
+        "supplier_vat": p.supplier_vat or "", "supplier_siret": p.supplier_siret or "",
+        "supplier_iban": p.supplier_iban or "", "invoice_number": p.invoice_number or "",
+        "issue_date": p.issue_date.isoformat() if p.issue_date else "",
+        "due_date": p.due_date.isoformat() if p.due_date else "",
+        "is_credit_note": p.is_credit_note, "total": fmt_cents(p.total_cents),
+        "untaxed": fmt_cents(p.untaxed_cents), "tax": fmt_cents(p.tax_cents),
+    }

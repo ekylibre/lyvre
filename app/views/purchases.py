@@ -1,6 +1,8 @@
 from datetime import date
 
-from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, url_for,
+)
 from flask_login import login_required
 from markupsafe import escape
 
@@ -8,10 +10,13 @@ from app.decorators import admin_required
 from app.extensions import db
 from app.frontend import is_htmx
 from app.models import Account, Entity, Purchase, SyncJob
+from app.models.purchase import PURCHASE_SOURCES
 from app.models.sync_job import SYNC_KIND_QONTO_INVOICES
 from app.services import (
-    catalog, counterparties, external_config, purchase_posting, purchase_settlement, purchase_sync,
+    attachments, catalog, counterparties, external_config, purchase_entry, purchase_posting,
+    purchase_settlement, purchase_sync,
 )
+from app.services.attachments import AttachmentError
 from app.services.ledger import LedgerError
 from app.services.purchase_posting import STATE_LABELS, purchase_state
 from app.services.purchase_sync import STATUS_LABELS
@@ -26,6 +31,7 @@ bp = Blueprint("purchases", __name__, url_prefix="/purchases")
 @login_required
 def index():
     q = (request.args.get("q") or "").strip()
+    source = (request.args.get("source") or "").strip()
     status = (request.args.get("status") or "").strip()
     state = (request.args.get("state") or "").strip()
     entity_id = request.args.get("entity_id", type=int)
@@ -38,6 +44,8 @@ def index():
     query = Purchase.query
     if not show_hidden:
         query = query.filter(Purchase.is_hidden.is_(False))
+    if source in PURCHASE_SOURCES:
+        query = query.filter(Purchase.source == source)
     if status:
         query = query.filter(Purchase.qonto_status == status)
     if entity_id:
@@ -67,7 +75,7 @@ def index():
         to_review=Purchase.query.filter(Purchase.review_reason.isnot(None)).count(),
         to_replace=sum(r.replaceable for r in purchase_settlement.to_replace()),
         supplier_proposals=counterparties.count_invoice_proposals(),
-        q=q, status=status, entity_id=entity_id, unpaid=unpaid, no_supplier=no_supplier,
+        q=q, source=source, status=status, entity_id=entity_id, unpaid=unpaid, no_supplier=no_supplier,
         show_hidden=show_hidden,
         hidden_count=Purchase.query.filter(Purchase.is_hidden.is_(True)).count(),
         without_supplier=Purchase.query.filter(Purchase.entity_id.is_(None),
@@ -124,6 +132,11 @@ def _rows(form):
     return [dict(zip(keys, values)) for values in zip(*columns)]
 
 
+def _charge_accounts():
+    return (Account.query.filter(Account.code.like("6%"), Account.is_header.is_(False))
+            .order_by(Account.code).all())
+
+
 @bp.route("/<int:purchase_id>")
 @login_required
 def detail(purchase_id):
@@ -132,9 +145,140 @@ def detail(purchase_id):
     return render_template(
         "purchases/detail.html", purchase=purchase, state=purchase_state(purchase),
         fiscal_year=fy, status_labels=STATUS_LABELS, products=catalog.purchase_products(),
-        charge_accounts=(Account.query.filter(Account.code.like("6%"), Account.is_header.is_(False))
-                         .order_by(Account.code).all()),
+        charge_accounts=_charge_accounts(), rows=purchase_entry.line_rows(purchase.lines),
     )
+
+
+# ------------------------------------------------------------------ saisie
+
+def _render_entry(form=None, purchase=None, token=None, errors=(), duplicates=(), preview=None):
+    preview_url = preview_mime = None
+    if token:
+        preview_url = url_for("purchases.staged", token=token)
+        preview_mime = preview
+    elif purchase is not None and purchase.attachment_path:
+        preview_url = url_for("purchases.attachment", purchase_id=purchase.id)
+        preview_mime = purchase.attachment_mime
+    return render_template(
+        "purchases/new.html", form=form, purchase=purchase, token=token, errors=list(errors),
+        duplicates=list(duplicates), preview_url=preview_url, preview_mime=preview_mime,
+        entities=Entity.query.order_by(Entity.name).all(), products=catalog.purchase_products(),
+        charge_accounts=_charge_accounts(),
+    )
+
+
+def _posted_message(p, outcome, verb):
+    kind = "Avoir" if p.is_credit_note else "Facture"
+    if outcome["posted"]:
+        flash(f"{kind} {verb} et comptabilisé{'' if p.is_credit_note else 'e'}.", "success")
+    else:
+        flash(f"{kind} {verb}.", "success")
+    for error in outcome["errors"]:
+        flash(error, "danger")
+
+
+def _check_duplicates(clean, exclude_id=None):
+    if request.form.get("confirm_duplicate"):
+        return []
+    entity = purchase_entry.chosen_supplier(clean)
+    return purchase_entry.duplicates(
+        entity.id if entity else None, clean["invoice_number"], clean["issue_date"],
+        clean["total_cents"], supplier_name=clean["new_name"] or clean["supplier_name"],
+        exclude_id=exclude_id)
+
+
+@bp.route("/new", methods=["GET", "POST"])
+@login_required
+def new():
+    if request.method == "GET":
+        return _render_entry(purchase_entry.EntryForm() if request.args.get("manual") else None)
+
+    if request.form.get("step") == "read":
+        try:
+            token = attachments.stage(request.files.get("invoice_file"))
+        except AttachmentError as exc:
+            flash(str(exc), "danger")
+            return _render_entry()
+        _, meta = attachments.staged(token)
+        form = purchase_entry.form_from_extraction(purchase_entry.read_staged(token))
+        db.session.commit()  # produit « Achats divers » créé au besoin pour les lignes proposées
+        return _render_entry(form, token=token, preview=meta["mime"])
+
+    token = request.form.get("token") or None
+    form = purchase_entry.EntryForm(values=request.form.to_dict(), rows=_rows(request.form),
+                                    source=request.form.get("source", "none"))
+    clean, errors = purchase_entry.validate_header(request.form)
+    preview = None
+    if token:
+        try:
+            preview = attachments.staged(token)[1]["mime"]
+        except AttachmentError as exc:
+            errors.append(str(exc))
+            token = None
+    dups = [] if errors else _check_duplicates(clean)
+    if errors or dups:
+        return _render_entry(form, token=token, errors=errors, duplicates=dups, preview=preview)
+    try:
+        purchase, outcome = purchase_entry.create(clean, _rows(request.form), token)
+    except (LedgerError, AttachmentError) as exc:
+        db.session.rollback()
+        return _render_entry(form, token=token, errors=[str(exc)], preview=preview)
+    _posted_message(purchase, outcome, "enregistré" if purchase.is_credit_note else "enregistrée")
+    return redirect(url_for("purchases.detail", purchase_id=purchase.id))
+
+
+@bp.route("/<int:purchase_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit(purchase_id):
+    purchase = Purchase.query.get_or_404(purchase_id)
+    if purchase.source != "manual" or purchase.journal_entry_id is not None:
+        flash("Seule une facture saisie et non comptabilisée se modifie.", "warning")
+        return redirect(url_for("purchases.detail", purchase_id=purchase.id))
+    if request.method == "GET":
+        form = purchase_entry.EntryForm(values=purchase_entry.header_values(purchase))
+        return _render_entry(form, purchase=purchase)
+
+    form = purchase_entry.EntryForm(values=request.form.to_dict())
+    clean, errors = purchase_entry.validate_header(request.form)
+    token = None
+    upload = request.files.get("invoice_file")
+    if upload is not None and upload.filename and not errors:
+        try:
+            token = attachments.stage(upload)
+        except AttachmentError as exc:
+            errors.append(str(exc))
+    dups = [] if errors else _check_duplicates(clean, exclude_id=purchase.id)
+    if errors or dups:
+        return _render_entry(form, purchase=purchase, errors=errors, duplicates=dups)
+    try:
+        outcome = purchase_entry.update(purchase, clean, token)
+    except (LedgerError, AttachmentError) as exc:
+        db.session.rollback()
+        return _render_entry(form, purchase=purchase, errors=[str(exc)])
+    _posted_message(purchase, outcome, "modifié" if purchase.is_credit_note else "modifiée")
+    return redirect(url_for("purchases.detail", purchase_id=purchase.id))
+
+
+@bp.route("/<int:purchase_id>/attachment")
+@login_required
+def attachment(purchase_id):
+    purchase = Purchase.query.get_or_404(purchase_id)
+    path = attachments.path_of(purchase)
+    if path is None:
+        abort(404)
+    return send_file(path, mimetype=purchase.attachment_mime,
+                     as_attachment=bool(request.args.get("download")),
+                     download_name=purchase.attachment_name or path.name)
+
+
+@bp.route("/staged/<token>")
+@login_required
+def staged(token):
+    try:
+        path, meta = attachments.staged(token)
+    except AttachmentError:
+        abort(404)
+    return send_file(path, mimetype=meta["mime"], download_name=meta["name"])
 
 
 @bp.route("/<int:purchase_id>/lines", methods=["POST"])
