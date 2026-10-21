@@ -16,6 +16,12 @@
     <label class="form-label">Date de fin</label>
     <input type="date" name="end_date" class="form-control" required>
   </div>
+  <div class="mb-3 form-check">
+    <input type="checkbox" name="vat_liable" id="vat_liable" class="form-check-input" value="1">
+    <label for="vat_liable" class="form-check-label">Soumis à la TVA</label>
+    <div class="form-text">Soumis : la TVA des factures d'achat va en 44566 (déductible).
+      Non soumis : elle est incluse dans la charge.</div>
+  </div>
   <button type="submit" class="btn btn-primary">Créer</button>
   <a href="{{ url_for('fiscal_years.index') }}" class="btn btn-outline-secondary ms-2">Annuler</a>
 </form>

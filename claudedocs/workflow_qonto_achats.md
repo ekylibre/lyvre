@@ -57,11 +57,11 @@ flowchart TD
 | Étape | Tâche | Fichiers |
 |-------|-------|----------|
 | B.1 | `catalog.py` : `parse_rate_bp`, `format_rate`, `default_purchase_product` (6068 › 628 › 606), `product_for(entity)` | `app/services/catalog.py` |
-| B.2 | Blueprint `products` (Paramètres › Catalogue) : liste, création, modification, archivage ; suppression refusée si utilisé ; comptes filtrés 6xx / 7xx selon le sens | `app/views/products.py`, `app/templates/products/*`, `base.html` |
+| B.2 | Blueprint `products` (menu Compta › Catalogue) : liste, création, modification, archivage ; suppression refusée si utilisé ; comptes filtrés 6xx / 7xx selon le sens | `app/views/products.py`, `app/templates/products/*`, `base.html` |
 | B.3 | Fiche entité : produit par défaut, TVA, IBAN ; exercice : case « Soumis à la TVA » + aide | `app/views/{entities,fiscal_years}.py`, `app/templates/{entities,fiscal_years}/form.html` |
 | B.4 | Tests | `tests/test_catalog.py`, `tests/test_products_views.py` |
 
-**✅ CP B** : US1 dans Chrome.
+**✅ CP B** (fait) : US1 dans Chrome (copie SCI, port 5001).
 
 ### Phase C — Synchronisation des factures (A2, A3, A4.1, A4.3)
 

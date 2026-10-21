@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "_list_helpers.html" import hx_submit %}
+{% block title %}Catalogue — Compta Asso{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-0">Catalogue produits et services</h2>
+    <small class="text-muted">Comptes et taux de TVA proposés sur les lignes de facture.</small>
+  </div>
+  <div class="d-flex gap-2">
+    {% if show_archived %}
+    <a href="{{ url_for('products.index') }}" class="btn btn-outline-secondary btn-sm">Masquer les archivés</a>
+    {% else %}
+    <a href="{{ url_for('products.index', archived=1) }}" class="btn btn-outline-secondary btn-sm">Afficher les archivés</a>
+    {% endif %}
+    <a href="{{ url_for('products.new') }}" class="btn btn-primary btn-sm">+ Nouveau produit</a>
+  </div>
+</div>
+
+{% if products %}
+<table class="table table-sm table-hover align-middle">
+  <thead class="table-light">
+    <tr>
+      <th>Libellé</th><th>Référence</th><th>Sens</th><th>Compte d'achat</th>
+      <th>Compte de vente</th><th class="text-end">TVA</th><th class="text-end">Utilisations</th>
+      <th class="text-end">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in products %}
+    <tr class="{{ 'text-muted' if not p.active else '' }}">
+      <td>{{ p.name }}{% if not p.active %} <span class="badge bg-secondary">Archivé</span>{% endif %}</td>
+      <td class="font-monospace small">{{ p.reference or '—' }}</td>
+      <td>{{ kinds[p.kind] }}</td>
+      <td>{% if p.purchase_account %}<code>{{ p.purchase_account.code }}</code> <small class="text-muted">{{ p.purchase_account.label }}</small>{% else %}—{% endif %}</td>
+      <td>{% if p.sale_account %}<code>{{ p.sale_account.code }}</code> <small class="text-muted">{{ p.sale_account.label }}</small>{% else %}—{% endif %}</td>
+      <td class="text-end">{{ p.vat_rate_bp | rate or '—' }}</td>
+      <td class="text-end">{{ usages[p.id] }}</td>
+      <td class="text-end text-nowrap">
+        <a href="{{ url_for('products.edit', product_id=p.id) }}" class="btn btn-outline-secondary btn-sm">Modifier</a>
+        <form method="post" action="{{ url_for('products.archive', product_id=p.id) }}" class="d-inline" {{ hx_submit() }}>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline-warning btn-sm">{{ 'Archiver' if p.active else 'Réactiver' }}</button>
+        </form>
+        {% if not usages[p.id] %}
+        <form method="post" action="{{ url_for('products.delete', product_id=p.id) }}" class="d-inline"
+              {{ hx_submit(confirm='Supprimer ce produit ?') }}>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline-danger btn-sm">Supprimer</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="alert alert-light border">
+  Aucun produit. Le produit « Achats divers » est créé automatiquement à l'arrivée de la première
+  facture d'achat ; créez vos produits (électricité, assurance, fournitures…) pour orienter chaque
+  dépense vers le bon compte.
+</div>
+{% endif %}
+{% endblock %}

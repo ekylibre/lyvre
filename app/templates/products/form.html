@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% from "_list_helpers.html" import hx_submit %}
+{% block title %}{{ "Modifier" if product else "Nouveau" }} produit{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>{{ "Modifier le produit" if product else "Nouveau produit" }}</h2>
+  <a href="{{ url_for('products.index') }}" class="btn btn-outline-secondary btn-sm">← Retour</a>
+</div>
+
+<div class="row">
+  <div class="col-md-6">
+    <form method="post" {{ hx_submit() }}>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold" for="name">Libellé <span class="text-danger">*</span></label>
+        <input type="text" id="name" name="name" class="form-control" required maxlength="200"
+               value="{{ form.name or '' }}" placeholder="ex : Électricité">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold" for="reference">Référence</label>
+        <input type="text" id="reference" name="reference" class="form-control font-monospace"
+               maxlength="50" value="{{ form.reference or '' }}">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold" for="kind">Sens</label>
+        <select id="kind" name="kind" class="form-select">
+          {% for value, label in kinds %}
+          <option value="{{ value }}" {{ 'selected' if form.kind == value else '' }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold" for="purchase_account_code">Compte d'achat</label>
+        <input type="text" id="purchase_account_code" name="purchase_account_code"
+               class="form-control font-monospace" list="purchase-accounts"
+               value="{{ form.purchase_account_code or '' }}" placeholder="ex : 6061">
+        <datalist id="purchase-accounts">
+          {% for a in purchase_accounts %}<option value="{{ a.code }}">{{ a.label }}</option>{% endfor %}
+        </datalist>
+        <div class="form-text">Compte de charge (6…), requis pour un produit d'achat.</div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold" for="sale_account_code">Compte de vente</label>
+        <input type="text" id="sale_account_code" name="sale_account_code"
+               class="form-control font-monospace" list="sale-accounts"
+               value="{{ form.sale_account_code or '' }}" placeholder="ex : 706">
+        <datalist id="sale-accounts">
+          {% for a in sale_accounts %}<option value="{{ a.code }}">{{ a.label }}</option>{% endfor %}
+        </datalist>
+        <div class="form-text">Compte de produit (7…), requis pour un produit de vente.</div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold" for="vat_rate">Taux de TVA par défaut (%)</label>
+        <input type="text" id="vat_rate" name="vat_rate" class="form-control" inputmode="decimal"
+               value="{{ form.vat_rate or '' }}" placeholder="ex : 20 ou 5,5">
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">{{ "Enregistrer" if product else "Créer" }}</button>
+        <a href="{{ url_for('products.index') }}" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

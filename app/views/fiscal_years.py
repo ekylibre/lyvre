@@ -22,6 +22,7 @@ def new():
             label=request.form["label"].strip(),
             start_date=date.fromisoformat(request.form["start_date"]),
             end_date=date.fromisoformat(request.form["end_date"]),
+            vat_liable=bool(request.form.get("vat_liable")),
         )
         db.session.add(fy)
         db.session.commit()
@@ -40,4 +41,19 @@ def close(fy_id):
         fy.closed = True
         db.session.commit()
         flash(f"Exercice « {fy.label} » clôturé.", "success")
+    return redirect(url_for("fiscal_years.index"))
+
+
+@bp.route("/<int:fy_id>/vat", methods=["POST"])
+@login_required
+def vat(fy_id):
+    fy = FiscalYear.query.get_or_404(fy_id)
+    if fy.closed:
+        flash("Cet exercice est clôturé.", "warning")
+    else:
+        fy.vat_liable = request.form.get("vat_liable") == "1"
+        db.session.commit()
+        state = "soumis" if fy.vat_liable else "non soumis"
+        flash(f"Exercice « {fy.label} » {state} à la TVA. "
+              "S'applique aux factures comptabilisées à partir de maintenant.", "success")
     return redirect(url_for("fiscal_years.index"))

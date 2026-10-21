@@ -38,6 +38,35 @@
         <div class="form-text">Compte du plan comptable associé (facultatif).</div>
       </div>
 
+      <fieldset class="border rounded p-3 mb-3">
+        <legend class="fs-6 fw-semibold w-auto px-1 mb-0">Fournisseur</legend>
+        <div class="mb-3">
+          <label class="form-label" for="default_product_id">Produit par défaut</label>
+          <select id="default_product_id" name="default_product_id" class="form-select">
+            <option value="">— Achats divers —</option>
+            {% for p in purchase_products %}
+            <option value="{{ p.id }}" {{ 'selected' if entity and entity.default_product_id == p.id else '' }}>
+              {{ p.name }}{% if p.purchase_account %} ({{ p.purchase_account.code }}){% endif %}
+            </option>
+            {% endfor %}
+          </select>
+          <div class="form-text">Proposé sur les lignes de ses factures d'achat (compte de charge, TVA).</div>
+        </div>
+        <div class="row g-2">
+          <div class="col-md-5">
+            <label class="form-label" for="vat_number">N° de TVA</label>
+            <input type="text" id="vat_number" name="vat_number" class="form-control font-monospace"
+                   maxlength="30" value="{{ entity.vat_number if entity and entity.vat_number else '' }}">
+          </div>
+          <div class="col-md-7">
+            <label class="form-label" for="iban">IBAN</label>
+            <input type="text" id="iban" name="iban" class="form-control font-monospace"
+                   maxlength="42" value="{{ entity.iban if entity and entity.iban else '' }}">
+          </div>
+        </div>
+        <div class="form-text">Servent à reconnaître le fournisseur sur les factures Qonto.</div>
+      </fieldset>
+
       <div class="mb-3">
         <label class="form-label fw-semibold">Email</label>
         <input type="email" name="email" class="form-control"

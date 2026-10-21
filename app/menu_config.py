@@ -61,7 +61,7 @@ MENUS = [
         "key": "compta",
         "label": "Compta",
         "charts": _ALL,
-        "active": ["accounts", "journals", "fiscal_years", "entries", "reports"],
+        "active": ["accounts", "journals", "fiscal_years", "products", "entries", "reports"],
         "items": [
             {"key": "entries", "label": "Écritures", "endpoint": "entries.index", "charts": _ALL},
             {"divider": True, "charts": _ALL},
@@ -73,6 +73,7 @@ MENUS = [
             {"key": "accounts", "label": "Plan comptable", "endpoint": "accounts.index", "charts": _ALL},
             {"key": "journals", "label": "Journaux", "endpoint": "journals.index", "charts": _ALL},
             {"key": "fiscal_years", "label": "Exercices", "endpoint": "fiscal_years.index", "charts": _ALL},
+            {"key": "products", "label": "Catalogue", "endpoint": "products.index", "charts": _ALL},
         ],
     },
     # --------------------------------------------------------------------- Banque

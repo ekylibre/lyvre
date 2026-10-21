@@ -7,7 +7,7 @@
 </div>
 <table class="table table-sm table-hover">
   <thead class="table-light">
-    <tr><th>Libellé</th><th>Début</th><th>Fin</th><th>Statut</th><th></th></tr>
+    <tr><th>Libellé</th><th>Début</th><th>Fin</th><th>Statut</th><th>TVA</th><th></th></tr>
   </thead>
   <tbody>
     {% for fy in fiscal_years %}
@@ -20,6 +20,23 @@
           <span class="badge bg-secondary">Clôturé</span>
         {% else %}
           <span class="badge bg-success">Ouvert</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if fy.vat_liable %}
+          <span class="badge bg-info text-dark">Soumis</span>
+        {% else %}
+          <span class="badge bg-light text-dark border">Non soumis</span>
+        {% endif %}
+        {% if not fy.closed %}
+        <form method="post" action="{{ url_for('fiscal_years.vat', fy_id=fy.id) }}" class="d-inline ms-1"
+              title="S'applique aux factures comptabilisées à partir de maintenant">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="vat_liable" value="{{ '0' if fy.vat_liable else '1' }}">
+          <button type="submit" class="btn btn-link btn-sm p-0 align-baseline">
+            {{ 'Déclarer non soumis' if fy.vat_liable else 'Déclarer soumis' }}
+          </button>
+        </form>
         {% endif %}
       </td>
       <td>

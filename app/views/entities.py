@@ -7,7 +7,7 @@ from app.extensions import db
 from app.models import (
     Entity, HelloAssoOrder, HelloAssoItem, HelloAssoPayment,
     Order, OrderLine, OrderPayment,
-    CustomerInvoice, EmailTemplate, WorkTime,
+    CustomerInvoice, EmailTemplate, Product, WorkTime,
 )
 from app.models.order import POS_ORDER_STATES
 from app.models.customer_invoice import (
@@ -17,7 +17,7 @@ from app.models.entity import ENTITY_TYPES
 from app.models.email_template import (
     MEMBERSHIP_REMINDER_KEY, DEFAULT_REMINDER_SUBJECT, DEFAULT_REMINDER_BODY,
 )
-from app.services import external_config
+from app.services import catalog, external_config
 from app.services.helloasso_client import HelloAssoConfigError, from_app_config as helloasso_client
 from app.services.helloasso_create import create_membership_for_entity
 from app.services.helloasso_sync import sync_helloasso
@@ -772,6 +772,23 @@ def sync_helloasso_route():
     return redirect(url_for("entities.index"))
 
 
+def _supplier_fields(form) -> dict:
+    """Champs fournisseur du formulaire : produit par défaut, TVA, IBAN."""
+    product_id = form.get("default_product_id", type=int)
+    if product_id is not None and db.session.get(Product, product_id) is None:
+        product_id = None
+    return {
+        "default_product_id": product_id,
+        "vat_number": (form.get("vat_number") or "").replace(" ", "").upper()[:30] or None,
+        "iban": (form.get("iban") or "").replace(" ", "").upper()[:34] or None,
+    }
+
+
+def _render_form(entity):
+    return render_template("entities/form.html", entity=entity, entity_types=ENTITY_TYPES,
+                           purchase_products=catalog.purchase_products())
+
+
 @bp.route("/new", methods=["GET", "POST"])
 @login_required
 def new():
@@ -790,13 +807,14 @@ def new():
                 is_member=bool(request.form.get("is_member")),
                 is_benevole=bool(request.form.get("is_benevole")),
                 notes=request.form.get("notes", "").strip() or None,
+                **_supplier_fields(request.form),
             )
             db.session.add(entity)
             db.session.commit()
             flash(f"Entité « {name} » créée.", "success")
             return redirect(url_for("entities.index"))
 
-    return render_template("entities/form.html", entity=None, entity_types=ENTITY_TYPES)
+    return _render_form(None)
 
 
 @bp.route("/<int:entity_id>/edit", methods=["GET", "POST"])
@@ -819,11 +837,13 @@ def edit(entity_id):
                 entity.is_member = bool(request.form.get("is_member"))
                 entity.is_benevole = bool(request.form.get("is_benevole"))
                 entity.notes = request.form.get("notes", "").strip() or None
+                for key, value in _supplier_fields(request.form).items():
+                    setattr(entity, key, value)
                 db.session.commit()
                 flash("Entité mise à jour.", "success")
                 return redirect(url_for("entities.index"))
 
-    return render_template("entities/form.html", entity=entity, entity_types=ENTITY_TYPES)
+    return _render_form(entity)
 
 
 @bp.route("/<int:entity_id>/delete", methods=["POST"])
