@@ -1,6 +1,6 @@
 # Workflow — Qonto, lot 2b : saisie de factures d'achat, pièce jointe et OCR
 
-> **Statut : en cours** — phases A à D réalisées (2026-10-22). Sources : [`besoins_qonto_achats_saisie.md`](besoins_qonto_achats_saisie.md)
+> **Statut : en cours** — phases A à D réalisées, phase E codée (envoi réel en attente d'accord) (2026-10-22). Sources : [`besoins_qonto_achats_saisie.md`](besoins_qonto_achats_saisie.md)
 > (QB1 à QB8), [`design_qonto_achats_saisie.md`](design_qonto_achats_saisie.md) (D1 à D13).
 
 ## 1. Objectif
@@ -125,6 +125,11 @@ comptabilisé ; candidat unique exigé pour l'ensemble des factures en attente.
 | E.5 | **Avec l'accord de l'utilisateur** : un envoi réel sur la SCI (facture choisie par lui), puis synchro → pas de doublon, saisie conservée | — |
 
 **✅ CP E** : `make check` vert ; US5 (envoi réel unique autorisé).
+— *E.1 à E.4 réalisés* : 611 tests (client simulé : multipart, `errors` dans un 200, 400 / 403, reprise
+5xx avec la même clé ; envoi, échec, renvoi, erreur réseau ; retour Qonto d'une facture saisie : saisie
+gardée, vides complétés). Paramètres vérifiés dans la documentation Qonto (`source` facultatif, omis).
+Écarts : « Annuler la comptabilisation » ne réapplique plus les données Qonto à une facture saisie ;
+une facture saisie revenue de Qonto n'est jamais masquée par son statut Qonto. **E.5** : en attente.
 
 ### Phase F — Sauvegardes et finitions (S8, D12)
 

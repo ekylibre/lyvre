@@ -316,3 +316,51 @@ def test_qonto_invoice_not_editable(entry_books, login_as):
     p = Purchase.query.filter_by(qonto_id="si-2").one()
     assert client.get(f"/purchases/{p.id}/edit").status_code == 302
     assert client.get(f"/purchases/{p.id}/attachment").status_code == 404
+
+
+def test_send_to_qonto_from_form_and_resend(entry_books, login_as, monkeypatch):
+    from app.services import purchase_entry, qonto_client
+    from app.services.qonto_client import QontoError
+
+    client = login_as()
+    page = _read(client, entry_books).get_data(as_text=True)
+    assert "Envoyer à Qonto" not in page  # instance sans Qonto
+    external_config.set_many("qonto", {"login": "org", "secret_key": "secret"})
+    page = _read(client, entry_books).get_data(as_text=True)
+    assert 'name="send_to_qonto" value="1"\n               checked' in page
+    token = page.split('name="token" value="')[1].split('"')[0]
+
+    calls = []
+
+    class Fake:
+        def create_supplier_invoice(self, content, name, mime, key):
+            calls.append(key)
+            if len(calls) == 1:
+                raise QontoError("Qonto a refusé la facture : wrong content type")
+            return {"id": "si-99", "status": "to_review"}
+
+    monkeypatch.setattr(qonto_client, "from_app_config", lambda **kw: Fake())
+    page = client.post("/purchases/new", data=_save_form(token, send_to_qonto="1"),
+                       follow_redirects=True).get_data(as_text=True)
+    assert "Envoi à Qonto en échec" in page and "Renvoyer à Qonto" in page
+    assert "envoi Qonto en échec" in client.get("/purchases/").get_data(as_text=True)
+    p = Purchase.query.one()
+    page = client.post(f"/purchases/{p.id}/qonto", follow_redirects=True).get_data(as_text=True)
+    assert "Facture déposée dans Qonto." in page and "Déposée dans Qonto" in page
+    db.session.refresh(p)
+    assert p.qonto_id == "si-99" and calls == [p.idempotency_key] * 2
+    page = client.post(f"/purchases/{p.id}/qonto", follow_redirects=True).get_data(as_text=True)
+    assert "ne peut pas être envoyée" in page and len(calls) == 2
+
+
+def test_unchecked_send_to_qonto(entry_books, login_as, monkeypatch):
+    from app.services import qonto_client
+    external_config.set_many("qonto", {"login": "org", "secret_key": "secret"})
+    monkeypatch.setattr(qonto_client, "from_app_config", lambda **kw: pytest.fail("aucun envoi"))
+    client = login_as()
+    page = _read(client, entry_books).get_data(as_text=True)
+    token = page.split('name="token" value="')[1].split('"')[0]
+    client.post("/purchases/new", data=_save_form(token))
+    p = Purchase.query.one()
+    assert p.qonto_upload_status is None
+    assert "Envoyer à Qonto" in client.get(f"/purchases/{p.id}").get_data(as_text=True)

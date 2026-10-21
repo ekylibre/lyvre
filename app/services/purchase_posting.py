@@ -239,7 +239,7 @@ def count_to_complete() -> int:
 
 
 def unpost(p: Purchase) -> None:
-    """Supprime l'écriture AC ; la facture reprend les dernières données Qonto (commit)."""
+    """Supprime l'écriture AC ; une facture Qonto reprend les dernières données Qonto (commit)."""
     if p.journal_entry_id is None:
         raise LedgerError("Cette facture n'est pas comptabilisée.")
     (outcome,) = delete_entries([p.journal_entry_id])
@@ -248,7 +248,7 @@ def unpost(p: Purchase) -> None:
     db.session.refresh(p)
     p.journal_entry_id = None
     p.review_reason = None
-    if p.raw_payload:
+    if p.raw_payload and p.source == "qonto":  # une facture saisie garde sa saisie
         from app.services import purchase_sync
         purchase_sync.apply_payload(p, json.loads(p.raw_payload))
     db.session.commit()

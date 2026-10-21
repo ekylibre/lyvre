@@ -7,6 +7,12 @@ reconnu, champs à vérifier, lignes proposées) ; à l'enregistrement,
 comptabilisent si elle est complète (cycle du lot 2a). Une remise déduite après
 le total d'un ticket (points fidélité) devient une ligne négative au compte de
 rabais obtenus (6098, à défaut 609) : le TTC de la facture est le montant payé.
+
+`send_to_qonto` dépose la pièce dans Qonto (instances où l'intégration est
+disponible) avec la clé d'idempotence de la facture ; l'échec est mémorisé
+(`qonto_upload_status = failed`) et l'envoi peut être relancé sans doublon. Quand
+Qonto renvoie la facture à la synchronisation, la saisie l'emporte
+(`purchase_sync`, champs vides seulement).
 """
 from __future__ import annotations
 
@@ -16,7 +22,10 @@ from datetime import date
 
 from app.extensions import db
 from app.models import Account, BankAccount, Entity, Purchase, PurchaseLine
-from app.services import attachments, catalog, invoice_reader, purchase_posting, purchase_sync
+from app.services import (
+    attachments, catalog, external_config, invoice_reader, purchase_posting, purchase_sync,
+    qonto_client,
+)
 from app.services.counterparties import name_key
 from app.services.ledger import LedgerError
 
@@ -293,3 +302,51 @@ def header_values(p: Purchase) -> dict:
         "is_credit_note": p.is_credit_note, "total": fmt_cents(p.total_cents),
         "untaxed": fmt_cents(p.untaxed_cents), "tax": fmt_cents(p.tax_cents),
     }
+
+
+# ------------------------------------------------------------------ envoi à Qonto
+
+def qonto_upload_available() -> bool:
+    """L'instance utilise Qonto : intégration activée et configurée."""
+    return external_config.is_available("qonto")
+
+
+def can_send_to_qonto(p: Purchase) -> bool:
+    return (p.source == "manual" and bool(p.attachment_path) and p.qonto_upload_status != "sent"
+            and p.qonto_id is None)
+
+
+def send_to_qonto(p: Purchase, client=None) -> bool:
+    """Dépose la pièce de la facture dans Qonto ; mémorise l'identifiant ou l'échec (commit).
+
+    Ne lève jamais d'exception : le message d'échec est dans `qonto_upload_error`.
+    """
+    if not can_send_to_qonto(p):
+        return p.qonto_upload_status == "sent"
+    try:
+        path = attachments.path_of(p)
+        if path is None:
+            raise qonto_client.QontoError("Pièce introuvable dans le dossier de l'instance.")
+        if not p.idempotency_key:
+            p.idempotency_key = str(uuid.uuid4())
+            db.session.commit()  # clé gardée même si l'envoi échoue : le renvoi la réutilise
+        client = client or qonto_client.from_app_config()
+        invoice = client.create_supplier_invoice(path.read_bytes(), p.attachment_name or path.name,
+                                                 p.attachment_mime or "application/pdf",
+                                                 p.idempotency_key)
+    except (qonto_client.QontoError, OSError, ValueError) as exc:
+        db.session.rollback()
+        p.qonto_upload_status, p.qonto_upload_error = "failed", str(exc)[:1000]
+        db.session.commit()
+        return False
+    except Exception as exc:  # noqa: BLE001 — réseau (requests) : la vue ne doit pas échouer
+        db.session.rollback()
+        p.qonto_upload_status = "failed"
+        p.qonto_upload_error = f"Envoi impossible : {exc}"[:1000]
+        db.session.commit()
+        return False
+    p.qonto_id = invoice["id"]
+    p.qonto_status = (invoice.get("status") or "")[:20] or None
+    p.qonto_upload_status, p.qonto_upload_error = "sent", None
+    db.session.commit()
+    return True

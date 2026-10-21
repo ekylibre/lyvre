@@ -32,6 +32,13 @@ class FakeSession:
         self.headers = {}
         self.calls = []
 
+    def post(self, url, data=None, files=None, timeout=None):
+        self.calls.append({"url": url, "data": data, "files": files, "timeout": timeout})
+        item = self.responses.pop(0)
+        if isinstance(item, Exception):
+            raise item
+        return item
+
     def get(self, url, params=None, timeout=None):
         self.calls.append({"url": url, "params": params, "timeout": timeout})
         item = self.responses.pop(0)
@@ -224,3 +231,45 @@ def test_integration_page_shows_qonto_fields(login_as):
     assert "Clé API générée dans Qonto" in html
     stancer = client.get("/configuration/integrations/stancer").get_data(as_text=True)
     assert "Format sk_xxx" in stancer  # l'aide par clé reste celle de Stancer
+
+
+# ------------------------------------------------------------------ dépôt de facture
+
+def test_create_supplier_invoice_multipart():
+    created = {"id": "si-new", "status": "to_review", "file_name": "free.pdf"}
+    client, session, _ = _client(FakeResponse({"supplier_invoices": [created], "errors": []}))
+    assert client.create_supplier_invoice(b"%PDF-1.4", "free.pdf", "application/pdf", "key-1") == created
+    call = session.calls[0]
+    assert call["url"] == "https://thirdparty.qonto.com/v2/supplier_invoices/bulk"
+    assert call["data"] == {"supplier_invoices[][idempotency_key]": "key-1"}
+    assert call["files"] == [("supplier_invoices[][file]", ("free.pdf", b"%PDF-1.4", "application/pdf"))]
+
+
+def test_create_supplier_invoice_errors_in_200():
+    body = {"supplier_invoices": [], "errors": [
+        {"code": "invalid", "detail": "File is too large or wrong content type",
+         "source": {"pointer": "/supplier_invoices/idempotency_key/key-1/file"}}]}
+    client, _, _ = _client(FakeResponse(body))
+    with pytest.raises(QontoError, match="File is too large"):
+        client.create_supplier_invoice(b"x", "a.pdf", "application/pdf", "key-1")
+    client, _, _ = _client(FakeResponse({"supplier_invoices": [], "errors": []}))
+    with pytest.raises(QontoError, match="aucune facture"):
+        client.create_supplier_invoice(b"x", "a.pdf", "application/pdf", "key-1")
+
+
+def test_create_supplier_invoice_http_errors():
+    client, _, _ = _client(FakeResponse({"errors": [{"code": "bad_request", "detail": "Missing file"}]},
+                                        status_code=400))
+    with pytest.raises(QontoError, match="HTTP 400 : Missing file"):
+        client.create_supplier_invoice(b"x", "a.pdf", "application/pdf", "key-1")
+    client, _, _ = _client(FakeResponse({}, status_code=403))
+    with pytest.raises(QontoAuthError):
+        client.create_supplier_invoice(b"x", "a.pdf", "application/pdf", "key-1")
+
+
+def test_create_supplier_invoice_retried_with_same_key_on_5xx():
+    created = {"id": "si-new"}
+    client, session, sleeps = _client(FakeResponse(status_code=503),
+                                      FakeResponse({"supplier_invoices": [created], "errors": []}))
+    assert client.create_supplier_invoice(b"x", "a.pdf", "application/pdf", "key-1")["id"] == "si-new"
+    assert [c["data"] for c in session.calls] == [{"supplier_invoices[][idempotency_key]": "key-1"}] * 2

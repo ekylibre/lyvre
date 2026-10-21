@@ -56,6 +56,20 @@
         <tr><th>Fournisseur ({{ 'Qonto' if purchase.source == 'qonto' else 'facture' }})</th>
           <td class="font-monospace small">{{ purchase.supplier_vat or '' }} {{ purchase.supplier_siret or '' }} {{ purchase.supplier_iban or '' }}</td></tr>
         {% endif %}
+        {% if purchase.source == 'manual' and (purchase.qonto_upload_status or (qonto_upload and can_send)) %}
+        <tr><th>Qonto</th><td>
+          {% if purchase.qonto_upload_status == 'sent' %}<span class="badge bg-success">Déposée dans Qonto</span>
+          {% elif purchase.qonto_upload_status == 'failed' %}<span class="badge bg-danger">Envoi en échec</span>
+            <small class="text-danger">{{ purchase.qonto_upload_error }}</small>
+          {% else %}<span class="text-muted small">Non envoyée</span>{% endif %}
+          {% if qonto_upload and can_send %}
+          <form method="post" action="{{ url_for('purchases.send_to_qonto', purchase_id=purchase.id) }}" class="d-inline m-0 ms-2" {{ hx_submit() }}>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline-primary btn-sm">{{ 'Renvoyer à Qonto' if purchase.qonto_upload_status == 'failed' else 'Envoyer à Qonto' }}</button>
+          </form>
+          {% endif %}
+        </td></tr>
+        {% endif %}
         {% if purchase.attachment_path %}
         <tr><th>Pièce</th><td>
           <a href="{{ url_for('purchases.attachment', purchase_id=purchase.id) }}" target="_blank" rel="noopener">{{ purchase.attachment_name }}</a>

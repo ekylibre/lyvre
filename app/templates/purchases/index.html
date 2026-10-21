@@ -160,6 +160,7 @@
         <a href="{{ url_for('purchases.detail', purchase_id=p.id) }}">{{ p.invoice_number or 'sans numéro' }}</a>
         {% if p.is_credit_note %}<span class="badge bg-secondary">Avoir</span>{% endif %}
         {% if p.source == 'manual' %}<span class="badge bg-light text-dark border" title="Saisie dans l'application{{ ' — pièce jointe' if p.attachment_path }}">saisie</span>{% endif %}
+        {% if p.qonto_upload_status == 'failed' %}<span class="badge bg-danger" title="{{ p.qonto_upload_error }}">envoi Qonto en échec</span>{% endif %}
         {% if p.is_einvoice %}<span class="badge bg-light text-dark border" title="Facture électronique">e-facture</span>{% endif %}
       </td>
       <td>

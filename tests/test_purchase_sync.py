@@ -332,3 +332,32 @@ class _InlineThread:
 
     def start(self):
         self.target(*self.args)
+
+
+# ------------------------------------------------------------------ retour d'une facture saisie
+
+def test_entered_invoice_coming_back_from_qonto_keeps_entry(chart):
+    from app.models import PurchaseLine
+    entity = Entity(name="Free")
+    p = Purchase(source="manual", qonto_id="si-77", entity=entity, invoice_number="1400000013",
+                 issue_date=date(2026, 9, 2), total_cents=3999, untaxed_cents=3333, tax_cents=666,
+                 supplier_name="Free", lines_edited=True, qonto_upload_status="sent")
+    p.lines = [PurchaseLine(position=0, account=Account.query.filter_by(code="6061").one(),
+                            untaxed_cents=3999, total_cents=3999)]
+    db.session.add(p)
+    db.session.commit()
+    result = _sync(FakeClient([inv("si-77", total="40.00", untaxed="33.33", tax="6.67",
+                                   supplier="FREE SAS", invoice_number="OTHER", status="paid",
+                                   issue_date="2026-09-03", due_date="2026-09-04",
+                                   payment_date="2026-09-04", created_at=now_iso(),
+                                   updated_at=now_iso())]))
+    assert result["created"] == 0 and Purchase.query.count() == 1
+    db.session.refresh(p)
+    # Saisie conservée : n°, date, montants, fournisseur, lignes.
+    assert (p.invoice_number, p.issue_date, p.total_cents, p.untaxed_cents) == (
+        "1400000013", date(2026, 9, 2), 3999, 3333)
+    assert p.entity == entity and p.supplier_name == "Free" and p.source == "manual"
+    assert [(l.account.code, l.total_cents) for l in p.lines] == [("6061", 3999)]
+    # Qonto complète ce qui est vide et met à jour son suivi.
+    assert p.due_date == date(2026, 9, 4) and p.supplier_vat == "FR12345678901"
+    assert (p.qonto_status, p.payment_date, p.payable_cents) == ("paid", date(2026, 9, 4), 4000)

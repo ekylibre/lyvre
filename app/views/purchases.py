@@ -154,6 +154,8 @@ def detail(purchase_id):
                      if purchase_settlement.awaiting_payment(purchase) else []),
         awaiting_payment=purchase_settlement.awaiting_payment(purchase),
         match_window=purchase_settlement.match_window(purchase) if purchase.issue_date else None,
+        qonto_upload=purchase_entry.qonto_upload_available(),
+        can_send=purchase_entry.can_send_to_qonto(purchase),
     )
 
 
@@ -206,7 +208,7 @@ def _render_entry(form=None, purchase=None, token=None, errors=(), duplicates=()
         "purchases/new.html", form=form, purchase=purchase, token=token, errors=list(errors),
         duplicates=list(duplicates), preview_url=preview_url, preview_mime=preview_mime,
         entities=Entity.query.order_by(Entity.name).all(), products=catalog.purchase_products(),
-        charge_accounts=_charge_accounts(),
+        charge_accounts=_charge_accounts(), qonto_upload=purchase_entry.qonto_upload_available(),
     )
 
 
@@ -267,6 +269,31 @@ def new():
         db.session.rollback()
         return _render_entry(form, token=token, errors=[str(exc)], preview=preview)
     _posted_message(purchase, outcome, "enregistré" if purchase.is_credit_note else "enregistrée")
+    if request.form.get("send_to_qonto") and token and purchase_entry.qonto_upload_available():
+        _upload_message(purchase, purchase_entry.send_to_qonto(purchase))
+    return redirect(url_for("purchases.detail", purchase_id=purchase.id))
+
+
+def _upload_message(purchase, sent):
+    if sent:
+        flash("Facture déposée dans Qonto.", "success")
+    else:
+        flash(f"Envoi à Qonto en échec : {purchase.qonto_upload_error} — utilisez « Renvoyer à Qonto ».",
+              "danger")
+
+
+@bp.route("/<int:purchase_id>/qonto", methods=["POST"])
+@login_required
+def send_to_qonto(purchase_id):
+    purchase = Purchase.query.get_or_404(purchase_id)
+    message = external_config.unavailable_message("qonto")
+    if message:
+        flash(message, "warning")
+    elif not purchase_entry.can_send_to_qonto(purchase):
+        flash("Cette facture ne peut pas être envoyée à Qonto (pièce absente ou déjà envoyée).",
+              "warning")
+    else:
+        _upload_message(purchase, purchase_entry.send_to_qonto(purchase))
     return redirect(url_for("purchases.detail", purchase_id=purchase.id))
 
 

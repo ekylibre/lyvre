@@ -225,6 +225,11 @@ def upsert_invoice(inv: dict, result: dict) -> Purchase:
         db.session.add(purchase)
         result["created"] += 1
         result["hidden"] += purchase.is_hidden
+    elif purchase.source == "manual":
+        # Facture saisie puis envoyée à Qonto : la saisie l'emporte (champs vides complétés).
+        _merge_manual(purchase, fields, inv)
+        result["updated"] += 1
+        return purchase
     elif purchase.source_updated_at and purchase.source_updated_at == fields["source_updated_at"]:
         result["unchanged"] += 1
         # Liens de paiement recalculés quand même (transaction importée depuis, liens absents).
@@ -235,6 +240,29 @@ def upsert_invoice(inv: dict, result: dict) -> Purchase:
         result["updated"] += 1
     _complete(purchase, inv, result)
     return purchase
+
+
+# Champs suivis par Qonto, repris sur une facture saisie ; les autres ne complètent que le vide.
+QONTO_OWNED_FIELDS = ("qonto_status", "payment_date", "payable_cents", "is_einvoice", "attachment_id",
+                      "source_updated_at")
+MANUAL_KEPT_FIELDS = ("is_hidden", "is_credit_note", "currency", "related_qonto_ids")
+
+
+def _merge_manual(purchase: Purchase, fields: dict, inv: dict) -> None:
+    """Retour de Qonto d'une facture saisie (sans commit) : lignes, montants et en-tête saisis
+    gardés ; statut, paiement et liens de paiement mis à jour."""
+    for key, value in fields.items():
+        if key in QONTO_OWNED_FIELDS:
+            setattr(purchase, key, value)
+        elif key not in MANUAL_KEPT_FIELDS and getattr(purchase, key) in (None, "", 0):
+            if purchase.journal_entry_id is None or key not in POSTED_FIELDS:
+                setattr(purchase, key, value)
+    purchase.raw_payload = json.dumps(inv, ensure_ascii=False)
+    if purchase.entity_id is None:
+        entity = match_entity(purchase)
+        if entity is not None:
+            purchase.entity = entity
+    purchase_settlement.link_invoice(purchase)
 
 
 def apply_payload(purchase: Purchase, inv: dict) -> None:

@@ -91,6 +91,15 @@ enregistré avant **Enregistrer la facture**. **Saisir sans fichier** ouvre un f
 - **Doublon** : même fournisseur et même n° (ou, sans n°, même date et même TTC) → avertissement ;
   cochez « Ce n'est pas un doublon » pour enregistrer quand même.
 
+**Envoyer à Qonto** (instances où l'intégration Qonto est disponible, case cochée par défaut, fichier
+obligatoire) : la pièce est déposée dans Qonto à l'enregistrement. Décochez-la pour une facture payée
+par un autre compte. En cas d'échec, la facture reste enregistrée, marquée « envoi en échec » (motif
+sur la fiche, badge dans la liste) : **Renvoyer à Qonto** recommence sans risque de doublon (même clé
+d'idempotence). Quand Qonto renvoie la facture à la synchronisation, elle n'est pas recréée et **la
+saisie l'emporte** : fournisseur, n°, dates, montants et lignes sont gardés ; Qonto complète les champs
+vides et met à jour statut, date de paiement et transactions de paiement (règlement comme au lot 2a).
+Une pièce envoyée ne se remplace plus.
+
 La facture complète est comptabilisée aussitôt (journal AC). Tant qu'elle ne l'est pas, **Modifier
 l'en-tête** (fiche) permet de corriger fournisseur, n°, dates, montants et de remplacer la pièce. La
 pièce se consulte et se télécharge depuis la fiche ; elle est rangée dans le dossier de l'instance

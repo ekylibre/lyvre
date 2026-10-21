@@ -64,11 +64,16 @@ class QontoClient:
     # ------------------------------------------------------------------ HTTP
 
     def _get(self, path, params=None) -> dict:
+        return self._request("get", path, params=params)
+
+    def _request(self, method, path, **kwargs) -> dict:
+        """Requête avec reprises (429, 5xx, réseau) ; une écriture n'est reprise que si elle
+        porte une clé d'idempotence (Qonto ne la rejoue pas)."""
         rate_limited = server_errors = 0
         while True:
             try:
-                resp = self._session.get(f"{self.base_url}{path}", params=params,
-                                         timeout=self.timeout)
+                resp = getattr(self._session, method)(f"{self.base_url}{path}",
+                                                      timeout=self.timeout, **kwargs)
             except (requests.ConnectionError, requests.Timeout):
                 if not self.retry or server_errors >= SERVER_RETRIES:
                     raise
@@ -93,7 +98,9 @@ class QontoClient:
                 self._sleep(2 ** server_errors)
                 continue
             if resp.status_code >= 400:
-                raise QontoError(f"Qonto a répondu HTTP {resp.status_code}.", response=resp)
+                detail = _error_detail(resp)
+                raise QontoError(f"Qonto a répondu HTTP {resp.status_code}"
+                                 + (f" : {detail}" if detail else "."), response=resp)
             return resp.json()
 
     @staticmethod
@@ -149,6 +156,35 @@ class QontoClient:
                 params[f"filter[{name}]"] = format_datetime(value)
         payload = self._get("/supplier_invoices", params=params)
         return payload.get("supplier_invoices") or [], payload.get("meta") or {}
+
+    def create_supplier_invoice(self, content: bytes, filename: str, mime: str,
+                                idempotency_key: str) -> dict:
+        """Dépose une facture d'achat (fichier) dans Qonto ; renvoie la facture créée.
+
+        `POST /supplier_invoices/bulk` répond 200 même en cas d'échec : `errors` est vérifié.
+        La clé d'idempotence (une par facture, réutilisée au renvoi) évite tout doublon.
+        """
+        payload = self._request(
+            "post", "/supplier_invoices/bulk",
+            data={"supplier_invoices[][idempotency_key]": idempotency_key},
+            files=[("supplier_invoices[][file]", (filename, content, mime))],
+        )
+        errors = payload.get("errors") or []
+        invoices = payload.get("supplier_invoices") or []
+        if errors:
+            details = "; ".join(e.get("detail") or e.get("code") or "erreur" for e in errors)
+            raise QontoError(f"Qonto a refusé la facture : {details}")
+        if not invoices or not invoices[0].get("id"):
+            raise QontoError("Qonto n'a renvoyé aucune facture.")
+        return invoices[0]
+
+
+def _error_detail(resp) -> str:
+    try:
+        errors = resp.json().get("errors") or []
+    except (ValueError, AttributeError):
+        return ""
+    return "; ".join(str(e.get("detail") or e.get("code") or "") for e in errors if e)[:300]
 
 
 def from_app_config(timeout=30, retry=True) -> QontoClient:

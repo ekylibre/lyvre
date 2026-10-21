@@ -876,11 +876,15 @@ par une exécution immédiate.
 `Authorization: login:secret` (pas du Basic) ; bac à sable (`thirdparty-sandbox.staging.qonto.co`,
 en-tête `X-Qonto-Staging-Token`) si `staging_token`. Méthodes : `organization()`, `bank_accounts()`,
 `list_transactions(bank_account_id, statuses, page, per_page, updated_from/to, settled_from/to)`,
-`iter_transactions(...)`.
+`iter_transactions(...)`, `list_supplier_invoices(...)` ; **seule écriture** :
+`create_supplier_invoice(content, filename, mime, idempotency_key)` → `POST /supplier_invoices/bulk`
+(multipart `supplier_invoices[][file]`, `supplier_invoices[][idempotency_key]`) ; la réponse 200 peut
+contenir des `errors` → `QontoError` ; renvoie la facture créée (`id`).
 
 - **429** : jusqu'à 3 nouvelles tentatives (`Retry-After`, sinon 2 s, 4 s, 8 s) ; **5xx / réseau** :
   2 nouvelles tentatives ; **401 / 403** → `QontoAuthError` immédiat (Qonto bloque après 200 réponses
-  401 par heure) ; `retry=False` pour le test de l'intégration.
+  401 par heure) ; `retry=False` pour le test de l'intégration. Un dépôt n'est repris qu'avec sa clé
+  d'idempotence (pas de doublon côté Qonto). Message d'erreur : `errors[].detail` de la réponse.
 - `from_app_config()` lève `QontoConfigError` si l'intégration est désactivée ou incomplète.
 
 ---
@@ -946,7 +950,9 @@ porte le sens) ; `rejected` / `discarded` / non financière → `is_hidden` ; fo
 identifiant Qonto, puis n° de TVA, SIRET, IBAN, puis nom (`find_supplier` ; `match_entity` complète la fiche) ; lignes par défaut
 (`default_lines` : une par taux, HT de Qonto conservé si un seul taux, la dernière absorbe l'écart ;
 sinon une ligne TTC à taux à confirmer), régénérées tant que `lines_edited` est faux ; liens de
-paiement (`purchase_settlement.link_invoice`). Une facture **comptabilisée** n'est jamais modifiée sur
+paiement (`purchase_settlement.link_invoice`). Facture **saisie** revenue de Qonto (`source = manual`,
+même `qonto_id`) : `_merge_manual` garde la saisie, complète les champs vides et reprend statut, date de
+paiement, net à payer et liens de paiement. Une facture **comptabilisée** n'est jamais modifiée sur
 ses montants, sa date ou sa nature : le changement est noté dans `review_reason`. Après chaque page :
 `post_ready` puis `settle`. Résumé : `read`, `created`, `updated`, `unchanged`, `hidden`, `to_review`,
 `without_supplier`, `posted`, `settled`, `to_complete`, `errors`.
@@ -999,6 +1005,8 @@ plus de 24 h (appelé à chaque dépôt).
 | `duplicates(entity_id, number, issue_date, total, supplier_name, exclude_id)` | Même fournisseur et même n° (sans n° : même date et TTC) |
 | `create(clean, rows, token)` | Facture `source = manual`, `lines_edited`, `idempotency_key` ; fournisseur créé au besoin (homonyme repris, identifiants complétés) ; lignes saisies ou par défaut ; pièce rangée ; `post_ready` |
 | `update(p, clean, token)` | En-tête d'une facture saisie non comptabilisée ; pièce remplaçable si non envoyée à Qonto |
+| `send_to_qonto(p, client=None)` | Dépose la pièce (`qonto_client.create_supplier_invoice`, clé `idempotency_key` de la facture) ; succès → `qonto_id`, `qonto_upload_status = sent` ; échec (erreur Qonto, réseau, pièce absente) → `failed` + `qonto_upload_error` ; jamais d'exception ; commit |
+| `can_send_to_qonto(p)` / `qonto_upload_available()` | Facture saisie avec pièce, pas encore déposée / intégration Qonto disponible |
 
 ---
 

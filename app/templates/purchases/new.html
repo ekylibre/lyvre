@@ -168,6 +168,15 @@
       </fieldset>
       {% endif %}
 
+      {% if not purchase and qonto_upload %}
+      <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="send_to_qonto" name="send_to_qonto" value="1"
+               {{ 'checked' if (not v.get('step') or v.get('send_to_qonto')) }} {{ 'disabled' if not token }}>
+        <label class="form-check-label" for="send_to_qonto">Envoyer à Qonto</label>
+        <div class="form-text">{% if token %}La pièce est déposée dans Qonto à l'enregistrement. Décochez pour une facture payée par un autre compte.
+          {% else %}Envoi impossible sans fichier.{% endif %}</div>
+      </div>
+      {% endif %}
       <button type="submit" class="btn btn-primary">{{ 'Enregistrer' if purchase else 'Enregistrer la facture' }}</button>
     </form>
   </div>

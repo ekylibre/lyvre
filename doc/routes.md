@@ -258,12 +258,13 @@ Les anciennes routes `POST /entries/new`, `POST /entries/<id>/edit`, `/entries/n
 | GET | `/purchases/sync/<job_id>` | Fragment de suivi puis résumé |
 | POST | `/purchases/sync/settings` | **Admin.** `sync_from` ; reculer la date remet le curseur à zéro (relecture complète, sans doublon) |
 | GET | `/purchases/new` | Dépôt du fichier (« Lire la facture ») ; `?manual=1` : formulaire vide |
-| POST | `/purchases/new` | `step=read` + `invoice_file` : mise en attente, lecture, formulaire prérempli avec aperçu ; `step=save` + `token`, en-tête (`entity_id` id / `new` + `new_name`, `supplier_vat`, `supplier_siret`, `supplier_iban`, `invoice_number`, `issue_date`, `due_date`, `is_credit_note`, `untaxed`, `tax`, `total`) et lignes (champs répétés) : création ; doublon → réaffichage, `confirm_duplicate=1` pour passer outre |
+| POST | `/purchases/new` | `step=read` + `invoice_file` : mise en attente, lecture, formulaire prérempli avec aperçu ; `step=save` + `token`, en-tête (`entity_id` id / `new` + `new_name`, `supplier_vat`, `supplier_siret`, `supplier_iban`, `invoice_number`, `issue_date`, `due_date`, `is_credit_note`, `untaxed`, `tax`, `total`) et lignes (champs répétés), `send_to_qonto=1` : création puis dépôt dans Qonto ; doublon → réaffichage, `confirm_duplicate=1` pour passer outre |
 | GET | `/purchases/staged/<token>` | Pièce en attente (aperçu du formulaire) |
 | GET/POST | `/purchases/<id>/edit` | En-tête d'une facture saisie non comptabilisée ; `invoice_file` facultatif remplace la pièce |
 | GET | `/purchases/<id>/attachment` | Pièce de la facture (`inline` ; `?download=1` : téléchargement) |
 | GET | `/purchases/<id>` | Fiche : état et motifs, montants, pièce (aperçu), règlements, lignes éditables, écriture |
 | POST | `/purchases/<id>/lines` | Champs répétés `product_id[]`, `account_code[]`, `label[]`, `untaxed[]`, `vat_rate[]`, `vat[]` ; refusé si comptabilisée ; comptabilise si complète |
+| POST | `/purchases/<id>/qonto` | Envoie (ou renvoie après échec) la pièce d'une facture saisie à Qonto |
 | POST | `/purchases/<id>/payments` | `bank_transaction_id` : règle une facture saisie par une transaction proposée |
 | POST | `/purchases/<id>/payments/<payment_id>/delete` | Défait un règlement hors Qonto (écriture supprimée, rapprochement défait) |
 | POST | `/purchases/<id>/post` | Comptabilise une facture prête |

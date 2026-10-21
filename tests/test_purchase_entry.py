@@ -159,3 +159,70 @@ def test_update_refuses_qonto_invoice(books):
     clean, _ = purchase_entry.validate_header(header())
     with pytest.raises(LedgerError, match="saisie"):
         purchase_entry.update(p, clean)
+
+
+# ------------------------------------------------------------------ envoi à Qonto
+
+class FakeQonto:
+    def __init__(self, *outcomes):
+        self.outcomes = list(outcomes)
+        self.calls = []
+
+    def create_supplier_invoice(self, content, filename, mime, key):
+        self.calls.append((content, filename, mime, key))
+        outcome = self.outcomes.pop(0)
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+
+def _entered(books, token=True):
+    t = attachments.stage(FileStorage(io.BytesIO(b"%PDF-1.4 x"), filename="free.pdf")) if token else None
+    clean, _ = purchase_entry.validate_header(header())
+    p, _ = purchase_entry.create(clean, free_rows(), t)
+    return p
+
+
+def test_send_to_qonto_then_resend_is_noop(books):
+    p = _entered(books)
+    client = FakeQonto({"id": "si-77", "status": "to_review"})
+    assert purchase_entry.send_to_qonto(p, client) is True
+    assert (p.qonto_id, p.qonto_status, p.qonto_upload_status, p.qonto_upload_error) == (
+        "si-77", "to_review", "sent", None)
+    assert client.calls == [(b"%PDF-1.4 x", "free.pdf", "application/pdf", p.idempotency_key)]
+    assert not purchase_entry.can_send_to_qonto(p)
+    assert purchase_entry.send_to_qonto(p, client) is True and len(client.calls) == 1
+
+
+def test_failed_upload_kept_and_resent_with_same_key(books):
+    from app.services.qonto_client import QontoError
+    p = _entered(books)
+    client = FakeQonto(QontoError("Qonto a refusé la facture : wrong content type"), {"id": "si-78"})
+    assert purchase_entry.send_to_qonto(p, client) is False
+    assert p.qonto_upload_status == "failed" and "wrong content type" in p.qonto_upload_error
+    assert p.qonto_id is None and p.journal_entry is not None  # la facture reste enregistrée
+    assert purchase_entry.send_to_qonto(p, client) is True
+    assert client.calls[0][3] == client.calls[1][3] == p.idempotency_key
+
+
+def test_network_error_does_not_raise(books):
+    import requests
+    p = _entered(books)
+    assert purchase_entry.send_to_qonto(p, FakeQonto(requests.ConnectionError("boom"))) is False
+    assert "boom" in p.qonto_upload_error
+
+
+def test_cannot_send_without_attachment(books):
+    p = _entered(books, token=False)
+    client = FakeQonto()
+    assert not purchase_entry.can_send_to_qonto(p)
+    assert purchase_entry.send_to_qonto(p, client) is False and client.calls == []
+
+
+def test_unpost_keeps_entered_invoice(books):
+    from app.services import purchase_posting
+    p = _entered(books)
+    p.raw_payload = '{"id": "si-77", "total_amount": {"value": "1.00", "currency": "EUR"}}'
+    db.session.commit()
+    purchase_posting.unpost(p)
+    assert p.total_cents == 3999 and p.invoice_number == "1400000013" and len(p.lines) == 1
