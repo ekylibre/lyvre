@@ -19,6 +19,7 @@ from app.models.email_template import (
 )
 from app.services import catalog, external_config
 from app.services.purchase_posting import purchase_state
+from app.services.purchase_sync import normalize_iban, normalize_siret, normalize_vat
 from app.services.helloasso_client import HelloAssoConfigError, from_app_config as helloasso_client
 from app.services.helloasso_create import create_membership_for_entity
 from app.services.helloasso_sync import sync_helloasso
@@ -44,6 +45,7 @@ def _odoo_configured():
 
 
 VALID_SORT_BY = ("name", "birthday", "status")
+SIRET_MESSAGE = "Le SIRET doit comporter 14 chiffres."
 
 
 def _parse_member_sort(args):
@@ -787,15 +789,20 @@ def sync_helloasso_route():
 
 
 def _supplier_fields(form) -> dict:
-    """Champs fournisseur du formulaire : produit par défaut, TVA, IBAN."""
+    """Champs fournisseur du formulaire : produit par défaut, TVA, SIRET, IBAN."""
     product_id = form.get("default_product_id", type=int)
     if product_id is not None and db.session.get(Product, product_id) is None:
         product_id = None
     return {
         "default_product_id": product_id,
-        "vat_number": (form.get("vat_number") or "").replace(" ", "").upper()[:30] or None,
-        "iban": (form.get("iban") or "").replace(" ", "").upper()[:34] or None,
+        "vat_number": normalize_vat(form.get("vat_number")),
+        "siret": normalize_siret(form.get("siret")),
+        "iban": normalize_iban(form.get("iban")),
     }
+
+
+def _siret_invalid(form) -> bool:
+    return bool((form.get("siret") or "").strip()) and normalize_siret(form.get("siret")) is None
 
 
 def _render_form(entity):
@@ -812,6 +819,8 @@ def new():
             flash("Le nom est obligatoire.", "danger")
         elif Entity.query.filter_by(name=name).first():
             flash(f"Une entité nommée « {name} » existe déjà.", "danger")
+        elif _siret_invalid(request.form):
+            flash(SIRET_MESSAGE, "danger")
         else:
             entity = Entity(
                 name=name,
@@ -843,6 +852,8 @@ def edit(entity_id):
             existing = Entity.query.filter(Entity.name == name, Entity.id != entity_id).first()
             if existing:
                 flash(f"Une autre entité nommée « {name} » existe déjà.", "danger")
+            elif _siret_invalid(request.form):
+                flash(SIRET_MESSAGE, "danger")
             else:
                 entity.name = name
                 entity.entity_type = request.form.get("entity_type", "AUTRE")

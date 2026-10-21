@@ -18,12 +18,13 @@ FROM python:3.12-slim-bookworm
 
 # Runtime tools : curl (healthcheck) + bibliothèques système requises par
 # WeasyPrint pour la génération PDF serveur du rapport d'activité (Pango/Cairo/
-# GDK-PixBuf) + polices de base.
+# GDK-PixBuf) + polices de base + Tesseract (OCR des factures d'achat, français).
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       curl \
       libpango-1.0-0 libpangoft2-1.0-0 libcairo2 libgdk-pixbuf-2.0-0 \
       libffi8 fonts-dejavu-core \
+      tesseract-ocr tesseract-ocr-fra \
  && rm -rf /var/lib/apt/lists/*
 
 # Non-root user; UID/GID overridable at build time to match the host owner of ./instance.

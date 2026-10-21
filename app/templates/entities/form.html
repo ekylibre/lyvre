@@ -53,18 +53,24 @@
           <div class="form-text">Proposé sur les lignes de ses factures d'achat (compte de charge, TVA).</div>
         </div>
         <div class="row g-2">
-          <div class="col-md-5">
+          <div class="col-md-4">
             <label class="form-label" for="vat_number">N° de TVA</label>
             <input type="text" id="vat_number" name="vat_number" class="form-control font-monospace"
                    maxlength="30" value="{{ entity.vat_number if entity and entity.vat_number else '' }}">
           </div>
-          <div class="col-md-7">
+          <div class="col-md-3">
+            <label class="form-label" for="siret">SIRET</label>
+            <input type="text" id="siret" name="siret" class="form-control font-monospace"
+                   maxlength="20" inputmode="numeric"
+                   value="{{ request.form.get('siret', entity.siret if entity and entity.siret else '') }}">
+          </div>
+          <div class="col-md-5">
             <label class="form-label" for="iban">IBAN</label>
             <input type="text" id="iban" name="iban" class="form-control font-monospace"
                    maxlength="42" value="{{ entity.iban if entity and entity.iban else '' }}">
           </div>
         </div>
-        <div class="form-text">Servent à reconnaître le fournisseur sur les factures Qonto.</div>
+        <div class="form-text">Servent à reconnaître le fournisseur sur les factures Qonto et les factures saisies.</div>
       </fieldset>
 
       <div class="mb-3">

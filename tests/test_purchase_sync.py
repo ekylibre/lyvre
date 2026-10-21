@@ -169,7 +169,8 @@ def test_supplier_matched_by_qonto_id_then_vat_then_name(chart):
     by_name = Entity(name="  edf ", entity_type="FOURNISSEUR")
     db.session.add_all([by_id, by_vat, by_name])
     db.session.commit()
-    snapshot = lambda id_, name, vat: {"id": id_, "name": name, "vat_number": vat, "iban": "FR76 1"}
+    snapshot = lambda id_, name, vat: {"id": id_, "name": name, "vat_number": vat,
+                                       "iban": f"FR76 {id_[-1]}"}
     _sync(FakeClient([
         inv("si-1", supplier="SARL PAPIN", supplier_snapshot=snapshot("sup-A", "SARL PAPIN", None)),
         inv("si-2", supplier="DUPRE MAINTENANCE", supplier_snapshot=snapshot("sup-B", "DUPRE MAINTENANCE", "fr 99")),
@@ -180,7 +181,40 @@ def test_supplier_matched_by_qonto_id_then_vat_then_name(chart):
     assert linked == {"si-1": by_id, "si-2": by_vat, "si-3": by_name, "si-4": None}
     # L'entité trouvée reçoit les identifiants qui lui manquaient, sans écraser les siens.
     assert by_vat.qonto_supplier_id == "sup-B" and by_vat.vat_number == "FR99"
-    assert by_name.iban == "FR761" and by_id.vat_number is None
+    assert by_name.iban == "FR76C" and by_id.vat_number is None
+
+
+def test_find_supplier_order(chart):
+    by_vat = Entity(name="A", vat_number="FR11")
+    by_siret = Entity(name="B", siret="12345678900011")
+    by_iban = Entity(name="C", iban="FR7612")
+    by_name = Entity(name="Dupré Maintenance")
+    db.session.add_all([by_vat, by_siret, by_iban, by_name])
+    db.session.commit()
+    find = purchase_sync.find_supplier
+    assert find(vat="fr 11", siret="12345678900011") == by_vat
+    assert find(vat="FR00", siret="123 456 789 00011", iban="FR7612") == by_siret
+    assert find(siret="99999999999999", iban="fr76 12", name="Dupré Maintenance") == by_iban
+    assert find(iban="FR0000", name="  dupré   maintenance ") == by_name
+    assert find(name="Inconnu") is None and find() is None
+
+
+def test_siret_normalized():
+    assert purchase_sync.normalize_siret("123 456 789 00011") == "12345678900011"
+    assert purchase_sync.normalize_siret("123.456.789.00011") == "12345678900011"
+    assert purchase_sync.normalize_siret("123456789") is None
+    assert purchase_sync.normalize_siret("1234567890001A") is None
+    assert purchase_sync.normalize_siret("") is None
+
+
+def test_matched_supplier_receives_siret(chart):
+    entity = Entity(name="EDF")
+    db.session.add(entity)
+    p = Purchase(source="manual", supplier_name="EDF", supplier_siret="55208131766522",
+                 total_cents=100)
+    db.session.add(p)
+    db.session.flush()
+    assert purchase_sync.match_entity(p) == entity and entity.siret == "55208131766522"
 
 
 def test_without_supplier_counted(chart):

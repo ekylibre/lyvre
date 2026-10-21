@@ -328,14 +328,14 @@ FiscalYear ──────────────────── JournalE
 
 ## Purchase — Facture d'achat (tenant)
 
-**Table :** `purchases` — facture fournisseur reçue dans Qonto (`source = qonto`) ou, plus tard,
-saisie (`manual`).
+**Table :** `purchases` — facture fournisseur reçue dans Qonto (`source = qonto`) ou saisie dans
+l'application (`manual`).
 
 | Colonne | Type | Description |
 |---------|------|-------------|
 | `qonto_id` | String(36) UNIQUE nullable | `id` Qonto |
 | `entity_id` | FK→entities ON DELETE SET NULL (indexé) | Fournisseur rattaché |
-| `supplier_name`, `qonto_supplier_id`, `supplier_vat`, `supplier_iban` | String | Instantané du fournisseur selon Qonto |
+| `supplier_name`, `qonto_supplier_id`, `supplier_vat`, `supplier_siret`, `supplier_iban` | String | Instantané du fournisseur (Qonto ou facture lue) |
 | `invoice_number`, `issue_date` (indexé), `due_date`, `payment_date`, `currency` | | |
 | `total_cents` | Integer NOT NULL | TTC **positif** (avoir : `is_credit_note`) |
 | `untaxed_cents`, `tax_cents`, `payable_cents` | Integer nullable | Souvent NULL hors facture électronique |
@@ -343,6 +343,8 @@ saisie (`manual`).
 | `qonto_status` | String(20) (indexé) | `to_review`, `to_approve`, `awaiting_payment`, `pending`, `scheduled`, `paid`, `archived`, `rejected`, `discarded` |
 | `is_hidden` | Boolean (indexé) | Rejetée, écartée ou non financière : jamais comptabilisée |
 | `attachment_id`, `related_qonto_ids` | String / Text (JSON) | Pièce Qonto ; factures liées d'un avoir |
+| `attachment_path`, `attachment_name`, `attachment_mime`, `attachment_size` | String / Integer | Pièce d'une facture saisie (chemin relatif au dossier de l'instance) |
+| `idempotency_key`, `qonto_upload_status`, `qonto_upload_error` | String(36) / String(10) / Text | Envoi à Qonto d'une facture saisie : clé réutilisée au renvoi, NULL / `sent` / `failed` |
 | `lines_edited` | Boolean | Lignes modifiées par le trésorier : plus régénérées |
 | `journal_entry_id` | FK→journal_entries | Écriture d'achat (AC) = comptabilisée |
 | `review_reason` | Text | Changement Qonto après comptabilisation, à revoir |
@@ -351,9 +353,10 @@ saisie (`manual`).
 **`purchase_lines`** (CASCADE) : `position`, `product_id`, `account_id`, `label`, `untaxed_cents`,
 `vat_rate_bp` (NULL = à confirmer), `vat_cents`, `total_cents`.
 
-**`purchase_payments`** (CASCADE) : `qonto_transaction_id` (UUID de la transaction = `fitid`),
-`bank_transaction_id` (résolu à l'import), `journal_entry_id` (règlement BQ) ; unique
-`(purchase_id, qonto_transaction_id)`.
+**`purchase_payments`** (CASCADE) : `qonto_transaction_id` (UUID de la transaction = `fitid` ;
+NULL pour un lien hors Qonto), `origin` (`qonto`, `match` automatique, `manual` choisi),
+`bank_transaction_id` (résolu à l'import), `journal_entry_id` (règlement BQ) ; uniques
+`(purchase_id, qonto_transaction_id)` et `(purchase_id, bank_transaction_id)`.
 
 ---
 
@@ -387,7 +390,7 @@ comme fournisseur, pour les transactions présentes et futures.
 | `notes` | Text nullable | Informations libres |
 | `default_product_id` | FK→products ON DELETE SET NULL | Produit proposé sur les lignes de ses factures d'achat |
 | `qonto_supplier_id` | String(36) (indexé) | Identifiant du fournisseur dans Qonto |
-| `vat_number` / `iban` | String(30) (indexé) / String(34) | Reconnaissance du fournisseur sur les factures Qonto |
+| `vat_number` / `siret` / `iban` | String(30) / String(14) (indexés) / String(34) | Reconnaissance du fournisseur : id Qonto → TVA → SIRET → IBAN → nom (`purchase_sync.find_supplier`) |
 | `created_at` | DateTime | |
 
 **Types d'entité (`entity_type`) :**

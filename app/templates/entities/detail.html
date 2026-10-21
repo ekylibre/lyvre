@@ -18,6 +18,7 @@
       {% if entity.email %} · {{ entity.email }}{% endif %}
       {% if entity.account_code %} · compte <code>{{ entity.account_code }}</code>{% endif %}
       {% if entity.vat_number %} · TVA <code>{{ entity.vat_number }}</code>{% endif %}
+      {% if entity.siret %} · SIRET <code>{{ entity.siret }}</code>{% endif %}
       {% if entity.default_product %} · produit par défaut : {{ entity.default_product.name }}{% endif %}
     </small>
   </div>

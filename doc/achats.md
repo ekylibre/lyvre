@@ -18,8 +18,8 @@ règlements (voir [Imports › Synchronisation Qonto](imports.md#synchronisation
    ne se supprime pas : archivez-le. « Achats divers » (6068 en association, 628 en SCI) est créé
    automatiquement et sert à défaut.
 3. **Fournisseurs** — Tiers › Entités : sur la fiche, choisissez le **produit par défaut** ; il est
-   repris sur les lignes de chaque nouvelle facture. Le n° de TVA et l'IBAN servent à reconnaître le
-   fournisseur sur les factures Qonto.
+   repris sur les lignes de chaque nouvelle facture. L'identifiant Qonto, le n° de TVA, le SIRET,
+   l'IBAN puis le nom servent, dans cet ordre, à reconnaître le fournisseur d'une facture.
 4. **Date de début** (administrateur) — sur la page Factures d'achat, avant la première
    synchronisation ; défaut : début de l'exercice ouvert. La reculer plus tard relit tout depuis
    cette date, sans doublon.
@@ -65,7 +65,7 @@ dans Qonto après comptabilisation : l'écriture n'est jamais corrigée d'office
 ### Fournisseurs inconnus
 
 Une facture dont le fournisseur n'est reconnu ni par son identifiant Qonto, ni par son n° de TVA,
-ni par son nom est **à compléter**. Le lien « N fournisseur(s) à valider » ouvre
+son SIRET, son IBAN ou son nom est **à compléter**. Le lien « N fournisseur(s) à valider » ouvre
 `/purchases/suppliers` : **Créer** le fournisseur (n° de TVA, IBAN et identifiant Qonto repris),
 **Rattacher** à un tiers existant (noms ou IBAN proches suggérés) ou **Ignorer**. Le choix vaut pour
 toutes ses factures et ses transactions bancaires de même nom ; les factures devenues complètes sont

@@ -98,12 +98,51 @@ def test_payment_links_bank_transaction(session):
     assert purchase.payments[0].bank_transaction.fitid == "uuid-1"
 
 
+def test_payment_outside_qonto(session):
+    acc = _account("5121", "Banque")
+    bank = BankAccount(label="Crédit Coopératif", account_id=acc.id)
+    db.session.add(bank)
+    db.session.flush()
+    txn = BankTransaction(bank_account_id=bank.id, fitid="OFX-1", source="ofx",
+                          transaction_date=date(2026, 10, 2), amount_cents=-12000)
+    purchase = _purchase(qonto_id=None, source="manual")
+    purchase.payments.append(PurchasePayment(bank_transaction=txn, origin="match"))
+    db.session.commit()
+    payment = purchase.payments[0]
+    assert payment.qonto_transaction_id is None and payment.origin == "match"
+    # Une même transaction ne paie qu'une fois la même facture.
+    db.session.add(PurchasePayment(purchase=purchase, bank_transaction=txn, origin="manual"))
+    with pytest.raises(IntegrityError):
+        db.session.commit()
+    db.session.rollback()
+
+
+def test_payment_origin_defaults_to_qonto(session):
+    purchase = _purchase()
+    purchase.payments.append(PurchasePayment(qonto_transaction_id="tx-1"))
+    db.session.commit()
+    assert purchase.payments[0].origin == "qonto"
+
+
+def test_manual_purchase_attachment_and_upload_fields(session):
+    purchase = _purchase(qonto_id=None, source="manual", supplier_siret="12345678900011",
+                         attachment_path="achats/2026/10/1-facture.pdf",
+                         attachment_name="Facture.pdf", attachment_mime="application/pdf",
+                         attachment_size=2048, idempotency_key="0b6c3e1e-2f4c-4f43-9f6c-1d0c0b6f2a11",
+                         qonto_upload_status="failed", qonto_upload_error="Fichier refusé")
+    db.session.commit()
+    db.session.expire_all()
+    purchase = db.session.get(Purchase, purchase.id)
+    assert purchase.attachment_size == 2048 and purchase.qonto_upload_status == "failed"
+
+
 def test_entity_supplier_fields_and_purchases(session):
     acc = _account("6068")
     product = Product(name="Achats divers", kind="purchase", purchase_account_id=acc.id)
     entity = Entity(name="EDF", entity_type="FOURNISSEUR", account_code="401010",
                     default_product=product, qonto_supplier_id="sup-1",
-                    vat_number="FR03552081317", iban="FR7630004000031234567890143")
+                    vat_number="FR03552081317", siret="55208131766522",
+                    iban="FR7630004000031234567890143")
     db.session.add(entity)
     db.session.flush()
     _purchase(entity_id=entity.id)

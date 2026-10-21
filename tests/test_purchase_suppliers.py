@@ -56,13 +56,14 @@ def test_ignored_supplier_not_proposed(books):
     assert IgnoredCounterparty.query.count() == 1
 
 
-def test_suggestions_by_iban(books):
+def test_supplier_recognised_by_iban(books):
     other = Entity(name="Établissements Papin", entity_type="FOURNISSEUR", iban=PAPIN["iban"])
     db.session.add(other)
     db.session.commit()
     sync_invoices(papin_invoice())
-    (proposal,) = counterparties.invoice_proposals()
-    assert other in proposal.suggestions
+    # L'IBAN reconnaît le fournisseur (D5 du lot 2b) : rien à valider.
+    assert counterparties.invoice_proposals() == []
+    assert Purchase.query.one().entity == other
 
 
 def test_suppliers_page(books, login_as):

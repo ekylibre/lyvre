@@ -87,10 +87,8 @@ def invoice_fields(inv: dict) -> dict:
     return {
         "supplier_name": supplier.strip()[:200] or None,
         "qonto_supplier_id": snapshot.get("id") or inv.get("supplier_id") or None,
-        "supplier_vat": (snapshot.get("vat_number") or inv.get("vat_number") or "")
-                        .replace(" ", "").upper()[:30] or None,
-        "supplier_iban": (snapshot.get("iban") or inv.get("iban") or "")
-                         .replace(" ", "").upper()[:34] or None,
+        "supplier_vat": normalize_vat(snapshot.get("vat_number") or inv.get("vat_number")),
+        "supplier_iban": normalize_iban(snapshot.get("iban") or inv.get("iban")),
         "invoice_number": (inv.get("invoice_number") or "")[:100] or None,
         "issue_date": _date(inv.get("issue_date")),
         "due_date": _date(inv.get("due_date")),
@@ -163,23 +161,49 @@ def default_lines(purchase: Purchase, product, breakdown) -> list[PurchaseLine]:
 
 # ------------------------------------------------------------- fournisseurs
 
-def match_entity(purchase: Purchase) -> Entity | None:
-    """Entité du fournisseur : identifiant Qonto, puis n° de TVA, puis nom normalisé.
+def normalize_vat(value) -> str | None:
+    return (value or "").replace(" ", "").upper()[:30] or None
 
-    Une entité trouvée reçoit l'identifiant Qonto, la TVA et l'IBAN s'ils lui manquent.
+
+def normalize_iban(value) -> str | None:
+    return (value or "").replace(" ", "").upper()[:34] or None
+
+
+def normalize_siret(value) -> str | None:
+    """SIRET sans espaces ni points ; None si vide ou s'il n'a pas 14 chiffres."""
+    digits = "".join(c for c in (value or "") if not c.isspace() and c != ".")
+    return digits if len(digits) == 14 and digits.isdigit() else None
+
+
+def find_supplier(qonto_id=None, vat=None, siret=None, iban=None, name=None) -> Entity | None:
+    """Entité d'un fournisseur : identifiant Qonto, n° de TVA, SIRET, IBAN, puis nom normalisé."""
+    for column, value in ((Entity.qonto_supplier_id, qonto_id),
+                          (Entity.vat_number, normalize_vat(vat)),
+                          (Entity.siret, normalize_siret(siret)),
+                          (Entity.iban, normalize_iban(iban))):
+        if value:
+            entity = Entity.query.filter(column == value).order_by(Entity.id).first()
+            if entity is not None:
+                return entity
+    if name:
+        key = name_key(name)
+        if key:
+            return next((e for e in Entity.query.order_by(Entity.id) if name_key(e.name) == key),
+                        None)
+    return None
+
+
+def match_entity(purchase: Purchase) -> Entity | None:
+    """Entité du fournisseur d'une facture (`find_supplier`).
+
+    Une entité trouvée reçoit l'identifiant Qonto, la TVA, le SIRET et l'IBAN s'ils lui manquent.
     """
-    entity = None
-    if purchase.qonto_supplier_id:
-        entity = Entity.query.filter_by(qonto_supplier_id=purchase.qonto_supplier_id).first()
-    if entity is None and purchase.supplier_vat:
-        entity = Entity.query.filter_by(vat_number=purchase.supplier_vat).first()
-    if entity is None and purchase.supplier_name:
-        key = name_key(purchase.supplier_name)
-        entity = next((e for e in Entity.query.order_by(Entity.id) if name_key(e.name) == key),
-                      None)
+    entity = find_supplier(purchase.qonto_supplier_id, purchase.supplier_vat,
+                           purchase.supplier_siret, purchase.supplier_iban, purchase.supplier_name)
     if entity is not None:
         entity.qonto_supplier_id = entity.qonto_supplier_id or purchase.qonto_supplier_id
         entity.vat_number = entity.vat_number or purchase.supplier_vat
+        entity.siret = entity.siret or purchase.supplier_siret
         entity.iban = entity.iban or purchase.supplier_iban
     return entity
 

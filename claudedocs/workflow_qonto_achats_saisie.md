@@ -1,6 +1,6 @@
 # Workflow — Qonto, lot 2b : saisie de factures d'achat, pièce jointe et OCR
 
-> **Statut : à réaliser** (2026-10-21). Sources : [`besoins_qonto_achats_saisie.md`](besoins_qonto_achats_saisie.md)
+> **Statut : en cours** — phase A réalisée (2026-10-22). Sources : [`besoins_qonto_achats_saisie.md`](besoins_qonto_achats_saisie.md)
 > (QB1 à QB8), [`design_qonto_achats_saisie.md`](design_qonto_achats_saisie.md) (D1 à D13).
 
 ## 1. Objectif
@@ -50,6 +50,10 @@ flowchart TD
 | A.5 | Tests (migration via modèles, SIRET, `find_supplier`) | `tests/test_purchase_models.py`, `tests/test_purchase_sync.py` |
 
 **✅ CP A** : `make check` vert ; migration up / down sur copies ; bases locales migrées (sauvegarde avant).
+— *Réalisé* : migration `9c41b7e2d5a8` ; 538 tests ; up / down / up sur copies (dont la copie SCI avec
+factures et paiements du lot 2a) ; bases locales et copies d'essai migrées. Écart : l'IBAN reconnaît
+désormais automatiquement le fournisseur (avant : simple suggestion) ; `link_invoice` ignore les liens
+hors Qonto.
 
 ### Phase B — Lecture des factures (D3, D4)
 

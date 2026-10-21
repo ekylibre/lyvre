@@ -14,6 +14,7 @@ stancer==1.*
 pandas==2.2.*
 xlrd==2.0.*
 openpyxl==3.1.*
+pymupdf==1.26.*
 pytest==8.3.*
 pytest-flask==1.3.*
 google-analytics-data==0.18.*

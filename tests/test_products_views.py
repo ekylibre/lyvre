@@ -77,10 +77,19 @@ def test_entity_supplier_fields(app, login_as):
     client.post("/entities/new", data={"name": "EDF", "entity_type": "FOURNISSEUR",
                                        "default_product_id": str(product.id),
                                        "vat_number": "fr 03 552081317",
+                                       "siret": "552 081 317 66522",
                                        "iban": "fr76 3000 4000 0312 3456 7890 143"})
     edf = Entity.query.filter_by(name="EDF").one()
     assert edf.default_product is product
     assert edf.vat_number == "FR03552081317" and edf.iban == "FR7630004000031234567890143"
+    assert edf.siret == "55208131766522"
+    assert "SIRET <code>55208131766522</code>" in client.get(f"/entities/{edf.id}").get_data(as_text=True)
+
+    page = client.post(f"/entities/{edf.id}/edit", data={"name": "EDF", "entity_type": "FOURNISSEUR",
+                                                         "siret": "552081317"})
+    assert "14 chiffres" in page.get_data(as_text=True)
+    db.session.refresh(edf)
+    assert edf.siret == "55208131766522"
 
     client.post(f"/entities/{edf.id}/edit", data={"name": "EDF", "entity_type": "FOURNISSEUR",
                                                   "default_product_id": ""})

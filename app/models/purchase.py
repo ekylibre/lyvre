@@ -21,6 +21,7 @@ class Purchase(db.Model):
     qonto_supplier_id = db.Column(db.String(36))
     supplier_vat = db.Column(db.String(30))
     supplier_iban = db.Column(db.String(34))
+    supplier_siret = db.Column(db.String(14))
     invoice_number = db.Column(db.String(100))
     issue_date = db.Column(db.Date, index=True)
     due_date = db.Column(db.Date)
@@ -39,6 +40,15 @@ class Purchase(db.Model):
                           index=True)
     attachment_id = db.Column(db.String(36))
     related_qonto_ids = db.Column(db.Text)  # JSON : factures liées d'un avoir
+    # Pièce d'une facture saisie : chemin relatif au dossier de l'instance.
+    attachment_path = db.Column(db.String(300))
+    attachment_name = db.Column(db.String(200))
+    attachment_mime = db.Column(db.String(50))
+    attachment_size = db.Column(db.Integer)
+    # Envoi à Qonto d'une facture saisie : clé réutilisée au renvoi ; état NULL / sent / failed.
+    idempotency_key = db.Column(db.String(36))
+    qonto_upload_status = db.Column(db.String(10))
+    qonto_upload_error = db.Column(db.Text)
     # Lignes modifiées par le trésorier : la synchronisation ne les régénère plus.
     lines_edited = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
     journal_entry_id = db.Column(
@@ -96,8 +106,12 @@ class PurchaseLine(db.Model):
         return f"<PurchaseLine {self.purchase_id}#{self.position} {self.total_cents}>"
 
 
+PAYMENT_ORIGINS = ["qonto", "match", "manual"]
+
+
 class PurchasePayment(db.Model):
-    """Paiement d'une facture : transaction Qonto désignée par la facture (matched_transactions)."""
+    """Paiement d'une facture : transaction désignée par Qonto (matched_transactions),
+    retrouvée automatiquement (match) ou choisie par le trésorier (manual)."""
 
     __tablename__ = "purchase_payments"
 
@@ -105,8 +119,10 @@ class PurchasePayment(db.Model):
     purchase_id = db.Column(
         db.Integer, db.ForeignKey("purchases.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    # matched_transactions[].transaction_id = UUID de la transaction = BankTransaction.fitid.
-    qonto_transaction_id = db.Column(db.String(36), nullable=False)
+    # matched_transactions[].transaction_id = UUID de la transaction = BankTransaction.fitid ;
+    # NULL pour un lien hors Qonto (transaction OFX).
+    qonto_transaction_id = db.Column(db.String(36))
+    origin = db.Column(db.String(10), nullable=False, default="qonto", server_default="qonto")
     # Résolue quand la transaction est importée.
     bank_transaction_id = db.Column(
         db.Integer, db.ForeignKey("bank_transactions.id", ondelete="SET NULL"),
@@ -119,6 +135,8 @@ class PurchasePayment(db.Model):
     __table_args__ = (
         db.UniqueConstraint("purchase_id", "qonto_transaction_id",
                             name="uq_purchase_payment_transaction"),
+        db.UniqueConstraint("purchase_id", "bank_transaction_id",
+                            name="uq_purchase_payment_bank_transaction"),
     )
 
     purchase = db.relationship("Purchase", back_populates="payments")

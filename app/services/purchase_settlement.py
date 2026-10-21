@@ -45,8 +45,8 @@ def link_invoice(p: Purchase) -> None:
     """Aligne `purchase_payments` sur les transactions désignées par Qonto (sans commit)."""
     wanted = _transaction_ids(p)
     for payment in list(p.payments):
-        if payment.qonto_transaction_id in wanted:
-            continue
+        if payment.origin != "qonto" or payment.qonto_transaction_id in wanted:
+            continue  # un lien hors Qonto (OFX) ne dépend pas de Qonto
         if payment.journal_entry_id is None:
             p.payments.remove(payment)
         else:
@@ -55,9 +55,9 @@ def link_invoice(p: Purchase) -> None:
     known = {payment.qonto_transaction_id for payment in p.payments}
     for qonto_id in wanted:
         if qonto_id not in known:
-            p.payments.append(PurchasePayment(qonto_transaction_id=qonto_id))
+            p.payments.append(PurchasePayment(qonto_transaction_id=qonto_id, origin="qonto"))
     for payment in p.payments:
-        if payment.bank_transaction_id is None:
+        if payment.bank_transaction_id is None and payment.qonto_transaction_id:
             payment.bank_transaction = _qonto_transaction(payment.qonto_transaction_id)
 
 

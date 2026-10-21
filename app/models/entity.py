@@ -31,6 +31,7 @@ class Entity(db.Model):
     # Identifiants du fournisseur côté Qonto / facture (rattachement des factures d'achat).
     qonto_supplier_id = db.Column(db.String(36), index=True)
     vat_number = db.Column(db.String(30), index=True)
+    siret = db.Column(db.String(14), index=True)
     iban = db.Column(db.String(34))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
