@@ -8,7 +8,7 @@ from markupsafe import escape
 from app.decorators import admin_required
 from app.extensions import db
 from app.frontend import is_htmx
-from app.models import BankAccount, Account, BankTransaction, Entity, SyncJob
+from app.models import BankAccount, Account, BankTransaction, Entity, PurchasePayment, SyncJob
 from app.models.sync_job import SYNC_KIND_QONTO
 from app.services import counterparties, external_config, qonto_sync
 from app.utils.list_filters import (
@@ -183,10 +183,10 @@ def counterparties_view(ba_id):
                 counterparties.ignore(key, label)
                 flash(f"« {label} » ne sera plus proposé.", "success")
             elif action == "link":
-                entity, n = counterparties.accept(key, entity_id=request.form.get("entity_id", type=int))
+                entity, n, _ = counterparties.accept(key, entity_id=request.form.get("entity_id", type=int))
                 flash(f"{n} transaction(s) rattachée(s) à « {entity.name} ».", "success")
             else:
-                entity, n = counterparties.accept(key, create_name=request.form.get("name"))
+                entity, n, _ = counterparties.accept(key, create_name=request.form.get("name"))
                 flash(f"Fournisseur « {entity.name} » : {n} transaction(s) rattachée(s).", "success")
         except ValueError as exc:
             flash(str(exc), "danger")
@@ -270,6 +270,7 @@ def transactions(ba_id):
     ba = BankAccount.query.get_or_404(ba_id)
     only_unreconciled = request.args.get("unreconciled", "0") == "1"
     only_missing = request.args.get("missing", "0") == "1"
+    only_no_invoice = request.args.get("no_invoice", "0") == "1"
     sort = parse_sort(request.args.get("sort"))
     month_arg = request.args.get("month")
     month_tuple = parse_month(month_arg)
@@ -284,9 +285,21 @@ def transactions(ba_id):
                     BankTransaction.attachment_count == 0),
             BankTransaction.attachment_lost.is_(True),
         ))
+    if only_no_invoice:
+        # Débits qu'aucune facture d'achat ne désigne comme paiement.
+        paid = db.session.query(PurchasePayment.bank_transaction_id).filter(
+            PurchasePayment.bank_transaction_id.isnot(None))
+        query = query.filter(BankTransaction.amount_cents < 0,
+                             BankTransaction.is_reversed.is_(False),
+                             BankTransaction.id.notin_(paid))
     query = apply_month_filter(query, BankTransaction.transaction_date, month_tuple)
     query = apply_date_sort(query, BankTransaction.transaction_date, sort)
     txns = query.all()
+    invoices = {}
+    if txns:
+        for payment in PurchasePayment.query.filter(
+                PurchasePayment.bank_transaction_id.in_([t.id for t in txns])):
+            invoices.setdefault(payment.bank_transaction_id, []).append(payment.purchase)
     return render_template(
         "bank_accounts/transactions.html",
         ba=ba,
@@ -295,6 +308,8 @@ def transactions(ba_id):
         proposal_count=counterparties.count_proposals(ba.id),
         only_unreconciled=only_unreconciled,
         only_missing=only_missing,
+        only_no_invoice=only_no_invoice,
+        invoices=invoices,
         reversed_reconciled=ba.transactions.filter_by(is_reversed=True, reconciled=True).all(),
         **sort_and_filter_context(sort, month_arg),
     )

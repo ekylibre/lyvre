@@ -175,6 +175,7 @@ Voir [doc/multi_tenant.md](multi_tenant.md) pour le détail de l'architecture.
 | GET | `/fiscal-years/new` | Formulaire de création |
 | POST | `/fiscal-years/new` | Crée l'exercice |
 | POST | `/fiscal-years/<id>/close` | Clôture l'exercice (irréversible) |
+| POST | `/fiscal-years/<id>/vat` | `vat_liable=1\|0` : exercice soumis ou non à la TVA (exercice ouvert ; vaut pour les comptabilisations suivantes) |
 
 > La clôture positionne `FiscalYear.closed = True`. Les écritures de cet exercice ne peuvent plus être supprimées.
 
@@ -215,7 +216,7 @@ Les anciennes routes `POST /entries/new`, `POST /entries/<id>/edit`, `/entries/n
 | GET | `/bank-accounts/<id>/edit` | Formulaire de modification |
 | POST | `/bank-accounts/<id>/edit` | Enregistre les modifications |
 | POST | `/bank-accounts/<id>/delete` | Supprime le compte (interdit s'il a des transactions) |
-| GET | `/bank-accounts/<id>/transactions` | Liste les transactions importées. `?unreconciled=1` : non rapprochées ; `?missing=1` : justificatif manquant ou perdu (Qonto). Bloc Qonto (synchro), bandeaux « contreparties à valider » et « annulées encore rapprochées » |
+| GET | `/bank-accounts/<id>/transactions` | Liste les transactions importées. `?unreconciled=1` : non rapprochées ; `?missing=1` : justificatif manquant ou perdu (Qonto) ; `?no_invoice=1` : débits qu'aucune facture d'achat ne désigne. Badge « Facture n° … » sur les transactions liées. Bloc Qonto (synchro), bandeaux « contreparties à valider » et « annulées encore rapprochées » |
 | GET | `/bank-accounts/qonto` | **Admin.** Comptes Qonto de l'organisation (solde, IBAN) et leur rattachement ; même IBAN proposé d'office. Aucun appel à Qonto si l'intégration est indisponible |
 | POST | `/bank-accounts/qonto/link` | **Admin.** `qonto_account_id`, `mode=existing` + `bank_account_id`, ou `mode=new` + `label` + `gl_account_id` ; `sync_from` (défaut : début de l'exercice ouvert) |
 | POST | `/bank-accounts/<id>/qonto/settings` | **Admin.** `sync_from` ; reculer la date remet le curseur à zéro (synchro complète, sans doublon) |
@@ -234,6 +235,36 @@ Les anciennes routes `POST /entries/new`, `POST /entries/<id>/edit`, `/entries/n
 | `account_id` | oui | ID du compte GL 512x associé |
 
 > Le formulaire ne propose que les comptes dont le code commence par `51` et qui ne sont pas des comptes d'en-tête (`is_header = False`).
+
+---
+
+## Catalogue (`/products/`)
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/products/` | Produits actifs (`?archived=1` : archivés aussi), nombre d'utilisations |
+| GET/POST | `/products/new`, `/products/<id>/edit` | `name`, `reference`, `kind` (`purchase`/`sale`/`both`), `purchase_account_code` (6…), `sale_account_code` (7…), `vat_rate` (« 20 », « 5,5 ») |
+| POST | `/products/<id>/archive` | Archive / réactive |
+| POST | `/products/<id>/delete` | Supprime un produit **inutilisé** (sinon refus) |
+
+---
+
+## Factures d'achat (`/purchases/`)
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/purchases/` | Liste ; filtres `q`, `state` (`to_complete`/`ready`/`posted`), `status` (statut Qonto), `entity_id`, `unpaid=1`, `no_supplier=1`, `hidden=1`, `month`, `sort`. Bandeaux : à compléter, à revoir, fournisseurs à valider, règlements à remplacer |
+| POST | `/purchases/sync` | Lance la synchronisation des factures Qonto en arrière-plan ; en HTMX, fragment de suivi |
+| GET | `/purchases/sync/<job_id>` | Fragment de suivi puis résumé |
+| POST | `/purchases/sync/settings` | **Admin.** `sync_from` ; reculer la date remet le curseur à zéro (relecture complète, sans doublon) |
+| GET | `/purchases/<id>` | Fiche : état et motifs, montants Qonto, règlements, lignes éditables, écriture |
+| POST | `/purchases/<id>/lines` | Champs répétés `product_id[]`, `account_code[]`, `label[]`, `untaxed[]`, `vat_rate[]`, `vat[]` ; refusé si comptabilisée ; comptabilise si complète |
+| POST | `/purchases/<id>/post` | Comptabilise une facture prête |
+| POST | `/purchases/<id>/unpost` | Supprime l'écriture d'achat et réapplique les données Qonto |
+| POST | `/purchases/post-ready` | Comptabilise toutes les factures prêtes (puis leurs règlements) |
+| GET/POST | `/purchases/suppliers` | Fournisseurs des factures à valider : `action` = `create` (+`name`), `link` (+`entity_id`) ou `ignore`, `name_key`, `label` |
+| GET | `/purchases/settlements` | Paiements de factures déjà passés par une écriture de règle (remplaçables) ou manuelle (signalés) |
+| POST | `/purchases/settlements/replace` | `transaction_ids` (répété) : remplace les écritures de règle par des règlements 401 / banque |
 
 ---
 

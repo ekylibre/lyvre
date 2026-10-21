@@ -44,8 +44,9 @@ def invoice(**extra):
 
 
 def payment(**extra):
+    extra.setdefault("clean_counterparty_name", "DUPRE")
     return tx(TX_UUID, 27177, "debit", settled_at="2026-10-08T09:00:00Z", label="DUPRE MAINTENANCE",
-              clean_counterparty_name="DUPRE", **extra)
+              **extra)
 
 
 def sync_invoices(*invoices):

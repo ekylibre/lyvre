@@ -275,7 +275,11 @@ def sync_from_date() -> date:
 
 
 def set_sync_from(day: date) -> None:
-    cursor().sync_from = day
+    """Change la date de début ; la reculer relit tout depuis cette date (sans doublon)."""
+    row = cursor()
+    if row.synced_at is not None and day < (row.sync_from or default_sync_from()):
+        row.synced_at = None
+    row.sync_from = day
     db.session.commit()
 
 

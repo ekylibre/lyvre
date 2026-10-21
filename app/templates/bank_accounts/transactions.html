@@ -84,12 +84,17 @@
      class="btn btn-sm {{ 'btn-danger' if only_missing else 'btn-outline-danger' }}">
     Justificatif manquant
   </a>
+  <a href="{{ url_for('bank_accounts.transactions', ba_id=ba.id, no_invoice=1) }}"
+     class="btn btn-sm {{ 'btn-info' if only_no_invoice else 'btn-outline-info' }}">
+    Débit sans facture
+  </a>
   {% endif %}
 </div>
 
 <form method="get" class="row g-2 mb-3 align-items-end" {{ hx_filter() }}>
   {% if only_unreconciled %}<input type="hidden" name="unreconciled" value="1">{% endif %}
   {% if only_missing %}<input type="hidden" name="missing" value="1">{% endif %}
+  {% if only_no_invoice %}<input type="hidden" name="no_invoice" value="1">{% endif %}
   <input type="hidden" name="sort" value="{{ current_sort }}">
   <div class="col-md-3">
     <label class="form-label small mb-0">Mois</label>
@@ -106,7 +111,7 @@
 <table class="table table-sm table-hover">
   <thead class="table-light">
     <tr>
-      <th>{{ sortable_date_header('Date', current_sort, 'bank_accounts.transactions', {'ba_id': ba.id, 'unreconciled': 1 if only_unreconciled else None, 'missing': 1 if only_missing else None, 'month': current_month}) }}</th>
+      <th>{{ sortable_date_header('Date', current_sort, 'bank_accounts.transactions', {'ba_id': ba.id, 'unreconciled': 1 if only_unreconciled else None, 'missing': 1 if only_missing else None, 'no_invoice': 1 if only_no_invoice else None, 'month': current_month}) }}</th>
       <th>Libellé</th>
       <th>Type</th>
       <th class="text-end">Montant</th>
@@ -130,6 +135,10 @@
         {% elif txn.attachment_count %}
           <span class="badge bg-light text-success border ms-1" title="{{ txn.attachment_count }} justificatif(s) dans Qonto">Justificatif</span>
         {% endif %}
+        {% for p in invoices.get(txn.id, []) %}
+          <a href="{{ url_for('purchases.detail', purchase_id=p.id) }}" class="badge bg-info text-dark ms-1 text-decoration-none"
+             title="Facture d'achat payée par cette transaction">{{ 'Avoir' if p.is_credit_note else 'Facture' }} {{ p.invoice_number or 'sans numéro' }}</a>
+        {% endfor %}
         {% if txn.note %}<div class="small text-muted">{{ txn.note }}</div>{% endif %}
       </td>
       <td><span class="badge bg-light text-dark border">{{ txn.raw_type or '—' }}</span></td>

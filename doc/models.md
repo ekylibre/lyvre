@@ -156,6 +156,7 @@ FiscalYear ──────────────────── JournalE
 | `start_date` | Date NOT NULL | |
 | `end_date` | Date NOT NULL | |
 | `closed` | Boolean default=False | Si `True`, les écritures ne peuvent plus être supprimées |
+| `vat_liable` | Boolean NOT NULL default=False | Soumis à la TVA : TVA des factures d'achat en 44566 ; sinon incluse dans la charge |
 | `created_at` | DateTime | |
 
 **Relations :** `entries` → liste de `JournalEntry`
@@ -237,7 +238,7 @@ FiscalYear ──────────────────── JournalE
 | `reference` | String(50) | Auto-générée : `{CODE}-{ANNÉE}-{SÉQUENCE:04d}` ex : `BQ-2024-0001` |
 | `description` | String(500) | Libellé libre |
 | `is_balanced` | Boolean default=False | `True` si Σ débit = Σ crédit (validé au moment de la saisie) |
-| `source` | String(20) default=`MANUAL` | `MANUAL`, `OFX_IMPORT`, `QONTO_IMPORT`, `ODOO_IMPORT` |
+| `source` | String(20) default=`MANUAL` | `MANUAL`, `OFX_IMPORT`, `QONTO_IMPORT`, `ODOO_IMPORT`, `PURCHASE` (écriture d'achat) |
 | `source_ref` | String(200) | Référence d'origine (FITID OFX ou numéro de facture Odoo) |
 | `created_at` | DateTime | |
 
@@ -317,6 +318,52 @@ FiscalYear ──────────────────── JournalE
 
 ---
 
+## Product — Produit / service du catalogue (tenant)
+
+**Table :** `products` — `id`, `name` (String(200) UNIQUE), `reference`, `kind` (`purchase` / `sale` /
+`both`), `purchase_account_id` (FK accounts, 6…), `sale_account_id` (FK accounts, 7…), `vat_rate_bp`
+(Integer, points de base : 2000 = 20 %), `active` (archivé = faux), `created_at`.
+
+---
+
+## Purchase — Facture d'achat (tenant)
+
+**Table :** `purchases` — facture fournisseur reçue dans Qonto (`source = qonto`) ou, plus tard,
+saisie (`manual`).
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| `qonto_id` | String(36) UNIQUE nullable | `id` Qonto |
+| `entity_id` | FK→entities ON DELETE SET NULL (indexé) | Fournisseur rattaché |
+| `supplier_name`, `qonto_supplier_id`, `supplier_vat`, `supplier_iban` | String | Instantané du fournisseur selon Qonto |
+| `invoice_number`, `issue_date` (indexé), `due_date`, `payment_date`, `currency` | | |
+| `total_cents` | Integer NOT NULL | TTC **positif** (avoir : `is_credit_note`) |
+| `untaxed_cents`, `tax_cents`, `payable_cents` | Integer nullable | Souvent NULL hors facture électronique |
+| `is_credit_note`, `is_einvoice` | Boolean | |
+| `qonto_status` | String(20) (indexé) | `to_review`, `to_approve`, `awaiting_payment`, `pending`, `scheduled`, `paid`, `archived`, `rejected`, `discarded` |
+| `is_hidden` | Boolean (indexé) | Rejetée, écartée ou non financière : jamais comptabilisée |
+| `attachment_id`, `related_qonto_ids` | String / Text (JSON) | Pièce Qonto ; factures liées d'un avoir |
+| `lines_edited` | Boolean | Lignes modifiées par le trésorier : plus régénérées |
+| `journal_entry_id` | FK→journal_entries | Écriture d'achat (AC) = comptabilisée |
+| `review_reason` | Text | Changement Qonto après comptabilisation, à revoir |
+| `source_updated_at`, `raw_payload`, `created_at`, `updated_at` | | `raw_payload` : dernière réponse Qonto |
+
+**`purchase_lines`** (CASCADE) : `position`, `product_id`, `account_id`, `label`, `untaxed_cents`,
+`vat_rate_bp` (NULL = à confirmer), `vat_cents`, `total_cents`.
+
+**`purchase_payments`** (CASCADE) : `qonto_transaction_id` (UUID de la transaction = `fitid`),
+`bank_transaction_id` (résolu à l'import), `journal_entry_id` (règlement BQ) ; unique
+`(purchase_id, qonto_transaction_id)`.
+
+---
+
+## SyncCursor — Curseur de synchronisation (tenant)
+
+**Table :** `sync_cursors` — `key` (UNIQUE, ex. `qonto_supplier_invoices`), `sync_from` (date de
+début), `synced_at` (début de la dernière synchronisation réussie, UTC).
+
+---
+
 ## IgnoredCounterparty — Contrepartie à ne plus proposer (tenant)
 
 **Table :** `ignored_counterparties` — `id`, `name_key` (String(200) UNIQUE, nom normalisé), `label`, `created_at`.
@@ -334,10 +381,13 @@ comme fournisseur, pour les transactions présentes et futures.
 | `id` | Integer PK | |
 | `name` | String(200) UNIQUE NOT NULL | Nom affiché (ex : `"URSSAF"`, `"EDF"`) |
 | `entity_type` | String(20) NOT NULL default=`AUTRE` | Type parmi les valeurs ci-dessous |
-| `account_code` | String(20) nullable | Code compte GL associé (ex : `"401000"`) |
+| `account_code` | String(20) nullable | Code compte GL associé ; fournisseur : `401NNN` (attribué et créé dans le plan à la première facture comptabilisée) |
 | `email` | String(200) nullable (indexé) | Clé de rattachement HelloAsso / Odoo |
 | `is_member` | Boolean default=False | `True` pour les adhérents (basculé auto par les syncs) |
 | `notes` | Text nullable | Informations libres |
+| `default_product_id` | FK→products ON DELETE SET NULL | Produit proposé sur les lignes de ses factures d'achat |
+| `qonto_supplier_id` | String(36) (indexé) | Identifiant du fournisseur dans Qonto |
+| `vat_number` / `iban` | String(30) (indexé) / String(34) | Reconnaissance du fournisseur sur les factures Qonto |
 | `created_at` | DateTime | |
 
 **Types d'entité (`entity_type`) :**
@@ -453,7 +503,7 @@ Suit l'exécution d'une synchronisation lancée en arrière-plan (thread daemon,
 | Colonne | Type | Description |
 |---------|------|-------------|
 | `id` | Integer PK | |
-| `kind` | String(40) NOT NULL (indexé) | `payouts`, `payout_payments`, `qonto_transactions`, `metrics` |
+| `kind` | String(40) NOT NULL (indexé) | `payouts`, `payout_payments`, `qonto_transactions`, `qonto_supplier_invoices`, `metrics` |
 | `payout_id` | Integer FK→payouts ON DELETE SET NULL (indexé) | Renseigné uniquement pour `kind='payout_payments'` |
 | `bank_account_id` | Integer FK→bank_accounts ON DELETE SET NULL (indexé) | Renseigné pour `kind='qonto_transactions'` |
 | `status` | String(20) NOT NULL default=`running` (indexé) | `running`, `done`, `failed` |

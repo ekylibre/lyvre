@@ -5,6 +5,9 @@
 - `proposals` : contreparties de débits encore sans tiers, groupées par nom, à
   valider (créer le fournisseur, rattacher à une entité existante, ignorer).
   Les opérations sans fournisseur réel (frais Qonto, rémunération, rejets…) sont exclues.
+- `invoice_proposals` : fournisseurs des factures d'achat sans tiers, même file de
+  validation (même normalisation des noms, mêmes refus). Valider un nom rattache
+  ses transactions **et** ses factures, puis comptabilise et règle celles devenues prêtes.
 """
 from __future__ import annotations
 
@@ -15,7 +18,7 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from app.extensions import db
-from app.models import BankTransaction, Entity, IgnoredCounterparty
+from app.models import BankTransaction, Entity, IgnoredCounterparty, Purchase
 
 # Types d'opération Qonto sans fournisseur réel derrière la contrepartie.
 NO_SUPPLIER_TYPES = {
@@ -41,6 +44,9 @@ class Proposal:
     first_date: date | None = None
     last_date: date | None = None
     suggestions: list[Entity] = field(default_factory=list)
+    vat_number: str | None = None
+    iban: str | None = None
+    qonto_supplier_id: str | None = None
 
 
 def _entities_by_key() -> dict[str, Entity]:
@@ -110,13 +116,51 @@ def count_proposals(bank_account_id=None) -> int:
     return len(proposals(bank_account_id))
 
 
+def _invoice_query():
+    return Purchase.query.filter(Purchase.entity_id.is_(None), Purchase.is_hidden.is_(False),
+                                 Purchase.supplier_name.isnot(None))
+
+
+def invoice_proposals() -> list[Proposal]:
+    """Fournisseurs des factures d'achat sans tiers, les plus fréquents d'abord."""
+    ignored = {row.name_key for row in IgnoredCounterparty.query.all()}
+    groups: dict[str, Proposal] = {}
+    for purchase in _invoice_query().order_by(Purchase.issue_date).all():
+        key = name_key(purchase.supplier_name)
+        if not key or key in ignored:
+            continue
+        group = groups.setdefault(key, Proposal(key=key, label=purchase.supplier_name))
+        group.count += 1
+        group.total_cents += -purchase.total_cents if purchase.is_credit_note else purchase.total_cents
+        if purchase.issue_date:
+            group.first_date = min(filter(None, (group.first_date, purchase.issue_date)))
+            group.last_date = max(filter(None, (group.last_date, purchase.issue_date)))
+        group.vat_number = group.vat_number or purchase.supplier_vat
+        group.iban = group.iban or purchase.supplier_iban
+        group.qonto_supplier_id = group.qonto_supplier_id or purchase.qonto_supplier_id
+
+    entities = Entity.query.order_by(Entity.name).all() if groups else []
+    for key, group in groups.items():
+        first_word = key.split(" ")[0]
+        group.suggestions = [e for e in entities
+                             if (len(first_word) >= 3 and name_key(e.name).startswith(first_word))
+                             or (group.iban and e.iban == group.iban)][:SUGGESTIONS]
+    return sorted(groups.values(), key=lambda g: (-g.count, g.label.casefold()))
+
+
+def count_invoice_proposals() -> int:
+    return len(invoice_proposals())
+
+
 def _matching_transactions(key):
     return [t for t in _proposal_query().all() if name_key(t.counterparty) == key]
 
 
-def accept(key, *, entity_id=None, create_name=None) -> tuple[Entity, int]:
-    """Rattache les transactions de la contrepartie à une entité existante ou à un
-    nouveau fournisseur. Retourne (entité, nombre de transactions rattachées)."""
+def accept(key, *, entity_id=None, create_name=None) -> tuple[Entity, int, int]:
+    """Rattache les transactions et factures d'achat de ce nom à une entité existante ou à
+    un nouveau fournisseur, puis comptabilise et règle les factures devenues prêtes.
+    Retourne (entité, transactions rattachées, factures rattachées)."""
+    from app.services import purchase_posting
     if entity_id:
         entity = db.session.get(Entity, entity_id)
         if entity is None:
@@ -133,8 +177,17 @@ def accept(key, *, entity_id=None, create_name=None) -> tuple[Entity, int]:
     transactions = _matching_transactions(key)
     for txn in transactions:
         txn.entity_id = entity.id
+    purchases = [p for p in _invoice_query().all() if name_key(p.supplier_name) == key]
+    for purchase in purchases:
+        purchase.entity = entity
+        # Identifiants Qonto du fournisseur : reconnaissance des factures suivantes.
+        entity.qonto_supplier_id = entity.qonto_supplier_id or purchase.qonto_supplier_id
+        entity.vat_number = entity.vat_number or purchase.supplier_vat
+        entity.iban = entity.iban or purchase.supplier_iban
     db.session.commit()
-    return entity, len(transactions)
+    if purchases:
+        purchase_posting.post_ready(purchases)
+    return entity, len(transactions), len(purchases)
 
 
 def ignore(key, label) -> None:

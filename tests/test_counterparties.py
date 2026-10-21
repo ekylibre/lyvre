@@ -89,7 +89,7 @@ def test_proposals_suggest_similar_entities(ba):
 def test_accept_creates_supplier_and_links_all(ba):
     _txn(ba, "t1", -1000, "SARL Papin")
     _txn(ba, "t2", -2000, "SARL  PAPIN")
-    entity, n = counterparties.accept("sarl papin", create_name="SARL Papin")
+    entity, n, _ = counterparties.accept("sarl papin", create_name="SARL Papin")
     assert (n, entity.entity_type) == (2, "FOURNISSEUR")
     assert BankTransaction.query.filter_by(entity_id=entity.id).count() == 2
     assert counterparties.proposals(ba.id) == []
@@ -98,14 +98,14 @@ def test_accept_creates_supplier_and_links_all(ba):
 def test_accept_reuses_entity_with_same_name(ba):
     existing = _entity("SARL Papin")
     _txn(ba, "t1", -1000, "Papin")
-    entity, _ = counterparties.accept("papin", create_name="SARL Papin")
+    entity, _, _ = counterparties.accept("papin", create_name="SARL Papin")
     assert entity.id == existing.id and Entity.query.count() == 1
 
 
 def test_accept_links_to_existing_entity(ba):
     target = _entity("Papin & Fils")
     _txn(ba, "t1", -1000, "SARL Papin")
-    entity, n = counterparties.accept("sarl papin", entity_id=target.id)
+    entity, n, _ = counterparties.accept("sarl papin", entity_id=target.id)
     assert (entity.id, n) == (target.id, 1)
 
 

@@ -133,13 +133,14 @@ lecture seule). Guide d'utilisation :
    - Une synchro relancée ne crée jamais de doublon ; une note ou un justificatif ajouté dans Qonto
      est repris, mais jamais le montant, la date, le rapprochement, le tiers ni la catégorie.
    - Date : la date de règlement en heure de Paris. Montant : négatif pour un débit.
-4. **Après la synchro**, automatiquement : règles de catégorisation sur les nouvelles transactions
-   (le type d'opération Qonto est dans « Type », utilisable par les règles), puis rattachement aux
-   tiers de même nom.
+4. **Après la synchro**, automatiquement : règlement des transactions qui paient une **facture
+   d'achat** comptabilisée (401 / banque, voir [Factures d'achat](achats.md)), puis règles de
+   catégorisation sur les autres nouvelles transactions (le type d'opération Qonto est dans « Type »,
+   utilisable par les règles), puis rattachement aux tiers de même nom.
 5. **Contreparties à valider** : les débits restés sans tiers sont regroupés ; créer le fournisseur,
    rattacher à un tiers existant ou ignorer. Les frais Qonto, rémunérations et encaissements ne sont
    pas proposés.
-6. **Contrôles** : filtre « Justificatif manquant » ; une transaction **annulée** par Qonto est
+6. **Contrôles** : filtres « Justificatif manquant » et « Débit sans facture » ; une transaction **annulée** par Qonto est
    marquée « Annulée » et ne peut plus être rapprochée ; si elle l'était déjà, un bandeau rouge le signale
    (rapprochement et écriture à revoir à la main).
 

@@ -10,7 +10,7 @@ from app.frontend import is_htmx
 from app.models import Account, Entity, Purchase, SyncJob
 from app.models.sync_job import SYNC_KIND_QONTO_INVOICES
 from app.services import (
-    catalog, external_config, purchase_posting, purchase_settlement, purchase_sync,
+    catalog, counterparties, external_config, purchase_posting, purchase_settlement, purchase_sync,
 )
 from app.services.ledger import LedgerError
 from app.services.purchase_posting import STATE_LABELS, purchase_state
@@ -66,6 +66,7 @@ def index():
         to_complete=purchase_posting.count_to_complete(),
         to_review=Purchase.query.filter(Purchase.review_reason.isnot(None)).count(),
         to_replace=sum(r.replaceable for r in purchase_settlement.to_replace()),
+        supplier_proposals=counterparties.count_invoice_proposals(),
         q=q, status=status, entity_id=entity_id, unpaid=unpaid, no_supplier=no_supplier,
         show_hidden=show_hidden,
         hidden_count=Purchase.query.filter(Purchase.is_hidden.is_(True)).count(),
@@ -215,3 +216,31 @@ def replace_settlements():
         if row["status"] == "error":
             flash(f"Transaction {row['id']} : {row['message']}", "danger")
     return redirect(url_for("purchases.settlements"))
+
+
+@bp.route("/suppliers", methods=["GET", "POST"])
+@login_required
+def suppliers():
+    if request.method == "POST":
+        action = request.form.get("action")
+        key = request.form.get("name_key", "")
+        label = request.form.get("label", "")
+        try:
+            if action == "ignore":
+                counterparties.ignore(key, label)
+                flash(f"« {label} » ne sera plus proposé.", "success")
+            else:
+                if action == "link":
+                    entity, n_txn, n_inv = counterparties.accept(
+                        key, entity_id=request.form.get("entity_id", type=int))
+                else:
+                    entity, n_txn, n_inv = counterparties.accept(
+                        key, create_name=request.form.get("name"))
+                flash(f"« {entity.name} » : {n_inv} facture(s) et {n_txn} transaction(s) rattachée(s).",
+                      "success")
+        except ValueError as exc:
+            flash(str(exc), "danger")
+        return redirect(url_for("purchases.suppliers"))
+    return render_template("purchases/suppliers.html",
+                           proposals=counterparties.invoice_proposals(),
+                           entities=Entity.query.order_by(Entity.name).all())

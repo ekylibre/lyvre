@@ -1,6 +1,6 @@
 # Besoins — Qonto, lot 2 : factures d'achat, fournisseurs et catalogue
 
-> Statut : **validé** (brainstorm du 2026-10-21, décisions au §9, QA9–QA12 tranchées le même jour). Lot découpé en **2a** (détaillé ici)
+> Statut : **lot 2a réalisé** (2026-10-21) — critères vérifiés sur la copie SCI (Qonto en lecture seule) ou, à défaut, par les tests. Besoins validés au brainstorm du 2026-10-21 (décisions au §9). Lot découpé en **2a** (détaillé ici)
 > et **2b** (cadré au §8). Prochaine étape : `/sc:design` du lot 2a.
 > Source : note [`qonto.md`](qonto.md) (« Gestion des achats », « catalogue ») ; lot précédent :
 > [`besoins_qonto_transactions.md`](besoins_qonto_transactions.md) (réalisé).
@@ -138,21 +138,21 @@ l'application à partir du catalogue (A3).
 ## 6. Récits utilisateur et critères d'acceptation — lot 2a
 
 **US1 — Catalogue.** L'admin crée « Électricité » (achat, 6061, 20 %) et le met par défaut sur EDF.
-- [ ] Le produit apparaît dans le catalogue ; il ne peut pas être supprimé une fois utilisé.
+- [x] Le produit apparaît dans le catalogue ; il ne peut pas être supprimé une fois utilisé.
 
 **US2 — Synchroniser.** Le trésorier synchronise les factures.
-- [ ] Les factures depuis la date de début apparaissent ; relancer → 0 nouvelle, 0 doublon.
-- [ ] Une facture EDF arrive avec une ligne « Électricité » (6061) par taux de TVA, état « prête ».
-- [ ] Une facture d'un fournisseur inconnu est « à compléter » et le fournisseur est proposé.
-- [ ] Les factures rejetées / écartées sont masquées par défaut.
+- [x] Les factures depuis la date de début apparaissent ; relancer → 0 nouvelle, 0 doublon.
+- [x] Une facture EDF arrive avec une ligne « Électricité » (6061) par taux de TVA, état « prête ».
+- [x] Une facture d'un fournisseur inconnu est « à compléter » et le fournisseur est proposé.
+- [x] Les factures rejetées / écartées sont masquées par défaut.
 
 **US3 — Comptabiliser.** Le trésorier comptabilise les factures prêtes.
-- [ ] Écriture AC : 6061 (HT) + 44566 (TVA) / 401 (TTC), à la date de facture.
-- [ ] Un avoir produit l'écriture inverse.
+- [x] Écriture AC : 6061 (HT) + 44566 (TVA) / 401 (TTC), à la date de facture.
+- [x] Un avoir produit l'écriture inverse.
 
 **US4 — Régler.** La transaction Qonto du paiement arrive.
-- [ ] Elle est liée à la facture, écriture 401 / 512 passée et rapprochée ; aucune règle 6xx appliquée.
-- [ ] Une transaction déjà passée en 6xx / 512 par une règle est signalée, et peut être remplacée.
+- [x] Elle est liée à la facture, écriture 401 / 512 passée et rapprochée ; aucune règle 6xx appliquée.
+- [x] Une transaction déjà passée en 6xx / 512 par une règle est signalée, et peut être remplacée.
 
 ## 7. Hors périmètre du lot 2a
 

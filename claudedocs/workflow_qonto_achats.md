@@ -1,6 +1,6 @@
 # Workflow — Qonto, lot 2a : factures d'achat, catalogue et engagement
 
-> **Statut : à réaliser** (2026-10-21). Sources : [`besoins_qonto_achats.md`](besoins_qonto_achats.md)
+> **Statut : RÉALISÉ** (2026-10-21) — phases A à F faites, essais sur la copie SCI (Qonto en lecture seule) ; révision Alembic `24e66976825c`. Sources : [`besoins_qonto_achats.md`](besoins_qonto_achats.md)
 > (QA1 à QA12), [`design_qonto_achats.md`](design_qonto_achats.md) (D1 à D16).
 
 ## 1. Objectif
@@ -107,12 +107,12 @@ flowchart TD
 
 | Étape | Tâche | Fichiers |
 |-------|-------|----------|
-| F.1 | `counterparties.proposals` / `accept` étendus aux factures (rattachement, champs fournisseur, `post_ready` + `settle`) ; section « Fournisseurs des factures » | `app/services/counterparties.py`, `app/views/bank_accounts.py`, `app/templates/bank_accounts/counterparties.html` |
+| F.1 | `counterparties.invoice_proposals` / `accept` étendu aux factures (rattachement, champs fournisseur, `post_ready` + `settle`) ; page `/purchases/suppliers` (écart : pas dans l'écran Contreparties, propre à un compte bancaire) | `app/services/counterparties.py`, `app/views/purchases.py`, `app/templates/purchases/suppliers.html` |
 | F.2 | Vue du compte bancaire : badge « Facture n° … », filtre « débit sans facture » | `app/views/bank_accounts.py`, `app/templates/bank_accounts/transactions.html` |
 | F.3 | Docs : routes, modèles, services, guide utilisateur (factures d'achat, catalogue, TVA de l'exercice), multi-instance | `doc/*.md` |
 | F.4 | Besoins : critères cochés ; workflow RÉALISÉ ; écarts dans le design ; build Docker | `claudedocs/*_qonto_achats.md` |
 
-**✅ CP final** : `make check` vert ; US1 à US4 cochés ; essai complet sur la SCI (lecture seule).
+**✅ CP final** (fait) : `make check` vert ; US1 à US4 cochés ; essai complet sur la copie SCI : 2 factures réelles comptabilisées et réglées, fournisseur Papin validé, balance équilibrée.
 
 ## 5. Points d'attention
 

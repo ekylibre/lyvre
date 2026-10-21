@@ -1,6 +1,6 @@
 # Design — Qonto, lot 2a : factures d'achat, catalogue et engagement
 
-> Statut : design proposé (2026-10-21), à valider. Source : [`besoins_qonto_achats.md`](besoins_qonto_achats.md)
+> Statut : **réalisé** (2026-10-21), écarts au §9. Source : [`besoins_qonto_achats.md`](besoins_qonto_achats.md)
 > (décisions QA1 à QA12). Lot précédent : [`design_qonto_transactions.md`](design_qonto_transactions.md).
 > Étape suivante : `/sc:workflow`.
 
@@ -300,3 +300,10 @@ Menu principal : « Factures d'achat » ; Paramètres : « Catalogue ».
   importées avant l'arrivée des liens de paiement ne sont relues qu'après une modification dans Qonto
   (synchro incrémentale) ; une facture relue sans changement recalcule tout de même ses liens, et une
   facture déjà comptabilisée est réglée dès que son lien apparaît (`settle` sur toute la page).
+- **Phase F** : les fournisseurs des factures sont proposés sur une page dédiée
+  `/purchases/suppliers` et non dans l'écran Contreparties (D13), propre à un compte bancaire alors
+  que les factures sont à l'échelle de l'organisation ; même service, mêmes refus, et `accept`
+  rattache factures et transactions de même nom. `set_sync_from` des factures : reculer la date
+  remet le curseur à zéro (comme les comptes bancaires), ce qui permet de relire des factures
+  anciennes ; le formulaire reste visible pour l'administrateur.
+- **Catalogue** : dans le menu Compta (pas de menu « Paramètres » dans l'application).

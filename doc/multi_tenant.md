@@ -192,7 +192,7 @@ manuellement :
 | Sujet | Comportement |
 |-------|--------------|
 | **Cache d'engines** | Mémoïsé par `instance_id`. Reconstruit après `clear_engine_cache`, lui-même appelé sur edit d'instance. Le `database_url` est intentionnellement en lecture seule en UI pour éviter d'oublier le purge. |
-| **Threads asynchrones (Stancer, Qonto)** | Toujours passer par `services/sync_jobs.start` : il capture l'instance courante avant de rendre la main, puis, dans le thread, crée un `app.app_context()` et **pose `g.current_instance` / `g.tenant_engine`** pour que les requêtes SQLAlchemy tapent dans la base de l'instance (sans cela, elles retomberaient sur la base par défaut — anomalie corrigée en octobre 2026). |
+| **Threads asynchrones (Stancer, Qonto : transactions et factures d'achat)** | Toujours passer par `services/sync_jobs.start` : il capture l'instance courante avant de rendre la main, puis, dans le thread, crée un `app.app_context()` et **pose `g.current_instance` / `g.tenant_engine`** pour que les requêtes SQLAlchemy tapent dans la base de l'instance (sans cela, elles retomberaient sur la base par défaut — anomalie corrigée en octobre 2026). |
 | **Désactivation d'utilisateur** | Vérifiée à chaque `before_request`. Un user désactivé pendant qu'il est connecté est déconnecté de force au prochain hit. |
 | **Désactivation d'instance** | Une instance désactivée disparaît du `/select-instance`. Si elle était sélectionnée, le `before_request` vide la session et redirige. |
 | **Suppression d'instance** | **Pas exposée en UI.** Désactiver suffit pour la 1ère version. Une suppression nécessiterait de purger le cache + supprimer le fichier ; à ajouter plus tard avec une vraie confirmation. |

@@ -17,6 +17,7 @@ Application web de comptabilité pour associations loi 1901 (plan comptable des 
 | [Imports](imports.md) | Guide import OFX (banque) et CSV Odoo |
 | [États financiers](reports.md) | Balance, grand livre, Bilan, Compte de résultat (asso / SCI) |
 | [Saisie et rapprochement](saisie_rapprochement.md) | Îlots React au clavier : saisie d'écriture, espace de rapprochement, raccourcis |
+| [Factures d'achat](achats.md) | Factures fournisseurs Qonto : catalogue, TVA de l'exercice, comptabilisation en engagement, règlements |
 
 ## Fonctionnalités
 
@@ -25,6 +26,7 @@ Application web de comptabilité pour associations loi 1901 (plan comptable des 
 - **Interface réactive** — Filtres, tri, recherche, actions et formulaires sans rechargement de page (HTMX), messages en notifications
 - **Saisie comptable** — Écritures en partie double dans un formulaire **entièrement au clavier** (autocomplétion des comptes, écart en direct, ligne d'équilibre préremplie, enregistrer et enchaîner), validation serveur par champ, génération automatique des références
 - **Import bancaire** — Fichiers OFX/QFX (banques françaises), déduplication automatique par FITID
+- **Factures d'achat Qonto** — Synchronisation des factures fournisseurs, lignes issues d'un **catalogue** produits / services, comptabilisation automatique en engagement (journal AC, compte 401NNN par fournisseur, TVA selon l'exercice), règlements 401 / banque rapprochés à partir des paiements Qonto, remplacement en lot des écritures de règle antérieures
 - **Import Odoo** — CSV de lignes de facturation, table de staging avant comptabilisation
 - **Rapprochement bancaire** — Espace de travail au clavier : suggestions notées (compte bancaire, montant, date), rapprochement en un geste ou en masse, création d'écriture en panneau latéral, règles sur la sélection, annulation (Ctrl+Z), contrôles de montant et de compte
 - **États financiers** — Balance, grand livre, Bilan et Compte de résultat au format du plan de l'instance (associatif ou SCI) avec comparaison N/N-1 ; chaque compte compté une seule fois, tiers ventilés selon le sens du solde, bilan équilibré avant comme après clôture

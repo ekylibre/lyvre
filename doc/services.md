@@ -67,6 +67,8 @@ rapprochée (`entry_is_reconciled(entry)`).
 Supprime des écritures dans une seule transaction en **défaisant d'abord leurs rapprochements**
 (une ligne supprimée ne doit pas rester liée à une transaction bancaire). Exercice clôturé →
 refus pour l'écriture concernée. Résultat par écriture : `{entry_id, status, reference | message}`.
+La facture d'achat ou le règlement adossé à une écriture supprimée (`purchases.journal_entry_id`,
+`purchase_payments.journal_entry_id`) est délié : SQLite n'applique pas les `ON DELETE SET NULL`.
 
 ---
 
@@ -84,13 +86,15 @@ entry = post_entry(
         {"account_id": 512_id, "debit_cents": 15000, "credit_cents": 0},
         {"account_id": 756_id, "debit_cents": 0, "credit_cents": 15000},
     ],
-    source="MANUAL",         # ou "OFX_IMPORT", "QONTO_IMPORT", "ODOO_IMPORT"
+    source="MANUAL",         # ou "OFX_IMPORT", "QONTO_IMPORT", "ODOO_IMPORT", "PURCHASE"
     source_ref=None,         # référence externe optionnelle
     reference=None,          # si None, généré automatiquement
 )
 ```
 
-**Référence auto-générée :** `{CODE_JOURNAL}-{ANNÉE}-{SÉQUENCE:04d}`, ex : `VT-2024-0003`.
+**Référence auto-générée** (`next_reference`) : `{CODE_JOURNAL}-{ANNÉE}-{SÉQUENCE:04d}`, ex :
+`VT-2024-0003` ; la séquence suit le **plus grand** numéro du journal et de l'exercice (pas de doublon
+après une suppression).
 
 **Lève `LedgerError` si :**
 - L'exercice est introuvable
@@ -331,6 +335,8 @@ Applique les règles (de la table `rules`) sur une liste de transactions bancair
 | `overwrite` | `False` | Si `True`, ré-applique même sur les transactions déjà catégorisées |
 
 **Comportement :** les règles sont évaluées dans l'ordre de déclaration ; la première règle qui correspond est appliquée et les suivantes sont ignorées.
+Les transactions annulées et celles qui **paient une facture d'achat** (`purchase_payments`) sont
+ignorées : leur écriture est le règlement 401 / banque (`purchase_settlement`).
 
 Si la règle définit un `entity` nommé, l'entité est créée automatiquement en base si elle n'existe pas encore.
 
@@ -909,6 +915,68 @@ Résumé : `created`, `updated`, `unchanged`, `reversed`, `reversed_reconciled`,
 | `name_key(name)` | Nom normalisé (casse et espaces ignorés, accents conservés) |
 | `link_existing(transactions)` | Rattache les transactions sans tiers à l'entité de même nom (débits et crédits), sans créer |
 | `proposals(bank_account_id)` | Débits sans tiers groupés par contrepartie (hors `NO_SUPPLIER_TYPES`, annulées, ignorées), avec suggestions d'entités au nom proche |
-| `accept(key, entity_id=… \| create_name=…)` | Rattache toutes les transactions sans tiers de la contrepartie (crée un `FOURNISSEUR` si besoin) |
-| `ignore(key, label)` | Mémorise la contrepartie dans `ignored_counterparties` |
+| `invoice_proposals()` | Fournisseurs des factures d'achat sans tiers, groupés par nom (n° de TVA, IBAN, suggestions par nom ou IBAN) |
+| `accept(key, entity_id=… \| create_name=…)` | Rattache les transactions **et factures d'achat** sans tiers de ce nom (crée un `FOURNISSEUR` si besoin, reprend TVA / IBAN / identifiant Qonto), puis comptabilise et règle les factures devenues prêtes ; renvoie `(entité, n_transactions, n_factures)` |
+| `ignore(key, label)` | Mémorise la contrepartie dans `ignored_counterparties` (transactions et factures) |
+
+---
+
+## catalog.py — Catalogue produits / services
+
+| Fonction | Rôle |
+|----------|------|
+| `parse_rate_bp(value)` / `format_rate(bp)` | « 5,5 » → 550 points de base ; 550 → « 5,5 % » |
+| `default_purchase_product()` | « Achats divers », créé à la demande sur le premier compte présent : 6068, 628, 606 |
+| `product_for(entity)` | Produit par défaut (actif) du fournisseur, sinon « Achats divers » |
+| `purchase_products()`, `usage_count(product)` | Produits d'achat actifs ; lignes + fiches qui utilisent un produit |
+| `validate_product_data(form, product_id=None)` | Champs d'un produit ; `CatalogError` (compte 6… / 7… selon le sens, taux, unicité) |
+
+---
+
+## purchase_sync.py — Factures d'achat Qonto
+
+`sync_supplier_invoices(client=None, progress_cb=None)` : `GET /v2/supplier_invoices`, fenêtres
+mensuelles sur `created_at` depuis `sync_from` au premier passage, puis `updated_at` depuis le curseur
+(`sync_cursors`, clé `qonto_supplier_invoices`) − 10 min ; commit par page ; le curseur n'avance qu'après
+un succès complet. `start_sync(app)` / `latest_job()` : arrière-plan via `sync_jobs`
+(`kind = qonto_supplier_invoices`). `set_sync_from(date)` : reculer la date remet le curseur à zéro.
+
+Par facture (`upsert_invoice`) : montants « 22.10 » → centimes (valeur absolue, `is_credit_note`
+porte le sens) ; `rejected` / `discarded` / non financière → `is_hidden` ; fournisseur reconnu par
+identifiant Qonto, puis n° de TVA, puis nom (`match_entity`, qui complète la fiche) ; lignes par défaut
+(`default_lines` : une par taux, HT de Qonto conservé si un seul taux, la dernière absorbe l'écart ;
+sinon une ligne TTC à taux à confirmer), régénérées tant que `lines_edited` est faux ; liens de
+paiement (`purchase_settlement.link_invoice`). Une facture **comptabilisée** n'est jamais modifiée sur
+ses montants, sa date ou sa nature : le changement est noté dans `review_reason`. Après chaque page :
+`post_ready` puis `settle`. Résumé : `read`, `created`, `updated`, `unchanged`, `hidden`, `to_review`,
+`without_supplier`, `posted`, `settled`, `to_complete`, `errors`.
+
+---
+
+## purchase_posting.py — Comptabilisation en engagement
+
+| Fonction | Rôle |
+|----------|------|
+| `purchase_state(p)` | `State(code, reasons)` : `hidden`, `to_complete` (motifs), `ready`, `posted` |
+| `post(p)` | Écriture AC à la date de facture : lignes en 6… (HT si l'exercice est `vat_liable`, sinon TTC), TVA en 44566 / 4456, crédit TTC au 401NNN du fournisseur ; avoir inversé ; `source = PURCHASE`, `source_ref = PURCHASE:<id>` |
+| `post_ready(purchases)` | Comptabilise les prêtes, une transaction SQL chacune, puis `settle` ; `{posted, settled, errors}` |
+| `supplier_account(entity)` / `next_supplier_code()` | Compte 401 du fournisseur (code de la fiche, sinon 401NNN suivant), créé dans le plan (parent 401, `TIERS`) |
+| `unpost(p)` | Supprime l'écriture AC et réapplique la dernière réponse Qonto (`purchase_sync.apply_payload`) |
+| `save_lines(p, rows)` | Lignes saisies (TVA calculée si vide, compte 6… exigé) ; `lines_edited = True` ; puis `post_ready` |
+
+---
+
+## purchase_settlement.py — Règlements des factures d'achat
+
+| Fonction | Rôle |
+|----------|------|
+| `link_invoice(p)` | Aligne `purchase_payments` sur `matched_transactions[].transaction_id` (= `fitid` de la transaction Qonto) ; un lien réglé qui disparaît → `review_reason` |
+| `link_transactions(txns)` | Résout les liens en attente pour des transactions nouvellement importées |
+| `linked_transaction_ids(ids)` | Transactions liées à une facture (exclues des règles) |
+| `settle(purchases, transactions)` | Pour chaque transaction liée à des factures comptabilisées, non rapprochée : écriture BQ 401NNN / banque + rapprochement, atomiques ; fournisseurs différents ou transaction annulée → erreur |
+| `to_replace()` | Transactions liées rapprochées d'une autre écriture : `replaceable` si écriture de règle (2 lignes, 6… + banque, `FITID:`), sinon rapprochement manuel signalé |
+| `replace_many(ids)` | Supprime l'écriture de règle et passe le règlement, une transaction SQL par élément ; `{results, counters}` |
+
+Dans `qonto_sync.sync_bank_account`, par page : `link_transactions` et `settle` **avant** `apply_rules`
+(résumé : `settled`).
 

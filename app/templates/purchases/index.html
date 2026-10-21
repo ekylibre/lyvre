@@ -25,13 +25,14 @@
         Factures à partir du {{ sync_from.strftime('%d/%m/%Y') }}
         · dernière synchronisation : {{ cursor.synced_at | local_dt if cursor and cursor.synced_at else 'jamais' }}
       </div>
-      {% if current_user.is_admin and not (cursor and cursor.synced_at) %}
+      {% if current_user.is_admin %}
       <form method="post" action="{{ url_for('purchases.sync_settings') }}" class="d-flex gap-2 align-items-center m-0">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label for="sync_from" class="mb-0">Date de début</label>
         <input type="date" id="sync_from" name="sync_from" value="{{ sync_from.isoformat() }}"
                class="form-control form-control-sm" style="width:auto">
-        <button type="submit" class="btn btn-outline-secondary btn-sm">Enregistrer</button>
+        <button type="submit" class="btn btn-outline-secondary btn-sm"
+                title="Reculer la date relit toutes les factures depuis cette date (sans doublon)">Enregistrer</button>
       </form>
       {% endif %}
     </div>
@@ -56,6 +57,7 @@
     {% if to_complete %}<a href="{{ url_for('purchases.index', state='to_complete') }}">{{ to_complete }} facture(s) à compléter</a>{% endif %}
     {% if to_complete and without_supplier %}
       (dont <a href="{{ url_for('purchases.index', no_supplier=1) }}">{{ without_supplier }} sans fournisseur rattaché</a>){% endif %}{% if to_complete %}.{% endif %}
+    {% if supplier_proposals %}<a href="{{ url_for('purchases.suppliers') }}" class="ms-2 fw-semibold">{{ supplier_proposals }} fournisseur(s) à valider</a>{% endif %}
     {% if to_review %}<span class="text-danger ms-2">{{ to_review }} facture(s) comptabilisée(s) modifiée(s) dans Qonto, à revoir.</span>{% endif %}
   </div>
   <form method="post" action="{{ url_for('purchases.post_ready') }}" class="m-0" {{ hx_submit() }}>
