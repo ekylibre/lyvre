@@ -89,6 +89,14 @@ MENUS = [
             {"key": "payouts", "label": "Versements Stancer", "endpoint": "payouts.index", "charts": _ASSO},
         ],
     },
+    # -------------------------------------------------------------------- Achats
+    {
+        "key": "purchases",
+        "label": "Factures d'achat",
+        "charts": _ALL,
+        "endpoint": "purchases.index",
+        "active": ["purchases"],
+    },
     # ---------------------------------------------------------------------- Tiers
     {
         "key": "tiers",

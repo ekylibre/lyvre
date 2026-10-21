@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% from "integrations/_macros.html" import unavailable_notice with context %}
+{% from "_list_helpers.html" import sortable_date_header, month_filter_select, hx_filter %}
+{% block title %}Factures d'achat{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h2 class="mb-0">Factures d'achat</h2>
+    <small class="text-muted">Factures fournisseurs reçues dans Qonto.</small>
+  </div>
+  <form method="post" action="{{ url_for('purchases.sync') }}"
+        hx-post="{{ url_for('purchases.sync') }}"
+        hx-target="#purchase-sync-status" hx-swap="outerHTML" hx-disabled-elt="find button" class="m-0">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-primary btn-sm"
+            {% if integration_state('qonto') %}disabled{% endif %}>Synchroniser les factures Qonto</button>
+  </form>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body py-2 small">
+    <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+      <div>
+        <span class="badge bg-info text-dark">Qonto</span>
+        Factures à partir du {{ sync_from.strftime('%d/%m/%Y') }}
+        · dernière synchronisation : {{ cursor.synced_at | local_dt if cursor and cursor.synced_at else 'jamais' }}
+      </div>
+      {% if current_user.is_admin and not (cursor and cursor.synced_at) %}
+      <form method="post" action="{{ url_for('purchases.sync_settings') }}" class="d-flex gap-2 align-items-center m-0">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="sync_from" class="mb-0">Date de début</label>
+        <input type="date" id="sync_from" name="sync_from" value="{{ sync_from.isoformat() }}"
+               class="form-control form-control-sm" style="width:auto">
+        <button type="submit" class="btn btn-outline-secondary btn-sm">Enregistrer</button>
+      </form>
+      {% endif %}
+    </div>
+    {{ unavailable_notice('qonto', 'synchronisation impossible') }}
+    {% if job %}
+      {% include "purchases/_sync_status.html" %}
+    {% else %}
+      <div id="purchase-sync-status"></div>
+    {% endif %}
+  </div>
+</div>
+
+{% if without_supplier %}
+<div class="alert alert-warning small py-2">
+  <a href="{{ url_for('purchases.index', no_supplier=1) }}">{{ without_supplier }} facture(s) sans fournisseur rattaché</a>.
+</div>
+{% endif %}
+
+<form method="get" class="row g-2 mb-3 align-items-end" {{ hx_filter('#list', search=True) }}>
+  <div class="col-md-3">
+    <label class="form-label small mb-0" for="q">Recherche</label>
+    <input type="search" id="q" name="q" class="form-control form-control-sm" value="{{ q }}"
+           placeholder="Numéro, fournisseur…">
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small mb-0" for="status">Statut Qonto</label>
+    <select id="status" name="status" class="form-select form-select-sm">
+      <option value="">Tous</option>
+      {% for code, label in status_labels.items() if code != 'to_pay' %}
+        <option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small mb-0" for="entity_id">Fournisseur</label>
+    <select id="entity_id" name="entity_id" class="form-select form-select-sm">
+      <option value="">Tous</option>
+      {% for e in suppliers %}
+        <option value="{{ e.id }}" {% if entity_id == e.id %}selected{% endif %}>{{ e.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small mb-0">Mois</label>
+    {{ month_filter_select('month', month_options, current_month) }}
+  </div>
+  <div class="col-md-auto">
+    <div class="form-check form-check-inline small">
+      <input class="form-check-input" type="checkbox" name="unpaid" value="1" id="unpaid" {{ 'checked' if unpaid }}>
+      <label class="form-check-label" for="unpaid">Non payées</label>
+    </div>
+    <div class="form-check form-check-inline small">
+      <input class="form-check-input" type="checkbox" name="no_supplier" value="1" id="no_supplier" {{ 'checked' if no_supplier }}>
+      <label class="form-check-label" for="no_supplier">Sans fournisseur</label>
+    </div>
+    <div class="form-check form-check-inline small">
+      <input class="form-check-input" type="checkbox" name="hidden" value="1" id="hidden" {{ 'checked' if show_hidden }}>
+      <label class="form-check-label" for="hidden">Masquées ({{ hidden_count }})</label>
+    </div>
+  </div>
+  <input type="hidden" name="sort" value="{{ current_sort }}">
+  <div class="col-md-auto">
+    <button type="submit" class="btn btn-outline-secondary btn-sm">Filtrer</button>
+    {% if q or status or entity_id or unpaid or no_supplier or show_hidden or current_month %}
+    <a href="{{ url_for('purchases.index') }}" class="btn btn-link btn-sm">Réinitialiser</a>
+    {% endif %}
+  </div>
+</form>
+
+<div id="list">
+{% if purchases %}
+<table class="table table-sm table-hover align-middle">
+  <thead class="table-light">
+    <tr>
+      <th>{{ sortable_date_header('Date', current_sort, 'purchases.index', {'q': q, 'status': status, 'entity_id': entity_id or '', 'unpaid': '1' if unpaid else '', 'no_supplier': '1' if no_supplier else '', 'hidden': '1' if show_hidden else '', 'month': current_month}) }}</th>
+      <th>Numéro</th>
+      <th>Fournisseur</th>
+      <th class="text-end">TTC</th>
+      <th>Statut Qonto</th>
+      <th>Échéance</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in purchases %}
+    <tr class="{{ 'text-muted' if p.is_hidden else '' }}">
+      <td>{{ p.issue_date.strftime('%d/%m/%Y') if p.issue_date else '—' }}</td>
+      <td class="font-monospace small">
+        {{ p.invoice_number or '—' }}
+        {% if p.is_credit_note %}<span class="badge bg-secondary">Avoir</span>{% endif %}
+        {% if p.is_einvoice %}<span class="badge bg-light text-dark border" title="Facture électronique">e-facture</span>{% endif %}
+      </td>
+      <td>
+        {% if p.entity %}
+          <a href="{{ url_for('entities.detail', entity_id=p.entity.id) }}">{{ p.entity.name }}</a>
+        {% else %}
+          {{ p.supplier_name or '—' }} <span class="badge bg-warning text-dark">à rattacher</span>
+        {% endif %}
+      </td>
+      <td class="text-end">{{ ('-' if p.is_credit_note else '') }}{{ p.total_cents | euros }}</td>
+      <td>
+        {{ status_labels.get(p.qonto_status, p.qonto_status or '—') }}
+        {% if p.review_reason %}<span class="badge bg-danger" title="{{ p.review_reason }}">à revoir</span>{% endif %}
+      </td>
+      <td>{{ p.due_date.strftime('%d/%m/%Y') if p.due_date else '—' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="alert alert-light border">Aucune facture d'achat{% if q or status or entity_id or unpaid or no_supplier or current_month %} pour ces critères{% endif %}.</div>
+{% endif %}
+</div>
+{% endblock %}

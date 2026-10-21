@@ -52,6 +52,7 @@ def create_app(config_name=None):
     from .views.users import bp as users_bp
     from .views.instances import bp as instances_bp
     from .views.products import bp as products_bp
+    from .views.purchases import bp as purchases_bp
     from .views.integrations import bp as integrations_bp, legacy_bp as external_connections_bp
 
     app.register_blueprint(auth_bp)
@@ -75,6 +76,7 @@ def create_app(config_name=None):
     app.register_blueprint(users_bp)
     app.register_blueprint(instances_bp)
     app.register_blueprint(products_bp)
+    app.register_blueprint(purchases_bp)
     app.register_blueprint(integrations_bp)
     app.register_blueprint(external_connections_bp)
 

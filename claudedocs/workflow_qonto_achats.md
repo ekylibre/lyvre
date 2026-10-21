@@ -71,11 +71,11 @@ flowchart TD
 | C.2 | `default_lines` (D4 : par taux, arrondi sur la dernière, TTC seul à taux NULL) ; régénération si `lines_edited` faux et non comptabilisée | `app/services/purchase_sync.py` |
 | C.3 | `match_entity` (id Qonto → TVA → `name_key`) ; complète l'entité si champs vides | `app/services/purchase_sync.py` |
 | C.4 | `sync_supplier_invoices` : fenêtres (1er passage mensuel sur `created_at` depuis `sync_from`, ensuite `updated_at` − 5 min), commit par page, progression, curseur après succès ; `start_sync` via `sync_jobs` ; `_SYNC_SOURCES["qonto"]` avec les deux sortes | `app/services/{purchase_sync,integrations}.py` |
-| C.5 | Blueprint `purchases` : liste + filtres (période, état, statut Qonto, fournisseur, non payée, masquées), synchro + suivi, date de début ; menu « Factures d'achat » | `app/views/purchases.py`, `app/templates/purchases/{index,_sync_status}.html`, `base.html` |
+| C.5 | Blueprint `purchases` : liste + filtres (période, statut Qonto, fournisseur, non payée, sans fournisseur, masquées ; « état » en D), synchro + suivi, date de début ; menu « Factures d'achat » | `app/views/purchases.py`, `app/templates/purchases/{index,_sync_status}.html`, `base.html` |
 | C.6 | Tests synchro + vues | `tests/test_purchase_sync.py`, `tests/test_purchases_views.py` |
 | C.7 | Essai SCI : première synchro, relance (0 nouvelle) | — |
 
-**✅ CP C** : `make check` vert ; US2 (hors comptabilisation) sur la SCI.
+**✅ CP C** (fait) : `make check` vert ; US2 (hors comptabilisation) sur la SCI : 2 factures réelles, relance → 0 lue, Dupré rattaché par nom avec son produit par défaut.
 
 ### Phase D — Comptabilisation en engagement (A5, D6–D9, D16)
 

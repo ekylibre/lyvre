@@ -44,7 +44,7 @@ SERVICE_DESCRIPTIONS: dict[str, str] = {
     "smtp":      "Envoi des emails de relance d'adhésion",
     "ga4":       "Fréquentation du site pour Visibilité & Impact",
     "facebook":  "Abonnés de la Page pour Visibilité & Impact",
-    "qonto":     "Comptes et transactions bancaires, synchronisés dans les comptes bancaires",
+    "qonto":     "Comptes, transactions bancaires et factures d'achat",
 }
 
 # Secrets : jamais réaffichés dans l'interface ni dans les messages de test.

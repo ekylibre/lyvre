@@ -25,6 +25,7 @@ from app.extensions import db
 from app.models import IntegrationState, SyncJob
 from app.models.sync_job import (
     SYNC_KIND_METRICS, SYNC_KIND_PAYOUT_PAYMENTS, SYNC_KIND_PAYOUTS, SYNC_KIND_QONTO,
+    SYNC_KIND_QONTO_INVOICES,
 )
 from app.services import external_config
 
@@ -61,7 +62,7 @@ _SYNC_SOURCES = {
     "stancer": ((SYNC_KIND_PAYOUTS, SYNC_KIND_PAYOUT_PAYMENTS), None, "payouts.index"),
     "ga4": ((SYNC_KIND_METRICS,), "ga4", "impact.index"),
     "facebook": ((SYNC_KIND_METRICS,), "facebook", "impact.index"),
-    "qonto": ((SYNC_KIND_QONTO,), None, "bank_accounts.index"),
+    "qonto": ((SYNC_KIND_QONTO, SYNC_KIND_QONTO_INVOICES), None, "bank_accounts.index"),
 }
 
 
