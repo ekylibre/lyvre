@@ -89,7 +89,7 @@ flowchart TD
 | D.6 | Fiche entité : factures et solde du 401xxx | `app/views/entities.py`, `app/templates/entities/detail.html` |
 | D.7 | Tests | `tests/test_purchase_posting.py`, `tests/test_purchases_views.py` |
 
-**✅ CP D** : US3 dans Chrome (copie de base SCI) ; balance équilibrée.
+**✅ CP D** (fait) : US3 dans Chrome (copie SCI) : Dupré comptabilisée (AC 613213 / 401001 créé), annulation puis lignes modifiées → recomptabilisée ; balance équilibrée.
 
 ### Phase E — Règlements (A6, D10–D12)
 

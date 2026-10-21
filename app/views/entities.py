@@ -7,7 +7,7 @@ from app.extensions import db
 from app.models import (
     Entity, HelloAssoOrder, HelloAssoItem, HelloAssoPayment,
     Order, OrderLine, OrderPayment,
-    CustomerInvoice, EmailTemplate, Product, WorkTime,
+    Account, CustomerInvoice, EmailTemplate, Product, Purchase, WorkTime,
 )
 from app.models.order import POS_ORDER_STATES
 from app.models.customer_invoice import (
@@ -18,6 +18,7 @@ from app.models.email_template import (
     MEMBERSHIP_REMINDER_KEY, DEFAULT_REMINDER_SUBJECT, DEFAULT_REMINDER_BODY,
 )
 from app.services import catalog, external_config
+from app.services.purchase_posting import purchase_state
 from app.services.helloasso_client import HelloAssoConfigError, from_app_config as helloasso_client
 from app.services.helloasso_create import create_membership_for_entity
 from app.services.helloasso_sync import sync_helloasso
@@ -584,10 +585,23 @@ def detail(entity_id):
     work_times_total_hours = sum(float(wt.hours) for wt in work_times)
     work_times_total_valuation_cents = sum(wt.valuation_cents for wt in work_times)
 
+    purchases = (Purchase.query.filter_by(entity_id=entity.id)
+                 .order_by(Purchase.issue_date.desc().nullslast(), Purchase.id.desc()).all())
+    supplier_account = (Account.query.filter_by(code=entity.account_code).first()
+                        if entity.account_code else None)
+    supplier_balance_cents = None
+    if supplier_account is not None:
+        debit, credit = supplier_account.balance()
+        supplier_balance_cents = credit - debit
+
     return render_template(
         "entities/detail.html",
         entity=entity,
         entity_types=dict(ENTITY_TYPES),
+        purchases=purchases,
+        purchase_states={p.id: purchase_state(p) for p in purchases},
+        supplier_account=supplier_account,
+        supplier_balance_cents=supplier_balance_cents,
         orders=orders, items=items, payments=payments,
         odoo_orders=odoo_orders,
         odoo_lines_by_order=odoo_lines_by_order,

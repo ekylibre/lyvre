@@ -35,7 +35,7 @@ def test_list_and_filters(app, login_as):
     page = client.get("/purchases/").get_data(as_text=True)
     assert _rows(page) == ["F-001", "F-002", "AV-001"]
     assert "à rattacher" in page and "-20,00 €" in page and "Payée" in page
-    assert "1 facture(s) sans fournisseur rattaché" in page
+    assert "1 sans fournisseur rattaché" in page and "facture(s) à compléter" in page
 
     get = lambda qs: _rows(client.get(f"/purchases/?{qs}").get_data(as_text=True))
     assert get("hidden=1") == ["F-001", "F-002", "F-003", "AV-001"]
@@ -96,3 +96,93 @@ def test_sync_from_settings(app, login_as):
     assert purchase_sync.sync_from_date() == date(2026, 3, 1)
     client.post("/purchases/sync/settings", data={"sync_from": "pas une date"})
     assert purchase_sync.sync_from_date() == date(2026, 3, 1)
+
+
+# ------------------------------------------------------------------ fiche et comptabilisation
+
+def _books():
+    from app.models import Account, FiscalYear, Journal
+    accounts = {c: Account(code=c, label=f"Compte {c}", account_type="EXPENSE")
+                for c in ("401", "6061", "6068")}
+    db.session.add_all([*accounts.values(), Journal(code="AC", label="Achats"),
+                        FiscalYear(label="2026", start_date=date(2026, 1, 1),
+                                   end_date=date(2026, 12, 31))])
+    db.session.commit()
+    return accounts
+
+
+def _incomplete_purchase(accounts):
+    from app.models import PurchaseLine
+    edf = Entity(name="EDF", entity_type="FOURNISSEUR")
+    p = Purchase(qonto_id="si-9", invoice_number="F-009", supplier_name="EDF", entity=edf,
+                 issue_date=date(2026, 9, 1), total_cents=12000, qonto_status="paid")
+    p.lines = [PurchaseLine(position=0, account=accounts["6061"], label="Électricité",
+                            untaxed_cents=10000, vat_rate_bp=2000, vat_cents=2000,
+                            total_cents=11000)]  # total faux : à compléter
+    db.session.add(p)
+    db.session.commit()
+    return p
+
+
+def form_lines(*rows):
+    data = {}
+    for key in ("product_id", "account_code", "label", "untaxed", "vat_rate", "vat"):
+        data[f"{key}[]"] = [row.get(key, "") for row in rows]
+    return data
+
+
+def test_detail_save_lines_posts_and_unpost(app, login_as):
+    accounts = _books()
+    p = _incomplete_purchase(accounts)
+    client = login_as()
+    page = client.get(f"/purchases/{p.id}").get_data(as_text=True)
+    assert "À compléter" in page and "Total des lignes" in page and 'name="untaxed[]"' in page
+    assert "Comptabiliser les factures prêtes" in client.get("/purchases/").get_data(as_text=True)
+
+    client.post(f"/purchases/{p.id}/lines", data=form_lines(
+        {"account_code": "6061", "label": "Électricité", "untaxed": "100,00", "vat_rate": "20"}))
+    db.session.refresh(p)
+    assert p.lines_edited and p.journal_entry_id is not None
+    page = client.get(f"/purchases/{p.id}").get_data(as_text=True)
+    assert "Comptabilisée" in page and "Annuler la comptabilisation" in page
+    assert 'name="untaxed[]"' not in page  # lignes en lecture seule
+
+    client.post(f"/purchases/{p.id}/unpost")
+    db.session.refresh(p)
+    assert p.journal_entry_id is None
+
+
+def test_invalid_lines_flash_error(app, login_as):
+    p = _incomplete_purchase(_books())
+    client = login_as()
+    resp = client.post(f"/purchases/{p.id}/lines", data=form_lines({"untaxed": "abc"}),
+                       follow_redirects=True)
+    assert "Montant invalide" in resp.get_data(as_text=True)
+    db.session.refresh(p)
+    assert not p.lines_edited
+
+
+def test_post_ready_button_and_state_filter(app, login_as):
+    accounts = _books()
+    p = _incomplete_purchase(accounts)
+    p.lines[0].total_cents = 12000
+    db.session.commit()
+    client = login_as()
+    assert "F-009" in client.get("/purchases/?state=ready").get_data(as_text=True)
+    assert "F-009" not in client.get("/purchases/?state=to_complete").get_data(as_text=True)
+    client.post("/purchases/post-ready")
+    db.session.refresh(p)
+    assert p.journal_entry_id is not None
+    assert "F-009" in client.get("/purchases/?state=posted").get_data(as_text=True)
+
+
+def test_entity_detail_shows_purchases_and_balance(app, login_as):
+    from app.services import purchase_posting
+    accounts = _books()
+    p = _incomplete_purchase(accounts)
+    p.lines[0].total_cents = 12000
+    db.session.commit()
+    purchase_posting.post_ready([p])
+    page = login_as().get(f"/entities/{p.entity.id}").get_data(as_text=True)
+    assert "Factures d'achat (1)" in page and "F-009" in page
+    assert "401001" in page and "120,00 €" in page and "dû" in page

@@ -188,7 +188,7 @@ def match_entity(purchase: Purchase) -> Entity | None:
 
 def _new_result() -> dict:
     return {"read": 0, "created": 0, "updated": 0, "unchanged": 0, "hidden": 0,
-            "to_review": 0, "without_supplier": 0, "errors": []}
+            "to_review": 0, "without_supplier": 0, "posted": 0, "to_complete": 0, "errors": []}
 
 
 def upsert_invoice(inv: dict, result: dict) -> Purchase:
@@ -206,8 +206,19 @@ def upsert_invoice(inv: dict, result: dict) -> Purchase:
     else:
         _update(purchase, fields, result)
         result["updated"] += 1
-    purchase.raw_payload = json.dumps(inv, ensure_ascii=False)
+    _complete(purchase, inv, result)
+    return purchase
 
+
+def apply_payload(purchase: Purchase, inv: dict) -> None:
+    """Réapplique la facture Qonto (ex. après annulation de la comptabilisation), sans commit."""
+    _update(purchase, invoice_fields(inv), _new_result())
+    _complete(purchase, inv, _new_result())
+
+
+def _complete(purchase: Purchase, inv: dict, result: dict) -> None:
+    """Réponse brute, rattachement du fournisseur, lignes par défaut."""
+    purchase.raw_payload = json.dumps(inv, ensure_ascii=False)
     if purchase.entity_id is None:
         entity = match_entity(purchase)
         if entity is not None:
@@ -217,7 +228,6 @@ def upsert_invoice(inv: dict, result: dict) -> Purchase:
 
     if purchase.journal_entry_id is None and not purchase.lines_edited:
         purchase.lines = default_lines(purchase, catalog.product_for(purchase.entity), taxes(inv))
-    return purchase
 
 
 def _update(purchase: Purchase, fields: dict, result: dict) -> None:
@@ -304,7 +314,7 @@ def _iter_pages(client, window):
 
 def sync_supplier_invoices(client=None, progress_cb=None) -> dict:
     """Synchronise les factures d'achat Qonto de l'organisation."""
-    from app.services import qonto_client
+    from app.services import purchase_posting, qonto_client
 
     client = client or qonto_client.from_app_config()
     row = cursor()
@@ -314,15 +324,21 @@ def sync_supplier_invoices(client=None, progress_cb=None) -> dict:
     result = _new_result()
     for window in _windows(row, started):
         for items, _meta in _iter_pages(client, window):
+            touched = []
             for inv in items:
-                upsert_invoice(inv, result)
+                touched.append(upsert_invoice(inv, result))
                 result["read"] += 1
                 if progress_cb:
                     progress_cb(result["read"], None, f"{result['read']} facture(s) lue(s)…")
             db.session.commit()
+            # Comptabilisation automatique des factures devenues prêtes (une transaction chacune).
+            posting = purchase_posting.post_ready(touched)
+            result["posted"] += posting["posted"]
+            result["errors"].extend(posting["errors"])
 
     row.synced_at = started
     db.session.commit()
+    result["to_complete"] = purchase_posting.count_to_complete()
     return result
 
 

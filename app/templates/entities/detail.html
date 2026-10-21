@@ -127,6 +127,31 @@
 {% endfor %}
 {% endif %}
 
+{% if purchases or supplier_account %}
+<h5 class="mt-4">Factures d'achat ({{ purchases | length }})
+  {% if supplier_account %}
+  <small class="text-muted fw-normal">· compte <code>{{ supplier_account.code }}</code>,
+    solde {{ supplier_balance_cents | euros }} {{ 'dû' if supplier_balance_cents > 0 else ('en notre faveur' if supplier_balance_cents < 0 else '') }}</small>
+  {% endif %}
+</h5>
+{% if purchases %}
+<table class="table table-sm table-hover align-middle">
+  <thead class="table-light"><tr><th>Date</th><th>Numéro</th><th class="text-end">TTC</th><th>État</th></tr></thead>
+  <tbody>
+    {% for p in purchases %}
+    <tr class="{{ 'text-muted' if p.is_hidden else '' }}">
+      <td>{{ p.issue_date.strftime('%d/%m/%Y') if p.issue_date else '—' }}</td>
+      <td class="font-monospace small"><a href="{{ url_for('purchases.detail', purchase_id=p.id) }}">{{ p.invoice_number or 'sans numéro' }}</a>
+        {% if p.is_credit_note %}<span class="badge bg-secondary">Avoir</span>{% endif %}</td>
+      <td class="text-end">{{ ('-' if p.is_credit_note else '') }}{{ p.total_cents | euros }}</td>
+      <td>{{ purchase_states[p.id].label }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endif %}
+
 {% if customer_invoices %}
 <h5 class="mt-4">Factures clients ({{ customer_invoices | length }})</h5>
 <table class="table table-sm table-hover align-middle">

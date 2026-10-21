@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% from "_list_helpers.html" import hx_submit %}
+{% macro amount(cents) %}{{ '' if cents is none else ('%.2f' | format(cents / 100)).replace('.', ',') }}{% endmacro %}
+{% block title %}{{ 'Avoir' if purchase.is_credit_note else 'Facture' }} {{ purchase.invoice_number or '' }}{% endblock %}
+{% block content %}
+{% set editable = state.code != 'posted' %}
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h2 class="mb-0">
+      {{ 'Avoir' if purchase.is_credit_note else 'Facture' }} {{ purchase.invoice_number or 'sans numéro' }}
+      <span class="badge align-middle {{ {'posted': 'bg-success', 'ready': 'bg-primary', 'to_complete': 'bg-warning text-dark', 'hidden': 'bg-secondary'}[state.code] }}">{{ state.label }}</span>
+      {% if purchase.is_einvoice %}<span class="badge bg-light text-dark border align-middle">e-facture</span>{% endif %}
+    </h2>
+    <small class="text-muted">
+      {% if purchase.entity %}<a href="{{ url_for('entities.detail', entity_id=purchase.entity.id) }}">{{ purchase.entity.name }}</a>
+        {% if purchase.entity.account_code %} · compte <code>{{ purchase.entity.account_code }}</code>{% endif %}
+      {% else %}{{ purchase.supplier_name or 'Fournisseur inconnu' }} <span class="badge bg-warning text-dark">à rattacher</span>{% endif %}
+      · Qonto : {{ status_labels.get(purchase.qonto_status, purchase.qonto_status or '—') }}
+    </small>
+  </div>
+  <a href="{{ url_for('purchases.index') }}" class="btn btn-outline-secondary btn-sm">← Retour</a>
+</div>
+
+{% if purchase.review_reason %}
+<div class="alert alert-danger small">
+  <strong>À revoir.</strong> {{ purchase.review_reason }}
+  Annulez la comptabilisation pour reprendre les données de Qonto.
+</div>
+{% endif %}
+{% if state.reasons %}
+<div class="alert alert-warning small">
+  <strong>À compléter avant comptabilisation :</strong>
+  <ul class="mb-0">{% for r in state.reasons %}<li>{{ r }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-3">
+  <div class="col-md-8">
+    <table class="table table-sm mb-0">
+      <tbody>
+        <tr><th class="w-25">Date</th><td>{{ purchase.issue_date.strftime('%d/%m/%Y') if purchase.issue_date else '—' }}
+          {% if fiscal_year %}<small class="text-muted">· exercice {{ fiscal_year.label }}, {{ 'soumis' if fiscal_year.vat_liable else 'non soumis' }} à la TVA</small>{% endif %}</td></tr>
+        <tr><th>Échéance</th><td>{{ purchase.due_date.strftime('%d/%m/%Y') if purchase.due_date else '—' }}</td></tr>
+        <tr><th>Paiement</th><td>{{ purchase.payment_date.strftime('%d/%m/%Y') if purchase.payment_date else '—' }}</td></tr>
+        <tr><th>Montants Qonto</th><td>
+          HT {{ purchase.untaxed_cents | euros if purchase.untaxed_cents is not none else '—' }}
+          · TVA {{ purchase.tax_cents | euros if purchase.tax_cents is not none else '—' }}
+          · <strong>TTC {{ purchase.total_cents | euros }}</strong></td></tr>
+        {% if purchase.supplier_vat or purchase.supplier_iban %}
+        <tr><th>Fournisseur (Qonto)</th><td class="font-monospace small">{{ purchase.supplier_vat or '' }} {{ purchase.supplier_iban or '' }}</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+  <div class="col-md-4">
+    {% if purchase.journal_entry %}
+    <div class="card"><div class="card-body small">
+      Écriture <a href="{{ url_for('entries.detail', entry_id=purchase.journal_entry.id) }}">{{ purchase.journal_entry.reference }}</a>
+      du {{ purchase.journal_entry.entry_date.strftime('%d/%m/%Y') }}
+      <form method="post" action="{{ url_for('purchases.unpost', purchase_id=purchase.id) }}" class="mt-2" {{ hx_submit() }}>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline-danger btn-sm">Annuler la comptabilisation</button>
+      </form>
+    </div></div>
+    {% elif state.code == 'ready' %}
+    <form method="post" action="{{ url_for('purchases.post', purchase_id=purchase.id) }}" {{ hx_submit() }}>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-primary btn-sm">Comptabiliser</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<h5>Lignes</h5>
+<form method="post" action="{{ url_for('purchases.save_lines', purchase_id=purchase.id) }}" id="purchase-lines" {{ hx_submit() }}>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <table class="table table-sm align-middle">
+    <thead class="table-light">
+      <tr><th>Produit</th><th>Compte</th><th>Libellé</th><th class="text-end">HT</th>
+        <th class="text-end">Taux %</th><th class="text-end">TVA</th><th class="text-end">TTC</th>{% if editable %}<th></th>{% endif %}</tr>
+    </thead>
+    <tbody id="purchase-line-rows">
+      {% for line in purchase.lines %}
+      <tr>
+        {% if editable %}
+        <td>
+          <select name="product_id[]" class="form-select form-select-sm" aria-label="Produit">
+            <option value="">—</option>
+            {% for p in products %}<option value="{{ p.id }}" data-account="{{ p.purchase_account.code if p.purchase_account else '' }}" data-rate="{{ (p.vat_rate_bp | rate).replace(' %', '') }}" {{ 'selected' if line.product_id == p.id }}>{{ p.name }}</option>{% endfor %}
+          </select>
+        </td>
+        <td><input name="account_code[]" class="form-control form-control-sm font-monospace" list="charge-accounts" aria-label="Compte" value="{{ line.account.code if line.account else '' }}" style="width:7rem"></td>
+        <td><input name="label[]" class="form-control form-control-sm" aria-label="Libellé" value="{{ line.label or '' }}"></td>
+        <td><input name="untaxed[]" class="form-control form-control-sm text-end" inputmode="decimal" aria-label="HT" value="{{ amount(line.untaxed_cents) }}" style="width:7rem"></td>
+        <td><input name="vat_rate[]" class="form-control form-control-sm text-end" inputmode="decimal" aria-label="Taux de TVA" value="{{ (line.vat_rate_bp | rate).replace(' %', '') }}" placeholder="?" style="width:4.5rem"></td>
+        <td><input name="vat[]" class="form-control form-control-sm text-end" inputmode="decimal" aria-label="TVA" value="{{ amount(line.vat_cents) }}" style="width:6rem"></td>
+        <td class="text-end line-total">{{ line.total_cents | euros }}</td>
+        <td><button type="button" class="btn btn-link btn-sm text-danger p-0 remove-line" aria-label="Supprimer la ligne">✕</button></td>
+        {% else %}
+        <td>{{ line.product.name if line.product else '—' }}</td>
+        <td><code>{{ line.account.code if line.account else '—' }}</code></td>
+        <td>{{ line.label or '' }}</td>
+        <td class="text-end">{{ line.untaxed_cents | euros }}</td>
+        <td class="text-end">{{ line.vat_rate_bp | rate or '?' }}</td>
+        <td class="text-end">{{ line.vat_cents | euros }}</td>
+        <td class="text-end">{{ line.total_cents | euros }}</td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr class="fw-semibold">
+        <td colspan="6" class="text-end">Total des lignes / TTC Qonto</td>
+        <td class="text-end"><span id="lines-total">{{ purchase.lines | sum(attribute='total_cents') | euros }}</span>
+          / {{ purchase.total_cents | euros }}</td>
+        {% if editable %}<td></td>{% endif %}
+      </tr>
+    </tfoot>
+  </table>
+  {% if editable %}
+  <datalist id="charge-accounts">{% for a in charge_accounts %}<option value="{{ a.code }}">{{ a.label }}</option>{% endfor %}</datalist>
+  <div class="d-flex gap-2">
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="add-line">+ Ajouter une ligne</button>
+    <button type="submit" class="btn btn-primary btn-sm">Enregistrer les lignes</button>
+  </div>
+  <div class="form-text">TVA laissée vide : calculée à partir du taux. Les lignes enregistrées ne sont plus modifiées par la synchronisation ;
+    la facture est comptabilisée dès que tout est complet.</div>
+  {% endif %}
+</form>
+
+{% if editable %}
+<script>
+(function () {
+  const form = document.getElementById('purchase-lines');
+  const rows = document.getElementById('purchase-line-rows');
+  const totalBox = document.getElementById('lines-total');
+  const cents = (v) => { const n = parseFloat(String(v || '').replace(/\s/g, '').replace(',', '.')); return isNaN(n) ? null : Math.round(n * 100); };
+  const euros = (c) => (c / 100).toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
+
+  function lineTotal(tr) {
+    const ht = cents(tr.querySelector('[name="untaxed[]"]').value) || 0;
+    let vat = cents(tr.querySelector('[name="vat[]"]').value);
+    if (vat === null) {
+      const rate = parseFloat(String(tr.querySelector('[name="vat_rate[]"]').value).replace(',', '.'));
+      vat = isNaN(rate) ? 0 : Math.round(ht * rate / 100);
+    }
+    return ht + vat;
+  }
+  function refresh() {
+    let sum = 0;
+    rows.querySelectorAll('tr').forEach((tr) => {
+      const t = lineTotal(tr); sum += t;
+      tr.querySelector('.line-total').textContent = euros(t);
+    });
+    totalBox.textContent = euros(sum);
+  }
+  form.addEventListener('input', (e) => {
+    if (e.target.name === 'untaxed[]' || e.target.name === 'vat_rate[]') {
+      // Montant ou taux changé : la TVA est recalculée à l'enregistrement.
+      e.target.closest('tr').querySelector('[name="vat[]"]').value = '';
+    }
+    refresh();
+  });
+  form.addEventListener('change', (e) => {
+    if (e.target.name !== 'product_id[]') return;
+    const option = e.target.selectedOptions[0];
+    const tr = e.target.closest('tr');
+    if (option && option.dataset.account) tr.querySelector('[name="account_code[]"]').value = option.dataset.account;
+    if (option && option.dataset.rate) { tr.querySelector('[name="vat_rate[]"]').value = option.dataset.rate; tr.querySelector('[name="vat[]"]').value = ''; }
+    if (option && option.value && !tr.querySelector('[name="label[]"]').value) tr.querySelector('[name="label[]"]').value = option.textContent;
+    refresh();
+  });
+  form.addEventListener('click', (e) => {
+    if (e.target.classList.contains('remove-line')) { e.target.closest('tr').remove(); refresh(); }
+  });
+  document.getElementById('add-line').addEventListener('click', () => {
+    const template = rows.querySelector('tr');
+    if (!template) return;
+    const tr = template.cloneNode(true);
+    tr.querySelectorAll('input').forEach((i) => { i.value = ''; });
+    tr.querySelector('select').value = '';
+    rows.appendChild(tr);
+    refresh();
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}
