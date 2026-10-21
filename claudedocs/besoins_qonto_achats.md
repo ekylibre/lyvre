@@ -1,6 +1,6 @@
 # Besoins — Qonto, lot 2 : factures d'achat, fournisseurs et catalogue
 
-> Statut : **validé** (brainstorm du 2026-10-21, décisions au §9). Lot découpé en **2a** (détaillé ici)
+> Statut : **validé** (brainstorm du 2026-10-21, décisions au §9, QA9–QA12 tranchées le même jour). Lot découpé en **2a** (détaillé ici)
 > et **2b** (cadré au §8). Prochaine étape : `/sc:design` du lot 2a.
 > Source : note [`qonto.md`](qonto.md) (« Gestion des achats », « catalogue ») ; lot précédent :
 > [`besoins_qonto_transactions.md`](besoins_qonto_transactions.md) (réalisé).
@@ -94,14 +94,16 @@ l'application à partir du catalogue (A3).
   entité existante, ignorer), dans le même écran que les contreparties du lot 1.
 - A4.3 Une entité rattachée mémorise l'identifiant Qonto, la TVA et l'IBAN ; la synchro ne modifie plus
   ensuite son nom, son compte ni son produit par défaut.
-- A4.4 Compte fournisseur : 401 (ou le compte auxiliaire de l'entité s'il est renseigné).
+- A4.4 Compte fournisseur : **sous-compte 401 propre au fournisseur** (`account_code` de l'entité),
+  créé à la première comptabilisation s'il n'existe pas (QA10).
 
 ### A5 — Comptabilisation en engagement
 - A5.1 États dans l'application : **à compléter** (fournisseur ou lignes manquants) → **prête** →
   **comptabilisée**. Comptabiliser = écriture au journal **AC** à la date de facture :
-  débit 6xx par ligne (HT), débit 44566 (TVA), crédit 401 (TTC) ; avoir = inverse.
-- A5.2 Comptabilisation **unitaire ou par lot** (toutes les factures prêtes) ; jamais automatique à la
-  synchronisation (QA à confirmer en design).
+  débit 6xx par ligne (HT), débit 44566 (TVA), crédit 401 du fournisseur (TTC) ; avoir = inverse.
+  Exercice **non soumis à TVA** : débit 6xx TTC par ligne, pas de 44566 (QA11).
+- A5.2 Comptabilisation **automatique** dès qu'une facture devient « prête » (à la synchronisation ou
+  après complétion) ; bouton de rattrapage pour les factures prêtes non comptabilisées (QA9).
 - A5.3 Une facture comptabilisée n'est plus modifiable que par annulation de l'écriture
   (même garde que les écritures rapprochées).
 - A5.4 Date hors exercice ouvert : refus avec message, comme la saisie manuelle.
@@ -112,7 +114,7 @@ l'application à partir du catalogue (A3).
 - A6.2 Transaction liée à une facture comptabilisée et **non encore rapprochée** : écriture de
   règlement **401 / 512** automatique et rapprochement, **à la place des règles** (6xx / 512).
 - A6.3 Transaction déjà comptabilisée par une règle (6xx / 512) avant l'arrivée de la facture :
-  **signalée** (risque de double charge) avec une action « remplacer par un règlement 401 / 512 ».
+  **signalée** (risque de double charge) ; remplacement **en lot** par des règlements 401 / 512 (QA12).
 - A6.4 Paiement partiel ou multiple (plusieurs transactions) : chaque transaction solde sa part du 401.
 - A6.5 Vue du compte bancaire : transaction liée → numéro de facture et fournisseur ; filtre
   « débit sans facture ».
@@ -185,9 +187,7 @@ l'application à partir du catalogue (A3).
 | QA7 | Découpage | **2a** (catalogue, synchro, lignes, engagement, règlement) puis **2b** (saisie, PJ, OCR, dépôt Qonto). |
 | QA8 | Règlement | **401 / 512 automatique** pour une transaction liée à une facture comptabilisée, à la place des règles. |
 
-### Points à trancher en design (2a)
-
-1. Comptabilisation : par lot manuel (proposé) ou automatique dès qu'une facture est « prête » ?
-2. Compte fournisseur : 401 collectif seul, ou sous-comptes 401xxx par fournisseur (`account_code`) ?
-3. Association non assujettie à la TVA : TVA incluse dans la charge (pas de 44566) — paramètre par instance ?
-4. Transaction 6xx / 512 antérieure à la facture (A6.3) : remplacement manuel seulement, ou proposé en lot ?
+| QA9 | Déclenchement de la comptabilisation | **Automatique** dès qu'une facture est « prête » (synchro, complétion des lignes ou du fournisseur). |
+| QA10 | Compte fournisseur | **Un sous-compte 401 par fournisseur** (`account_code` de l'entité, créé si absent). |
+| QA11 | TVA | Gérée **par exercice comptable** : booléen « soumis à TVA » ; non soumis → TVA incluse dans la charge, pas de 44566. |
+| QA12 | Écritures de règle antérieures à la facture (A6.3) | Remplacement **en lot** par des règlements 401 / 512. |
