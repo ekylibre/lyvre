@@ -1,6 +1,9 @@
 from datetime import date
 from app.extensions import db
-from app.models import Account, BankTransaction, FiscalYear, Journal, JournalEntry, JournalLine
+from app.models import (
+    Account, BankTransaction, FiscalYear, Journal, JournalEntry, JournalLine, Purchase,
+    PurchasePayment,
+)
 
 
 class LedgerError(Exception):
@@ -130,6 +133,18 @@ def validate_lines(lines):
         raise LedgerError("Le total de l'écriture ne peut pas être nul.")
 
 
+def next_reference(journal_id, fy):
+    """« AC-2026-0007 » : numéro suivant le plus grand du journal et de l'exercice
+    (un compte des écritures redonnerait un numéro déjà pris après une suppression)."""
+    journal = db.session.get(Journal, journal_id)
+    prefix = f"{journal.code}-{fy.start_date.year}-"
+    references = db.session.query(JournalEntry.reference).filter(
+        JournalEntry.journal_id == journal_id, JournalEntry.fiscal_year_id == fy.id,
+        JournalEntry.reference.like(f"{prefix}%"))
+    numbers = [int(ref[len(prefix):]) for (ref,) in references if ref[len(prefix):].isdigit()]
+    return f"{prefix}{max(numbers, default=0) + 1:04d}"
+
+
 def post_entry(fiscal_year_id, journal_id, entry_date, description, lines, source="MANUAL", source_ref=None, reference=None, commit=True):
     """
     Create a balanced journal entry.
@@ -146,10 +161,7 @@ def post_entry(fiscal_year_id, journal_id, entry_date, description, lines, sourc
     validate_lines(lines)
 
     if reference is None:
-        from app.models import Journal
-        journal = Journal.query.get(journal_id)
-        count = JournalEntry.query.filter_by(journal_id=journal_id, fiscal_year_id=fiscal_year_id).count()
-        reference = f"{journal.code}-{fy.start_date.year}-{count + 1:04d}"
+        reference = next_reference(journal_id, fy)
 
     entry = JournalEntry(
         fiscal_year_id=fiscal_year_id,
@@ -348,6 +360,11 @@ def delete_entries(entry_ids):
         if line_ids:
             BankTransaction.query.filter(BankTransaction.journal_line_id.in_(line_ids)).update(
                 {"journal_line_id": None, "reconciled": False}, synchronize_session="fetch")
+        # Facture d'achat ou règlement adossé à l'écriture : redeviennent à comptabiliser
+        # (SQLite n'applique pas les ON DELETE SET NULL).
+        for model in (Purchase, PurchasePayment):
+            model.query.filter(model.journal_entry_id == entry.id).update(
+                {"journal_entry_id": None}, synchronize_session="fetch")
         results.append({"entry_id": entry_id, "status": "ok", "reference": entry.reference})
         db.session.delete(entry)
     try:

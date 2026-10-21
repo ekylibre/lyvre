@@ -193,7 +193,7 @@ def signed_amount(tx: dict) -> int:
 def _new_result() -> dict:
     return {"created": 0, "updated": 0, "unchanged": 0, "reversed": 0, "reversed_reconciled": 0,
             "skipped": 0, "conflicts": 0, "rules_matched": 0, "rules_posted": 0,
-            "linked_entities": 0, "proposed_counterparties": 0, "errors": []}
+            "linked_entities": 0, "proposed_counterparties": 0, "settled": 0, "errors": []}
 
 
 def upsert_transaction(bank_account: BankAccount, tx: dict, result: dict, created: list) -> None:
@@ -290,7 +290,7 @@ def _iter_pages(client, qonto_account_id, window):
 
 def sync_bank_account(bank_account_id, client=None, progress_cb=None) -> dict:
     """Synchronise les transactions Qonto d'un compte bancaire rattaché."""
-    from app.services import counterparties, qonto_client, rules_engine
+    from app.services import counterparties, purchase_settlement, qonto_client, rules_engine
 
     bank_account = db.session.get(BankAccount, bank_account_id)
     if bank_account is None or not bank_account.qonto_account_id:
@@ -312,6 +312,13 @@ def sync_bank_account(bank_account_id, client=None, progress_cb=None) -> dict:
             # leurs règles appliquées et la reprise ne les recrée pas.
             db.session.commit()
             if created:
+                # Transactions payant une facture d'achat : règlement 401 / banque, pas de règle
+                # (apply_rules les ignore).
+                purchase_settlement.link_transactions(created)
+                db.session.commit()
+                settlement = purchase_settlement.settle(transactions=created)
+                result["settled"] += settlement["settled"]
+                result["errors"].extend(settlement["errors"])
                 rules = rules_engine.apply_rules(created)
                 result["rules_matched"] += rules["matched"]
                 result["rules_posted"] += rules["posted"]

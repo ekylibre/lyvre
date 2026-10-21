@@ -71,6 +71,36 @@
   </div>
 </div>
 
+{% if purchase.payments %}
+<h5>Règlements</h5>
+<table class="table table-sm align-middle mb-4">
+  <thead class="table-light"><tr><th>Date</th><th>Compte bancaire</th><th>Libellé</th><th class="text-end">Montant</th><th>État</th></tr></thead>
+  <tbody>
+    {% for pay in purchase.payments %}
+    {% set t = pay.bank_transaction %}
+    <tr>
+      {% if t %}
+      <td>{{ t.transaction_date.strftime('%d/%m/%Y') }}</td>
+      <td><a href="{{ url_for('bank_accounts.transactions', ba_id=t.bank_account_id) }}">{{ t.bank_account.label }}</a></td>
+      <td class="small">{{ t.label or '' }}</td>
+      <td class="text-end">{{ t.amount_cents | euros }}</td>
+      <td>
+        {% if pay.journal_entry %}<span class="badge bg-success">Réglée</span>
+          <a href="{{ url_for('entries.detail', entry_id=pay.journal_entry.id) }}" class="small">{{ pay.journal_entry.reference }}</a>
+        {% elif t.is_reversed %}<span class="badge bg-danger">Annulée par la banque</span>
+        {% elif t.reconciled %}<a href="{{ url_for('purchases.settlements') }}" class="badge bg-danger text-decoration-none">Passée par une autre écriture</a>
+        {% else %}<span class="badge bg-warning text-dark">En attente de comptabilisation</span>{% endif %}
+      </td>
+      {% else %}
+      <td colspan="4" class="text-muted small">Transaction Qonto pas encore importée ({{ pay.qonto_transaction_id }}) — synchronisez le compte bancaire.</td>
+      <td><span class="badge bg-secondary">À importer</span></td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
 <h5>Lignes</h5>
 <form method="post" action="{{ url_for('purchases.save_lines', purchase_id=purchase.id) }}" id="purchase-lines" {{ hx_submit() }}>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

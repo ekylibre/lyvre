@@ -101,7 +101,7 @@ flowchart TD
 | E.4 | `to_replace` / `replace_many` (écritures de règle seulement, résultat par élément) ; écran `/purchases/settlements` cochable ; bandeau dans la liste | `app/services/purchase_settlement.py`, `app/views/purchases.py`, `app/templates/purchases/settlements.html` |
 | E.5 | Tests (ordre transaction / facture dans les deux sens, règles ignorées, remplacement, rapprochement manuel signalé, annulée) | `tests/test_purchase_settlement.py`, `tests/test_qonto_sync.py`, `tests/test_rules_engine*.py` |
 
-**✅ CP E** : `make check` vert ; US4 sur la copie SCI.
+**✅ CP E** (fait) : `make check` vert ; US4 sur la copie SCI : Dupré réglée par BQ 401001 / 512 rapprochée de la transaction réelle, Papin liée en attente.
 
 ### Phase F — Fournisseurs proposés, vue du compte, documentation (A4.2, A6.5, D13)
 

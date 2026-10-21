@@ -195,8 +195,12 @@ def post(p: Purchase):
 
 
 def post_ready(purchases) -> dict:
-    """Comptabilise les factures prêtes, chacune dans sa propre transaction (commit)."""
-    result = {"posted": 0, "errors": []}
+    """Comptabilise les factures prêtes, chacune dans sa propre transaction (commit),
+    puis passe les règlements des transactions déjà importées qui les paient."""
+    from app.services import purchase_settlement
+
+    result = {"posted": 0, "settled": 0, "errors": []}
+    posted = []
     for p in purchases:
         if purchase_state(p).code != "ready":
             continue
@@ -204,9 +208,14 @@ def post_ready(purchases) -> dict:
             post(p)
             db.session.commit()
             result["posted"] += 1
+            posted.append(p)
         except LedgerError as exc:
             db.session.rollback()
             result["errors"].append(f"Facture {p.invoice_number or p.id} : {exc}")
+    if posted:
+        settlement = purchase_settlement.settle(purchases=posted)
+        result["settled"] = settlement["settled"]
+        result["errors"].extend(settlement["errors"])
     return result
 
 

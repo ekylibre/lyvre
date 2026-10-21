@@ -22,6 +22,8 @@
     <div>
       {{ r.get('created', 0) }} nouvelle(s), {{ r.get('updated', 0) }} mise(s) à jour
       sur {{ r.get('read', 0) }} lue(s).
+      {% if r.get('posted') %}{{ r.posted }} comptabilisée(s).{% endif %}
+      {% if r.get('settled') %}{{ r.settled }} règlement(s) passé(s).{% endif %}
       {% if r.get('hidden') %}{{ r.hidden }} masquée(s) (rejetée, écartée ou non financière).{% endif %}
       {% if r.get('without_supplier') %}
         <a href="{{ url_for('purchases.index', no_supplier=1) }}">{{ r.without_supplier }} sans fournisseur rattaché</a>.

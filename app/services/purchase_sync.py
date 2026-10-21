@@ -20,7 +20,7 @@ from decimal import Decimal, InvalidOperation
 from app.extensions import db
 from app.models import Entity, Purchase, PurchaseLine, SyncCursor
 from app.models.sync_cursor import CURSOR_QONTO_SUPPLIER_INVOICES
-from app.services import catalog
+from app.services import catalog, purchase_settlement
 from app.services.counterparties import name_key
 from app.services.qonto_sync import (
     CURSOR_OVERLAP, PER_PAGE, SPLIT_THRESHOLD, _paris_midnight_utc, _parse_utc, default_sync_from,
@@ -188,7 +188,8 @@ def match_entity(purchase: Purchase) -> Entity | None:
 
 def _new_result() -> dict:
     return {"read": 0, "created": 0, "updated": 0, "unchanged": 0, "hidden": 0,
-            "to_review": 0, "without_supplier": 0, "posted": 0, "to_complete": 0, "errors": []}
+            "to_review": 0, "without_supplier": 0, "posted": 0, "settled": 0, "to_complete": 0,
+            "errors": []}
 
 
 def upsert_invoice(inv: dict, result: dict) -> Purchase:
@@ -202,6 +203,8 @@ def upsert_invoice(inv: dict, result: dict) -> Purchase:
         result["hidden"] += purchase.is_hidden
     elif purchase.source_updated_at and purchase.source_updated_at == fields["source_updated_at"]:
         result["unchanged"] += 1
+        # Liens de paiement recalculés quand même (transaction importée depuis, liens absents).
+        purchase_settlement.link_invoice(purchase)
         return purchase
     else:
         _update(purchase, fields, result)
@@ -228,6 +231,7 @@ def _complete(purchase: Purchase, inv: dict, result: dict) -> None:
 
     if purchase.journal_entry_id is None and not purchase.lines_edited:
         purchase.lines = default_lines(purchase, catalog.product_for(purchase.entity), taxes(inv))
+    purchase_settlement.link_invoice(purchase)
 
 
 def _update(purchase: Purchase, fields: dict, result: dict) -> None:
@@ -331,10 +335,16 @@ def sync_supplier_invoices(client=None, progress_cb=None) -> dict:
                 if progress_cb:
                     progress_cb(result["read"], None, f"{result['read']} facture(s) lue(s)…")
             db.session.commit()
-            # Comptabilisation automatique des factures devenues prêtes (une transaction chacune).
+            # Comptabilisation automatique des factures devenues prêtes (une transaction chacune),
+            # puis règlement des transactions déjà importées qui les paient.
             posting = purchase_posting.post_ready(touched)
             result["posted"] += posting["posted"]
+            result["settled"] += posting["settled"]
             result["errors"].extend(posting["errors"])
+            # Factures déjà comptabilisées dont le paiement vient d'être lié.
+            settlement = purchase_settlement.settle(purchases=touched)
+            result["settled"] += settlement["settled"]
+            result["errors"].extend(settlement["errors"])
 
     row.synced_at = started
     db.session.commit()

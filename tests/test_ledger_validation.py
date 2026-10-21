@@ -168,3 +168,21 @@ def test_update_refused_when_reconciled_or_closed(base):
     db.session.commit()
     with pytest.raises(LedgerError, match="clôturé"):
         update_entry(other, clean)
+
+
+def test_reference_follows_highest_number_after_deletion(app):
+    from datetime import date
+    from app.models import Account, FiscalYear, Journal
+    from app.services.ledger import delete_entries, post_entry
+
+    fy = FiscalYear(label="2026", start_date=date(2026, 1, 1), end_date=date(2026, 12, 31))
+    journal = Journal(code="AC", label="Achats")
+    a, b = Account(code="6061", label="Charge"), Account(code="401", label="Fournisseurs")
+    db.session.add_all([fy, journal, a, b])
+    db.session.commit()
+    lines = [{"account_id": a.id, "debit_cents": 100}, {"account_id": b.id, "credit_cents": 100}]
+    post = lambda: post_entry(fy.id, journal.id, date(2026, 3, 1), "x", lines)
+    first, second = post(), post()
+    assert (first.reference, second.reference) == ("AC-2026-0001", "AC-2026-0002")
+    delete_entries([first.id])
+    assert post().reference == "AC-2026-0003"

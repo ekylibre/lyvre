@@ -9,7 +9,9 @@ from app.extensions import db
 from app.frontend import is_htmx
 from app.models import Account, Entity, Purchase, SyncJob
 from app.models.sync_job import SYNC_KIND_QONTO_INVOICES
-from app.services import catalog, external_config, purchase_posting, purchase_sync
+from app.services import (
+    catalog, external_config, purchase_posting, purchase_settlement, purchase_sync,
+)
 from app.services.ledger import LedgerError
 from app.services.purchase_posting import STATE_LABELS, purchase_state
 from app.services.purchase_sync import STATUS_LABELS
@@ -63,6 +65,7 @@ def index():
         state_labels=STATE_LABELS, state=state,
         to_complete=purchase_posting.count_to_complete(),
         to_review=Purchase.query.filter(Purchase.review_reason.isnot(None)).count(),
+        to_replace=sum(r.replaceable for r in purchase_settlement.to_replace()),
         q=q, status=status, entity_id=entity_id, unpaid=unpaid, no_supplier=no_supplier,
         show_hidden=show_hidden,
         hidden_count=Purchase.query.filter(Purchase.is_hidden.is_(True)).count(),
@@ -186,3 +189,29 @@ def post_ready():
     for error in outcome["errors"][:10]:
         flash(error, "danger")
     return redirect(url_for("purchases.index"))
+
+
+@bp.route("/settlements")
+@login_required
+def settlements():
+    rows = purchase_settlement.to_replace()
+    return render_template("purchases/settlements.html",
+                           replaceable=[r for r in rows if r.replaceable],
+                           manual=[r for r in rows if not r.replaceable])
+
+
+@bp.route("/settlements/replace", methods=["POST"])
+@login_required
+def replace_settlements():
+    ids = [int(i) for i in request.form.getlist("transaction_ids") if i.isdigit()]
+    if not ids:
+        flash("Aucune transaction sélectionnée.", "warning")
+        return redirect(url_for("purchases.settlements"))
+    outcome = purchase_settlement.replace_many(ids)
+    if outcome["counters"]["ok"]:
+        flash(f"{outcome['counters']['ok']} écriture(s) de règle remplacée(s) par un règlement "
+              "fournisseur.", "success")
+    for row in outcome["results"]:
+        if row["status"] == "error":
+            flash(f"Transaction {row['id']} : {row['message']}", "danger")
+    return redirect(url_for("purchases.settlements"))

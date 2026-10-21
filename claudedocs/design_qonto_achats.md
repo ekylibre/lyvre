@@ -293,3 +293,10 @@ Menu principal : « Factures d'achat » ; Paramètres : « Catalogue ».
   centimes (316,36 ÷ 10 % = 3 163,60 ≠ 3 163,64) → D4 utilise le HT Qonto. Devise dans
   `total_amount.currency` (`currency` de premier niveau à `null`). `supplier_snapshot` sans `email`
   possible ; `vat_number` et `iban` présents.
+- **Phase D** : `ledger.post_entry` numérotait « nombre d'écritures + 1 » → doublon de référence après
+  suppression ; corrigé en phase E (`next_reference` : plus grand numéro + 1).
+- **Phase E** : SQLite n'applique pas les `ON DELETE SET NULL` (clés étrangères non activées) →
+  `ledger.delete_entries` délie lui-même factures et règlements de l'écriture supprimée. Les factures
+  importées avant l'arrivée des liens de paiement ne sont relues qu'après une modification dans Qonto
+  (synchro incrémentale) ; une facture relue sans changement recalcule tout de même ses liens, et une
+  facture déjà comptabilisée est réglée dès que son lien apparaît (`settle` sur toute la page).

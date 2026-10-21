@@ -44,6 +44,12 @@
   </div>
 </div>
 
+{% if to_replace %}
+<div class="alert alert-danger small py-2">
+  <a href="{{ url_for('purchases.settlements') }}">{{ to_replace }} paiement(s) de facture déjà passé(s) en charge par une règle</a> :
+  la charge serait comptée deux fois, à remplacer par un règlement fournisseur.
+</div>
+{% endif %}
 {% if to_complete or to_review %}
 <div class="alert alert-warning small py-2 d-flex justify-content-between align-items-center gap-2 flex-wrap">
   <div>
