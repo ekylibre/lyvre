@@ -1,6 +1,7 @@
 # Workflow — Qonto, lot 2b : saisie de factures d'achat, pièce jointe et OCR
 
-> **Statut : en cours** — phases A à D réalisées, phase E codée (envoi réel en attente d'accord) (2026-10-22). Sources : [`besoins_qonto_achats_saisie.md`](besoins_qonto_achats_saisie.md)
+> **Statut : RÉALISÉ** (2026-10-22), sauf **E.5** (envoi réel unique à Qonto) reporté à la demande de
+> l'utilisateur. Écarts au design : [`design_qonto_achats_saisie.md` §9](design_qonto_achats_saisie.md). Sources : [`besoins_qonto_achats_saisie.md`](besoins_qonto_achats_saisie.md)
 > (QB1 à QB8), [`design_qonto_achats_saisie.md`](design_qonto_achats_saisie.md) (D1 à D13).
 
 ## 1. Objectif
@@ -141,6 +142,10 @@ une facture saisie revenue de Qonto n'est jamais masquée par son statut Qonto. 
 | F.4 | Besoins cochés, workflow RÉALISÉ, écarts au design ; image Docker (OCR fonctionnel dans le conteneur) | `claudedocs/*`, `Dockerfile` |
 
 **✅ CP final** : `make check` vert ; US1 à US5 cochés ; sauvegarde / restauration `.zip` vérifiée sur copie ; OCR vérifié dans l'image Docker.
+— *Réalisé* : 629 tests. Sauvegarde de la copie SCI : archive `database.db` + 2 pièces ; factures et
+pièces supprimées puis restaurées depuis l'archive (4 factures, 2 PDF ; `pre-restore-….zip` créé).
+Image Docker reconstruite : Tesseract 5.3.0 (`fra`), PyMuPDF 1.26.7 ; scan Free 1,2 s, photo du ticket
+2,0 s, PDF texte instantané. US5 : critère « apparaît dans Qonto » en attente de l'essai réel (E.5).
 
 ## 5. Points d'attention
 

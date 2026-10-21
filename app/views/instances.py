@@ -88,7 +88,7 @@ def new():
 @login_required
 @admin_required
 def import_upload():
-    """Upload a .db / .backup file: restore the matching instance, or create a new one."""
+    """Upload a .zip archive or .db / .backup file: restore the matching instance, or create a new one."""
     if request.method == "POST":
         uploaded = request.files.get("backup_file")
         if uploaded is None or not uploaded.filename:
@@ -152,7 +152,7 @@ def import_upload():
             return render_template("instances/import.html", form=request.form)
 
         try:
-            instance_backup.stage_upload_to_path(uploaded, target_path)
+            instance_backup.stage_upload_to_path(uploaded, target_path, slug)
         except instance_backup.BackupError as e:
             flash(str(e), "danger")
             return render_template("instances/import.html", form=request.form)
@@ -243,7 +243,7 @@ def download_backup(instance_id, filename):
         path,
         as_attachment=True,
         download_name=filename,
-        mimetype="application/octet-stream",
+        mimetype="application/zip" if filename.endswith(".zip") else "application/octet-stream",
     )
 
 

@@ -134,24 +134,26 @@ qui n'y passent pas, et la situation diffère selon l'instance :
 ## 6. Récits utilisateur et critères d'acceptation
 
 **US1 — Saisir depuis un PDF (Seconde Nature).** Le trésorier dépose la facture PDF d'un fournisseur connu.
-- [ ] Fournisseur, n°, date, HT / TVA / TTC sont préremplis ; les lignes viennent du produit par défaut.
-- [ ] Après validation, la facture est comptabilisée (AC) et la pièce est consultable depuis la fiche.
-- [ ] Redéposer la même facture déclenche l'avertissement de doublon.
+- [x] Fournisseur, n°, date, HT / TVA / TTC sont préremplis ; les lignes viennent du produit par défaut.
+- [x] Après validation, la facture est comptabilisée (AC) et la pièce est consultable depuis la fiche.
+- [x] Redéposer la même facture déclenche l'avertissement de doublon.
 
 **US2 — Scan ou photo.** Le trésorier dépose une facture scannée (image ou PDF image).
-- [ ] L'OCR préremplit au moins le TTC et la date ; les champs incertains sont signalés.
+- [x] L'OCR préremplit au moins le TTC et la date ; les champs incertains sont signalés.
 
 **US3 — Facture électronique.** Le trésorier dépose un PDF Factur-X.
-- [ ] Tous les champs (montants, TVA par taux, n° de TVA du fournisseur) sont repris sans erreur.
+- [x] Tous les champs (montants, TVA par taux, n° de TVA du fournisseur) sont repris sans erreur.
+  *(vérifié sur un XML CII de test ; pas encore sur une facture Factur-X réelle)*
 
 **US4 — Règlement OFX.** L'import OFX amène le débit qui paie la facture.
-- [ ] Débit unique de même montant dans la fenêtre → règlement 401 / banque passé et rapproché.
-- [ ] Deux candidats → suggestions sur la fiche ; un clic règle la facture.
+- [x] Débit unique de même montant dans la fenêtre → règlement 401 / banque passé et rapproché.
+- [x] Deux candidats → suggestions sur la fiche ; un clic règle la facture.
 
 **US5 — SCI avec Qonto.** Le trésorier saisit une facture, case « Envoyer à Qonto » cochée.
 - [ ] La facture apparaît dans Qonto ; la synchronisation suivante ne crée pas de doublon et garde la saisie.
-- [ ] Case décochée : la facture reste locale et se règle comme en US4.
-- [ ] Envoi en échec : message clair, bouton Renvoyer sans doublon.
+  *(testé avec un client simulé ; essai réel unique reporté à la demande de l'utilisateur)*
+- [x] Case décochée : la facture reste locale et se règle comme en US4.
+- [x] Envoi en échec : message clair, bouton Renvoyer sans doublon.
 
 ## 7. Hors périmètre
 

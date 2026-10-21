@@ -2,9 +2,10 @@
 
 Chaque instance possède sa propre base SQLite. L'interface `/instances/<id>` permet à un admin de :
 
-- créer une sauvegarde atomique (copie SQLite « hot »),
+- créer une sauvegarde : archive `.zip` contenant la base (copie SQLite « hot », atomique) et les
+  **pièces jointes** de l'instance (factures d'achat saisies),
 - télécharger un fichier de sauvegarde,
-- restaurer l'instance à partir d'un fichier `.db`,
+- restaurer l'instance à partir d'une archive `.zip` (base + pièces) ou d'un fichier `.db` (base seule),
 - supprimer une vieille sauvegarde.
 
 > Les instances Postgres ne sont pas couvertes par ce mécanisme — un message d'erreur explicite s'affiche, et il faut utiliser `pg_dump` / `pg_restore` côté serveur.
@@ -16,11 +17,20 @@ Chaque instance possède sa propre base SQLite. L'interface `/instances/<id>` pe
 Tous les fichiers de sauvegarde vivent dans `instance/backups/`. Convention de nommage :
 
 ```
-<slug>-YYYYMMDD-HHMMSS.db                # sauvegarde manuelle
-pre-restore-<slug>-YYYYMMDD-HHMMSS.db    # snapshot automatique pris avant une restauration
+<slug>-YYYYMMDD-HHMMSS.zip                # sauvegarde manuelle
+pre-restore-<slug>-YYYYMMDD-HHMMSS.zip    # snapshot automatique pris avant une restauration
+<slug>-YYYYMMDD-HHMMSS.db                 # ancienne sauvegarde (base seule), toujours restaurable
 ```
 
-Le préfixe `pre-restore-` distingue les snapshots de sécurité créés automatiquement avant chaque restauration.
+Contenu d'une archive :
+
+```
+database.db                              # copie de la base de l'instance
+uploads/achats/AAAA/MM/<id>-<nom>.pdf    # pièces de instance/uploads/<slug>/ (sauf tmp/, en attente)
+```
+
+Le préfixe `pre-restore-` distingue les snapshots de sécurité créés automatiquement avant chaque
+restauration. Une ancienne sauvegarde `.db` porte le badge « base seule » dans la liste.
 
 ---
 
@@ -42,7 +52,7 @@ La sauvegarde apparaît immédiatement dans la liste, avec sa taille et son horo
 
 ## Télécharger une sauvegarde
 
-Cliquer **Télécharger** envoie le fichier `.db` au navigateur en `application/octet-stream`. Le contenu est identique à un fichier SQLite ordinaire — vous pouvez l'ouvrir avec n'importe quel outil (DB Browser for SQLite, sqlite3 CLI, etc.).
+Cliquer **Télécharger** envoie l'archive (`application/zip`). Une fois décompressée, `database.db` est un fichier SQLite ordinaire — vous pouvez l'ouvrir avec n'importe quel outil (DB Browser for SQLite, sqlite3 CLI, etc.) ; `uploads/` contient les pièces jointes.
 
 > **Attention sécurité** — Un fichier de sauvegarde contient **tous les credentials** stockés dans la table `external_connections`. Traitez ces fichiers comme des secrets : ne les laissez pas traîner sur des disques partagés ou dans des emails non chiffrés.
 
@@ -50,10 +60,10 @@ Cliquer **Télécharger** envoie le fichier `.db` au navigateur en `application/
 
 ## Importer un fichier (créer ou restaurer depuis la liste)
 
-Depuis **Instances → Parcourir un fichier…**, vous pouvez uploader un fichier `.db` ou `.backup` SQLite. Comportement automatique :
+Depuis **Instances → Parcourir un fichier…**, vous pouvez uploader une archive `.zip` ou un fichier `.db` / `.backup` SQLite. Comportement automatique :
 
-- **Si le slug** déduit du nom de fichier (`<slug>[-YYYYMMDD-HHMMSS]?.db|sqlite|backup`) **correspond à une instance existante** → restauration de cette instance (snapshot de sécurité `pre-restore-…` créé automatiquement).
-- **Sinon** → création d'une nouvelle instance utilisant le fichier comme base. Le slug et le libellé sont modifiables avant l'envoi.
+- **Si le slug** déduit du nom de fichier (`<slug>[-YYYYMMDD-HHMMSS]?.zip|db|sqlite|backup`) **correspond à une instance existante** → restauration de cette instance (snapshot de sécurité `pre-restore-…` créé automatiquement).
+- **Sinon** → création d'une nouvelle instance utilisant le fichier comme base (et, pour une archive, ses pièces dans `instance/uploads/<slug>/`). Le slug et le libellé sont modifiables avant l'envoi.
 
 Cas d'usage typique :
 
@@ -66,18 +76,24 @@ Cas d'usage typique :
 ## Restaurer une instance
 
 1. **Instances → Détail → Restaurer un fichier…**
-2. Sélectionner un fichier `.db` (SQLite valide).
+2. Sélectionner une archive `.zip` ou un fichier `.db` (SQLite valide).
 3. Confirmer la boîte de dialogue.
 
 Le service effectue dans l'ordre :
 
-1. Vérification du magic header (`SQLite format 3\0`).
-2. Vérification de l'intégrité via `PRAGMA integrity_check`.
-3. **Création d'un snapshot de sécurité** (`pre-restore-…`) de la base actuelle.
-4. Remplacement atomique du fichier de l'instance (`os.replace`).
-5. Purge du cache d'engines pour cette instance.
+1. Reconnaissance du type par l'en-tête (`SQLite format 3\0` ou `PK\x03\x04`).
+2. Archive : contrôle des noms (`database.db` obligatoire, sinon seulement `uploads/…` ; aucun chemin
+   absolu, aucun `..`, aucun lien symbolique), du nombre de fichiers (50 000) et de la taille
+   décompressée (4 Go).
+3. Vérification de l'intégrité de la base via `PRAGMA integrity_check`.
+4. Archive : extraction des pièces dans un dossier d'attente (chemins confinés).
+5. **Création d'un snapshot de sécurité** (`pre-restore-…`, base et pièces actuelles).
+6. Remplacement atomique du fichier de l'instance (`os.replace`), puis du dossier des pièces
+   (archive seulement : un `.db` laisse les pièces telles quelles).
+7. Purge du cache d'engines pour cette instance.
 
-Si l'une de ces étapes échoue, la base actuelle reste intacte et un message d'erreur explicite est affiché.
+Si l'une des étapes 1 à 5 échoue, la base et les pièces actuelles restent intactes et un message
+d'erreur explicite est affiché.
 
 ### Rollback
 
@@ -106,7 +122,7 @@ Cliquer **Supprimer** sur une ligne de la liste demande confirmation puis suppri
 
 - **Postgres non supporté** pour backup/restore via UI.
 - **Pas de planification** — il n'y a pas de cron intégré. Pour des sauvegardes automatisées, un cron côté OS peut appeler la base de données directement (à scripter à part).
-- **Pas de chiffrement** — le fichier `.db` est en clair. Si le serveur héberge des données sensibles, chiffrer le système de fichiers en amont (LUKS, eCryptfs, etc.).
+- **Pas de chiffrement** — l'archive (base et pièces) est en clair. Si le serveur héberge des données sensibles, chiffrer le système de fichiers en amont (LUKS, eCryptfs, etc.).
 - **Concurrence pendant restauration** — SQLite ne bloque pas les requêtes lectures en cours, mais une lecture commencée juste avant le `os.replace` peut voir un état incohérent. À éviter en heures de pointe ; un mode maintenance sera ajouté plus tard si nécessaire.
 - **Pas d'audit log** — l'horodatage des fichiers est la seule trace.
 
@@ -117,7 +133,8 @@ Cliquer **Supprimer** sur une ligne de la liste demande confirmation puis suppri
 | Message | Cause | Action |
 |---------|-------|--------|
 | « Sauvegardes disponibles uniquement pour les instances SQLite » | L'instance pointe sur Postgres ou autre. | Utiliser les outils natifs (`pg_dump`). |
-| « Le fichier n'est pas une base SQLite valide » | Magic header absent — fichier corrompu ou mauvais format. | Vérifier que le fichier provient bien d'une sauvegarde précédente. |
+| « Le fichier n'est ni une base SQLite ni une archive de sauvegarde » | En-tête inconnu — fichier corrompu ou mauvais format. | Vérifier que le fichier provient bien d'une sauvegarde précédente. |
+| « Archive refusée : … » | Archive modifiée ou étrangère (chemin interdit, contenu inattendu, `database.db` absent, trop volumineuse). | Utiliser une archive produite par l'application. |
 | « PRAGMA integrity_check a échoué » | Fichier SQLite corrompu. | Régénérer une sauvegarde depuis une source saine. |
 | « Le fichier dépasse la taille maximale » | > 500 Mo. | Augmenter `MAX_CONTENT_LENGTH` dans `app/__init__.py` et redémarrer. |
 | « Nom de fichier de sauvegarde invalide » | URL trafiquée (ne matche pas la regex). | Ne pas modifier les URLs à la main — utiliser les liens de l'UI. |

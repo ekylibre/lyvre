@@ -205,3 +205,19 @@ Entité : champ SIRET.
 | Doublon Qonto (renvoi) | Même clé d'idempotence ; `qonto_id` mémorisé dès la première réponse |
 | Taille des sauvegardes | Pièces ≤ 10 Mo chacune ; affichage de la taille de l'archive |
 | Tesseract absent (poste, CI) | Dégradation propre, tests OCR ignorés |
+
+## 9. Écarts constatés à la réalisation
+
+| Sujet | Design | Réalisé | Raison |
+|-------|--------|---------|--------|
+| Reconnaissance par IBAN | Ordre id → TVA → SIRET → IBAN → nom | Idem ; l'IBAN rattache désormais aussi les factures Qonto (lot 2a : simple suggestion) | `find_supplier` unique pour Qonto et la saisie |
+| Champs « à vérifier » (D4) | Tous les champs `text` / `ocr` | OCR : tous ; texte natif : seulement devinés (nom depuis le site web, date sans libellé), incohérents (HT + TVA ≠ TTC) et IBAN | Une facture PDF lisible n'était plus qu'une liste d'alertes |
+| Remise après le total | — | Ligne négative 6098 (à défaut 609), TTC = montant payé ; une ligne négative passe au crédit à la comptabilisation | Ticket Brico Dépôt réel (points fidélité) ; choix utilisateur « en remise » |
+| IBAN | — | IBAN masqués ou invalides (mod 97) ignorés, IBAN des comptes bancaires de l'organisation écartés | Les factures Free portent l'IBAN (masqué) du client |
+| Date de facture | Facultative | Obligatoire à la saisie | Rangement de la pièce et comptabilisation |
+| Éditeur de lignes | Repris de la fiche | Extrait en macro `_lines_editor.html` partagée | Une seule implémentation |
+| Candidats de règlement (D11) | Débits non rapprochés | Aussi les débits rapprochés par une écriture de règle (liés puis « à remplacer ») | S6.4 |
+| Lien automatique | Candidat unique | Candidat unique **pour l'ensemble** des factures en attente | Point d'attention 2 du workflow |
+| `source` du dépôt Qonto | `supplier_invoices` | Omis (facultatif d'après la documentation) | Moins d'hypothèses sur l'API |
+| Annulation de comptabilisation | — | Ne réapplique plus les données Qonto à une facture saisie | QB2 (la saisie l'emporte) |
+| Sauvegardes | `.zip` | `.zip` ; dossier `tmp/` (pièces en attente) exclu ; badge « base seule » pour les anciennes `.db` | Fichiers temporaires |

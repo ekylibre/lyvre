@@ -71,7 +71,8 @@
         <tbody>
           {% for b in backups %}
             <tr>
-              <td><code>{{ b.filename }}</code></td>
+              <td><code>{{ b.filename }}</code>
+                {% if b.filename.endswith('.db') %}<span class="badge bg-light text-dark border" title="Ancienne sauvegarde : base seule, sans les pièces jointes">base seule</span>{% endif %}</td>
               <td>
                 {% if b.is_pre_restore %}
                   <span class="badge bg-warning text-dark">Pré-restauration</span>

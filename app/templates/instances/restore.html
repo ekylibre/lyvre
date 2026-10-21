@@ -8,8 +8,9 @@
 </p>
 
 <div class="alert alert-warning">
-  <strong>Attention</strong> — La base actuelle sera écrasée par le fichier importé.
-  Une sauvegarde de sécurité (<code>pre-restore-…</code>) est créée automatiquement
+  <strong>Attention</strong> — La base actuelle sera écrasée par le fichier importé ; avec une
+  archive <code>.zip</code>, les pièces jointes de l'instance (factures d'achat) sont aussi remplacées.
+  Une sauvegarde de sécurité (<code>pre-restore-…</code>, base et pièces) est créée automatiquement
   avant l'opération.
 </div>
 
@@ -19,8 +20,8 @@
           onsubmit="return confirm('Confirmer la restauration de l\'instance « {{ instance.label }} » ?');">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="mb-3">
-        <label class="form-label">Fichier de sauvegarde (.db SQLite)</label>
-        <input type="file" name="backup_file" class="form-control" accept=".db,.sqlite,application/x-sqlite3" required>
+        <label class="form-label">Fichier de sauvegarde (archive <code>.zip</code>, ou ancienne sauvegarde <code>.db</code> : base seule, pièces inchangées)</label>
+        <input type="file" name="backup_file" class="form-control" accept=".zip,.db,.sqlite,application/zip,application/x-sqlite3" required>
       </div>
       <button type="submit" class="btn btn-warning">Restaurer</button>
       <a href="{{ url_for('instances.detail', instance_id=instance.id) }}"

@@ -6,6 +6,9 @@
 - pip
 - **Node.js 22** (`.nvmrc`) et npm — uniquement pour construire le front (îlots React) ; inutile
   pour un déploiement Docker, où le build est fait dans l'image
+- **Tesseract** avec le français, pour l'OCR des factures d'achat scannées ou photographiées
+  (`sudo apt install tesseract-ocr tesseract-ocr-fra`) ; facultatif : sans lui, les PDF texte et
+  Factur-X restent lus, un scan ouvre un formulaire à remplir. Inclus dans l'image Docker.
 
 ## Installation
 

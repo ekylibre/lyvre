@@ -218,7 +218,7 @@ Voir [models.md](models.md#rule--règle-de-catégorisation-tenant) pour le sché
 
 ## Sauvegardes per-instance
 
-Les bases tenant SQLite peuvent être sauvegardées et restaurées depuis l'UI `/instances/<id>`. Les fichiers vivent dans `instance/backups/<slug>-YYYYMMDD-HHMMSS.db`. Voir [backups.md](backups.md) pour le workflow utilisateur et les limitations connues.
+Les bases tenant SQLite peuvent être sauvegardées et restaurées depuis l'UI `/instances/<id>`. Les archives vivent dans `instance/backups/<slug>-YYYYMMDD-HHMMSS.zip` (base + pièces jointes de `instance/uploads/<slug>/`). Voir [backups.md](backups.md) pour le workflow utilisateur et les limitations connues.
 
 ## Hors-périmètre (v1)
 

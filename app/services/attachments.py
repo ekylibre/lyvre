@@ -23,6 +23,7 @@ from app.tenant import current_instance
 
 MAX_SIZE = 10 * 1024 * 1024
 STAGING_TTL = 24 * 3600
+STAGING_DIR = "tmp"
 _TOKEN = re.compile(r"[0-9a-f]{32}")
 _SIGNATURES = (
     (b"%PDF-", "application/pdf", ".pdf"),
@@ -35,15 +36,19 @@ class AttachmentError(ValueError):
     pass
 
 
+def uploads_dir_for(slug: str) -> Path:
+    """Dossier des pièces d'une instance (sauvegardes, restauration)."""
+    return Path(current_app.instance_path, "uploads", secure_filename(slug or "") or "default")
+
+
 def instance_dir() -> Path:
     """Dossier des pièces de l'instance courante (« default » hors requête d'instance)."""
     inst = current_instance()
-    slug = secure_filename(inst.slug) if inst is not None else ""
-    return Path(current_app.instance_path, "uploads", slug or "default")
+    return uploads_dir_for(inst.slug if inst is not None else "")
 
 
 def _staging_dir() -> Path:
-    return instance_dir() / "tmp"
+    return instance_dir() / STAGING_DIR
 
 
 def _within(path: Path, root: Path) -> Path:
