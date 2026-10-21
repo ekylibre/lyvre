@@ -138,6 +138,18 @@ class QontoClient:
             yield items, meta
             page = meta.get("next_page")
 
+    def list_supplier_invoices(self, *, page=1, per_page=100, updated_from=None, updated_to=None,
+                               created_from=None, created_to=None,
+                               sort_by="updated_at:asc") -> tuple[list[dict], dict]:
+        """Une page de factures d'achat (avoirs et documents à revoir compris) : (factures, meta)."""
+        params = {"page": page, "per_page": per_page, "sort_by": sort_by}
+        for name, value in (("updated_at_from", updated_from), ("updated_at_to", updated_to),
+                            ("created_at_from", created_from), ("created_at_to", created_to)):
+            if value is not None:
+                params[f"filter[{name}]"] = format_datetime(value)
+        payload = self._get("/supplier_invoices", params=params)
+        return payload.get("supplier_invoices") or [], payload.get("meta") or {}
+
 
 def from_app_config(timeout=30, retry=True) -> QontoClient:
     from app.services import external_config

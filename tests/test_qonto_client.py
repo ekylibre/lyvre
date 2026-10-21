@@ -95,6 +95,28 @@ def test_iter_transactions_follows_next_page():
     assert [c["params"]["page"] for c in session.calls] == [1, 2]
 
 
+def test_list_supplier_invoices_params():
+    invoices = [{"id": "si-1", "total_amount": {"value": "22.10", "currency": "EUR"}}]
+    client, session, _ = _client(
+        FakeResponse({"supplier_invoices": invoices, "meta": {"next_page": 2}}))
+    items, meta = client.list_supplier_invoices(
+        page=3, updated_from=datetime(2026, 10, 1, 8, 30), created_to=datetime(2026, 11, 1))
+    call = session.calls[0]
+    assert call["url"] == "https://thirdparty.qonto.com/v2/supplier_invoices"
+    params = call["params"]
+    assert params["filter[updated_at_from]"] == "2026-10-01T08:30:00.000Z"
+    assert params["filter[created_at_to]"] == "2026-11-01T00:00:00.000Z"
+    assert "filter[updated_at_to]" not in params and "filter[created_at_from]" not in params
+    assert params["sort_by"] == "updated_at:asc"
+    assert params["page"] == 3 and params["per_page"] == 100
+    assert items == invoices and meta == {"next_page": 2}
+
+
+def test_list_supplier_invoices_empty_payload():
+    client, _, _ = _client(FakeResponse({}))
+    assert client.list_supplier_invoices() == ([], {})
+
+
 def test_429_waits_retry_after_then_succeeds():
     client, session, sleeps = _client(
         FakeResponse(status_code=429, headers={"Retry-After": "3"}),

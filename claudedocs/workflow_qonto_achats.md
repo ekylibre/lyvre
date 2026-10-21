@@ -43,14 +43,14 @@ flowchart TD
 
 | Étape | Tâche | Fichiers |
 |-------|-------|----------|
-| A.1 | Migration : `products`, `purchases`, `purchase_lines`, `purchase_payments`, `sync_cursors` ; colonnes `entities` (`default_product_id`, `qonto_supplier_id`, `vat_number`, `iban`), `fiscal_years.vat_liable` (server_default faux), `bank_transactions.qonto_transaction_ref` ; up / down sur copie de la base réelle | `migrations/versions/<rev>_qonto_purchases.py` |
+| A.1 | Migration : `products`, `purchases`, `purchase_lines`, `purchase_payments`, `sync_cursors` ; colonnes `entities` (`default_product_id`, `qonto_supplier_id`, `vat_number`, `iban`), `fiscal_years.vat_liable` (server_default faux) ; up / down sur copie de la base réelle | `migrations/versions/<rev>_qonto_purchases.py` |
 | A.2 | Modèles + `JournalEntry.SOURCES` (`PURCHASE`) + `SYNC_KIND_QONTO_INVOICES` | `app/models/{product,purchase,sync_cursor,entity,fiscal_year,bank_transaction,journal_entry,sync_job,__init__}.py` |
 | A.3 | `qonto_client.list_supplier_invoices` (filtres `updated_at` / `created_at`, tri, pagination, 429 / 401) | `app/services/qonto_client.py` |
-| A.4 | `qonto_sync._fields` : `qonto_transaction_ref` | `app/services/qonto_sync.py` |
+| A.4 | ~~`qonto_sync._fields` : `qonto_transaction_ref`~~ (inutile, cf. A.5) | — |
 | A.5 | **Vérification sur la SCI** (lecture seule, quelques requêtes) : forme réelle d'une facture (`taxes`, `supplier_snapshot`, `matched_transactions[].transaction_id` = UUID ou référence ?) ; écarts notés dans le design | — |
 | A.6 | Tests client + modèles (contraintes, cascades) | `tests/test_qonto_client.py`, `tests/test_purchase_models.py` |
 
-**✅ CP A** : `make check` vert ; migration up / down sur copie ; question D10 tranchée.
+**✅ CP A** (fait) : `make check` vert ; migration up / down sur copie ; D10 tranché (UUID = `fitid`).
 
 ### Phase B — Catalogue et paramètres (A1, QA11)
 
@@ -116,8 +116,7 @@ flowchart TD
 
 ## 5. Points d'attention
 
-1. **D10** : trancher en A.5 avant d'écrire `purchase_settlement` ; si `transaction_id` est l'UUID,
-   `qonto_transaction_ref` reste utile pour l'affichage mais la résolution passe par `fitid`.
+1. **D10** (tranché en A.5) : `transaction_id` = UUID = `fitid` ; résolution par `fitid` seulement.
 2. **Comptabilisation automatique** : toute erreur de `post` (exercice clos, compte absent) est
    collectée dans le résumé, jamais bloquante pour la synchro ; la facture reste « prête ».
 3. **SQLite + fil d'exécution** : commit par page, une seule synchro de factures à la fois

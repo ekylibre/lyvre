@@ -11,13 +11,13 @@
 | D1 | Tables | `purchases` / `purchase_lines` (noms de `qonto.md`), `products`, `purchase_payments`, `sync_cursors` | `purchases` porte aussi les factures saisies du lot 2b (`source = 'manual'`, `qonto_id` NULL) |
 | D2 | Montants | TTC **positif** + `is_credit_note` ; centimes entiers ; chaînes Qonto converties par `Decimal` | Une seule règle de signe, appliquée à l'écriture (avoir = sens inverse) |
 | D3 | Taux de TVA | Entier en **points de base** (`2000` = 20 %, `550` = 5,5 %) ; NULL = à confirmer | Pas de flottant ; `taxes[].tax_rate` Qonto (« 20 », « 5.5 », « 22.00 ») converti par `Decimal` |
-| D4 | Lignes par défaut | Une ligne par taux (`taxes[]`) avec HT = TVA ÷ taux, la dernière absorbe l'arrondi ; sinon une ligne (HT / TVA si connus, sinon TTC à taux NULL) ; produit = **produit par défaut du fournisseur**, à défaut « Achats divers » | API sans lignes (QA2) ; total des lignes = TTC Qonto par construction |
+| D4 | Lignes par défaut | Une ligne par taux (`taxes[]`) : un seul taux → HT = `total_amount_excluding_taxes` ; plusieurs → HT = TVA ÷ taux, la dernière absorbe l'écart avec le HT Qonto ; sinon une ligne (HT / TVA si connus, sinon TTC à taux NULL) ; produit = **produit par défaut du fournisseur**, à défaut « Achats divers » | API sans lignes (QA2) ; total des lignes = TTC Qonto par construction |
 | D5 | Lignes modifiées | `purchases.lines_edited` : tant qu'il est faux, une synchro **régénère** les lignes (OCR Qonto terminé plus tard) ; vrai → plus jamais touchées | Ne jamais écraser la saisie du trésorier |
 | D6 | État comptable | Calculé par `purchase_state(p)` → `hidden` / `to_complete` (+ motifs) / `ready` / `posted` ; seul `posted` est stocké (FK `journal_entry_id`) | Un état dérivé ne se désynchronise pas |
 | D7 | Comptabilisation | **Automatique** dès `ready` (QA9) : après synchro, enregistrement des lignes, validation d'un fournisseur ; journal **AC**, date de facture, `source = 'PURCHASE'`, `source_ref = 'PURCHASE:<id>'` | QA1, QA9 |
 | D8 | Compte fournisseur | `Entity.account_code` (convention existante `401NNN`, ex. MAIF `401001`) ; si vide → prochain `401NNN` libre ; compte **créé** dans `accounts` (parent `401`, type `TIERS`, libellé = nom) à la première écriture | QA10 ; les codes existent déjà sur les fiches mais pas dans le plan |
 | D9 | TVA | `fiscal_years.vat_liable` (défaut **faux**) ; vrai → débit TVA sur `44566`, à défaut `4456` ; faux → charge **TTC** par ligne | QA11 ; le plan SCI n'a que `4456` |
-| D10 | Lien paiement | `purchase_payments(purchase_id, qonto_transaction_ref, bank_transaction_id)` alimentée par `matched_transactions[]` ; résolution par `fitid` **ou** par la nouvelle colonne `bank_transactions.qonto_transaction_ref` | La doc Qonto ne précise pas si `transaction_id` est l'UUID ou la référence lisible : les deux sont couverts, vérification sur la SCI en phase A |
+| D10 | Lien paiement | `purchase_payments(purchase_id, qonto_transaction_id, bank_transaction_id)` alimentée par `matched_transactions[]` ; résolution par **`fitid`** | Vérifié sur la SCI (phase A) : `transaction_id` est l'UUID de la transaction |
 | D11 | Règlement | Transaction liée à une facture **comptabilisée**, non rapprochée → écriture **BQ** 401xxx / 512 et rapprochement, atomiques ; les **règles ignorent** toute transaction liée à une facture | QA8 |
 | D12 | Écriture de règle antérieure | Transaction rapprochée d'une écriture **de règle** (`source` `QONTO_IMPORT`/`OFX_IMPORT`, `source_ref = FITID:…`, 2 lignes dont une 6xx) → « règlement à remplacer » ; remplacement **en lot** (suppression via `ledger.delete_entries`, règlement 401, rapprochement) ; rapprochement manuel → signalé seulement | QA12 ; on ne supprime jamais une saisie manuelle |
 | D13 | Fournisseurs inconnus | Proposés dans l'écran **Contreparties** existant (section « Fournisseurs des factures ») ; même `name_key`, mêmes refus (`ignored_counterparties`) ; accepter rattache **factures et transactions** de même nom | QA3, une seule file de validation |
@@ -35,7 +35,6 @@ app/
 │   ├── sync_cursor.py            (nouveau)
 │   ├── entity.py                 (modifié)   + default_product_id, qonto_supplier_id, vat_number, iban
 │   ├── fiscal_year.py            (modifié)   + vat_liable
-│   ├── bank_transaction.py       (modifié)   + qonto_transaction_ref
 │   ├── journal_entry.py          (modifié)   SOURCES + "PURCHASE"
 │   └── sync_job.py               (modifié)   SYNC_KIND_QONTO_INVOICES
 ├── services/
@@ -144,11 +143,11 @@ Suppression refusée si utilisé (ligne de facture ou produit par défaut) → a
 |---------|------|------|
 | `id` | Integer PK | |
 | `purchase_id` | FK CASCADE | |
-| `qonto_transaction_ref` | String(100) | `matched_transactions[].transaction_id` |
+| `qonto_transaction_id` | String(36) | `matched_transactions[].transaction_id` (= `fitid`) |
 | `bank_transaction_id` | FK `bank_transactions.id` SET NULL, indexé | résolu quand la transaction est importée |
 | `journal_entry_id` | FK `journal_entries.id` SET NULL | écriture de règlement |
 
-Contrainte unique `(purchase_id, qonto_transaction_ref)`. Une référence disparue de Qonto est supprimée
+Contrainte unique `(purchase_id, qonto_transaction_id)`. Une référence disparue de Qonto est supprimée
 si son règlement n'est pas passé, sinon signalée (`review_reason`).
 
 ### 3.5 Ajouts
@@ -158,7 +157,6 @@ si son règlement n'est pas passé, sinon signalée (`review_reason`).
 | `entities` | `default_product_id` FK `products.id` SET NULL | produit par défaut (A1.3) |
 | `entities` | `qonto_supplier_id` String(36) indexé, `vat_number` String(30) indexé, `iban` String(34) | rattachement (A4.1) ; renseignés seulement s'ils sont vides |
 | `fiscal_years` | `vat_liable` Boolean non nul, server_default faux | QA11 |
-| `bank_transactions` | `qonto_transaction_ref` String(100) indexé | `transaction_id` lisible Qonto (repris à chaque synchro, donc rempli au prochain passage pour l'existant) |
 | `sync_cursors` | `id`, `key` String(50) unique, `sync_from` Date, `synced_at` DateTime | D14 |
 
 ## 4. Services
@@ -231,7 +229,7 @@ replace_many(transaction_ids) -> {results, counters}   # une transaction par él
 
 ### 4.6 Modifications
 
-- `qonto_sync._fields` : `qonto_transaction_ref = tx["transaction_id"]`. Par page : `link_transactions`
+- `qonto_sync` : par page, `link_transactions`
   et `settle` **avant** `apply_rules`, qui reçoit les créées non liées.
 - `rules_engine.apply_rules` : exclut `linked_transaction_ids` (y compris sur application manuelle).
 - `counterparties` : `proposals()` ajoute les factures sans entité, visibles, par `name_key` ;
@@ -272,7 +270,7 @@ Menu principal : « Factures d'achat » ; Paramètres : « Catalogue ».
 | `test_catalog.py` | taux « 20 », « 5.5 », « 22.00 » ; produit par défaut selon le plan ; archivage d'un produit utilisé |
 | `test_purchase_sync.py` | création / mise à jour / idempotence ; lignes par taux et arrondi ; facture non analysée (TTC seul) ; `lines_edited` respecté ; masquées ; avoir ; rattachement id Qonto → TVA → nom ; curseur non avancé sur erreur |
 | `test_purchase_posting.py` | motifs d'état ; écriture assujetti / non assujetti ; 4456 sur plan SCI ; avoir ; compte 401NNN créé (code existant sur la fiche, ou suivant libre) ; exercice clos ; annulation ; review_reason |
-| `test_purchase_settlement.py` | lien par fitid et par référence ; transaction avant facture ; règlement 401/512 rapproché ; règles ignorées ; écriture de règle → à remplacer → remplacement en lot ; rapprochement manuel seulement signalé ; annulée (`reversed`) ignorée |
+| `test_purchase_settlement.py` | lien par fitid ; transaction avant facture ; règlement 401/512 rapproché ; règles ignorées ; écriture de règle → à remplacer → remplacement en lot ; rapprochement manuel seulement signalé ; annulée (`reversed`) ignorée |
 | `test_purchases_views.py`, `test_products_views.py` | écrans, filtres, lignes, rattrapage, remplacement |
 | `test_counterparties.py` | proposition issue d'une facture ; accept → facture rattachée et comptabilisée |
 
@@ -280,9 +278,18 @@ Menu principal : « Factures d'achat » ; Paramètres : « Catalogue ».
 
 | Risque | Parade |
 |--------|--------|
-| `matched_transactions[].transaction_id` = UUID ou référence lisible ? | Les deux colonnes sont comparées ; vérifié sur la SCI en phase A |
+| Lien facture → transaction | Vérifié sur la SCI : `transaction_id` = UUID = `fitid` |
 | Factures sans montants HT (OCR incomplet) | Ligne TTC à taux NULL : « à compléter » si exercice assujetti, comptabilisable sinon |
 | Double charge (règle + facture) | Règles ignorent les transactions liées ; liste et remplacement en lot pour l'antérieur |
 | Volume de la première synchro | Découpage mensuel sur `created_at` comme le lot 1 |
 | Comptabilisation automatique sur une donnée Qonto erronée | Écriture modifiable par annulation ; changements Qonto ultérieurs signalés |
 | Changement de `vat_liable` en cours d'exercice | N'affecte que les comptabilisations futures ; avertissement dans le formulaire |
+
+## 9. Écarts constatés pendant la mise en œuvre
+
+- **Phase A (SCI, 2 factures réelles)** : `matched_transactions[].transaction_id` = UUID de la
+  transaction (= `fitid`) → colonne `bank_transactions.qonto_transaction_ref` abandonnée,
+  `purchase_payments.qonto_transaction_id` (36). HT recalculé depuis la TVA faux de quelques
+  centimes (316,36 ÷ 10 % = 3 163,60 ≠ 3 163,64) → D4 utilise le HT Qonto. Devise dans
+  `total_amount.currency` (`currency` de premier niveau à `null`). `supplier_snapshot` sans `email`
+  possible ; `vat_number` et `iban` présents.

@@ -6,6 +6,7 @@ SYNC_KIND_PAYOUTS = "payouts"
 SYNC_KIND_PAYOUT_PAYMENTS = "payout_payments"
 SYNC_KIND_METRICS = "metrics"
 SYNC_KIND_QONTO = "qonto_transactions"
+SYNC_KIND_QONTO_INVOICES = "qonto_supplier_invoices"
 
 SYNC_STATUS_RUNNING = "running"
 SYNC_STATUS_DONE = "done"

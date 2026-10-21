@@ -21,6 +21,9 @@ from .helloasso import HelloAssoForm, HelloAssoOrder, HelloAssoItem, HelloAssoPa
 from .external_connection import ExternalConnection
 from .integration_state import IntegrationState
 from .ignored_counterparty import IgnoredCounterparty
+from .product import Product
+from .purchase import Purchase, PurchaseLine, PurchasePayment
+from .sync_cursor import SyncCursor
 from .rule import Rule
 from .email_template import EmailTemplate
 from .task_type import TaskType
@@ -59,6 +62,11 @@ __all__ = [
     "ExternalConnection",
     "IntegrationState",
     "IgnoredCounterparty",
+    "Product",
+    "Purchase",
+    "PurchaseLine",
+    "PurchasePayment",
+    "SyncCursor",
     "Rule",
     "EmailTemplate",
     "TaskType",

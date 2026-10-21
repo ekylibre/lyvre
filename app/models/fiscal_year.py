@@ -10,6 +10,8 @@ class FiscalYear(db.Model):
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
     closed = db.Column(db.Boolean, default=False, nullable=False)
+    # Assujetti à la TVA : TVA des achats en 44566 ; sinon incluse dans la charge.
+    vat_liable = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     entries = db.relationship("JournalEntry", back_populates="fiscal_year", lazy="dynamic")
