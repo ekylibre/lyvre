@@ -197,3 +197,78 @@ def test_backup_routes(app, tmp_path, monkeypatch, login_as):
     with zipfile.ZipFile(io.BytesIO(response.data)) as z:
         assert sorted(z.namelist()) == ["database.db", "uploads/a.pdf"]
     assert ".zip" in client.get(f"/instances/{inst.id}/restore").get_data(as_text=True)
+
+
+def test_corrupt_database_in_archive_cleans_up(inst, tmp_path):
+    db_bytes = bytearray(_db_bytes(tmp_path, "abîmée"))
+    db_bytes[100:4096] = b"\xff" * (4096 - 100)
+    with pytest.raises(BackupError):
+        ib.restore_from_upload(inst, upload(_zip({"database.db": bytes(db_bytes),
+                                                   "uploads/a.pdf": b"%PDF"})))
+    assert _value(inst.db_path) == "avant" and not list(inst.db_path.parent.glob("*.incoming"))
+    assert not list(inst.uploads.parent.glob(".incoming-*"))
+
+
+# ------------------------------------------------------------------ écrans (restauration, import)
+
+@pytest.fixture()
+def admin(app, tmp_path, monkeypatch, login_as):
+    from app.extensions import db
+    from app.models import Instance
+    from app.services import instance_provisioning
+    # Dossier d'instance et racine du projet isolés : une instance importée crée ses fichiers ici.
+    monkeypatch.setattr(app, "instance_path", str(tmp_path / "instance"))
+    monkeypatch.setattr(instance_provisioning, "BASE_DIR", tmp_path)
+    tmp_path = tmp_path / "instance"
+    client = login_as(is_admin=True)
+    db_path = tmp_path / "tenants" / "sci.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    _make_db(db_path, "avant")
+    target = Instance(slug="sci", label="SCI", database_url=f"sqlite:///{db_path}")
+    db.session.add(target)
+    db.session.commit()
+    (tmp_path / "uploads" / "sci").mkdir(parents=True)
+    (tmp_path / "uploads" / "sci" / "ancienne.pdf").write_bytes(b"%PDF")
+    return client, target, db_path
+
+
+def _uploads(db_path):
+    return db_path.parent.parent / "uploads"
+
+
+def _post(client, url, blob, name):
+    return client.post(url, data={"backup_file": (io.BytesIO(blob), name)},
+                       content_type="multipart/form-data", follow_redirects=True)
+
+
+def test_restore_route_with_archive(admin, tmp_path):
+    client, target, db_path = admin
+    blob = _zip({"database.db": _db_bytes(tmp_path, "restaurée"), "uploads/nouvelle.pdf": b"%PDF"})
+    page = _post(client, f"/instances/{target.id}/restore", blob, "sci-20261022-120000.zip")
+    assert "Restauration appliquée" in page.get_data(as_text=True)
+    assert _value(db_path) == "restaurée"
+    assert _files(_uploads(db_path) / "sci") == ["nouvelle.pdf"]
+
+
+def test_restore_route_refuses_hostile_archive(admin, tmp_path):
+    client, target, db_path = admin
+    blob = _zip({"database.db": _db_bytes(tmp_path, "x"), "../evil.py": b"x"})
+    page = _post(client, f"/instances/{target.id}/restore", blob, "sci.zip").get_data(as_text=True)
+    assert "chemin interdit" in page and _value(db_path) == "avant"
+    assert _files(_uploads(db_path) / "sci") == ["ancienne.pdf"]
+
+
+def test_import_route_restores_existing_or_creates_instance(admin, tmp_path):
+    from app.models import Instance
+    client, target, db_path = admin
+    blob = _zip({"database.db": _db_bytes(tmp_path, "importée"), "uploads/i.pdf": b"%PDF"})
+    page = _post(client, "/instances/import", blob, "sci-20261022-120000.zip").get_data(as_text=True)
+    assert "restaurée depuis l" in page and _value(db_path) == "importée"
+
+    page = _post(client, "/instances/import", blob, "nouvelle-asso-20261022-120000.zip")
+    assert "créée depuis l" in page.get_data(as_text=True)
+    created = Instance.query.filter_by(slug="nouvelle-asso").one()
+    assert _value(ib._resolve_sqlite_path(created.database_url)) == "importée"
+    assert created.database_url == "sqlite:///tenants/nouvelle-asso.db"
+    assert (db_path.parent / "nouvelle-asso.db").is_file()
+    assert _files(_uploads(db_path) / "nouvelle-asso") == ["i.pdf"]

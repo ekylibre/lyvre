@@ -137,3 +137,13 @@ compterait la charge deux fois. Le bandeau rouge de la liste mène à `/purchase
 **Remplacer la sélection** supprime ces écritures de règle et passe à la place les règlements
 fournisseur, rapprochés. Un rapprochement saisi à la main n'est jamais remplacé : il est seulement
 listé pour vérification.
+
+## Limites
+
+- **Lecture** : 3 premières pages ; OCR seulement si Tesseract (français) est installé (inclus dans
+  l'image Docker, voir [installation](installation.md#prérequis)) ; un logo n'est pas lu (le nom du
+  fournisseur vient alors du site web cité, à vérifier) ; un SIRET mal lu par l'OCR est écarté.
+- **Règlement hors Qonto** : un seul paiement du montant total (pas de paiement partiel ou en
+  plusieurs fois) ; factures en euros seulement.
+- **Pièces** : 10 Mo, PDF / JPEG / PNG ; incluses dans les sauvegardes `.zip` de l'instance
+  ([sauvegardes](backups.md)) ; les pièces des factures reçues dans Qonto ne sont pas téléchargées.

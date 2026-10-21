@@ -334,9 +334,9 @@ supprimées.
 | GET/POST | `/entities/members/reminder-template` | Édition du gabarit d'email de relance (modèle `EmailTemplate`, clé `membership_reminder`) |
 | GET | `/entities/<id>` | Vue détail : commandes POS Odoo + factures clients + (si adhérent) commandes/articles/paiements HelloAsso |
 | GET | `/entities/new` | Formulaire de création |
-| POST | `/entities/new` | Crée l'entité |
+| POST | `/entities/new` | Crée l'entité ; champs fournisseur : `default_product_id`, `vat_number`, `siret` (14 chiffres, espaces et points tolérés ; sinon refus), `iban` |
 | GET | `/entities/<id>/edit` | Formulaire de modification |
-| POST | `/entities/<id>/edit` | Enregistre les modifications |
+| POST | `/entities/<id>/edit` | Enregistre les modifications (mêmes champs fournisseur) |
 | POST | `/entities/<id>/delete` | Supprime l'entité (interdit si des transactions y sont liées) |
 | POST | `/entities/sync-helloasso` | Lance la synchronisation HelloAsso (synchrone, voir [services.md](services.md#helloasso_syncpy--synchronisation-helloasso)) |
 | GET | `/entities/create-helloasso-memberships` | Preview des tiers ayant une adhésion POS sans adhésion HelloAsso |

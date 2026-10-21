@@ -226,3 +226,34 @@ def test_unpost_keeps_entered_invoice(books):
     db.session.commit()
     purchase_posting.unpost(p)
     assert p.total_cents == 3999 and p.invoice_number == "1400000013" and len(p.lines) == 1
+
+
+def test_send_without_file_on_disk_or_key(books):
+    p = _entered(books)
+    attachments.path_of(p).unlink()
+    assert purchase_entry.send_to_qonto(p, FakeQonto()) is False
+    assert "Pièce introuvable" in p.qonto_upload_error
+
+    q = _entered(books)
+    q.idempotency_key = None
+    db.session.commit()
+    client = FakeQonto({"id": "si-80"})
+    assert purchase_entry.send_to_qonto(q, client) is True
+    assert q.idempotency_key and client.calls[0][3] == q.idempotency_key
+
+
+def test_unexpected_error_does_not_raise(books):
+    p = _entered(books)
+    assert purchase_entry.send_to_qonto(p, FakeQonto(KeyError("id"))) is False
+    assert p.qonto_upload_error.startswith("Envoi impossible")
+
+
+def test_update_refuses_replacing_sent_attachment(books):
+    p = _entered(books)
+    p.journal_entry_id = None
+    p.qonto_upload_status = "sent"
+    db.session.commit()
+    token = attachments.stage(FileStorage(io.BytesIO(b"%PDF-1.4 y"), filename="b.pdf"))
+    clean, _ = purchase_entry.validate_header(header())
+    with pytest.raises(LedgerError, match="ne peut plus être remplacée"):
+        purchase_entry.update(p, clean, token)

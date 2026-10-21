@@ -140,7 +140,10 @@ VITE_DEV_SERVER=http://localhost:5173 python run.py
 ```
 
 **Vérification complète** avant de pousser : `make check` (typecheck TypeScript, tests Vitest,
-build, puis `pytest`).
+build, puis `pytest`). Les tests n'appellent aucun service externe (clients Qonto, Stancer, Odoo… simulés) et
+écrivent dans des dossiers temporaires ; les tests d'OCR (`tests/test_invoice_reader.py`) sont ignorés
+si Tesseract n'est pas installé. Tests des factures d'achat : `tests/test_purchase_*.py`,
+`tests/test_invoice_reader.py`, `tests/test_attachments.py`, `tests/test_instance_backup.py`.
 
 L'application est accessible sur **http://127.0.0.1:5000**.
 

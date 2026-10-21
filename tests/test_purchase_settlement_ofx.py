@@ -257,3 +257,33 @@ def test_detail_without_candidate(books, login_as):
     p = invoice(books)
     page = login_as().get(f"/purchases/{p.id}").get_data(as_text=True)
     assert "aucune transaction bancaire hors Qonto" in page and "28/08/2026" in page
+
+
+def test_payment_routes_errors_and_rule_warning(books, login_as):
+    t = txn(books, date(2026, 9, 4))
+    other = txn(books, date(2026, 9, 5), amount=-1)
+    entry = post_entry(fiscal_year_id=books["fy"].id, journal_id=Journal.query.filter_by(code="BQ").one().id,
+                       entry_date=t.transaction_date, description="Règle",
+                       lines=[{"account_id": books["6061"].id, "label": "x", "debit_cents": 3999, "credit_cents": 0},
+                              {"account_id": books["512"].id, "label": "x", "debit_cents": 0, "credit_cents": 3999}],
+                       source="OFX_IMPORT", source_ref=f"FITID:{t.fitid}", commit=False)
+    reconcile(t.id, next(l.id for l in entry.lines if l.account_id == books["512"].id), commit=False)
+    db.session.commit()
+    txn(books, date(2026, 9, 6))  # second candidat : pas de lien automatique
+    p = invoice(books)
+    client = login_as()
+    page = client.get(f"/purchases/{p.id}").get_data(as_text=True)
+    assert "Déjà passée par une règle" in page
+    page = client.post(f"/purchases/{p.id}/payments", data={"bank_transaction_id": str(other.id)},
+                       follow_redirects=True).get_data(as_text=True)
+    assert "ne peut pas régler la facture" in page
+    page = client.post(f"/purchases/{p.id}/payments", data={"bank_transaction_id": str(t.id)},
+                       follow_redirects=True).get_data(as_text=True)
+    assert "remplacez son écriture" in page
+    qonto_payment = PurchasePayment(purchase=invoice(books, number="F-2", supplier="Orange"),
+                                    qonto_transaction_id="tx-1")
+    db.session.add(qonto_payment)
+    db.session.commit()
+    page = client.post(f"/purchases/{qonto_payment.purchase_id}/payments/{qonto_payment.id}/delete",
+                       follow_redirects=True).get_data(as_text=True)
+    assert "ne se défait pas ici" in page

@@ -364,3 +364,45 @@ def test_unchecked_send_to_qonto(entry_books, login_as, monkeypatch):
     p = Purchase.query.one()
     assert p.qonto_upload_status is None
     assert "Envoyer à Qonto" in client.get(f"/purchases/{p.id}").get_data(as_text=True)
+
+
+def test_edit_shows_preview_and_locks_sent_attachment(entry_books, login_as):
+    client = login_as()
+    page = _read(client, entry_books).get_data(as_text=True)
+    token = page.split('name="token" value="')[1].split('"')[0]
+    client.post("/purchases/new", data=_save_form(token, entity_id=""))
+    p = Purchase.query.one()
+    page = client.get(f"/purchases/{p.id}/edit").get_data(as_text=True)
+    assert f"/purchases/{p.id}/attachment" in page and "Remplacer la pièce" in page
+    p.qonto_upload_status = "sent"
+    db.session.commit()
+    assert "Remplacer la pièce" not in client.get(f"/purchases/{p.id}/edit").get_data(as_text=True)
+    data = _save_form("", entity_id="")
+    data["invoice_file"] = (io.BytesIO(b"%PDF-1.4 autre"), "autre.pdf")
+    page = client.post(f"/purchases/{p.id}/edit", data=data, content_type="multipart/form-data")
+    assert "ne peut plus être remplacée" in page.get_data(as_text=True)
+
+
+def test_entry_error_paths(entry_books, login_as):
+    client = login_as()
+    assert client.get("/purchases/staged/" + "0" * 32).status_code == 404
+    assert client.get("/purchases/staged/../../etc").status_code == 404
+    page = client.post("/purchases/new", data=_save_form("f" * 32)).get_data(as_text=True)
+    assert "déposez à nouveau le fichier" in page and Purchase.query.count() == 0
+    client.post("/purchases/new", data=_save_form("", entity_id=""))
+    p = Purchase.query.one()
+    page = client.post(f"/purchases/{p.id}/edit", data=_save_form("", issue_date="2026-13-01"))
+    assert "Date de facture invalide." in page.get_data(as_text=True)
+    page = client.post(f"/purchases/{p.id}/edit", data=_save_form("", **{"total": "abc"}))
+    assert "TTC invalide" in page.get_data(as_text=True)
+
+
+def test_send_to_qonto_route_guards(entry_books, login_as):
+    client = login_as()
+    client.post("/purchases/new", data=_save_form("", entity_id=""))
+    p = Purchase.query.one()
+    page = client.post(f"/purchases/{p.id}/qonto", follow_redirects=True).get_data(as_text=True)
+    assert "Intégration Qonto" in page  # non configurée dans cette instance
+    external_config.set_many("qonto", {"login": "org", "secret_key": "secret"})
+    page = client.post(f"/purchases/{p.id}/qonto", follow_redirects=True).get_data(as_text=True)
+    assert "ne peut pas être envoyée" in page  # pas de pièce

@@ -32,6 +32,14 @@ L'import affiche :
 - **Doublons ignorés** : transactions dont le `FITID` est déjà présent (réimport sans effet)
 - **Erreurs** : lignes non parsées (format inattendu)
 
+### Factures d'achat réglées par l'import
+
+Après un import qui amène de nouvelles transactions, l'application cherche le paiement des
+**factures d'achat saisies** comptabilisées et pas encore réglées : un débit unique du montant TTC
+entre la date de facture − 5 jours et l'échéance + 60 jours règle la facture (écriture 401 / banque
+rapprochée) ; le message de l'import indique le nombre de factures réglées. Plusieurs débits
+possibles : choix sur la fiche de la facture. Voir [Factures d'achat](achats.md#factures-payées-hors-qonto-relevé-ofx).
+
 ### Déduplication
 
 Le champ `FITID` (Financial Transaction ID) est unique par transaction dans un fichier OFX. L'application utilise la contrainte `UNIQUE(bank_account_id, fitid)` pour garantir qu'un même relevé peut être réimporté plusieurs fois sans créer de doublons.

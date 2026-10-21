@@ -53,6 +53,9 @@ compta-asso/
 │   │   ├── external_connection.py # Credentials services externes (per-instance)
 │   │   ├── integration_state.py  # Activation + dernier test d'une intégration (per-instance)
 │   │   ├── ignored_counterparty.py # Contreparties à ne plus proposer comme fournisseurs
+│   │   ├── product.py            # Catalogue produits / services (comptes 6… / 7…, TVA)
+│   │   ├── purchase.py           # Factures d'achat (Qonto ou saisies), lignes, paiements
+│   │   ├── sync_cursor.py        # Curseurs de synchronisation (factures Qonto)
 │   │   ├── user.py               # Utilisateurs (méta-base)
 │   │   └── instance.py           # Déclaration d'instance (méta-base)
 │   │
@@ -66,7 +69,10 @@ compta-asso/
 │   │   ├── imports.py
 │   │   ├── reconciliation.py
 │   │   ├── reports.py
-│   │   ├── entities.py           # CRUD tiers + listes HelloAsso/POS/factures par tiers
+│   │   ├── entities.py           # CRUD tiers (dont TVA, SIRET, IBAN) + listes HelloAsso/POS/factures par tiers
+│   │   ├── products.py           # Catalogue produits / services
+│   │   ├── purchases.py          # Factures d'achat : liste, synchro Qonto, saisie, pièce, règlements
+│   │   ├── instances.py          # Instances (admin) : création, sauvegardes .zip, restauration, import
 │   │   ├── rules.py              # Affichage règles + application
 │   │   ├── payouts.py            # Liste + détail + sync Payouts/Payments Stancer
 │   │   ├── integrations.py       # Écran Intégrations : index, détail, interrupteur, test (admin)
@@ -88,6 +94,14 @@ compta-asso/
 │   │   ├── qonto_client.py       # Client API Business Qonto (clé API, pagination, 429)
 │   │   ├── qonto_sync.py         # Rattachement des comptes + synchro des transactions Qonto
 │   │   ├── counterparties.py     # Contreparties bancaires → tiers / propositions de fournisseurs
+│   │   ├── catalog.py            # Catalogue : produit par défaut, taux de TVA
+│   │   ├── purchase_sync.py      # Synchro des factures d'achat Qonto, find_supplier, lignes par défaut
+│   │   ├── purchase_posting.py   # États, comptabilisation en engagement (AC), lignes saisies
+│   │   ├── purchase_settlement.py # Règlements 401 / banque : Qonto, débits OFX (auto / choisis)
+│   │   ├── purchase_entry.py     # Saisie d'une facture : préremplissage, doublons, envoi à Qonto
+│   │   ├── invoice_reader.py     # Lecture : Factur-X, texte PDF, OCR Tesseract (PyMuPDF)
+│   │   ├── attachments.py        # Pièces jointes par instance (instance/uploads/<slug>/)
+│   │   ├── instance_backup.py    # Sauvegardes .zip (base + pièces) et restauration
 │   │   ├── stancer_async.py      # Wrapper threading + suivi via SyncJob
 │   │   ├── odoo_client.py        # Client XML-RPC Odoo (commun POS + factures)
 │   │   ├── odoo_pos_sync.py      # Sync pos.order → orders / order_lines / order_payments
@@ -115,6 +129,8 @@ compta-asso/
 │   │   ├── entities/
 │   │   ├── rules/
 │   │   ├── payouts/
+│   │   ├── products/             # Catalogue
+│   │   ├── purchases/            # Factures d'achat (liste, fiche, saisie, éditeur de lignes)
 │   │   ├── orders/               # Commandes POS Odoo
 │   │   └── customer_invoices/    # Factures clients Odoo
 │   │

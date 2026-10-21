@@ -10,6 +10,7 @@ L'application est packagée dans une image unique. Toutes les données persistan
 ┌─────────────────────────────────────┐  │
 │ Image compta-asso:latest            │◀─┘
 │  - Python 3.12-slim (sans Node)     │
+│  - Tesseract OCR (fra), WeasyPrint  │
 │  - Gunicorn (1 worker, 4 threads)   │
 │  - User non-root (UID/GID 1000)     │
 │  - Port 5000                        │
@@ -17,7 +18,7 @@ L'application est packagée dans une image unique. Toutes les données persistan
             │
             │ volume bind
             ▼
-   ./instance/   ◀── méta DB + tenant DBs + sauvegardes
+   ./instance/   ◀── méta DB + tenant DBs + sauvegardes + pièces jointes (uploads/)
 ```
 
 ---
@@ -130,11 +131,13 @@ Les fichiers `instance/seconde-nature.db`, `instance/meta.db` et `instance/tenan
 # Backup ad-hoc d'une instance tenant
 cp instance/seconde-nature.db /backup/$(date +%Y%m%d)-seconde-nature.db
 
-# Backup complet (méta + tenants + sauvegardes UI déjà faites)
+# Backup complet (méta + tenants + pièces jointes + sauvegardes UI déjà faites)
 tar czf compta-asso-$(date +%Y%m%d).tar.gz instance/
 ```
 
-L'UI **Instances → Détail → Sauvegardes** reste disponible (les fichiers atterrissent dans `instance/backups/`, visibles depuis l'hôte).
+L'UI **Instances → Détail → Sauvegardes** reste disponible : archives `.zip` (base de l'instance +
+ses pièces jointes `instance/uploads/<slug>/`) dans `instance/backups/`, visibles depuis l'hôte. Une
+copie `cp` de la seule base ne contient pas les pièces des factures d'achat.
 
 ---
 
