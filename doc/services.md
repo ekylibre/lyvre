@@ -84,7 +84,7 @@ entry = post_entry(
         {"account_id": 512_id, "debit_cents": 15000, "credit_cents": 0},
         {"account_id": 756_id, "debit_cents": 0, "credit_cents": 15000},
     ],
-    source="MANUAL",         # ou "OFX_IMPORT", "ODOO_IMPORT"
+    source="MANUAL",         # ou "OFX_IMPORT", "QONTO_IMPORT", "ODOO_IMPORT"
     source_ref=None,         # référence externe optionnelle
     reference=None,          # si None, généré automatiquement
 )
@@ -363,13 +363,13 @@ Helper interne, appelé par `apply_rules` lorsqu'une règle définit `account`.
 | `6xx` | charge → **débit** sur le compte 6xx, **crédit** sur le compte bancaire | Loyer, salaires, achats, frais bancaires |
 | `7xx` | produit → **débit** sur le compte bancaire, **crédit** sur le compte 7xx | Ventes, cotisations, subventions |
 
-Le montant utilisé est `abs(transaction.amount_cents)` : le signe de la transaction n'est pas pris en compte, c'est le préfixe du compte qui détermine le sens.
+Le montant utilisé est `abs(transaction.amount_cents)` : c'est le préfixe du compte qui détermine le sens. Une règle dont le compte contredit le sens de la transaction (6xx sur un encaissement, 7xx sur un décaissement) n'est **pas appliquée** : ni tiers, ni catégorie, ni écriture, et une erreur est remontée (`errors`).
 
 **Paramètres dérivés automatiquement :**
 - **Journal** : `BQ` (banque)
 - **Exercice** : celui qui contient `transaction.transaction_date`
 - **Compte bancaire** (côté GL) : `bank_account.account_id`
-- **Source** : `OFX_IMPORT`, `source_ref` = `FITID:<fitid>`
+- **Source** : `OFX_IMPORT` (`QONTO_IMPORT` pour une transaction synchronisée depuis Qonto), `source_ref` = `FITID:<fitid>`
 
 **Lève `LedgerError` si :**
 - Le code compte `account` n'existe pas dans le plan comptable

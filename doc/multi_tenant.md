@@ -212,7 +212,7 @@ Voir [models.md](models.md#externalconnection--credentials-services-externes-ten
 
 ## Règles de catégorisation per-instance
 
-Depuis mai 2026, les règles de catégorisation automatique vivent dans la table `rules` **de chaque base tenant**. Une instance vierge reçoit les règles par défaut via `seed_rules.py` (appelé automatiquement par le provisioning). La gestion (CRUD + réordonnancement + aide REGEX) se fait depuis l'UI `/rules/`.
+Depuis mai 2026, les règles de catégorisation automatique vivent dans la table `rules` **de chaque base tenant**. Une instance vierge au plan comptable associatif reçoit les règles par défaut via `seed_rules.py` (appelé automatiquement par le provisioning) ; une instance SCI démarre sans règle, celles de `data/rules.yml` étant propres à une association. La gestion (CRUD + réordonnancement + aide REGEX) se fait depuis l'UI `/rules/`.
 
 Voir [models.md](models.md#rule--règle-de-catégorisation-tenant) pour le schéma et [routes.md](routes.md#moteur-de-règles-rules) pour les endpoints.
 

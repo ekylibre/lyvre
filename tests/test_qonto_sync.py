@@ -4,7 +4,9 @@ from datetime import date, datetime, timedelta
 import pytest
 
 from app.extensions import db
-from app.models import Account, BankAccount, BankTransaction, Rule, SyncJob
+from app.models import (
+    Account, BankAccount, BankTransaction, FiscalYear, Journal, JournalEntry, Rule, SyncJob,
+)
 from app.services import external_config, qonto_client, qonto_sync, sync_jobs
 from app.services.qonto_client import QontoError
 
@@ -239,6 +241,42 @@ def test_rules_can_target_operation_type_via_raw_type(ba):
     db.session.commit()
     _sync(ba, FakeClient([tx("t1", 500, operation_type="qonto_fee", label="Qonto")]))
     assert BankTransaction.query.filter_by(fitid="t1").one().category == "Frais bancaires"
+
+
+def test_rule_entry_marked_as_qonto_import(ba):
+    db.session.add_all([
+        FiscalYear(label="2026", start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)),
+        Journal(code="BQ", label="Banque"), Account(code="627", label="Frais bancaires"),
+        Rule(position=1, name="Frais", raw_type="qonto_fee", category="Frais bancaires",
+             account_code="627"),
+    ])
+    db.session.commit()
+    _sync(ba, FakeClient([tx("t1", 500, operation_type="qonto_fee", label="Qonto")]))
+    entry = JournalEntry.query.one()
+    assert (entry.source, entry.source_ref) == ("QONTO_IMPORT", "FITID:t1")
+
+
+def test_rule_against_transaction_direction_is_refused(ba):
+    db.session.add_all([
+        FiscalYear(label="2026", start_date=date(2026, 1, 1), end_date=date(2026, 12, 31)),
+        Journal(code="BQ", label="Banque"), Account(code="613", label="Locations"),
+        Account(code="706", label="Prestations"),
+        Rule(position=1, name="Loyers", label_contains="CHENES", entity_name="Chênes",
+             category="Location", account_code="613"),
+        Rule(position=2, name="Ventes", label_contains="CLIENT", category="Vente", account_code="706"),
+    ])
+    db.session.commit()
+    result = _sync(ba, FakeClient([
+        tx("t1", 500000, side="credit", label="S.C.I. LES CHENES VERTS"),
+        tx("t2", 1000, label="CLIENT REMBOURSE"),
+    ]))
+    assert result["rules_matched"] == 0 and JournalEntry.query.count() == 0
+    assert [e.split(": ", 1)[1] for e in result["errors"]] == [
+        "Compte « 613 » (charge) incompatible avec un encaissement — règle non appliquée.",
+        "Compte « 706 » (produit) incompatible avec un décaissement — règle non appliquée.",
+    ]
+    t1 = BankTransaction.query.filter_by(fitid="t1").one()
+    assert (t1.category, t1.entity_id, t1.reconciled) == (None, None, False)
 
 
 # ------------------------------------------------------------- arrière-plan

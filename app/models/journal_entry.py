@@ -1,7 +1,7 @@
 from datetime import datetime
 from app.extensions import db
 
-SOURCES = ["MANUAL", "OFX_IMPORT", "ODOO_IMPORT"]
+SOURCES = ["MANUAL", "OFX_IMPORT", "QONTO_IMPORT", "ODOO_IMPORT"]
 
 
 class JournalEntry(db.Model):

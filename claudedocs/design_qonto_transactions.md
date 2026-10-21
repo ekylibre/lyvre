@@ -356,3 +356,21 @@ sync_jobs), `doc/imports.md` (Qonto à côté d'OFX), `doc/installation.md` / `d
 - Bandeau des annulées encore rapprochées : liste les transactions avec un lien vers l'écriture.
 - Vérifié dans Chrome (instance de test SCI, une transaction marquée annulée à la main) : badges dans
   la liste et dans l'espace de rapprochement, panneau rouge, Entrée et N refusés avec un message.
+
+**Phase G (2026-10-21)** :
+- Docs mises à jour (G.1) ; migration sur copie de la base réelle et image Docker (G.2).
+- Répétition locale de la mise en service (G.3) : instance « SCI des Chênes Verts » (plan SCI) créée
+  depuis l'écran Instances ; identifiants saisis par l'utilisateur dans Intégrations › Qonto de cette
+  instance (test vert) ; lignes `QONTO_*` retirées du `.env` — Seconde Nature ne voit plus Qonto.
+  Compte rattaché sur un nouveau 512 à partir du 01/01/2026 ; première synchro : 5 transactions,
+  somme = **X XXX,XX €** = solde Qonto, 2 contreparties proposées.
+- **Écart constaté** : le provisioning copiait les 20 règles de l'association (`data/rules.yml`) dans
+  toute nouvelle instance. Dans la SCI, « Frais locations » (613) a pris le virement entrant de 5 000 €
+  « S.C.I. LES CHENES VERTS » pour une charge et passé une écriture fausse. Corrections :
+  - `seed_rules.py` n'est plus lancé que pour le plan associatif (`RULES_CHARTS`) ;
+  - le moteur de règles refuse une règle dont le compte contredit le sens de la transaction
+    (6xx sur un encaissement, 7xx sur un décaissement) : ni tiers, ni catégorie, ni écriture, erreur
+    remontée dans le résumé ;
+  - les écritures issues d'une transaction Qonto ont la source `QONTO_IMPORT` (et non `OFX_IMPORT`).
+  La base locale de la SCI a été nettoyée (règles, écriture, tiers) après sauvegarde.
+- Reste : mise en production (push + déploiement), avec l'accord de l'utilisateur.

@@ -38,7 +38,7 @@ Voir [multi_tenant.md](multi_tenant.md) pour l'architecture du routage par requ�
 - `account_code` doit commencer par 6 ou 7, exister, ne pas être un en-tête
 - `amount_min_cents ≤ amount_max_cents` si les deux fournis
 
-**Origine** : seed initial via `seed_rules.py` qui importe `data/rules.yml`. Idempotent. Appelé automatiquement par le provisioning de nouvelle instance.
+**Origine** : seed initial via `seed_rules.py` qui importe `data/rules.yml`. Idempotent. Appelé automatiquement par le provisioning de nouvelle instance au plan comptable associatif (pas pour une SCI).
 
 ---
 
@@ -237,7 +237,7 @@ FiscalYear ──────────────────── JournalE
 | `reference` | String(50) | Auto-générée : `{CODE}-{ANNÉE}-{SÉQUENCE:04d}` ex : `BQ-2024-0001` |
 | `description` | String(500) | Libellé libre |
 | `is_balanced` | Boolean default=False | `True` si Σ débit = Σ crédit (validé au moment de la saisie) |
-| `source` | String(20) default=`MANUAL` | `MANUAL`, `OFX_IMPORT`, `ODOO_IMPORT` |
+| `source` | String(20) default=`MANUAL` | `MANUAL`, `OFX_IMPORT`, `QONTO_IMPORT`, `ODOO_IMPORT` |
 | `source_ref` | String(200) | Référence d'origine (FITID OFX ou numéro de facture Odoo) |
 | `created_at` | DateTime | |
 

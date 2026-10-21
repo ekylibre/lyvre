@@ -65,6 +65,18 @@ def _get_or_create_entity(name, entity_type):
     return entity
 
 
+def _direction_error(account_code, amount_cents):
+    """Message when the account's side contradicts the transaction's direction
+    (a 6xx charge on a credit, a 7xx revenue on a debit), else None."""
+    if account_code.startswith("6") and amount_cents > 0:
+        return (f"Compte « {account_code} » (charge) incompatible avec un encaissement "
+                "— règle non appliquée.")
+    if account_code.startswith("7") and amount_cents < 0:
+        return (f"Compte « {account_code} » (produit) incompatible avec un décaissement "
+                "— règle non appliquée.")
+    return None
+
+
 def _post_entry_for_transaction(txn, account_code, description):
     """Create a balanced journal entry for a categorized bank transaction.
 
@@ -118,7 +130,7 @@ def _post_entry_for_transaction(txn, account_code, description):
             {"account_id": counterpart.id, "label": label,
              "debit_cents": cp_debit, "credit_cents": cp_credit},
         ],
-        source="OFX_IMPORT",
+        source="QONTO_IMPORT" if txn.source == "qonto" else "OFX_IMPORT",
         source_ref=f"FITID:{txn.fitid}",
     )
 
@@ -172,6 +184,14 @@ def apply_rules(transactions=None, overwrite=False):
 
         matched_rule = next((r for r in rules if _match_rule(r, txn)), None)
         if matched_rule is None:
+            skipped += 1
+            continue
+        # Un sens contraire au compte (charge sur un encaissement…) passerait une
+        # écriture fausse : la transaction est laissée telle quelle et signalée.
+        direction_error = matched_rule.account_code and _direction_error(
+            matched_rule.account_code, txn.amount_cents)
+        if direction_error:
+            errors.append(f"FITID {txn.fitid}: {direction_error}")
             skipped += 1
             continue
 

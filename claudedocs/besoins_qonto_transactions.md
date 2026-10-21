@@ -1,6 +1,6 @@
 # Besoins — Qonto, lot 1 : comptes et transactions bancaires
 
-> Statut : besoins validés (brainstorm du 2026-10-20), questions tranchées (§8). Design : `design_qonto_transactions.md`.
+> Statut : **réalisé** (2026-10-21) — critères vérifiés sur le compte réel de la SCI (lecture seule) ou, à défaut, par les tests. Besoins validés (brainstorm du 2026-10-20), questions tranchées (§8). Design : `design_qonto_transactions.md`.
 > Source : note [`qonto.md`](qonto.md) (périmètre complet Qonto) ; ce document couvre le **premier lot**.
 
 ## 1. Contexte
@@ -126,29 +126,29 @@ blocage temporaire après 200 réponses 401 en une heure ; bac à sable via l'en
 ## 6. Récits utilisateur et critères d'acceptation
 
 **US1 — Configurer Qonto.** L'admin saisit l'identifiant et la clé dans Intégrations › Qonto.
-- [ ] Le test affiche le nom de l'organisation et le nombre de comptes.
-- [ ] Une clé erronée donne « Identifiants refusés par Qonto (HTTP 401) ».
+- [x] Le test affiche le nom de l'organisation et le nombre de comptes.
+- [x] Une clé erronée donne « Identifiants refusés par Qonto (HTTP 401) ».
 
 **US2 — Rattacher les comptes.** L'admin ouvre le rattachement.
-- [ ] Le compte dont l'IBAN existe déjà est rattaché d'office.
-- [ ] Un autre compte peut être créé (compte 512x choisi), rattaché à un compte existant ou ignoré.
-- [ ] Une date de début de synchronisation est demandée (défaut : début de l'exercice).
+- [x] Le compte dont l'IBAN existe déjà est rattaché d'office.
+- [x] Un autre compte peut être créé (compte 512x choisi), rattaché à un compte existant ou ignoré.
+- [x] Une date de début de synchronisation est demandée (défaut : début de l'exercice).
 
 **US3 — Synchroniser.** Le trésorier clique « Synchroniser Qonto ».
-- [ ] Les transactions `completed` depuis la date de début apparaissent dans le compte bancaire.
-- [ ] Relancer immédiatement : 0 nouvelle, 0 doublon.
-- [ ] Une note modifiée dans Qonto est mise à jour à la synchronisation suivante, rapprochement intact.
-- [ ] Le résumé (nouvelles / mises à jour / annulées / erreurs) s'affiche et apparaît comme dernière synchronisation.
+- [x] Les transactions `completed` depuis la date de début apparaissent dans le compte bancaire.
+- [x] Relancer immédiatement : 0 nouvelle, 0 doublon.
+- [x] Une note modifiée dans Qonto est mise à jour à la synchronisation suivante, rapprochement intact.
+- [x] Le résumé (nouvelles / mises à jour / annulées / erreurs) s'affiche et apparaît comme dernière synchronisation.
 
 **US4 — Exploiter.** Après synchronisation :
-- [ ] Les règles ont catégorisé (et rapproché) les transactions qui correspondent.
-- [ ] Les débits sans règle sont liés à un fournisseur existant, ou proposés à la validation ; les frais Qonto non.
-- [ ] Les transactions sans justificatif requis sont repérables et filtrables.
-- [ ] Les transactions apparaissent dans l'espace de rapprochement comme celles importées par OFX.
+- [x] Les règles ont catégorisé (et rapproché) les transactions qui correspondent.
+- [x] Les débits sans règle sont liés à un fournisseur existant, ou proposés à la validation ; les frais Qonto non.
+- [x] Les transactions sans justificatif requis sont repérables et filtrables.
+- [x] Les transactions apparaissent dans l'espace de rapprochement comme celles importées par OFX.
 
 **US5 — Incidents.** Coupure réseau ou 429 en cours de synchronisation.
-- [ ] Message clair, aucune transaction partielle ; la synchronisation suivante récupère tout.
-- [ ] Une transaction `reversed` est signalée et n'est plus proposée au rapprochement.
+- [x] Message clair, aucune transaction partielle ; la synchronisation suivante récupère tout.
+- [x] Une transaction `reversed` est signalée et n'est plus proposée au rapprochement.
 
 ## 7. Hors périmètre (lots suivants de `qonto.md`)
 

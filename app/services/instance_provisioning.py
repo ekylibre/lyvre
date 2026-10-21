@@ -22,6 +22,8 @@ CHARTS = {
     "sci": "SCI (société civile immobilière)",
 }
 DEFAULT_CHART = "asso"
+# data/rules.yml holds an association's bank rules: other charts start without rules.
+RULES_CHARTS = {"asso"}
 
 
 class ProvisioningError(Exception):
@@ -87,7 +89,8 @@ def validate_chart(chart: str) -> str:
 def provision_sqlite_database(database_url: str, chart: str = DEFAULT_CHART) -> None:
     """Create the SQLite file (if absent), apply migrations, seed accounts.
 
-    ``chart`` selects the plan comptable to load ("asso" or "sci").
+    ``chart`` selects the plan comptable to load ("asso" or "sci"). The default
+    bank rules are only seeded for the charts in ``RULES_CHARTS``.
     """
     chart = validate_chart(chart)
     path = database_file_for_url(database_url)
@@ -100,4 +103,5 @@ def provision_sqlite_database(database_url: str, chart: str = DEFAULT_CHART) -> 
 
     _run([sys.executable, "-m", "flask", "db", "upgrade"], database_url)
     _run([sys.executable, "seed_accounts.py", chart], database_url)
-    _run([sys.executable, "seed_rules.py"], database_url)
+    if chart in RULES_CHARTS:
+        _run([sys.executable, "seed_rules.py"], database_url)
