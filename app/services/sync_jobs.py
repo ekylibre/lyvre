@@ -5,13 +5,16 @@ exécute `work(job_id)` dans un fil d'exécution. Le fil pousse un `app_context`
 **sélectionne la même instance** (`g.current_instance`, `g.tenant_engine`) : sans
 cela, `db.session` retomberait sur la base par défaut et non sur celle de l'instance.
 
-Le frontend suit l'avancement en interrogeant le job (`GET /api/v1/jobs/<id>`).
+Le frontend suit l'avancement en interrogeant le job (`GET /api/v1/jobs/<id>`). Le job terminé
+(succès ou échec), une notification est créée pour l'utilisateur qui l'a lancé
+(`services/notifications.py`), même s'il a quitté l'écran entre-temps.
 """
 import json
 import threading
 from datetime import datetime
 
-from flask import g
+from flask import g, has_request_context
+from flask_login import current_user
 
 from app.extensions import db
 from app.models import Instance, SyncJob
@@ -79,6 +82,19 @@ def _select_instance(instance_id):
         g.tenant_engine = get_tenant_engine(instance)
 
 
+def _notify(app, job_id):
+    """Notification de fin : son échec ne change rien au job (déjà terminé et enregistré)."""
+    from app.services import notifications
+
+    try:
+        job = db.session.get(SyncJob, job_id)
+        if job is not None:
+            notifications.notify_job(job)
+    except Exception as exc:  # noqa: BLE001
+        db.session.rollback()
+        app.logger.warning("Notification of sync job %s failed: %r", job_id, exc)
+
+
 def run(app, instance_id, job_id, work, error_message=_default_error_message):
     """Corps du fil d'exécution (appelable directement en test)."""
     with app.app_context():
@@ -90,6 +106,14 @@ def run(app, instance_id, job_id, work, error_message=_default_error_message):
             db.session.rollback()
             app.logger.warning("Sync job %s failed: %r", job_id, exc)
             _finalize(job_id, SYNC_STATUS_FAILED, message=error_message(exc))
+        _notify(app, job_id)
+
+
+def _current_user_id():
+    """Utilisateur de la requête qui lance le job (aucun hors requête : CLI, tâche planifiée)."""
+    if not has_request_context() or not current_user.is_authenticated:
+        return None
+    return current_user.id
 
 
 def start(app, kind, work, *, message="Démarrage…", error_message=_default_error_message,
@@ -98,7 +122,8 @@ def start(app, kind, work, *, message="Démarrage…", error_message=_default_er
     existing = running_job(kind, **job_fields)
     if existing:
         return existing
-    job = SyncJob(kind=kind, status=SYNC_STATUS_RUNNING, message=message, **job_fields)
+    job = SyncJob(kind=kind, status=SYNC_STATUS_RUNNING, message=message,
+                  started_by_user_id=_current_user_id(), **job_fields)
     db.session.add(job)
     db.session.commit()
 

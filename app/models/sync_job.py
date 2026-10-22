@@ -30,6 +30,8 @@ class SyncJob(db.Model):
         nullable=True,
         index=True,
     )
+    # Utilisateur (méta-base) qui a lancé la tâche : destinataire de la notification de fin.
+    started_by_user_id = db.Column(db.Integer, nullable=True)
     status = db.Column(db.String(20), nullable=False, default=SYNC_STATUS_RUNNING, index=True)
     started_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     finished_at = db.Column(db.DateTime)

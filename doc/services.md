@@ -863,12 +863,28 @@ En test, remplacer une sonde : `monkeypatch.setitem(integrations.PROBES, "odoo",
 | Fonction | Rôle |
 |----------|------|
 | `start(app, kind, work, *, message, error_message, **job_fields)` | Crée le `SyncJob` (ou renvoie celui déjà en cours avec les mêmes champs), capture l'instance courante et exécute `work(job_id)` dans un thread **sur la base de cette instance** |
-| `run(app, instance_id, job_id, work, error_message)` | Corps du thread (appelable directement en test) : finalise le job `done` (avec `result_json`) ou `failed` (message de `error_message(exc)`) |
+| `run(app, instance_id, job_id, work, error_message)` | Corps du thread (appelable directement en test) : finalise le job `done` (avec `result_json`) ou `failed` (message de `error_message(exc)`), puis crée la notification de fin (`notifications.notify_job` ; son échec est journalisé et ne change pas le job) |
 | `progress_callback(job_id, throttle=5)` | Callback `(done, total, message)` qui met à jour le job une fois sur `throttle` |
 | `running_job(kind, **filters)` | Job en cours de ce type, ou None |
 
-Utilisé par `stancer_async` et `qonto_sync.start_sync`. En test, remplacer `sync_jobs.threading.Thread`
+`start` enregistre l'utilisateur de la requête (`started_by_user_id`). Utilisé par `stancer_async`,
+`qonto_sync.start_sync` et `purchase_sync.start_sync`. En test, remplacer `sync_jobs.threading.Thread`
 par une exécution immédiate.
+
+---
+
+## notifications.py — Notifications de fin de tâche
+
+| Fonction | Rôle |
+|----------|------|
+| `notify_job(job)` | Job terminé → `Notification` pour son auteur (toute l'instance si inconnu) : titre selon le type (`JOB_LABELS`), message = `summary(kind, result)` (+ nombre d'erreurs et la première) ou message d'échec, niveau `success` / `warning` / `danger`, lien vers l'écran ; None si le job tourne encore. Purge puis commit |
+| `summary(kind, result)` | Résumé lisible du `result_json` d'un job (Qonto transactions, factures Qonto, Stancer) |
+| `visible_to(user_id)` | Requête : notifications de l'utilisateur et de toute l'instance |
+| `unread_count(user_id)` · `mark_read(user_id, ids=None)` | Non lues ; marque lues (toutes si `ids` est None, jamais celles d'un autre utilisateur) |
+| `purge(now=None)` | Supprime les notifications lues depuis plus de `RETENTION_DAYS` (90) jours |
+
+Les synchronisations des indicateurs (`metrics_sync`) restent synchrones : leur résultat s'affiche
+directement, sans notification.
 
 ---
 

@@ -510,6 +510,7 @@ Suit l'exécution d'une synchronisation lancée en arrière-plan (thread daemon,
 | `kind` | String(40) NOT NULL (indexé) | `payouts`, `payout_payments`, `qonto_transactions`, `qonto_supplier_invoices`, `metrics` |
 | `payout_id` | Integer FK→payouts ON DELETE SET NULL (indexé) | Renseigné uniquement pour `kind='payout_payments'` |
 | `bank_account_id` | Integer FK→bank_accounts ON DELETE SET NULL (indexé) | Renseigné pour `kind='qonto_transactions'` |
+| `started_by_user_id` | Integer | Utilisateur (méta-base, sans clé étrangère) qui a lancé le job : destinataire de la notification de fin ; nul hors requête |
 | `status` | String(20) NOT NULL default=`running` (indexé) | `running`, `done`, `failed` |
 | `started_at` | DateTime NOT NULL | |
 | `finished_at` | DateTime | Renseigné quand `status` passe à `done` ou `failed` |
@@ -525,6 +526,29 @@ Suit l'exécution d'une synchronisation lancée en arrière-plan (thread daemon,
 **Idempotence :** `sync_jobs.start` refuse de créer un nouveau job si un job de même type et mêmes champs (`payout_id`, `bank_account_id`) est déjà `running` — il retourne le job existant. L'utilisateur peut donc cliquer plusieurs fois sans déclencher de doublon.
 
 **Throttle :** la progression n'est persistée en DB qu'à chaque 5e tick du callback (`sync_jobs.PROGRESS_THROTTLE`) pour ne pas saturer SQLite. Le statut terminal (`done` / `failed`) est toujours écrit.
+
+---
+
+## Notification — Notification d'un utilisateur
+
+**Table :** `notifications` (base de l'instance)
+
+Créée à la fin d'une tâche en arrière-plan (`services/notifications.py`, appelé par `sync_jobs.run`), lue par `GET /api/v1/notifications`.
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| `id` | Integer PK | |
+| `user_id` | Integer (indexé) | Destinataire (utilisateur de la méta-base, sans clé étrangère) ; nul = tous les utilisateurs de l'instance |
+| `kind` | String(40) NOT NULL | `job_done`, `job_failed` |
+| `level` | String(10) NOT NULL | `success`, `info`, `warning` (job terminé avec des erreurs), `danger` (échec) |
+| `title` | String(200) NOT NULL | « Synchronisation des transactions Qonto terminée » |
+| `message` | Text | Résumé du résultat, ou message d'erreur du job |
+| `url` | String(300) | Écran de la SPA concerné (`/bank-accounts/<id>/transactions`, `/payouts/`, `/purchases/`…) |
+| `job_id` | Integer FK→sync_jobs ON DELETE SET NULL (indexé) | Job à l'origine |
+| `created_at` | DateTime NOT NULL (indexé) | |
+| `read_at` | DateTime | Nul tant que non lue |
+
+Les notifications **lues** depuis plus de 90 jours (`notifications.RETENTION_DAYS`) sont supprimées à chaque création. Une notification destinée à toute l'instance (`user_id` nul) a un seul état de lecture, partagé.
 
 ---
 

@@ -500,6 +500,8 @@ Codes : `bad_request` / `csrf_error` (400), `unauthenticated` (401, jamais de re
 | POST | `/api/v1/session/instance` | `{instance_id}` → session ; 422 si l'instance est inconnue ou désactivée |
 | PATCH | `/api/v1/me/preferences` | Fusion profonde dans `users.preferences` (`null` supprime une clé) ; `color_scheme` ∈ `light`/`dark`/`auto` ; 413 au-delà de 16 Ko |
 | GET | `/api/v1/jobs/<id>` | État d'une tâche longue (`sync_jobs`) : statut, progression, résultat |
+| GET | `/api/v1/notifications` | Notifications de l'utilisateur dans l'instance (les siennes et celles de toute l'instance), plus récentes d'abord : `level`, `title`, `message`, `url`, `job_id`, `read` ; `?unread=1`, `?limit=` (20, 100 au plus) ; `meta.unread` |
+| POST | `/api/v1/notifications/read` | `{ids: [..]}` marque ces notifications comme lues (sans `ids` : toutes) → `marked`, `meta.unread` ; 422 si `ids` n'est pas une liste d'entiers |
 | GET | `/api/v1/search?q=` | Palette Ctrl+K : tiers, factures d'achat, écritures (5 par groupe, 2 caractères au moins) |
 | GET/POST | `/api/v1/task-types` | Types de tâches des temps de travaux (`name` unique, `hourly_rate_cents`, `is_active` ; `work_times` = temps saisis). Pages SPA `/work-times/task-types`, `…/new`, `…/<id>/edit` |
 | PATCH/DELETE | `/api/v1/task-types/<id>` | Modifie ; supprime un type sans temps saisis (sinon 409) |
