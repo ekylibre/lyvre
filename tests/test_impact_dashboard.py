@@ -189,11 +189,10 @@ def test_upsert_idempotent(session):
 
 
 def test_manual_entry_euros_to_cents(client, session):
-    resp = client.post("/impact/manual?month=2026-06", data={
-        "month": "2026-06",
+    resp = client.put("/api/v1/impact/manual", json={"month": "2026-06", "values": {
         "vinted.revenue_cents": "150,50",
         "vinted.items_sold": "12",
-    }, follow_redirects=True)
+    }})
     assert resp.status_code == 200
     rev = MetricSnapshot.query.filter_by(metric_key="vinted.revenue_cents").first()
     assert float(rev.value) == 15050  # euros → cents

@@ -57,6 +57,21 @@
     {"rule": "/purchases/settlements", "endpoint": "purchases.settlements"},
     {"rule": "/purchases/suppliers", "endpoint": "purchases.suppliers"},
     {"rule": "/purchases/<int:purchase_id>", "endpoint": "purchases.detail"},
-    {"rule": "/purchases/<int:purchase_id>/edit", "endpoint": "purchases.edit"}
+    {"rule": "/purchases/<int:purchase_id>/edit", "endpoint": "purchases.edit"},
+    {"rule": "/orders/", "endpoint": "orders.index"},
+    {"rule": "/orders/<int:order_id>", "endpoint": "orders.detail"},
+    {"rule": "/customer-invoices/", "endpoint": "customer_invoices.index"},
+    {"rule": "/customer-invoices/<int:invoice_id>", "endpoint": "customer_invoices.detail"},
+    {"rule": "/imports/odoo", "endpoint": "imports.odoo"},
+    {"rule": "/imports/odoo/batch/<batch_name>", "endpoint": "imports.odoo_batch"},
+    {"rule": "/impact/", "endpoint": "impact.index"},
+    {"rule": "/impact/report", "endpoint": "impact.report"},
+    {"rule": "/impact/factors", "endpoint": "impact.factors"},
+    {"rule": "/impact/manual", "endpoint": "impact.manual"},
+    {"rule": "/rapport-activite/", "endpoint": "activity_report.index"},
+    {"rule": "/rapport-activite/edit", "endpoint": "activity_report.edit"},
+    {"rule": "/rapport-activite/eco", "endpoint": "activity_report.eco"},
+    {"rule": "/rapport-activite/photos", "endpoint": "activity_report.photos"},
+    {"rule": "/rapport-activite/archives", "endpoint": "activity_report.archives"}
   ]
 }

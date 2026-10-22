@@ -24,23 +24,25 @@ def _location(resp):
 # --- redirections ---------------------------------------------------------
 
 
-def test_redirect_after_action_becomes_hx_location(client, session):
-    # Odoo non configuré : la synchro avertit et revient à la liste des commandes.
-    resp = client.post("/orders/sync", headers=HX_CONTENT)
+def test_redirect_after_action_becomes_hx_location(login_as):
+    client = login_as(is_admin=True)
+    # Désactivation d'une intégration : message puis retour à sa fiche.
+    resp = client.post("/configuration/integrations/odoo/enabled", data={"enabled": ""}, headers=HX_CONTENT)
     assert resp.status_code == 200 and resp.get_data() == b""
     loc = _location(resp)
-    assert loc == {"path": "/orders/", "target": "#page-content", "select": "#page-content",
-                   "swap": "outerHTML show:none"}
+    assert loc == {"path": "/configuration/integrations/odoo", "target": "#page-content",
+                   "select": "#page-content", "swap": "outerHTML show:none"}
 
     # Le message flash part avec la requête suivante (chargement HX-Location).
     follow = client.get(loc["path"], headers={"HX-Request": "true", "HX-Target": "page-content"})
     toast = json.loads(follow.headers["HX-Trigger"])["toast"]
-    assert toast[0]["level"] == "warning" and "Odoo" in toast[0]["message"]
+    assert toast[0]["level"] == "success" and "Odoo" in toast[0]["message"]
 
 
-def test_redirect_outside_content_zone_stays_hx_redirect(client, session):
-    resp = client.post("/orders/sync", headers={"HX-Request": "true"})
-    assert resp.headers["HX-Redirect"] == "/orders/"
+def test_redirect_outside_content_zone_stays_hx_redirect(login_as):
+    resp = login_as(is_admin=True).post("/configuration/integrations/odoo/enabled", data={"enabled": ""},
+                                        headers={"HX-Request": "true"})
+    assert resp.headers["HX-Redirect"] == "/configuration/integrations/odoo"
     assert "HX-Location" not in resp.headers
 
 

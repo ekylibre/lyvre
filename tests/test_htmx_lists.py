@@ -54,31 +54,6 @@ def test_no_full_reload_selectors_left_in_templates():
     assert offenders == []
 
 
-@pytest.mark.parametrize("url_name, target", [
-    ("orders", "#page-content"),
-    ("customer_invoices", "#list"),
-])
-def test_filter_form_is_htmx(client, data, url_name, target):
-    urls = {
-        "orders": "/orders/",
-        "customer_invoices": "/customer-invoices/",
-    }
-    resp = client.get(urls[url_name])
-    assert resp.status_code == 200, resp.status_code
-    html = resp.get_data(as_text=True)
-    assert 'id="page-content"' in html
-    form = _filter_form(html)
-    assert f'hx-target="{target}"' in form and f'hx-select="{target}"' in form
-    assert 'hx-push-url="true"' in form
-    assert "change, submit" in form
-    # La zone ciblée existe et n'inclut pas le champ de recherche (pas écrasé pendant la frappe).
-    if target == "#list":
-        assert 'id="list"' in html
-        assert "input changed delay:300ms" in form
-        list_zone = html.split('id="list"', 1)[1]
-        assert 'type="search"' not in list_zone
-
-
 def test_flash_messages_not_rendered_in_htmx_page(app, client, data):
     from flask import flash
 

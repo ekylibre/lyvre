@@ -219,7 +219,25 @@ supprimée avec son écriture.
 | G.3 | Rapport d'activité : formulaires (édition, éco, photos, logo), aperçu `iframe` du HTML serveur, PDF / exports / archives par liens |
 | G.4 | Import de tonnages |
 
+— *Réalisé (2026-10-22)* : API `odoo` (commandes, factures clients, synchros synchrones 409/502,
+import CSV par lots ; note Odoo en texte seul), `impact` (tableau de bord par période, synchro,
+saisie manuelle validée avant écriture, facteurs admin avec adresses http(s) seulement),
+`activity_report` (contexte, textes, import du site, tonnages, photos limitées aux images
+raster, logo, archives). Pages : commandes, factures, import Odoo et lots, Visibilité & Impact
+(Sparkline Mantine), rapport imprimable, saisie manuelle, facteurs, rapport d'activité (aperçu
+`iframe` en bac à sable de `/rapport-activite/apercu`, HTML autonome sans script), textes (Tiptap,
+HTML d'un bloc renvoyé intact s'il n'est pas modifié), tonnages, photos, archives. Flask ne sert plus
+que les fichiers (export XLSX, PDF, exports, photos, logo, archives) ; une photo absente donne 404
+(500 avant). Vues `orders`, `customer_invoices`, `imports` et leurs gabarits supprimés, ainsi que
+les gabarits d'écran `impact/` et `activity_report/` (restent `_body`, `pdf`, `export`). pytest 700,
+Vitest 68, E2E 14.
+
 **✅ CP G** : PDF du rapport d'activité identique à l'avant-refonte ; écrans G masqués pour le plan SCI.
+— *Fait* : PDF de l'exercice 2026 de la copie Seconde Nature produit par le commit précédent et par
+la phase G : 15 pages, texte et rendu (pixels) identiques. Menus du plan SCI sans Odoo, Indicateurs
+ni Import de tonnages (vérifié par `build_nav` et en E2E). Contrôle Chrome sur la copie Seconde
+Nature (commandes, factures, impact, aperçu du rapport, textes, tonnages, photos, archives ; aucune
+synchronisation lancée).
 
 ### Phase H — Configuration
 

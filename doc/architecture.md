@@ -66,7 +66,6 @@ compta-asso/
 │   │   ├── fiscal_years.py
 │   │   ├── journals.py
 │   │   ├── entries.py
-│   │   ├── imports.py
 │   │   ├── reconciliation.py
 │   │   ├── reports.py
 │   │   ├── entities.py           # CRUD tiers (dont TVA, SIRET, IBAN) + listes HelloAsso/POS/factures par tiers
@@ -75,9 +74,9 @@ compta-asso/
 │   │   ├── instances.py          # Instances (admin) : création, sauvegardes .zip, restauration, import
 │   │   ├── rules.py              # Affichage règles + application
 │   │   ├── payouts.py            # Liste + détail + sync Payouts/Payments Stancer
-│   │   ├── integrations.py       # Écran Intégrations : index, détail, interrupteur, test (admin)
-│   │   ├── orders.py             # Commandes POS Odoo : liste + détail + sync
-│   │   └── customer_invoices.py  # Factures clients Odoo : liste + détail + sync
+│   │   ├── impact.py             # Export XLSX Visibilité & Impact (écrans : SPA, API : api/impact.py)
+│   │   ├── activity_report.py    # Aperçu HTML, PDF, exports, photos, logo, archives du rapport d'activité
+│   │   └── integrations.py       # Écran Intégrations : index, détail, interrupteur, test (admin)
 │   │
 │   ├── services/                 # Logique métier (sans dépendance Flask)
 │   │   ├── ledger.py             # Moteur comptable : validation, saisie, soldes
@@ -123,15 +122,12 @@ compta-asso/
 │   │   ├── fiscal_years/
 │   │   ├── journals/
 │   │   ├── entries/
-│   │   ├── imports/
 │   │   ├── reconciliation/
 │   │   ├── reports/
 │   │   ├── entities/
 │   │   ├── rules/
 │   │   ├── payouts/
-│   │   ├── products/             # Catalogue
-│   │   ├── orders/               # Commandes POS Odoo
-│   │   └── customer_invoices/    # Factures clients Odoo
+│   │   └── products/             # Catalogue
 │   │
 │   └── static/
 │       ├── css/app.css           # Surcharges Bootstrap + styles impression
@@ -355,8 +351,8 @@ GET /reconciliation/  → page Jinja + îlot ReconcileWorkspace
 ### Synchronisation Odoo POS / Factures clients
 
 ```
-POST /orders/sync            (sync POS, synchrone)
-POST /customer-invoices/sync (sync factures clients, synchrone)
+POST /api/v1/orders/sync            (sync POS, synchrone)
+POST /api/v1/customer-invoices/sync (sync factures clients, synchrone)
     │
     └── odoo_pos_sync.sync_pos_orders()        OU
         odoo_invoice_sync.sync_customer_invoices()

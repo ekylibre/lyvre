@@ -57,6 +57,21 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
   "purchases.detail": () => import("../features/purchases/PurchaseDetailPage"),
   "purchases.settlements": () => import("../features/purchases/SettlementsPage"),
   "purchases.suppliers": () => import("../features/purchases/SuppliersPage"),
+  "orders.index": () => import("../features/odoo/OrdersPage"),
+  "orders.detail": () => import("../features/odoo/OrderDetailPage"),
+  "customer_invoices.index": () => import("../features/odoo/CustomerInvoicesPage"),
+  "customer_invoices.detail": () => import("../features/odoo/CustomerInvoiceDetailPage"),
+  "imports.odoo": () => import("../features/odoo/OdooImportPage"),
+  "imports.odoo_batch": () => import("../features/odoo/OdooBatchPage"),
+  "impact.index": () => import("../features/impact/ImpactPage"),
+  "impact.report": () => import("../features/impact/ImpactReportPage"),
+  "impact.factors": () => import("../features/impact/FactorsPage"),
+  "impact.manual": () => import("../features/impact/ManualPage"),
+  "activity_report.index": () => import("../features/activity-report/ReportPage"),
+  "activity_report.edit": () => import("../features/activity-report/TextsPage"),
+  "activity_report.eco": () => import("../features/activity-report/EcoPage"),
+  "activity_report.photos": () => import("../features/activity-report/PhotosPage"),
+  "activity_report.archives": () => import("../features/activity-report/ArchivesPage"),
 };
 
 /** Pages sans la mise en page de l'application (en-tête, menus). */

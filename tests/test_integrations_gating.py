@@ -115,13 +115,13 @@ def test_payouts_disabled_notice_and_no_sync(admin):
     assert db.session.query(SyncJob).count() == 0
 
 def test_orders_and_invoices_unconfigured_notice(admin):
-    for url in ("/orders/", "/customer-invoices/"):
-        html = admin.get(url).get_data(as_text=True)
-        assert "Intégration <strong>Odoo</strong>" in html, url
-        assert "non configurée" in html, url
+    for url in ("/api/v1/orders", "/api/v1/customer-invoices"):
+        odoo = admin.get(url).get_json()["meta"]["odoo"]
+        assert odoo["available"] is False and "non configurée" in odoo["message"], url
+        resp = admin.post(url + "/sync")
+        assert resp.status_code == 409 and "Odoo" in resp.get_json()["error"]["message"], url
 
 
-def test_impact_sync_buttons_disabled(admin):
-    html = admin.get("/impact/").get_data(as_text=True)
-    assert 'title="GA4 et Facebook indisponibles"' in html
-    assert 'title="GA4 indisponible"' in html
+def test_impact_sync_sources_unavailable(admin):
+    meta = admin.get("/api/v1/impact").get_json()["meta"]
+    assert meta["ga4"]["available"] is False and meta["facebook"]["available"] is False

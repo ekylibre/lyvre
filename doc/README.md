@@ -41,7 +41,7 @@ Application web de comptabilité pour associations loi 1901 (plan comptable des 
 - **HelloAsso** — Synchronisation OAuth2 des commandes et adhésions (`/v5/organizations/{slug}/orders`). Marquage automatique des adhérents.
 - **Tri & filtre temporel** — Sur les 8 listes datées (écritures, transactions, versements, paiements, commandes POS, factures clients, rapprochement, lot Odoo) : clic sur l'en-tête `Date` pour basculer asc/desc (avec indicateur ▲/▼) et filtre par mois (dropdown alimenté par les 12 mois de l'exercice courant).
 - **Indicateurs — Visibilité & Impact** (`/impact`) — Tableau de bord 4 dimensions (visibilité, environnemental, social, économique). L'**impact environnemental** (CO₂ évité, poids réemployé, taux de réemploi) est calculé à partir des **tonnages déclarés aux éco-organismes** (`eco_declarations`). Connecteurs GA4 / Facebook + saisie manuelle.
-- **Indicateurs — Rapport d'activité** (`/rapport-activite`) — Rapport annuel mis en page (identité Seconde Nature), blocs narratifs éditables en **WYSIWYG (Quill)**, photos, tonnages éco-organismes (import `.xlsx`), étiquette ADEME `impactco2.fr`. Exports **PDF** (weasyprint), **HTML** autonome, **DOCX** et **ODT** (LibreOffice headless) avec styles.
+- **Indicateurs — Rapport d'activité** (`/rapport-activite`) — Rapport annuel mis en page (identité Seconde Nature), blocs narratifs éditables en **WYSIWYG (Tiptap, avec accès au code HTML)**, photos, tonnages éco-organismes (import `.xlsx`), étiquette ADEME `impactco2.fr`. Exports **PDF** (weasyprint), **HTML** autonome, **DOCX** et **ODT** (LibreOffice headless) avec styles.
 - **Exports** — CSV (séparateur `;`, UTF-8 BOM, virgule décimale) et ODS (OpenDocument avec formules de totaux, références de cellules et styles) pour le compte de résultat ; impression PDF stylisée pour tous les états
 
 ## Démarrage rapide
@@ -66,7 +66,7 @@ python run.py
 | Export ODS | odfpy |
 | Rapport PDF | weasyprint (rendu serveur, graphes en SVG) |
 | Export DOCX / ODT | LibreOffice headless (`soffice --convert-to`) depuis un HTML autonome |
-| Éditeur de texte | Quill 2.0.3 (WYSIWYG, blocs narratifs du rapport d'activité) |
+| Éditeur de texte | Tiptap 3 via @mantine/tiptap (blocs du rapport d'activité, gabarit de relance) |
 | Graphiques | Mantine Charts (tableau de bord) ; ECharts et SVG serveur pour le rapport d'activité |
 | API Stancer | requests + SDK officiel `stancer` |
 | API Odoo | xmlrpc.client (stdlib) — endpoints `/xmlrpc/2/common` + `/xmlrpc/2/object` |

@@ -249,18 +249,13 @@ unique (`purchase_settlement.auto_match`) ; réponse `result` (`imported`, `dupl
 
 ### Import Odoo
 
+Pages de la SPA : `/imports/odoo` (dépôt du CSV, lots importés), `/imports/odoo/batch/<batch_name>` (`?month=`, `?sort=`). API :
+
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/imports/odoo` | Formulaire d'import CSV avec liste des lots existants |
-| POST | `/imports/odoo` | Upload du fichier CSV, staging dans `odoo_import_lines` |
-| GET | `/imports/odoo/batch/<batch_name>` | Détail de toutes les lignes d'un lot |
-
-**Paramètres POST :**
-
-| Champ | Description |
-|-------|-------------|
-| `csv_file` | Fichier CSV (export Odoo) |
-| `batch_name` | Nom du lot (optionnel, généré automatiquement si vide) |
+| GET | `/api/v1/imports/odoo` | Lots importés (`name`, `lines`, `url`) |
+| POST | `/api/v1/imports/odoo` | Multipart `csv_file` (export Odoo : `name`, `invoice_date`, `partner_id/name`, `product_id/name`, `price_subtotal`, `price_total`, `account_id/code`), `batch_name` facultatif (généré si vide, 50 caractères) → `result` (`batch`, `imported`, `errors`, `preview`, `url`) ; 422 si fichier absent ou illisible |
+| GET | `/api/v1/imports/odoo/batches/<batch_name>` | Lignes du lot (montants, compte, `entry_url` si comptabilisée) |
 
 ---
 
@@ -369,11 +364,13 @@ Pages de la SPA : `/payouts/` (`?month=`, `?sort=`), `/payouts/<id>`. API :
 
 ## Commandes POS Odoo (`/orders/`)
 
+Pages de la SPA : `/orders/` (`?month=`, `?sort=`), `/orders/<id>`. Synchronisations **synchrones** ; Odoo indisponible (non configurée ou désactivée) → bouton grisé et 409. API :
+
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/orders/` | Liste des commandes Point de Vente synchronisées (modèle Odoo `pos.order`). Limite d'affichage : 500. Tri/filtre mois standard. |
-| GET | `/orders/<id>` | Vue détail : en-tête + cartes Total / TVA / Payé / Rendu monnaie + tableau des lignes + tableau des paiements |
-| POST | `/orders/sync` | **Synchrone** — lance `sync_pos_orders()` (XML-RPC). Le bouton est désactivé si `ODOO_URL` / `ODOO_DB` / `ODOO_USERNAME` / `ODOO_API_KEY` ne sont pas définis dans `.env`. |
+| GET | `/api/v1/orders` | Commandes (`pos.order`), 500 au plus : référence, session, client, montants, nombre de lignes et de paiements, statut ; `meta` : mois, état d'Odoo |
+| GET | `/api/v1/orders/<id>` | Commande, lignes, paiements |
+| POST | `/api/v1/orders/sync` | `sync_pos_orders()` (XML-RPC) → `result`, `notices` ; 409 Odoo indisponible, 502 erreur Odoo |
 
 **Effets de la sync** :
 - Upsert `pos.order` → `orders` (clé d'idempotence : `odoo_id`)
@@ -386,13 +383,15 @@ Pages de la SPA : `/payouts/` (`?month=`, `?sort=`), `/payouts/<id>`. API :
 
 ## Factures clients Odoo (`/customer-invoices/`)
 
+Pages de la SPA : `/customer-invoices/` (filtres ci-dessous), `/customer-invoices/<id>`. API :
+
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/customer-invoices/` | Liste des factures clients Odoo (modèle `account.move` filtré `move_type='out_invoice'`). Limite d'affichage : 500. Tri/filtre mois standard + filtres `state`, `payment_state`, `q`. |
-| GET | `/customer-invoices/<id>` | Vue détail : cartes HT / TVA / TTC / Reste dû + infos numéro/référence/origine/journal + double badge état comptable + état paiement + tableau des lignes |
-| POST | `/customer-invoices/sync` | **Synchrone** — lance `sync_customer_invoices()` (XML-RPC). Désactivé si les variables `ODOO_*` ne sont pas définies. |
+| GET | `/api/v1/customer-invoices` | Factures (`account.move`, `out_invoice`), 500 au plus ; `meta` : états, états de paiement, mois, état d'Odoo |
+| GET | `/api/v1/customer-invoices/<id>` | Facture et lignes ; `narration` en texte seul (le HTML d'Odoo n'est pas repris) |
+| POST | `/api/v1/customer-invoices/sync` | `sync_customer_invoices()` (XML-RPC) → `result`, `notices` ; 409 / 502 comme les commandes |
 
-**Paramètres GET sur `/customer-invoices/` :**
+**Filtres** :
 
 | Param | Description |
 |-------|-------------|
@@ -440,38 +439,39 @@ et un bouton « Imprimer » (`window.print()`, navigation masquée en `@media pr
 
 ## Indicateurs — Visibilité & Impact (`/impact/`)
 
-Regroupées dans le menu **« Indicateurs »**. Période sélectionnable (`?gran=month|quarter|year|custom`, `?month=`, `?quarter=`, `?year=`, `?start=&end=`).
+Menu **« Indicateurs »** (plan associatif). Pages de la SPA : `/impact/`, `/impact/report` (rapport imprimable : impression du navigateur), `/impact/manual` (`?month=`), `/impact/factors` (**admin**). Période : `?gran=month|quarter|year|custom`, `?month=`, `?quarter=AAAA-Qn`, `?year=`, `?start=&end=`. API :
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/impact/` | Tableau de bord (4 dimensions : visibilité, **environnemental**, social, économique) + agrégats phares |
-| GET | `/impact/report` | Vue rapport imprimable (impression navigateur) |
-| GET | `/impact/export.xlsx` | Export XLSX des métriques de la période |
-| GET, POST | `/impact/factors` | Facteurs d'impact ADEME éditables (**admin**) |
-| GET, POST | `/impact/manual` | Saisie manuelle mensuelle (Vinted, Facebook…) |
-| POST | `/impact/sync` | Synchronisation des connecteurs externes (GA4, Facebook) |
+| GET | `/api/v1/impact` | Période (`label`, bornes), valeurs effectives du filtre (`current`), indicateurs phares, sections par dimension (valeur, évolution, tendance, source), fraîcheur des sources ; `meta` : mois, années, état de GA4 et Facebook, lien d'export XLSX |
+| POST | `/api/v1/impact/sync` | `{scope: month, month}` ou `{scope: year, year}` : connecteurs externes (GA4, Facebook), **synchrone** |
+| GET | `/api/v1/impact/manual?month=` | Métriques sans API du mois (valeurs en euros pour les montants) |
+| PUT | `/api/v1/impact/manual` | `{month, values: {clé: valeur}}` ; vide = inchangé ; 422 `fields` si une valeur est invalide (rien n'est écrit) |
+| GET | `/api/v1/impact/factors` | **Admin.** Facteurs d'impact (créés au besoin) |
+| PUT | `/api/v1/impact/factors` | **Admin.** `{items: [{id, value, source_label, source_url}]}` ; adresse http(s) seulement |
+
+Fichier servi par Flask : `GET /impact/export.xlsx` (mêmes paramètres de période).
 
 > **Impact environnemental** : `CO₂ évité`, `poids réemployé`, `taux de réemploi`, `km voiture` sont calculés (`impact_engine.compute`) à partir des **tonnages éco-organismes** (table `eco_declarations`, cf. import ci-dessous), et **non** des ventes. Le dashboard et le rapport d'activité affichent donc le même CO₂.
 
 ## Indicateurs — Rapport d'activité (`/rapport-activite/`)
 
+Pages de la SPA : `/rapport-activite/` (`?fy_id=`, `?prorata=0|1` : aperçu, PDF et exports), `/rapport-activite/edit` (**admin**, éditeur Tiptap + code HTML par bloc), `/rapport-activite/eco` (**admin**, aussi au menu **Imports/Exports**), `/rapport-activite/photos` (**admin**), `/rapport-activite/archives`. Sans exercice comptable : 409 `no_fiscal_year`. API :
+
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/rapport-activite/` | Aperçu du rapport (sélecteur d'exercice, mode prorata éco `?prorata=`) |
-| GET | `/rapport-activite/pdf` | PDF serveur (weasyprint), rendu inline |
-| GET | `/rapport-activite/export/<fmt>` | Export `html` \| `docx` \| `odt` (pièce jointe, **styles inclus**). HTML autonome (CSS inliné, images data-URI, graphes SVG) ; DOCX/ODT via LibreOffice headless |
-| GET, POST | `/rapport-activite/edit` | Éditeur des blocs narratifs — **WYSIWYG Quill** (**admin**) |
-| POST | `/rapport-activite/edit/import-site` | Pré-remplissage des blocs depuis le site (**admin**) |
-| GET, POST | `/rapport-activite/eco` | Table des **tonnages éco-organismes** : édition + import `.xlsx` (**admin**) |
-| POST | `/rapport-activite/eco/import` | Upload `.xlsx` (feuille `Bilan`) → `import_eco_xlsx` (**admin**) |
-| GET, POST | `/rapport-activite/photos` | Upload / légendes des photos (**admin**) |
-| GET | `/rapport-activite/photo/<id>` | Sert une photo (authentifié) |
-| POST | `/rapport-activite/logo` · `/logo/delete` | Logo de structure (**admin**) |
-| GET | `/rapport-activite/logo-file` | Sert le logo |
-| POST | `/rapport-activite/archive` | Fige une version PDF archivée (**admin**) |
-| GET | `/rapport-activite/archives` · `/archive/<id>` | Liste / consultation des archives ; `/archive/<id>/delete` (POST, **admin**) |
+| GET | `/api/v1/activity-report` | Exercices, exercice retenu (le plus récent par défaut), mode éco, liens (aperçu, PDF, HTML, DOCX, ODT) |
+| GET / PUT | `/api/v1/activity-report/texts` | **Admin.** Blocs narratifs (`key`, `title`, `body` HTML) et import du site disponible ; PUT `{fy_id, blocks}` (titre et contenu vides : bloc supprimé) |
+| POST | `/api/v1/activity-report/texts/import-site` | **Admin.** `{fy_id, overwrite}` : pré-remplissage depuis le site |
+| GET / PUT | `/api/v1/activity-report/eco` | **Admin.** Tonnages éco-organismes ; PUT `{rows: [{id, entrant_t, sortant_t, financing_cents, delete?}]}` |
+| POST | `/api/v1/activity-report/eco/import` | **Admin.** Multipart `file` `.xlsx` (feuille `Bilan`) |
+| GET / POST | `/api/v1/activity-report/photos` | **Admin.** Emplacements (couverture, sections) et logo ; POST multipart `fy_id`, `slot`, `file` (png, jpg, webp, gif) remplace la photo |
+| PATCH / DELETE | `/api/v1/activity-report/photos/<id>` | **Admin.** Légende / suppression |
+| POST / DELETE | `/api/v1/activity-report/logo` | **Admin.** Logo de la structure (png, jpg, svg, webp, gif) |
+| GET | `/api/v1/activity-report/archives` | Versions archivées de l'exercice |
+| POST / DELETE | `/api/v1/activity-report/archives[/<id>]` | **Admin.** `{fy_id, label, prorata}` fige un PDF (201) ; suppression |
 
-L'**import de tonnages** (`/rapport-activite/eco`) est également proposé dans le menu **Imports/Exports** (admin). Le bouton « Imprimer » a été remplacé par les exports PDF / HTML / DOCX / ODT.
+Fichiers servis par Flask : `GET /rapport-activite/apercu` (HTML autonome, graphes SVG, `script-src 'none'` ; affiché dans un `iframe` en bac à sable), `/pdf` (weasyprint, inline), `/export/<html|docx|odt>`, `/photo/<id>`, `/logo-file`, `/archive/<id>`. Le PDF et les exports sont produits comme avant la refonte.
 
 ---
 

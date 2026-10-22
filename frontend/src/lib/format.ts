@@ -18,6 +18,13 @@ export function formatDate(iso: string | null | undefined): string {
   return d && m && y ? `${d}/${m}/${y}` : iso;
 }
 
+/** « 2026-10-02T14:30:00 » → « 02/10/2026 14:30 » (heure telle qu'enregistrée) ; vide → « — ». */
+export function formatDateTime(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const time = iso.slice(11, 16);
+  return time ? `${formatDate(iso)} ${time}` : formatDate(iso);
+}
+
 const COLLATOR = new Intl.Collator("fr", { numeric: true, sensitivity: "base" });
 
 /** Comparaison pour les tris (textes à la française, nombres, vides en dernier). */

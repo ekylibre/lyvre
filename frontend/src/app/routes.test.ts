@@ -20,7 +20,8 @@ describe("routes de la SPA", () => {
     expect(isSpaPath("/select-instance/")).toBe(true);
     expect(isSpaPath("/purchases/")).toBe(true);
     expect(isSpaPath("/purchases/12/attachment")).toBe(false);
-    expect(isSpaPath("/orders/")).toBe(false);
+    expect(isSpaPath("/orders/")).toBe(true);
+    expect(isSpaPath("/rapport-activite/pdf")).toBe(false);
     expect(isSpaPath("/")).toBe(true);
   });
 });

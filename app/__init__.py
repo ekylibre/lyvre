@@ -31,14 +31,11 @@ def create_app(config_name=None):
     from .tenant import register_tenant_hooks
     register_tenant_hooks(app)
 
-    from .views.imports import bp as imports_bp
     from .views.reports import bp as reports_bp
     from .views.auth import bp as auth_bp
     from .views.entities import bp as entities_bp
     from .views.impact import bp as impact_bp
     from .views.activity_report import bp as activity_report_bp
-    from .views.orders import bp as orders_bp
-    from .views.customer_invoices import bp as customer_invoices_bp
     from .views.instances import bp as instances_bp
     from .views.purchases import bp as purchases_bp
     from .views.integrations import bp as integrations_bp, legacy_bp as external_connections_bp
@@ -48,13 +45,10 @@ def create_app(config_name=None):
     register_spa(app)
 
     app.register_blueprint(auth_bp)
-    app.register_blueprint(imports_bp)
     app.register_blueprint(reports_bp)
     app.register_blueprint(entities_bp)
     app.register_blueprint(impact_bp)
     app.register_blueprint(activity_report_bp)
-    app.register_blueprint(orders_bp)
-    app.register_blueprint(customer_invoices_bp)
     app.register_blueprint(instances_bp)
     app.register_blueprint(purchases_bp)
     app.register_blueprint(integrations_bp)
