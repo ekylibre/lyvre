@@ -21,8 +21,8 @@ from app.extensions import db  # noqa: E402
 from app.models import Instance, User  # noqa: E402
 
 
-def _ensure_instance_chart_column() -> None:
-    """Add the ``instances.chart`` column to a pre-existing meta database.
+def _ensure_column(table: str, column: str, ddl: str) -> None:
+    """Add ``column`` to ``table`` of a pre-existing meta database.
 
     ``db.create_all`` only creates missing tables, never ALTERs existing ones,
     so meta databases created before the column was introduced need this
@@ -30,16 +30,21 @@ def _ensure_instance_chart_column() -> None:
     """
     engine = db.engines.get("meta") or db.engine
     inspector = inspect(engine)
-    if "instances" not in inspector.get_table_names():
+    if table not in inspector.get_table_names():
         return  # create_all will build it with the column
-    columns = {col["name"] for col in inspector.get_columns("instances")}
-    if "chart" in columns:
+    if column in {col["name"] for col in inspector.get_columns(table)}:
         return
     with engine.begin() as conn:
-        conn.execute(
-            text("ALTER TABLE instances ADD COLUMN chart VARCHAR(20) NOT NULL DEFAULT 'asso'")
-        )
-    print("Colonne instances.chart ajoutée.")
+        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}"))
+    print(f"Colonne {table}.{column} ajoutée.")
+
+
+def _ensure_instance_chart_column() -> None:
+    _ensure_column("instances", "chart", "VARCHAR(20) NOT NULL DEFAULT 'asso'")
+
+
+def _ensure_user_preferences_column() -> None:
+    _ensure_column("users", "preferences", "TEXT NOT NULL DEFAULT '{}'")
 
 
 DEFAULT_ADMIN_EMAIL = "admin@local"
@@ -67,6 +72,7 @@ def main() -> int:
         # Create meta tables.
         db.create_all(bind_key=["meta"])
         _ensure_instance_chart_column()
+        _ensure_user_preferences_column()
 
         admin_email = (os.environ.get("ADMIN_EMAIL") or DEFAULT_ADMIN_EMAIL).strip().lower()
         admin_password = os.environ.get("ADMIN_PASSWORD") or DEFAULT_ADMIN_PASSWORD

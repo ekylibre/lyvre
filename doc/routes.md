@@ -22,26 +22,17 @@ Le dropdown de mois est alimenté par les **12 mois de l'exercice comptable cour
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/login` | Formulaire de connexion (email + mot de passe) |
-| POST | `/login` | Vérifie les credentials, crée la session, redirige vers `/select-instance` |
-| GET | `/select-instance` | Liste les instances actives. Si une seule, auto-sélection et redirection. |
-| POST | `/select-instance` | Pose `session["instance_id"]`, redirige vers `?next=` ou `/` |
-| GET | `/logout` | Détruit la session (login + instance), redirige vers `/login` |
+| GET | `/login` | Page de la SPA (connexion) ; `?next=` suivi seulement s'il désigne une page de l'application |
+| GET | `/select-instance` | Page de la SPA (choix de l'instance) ; connexion exigée |
+| GET | `/logout` | Détruit la session (login + instance), redirige vers `/login` (lien des pages Jinja) |
 
-**Paramètres POST `/login` :**
+Connexion, déconnexion et choix d'instance passent par l'API (`/api/v1/session/*`, ci-dessous).
 
-| Champ | Type | Description |
-|-------|------|-------------|
-| `email` | string | Email de l'utilisateur (case-insensitive) |
-| `password` | string | Mot de passe (vérifié contre `User.password_hash`) |
-| `csrf_token` | string | Token CSRF fourni par le formulaire |
+## Pages de la SPA
 
-**Paramètres POST `/select-instance` :**
-
-| Champ | Type | Description |
-|-------|------|-------------|
-| `instance_id` | int | ID de l'instance choisie (parmi celles actives) |
-| `csrf_token` | string | Token CSRF |
+Les pages migrées vers React + Mantine sont listées dans `app/spa_routes.json` (règle Flask,
+nom d'endpoint d'origine, `public`). Flask y sert la coquille `templates/spa.html` en GET ; le
+routeur React affiche la page. Les autres URL restent des pages Jinja.
 
 > Toutes les routes ci-dessous nécessitent d'avoir choisi une instance. Sinon, redirection vers `/select-instance`. Les routes `/users/*` et `/instances/*` font exception : elles ne tapent que dans la méta-base et restent accessibles sans instance sélectionnée.
 
@@ -558,7 +549,12 @@ Codes : `bad_request` / `csrf_error` (400), `unauthenticated` (401, jamais de re
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/api/v1/session` | Utilisateur et instance courants (vérification de session) |
+| GET | `/api/v1/session` | Utilisateur, instance courante, instances actives, menus (`nav`, URL résolues selon le plan et les droits), liens d'administration, préférences, jeton CSRF |
+| POST | `/api/v1/session/login` | `{email, password}` → session (comme ci-dessus) ; 422 si identifiants faux ou compte désactivé ; une seule instance active : choisie d'office |
+| POST | `/api/v1/session/logout` | Déconnexion (instance oubliée) |
+| POST | `/api/v1/session/instance` | `{instance_id}` → session ; 422 si l'instance est inconnue ou désactivée |
+| PATCH | `/api/v1/me/preferences` | Fusion profonde dans `users.preferences` (`null` supprime une clé) ; `color_scheme` ∈ `light`/`dark`/`auto` ; 413 au-delà de 16 Ko |
+| GET | `/api/v1/jobs/<id>` | État d'une tâche longue (`sync_jobs`) : statut, progression, résultat |
 | GET | `/api/v1/accounts?q=&limit=20` | Comptes utilisables (hors regroupement) : début de code, puis mots du libellé (sans accents) |
 | GET | `/api/v1/entities?q=&limit=20` | Tiers par nom ou email |
 | POST | `/api/v1/entries/validate` | Validation à blanc : `{"errors": {champ: message}}`, rien n'est enregistré |

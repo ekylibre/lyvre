@@ -109,7 +109,7 @@ def test_page_loads_island_assets(client, base, monkeypatch):
     import app.frontend as frontend
 
     monkeypatch.setattr(frontend, "_load_manifest",
-                        lambda: {"src/main.tsx": {"file": "assets/main-test.js"}})
+                        lambda: {"src/islands.tsx": {"file": "assets/main-test.js"}})
     html = client.get("/entries/new").get_data(as_text=True)
     main = html.split('id="page-content"', 1)[1]
     assert '<script type="module" src="/static/dist/assets/main-test.js"></script>' in main

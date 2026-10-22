@@ -34,6 +34,8 @@ Modele-document-Nouveau-Plan-comptable-Bilan-CDR.xls
 # Front-end: dependencies are installed and the bundle is built inside the
 # image (Dockerfile stage "front"); never copy a local build or node_modules.
 frontend/node_modules/
+frontend/test-results/
+frontend/playwright-report/
 app/static/dist/
 
 # Build outputs (not used by this project but defensive)

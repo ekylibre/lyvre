@@ -105,6 +105,7 @@ changement d'interrupteur ou au premier test.
 | `is_admin` | Boolean default=False | Donne accès aux CRUD users + instances |
 | `is_active` | Boolean default=True | Faux = login refusé, déconnexion forcée |
 | `last_login_at` | DateTime nullable | Mis à jour à chaque login réussi |
+| `preferences` | Text NOT NULL default=`{}` | Préférences d'interface de la SPA (JSON : `color_scheme`, `tables.<id>.hidden`…), modifiées par `PATCH /api/v1/me/preferences` |
 | `created_at` | DateTime default=utcnow | |
 
 Hérite de `flask_login.UserMixin`. Méthodes `set_password(p)` / `check_password(p)`.
@@ -127,7 +128,7 @@ Hérite de `flask_login.UserMixin`. Méthodes `set_password(p)` / `check_passwor
 
 `slug`, `database_url` et `chart` sont **immuables** en UI après création (édition `label` + `is_active` uniquement). Cette contrainte évite les fuites du cache d'engines (`app/tenant.py:_ENGINE_CACHE`).
 
-La méta-base n'étant pas gérée par Alembic, `seed_meta.py` ajoute la colonne `chart` aux bases existantes (`ALTER TABLE` idempotent, valeur `asso`).
+La méta-base n'étant pas gérée par Alembic, `seed_meta.py` ajoute les colonnes `instances.chart` (valeur `asso`) et `users.preferences` (valeur `{}`) aux bases existantes (`ALTER TABLE` idempotent, à chaque démarrage du conteneur).
 
 ---
 

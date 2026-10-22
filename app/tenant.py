@@ -25,6 +25,12 @@ _TENANT_FREE_ENDPOINTS = {
     "auth.logout",
     "auth.select_instance",
     "static",
+    # Session de la SPA (méta-base seulement), cf. app/api/session.py.
+    "api.session_info",
+    "api.login",
+    "api.logout",
+    "api.select_instance",
+    "api.update_preferences",
 }
 
 

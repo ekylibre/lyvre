@@ -55,6 +55,10 @@ def create_app(config_name=None):
     from .views.purchases import bp as purchases_bp
     from .views.integrations import bp as integrations_bp, legacy_bp as external_connections_bp
 
+    # Pages migrées vers la SPA : avant les blueprints (un doublon d'endpoint échoue).
+    from .spa import register_spa
+    register_spa(app)
+
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(accounts_bp)

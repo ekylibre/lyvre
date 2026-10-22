@@ -9,8 +9,7 @@ Common rules:
 
     {"error": {"code": "validation_error", "message": "…", "fields": {"lines[1].account_id": "…"}}}
 """
-from flask import Blueprint, g, jsonify, request
-from flask_login import current_user, login_required
+from flask import Blueprint, jsonify, request
 from flask_wtf.csrf import CSRFError
 from werkzeug.exceptions import HTTPException
 
@@ -70,21 +69,6 @@ def json_body() -> dict:
     return data
 
 
-@bp.route("/session")
-@login_required
-def session_info():
-    """Current user and instance — lets an island check its session is alive."""
-    instance = getattr(g, "current_instance", None)
-    return jsonify(
-        user={"email": getattr(current_user, "email", None),
-              "is_admin": bool(getattr(current_user, "is_admin", False))},
-        instance=(
-            {"slug": instance.slug, "label": instance.label, "chart": instance.chart}
-            if instance else None
-        ),
-    )
-
-
 def register_api(app):
     app.register_blueprint(bp)
 
@@ -116,4 +100,4 @@ def register_api(app):
 
 
 # Routes are attached to ``bp`` by these modules (import for side effects).
-from . import entries, lookups, reconciliation  # noqa: E402,F401
+from . import entries, lookups, reconciliation, session  # noqa: E402,F401

@@ -71,6 +71,16 @@ flowchart LR
 | A.9 | Harnais E2E : `scripts/e2e_server.py` (base temporaire semée, utilisateur de test), Playwright Chromium, `make e2e` ; parcours **connexion + choix d'instance + changement de thème** | `frontend/e2e/`, `Makefile` |
 | A.10 | Docker : PostCSS et nouvelles dépendances dans l'étape Node ; image construite, coquille servie | `Dockerfile` |
 
+— *Réalisé (2026-10-22)* : React 19.2.9, Mantine 9.7.3, react-router 8.5, TanStack Query 5.104,
+mantine-datatable 9.4. Entrées Vite : `src/main.tsx` (SPA), `src/islands.tsx` (îlots Jinja).
+`app/spa_routes.json` = règle Flask + **endpoint d'origine** (url_for inchangé, cf. design §4.1).
+`users.preferences` + `seed_meta._ensure_column`. Pages `/login`, `/select-instance` basculées
+(gabarits Jinja supprimés ; `/logout` GET gardé pour les pages Jinja). Composants : `DataGrid`
+(tri une colonne), `FilterBar`/`useUrlParams`/`SearchInput`, `PageHeader`, `ConfirmButton`,
+`FormModal`/`FormDrawer`, `MoneyInput`/`MoneyText`. `FiscalYearSelect`/`MonthSelect` reportés en
+B.2 (API des exercices). L'`AppShell` n'est visible qu'à partir de la première page migrée (B).
+pytest 656, Vitest 59, E2E 2 (connexion → instance → page demandée ; changement d'instance).
+
 **✅ CP A** : `make check` + `make e2e` verts ; connexion, choix / changement d'instance, menus
 selon le plan (asso / sci) et les droits, thème mémorisé d'un navigateur à l'autre ; une page
 Jinja ouverte depuis la SPA et inversement ; image Docker OK.

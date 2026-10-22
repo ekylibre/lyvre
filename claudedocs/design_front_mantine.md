@@ -107,18 +107,21 @@ leur domaine (Compta, Banque), puis sont supprimés.
 ### 4.1 `spa_routes.json`
 
 ```json
-{ "routes": ["/login", "/select-instance", "/journals", "/fiscal-years", "/accounts",
-             "/purchases", "/purchases/:id", "/purchases/new"] }
+{ "routes": [
+    {"rule": "/login", "endpoint": "auth.login", "public": true},
+    {"rule": "/purchases/<int:purchase_id>", "endpoint": "purchases.detail"}
+] }
 ```
 
-- Syntaxe react-router (`:id`, `*` final autorisé). Flask convertit (`/purchases/<path:id>`) et
-  enregistre `spa_shell()` en **GET** sur chaque chemin et sa variante avec `/` final.
-- L'enregistrement a lieu **avant** les blueprints : la route HTML GET du même chemin est
-  supprimée du blueprint au moment de la bascule (pas de conflit silencieux : un test vérifie
-  qu'aucune règle GET HTML ne couvre un chemin SPA).
-- Côté React : `router.tsx` crée une route par chemin à partir de `routes.ts` ; un test Vitest
-  vérifie que chaque chemin du JSON a une page et inversement. Route `*` : `window.location.assign`
-  (ancienne page).
+- *Mis en œuvre (phase A)* : chaque entrée donne la **règle Flask** et le **nom d'endpoint** de
+  l'ancienne vue. `app/spa.py` enregistre `spa_shell()` en GET sous ce même nom, **avant** les
+  blueprints : `url_for("purchases.detail", purchase_id=…)` (menus, liens et redirections des
+  pages Jinja restantes) continue de fonctionner, et une ancienne vue GET encore présente sur le
+  même endpoint fait échouer le démarrage (Flask refuse d'écraser un endpoint) — la bascule
+  supprime donc forcément la vue HTML. Test : `tests/api/test_spa_shell.py`.
+- Côté React : `routes.ts` convertit la règle (`<int:purchase_id>` → `:purchase_id`) et associe
+  une page à chaque endpoint ; un test Vitest vérifie que chaque endpoint du JSON a une page et
+  inversement. Route `*` : chargement complet (ancienne page).
 - Les liens internes passent par un composant `AppLink` : `<Link>` si le chemin est SPA, `<a>` sinon.
 - Les routes POST HTML existantes restent jusqu'à la bascule de leur domaine.
 
@@ -197,7 +200,7 @@ module `app/queries/<domaine>.py` (requêtes de liste réutilisées par la vue t
 | Composant | Rôle | Base |
 |-----------|------|------|
 | `AppShell` | En-tête (logo, instance, sélecteur, utilisateur, thème), navigation (menus de `nav`), zone de contenu | `AppShell` Mantine |
-| `DataGrid<T>` | Table avancée : tri (multi), sélection + barre d'actions groupées, colonnes masquables (préférences `tables.<id>.hidden`), pagination serveur ou client, état vide, chargement | mantine-datatable |
+| `DataGrid<T>` | Table avancée : tri (**une colonne** : limite de mantine-datatable, écart à F6 accepté en phase A), sélection + barre d'actions groupées, colonnes masquables (préférences `tables.<id>.hidden`), pagination serveur ou client, état vide, chargement | mantine-datatable |
 | `FilterBar` | Filtres d'une liste synchronisés avec l'URL (`useSearchParams`) : recherche (anti-rebond 300 ms), exercice, mois, listes | Mantine inputs |
 | `MoneyInput` / `MoneyText` | Saisie et affichage `1 234,56 €`, conversion centimes | `NumberInput` (`decimalSeparator=","`, `thousandSeparator=" "`) |
 | `AccountSelect`, `EntitySelect`, `ProductSelect` | Combobox avec recherche (sans accents), récents | `Combobox` ; reprend `AccountCombobox` |

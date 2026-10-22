@@ -46,11 +46,6 @@ def test_html_pages_still_redirect_to_login(app):
     assert resp.status_code == 302 and "/login" in resp.headers["Location"]
 
 
-def test_session_endpoint(client):
-    body = client.get("/api/v1/session").get_json()
-    assert body == {"user": {"email": None, "is_admin": False}, "instance": None}
-
-
 def test_api_error_and_json_body(app, client):
     from flask import jsonify
     from app.api import json_body

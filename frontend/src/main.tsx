@@ -1,10 +1,17 @@
-import { islands } from "./islands/registry";
-import { mountIslands } from "./mount";
+// Point d'entrée de la SPA (coquille app/templates/spa.html).
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { RouterProvider } from "react-router/dom";
+import { Providers, createQueryClient } from "./app/providers";
+import { createRouter } from "./app/router";
 
-void mountIslands(document, islands);
+const router = createRouter();
+const queryClient = createQueryClient();
 
-// Contenu remplacé par HTMX (navigation dans #page-content) : monter les
-// nouveaux îlots éventuels.
-document.addEventListener("htmx:afterSettle", () => {
-  void mountIslands(document, islands);
-});
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <Providers client={queryClient}>
+      <RouterProvider router={router} />
+    </Providers>
+  </StrictMode>,
+);

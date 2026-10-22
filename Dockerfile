@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# Étape 1 — build des îlots React (Vite). Node n'est présent que dans cette
+# Étape 1 — build du front React (Vite : SPA + îlots). Node n'est présent que dans cette
 # étape : l'image finale ne contient que le résultat (app/static/dist).
 # ---------------------------------------------------------------------------
 FROM node:22-slim AS front
@@ -8,6 +8,8 @@ WORKDIR /build/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY frontend/ ./
+# Pages de la SPA, partagées avec Flask (importées par src/app/routes.ts).
+COPY app/spa_routes.json /build/app/spa_routes.json
 # vite.config.ts : outDir = ../app/static/dist → /build/app/static/dist
 RUN npm run build
 

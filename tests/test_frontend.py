@@ -130,7 +130,7 @@ def test_vite_assets_production_reads_manifest(app, manifest):
     from app.frontend import vite_assets
 
     manifest.write_text(json.dumps({
-        "src/main.tsx": {"file": "assets/main-abc.js", "css": ["assets/main-abc.css"],
+        "src/islands.tsx": {"file": "assets/main-abc.js", "css": ["assets/main-abc.css"],
                          "imports": ["_vendor.js"], "isEntry": True},
         "_vendor.js": {"file": "assets/vendor-xyz.js"},
     }))
@@ -145,10 +145,10 @@ def test_vite_assets_reloads_manifest_after_new_build(app, manifest):
     import os
     from app.frontend import vite_assets
 
-    manifest.write_text(json.dumps({"src/main.tsx": {"file": "assets/v1.js"}}))
+    manifest.write_text(json.dumps({"src/islands.tsx": {"file": "assets/v1.js"}}))
     with app.test_request_context():
         assert "v1.js" in str(vite_assets())
-        manifest.write_text(json.dumps({"src/main.tsx": {"file": "assets/v2.js"}}))
+        manifest.write_text(json.dumps({"src/islands.tsx": {"file": "assets/v2.js"}}))
         os.utime(manifest, (1, 1))  # mtime différent
         assert "v2.js" in str(vite_assets())
 
@@ -168,7 +168,7 @@ def test_vite_assets_dev_server(app):
     with app.test_request_context():
         html = str(vite_assets())
     assert 'src="http://localhost:5173/static/dist/@vite/client"' in html
-    assert 'src="http://localhost:5173/static/dist/src/main.tsx"' in html
+    assert 'src="http://localhost:5173/static/dist/src/islands.tsx"' in html
     assert "@react-refresh" in html and "__vite_plugin_react_preamble_installed__" in html
 
 

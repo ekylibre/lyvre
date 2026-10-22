@@ -63,7 +63,7 @@ export default function Workspace(props: WorkspaceProps) {
   const [undo, setUndo] = useState<UndoState | null>(null);
   const [panelFor, setPanelFor] = useState<BankTransaction | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
-  const undoTimer = useRef<number>();
+  const undoTimer = useRef<number | undefined>(undefined);
   const pending = useRef(new Set<number>());
 
   const ids = useMemo(() => transactions.map((t) => t.id), [transactions]);

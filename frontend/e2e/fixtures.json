@@ -1,0 +1,9 @@
+{
+  "_comment": "Données de la base jetable des tests de bout en bout (scripts/e2e_server.py). Compte de test, jamais utilisé ailleurs.",
+  "port": 5099,
+  "user": {"email": "e2e@example.org", "password": "e2e-mot-de-passe"},
+  "instances": [
+    {"slug": "asso-e2e", "label": "Association E2E", "chart": "asso"},
+    {"slug": "sci-e2e", "label": "SCI E2E", "chart": "sci"}
+  ]
+}

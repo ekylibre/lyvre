@@ -58,7 +58,7 @@ export const AccountCombobox = forwardRef<HTMLInputElement, Props>(function Acco
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState<Account[]>([]);
   const [active, setActive] = useState(0);
-  const timer = useRef<number>();
+  const timer = useRef<number | undefined>(undefined);
 
   // Valeur modifiée de l'extérieur (réinitialisation, préremplissage).
   useEffect(() => {

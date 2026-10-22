@@ -17,6 +17,8 @@ class User(UserMixin, db.Model):
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     last_login_at = db.Column(db.DateTime, nullable=True)
+    # Préférences d'interface (JSON : thème, colonnes masquées…), cf. app/api/session.py.
+    preferences = db.Column(db.Text, nullable=False, default="{}", server_default="{}")
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     def set_password(self, password):

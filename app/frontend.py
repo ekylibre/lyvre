@@ -30,7 +30,8 @@ CONTENT_ZONE = "page-content"
 # React islands assets (Vite) — see frontend/vite.config.ts
 # ---------------------------------------------------------------------------
 
-VITE_ENTRY = "src/main.tsx"
+VITE_ENTRY = "src/islands.tsx"
+SPA_ENTRY = "src/main.tsx"
 _manifest_cache = {"mtime": None, "data": None}
 
 
@@ -129,6 +130,7 @@ def register_frontend(app):
     """HTMX response hook + Vite helpers for the templates."""
     app.config.setdefault("VITE_DEV_SERVER", os.environ.get("VITE_DEV_SERVER", ""))
     app.jinja_env.globals["vite_assets"] = vite_assets
+    app.jinja_env.globals["spa_entry"] = SPA_ENTRY
 
     @app.after_request
     def _htmx_response(response):

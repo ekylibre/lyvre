@@ -144,6 +144,12 @@ build, puis `pytest`). Les tests n'appellent aucun service externe (clients Qont
 écrivent dans des dossiers temporaires ; les tests d'OCR (`tests/test_invoice_reader.py`) sont ignorés
 si Tesseract n'est pas installé. Tests des factures d'achat : `tests/test_purchase_*.py`,
 `tests/test_invoice_reader.py`, `tests/test_attachments.py`, `tests/test_instance_backup.py`.
+Tests de l'API de la SPA : `tests/api/`.
+
+**Parcours de bout en bout** (Playwright) : `make e2e` construit le front puis lance
+`scripts/e2e_server.py` (Flask sur le port 5099, bases et dossier d'instance jetables, compte de
+`frontend/e2e/fixtures.json`) et les tests de `frontend/e2e/`. Une seule fois avant :
+`npx --prefix frontend playwright install chromium`.
 
 L'application est accessible sur **http://127.0.0.1:5000**.
 
