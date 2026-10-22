@@ -9,6 +9,8 @@ export class ApiError extends Error {
     message: string,
     public status: number,
     public fields: FieldErrors = {},
+    /** Corps complet de l'erreur (données propres à un code, ex. `duplicates`). */
+    public details: Record<string, unknown> = {},
   ) {
     super(message);
   }
@@ -82,6 +84,7 @@ export async function request<T>(method: Method, url: string, options: RequestOp
       e.message ?? `Erreur serveur (${response.status}).`,
       response.status,
       e.fields ?? {},
+      e,
     );
     if (redirect) redirectFor(error);
     throw error;

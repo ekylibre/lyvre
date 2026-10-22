@@ -233,31 +233,42 @@ def test_ofx_import_settles_pending_invoice(books, login_as):
     assert Purchase.query.get(p.id).payments[0].journal_entry is not None
 
 
+def _api(path=""):
+    return f"/api/v1/purchases{path}"
+
+
+def _numbers(client, qs):
+    return [r["invoice_number"] for r in client.get(_api(f"?{qs}")).get_json()["items"]]
+
+
+def _notices(resp):
+    return " ".join(n["message"] for n in resp.get_json().get("notices", [])) or resp.get_json()["error"]["message"]
+
+
 def test_detail_suggestions_link_and_undo(books, login_as):
     first = txn(books, date(2026, 9, 4))
     txn(books, date(2026, 9, 10))
     p = invoice(books)
     client = login_as()
-    page = client.get(f"/purchases/{p.id}").get_data(as_text=True)
-    assert page.count("Régler avec cette transaction") == 2
-    client.post(f"/purchases/{p.id}/payments", data={"bank_transaction_id": str(first.id)})
+    assert len(client.get(_api(f"/{p.id}")).get_json()["suggestions"]) == 2
+    client.post(_api(f"/{p.id}/payments"), json={"bank_transaction_id": first.id})
     db.session.expire_all()
     p = db.session.get(Purchase, p.id)
     assert p.payments[0].origin == "manual" and p.payments[0].journal_entry is not None
-    page = client.get(f"/purchases/{p.id}").get_data(as_text=True)
-    assert "Réglée" in page and "Défaire" in page and "Régler avec" not in page
-    assert "F-1" not in client.get("/purchases/?unpaid=1").get_data(as_text=True)
+    body = client.get(_api(f"/{p.id}")).get_json()
+    assert [x["status_label"] for x in body["payments"]] == ["Réglée"] and body["suggestions"] == []
+    assert "F-1" not in _numbers(client, "unpaid=1")
 
-    client.post(f"/purchases/{p.id}/payments/{p.payments[0].id}/delete")
+    client.delete(_api(f"/{p.id}/payments/{p.payments[0].id}"))
     db.session.expire_all()
     assert db.session.get(Purchase, p.id).payments == []
-    assert "F-1" in client.get("/purchases/?unpaid=1").get_data(as_text=True)
+    assert "F-1" in _numbers(client, "unpaid=1")
 
 
 def test_detail_without_candidate(books, login_as):
     p = invoice(books)
-    page = login_as().get(f"/purchases/{p.id}").get_data(as_text=True)
-    assert "aucune transaction bancaire hors Qonto" in page and "28/08/2026" in page
+    body = login_as().get(_api(f"/{p.id}")).get_json()
+    assert body["suggestions"] == [] and body["awaiting_payment"] and body["match_window"][0] == "2026-08-28"
 
 
 def test_payment_routes_errors_and_rule_warning(books, login_as):
@@ -273,18 +284,14 @@ def test_payment_routes_errors_and_rule_warning(books, login_as):
     txn(books, date(2026, 9, 6))  # second candidat : pas de lien automatique
     p = invoice(books)
     client = login_as()
-    page = client.get(f"/purchases/{p.id}").get_data(as_text=True)
-    assert "Déjà passée par une règle" in page
-    page = client.post(f"/purchases/{p.id}/payments", data={"bank_transaction_id": str(other.id)},
-                       follow_redirects=True).get_data(as_text=True)
-    assert "ne peut pas régler la facture" in page
-    page = client.post(f"/purchases/{p.id}/payments", data={"bank_transaction_id": str(t.id)},
-                       follow_redirects=True).get_data(as_text=True)
-    assert "remplacez son écriture" in page
+    assert any(s["rule"] for s in client.get(_api(f"/{p.id}")).get_json()["suggestions"])
+    resp = client.post(_api(f"/{p.id}/payments"), json={"bank_transaction_id": other.id})
+    assert resp.status_code == 422 and "ne peut pas régler la facture" in _notices(resp)
+    assert "remplacez son écriture" in _notices(client.post(_api(f"/{p.id}/payments"),
+                                                            json={"bank_transaction_id": t.id}))
     qonto_payment = PurchasePayment(purchase=invoice(books, number="F-2", supplier="Orange"),
                                     qonto_transaction_id="tx-1")
     db.session.add(qonto_payment)
     db.session.commit()
-    page = client.post(f"/purchases/{qonto_payment.purchase_id}/payments/{qonto_payment.id}/delete",
-                       follow_redirects=True).get_data(as_text=True)
+    page = _notices(client.delete(_api(f"/{qonto_payment.purchase_id}/payments/{qonto_payment.id}")))
     assert "ne se défait pas ici" in page

@@ -208,31 +208,34 @@ Pages de la SPA (liste ; la création / modification s'ouvre dans une fenêtre p
 
 ## Factures d'achat (`/purchases/`)
 
-| Méthode | URL | Description |
-|---------|-----|-------------|
-| GET | `/purchases/` | Liste ; filtres `q`, `source` (`qonto` / `manual`), `state` (`to_complete`/`ready`/`posted`), `status` (statut Qonto), `entity_id`, `unpaid=1` (ni payée selon Qonto, ni règlement comptabilisé), `no_supplier=1`, `hidden=1`, `month`, `sort`. Bandeaux : à compléter, à revoir, fournisseurs à valider, règlements à remplacer |
-| POST | `/purchases/sync` | Lance la synchronisation des factures Qonto en arrière-plan ; en HTMX, fragment de suivi |
-| GET | `/purchases/sync/<job_id>` | Fragment de suivi puis résumé |
-| POST | `/purchases/sync/settings` | **Admin.** `sync_from` ; reculer la date remet le curseur à zéro (relecture complète, sans doublon) |
-| GET | `/purchases/new` | Dépôt du fichier (« Lire la facture ») ; `?manual=1` : formulaire vide |
-| POST | `/purchases/new` | `step=read` + `invoice_file` : mise en attente, lecture, formulaire prérempli avec aperçu ; `step=save` + `token`, en-tête (`entity_id` id / `new` + `new_name`, `supplier_vat`, `supplier_siret`, `supplier_iban`, `invoice_number`, `issue_date`, `due_date`, `is_credit_note`, `untaxed`, `tax`, `total`) et lignes (champs répétés), `send_to_qonto=1` : création puis dépôt dans Qonto ; doublon → réaffichage, `confirm_duplicate=1` pour passer outre |
-| GET | `/purchases/staged/<token>` | Pièce en attente (aperçu du formulaire) |
-| GET/POST | `/purchases/<id>/edit` | En-tête d'une facture saisie non comptabilisée ; `invoice_file` facultatif remplace la pièce |
-| GET | `/purchases/<id>/attachment` | Pièce de la facture (`inline` ; `?download=1` : téléchargement) |
-| GET | `/purchases/<id>` | Fiche : état et motifs, montants, pièce (aperçu), règlements, lignes éditables, écriture |
-| POST | `/purchases/<id>/lines` | Champs répétés `product_id[]`, `account_code[]`, `label[]`, `untaxed[]`, `vat_rate[]`, `vat[]` ; refusé si comptabilisée ; comptabilise si complète |
-| POST | `/purchases/<id>/qonto` | Envoie (ou renvoie après échec) la pièce d'une facture saisie à Qonto |
-| POST | `/purchases/<id>/payments` | `bank_transaction_id` : règle une facture saisie par une transaction proposée |
-| POST | `/purchases/<id>/payments/<payment_id>/delete` | Défait un règlement hors Qonto (écriture supprimée, rapprochement défait) |
-| POST | `/purchases/<id>/post` | Comptabilise une facture prête |
-| POST | `/purchases/<id>/unpost` | Supprime l'écriture d'achat et réapplique les données Qonto |
-| POST | `/purchases/<id>/delete` | Supprime la facture, son écriture d'achat et sa pièce ; refusé (message) si elle est validée dans Qonto ou liée à un paiement ou à un avoir |
-| POST | `/purchases/post-ready` | Comptabilise toutes les factures prêtes (puis leurs règlements) |
-| GET/POST | `/purchases/suppliers` | Fournisseurs des factures à valider : `action` = `create` (+`name`), `link` (+`entity_id`) ou `ignore`, `name_key`, `label` |
-| GET | `/purchases/settlements` | Paiements de factures déjà passés par une écriture de règle (remplaçables) ou manuelle (signalés) |
-| POST | `/purchases/settlements/replace` | `transaction_ids` (répété) : remplace les écritures de règle par des règlements 401 / banque |
+Pages de la SPA : `/purchases/` (filtres `q`, `source` (`qonto` / `manual`), `state` (`to_complete`/`ready`/`posted`), `status` (statut Qonto), `entity_id`, `unpaid=1`, `no_supplier=1`, `hidden=1`, `month`, `sort`), `/purchases/new` (`?manual=1` : sans fichier), `/purchases/<id>`, `/purchases/<id>/edit`, `/purchases/settlements`, `/purchases/suppliers`. Les champs de saisie gardent le format texte du formulaire (montants « 39,99 », `entity_id` = id, `new` ou vide). API :
 
----
+| Méthode | URL | Description |
+|---|---|---|
+| GET | `/api/v1/purchases` | Liste (mêmes filtres, 500 au plus) ; `meta` : compteurs des bandeaux (`to_complete`, `to_review`, `to_replace`, `supplier_proposals`, `hidden`, `without_supplier`, `ready`), fournisseurs, états, statuts Qonto, mois, synchronisation (`from`, `synced_at`, dernier `job`), état de Qonto |
+| POST | `/api/v1/purchases/sync` | Synchronisation des factures Qonto en arrière-plan → `job` (409 si Qonto indisponible) |
+| PATCH | `/api/v1/purchases/sync-from` | **Admin.** `sync_from` ; reculer la date remet le curseur à zéro (relecture complète, sans doublon) |
+| POST | `/api/v1/purchases/post-ready` | Comptabilise toutes les factures prêtes (puis leurs règlements) |
+| GET | `/api/v1/purchases/form-options` | Tiers, produits d'achat (compte, taux), comptes de charge, état de Qonto (`upload` : envoi possible) |
+| POST | `/api/v1/purchases/read` | Multipart `invoice_file` (PDF, JPEG, PNG ≤ 10 Mo) : mise en attente et lecture → `token`, `preview` (`url`, `mime`), `form` (`values`, `checks` à vérifier, `rows`, `warnings`, `source` `facturx`/`text`/`ocr`/`none`) ; 422 si refusé |
+| POST | `/api/v1/purchases/stage` | Multipart `invoice_file` : mise en attente sans lecture (remplacement de la pièce) → `token`, `preview` |
+| POST | `/api/v1/purchases` | Création : en-tête (`entity_id`, `new_name`, `supplier_name`, `supplier_vat`, `supplier_siret`, `supplier_iban`, `invoice_number`, `issue_date`, `due_date`, `is_credit_note`, `untaxed`, `tax`, `total`), `rows` (`product_id`, `account_code`, `label`, `untaxed`, `vat_rate`, `vat`), `token` facultatif, `send_to_qonto` (dépôt de la pièce dans Qonto, si configuré) → 201 `item.url` ; 422 `fields.form` (liste) ; 409 `duplicate` + `duplicates`, sauf `confirm_duplicate` |
+| GET | `/api/v1/purchases/<id>` | Fiche : `item` (état et motifs, montants, pièce, écriture, envoi Qonto), exercice, `lines` (saisie) et `lines_view`, `payments` (état), `awaiting_payment`, `suggestions` (transactions de même montant ; `rule` : déjà passée par une règle), `match_window`, `can_send` |
+| GET | `/api/v1/purchases/<id>/header` | En-tête d'une facture saisie non comptabilisée (sinon 409), aperçu de la pièce, `can_replace_attachment` |
+| PATCH | `/api/v1/purchases/<id>` | Modifie cet en-tête (mêmes champs et erreurs que la création ; `token` remplace la pièce, refusé si déjà envoyée à Qonto) |
+| PUT | `/api/v1/purchases/<id>/lines` | `rows` ; 422 si invalide ; comptabilise si complète |
+| POST | `/api/v1/purchases/<id>/post` | Comptabilise une facture prête (422 sinon) |
+| POST | `/api/v1/purchases/<id>/unpost` | Supprime l'écriture d'achat et réapplique les données Qonto |
+| DELETE | `/api/v1/purchases/<id>` | Supprime la facture, son écriture d'achat et sa pièce ; 409 si elle est validée dans Qonto, liée à un paiement ou à un avoir, ou dans un exercice clôturé |
+| POST | `/api/v1/purchases/<id>/qonto` | **Écrit dans Qonto** : envoie (ou renvoie après échec) la pièce d'une facture saisie ; 409 si Qonto indisponible ou envoi impossible |
+| POST | `/api/v1/purchases/<id>/payments` | `bank_transaction_id` : règle une facture saisie par une transaction proposée |
+| DELETE | `/api/v1/purchases/<id>/payments/<payment_id>` | Défait un règlement hors Qonto (écriture supprimée, rapprochement défait) |
+| GET | `/api/v1/purchases/settlements` | `replaceable` (écritures de règle) et `manual` (rapprochements manuels à vérifier) |
+| POST | `/api/v1/purchases/settlements/replace` | `transaction_ids` : remplace les écritures de règle par des règlements 401 / banque |
+| GET | `/api/v1/purchases/suppliers` | Fournisseurs des factures à valider (nom, nombre, total, période, TVA, IBAN, tiers proches) ; `meta.entities` |
+| POST | `/api/v1/purchases/suppliers` | `{action: create\|link\|ignore, key, label, name?, entity_id?}` : vaut pour ses factures et ses transactions sans tiers |
+
+Fichiers servis par Flask : `GET /purchases/<id>/attachment` (`inline` ; `?download=1` : téléchargement), `GET /purchases/staged/<token>` (pièce en attente).
 
 ## Imports (`/imports/`)
 

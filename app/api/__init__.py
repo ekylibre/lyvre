@@ -136,5 +136,6 @@ def register_api(app):
 # Routes are attached to ``bp`` by these modules (import for side effects).
 from . import (  # noqa: E402,F401
     bank_accounts, chart, entities, entries, fiscal_years, imports, journals, lookups, members,
-    payouts, products, reconciliation, reports, rules, search, session, task_types, users, work_times,
+    payouts, products, purchases, reconciliation, reports, rules, search, session, task_types, users,
+    work_times,
 )

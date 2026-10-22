@@ -194,9 +194,21 @@ Qonto **en lecture** sur la copie SCI.
 | F.3 | Fiche : lignes éditables, comptabiliser / annuler, pièce, envoi Qonto (garde inchangée), règlements (suggestions, régler, défaire) |
 | F.4 | Fournisseurs à valider, règlements à remplacer |
 
+— *Réalisé (2026-10-22)* : API `purchases` (liste et compteurs des bandeaux, synchro → `job`, date
+de début, lecture / mise en attente de la pièce, création et modification d'en-tête au format texte
+du formulaire, doublon = 409 `duplicate` + `duplicates`, fiche, lignes, comptabiliser / annuler,
+suppression, règlements, envoi Qonto sous la même garde, fournisseurs à valider, règlements à
+remplacer) ; pièces toujours servies par Flask (`attachment`, `staged`). Pages : liste,
+saisie (Dropzone → formulaire « à vérifier » + aperçu, lignes pleine largeur), fiche, fournisseurs
+(`Decide` partagé avec les contreparties bancaires, tiers proches en tête), règlements à remplacer.
+`ApiError.details` porte le corps complet de l'erreur. Vues et gabarits `purchases/` supprimés ;
+tests HTMX repointés sur `/orders/sync`. pytest 684, Vitest 64, E2E 12.
+
 **✅ CP F** : E2E **facture d'achat** (dépôt du PDF Free de test → comptabilisée) avec Qonto
 **non configuré** dans la base E2E ; contrôle Chrome sur la copie SCI case « Envoyer à Qonto »
-**décochée**.
+**décochée**. — *Fait* : sur la copie SCI, lecture du PDF Free d'octobre, doublon signalé puis
+confirmé, facture comptabilisée sans envoi (`qonto_upload_status` vide, aucun appel Qonto), puis
+supprimée avec son écriture.
 
 ### Phase G — Asso
 

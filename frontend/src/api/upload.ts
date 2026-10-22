@@ -17,7 +17,7 @@ export function upload<T>(
     };
     xhr.onerror = () => reject(new ApiError("network_error", "Serveur injoignable. Vérifiez la connexion.", 0));
     xhr.onload = () => {
-      let data: { error?: { code?: string; message?: string; fields?: Record<string, string> } } | null = null;
+      let data: { error?: { code?: string; message?: string; fields?: Record<string, string>; [key: string]: unknown } } | null = null;
       try {
         data = JSON.parse(xhr.responseText);
       } catch {
@@ -29,7 +29,7 @@ export function upload<T>(
       }
       const e = data?.error ?? {};
       reject(new ApiError(e.code ?? "http_error", e.message ?? `Erreur serveur (${xhr.status}).`,
-        xhr.status, e.fields ?? {}));
+        xhr.status, e.fields ?? {}, e));
     };
     xhr.send(form);
   });

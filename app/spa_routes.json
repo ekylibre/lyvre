@@ -51,6 +51,12 @@
     {"rule": "/reconciliation/", "endpoint": "reconciliation.index"},
     {"rule": "/payouts/", "endpoint": "payouts.index"},
     {"rule": "/payouts/<int:payout_id>", "endpoint": "payouts.detail"},
-    {"rule": "/imports/ofx", "endpoint": "imports.ofx"}
+    {"rule": "/imports/ofx", "endpoint": "imports.ofx"},
+    {"rule": "/purchases/", "endpoint": "purchases.index"},
+    {"rule": "/purchases/new", "endpoint": "purchases.new"},
+    {"rule": "/purchases/settlements", "endpoint": "purchases.settlements"},
+    {"rule": "/purchases/suppliers", "endpoint": "purchases.suppliers"},
+    {"rule": "/purchases/<int:purchase_id>", "endpoint": "purchases.detail"},
+    {"rule": "/purchases/<int:purchase_id>/edit", "endpoint": "purchases.edit"}
   ]
 }

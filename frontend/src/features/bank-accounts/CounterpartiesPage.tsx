@@ -2,7 +2,7 @@
 // fournisseur, rattacher à un tiers existant ou ignorer (vaut pour toutes ses transactions).
 import { useState } from "react";
 import { useParams } from "react-router";
-import { Button, Group, Select, Text, TextInput } from "@mantine/core";
+import { Button, Group, Select, Text, TextInput, type ComboboxData } from "@mantine/core";
 import { api } from "../../api/client";
 import { useAction, useList, type Notice } from "../../api/resources";
 import { DataGrid, type GridColumn } from "../../components/DataGrid";
@@ -14,7 +14,8 @@ import { BANK_ACCOUNTS_KEY, type BankAccount, type Option } from "./types";
 
 interface Proposal { key: string; label: string; count: number; total_cents: number; first_date: string; last_date: string }
 
-function Decide({ p, entities, decide }: { p: Proposal; entities: Option[]; decide: (body: Record<string, unknown>) => void }) {
+/** Créer le fournisseur, rattacher à un tiers existant ou ignorer la contrepartie. */
+export function Decide({ p, entities, decide }: { p: Pick<Proposal, "key" | "label">; entities: ComboboxData; decide: (body: Record<string, unknown>) => void }) {
   const [name, setName] = useState(p.label);
   const [entityId, setEntityId] = useState<string | null>(null);
   return (

@@ -1,8 +1,0 @@
-{# Aperçu d'une pièce : `preview_url` et `preview_mime`, sinon la pièce de `purchase`. #}
-{% set src = preview_url if preview_url is defined and preview_url else url_for('purchases.attachment', purchase_id=purchase.id) %}
-{% set mime = preview_mime if preview_mime is defined and preview_mime else purchase.attachment_mime %}
-{% if mime == 'application/pdf' %}
-<iframe src="{{ src }}" title="Pièce de la facture" class="w-100 border rounded" style="height:70vh"></iframe>
-{% else %}
-<img src="{{ src }}" alt="Pièce de la facture" class="img-fluid border rounded">
-{% endif %}

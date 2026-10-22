@@ -231,12 +231,14 @@ def test_settlements_views(books, login_as):
     sync_transactions(books, payment())
     sync_invoices(invoice())
     client = login_as()
-    assert "déjà passé(s) en charge par une règle" in client.get("/purchases/").get_data(as_text=True)
-    page = client.get("/purchases/settlements").get_data(as_text=True)
-    assert "DUPRE MAINTENANCE" in page and "Remplacer la sélection" in page
-    detail = client.get(f"/purchases/{Purchase.query.one().id}").get_data(as_text=True)
-    assert "Passée par une autre écriture" in detail
+    assert client.get("/api/v1/purchases").get_json()["meta"]["counters"]["to_replace"] == 1
+    body = client.get("/api/v1/purchases/settlements").get_json()
+    assert [r["transaction"]["label"] for r in body["replaceable"]] == ["DUPRE MAINTENANCE"]
+    detail = client.get(f"/api/v1/purchases/{Purchase.query.one().id}").get_json()
+    assert [p["status_label"] for p in detail["payments"]] == ["Passée par une autre écriture"]
 
-    client.post("/purchases/settlements/replace", data={"transaction_ids": [str(_txn().id)]})
-    assert "Aucune écriture de règle à remplacer" in client.get("/purchases/settlements").get_data(as_text=True)
-    assert "Réglée" in client.get(f"/purchases/{Purchase.query.one().id}").get_data(as_text=True)
+    resp = client.post("/api/v1/purchases/settlements/replace", json={"transaction_ids": [_txn().id]})
+    assert "1 écriture(s) de règle remplacée(s)" in resp.get_json()["notices"][0]["message"]
+    assert client.get("/api/v1/purchases/settlements").get_json() == {"replaceable": [], "manual": []}
+    detail = client.get(f"/api/v1/purchases/{Purchase.query.one().id}").get_json()
+    assert [p["status_label"] for p in detail["payments"]] == ["Réglée"]

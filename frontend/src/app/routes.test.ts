@@ -18,7 +18,9 @@ describe("routes de la SPA", () => {
     expect(isSpaPath("/login")).toBe(true);
     expect(isSpaPath("/login?next=/entries/")).toBe(true);
     expect(isSpaPath("/select-instance/")).toBe(true);
-    expect(isSpaPath("/purchases/")).toBe(false);
+    expect(isSpaPath("/purchases/")).toBe(true);
+    expect(isSpaPath("/purchases/12/attachment")).toBe(false);
+    expect(isSpaPath("/orders/")).toBe(false);
     expect(isSpaPath("/")).toBe(true);
   });
 });

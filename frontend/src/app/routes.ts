@@ -52,6 +52,11 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
   "payouts.index": () => import("../features/payouts/PayoutsPage"),
   "payouts.detail": () => import("../features/payouts/PayoutDetailPage"),
   "imports.ofx": () => import("../features/imports/ImportOfxPage"),
+  "purchases.index": () => import("../features/purchases/PurchasesPage"),
+  ...pages(["purchases.new", "purchases.edit"], () => import("../features/purchases/PurchaseFormPage")),
+  "purchases.detail": () => import("../features/purchases/PurchaseDetailPage"),
+  "purchases.settlements": () => import("../features/purchases/SettlementsPage"),
+  "purchases.suppliers": () => import("../features/purchases/SuppliersPage"),
 };
 
 /** Pages sans la mise en page de l'application (en-tête, menus). */

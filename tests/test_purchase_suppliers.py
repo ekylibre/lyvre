@@ -69,14 +69,13 @@ def test_supplier_recognised_by_iban(books):
 def test_suppliers_page(books, login_as):
     sync_invoices(papin_invoice())
     client = login_as()
-    assert "1 fournisseur(s) à valider" in client.get("/purchases/").get_data(as_text=True)
-    page = client.get("/purchases/suppliers").get_data(as_text=True)
-    assert "SARL PAPIN" in page and "FR55123456789" in page
-    client.post("/purchases/suppliers", data={"action": "create", "name_key": "sarl papin",
-                                              "label": "SARL PAPIN", "name": "SARL Papin"})
+    assert client.get("/api/v1/purchases").get_json()["meta"]["counters"]["supplier_proposals"] == 1
+    (row,) = client.get("/api/v1/purchases/suppliers").get_json()["items"]
+    assert row["label"] == "SARL PAPIN" and row["vat_number"] == "FR55123456789"
+    client.post("/api/v1/purchases/suppliers", json={"action": "create", "key": row["key"],
+                                                     "label": "SARL PAPIN", "name": "SARL Papin"})
     assert Purchase.query.one().entity.name == "SARL Papin"
-    assert "Aucun fournisseur de facture à valider" in \
-        client.get("/purchases/suppliers").get_data(as_text=True)
+    assert client.get("/api/v1/purchases/suppliers").get_json()["items"] == []
 
 
 def test_bank_view_invoice_badge_and_filter(books, login_as):

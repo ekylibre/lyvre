@@ -71,7 +71,7 @@ compta-asso/
 │   │   ├── reports.py
 │   │   ├── entities.py           # CRUD tiers (dont TVA, SIRET, IBAN) + listes HelloAsso/POS/factures par tiers
 │   │   ├── products.py           # Catalogue produits / services
-│   │   ├── purchases.py          # Factures d'achat : liste, synchro Qonto, saisie, pièce, règlements
+│   │   ├── purchases.py          # Pièces des factures d'achat (écrans : SPA, API : api/purchases.py)
 │   │   ├── instances.py          # Instances (admin) : création, sauvegardes .zip, restauration, import
 │   │   ├── rules.py              # Affichage règles + application
 │   │   ├── payouts.py            # Liste + détail + sync Payouts/Payments Stancer
@@ -130,7 +130,6 @@ compta-asso/
 │   │   ├── rules/
 │   │   ├── payouts/
 │   │   ├── products/             # Catalogue
-│   │   ├── purchases/            # Factures d'achat (liste, fiche, saisie, éditeur de lignes)
 │   │   ├── orders/               # Commandes POS Odoo
 │   │   └── customer_invoices/    # Factures clients Odoo
 │   │

@@ -75,8 +75,8 @@ aussitôt comptabilisées et réglées.
 
 ## Saisir une facture
 
-**+ Nouvelle facture** (page Factures d'achat) : déposez le fichier (PDF, JPEG ou PNG, 10 Mo maximum)
-puis **Lire la facture**. L'application lit, dans cet ordre, la facture électronique **Factur-X**
+**Nouvelle facture** (page Factures d'achat) : déposez le fichier (PDF, JPEG ou PNG, 10 Mo maximum)
+dans la zone de dépôt, ou cliquez-la pour le choisir ; il est lu aussitôt. L'application lit, dans cet ordre, la facture électronique **Factur-X**
 jointe au PDF (valeurs exactes), le texte du PDF, ou l'image par **OCR** (scan, photo : quelques
 secondes, 3 premières pages). Le formulaire s'ouvre prérempli, la pièce affichée à côté ; les champs
 **à vérifier** (lus par OCR, devinés ou incohérents : HT + TVA ≠ TTC) sont encadrés. Rien n'est
@@ -107,7 +107,7 @@ pièce se consulte et se télécharge depuis la fiche ; elle est rangée dans le
 
 ### Supprimer une facture
 
-Le bouton **✕** de la liste supprime la facture après confirmation, avec son écriture d'achat et sa
+L'icône **corbeille** de la liste, ou le bouton **Supprimer** de la fiche, supprime la facture après confirmation, avec son écriture d'achat et sa
 pièce jointe. La suppression est **refusée**, avec un message, si la facture :
 
 - est **validée dans Qonto** (à payer, programmée, payée, archivée…) ;
