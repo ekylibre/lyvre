@@ -1,0 +1,152 @@
+# Workflow — Obligations associatives (lots A → C → B → D)
+
+> Statut : **plan** (2026-10-22). Sources : [`besoins_obligations_associatives.md`](besoins_obligations_associatives.md)
+> (OA1–OA14), [`design_obligations_associatives.md`](design_obligations_associatives.md) (D1–D22,
+> validé implicitement par le passage au workflow). Exécution : `/sc:implement`, phase par phase,
+> sur `main` local non poussé.
+
+## 1. Règles communes à toutes les phases
+
+- **Recette d'une phase** : migration (tenant Alembic ou méta `seed_meta`) → services → API →
+  tests pytest → écrans SPA (+ Vitest) → E2E si parcours → contrôle Chrome sur les copies du
+  serveur 5001 → docs (`routes`, `models`, `services`, guide utilisateur) → commit local → mémoire.
+- `make check` et `make e2e` verts à chaque fin de phase ; aucun push sans accord.
+- **Sécurité des données** : essais uniquement sur les copies du serveur 5001 (sauvegarde
+  `*.before-<phase>.db` avant chaque migration) ; vraies bases jamais migrées par l'outil ; Qonto
+  SCI en lecture seule.
+- **Contrôle d'accès** (dès A.1) : toute nouvelle route d'écriture est couverte par un test
+  « expert-comptable → 403 ».
+- Notifications (`sync_jobs`) pour tout traitement long (génération de reçus, envoi d'emails).
+
+## 2. Dépendances
+
+```
+A.1 Rôles ─┬─► A.2 Structure + statut d'exercice ─► A.3 Validation + FEC ─► A.4 Assistant 1-6
+           │                                                               │
+           │                                         A.5 Ouverture, extournes, affectation ◄┘
+           │                                         A.6 Fonds dédiés (minimal) ─► C.5
+           └─► (toutes les phases : contrôle d'accès)
+C.1 Projets ─► C.2 Budget ─► C.3 Suivi + CdR projet ─► C.4 Prévisionnel ─► C.5 Fonds dédiés × projets
+B.1 Tiers + paramètres ─► B.2 Émission + PDF ─► B.3 Lot, email, annulation, état annuel
+D.1 Caisse (les deux modes) ─► D.2 Mode + catégories + menus ─► D.3 Recettes / dépenses ─► D.4 États ─► D.5 Bascule
+```
+
+C.4 utilise les caisses si D.1 est fait ; sinon banques seules, caisses ajoutées en D.1.
+
+## 3. Lot A — Clôture, FEC, rôles
+
+### Phase A.1 — Rôles et accès par instance (D1, D2)
+
+| Étape | Tâche |
+|---|---|
+| A.1.1 | Méta : table `instance_memberships`, reprise idempotente dans `seed_meta` (admin si `is_admin`, sinon `treasurer`) |
+| A.1.2 | `tenant.py` : `g.instance_role`, refus des instances non attribuées ; `session` : instances accessibles, `role`, `permissions` |
+| A.1.3 | API : `before_request` lecture seule pour `accountant` (liste blanche) ; `instance_admin_required` (intégrations, accès) |
+| A.1.4 | API membres : liste, ajout (compte existant ou créé), rôle, retrait, garde « dernier admin » |
+| A.1.5 | Front : `useCan`, bandeau « Lecture seule », masquage des actions sur tous les écrans existants ; écran **Configuration › Accès** |
+| A.1.6 | Tests : matrice rôle × (lecture, écriture, admin) sur un échantillon de routes de chaque module + test générique « toute route non-GET refusée à `accountant` hors liste blanche » |
+
+**✅ CP A.1** : un expert-comptable ne voit que son instance, consulte tout, ne peut rien modifier
+(interface et API) ; aucun utilisateur existant ne perd d'accès sur les copies 5001.
+
+### Phase A.2 — Structure et statut d'exercice (D3, D11, reprise §8)
+
+| Étape | Tâche |
+|---|---|
+| A.2.1 | Migration : table `organization`, `fiscal_years.status` + horodatages, colonnes `journal_entries` (validation, extourne, type d'inventaire), tables `closing_steps`, `closing_events` |
+| A.2.2 | Reprise : `closed=True` → `provisional` ; `organization.name` ← libellé d'instance |
+| A.2.3 | `ledger` : statut tenu avec `closed` ; contrôles inchangés ; exclusion des sources `OPENING/REVERSAL/ALLOCATION/CLOSING` des suggestions de rapprochement |
+| A.2.4 | API + écran **Configuration › Structure** (SIREN, RNA, adresse, objet, signataire) ; Exercices : affichage du statut |
+
+**✅ CP A.2** : migration montée / descendue sur copies ; exercices existants en « clôture
+provisoire » ; aucun test existant cassé.
+
+### Phase A.3 — Validation et FEC (D5, D6)
+
+| Étape | Tâche |
+|---|---|
+| A.3.1 | Service `closing.validate(fy)` : numérotation continue par journal (ordre date, id), `validated_at` ; `unvalidate` |
+| A.3.2 | Service `fec` : 18 champs, ordre, formats, tiers en compte auxiliaire, nom `<SIREN>FEC<date>`, contrôles |
+| A.3.3 | Route Flask de téléchargement ; figeage + SHA-256 à la clôture définitive |
+| A.3.4 | Validation externe : FEC d'un exercice de test (base E2E + copie SN) passé dans « Test Compta Demat » ; correction de l'encodage / séparateur au besoin (point ouvert 1) |
+
+**✅ CP A.3** : FEC accepté par l'outil de la DGFiP ; totaux = balance ; refus sans SIREN.
+
+### Phase A.4 — Assistant de clôture, étapes 1 à 6 (D4, D7)
+
+| Étape | Tâche |
+|---|---|
+| A.4.1 | Service `closing` : état des étapes, règles d'enchaînement, audit |
+| A.4.2 | Étape 1 `checks` (contrôles recalculés, liens) ; étape 2 `inventory` (408/4686, 418/4687, 486, 487 ; suggestions de factures non parvenues) |
+| A.4.3 | Étape 4 `result` (états existants), 5 `fec`, 6 `close` (provisoire : trésorier / admin ; définitive : admin) ; réouverture (admin) |
+| A.4.4 | Écran `/fiscal-years/<id>/closing` : stepper, états, motif obligatoire pour « ignorer » |
+
+**✅ CP A.4** : sur une copie 5001, un exercice passe en clôture provisoire puis est rouvert puis
+reclôturé avec des numéros identiques ; l'expert-comptable consulte l'assistant sans agir.
+
+### Phase A.5 — Ouverture, extournes, affectation (D8, D9)
+
+| Étape | Tâche |
+|---|---|
+| A.5.1 | Étape 7 `opening` : création de N+1 proposée, journal AN, à-nouveaux (classes 1-5, résultat 120/129), extournes des écritures d'inventaire ; regénération |
+| A.5.2 | Étape 8 `allocation` : décision (organe, date), répartition 110 / 119 / 106 / fonds associatifs ; SCI : 455x (point ouvert 3 à valider avec l'expert-comptable) |
+| A.5.3 | Tests : bilan d'ouverture N+1 = bilan de clôture N (y compris après réouverture et regénération) ; extournes ; affectation asso et SCI |
+
+**✅ CP A.5** : sur la copie SN, cycle complet 2025 → 2026 ; bilan 2026 avec soldes d'ouverture ;
+E2E « assistant complet » sur la base E2E.
+
+### Phase A.6 — Fonds dédiés minimal (D10) et clôture du lot A
+
+| Étape | Tâche |
+|---|---|
+| A.6.1 | Tables `dedicated_funds`, `dedicated_fund_movements` ; étape 3 de l'assistant (dotation 689x/19x, utilisation 19x/789x) |
+| A.6.2 | Docs : guide utilisateur « Clôturer un exercice », `routes`, `models`, `services` ; relecture par l'expert-comptable (FEC, affectation SCI) |
+
+**✅ CP lot A** : US-A1, US-A2, US-A3 cochées ; `make check` + `make e2e` verts.
+
+## 4. Lot C — Projets, budget, prévisionnel
+
+| Phase | Tâches | CP |
+|---|---|---|
+| **C.1 Projets** (D12) | Table `projects` ; `project_id` sur `journal_lines`, `purchase_lines`, `rules` ; colonne Projet dans l'éditeur d'écriture, les lignes d'achat, les règles ; action « Ventiler » (découpage de ligne) ; écran **Compta › Projets** | Ventilation conserve l'équilibre et le FEC ; règle qui affecte un projet |
+| **C.2 Budget** (D13) | Table `budget_lines` ; grille comptes × mois (regroupements), filtre projet ; copie N-1 (budget ou réalisé) | Saisie et rechargement d'un budget complet |
+| **C.3 Suivi** | Service `budget` (prévu / réalisé / écart à date, par préfixe et projet) ; écran de suivi + export tableur ; CdR d'un projet sur une période (PDF / tableur) ; carte au tableau de bord | US-C1 cochée |
+| **C.4 Prévisionnel** (D14) | Service 12 mois glissants ; `cash_forecast_items` (récurrence) ; écran **Trésorerie › Prévisionnel** (graphique + tableau) ; alerte de solde négatif au tableau de bord | US-C2 cochée |
+| **C.5 Fonds dédiés × projets** | `dedicated_funds.project_id` ; étape 3 de l'assistant proposant le reste non utilisé d'après le réalisé du projet | Assistant sur une subvention affectée à un projet |
+
+## 5. Lot B — Reçus fiscaux
+
+| Phase | Tâches | CP |
+|---|---|---|
+| **B.1 Tiers et paramètres** (D15, D17) | Adresse et nature des tiers (fiche, import existant inchangé) ; table `receipt_settings` ; écran **Configuration › Reçus fiscaux** (éligibilité + avertissement, articles du CGI, comptes de dons, signataire, signature) | Activation par un admin d'instance seulement |
+| **B.2 Émission et PDF** (D16, D18) | Tables `receipt_counters`, `donation_receipts`, `donation_receipt_items`, `in_kind_donations` ; candidats par année (lignes 7541 avec tiers non reçues + dons en nature) ; émission unitaire / annuelle ; gabarits particuliers et entreprises (CERFA en vigueur, point ouvert 2) ; PDF figé | Reçus conformes relus face aux modèles ; numérotation sans trou sous concurrence |
+| **B.3 Lot, envoi, annulation, état annuel** | Job d'émission en lot et d'envoi email (SMTP, notification de fin) ; annulation + réémission ; état annuel (nombre, montant) ; écran **Dons › Reçus** | US-B1 cochée ; E2E « émettre et télécharger un reçu » |
+
+## 6. Lot D — Comptabilité simplifiée et caisse
+
+| Phase | Tâches | CP |
+|---|---|---|
+| **D.1 Caisse** (D22) | `bank_accounts.kind` ; compte 53x ; mouvements de caisse ; « Dépôt en banque » (581) ; contrôles de l'assistant étendus à la caisse ; prévisionnel (C.4) avec caisses | Dépôt d'espèces sans effet sur le CdR |
+| **D.2 Mode et catégories** (D19, D21) | Méta `instances.bookkeeping` ; choix à la création d'instance ; table `simple_categories` pré-remplie ; `menu_config` clé `bookkeeping` ; masquage des écrans de partie double en mode simple | Instance simple : aucun écran débit / crédit visible |
+| **D.3 Recettes et dépenses** (D20) | Saisie en fenêtre (écriture générée `SIMPLE`) ; catégorisation d'une transaction importée ; règles qui fixent une catégorie | Opérations visibles en partie double après bascule |
+| **D.4 États simplifiés** | CdR par catégorie N / N-1 ; situation de trésorerie (cumulée) ; verrouillage d'exercice sans assistant ni FEC | US-D1 (états) cochée |
+| **D.5 Bascule en partie double** | Passage `simple → double` (admin global), inverse refusé si écritures non `SIMPLE` ; première clôture en double : à-nouveaux depuis les soldes cumulés | US-D1 cochée ; E2E « saisie simple puis bascule » |
+
+## 7. Estimation indicative
+
+| Lot | Phases | Charge |
+|---|---|---|
+| A | A.1 (2 j) · A.2 (1 j) · A.3 (1,5 j) · A.4 (2 j) · A.5 (1,5 j) · A.6 (1 j) | ≈ 9 j |
+| C | C.1 (1,5 j) · C.2 (1 j) · C.3 (1 j) · C.4 (1 j) · C.5 (0,5 j) | ≈ 5 j |
+| B | B.1 (1 j) · B.2 (2 j) · B.3 (1,5 j) | ≈ 4,5 j |
+| D | D.1 (1 j) · D.2 (1 j) · D.3 (1,5 j) · D.4 (1 j) · D.5 (0,5 j) | ≈ 5 j |
+
+Total ≈ 23,5 jours de développement, hors relectures externes (expert-comptable, outil de la DGFiP).
+
+## 8. Points de contrôle externes
+
+- **Fin de A.3** : FEC passé dans « Test Compta Demat ».
+- **Fin de A.5** : l'expert-comptable relit un cycle de clôture (affectation SCI, point ouvert 3).
+- **Fin de B.2** : reçus relus face aux modèles CERFA en vigueur.
+- **Avant toute mise en production** : migration des vraies bases (méta + chaque instance)
+  selon `doc/multi_tenant.md`, après sauvegarde, avec votre accord.
