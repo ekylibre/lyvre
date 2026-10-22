@@ -71,12 +71,12 @@ compta-asso/
 │   │   ├── entities.py           # CRUD tiers (dont TVA, SIRET, IBAN) + listes HelloAsso/POS/factures par tiers
 │   │   ├── products.py           # Catalogue produits / services
 │   │   ├── purchases.py          # Pièces des factures d'achat (écrans : SPA, API : api/purchases.py)
-│   │   ├── instances.py          # Instances (admin) : création, sauvegardes .zip, restauration, import
+│   │   ├── instances.py          # Téléchargement d'une sauvegarde (écrans : SPA, API : api/instances.py)
 │   │   ├── rules.py              # Affichage règles + application
 │   │   ├── payouts.py            # Liste + détail + sync Payouts/Payments Stancer
 │   │   ├── impact.py             # Export XLSX Visibilité & Impact (écrans : SPA, API : api/impact.py)
 │   │   ├── activity_report.py    # Aperçu HTML, PDF, exports, photos, logo, archives du rapport d'activité
-│   │   └── integrations.py       # Écran Intégrations : index, détail, interrupteur, test (admin)
+│   │   └── integrations.py       # Ancienne adresse des intégrations → page de la SPA
 │   │
 │   ├── services/                 # Logique métier (sans dépendance Flask)
 │   │   ├── ledger.py             # Moteur comptable : validation, saisie, soldes

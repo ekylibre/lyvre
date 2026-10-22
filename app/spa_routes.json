@@ -72,6 +72,14 @@
     {"rule": "/rapport-activite/edit", "endpoint": "activity_report.edit"},
     {"rule": "/rapport-activite/eco", "endpoint": "activity_report.eco"},
     {"rule": "/rapport-activite/photos", "endpoint": "activity_report.photos"},
-    {"rule": "/rapport-activite/archives", "endpoint": "activity_report.archives"}
+    {"rule": "/rapport-activite/archives", "endpoint": "activity_report.archives"},
+    {"rule": "/configuration/integrations/", "endpoint": "integrations.index"},
+    {"rule": "/configuration/integrations/<service>", "endpoint": "integrations.detail"},
+    {"rule": "/instances/", "endpoint": "instances.index"},
+    {"rule": "/instances/new", "endpoint": "instances.new"},
+    {"rule": "/instances/import", "endpoint": "instances.import_upload"},
+    {"rule": "/instances/<int:instance_id>", "endpoint": "instances.detail"},
+    {"rule": "/instances/<int:instance_id>/edit", "endpoint": "instances.edit"},
+    {"rule": "/instances/<int:instance_id>/restore", "endpoint": "instances.restore"}
   ]
 }

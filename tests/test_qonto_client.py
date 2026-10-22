@@ -223,16 +223,6 @@ def test_probe_qonto_rate_limited_is_not_retried(app, monkeypatch):
     assert len(session.calls) == 1
 
 
-def test_integration_page_shows_qonto_fields(login_as):
-    client = login_as(is_admin=True)
-    html = client.get("/configuration/integrations/qonto").get_data(as_text=True)
-    assert "Identifiant (login)" in html
-    assert "Jeton bac à sable (optionnel)" in html
-    assert "Clé API générée dans Qonto" in html
-    stancer = client.get("/configuration/integrations/stancer").get_data(as_text=True)
-    assert "Format sk_xxx" in stancer  # l'aide par clé reste celle de Stancer
-
-
 # ------------------------------------------------------------------ dépôt de facture
 
 def test_create_supplier_invoice_multipart():

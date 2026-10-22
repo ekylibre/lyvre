@@ -246,7 +246,23 @@ synchronisation lancée).
 | H.1 | Intégrations : liste, fiche (secrets jamais réaffichés), activation, test de connexion |
 | H.2 | Instances : liste, création, import, modification, sauvegarde `.zip`, téléchargement, suppression, restauration (dropzone + confirmation forte) |
 
+— *Réalisé (2026-10-22)* : API `integrations` (liste, fiche, enregistrement + test, interrupteur,
+test ; secret jamais renvoyé, `clear` pour l'effacer ; les actions renvoient la fiche à jour) et
+`instances` (méta-base, `api.instances_*` sans instance ; URL de base renvoyée sans mot de passe ;
+création, modification, sauvegardes, restauration et import avec **confirmation forte = saisir le
+slug**, vérifiée aussi côté serveur). Pages : intégrations (cartes, fiche avec « Effacer la valeur
+enregistrée »), instances (liste + fenêtres création / modification), fiche (sauvegardes,
+restauration en fenêtre avec Dropzone), import. Flask ne garde que le téléchargement d'une
+sauvegarde et la redirection de l'ancienne adresse des intégrations. Gabarits `instances/` et
+`integrations/` supprimés ; plus aucun formulaire HTMX (tests d'actions HTMX retirés). pytest 704,
+Vitest 70, E2E 16.
+
 **✅ CP H** : restauration d'une archive sur une copie ; aucun secret dans les réponses API (test).
+— *Fait* : copie SCI (serveur 5001) : sauvegarde .zip créée depuis la fiche, marqueur modifié dans la
+copie, restauration par la fenêtre (slug saisi) → marqueur revenu, données intactes, sauvegarde
+pre-restore créée. Test `test_no_secret_in_any_api_response` : tous les secrets de tous les services
++ mot de passe d'une URL PostgreSQL absents de toutes les réponses (liste, fiche, enregistrement,
+interrupteur, test, instances). E2E : secret Stancer non réaffiché après rechargement.
 
 ### Phase I — Nettoyage (US7)
 

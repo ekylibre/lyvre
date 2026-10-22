@@ -56,48 +56,43 @@ utilisateurs reçoivent 403.
 
 ## Instances (`/instances/`) — admin uniquement
 
+Pages de la SPA (méta-base seule, sans instance choisie) : `/instances/` (`/new` et `/<id>/edit` ouvrent la fenêtre de création ou de modification), `/instances/<id>` (`/restore` ouvre la restauration), `/instances/import`. L'URL d'une base est toujours renvoyée **sans son mot de passe** (`postgresql://u:***@hôte/base`). API :
+
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/instances/` | Liste toutes les instances |
-| GET | `/instances/<id>` | Vue détail : infos + liste des sauvegardes |
-| GET | `/instances/new` | Formulaire de création |
-| POST | `/instances/new` | Crée l'instance + provisionne la DB (mode auto) ou enregistre l'URL (mode manuel) |
-| GET | `/instances/import` | Formulaire d'upload (.db / .backup SQLite) |
-| POST | `/instances/import` | Si le slug du fichier matche une instance → **restauration** ; sinon → **création** d'une nouvelle instance utilisant le fichier comme seed |
-| GET | `/instances/<id>/edit` | Formulaire de modification (slug + URL non modifiables) |
-| POST | `/instances/<id>/edit` | Met à jour `label` et `is_active`. Vide le cache d'engine de cette instance. |
-| POST | `/instances/<id>/backup` | Crée une sauvegarde atomique SQLite. Refus en non-SQLite. |
-| GET | `/instances/<id>/backups/<filename>/download` | Télécharge un fichier de sauvegarde |
-| POST | `/instances/<id>/backups/<filename>/delete` | Supprime un fichier de sauvegarde |
-| GET | `/instances/<id>/restore` | Formulaire d'upload de sauvegarde |
-| POST | `/instances/<id>/restore` | Restaure la DB depuis l'upload (snapshot de sécurité créé avant) |
+| GET | `/api/v1/instances` | Instances (slug, libellé, base masquée, plan comptable, statut, SQLite ou non) ; `meta.charts` |
+| POST | `/api/v1/instances` | Création (paramètres ci-dessous) → 201 ; 422 `fields` (slug invalide ou pris, libellé, URL en mode manuel) |
+| GET | `/api/v1/instances/<id>` | Instance et sauvegardes (`filename`, taille, date, pré-restauration, `database_only` pour les anciens `.db`, `download_url`) |
+| PATCH | `/api/v1/instances/<id>` | `label`, `is_active` ; vide le cache d'engine de l'instance |
+| POST | `/api/v1/instances/<id>/backups` | Sauvegarde `.zip` (base + pièces jointes) → 201 ; 409 hors SQLite |
+| DELETE | `/api/v1/instances/<id>/backups/<filename>` | Supprime une sauvegarde (404 si nom invalide ou absent) |
+| POST | `/api/v1/instances/<id>/restore` | Multipart `backup_file` + **`confirm` = slug de l'instance** (sinon 422) ; sauvegarde de sécurité `pre-restore-…` créée avant |
+| POST | `/api/v1/instances/import` | Multipart `backup_file`, `slug` (déduit du nom sinon), `label` : slug inconnu → **création** (201) ; slug existant → **restauration**, 409 `confirmation_required` tant que `confirm` ≠ slug |
 
-Le nom de fichier (`<filename>`) doit matcher `(pre-restore-)?<slug>-\d{8}-\d{6}\.db` pour éviter le path traversal.
+Fichier servi par Flask : `GET /instances/<id>/backups/<filename>/download`. Le nom de fichier doit correspondre à `(pre-restore-)?<slug>-\d{8}-\d{6}\.(zip|db)` (pas de traversée de chemin).
 
 Voir [doc/backups.md](backups.md) pour le workflow utilisateur détaillé.
 
 ## Intégrations (`/configuration/integrations/`) — admin uniquement
 
-Blueprint `integrations` (`app/views/integrations.py`). Services : `stancer`, `odoo`, `helloasso`,
-`smtp`, `ga4`, `facebook`.
+Pages de la SPA : `/configuration/integrations/`, `/configuration/integrations/<service>`. Services : `stancer`, `odoo`, `helloasso`, `smtp`, `ga4`, `facebook`, `qonto`. API :
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/configuration/integrations/` | Index : une carte par intégration avec son statut (Opérationnelle, En erreur, Non testée, À configurer, Désactivée) et son dernier test. **Aucun appel réseau.** |
-| GET | `/configuration/integrations/<service>` | Détail : interrupteur, formulaire de configuration, dernier test, dernière synchronisation suivie. 404 si service inconnu. |
-| POST | `/configuration/integrations/<service>` | Enregistre la configuration puis, si l'intégration est activée et complète, **lance son test**. Champ secret vide = valeur conservée ; case `clear_<clé>` = valeur effacée ; champ non secret vide = ligne supprimée (repli `.env`). |
-| POST | `/configuration/integrations/<service>/enabled` | `enabled=1\|0` : active ou désactive l'intégration (l'interrupteur prime sur la base et sur `.env`). |
-| POST | `/configuration/integrations/<service>/check` | Lance le test de fonctionnement (« Tester maintenant ») et affiche le résultat en toast. |
-| GET | `/configuration/external-connections/` | Ancienne adresse : redirection 301 vers l'index. |
+| GET | `/api/v1/integrations` | Une entrée par intégration : statut (Opérationnelle, En erreur, Non testée, À configurer, Désactivée), dernier test. **Aucun appel réseau.** |
+| GET | `/api/v1/integrations/<service>` | Fiche : statut, dernier test, dernière synchronisation suivie, champs (`label`, `input`, `help`, `required`, `secret`, `source` db/env/none, `value` — **toujours vide pour un secret** —, `env_value` pour un non-secret). 404 si service inconnu |
+| PUT | `/api/v1/integrations/<service>` | `{values, clear}` : secret vide = valeur conservée, clé dans `clear` = effacée ; non-secret vide = ligne supprimée (repli `.env`). Si l'intégration est activée et complète, **lance son test** |
+| POST | `/api/v1/integrations/<service>/enabled` | `{enabled}` : l'interrupteur prime sur la base et sur `.env` |
+| POST | `/api/v1/integrations/<service>/check` | Test de fonctionnement (« Tester maintenant ») ; 409 si désactivée ou incomplète |
+| GET | `/configuration/external-connections/` | Ancienne adresse : redirection 301 vers la page de la SPA |
 
-Les secrets (`SECRET_KEYS` de `external_config`) ne sont jamais renvoyés au navigateur. La route
-`/configuration/external-connections/smtp/test` a été supprimée (remplacée par `/check`).
+Les actions renvoient la fiche à jour et `notices`. Un test (`tests/test_integrations_api.py::test_no_secret_in_any_api_response`) vérifie qu'aucun secret (base ou `.env`) ni mot de passe d'URL de base n'apparaît dans les réponses.
 
 Les valeurs sont stockées dans `external_connections` de la base **tenant** (donc per-instance). Les variables d'environnement `STANCER_*`, `ODOO_*`, `HELLOASSO_*`, `MAIL_*` servent de **repli global** quand la table est vide. Service `smtp` : clés `host`, `port`, `use_tls`, `username`, `password`, `sender` (repli `MAIL_SERVER`/`MAIL_PORT`/`MAIL_USE_TLS`/`MAIL_USERNAME`/`MAIL_PASSWORD`/`MAIL_DEFAULT_SENDER`).
 
 ---
 
-**Paramètres POST `/instances/new` :**
+**Paramètres de `POST /api/v1/instances` (JSON) :**
 
 | Champ | Obligatoire | Description |
 |-------|-------------|-------------|

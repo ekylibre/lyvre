@@ -38,7 +38,7 @@ def create_app(config_name=None):
     from .views.activity_report import bp as activity_report_bp
     from .views.instances import bp as instances_bp
     from .views.purchases import bp as purchases_bp
-    from .views.integrations import bp as integrations_bp, legacy_bp as external_connections_bp
+    from .views.integrations import legacy_bp as external_connections_bp
 
     # Pages migrées vers la SPA : avant les blueprints (un doublon d'endpoint échoue).
     from .spa import register_spa
@@ -51,7 +51,6 @@ def create_app(config_name=None):
     app.register_blueprint(activity_report_bp)
     app.register_blueprint(instances_bp)
     app.register_blueprint(purchases_bp)
-    app.register_blueprint(integrations_bp)
     app.register_blueprint(external_connections_bp)
 
     _register_template_filters(app)

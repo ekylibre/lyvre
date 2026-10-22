@@ -330,8 +330,8 @@ def test_sync_route_refused_when_disabled(admin, ba):
 def test_last_sync_shown_in_integration(admin, ba, monkeypatch):
     monkeypatch.setattr(qonto_client, "from_app_config", lambda **kw: FakeClient([]))
     admin.post(f"/api/v1/bank-accounts/{ba.id}/qonto/sync")
-    html = admin.get("/configuration/integrations/qonto").get_data(as_text=True)
-    assert "Terminée" in html and "Comptes bancaires →" in html
+    sync = admin.get("/api/v1/integrations/qonto").get_json()["item"]["last_sync"]
+    assert sync["status"] == "done" and sync["link_label"] == "Comptes bancaires" and sync["url"] == "/bank-accounts/"
 
 
 def test_sync_links_existing_entities_and_counts_proposals(ba):

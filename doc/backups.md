@@ -60,9 +60,9 @@ Cliquer **Télécharger** envoie l'archive (`application/zip`). Une fois décomp
 
 ## Importer un fichier (créer ou restaurer depuis la liste)
 
-Depuis **Instances → Parcourir un fichier…**, vous pouvez uploader une archive `.zip` ou un fichier `.db` / `.backup` SQLite. Comportement automatique :
+Depuis **Instances → Importer un fichier**, vous pouvez déposer une archive `.zip` ou un fichier `.db` / `.backup` SQLite. Comportement automatique :
 
-- **Si le slug** déduit du nom de fichier (`<slug>[-YYYYMMDD-HHMMSS]?.zip|db|sqlite|backup`) **correspond à une instance existante** → restauration de cette instance (snapshot de sécurité `pre-restore-…` créé automatiquement).
+- **Si le slug** déduit du nom de fichier (`<slug>[-YYYYMMDD-HHMMSS]?.zip|db|sqlite|backup`) **correspond à une instance existante** → restauration de cette instance, après **confirmation forte** : l'écran demande de saisir le slug de l'instance (snapshot de sécurité `pre-restore-…` créé automatiquement).
 - **Sinon** → création d'une nouvelle instance utilisant le fichier comme base (et, pour une archive, ses pièces dans `instance/uploads/<slug>/`). Le slug et le libellé sont modifiables avant l'envoi.
 
 Cas d'usage typique :
@@ -76,8 +76,9 @@ Cas d'usage typique :
 ## Restaurer une instance
 
 1. **Instances → Détail → Restaurer un fichier…**
-2. Sélectionner une archive `.zip` ou un fichier `.db` (SQLite valide).
-3. Confirmer la boîte de dialogue.
+2. Déposer une archive `.zip` ou un fichier `.db` (SQLite valide) dans la fenêtre.
+3. **Saisir le slug de l'instance** pour confirmer (le bouton reste inactif sinon ; le serveur
+   refuse aussi une restauration sans cette confirmation), puis **Restaurer**.
 
 Le service effectue dans l'ordre :
 
@@ -97,7 +98,7 @@ d'erreur explicite est affiché.
 
 ### Rollback
 
-Le `pre-restore-…` créé à l'étape 3 reste visible dans la liste des sauvegardes. Pour revenir à l'état d'avant restauration, il suffit de :
+Le `pre-restore-…` créé à l'étape 5 reste visible dans la liste des sauvegardes. Pour revenir à l'état d'avant restauration, il suffit de :
 
 1. Cliquer **Télécharger** sur le `pre-restore-…`.
 2. Cliquer **Restaurer un fichier…** et uploader ce fichier.

@@ -188,15 +188,16 @@ def test_backup_routes(app, tmp_path, monkeypatch, login_as):
     inst = Instance.query.filter_by(slug="test").one()
     (tmp_path / "uploads" / "test").mkdir(parents=True)
     (tmp_path / "uploads" / "test" / "a.pdf").write_bytes(b"%PDF")
-    client.post(f"/instances/{inst.id}/backup")
-    (backup,) = ib.list_backups(inst)
-    page = client.get(f"/instances/{inst.id}").get_data(as_text=True)
-    assert backup.filename in page and "base seule" not in page
-    response = client.get(f"/instances/{inst.id}/backups/{backup.filename}/download")
+    assert client.post(f"/api/v1/instances/{inst.id}/backups").status_code == 201
+    (backup,) = client.get(f"/api/v1/instances/{inst.id}").get_json()["backups"]
+    assert backup["filename"].endswith(".zip") and backup["database_only"] is False
+    response = client.get(backup["download_url"])
     assert response.mimetype == "application/zip"
     with zipfile.ZipFile(io.BytesIO(response.data)) as z:
         assert sorted(z.namelist()) == ["database.db", "uploads/a.pdf"]
-    assert ".zip" in client.get(f"/instances/{inst.id}/restore").get_data(as_text=True)
+    client.delete(f"/api/v1/instances/{inst.id}/backups/{backup['filename']}")
+    assert ib.list_backups(inst) == []
+    assert client.delete(f"/api/v1/instances/{inst.id}/backups/{backup['filename']}").status_code == 404
 
 
 def test_corrupt_database_in_archive_cleans_up(inst, tmp_path):
@@ -236,16 +237,24 @@ def _uploads(db_path):
     return db_path.parent.parent / "uploads"
 
 
-def _post(client, url, blob, name):
-    return client.post(url, data={"backup_file": (io.BytesIO(blob), name)},
-                       content_type="multipart/form-data", follow_redirects=True)
+def _post(client, url, blob, name, **fields):
+    return client.post(url, data={"backup_file": (io.BytesIO(blob), name), **fields},
+                       content_type="multipart/form-data")
+
+
+def _text(resp):
+    body = resp.get_json()
+    return " ".join(n["message"] for n in body.get("notices", [])) or body["error"]["message"]
 
 
 def test_restore_route_with_archive(admin, tmp_path):
     client, target, db_path = admin
     blob = _zip({"database.db": _db_bytes(tmp_path, "restaurée"), "uploads/nouvelle.pdf": b"%PDF"})
-    page = _post(client, f"/instances/{target.id}/restore", blob, "sci-20261022-120000.zip")
-    assert "Restauration appliquée" in page.get_data(as_text=True)
+    url = f"/api/v1/instances/{target.id}/restore"
+    resp = _post(client, url, blob, "sci-20261022-120000.zip")  # sans confirmation : refusé
+    assert resp.status_code == 422 and "« sci »" in _text(resp) and _value(db_path) == "avant"
+    resp = _post(client, url, blob, "sci-20261022-120000.zip", confirm="sci")
+    assert "Restauration appliquée" in _text(resp)
     assert _value(db_path) == "restaurée"
     assert _files(_uploads(db_path) / "sci") == ["nouvelle.pdf"]
 
@@ -253,7 +262,7 @@ def test_restore_route_with_archive(admin, tmp_path):
 def test_restore_route_refuses_hostile_archive(admin, tmp_path):
     client, target, db_path = admin
     blob = _zip({"database.db": _db_bytes(tmp_path, "x"), "../evil.py": b"x"})
-    page = _post(client, f"/instances/{target.id}/restore", blob, "sci.zip").get_data(as_text=True)
+    page = _text(_post(client, f"/api/v1/instances/{target.id}/restore", blob, "sci.zip", confirm="sci"))
     assert "chemin interdit" in page and _value(db_path) == "avant"
     assert _files(_uploads(db_path) / "sci") == ["ancienne.pdf"]
 
@@ -262,11 +271,14 @@ def test_import_route_restores_existing_or_creates_instance(admin, tmp_path):
     from app.models import Instance
     client, target, db_path = admin
     blob = _zip({"database.db": _db_bytes(tmp_path, "importée"), "uploads/i.pdf": b"%PDF"})
-    page = _post(client, "/instances/import", blob, "sci-20261022-120000.zip").get_data(as_text=True)
-    assert "restaurée depuis l" in page and _value(db_path) == "importée"
+    resp = _post(client, "/api/v1/instances/import", blob, "sci-20261022-120000.zip")
+    assert resp.status_code == 409 and resp.get_json()["error"]["code"] == "confirmation_required"
+    assert _value(db_path) == "avant"
+    page = _text(_post(client, "/api/v1/instances/import", blob, "sci-20261022-120000.zip", confirm="sci"))
+    assert "restaurée depuis le fichier" in page and _value(db_path) == "importée"
 
-    page = _post(client, "/instances/import", blob, "nouvelle-asso-20261022-120000.zip")
-    assert "créée depuis l" in page.get_data(as_text=True)
+    resp = _post(client, "/api/v1/instances/import", blob, "nouvelle-asso-20261022-120000.zip")
+    assert resp.status_code == 201 and "créée depuis le fichier" in _text(resp)
     created = Instance.query.filter_by(slug="nouvelle-asso").one()
     assert _value(ib._resolve_sqlite_path(created.database_url)) == "importée"
     assert created.database_url == "sqlite:///tenants/nouvelle-asso.db"
