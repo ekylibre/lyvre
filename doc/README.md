@@ -15,6 +15,7 @@ Application web de comptabilité pour associations loi 1901 (plan comptable des 
 | [Routes](routes.md) | Référence complète de toutes les URLs |
 | [Services](services.md) | Logique métier : comptabilité, imports, rapprochement |
 | [Imports](imports.md) | Guide import OFX (banque) et CSV Odoo |
+| [Base documentaire](base_documentaire/README.md) | Cadrage (sans code) d'une base de connaissances comptables par référentiel (PCG, ANC 2018-06, SCI) et d'un assistant contextuel : besoins, fiches, règles YAML, architecture, plan |
 | [Clôturer un exercice](cloture.md) | Assistant de clôture : contrôles, inventaire, fonds dédiés, FEC, clôture provisoire / définitive, à-nouveaux, affectation |
 | [États financiers](reports.md) | Balance, grand livre, Bilan, Compte de résultat (asso / SCI) |
 | [Saisie et rapprochement](saisie_rapprochement.md) | Écrans au clavier : saisie d'écriture, espace de rapprochement, raccourcis |

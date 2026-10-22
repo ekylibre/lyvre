@@ -1,6 +1,13 @@
 # Workflow — Obligations associatives (lots A → C → B → D)
 
-> Statut : **plan** (2026-10-22). Sources : [`besoins_obligations_associatives.md`](besoins_obligations_associatives.md)
+> Statut (2026-10-24) : **lots A et C réalisés** (main local, non poussé) ; **prochaine étape : lot B,
+> phase B.1** (`/sc:implement phase B.1`). En attente côté utilisateur : passage du FEC de test dans
+> « Test Compta Demat » (US-A1), relecture de l'affectation SCI 455x par l'expert-comptable, accord
+> pour migrer les vraies bases (6 migrations tenant : `c4e2a7d9b315` → `b9d4f6a8c310`, plus la
+> table méta `instance_memberships`). Travail parallèle : cadrage de la base documentaire et de
+> l'assistant dans [`doc/base_documentaire/`](../doc/base_documentaire/README.md) (autre session).
+>
+> Plan initial du 2026-10-22. Sources : [`besoins_obligations_associatives.md`](besoins_obligations_associatives.md)
 > (OA1–OA14), [`design_obligations_associatives.md`](design_obligations_associatives.md) (D1–D22,
 > validé implicitement par le passage au workflow). Exécution : `/sc:implement`, phase par phase,
 > sur `main` local non poussé.
