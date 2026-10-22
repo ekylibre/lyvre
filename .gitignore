@@ -15,3 +15,7 @@ frontend/node_modules/
 frontend/test-results/
 frontend/playwright-report/
 app/static/dist/
+
+# Sources comptables (PDF ANC, guides, modèle Word) : volumineuses, URL dans doc/base_documentaire (registre des sources)
+doc/ref_compta/*.pdf
+doc/ref_compta/*.doc
