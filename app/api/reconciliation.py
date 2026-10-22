@@ -9,7 +9,7 @@ from flask_login import login_required
 from sqlalchemy.orm import joinedload
 
 from app.extensions import db
-from app.models import BankAccount, BankTransaction, JournalLine
+from app.models import BankAccount, BankTransaction, JournalLine, PurchasePayment
 from app.services.ledger import delete_entries
 from app.services.reconciler import (
     auto_reconcile, reconcile_many, suggest_matches_scored, unreconcile_many,
@@ -55,18 +55,25 @@ def attachment_status(bt):
     return "ok"
 
 
-def serialize_transaction(bt):
+def serialize_transaction(bt, invoices=None):
     line = bt.journal_line
     return {
         "id": bt.id,
         "date": bt.transaction_date.isoformat(),
         "label": bt.label or "",
+        "raw_type": bt.raw_type,
+        "note": bt.note,
         "amount_cents": bt.amount_cents,
         "reconciled": bt.reconciled,
         "is_reversed": bt.is_reversed,
         "attachment_status": attachment_status(bt),
         "category": bt.category,
         "entity": bt.entity.name if bt.entity else None,
+        "entity_id": bt.entity_id,
+        # Factures d'achat payées par cette transaction.
+        "invoices": [{"id": p.id, "label": f"{'Avoir' if p.is_credit_note else 'Facture'} "
+                      f"{p.invoice_number or 'sans numéro'}",
+                      "url": url_for("purchases.detail", purchase_id=p.id)} for p in (invoices or [])],
         "entry": (
             {"id": line.entry_id, "reference": line.entry.reference,
              "url": url_for("entries.detail", entry_id=line.entry_id)}
@@ -90,12 +97,28 @@ def bank_transactions(bank_account_id):
         query = query.filter_by(reconciled=False)
     elif status == "reconciled":
         query = query.filter_by(reconciled=True)
+    if request.args.get("missing") == "1":
+        # Justificatif exigé mais absent, ou déclaré perdu (transactions Qonto).
+        query = query.filter(db.or_(
+            db.and_(BankTransaction.attachment_required.is_(True), BankTransaction.attachment_count == 0),
+            BankTransaction.attachment_lost.is_(True)))
+    if request.args.get("no_invoice") == "1":
+        # Débits qu'aucune facture d'achat ne désigne comme paiement.
+        paid = db.session.query(PurchasePayment.bank_transaction_id).filter(
+            PurchasePayment.bank_transaction_id.isnot(None))
+        query = query.filter(BankTransaction.amount_cents < 0, BankTransaction.is_reversed.is_(False),
+                             BankTransaction.id.notin_(paid))
     query = apply_month_filter(query, BankTransaction.transaction_date,
                                parse_month(request.args.get("month")))
     query = apply_date_sort(query, BankTransaction.transaction_date,
                             parse_sort(request.args.get("sort"), default="asc"))
     rows = query.order_by(BankTransaction.id).all()
-    return jsonify(transactions=[serialize_transaction(bt) for bt in rows],
+    invoices = {}
+    if rows:
+        for payment in PurchasePayment.query.filter(
+                PurchasePayment.bank_transaction_id.in_([bt.id for bt in rows])):
+            invoices.setdefault(payment.bank_transaction_id, []).append(payment.purchase)
+    return jsonify(transactions=[serialize_transaction(bt, invoices.get(bt.id)) for bt in rows],
                    counters=counters(ba.id))
 
 

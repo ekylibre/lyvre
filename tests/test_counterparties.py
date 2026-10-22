@@ -132,29 +132,24 @@ def test_counterparties_screen_and_actions(login_as, ba):
     _txn(ba, "t2", -300, "DUPRE MAINTENANCE")
     _txn(ba, "t3", -50, "Boulangerie")
     client = login_as(is_admin=False)
-    page = client.get(f"/bank-accounts/{ba.id}/transactions").get_data(as_text=True)
-    assert "3 contrepartie(s) de débits sans tiers" in page
+    assert client.get(f"/api/v1/bank-accounts/{ba.id}").get_json()["proposal_count"] == 3
 
-    html = client.get(f"/bank-accounts/{ba.id}/counterparties").get_data(as_text=True)
-    assert "SARL Papin" in html and "DUPRE MAINTENANCE" in html
+    labels = [p["label"] for p in client.get(f"/api/v1/bank-accounts/{ba.id}/counterparties").get_json()["items"]]
+    assert "SARL Papin" in labels and "DUPRE MAINTENANCE" in labels
 
-    resp = client.post(f"/bank-accounts/{ba.id}/counterparties", follow_redirects=True, data={
-        "action": "create", "name_key": "sarl papin", "label": "SARL Papin", "name": "SARL Papin"})
-    assert "Fournisseur « SARL Papin » : 1 transaction(s) rattachée(s)." in resp.get_data(as_text=True)
+    body = client.post("/api/v1/counterparties", json={
+        "action": "create", "key": "sarl papin", "label": "SARL Papin", "name": "SARL Papin"}).get_json()
+    assert body["notices"][0]["message"] == "Fournisseur « SARL Papin » : 1 transaction(s) rattachée(s)."
 
     target = _entity("Dupré Maintenance Énergies")
-    client.post(f"/bank-accounts/{ba.id}/counterparties", data={
-        "action": "link", "name_key": "dupre maintenance", "label": "DUPRE", "entity_id": target.id})
-    client.post(f"/bank-accounts/{ba.id}/counterparties", data={
-        "action": "ignore", "name_key": "boulangerie", "label": "Boulangerie"})
-    html = client.get(f"/bank-accounts/{ba.id}/counterparties").get_data(as_text=True)
-    assert "Aucune contrepartie à valider" in html
-    page = client.get(f"/bank-accounts/{ba.id}/transactions").get_data(as_text=True)
-    assert "contrepartie(s) de débits sans tiers" not in page
+    client.post("/api/v1/counterparties", json={
+        "action": "link", "key": "dupre maintenance", "label": "DUPRE", "entity_id": target.id})
+    client.post("/api/v1/counterparties", json={"action": "ignore", "key": "boulangerie", "label": "Boulangerie"})
+    assert client.get(f"/api/v1/bank-accounts/{ba.id}/counterparties").get_json()["items"] == []
+    assert client.get(f"/api/v1/bank-accounts/{ba.id}").get_json()["proposal_count"] == 0
 
 
 def test_counterparties_screen_error_message(login_as, ba):
     client = login_as(is_admin=False)
-    resp = client.post(f"/bank-accounts/{ba.id}/counterparties", follow_redirects=True,
-                       data={"action": "create", "name_key": "x", "label": "X", "name": ""})
-    assert "Indiquez le nom du fournisseur." in resp.get_data(as_text=True)
+    resp = client.post("/api/v1/counterparties", json={"action": "create", "key": "x", "label": "X", "name": ""})
+    assert resp.status_code == 422 and resp.get_json()["error"]["message"] == "Indiquez le nom du fournisseur."

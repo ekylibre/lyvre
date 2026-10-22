@@ -172,33 +172,24 @@ l'enregistrement), `/entries/<id>`, `/entries/<id>/edit` ([guide de saisie](sais
 
 ## Comptes bancaires (`/bank-accounts/`)
 
+Pages de la SPA : `/bank-accounts/`, `/bank-accounts/new`, `/bank-accounts/<id>/edit` (fenêtre),
+`/bank-accounts/<id>/transactions` (filtres : toutes, à rapprocher, justificatif manquant, débit
+sans facture ; mois ; carte Qonto avec synchronisation, date de début, détachement),
+`/bank-accounts/<id>/counterparties`, `/bank-accounts/qonto` (admin). API :
+
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/bank-accounts/` | Liste tous les comptes bancaires avec statistiques (total transactions, non rapprochées) |
-| GET | `/bank-accounts/new` | Formulaire de création |
-| POST | `/bank-accounts/new` | Crée le compte bancaire |
-| GET | `/bank-accounts/<id>/edit` | Formulaire de modification |
-| POST | `/bank-accounts/<id>/edit` | Enregistre les modifications |
-| POST | `/bank-accounts/<id>/delete` | Supprime le compte (interdit s'il a des transactions) |
-| GET | `/bank-accounts/<id>/transactions` | Liste les transactions importées. `?unreconciled=1` : non rapprochées ; `?missing=1` : justificatif manquant ou perdu (Qonto) ; `?no_invoice=1` : débits qu'aucune facture d'achat ne désigne. Badge « Facture n° … » sur les transactions liées. Bloc Qonto (synchro), bandeaux « contreparties à valider » et « annulées encore rapprochées » |
-| GET | `/bank-accounts/qonto` | **Admin.** Comptes Qonto de l'organisation (solde, IBAN) et leur rattachement ; même IBAN proposé d'office. Aucun appel à Qonto si l'intégration est indisponible |
-| POST | `/bank-accounts/qonto/link` | **Admin.** `qonto_account_id`, `mode=existing` + `bank_account_id`, ou `mode=new` + `label` + `gl_account_id` ; `sync_from` (défaut : début de l'exercice ouvert) |
-| POST | `/bank-accounts/<id>/qonto/settings` | **Admin.** `sync_from` ; reculer la date remet le curseur à zéro (synchro complète, sans doublon) |
-| POST | `/bank-accounts/<id>/qonto/unlink` | **Admin.** Détache le compte Qonto (transactions conservées) |
-| POST | `/bank-accounts/<id>/qonto/sync` | Lance la synchronisation Qonto en arrière-plan (une à la fois par compte) ; en HTMX, renvoie le fragment de suivi |
-| GET | `/bank-accounts/<id>/qonto/sync/<job_id>` | Fragment de suivi (rafraîchi toutes les 2 s tant que la synchro tourne), puis résumé |
-| GET | `/bank-accounts/<id>/counterparties` | Contreparties de débits sans tiers, groupées, à valider |
-| POST | `/bank-accounts/<id>/counterparties` | `action=create` (+ `name`), `link` (+ `entity_id`) ou `ignore`, avec `name_key` / `label` : s'applique à toutes les transactions sans tiers de cette contrepartie |
-
-**Paramètres POST `/bank-accounts/new` et `/bank-accounts/<id>/edit` :**
-
-| Champ | Obligatoire | Description |
-|-------|-------------|-------------|
-| `label` | oui | Nom affiché (ex : `CIC Compte courant`) |
-| `iban` | non | IBAN — les espaces sont supprimés automatiquement |
-| `account_id` | oui | ID du compte GL 512x associé |
-
-> Le formulaire ne propose que les comptes dont le code commence par `51` et qui ne sont pas des comptes d'en-tête (`is_header = False`).
+| GET | `/api/v1/bank-accounts` | Comptes (compte 512, Qonto, nombre de transactions et à rapprocher) ; `meta.gl_accounts` (51… hors regroupement), état de Qonto |
+| POST / PATCH | `/api/v1/bank-accounts[/<id>]` | `label`, `iban` (espaces retirés), `account_id` (compte 51…) |
+| DELETE | `/api/v1/bank-accounts/<id>` | 409 si des transactions y sont liées |
+| GET | `/api/v1/bank-accounts/<id>` | Compte, dernière synchronisation Qonto (`qonto_job`), nombre de contreparties à valider, transactions annulées encore rapprochées, mois de l'exercice |
+| GET | `/api/v1/bank-accounts/<id>/transactions` | `status` = `unreconciled` (défaut) / `reconciled` / `all`, `month`, `sort`, `missing=1`, `no_invoice=1` ; chaque transaction porte justificatif, tiers, écriture, factures d'achat payées |
+| GET | `/api/v1/qonto/accounts` | (admin) Comptes Qonto de l'organisation (lecture seule) avec rattachement et compte proposé (même IBAN) ; `error` lisible, secrets masqués |
+| POST | `/api/v1/qonto/accounts/link` | (admin) `qonto_account_id`, `mode` = `existing` (+ `bank_account_id`) ou `new` (+ `label`, `gl_account_id`), `sync_from` |
+| PATCH / DELETE | `/api/v1/bank-accounts/<id>/qonto` | (admin) Date de début (reculer relance une synchronisation complète, sans doublon) / détacher (transactions conservées) |
+| POST | `/api/v1/bank-accounts/<id>/qonto/sync` | Synchronisation en arrière-plan (lecture des transactions Qonto) → `job`, suivi par `/api/v1/jobs/<id>` |
+| GET | `/api/v1/bank-accounts/<id>/counterparties` | Contreparties de débits sans tiers, regroupées |
+| POST | `/api/v1/counterparties` | `action` = `create` (+ `name`) / `link` (+ `entity_id`) / `ignore`, `key`, `label` |
 
 ---
 
@@ -247,19 +238,11 @@ Pages de la SPA (liste ; la création / modification s'ouvre dans une fenêtre p
 
 ### Import OFX
 
-| Méthode | URL | Description |
-|---------|-----|-------------|
-| GET | `/imports/ofx` | Formulaire d'import OFX avec liste des comptes bancaires |
-| POST | `/imports/ofx` | Upload du fichier, parse et insère les transactions non-dupliquées ; puis règle les factures d'achat saisies en attente dont le débit est unique (`purchase_settlement.auto_match`) |
-
-**Paramètres POST :**
-
-| Champ | Description |
-|-------|-------------|
-| `bank_account_id` | ID du compte bancaire cible |
-| `ofx_file` | Fichier OFX (`.ofx` ou `.qfx`) |
-
-**Réponse :** message flash avec le nombre de transactions importées, doublons et erreurs.
+Page de la SPA `/imports/ofx` (`?bank_account_id=` présélectionne le compte, dépôt glisser-déposer).
+`POST /api/v1/imports/ofx` (multipart : `bank_account_id`, `ofx_file` `.ofx` / `.qfx`) insère les
+transactions non dupliquées puis règle les factures d'achat saisies en attente dont le débit est
+unique (`purchase_settlement.auto_match`) ; réponse `result` (`imported`, `duplicates`, `errors`,
+`matched`, `settled`) et `notices`. Fichier illisible : 422.
 
 ### Import Odoo
 
@@ -280,12 +263,11 @@ Pages de la SPA (liste ; la création / modification s'ouvre dans une fenêtre p
 
 ## Rapprochement bancaire (`/reconciliation/`)
 
-| Méthode | URL | Description |
-|---------|-----|-------------|
-| GET | `/reconciliation/` | Espace de rapprochement : îlot React **ReconcileWorkspace** ([guide](saisie_rapprochement.md)). Paramètres `?bank_account_id=` et `?month=YYYY-MM` (repris dans l'URL par l'îlot). Toutes les actions passent par `/api/v1` (ci-dessous). |
-
-Les anciennes routes `/reconciliation/suggest/<id>`, `/link`, `/unlink/<id>` et `/auto` ont été
-supprimées.
+Page de la SPA ([guide](saisie_rapprochement.md)) : `?bank_account_id=`, `?month=YYYY-MM`.
+`GET /api/v1/reconciliation/context` donne les comptes bancaires, les mois de l'exercice et le
+journal par défaut ; le panneau « Créer l'écriture » est préparé par
+`GET /api/v1/entries/form?bt_id=`. Les actions (rapprocher, défaire, automatique, règles) sont
+décrites dans la section API ci-dessous.
 
 ---
 
@@ -371,27 +353,14 @@ La transaction bancaire est automatiquement rapprochée à la ligne d'écriture 
 
 ## Versements Stancer (`/payouts/`)
 
+Pages de la SPA : `/payouts/` (`?month=`, `?sort=`), `/payouts/<id>`. API :
+
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/payouts/` | Liste des versements importés (triés par `date_payout` descendante). Affiche montant net, frais, nombre de paiements, badge « rapprochée » si `bank_transaction_id` est renseigné, statut. Affiche aussi l'état du dernier `SyncJob` (zone `#sync-status-zone`). Indique si la clé API est configurée. |
-| GET | `/payouts/<id>` | Vue détail : en-tête du payout (dates, montant, frais, opération bancaire rattachée si présente) + tableau des paiements liés (date, méthode, client, montant, statut). Affiche l'état du dernier job concernant ce payout (sync globale ou sync ciblée). |
-| POST | `/payouts/sync` | **Lancement asynchrone** d'un job `kind='payouts'` via `stancer_async.start_sync_payouts(app)`. Retourne immédiatement (le thread tourne en arrière-plan) : en HTMX, renvoie le fragment `_sync_status.html` ; en non-HTMX, redirige vers `/payouts/`. Idempotent : un re-clic pendant qu'un job tourne ne crée pas de doublon. |
-| POST | `/payouts/<id>/sync-payments` | **Lancement asynchrone** d'un job `kind='payout_payments'` ciblé. Même contrat : fragment HTMX si possible, sinon redirection. |
-| GET | `/payouts/sync/status/<job_id>` | **Polling HTMX** : retourne le fragment `_sync_status.html` du job. Tant que `status='running'`, le fragment se ré-interroge automatiquement toutes les 2 s (`hx-trigger="every 2s"`). 404 si l'`id` est inconnu. |
-
-**Workflow utilisateur :**
-
-1. L'utilisateur clique sur « Récupérer les versements via l'API ».
-2. Le formulaire `hx-post="/payouts/sync"` cible la zone `#sync-status-zone`. La réponse est le fragment `_sync_status.html` du nouveau `SyncJob`.
-3. Le fragment porte `hx-get="/payouts/sync/status/<id>" hx-trigger="every 2s"`. Toutes les 2 s, il se rafraîchit en place.
-4. Le thread de sync met à jour `progress_done` / `message` au fil du traitement (throttle = 1 écriture sur 5).
-5. Quand le job passe à `done` ou `failed`, l'attribut `hx-trigger` disparaît du fragment → le polling s'arrête. Un lien « Recharger la page » apparaît pour rafraîchir la liste avec les nouvelles données.
-
-**Configuration requise** : variables d'environnement `STANCER_SECRET_KEY` (clé secrète de l'espace Stancer, format `sk_xxx`) et facultativement `STANCER_MODE` (`live` ou `test`).
-
-Le bouton de synchronisation est désactivé tant que `STANCER_SECRET_KEY` n'est pas définie.
-
-**Auth Stancer** : HTTP Basic, login = `STANCER_SECRET_KEY`, password vide.
+| GET | `/api/v1/payouts` | Versements (montant, frais, paiements, opération bancaire, statut) ; `meta` : mois, état de Stancer, dernière synchronisation |
+| GET | `/api/v1/payouts/<id>` | Versement et ses paiements (date, moyen, client, montant, statut) ; dernière synchronisation du versement |
+| POST | `/api/v1/payouts/sync` | Synchronisation des versements en arrière-plan → `job` (409 si Stancer indisponible ; idempotent pendant qu'un job tourne) |
+| POST | `/api/v1/payouts/<id>/sync-payments` | Synchronisation des paiements d'un versement → `job` |
 
 ---
 

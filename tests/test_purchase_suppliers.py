@@ -83,10 +83,11 @@ def test_bank_view_invoice_badge_and_filter(books, login_as):
     sync_transactions(books, payment(), payment_other())
     sync_invoices(invoice())
     client = login_as()
-    page = client.get(f"/bank-accounts/{books['ba'].id}/transactions").get_data(as_text=True)
-    assert "Facture FAC-si-1" in page
-    filtered = client.get(f"/bank-accounts/{books['ba'].id}/transactions?no_invoice=1").get_data(as_text=True)
-    assert "Facture FAC-si-1" not in filtered and "Fournitures diverses" in filtered
+    url = f"/api/v1/bank-accounts/{books['ba'].id}/transactions?status=all"
+    rows = client.get(url).get_json()["transactions"]
+    assert ["Facture FAC-si-1"] in [[i["label"] for i in r["invoices"]] for r in rows]
+    filtered = client.get(url + "&no_invoice=1").get_json()["transactions"]
+    assert [r["label"] for r in filtered] == ["Fournitures diverses"]
 
 
 def payment_other():

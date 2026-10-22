@@ -1,8 +1,18 @@
 // Appels à l'API JSON /api/v1 depuis la SPA (claudedocs/design_front_mantine.md §5, §7).
 // Session par cookie (même origine), jeton CSRF en en-tête, erreurs typées.
-import { ApiError } from "../lib/api";
+import type { FieldErrors } from "../lib/types";
 
-export { ApiError };
+/** Erreur renvoyée par /api/v1 (format { error: { code, message, fields } }). */
+export class ApiError extends Error {
+  constructor(
+    public code: string,
+    message: string,
+    public status: number,
+    public fields: FieldErrors = {},
+  ) {
+    super(message);
+  }
+}
 
 let csrfToken =
   document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? "";

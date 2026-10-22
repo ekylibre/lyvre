@@ -78,31 +78,6 @@ def test_htmx_config_swaps_422(app):
     assert next(h for h in handling if h["code"] == "422")["swap"] is True
 
 
-# --- imports ----------------------------------------------------------------
-
-
-def test_ofx_import_form_is_boosted_with_progress(client):
-    html = client.get("/imports/ofx").get_data(as_text=True)
-    form = re.search(r'<form method="post" enctype="multipart/form-data"[^>]*>', html).group(0)
-    assert 'hx-boost="true"' in form and 'hx-target="#page-content"' in form
-    assert "data-upload-progress" in html
-
-
-def test_ofx_import_error_returns_page_and_toast(client, session):
-    acc = Account(code="512", label="Banque")
-    session.add(acc)
-    session.flush()
-    ba = BankAccount(label="Courant", account_id=acc.id)
-    session.add(ba)
-    session.commit()
-    resp = client.post("/imports/ofx", headers=HX_CONTENT, content_type="multipart/form-data",
-                       data={"bank_account_id": ba.id, "ofx_file": (io.BytesIO(b"pas un ofx"), "x.ofx")})
-    assert resp.status_code == 200
-    assert 'id="page-content"' in resp.get_data(as_text=True)
-    toast = json.loads(resp.headers["HX-Trigger"])["toast"]
-    assert toast[0]["level"] == "danger" and "OFX" in toast[0]["message"]
-
-
 # --- garde-fous sur les templates -----------------------------------------
 
 

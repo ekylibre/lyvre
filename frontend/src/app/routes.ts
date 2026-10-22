@@ -44,6 +44,14 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
   "reports.grand_livre": () => import("../features/reports/GeneralLedgerPage"),
   "reports.bilan": () => import("../features/reports/BilanPage"),
   "reports.compte_resultat": () => import("../features/reports/CompteResultatPage"),
+  ...pages(["bank_accounts.index", "bank_accounts.new", "bank_accounts.edit"], () => import("../features/bank-accounts/BankAccountsPage")),
+  "bank_accounts.transactions": () => import("../features/bank-accounts/TransactionsPage"),
+  "bank_accounts.counterparties_view": () => import("../features/bank-accounts/CounterpartiesPage"),
+  "bank_accounts.qonto_accounts": () => import("../features/bank-accounts/QontoAccountsPage"),
+  "reconciliation.index": () => import("../features/reconciliation/ReconcilePage"),
+  "payouts.index": () => import("../features/payouts/PayoutsPage"),
+  "payouts.detail": () => import("../features/payouts/PayoutDetailPage"),
+  "imports.ofx": () => import("../features/imports/ImportOfxPage"),
 };
 
 /** Pages sans la mise en page de l'application (en-tête, menus). */

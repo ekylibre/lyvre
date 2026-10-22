@@ -49,8 +49,10 @@ function Shortcut({ keys, children }: { keys: string[]; children: ReactNode }) {
   return <List.Item>{keys.map((k, i) => <span key={k}>{i > 0 && " + "}<Kbd size="xs">{k}</Kbd></span>)} : {children}</List.Item>;
 }
 
-export function EntryEditor({ data, onSaved, onCancel }: {
+export function EntryEditor({ data, onSaved, onCancel, focusAccountOfLine }: {
   data: EntryFormData;
+  /** Ligne dont le compte reçoit le focus à l'ouverture (ex. 1 : contrepartie d'une transaction). */
+  focusAccountOfLine?: number;
   /** Après enregistrement : `after` = "continue" (saisie suivante) ou "open". */
   onSaved: (entry: EntryResponse, after: "open" | "continue") => void;
   onCancel: () => void;
@@ -59,7 +61,10 @@ export function EntryEditor({ data, onSaved, onCancel }: {
   const [state, dispatch] = useReducer(reducer, data, initialState);
   const [serverErrors, setServerErrors] = useState<FieldErrors>({});
   const [submitting, setSubmitting] = useState(false);
-  const [pendingFocus, setPendingFocus] = useState<FocusTarget | null>(null);
+  const [pendingFocus, setPendingFocus] = useState<FocusTarget | null>(() => {
+    const line = focusAccountOfLine === undefined ? undefined : state.lines[focusAccountOfLine];
+    return line ? { key: line.key, field: "account" } : null;
+  });
   const fields = useRef(new Map<string, HTMLInputElement | null>());
   const descriptionRef = useRef<HTMLInputElement>(null);
 

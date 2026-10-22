@@ -55,15 +55,11 @@ def test_no_full_reload_selectors_left_in_templates():
 
 
 @pytest.mark.parametrize("url_name, target", [
-    ("transactions", "#page-content"),
-    ("payouts", "#page-content"),
     ("orders", "#page-content"),
     ("customer_invoices", "#list"),
 ])
 def test_filter_form_is_htmx(client, data, url_name, target):
     urls = {
-        "transactions": f"/bank-accounts/{data['ba'].id}/transactions",
-        "payouts": "/payouts/",
         "orders": "/orders/",
         "customer_invoices": "/customer-invoices/",
     }

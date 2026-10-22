@@ -12,7 +12,6 @@ from flask_login import current_user
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 
-from app.api import error_response, is_api_request
 from app.extensions import db
 from app.models import Instance
 
@@ -96,6 +95,9 @@ def _is_tenant_free_endpoint() -> bool:
 
 def register_tenant_hooks(app):
     """Wire up the before_request hook that selects the tenant per request."""
+
+    # Import tardif : l'API (et les services qu'elle charge) importent ce module.
+    from app.api import error_response, is_api_request
 
     @app.before_request
     def _select_tenant():

@@ -1,11 +1,10 @@
+"""Import Odoo (CSV par lots). L'import OFX est une page de la SPA (app/api/imports.py)."""
 import io
 from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from app.services import purchase_settlement
 from flask_login import login_required
 from app.extensions import db
-from app.models import BankAccount, OdooImportLine
-from app.services.ofx_importer import import_ofx
+from app.models import OdooImportLine
 from app.services.odoo_importer import import_odoo_csv
 from app.utils.list_filters import (
     parse_sort, parse_month, apply_date_sort, apply_month_filter,
@@ -13,42 +12,6 @@ from app.utils.list_filters import (
 )
 
 bp = Blueprint("imports", __name__, url_prefix="/imports")
-
-
-@bp.route("/ofx", methods=["GET", "POST"])
-@login_required
-def ofx():
-    bank_accounts = BankAccount.query.order_by(BankAccount.label).all()
-    result = None
-
-    if request.method == "POST":
-        bank_account_id = request.form.get("bank_account_id", type=int)
-        file = request.files.get("ofx_file")
-
-        if not bank_account_id:
-            flash("Veuillez sélectionner un compte bancaire.", "danger")
-        elif not file or not file.filename:
-            flash("Veuillez choisir un fichier OFX.", "danger")
-        else:
-            try:
-                result = import_ofx(file.stream, bank_account_id)
-                flash(
-                    f"{result['imported']} transaction(s) importée(s), "
-                    f"{result['duplicates']} doublon(s) ignoré(s).",
-                    "success" if not result["errors"] else "warning",
-                )
-                if result["imported"]:
-                    # Factures d'achat saisies en attente : débit unique de même montant → réglées.
-                    matching = purchase_settlement.auto_match()
-                    if matching["matched"]:
-                        flash(f"{matching['matched']} facture(s) d'achat rattachée(s) à leur paiement, "
-                              f"{matching['settled']} règlement(s) passé(s).", "success")
-                    for error in matching["errors"]:
-                        flash(error, "danger")
-            except Exception as e:
-                flash(f"Erreur lors de l'import OFX : {e}", "danger")
-
-    return render_template("imports/ofx.html", bank_accounts=bank_accounts, result=result)
 
 
 @bp.route("/odoo", methods=["GET", "POST"])

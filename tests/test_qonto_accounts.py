@@ -116,80 +116,86 @@ def test_set_sync_from_earlier_resets_cursor(app, gl):
     assert ba.qonto_synced_at is None
 
 
-# ------------------------------------------------------------------- écrans
+# ------------------------------------------------------------------- API (écrans de la SPA)
 
 def test_qonto_page_lists_accounts(login_as, gl, fake_qonto):
     client = login_as(is_admin=True)
-    html = client.get("/bank-accounts/qonto").get_data(as_text=True)
-    assert "Compte principal" in html and "Épargne" in html
-    assert IBAN in html
-    assert "X XXX,XX €" in html
-    assert fake_qonto["calls"] == 1
+    body = client.get("/api/v1/qonto/accounts").get_json()
+    accounts = {a["qonto_id"]: a for a in body["items"]}
+    assert accounts["acc-main"]["name"] == "Compte principal" and accounts["acc-main"]["iban"] == IBAN
+    assert accounts["acc-main"]["balance_cents"] == 596295 and "Épargne" in [a["name"] for a in body["items"]]
+    assert body["error"] is None and fake_qonto["calls"] == 1
 
 
 def test_qonto_page_unavailable_makes_no_call(login_as, gl, fake_qonto):
     external_config.set_enabled("qonto", False)
     client = login_as(is_admin=True)
-    html = client.get("/bank-accounts/qonto").get_data(as_text=True)
-    assert "Intégration <strong>Qonto</strong>" in html and "désactivée" in html
+    body = client.get("/api/v1/qonto/accounts").get_json()
+    assert body["items"] == [] and "désactivée" in body["error"]
     assert fake_qonto["calls"] == 0
 
 
 def test_qonto_page_shows_api_error(login_as, gl, fake_qonto):
     fake_qonto["error"] = qonto_client.QontoAuthError("refusé")
     client = login_as(is_admin=True)
-    html = client.get("/bank-accounts/qonto").get_data(as_text=True)
-    assert "refusé" in html
+    assert "refusé" in client.get("/api/v1/qonto/accounts").get_json()["error"]
 
 
 def test_link_route_creates_and_links(login_as, gl, fake_qonto):
     client = login_as(is_admin=True)
-    resp = client.post("/bank-accounts/qonto/link", data={
+    body = client.post("/api/v1/qonto/accounts/link", json={
         "qonto_account_id": "acc-main", "mode": "new", "label": "Qonto SCI",
         "gl_account_id": gl.id, "sync_from": "2026-07-01",
-    }, follow_redirects=True)
-    html = resp.get_data(as_text=True)
-    assert "rattaché à « Qonto SCI »" in html and "01/07/2026" in html
+    }).get_json()
+    assert "rattaché à « Qonto SCI »" in body["notices"][0]["message"] and "01/07/2026" in body["notices"][0]["message"]
     ba = BankAccount.query.filter_by(qonto_account_id="acc-main").one()
     assert ba.label == "Qonto SCI"
-    assert "✓ Rattaché à" in html
+    linked = {a["qonto_id"]: a for a in client.get("/api/v1/qonto/accounts").get_json()["items"]}["acc-main"]["linked"]
+    assert linked["label"] == "Qonto SCI"
 
 
 def test_link_route_unknown_qonto_account(login_as, gl, fake_qonto):
     client = login_as(is_admin=True)
-    resp = client.post("/bank-accounts/qonto/link", data={"qonto_account_id": "nope", "mode": "new",
-                                                          "gl_account_id": gl.id},
-                       follow_redirects=True)
-    assert "Compte Qonto introuvable." in resp.get_data(as_text=True)
+    resp = client.post("/api/v1/qonto/accounts/link", json={"qonto_account_id": "nope", "mode": "new",
+                                                            "gl_account_id": gl.id, "sync_from": "2026-01-01"})
+    assert resp.status_code == 404 and resp.get_json()["error"]["message"] == "Compte Qonto introuvable."
     assert BankAccount.query.count() == 0
+
+
+def test_link_route_refusal_message(login_as, gl, fake_qonto):
+    client = login_as(is_admin=True)
+    resp = client.post("/api/v1/qonto/accounts/link", json={"qonto_account_id": "acc-main", "mode": "new",
+                                                            "sync_from": "2026-01-01"})
+    assert resp.status_code == 422 and "compte comptable" in resp.get_json()["error"]["message"]
 
 
 def test_edit_page_qonto_section_and_unlink(login_as, gl, fake_qonto):
     ba = qonto_sync.link_account(MAIN, gl_account_id=gl.id, sync_from=date(2026, 7, 1))
     client = login_as(is_admin=True)
-    html = client.get(f"/bank-accounts/{ba.id}/edit").get_data(as_text=True)
-    assert "acc-main" in html and "Détacher de Qonto" in html and "2026-07-01" in html
+    detail = client.get(f"/api/v1/bank-accounts/{ba.id}").get_json()
+    assert detail["item"]["qonto"]["account_id"] == "acc-main" and detail["item"]["qonto"]["sync_from"] == "2026-07-01"
 
-    client.post(f"/bank-accounts/{ba.id}/qonto/settings", data={"sync_from": "2026-03-01"})
+    client.patch(f"/api/v1/bank-accounts/{ba.id}/qonto", json={"sync_from": "2026-03-01"})
     assert BankAccount.query.get(ba.id).qonto_sync_from == date(2026, 3, 1)
 
-    client.post(f"/bank-accounts/{ba.id}/qonto/unlink")
+    client.delete(f"/api/v1/bank-accounts/{ba.id}/qonto")
     assert BankAccount.query.get(ba.id).qonto_account_id is None
 
 
 def test_index_shows_qonto_badge_and_admin_link(login_as, gl, fake_qonto):
     qonto_sync.link_account(MAIN, gl_account_id=gl.id)
     client = login_as(is_admin=True)
-    html = client.get("/bank-accounts/").get_data(as_text=True)
-    assert "Comptes Qonto" in html and 'title="Synchronisé avec Qonto"' in html
+    items = client.get("/api/v1/bank-accounts").get_json()["items"]
+    assert items[0]["qonto"]["account_id"] == "acc-main"
 
 
 def test_qonto_routes_admin_only(login_as, gl, fake_qonto):
     client = login_as(is_admin=False)
-    assert client.get("/bank-accounts/qonto").status_code == 403
-    assert client.post("/bank-accounts/qonto/link", data={}).status_code == 403
-    html = client.get("/bank-accounts/").get_data(as_text=True)
-    assert "Comptes Qonto" not in html
+    assert client.get("/api/v1/qonto/accounts").status_code == 403
+    assert client.post("/api/v1/qonto/accounts/link", json={}).status_code == 403
+    ba = qonto_sync.link_account(MAIN, gl_account_id=gl.id)
+    assert client.delete(f"/api/v1/bank-accounts/{ba.id}/qonto").status_code == 403
+    assert client.patch(f"/api/v1/bank-accounts/{ba.id}/qonto", json={"sync_from": "2026-01-01"}).status_code == 403
 
 
 def test_qonto_page_preselects_512(login_as, fake_qonto):
@@ -197,6 +203,5 @@ def test_qonto_page_preselects_512(login_as, fake_qonto):
         db.session.add(Account(code=code, label=f"Compte {code}"))
     db.session.commit()
     client = login_as(is_admin=True)
-    html = client.get("/bank-accounts/qonto").get_data(as_text=True)
-    selected = Account.query.filter_by(code="512").one()
-    assert f'value="{selected.id}" selected' in html
+    meta = client.get("/api/v1/qonto/accounts").get_json()["meta"]
+    assert meta["default_gl_id"] == Account.query.filter_by(code="512").one().id

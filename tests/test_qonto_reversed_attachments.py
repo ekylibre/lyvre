@@ -106,11 +106,11 @@ def test_account_view_badges_filter_and_banner(login_as, setup):
     _txn(ba, "rev", is_reversed=True, reconciled=True, journal_line_id=line.id)
     client = login_as(is_admin=False)
 
-    html = client.get(f"/bank-accounts/{ba.id}/transactions").get_data(as_text=True)
-    assert "1 transaction(s) annulée(s) par la banque encore rapprochée(s)" in html
-    assert "BQ-1" in html
-    assert ">Annulée</span>" in html
-    assert "Justificatif manquant</span>" in html and "Note Qonto" in html
+    detail = client.get(f"/api/v1/bank-accounts/{ba.id}").get_json()
+    assert [t["entry"]["reference"] for t in detail["reversed_reconciled"]] == ["BQ-1"]
+    rows = {r["label"]: r for r in client.get(f"/api/v1/bank-accounts/{ba.id}/transactions?status=all").get_json()["transactions"]}
+    assert rows["Libellé rev"]["is_reversed"] is True
+    assert rows["Libellé missing"]["attachment_status"] == "missing" and rows["Libellé ok"]["note"] == "Note Qonto"
 
-    html = client.get(f"/bank-accounts/{ba.id}/transactions?missing=1").get_data(as_text=True)
-    assert "Libellé missing" in html and "Libellé ok" not in html
+    missing = client.get(f"/api/v1/bank-accounts/{ba.id}/transactions?status=all&missing=1").get_json()["transactions"]
+    assert [r["label"] for r in missing] == ["Libellé missing"]

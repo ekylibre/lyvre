@@ -43,6 +43,25 @@ def _seed_books(engine):
                                   ("401000", "Fournisseurs", "TIERS"), ("706000", "Prestations", "REVENUE")):
             conn.execute(text("INSERT INTO accounts (code, label, account_type, is_header) VALUES (:c, :l, :t, 0)"),
                          {"c": code, "l": label, "t": kind})
+        # Rapprochement : un compte bancaire, un débit qui a son écriture, un crédit sans écriture.
+        ids = {code: conn.execute(text("SELECT id FROM accounts WHERE code = :c"), {"c": code}).scalar()
+               for code in ("512000", "606300")}
+        conn.execute(text("INSERT INTO bank_accounts (label, account_id) VALUES ('Banque E2E', :a)"),
+                     {"a": ids["512000"]})
+        ba = conn.execute(text("SELECT id FROM bank_accounts")).scalar()
+        for fitid, day, amount, label in (("E2E-1", 10, -4500, "CB LEROY MERLIN"), ("E2E-2", 12, 15000, "VIR CLIENT DUPONT")):
+            conn.execute(text("INSERT INTO bank_transactions (bank_account_id, fitid, transaction_date, amount_cents, "
+                              "label, reconciled, source, is_reversed) VALUES (:b, :f, :d, :a, :l, 0, 'ofx', 0)"),
+                         {"b": ba, "f": fitid, "d": f"{year}-03-{day:02d}", "a": amount, "l": label})
+        fy = conn.execute(text("SELECT id FROM fiscal_years")).scalar()
+        bq = conn.execute(text("SELECT id FROM journals WHERE code = 'BQ'")).scalar()
+        conn.execute(text("INSERT INTO journal_entries (fiscal_year_id, journal_id, entry_date, reference, description, "
+                          "is_balanced, source) VALUES (:f, :j, :d, 'BQ-E2E-1', 'Perceuse', 1, 'MANUAL')"),
+                     {"f": fy, "j": bq, "d": f"{year}-03-10"})
+        entry = conn.execute(text("SELECT id FROM journal_entries WHERE reference = 'BQ-E2E-1'")).scalar()
+        for account, debit, credit in ((ids["606300"], 4500, 0), (ids["512000"], 0, 4500)):
+            conn.execute(text("INSERT INTO journal_lines (entry_id, account_id, label, debit_cents, credit_cents) "
+                              "VALUES (:e, :a, 'Perceuse', :d, :c)"), {"e": entry, "a": account, "d": debit, "c": credit})
 
 
 def seed(app):

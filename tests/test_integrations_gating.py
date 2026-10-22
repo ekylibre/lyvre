@@ -104,18 +104,15 @@ def test_metrics_sync_skips_disabled_sources_silently(app):
 
 def test_payouts_disabled_notice_and_no_sync(admin):
     external_config.set_many("stancer", {"secret_key": "sprod_x"})
-    html = admin.get("/payouts/").get_data(as_text=True)
-    assert "Stancer</strong>" not in html  # disponible : pas de bandeau
+    assert admin.get("/api/v1/payouts").get_json()["meta"]["stancer"]["available"] is True
 
     external_config.set_enabled("stancer", False)
-    html = admin.get("/payouts/").get_data(as_text=True)
-    assert "Intégration <strong>Stancer</strong>" in html and "désactivée" in html
-    assert "/configuration/integrations/stancer" in html
+    stancer = admin.get("/api/v1/payouts").get_json()["meta"]["stancer"]
+    assert stancer["available"] is False and "désactivée" in stancer["message"]
 
-    resp = admin.post("/payouts/sync", headers={"HX-Request": "true"})
-    assert "Stancer désactivée" in resp.get_data(as_text=True)
+    resp = admin.post("/api/v1/payouts/sync")
+    assert resp.status_code == 409 and "Stancer désactivée" in resp.get_json()["error"]["message"]
     assert db.session.query(SyncJob).count() == 0
-
 
 def test_orders_and_invoices_unconfigured_notice(admin):
     for url in ("/orders/", "/customer-invoices/"):

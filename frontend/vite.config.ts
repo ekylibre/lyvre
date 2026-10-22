@@ -1,6 +1,5 @@
-// Front React servi par Flask (voir app/frontend.py : vite_assets) :
-// - src/main.tsx    : SPA React + Mantine (coquille app/templates/spa.html)
-// - src/islands.tsx : îlots des pages Jinja pas encore migrées
+// SPA React + Mantine servie par Flask (voir app/frontend.py : vite_assets,
+// coquille app/templates/spa.html) ; point d'entrée src/main.tsx.
 // - build : app/static/dist/ + .vite/manifest.json, servi sous /static/dist/
 // - dev   : serveur Vite sur :5173 (HMR), Flask charge les scripts depuis
 //           VITE_DEV_SERVER=http://localhost:5173
@@ -14,7 +13,7 @@ export default defineConfig({
     outDir: "../app/static/dist",
     emptyOutDir: true,
     manifest: true,
-    rollupOptions: { input: ["src/main.tsx", "src/islands.tsx"] },
+    rollupOptions: { input: "src/main.tsx" },
   },
   server: {
     port: 5173,

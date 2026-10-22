@@ -23,20 +23,22 @@ test("saisie d'une écriture au clavier, balance, suppression", async ({ page })
 
   await page.keyboard.press("Control+Shift+Enter");
   await expect(page).toHaveURL(/\/entries\/\d+$/);
-  await expect(page.getByRole("heading", { name: /AC-\d{4}-0001/ })).toBeVisible();
+  const heading = page.getByRole("heading", { name: /AC-\d{4}-\d{4}/ });
+  await expect(heading).toBeVisible();
+  const reference = ((await heading.textContent()) ?? "").match(/AC-\d{4}-\d{4}/)![0];
   await expect(page.getByRole("cell", { name: /606300/ })).toBeVisible();
 
   await page.goto("/reports/balance");
   await expect(page.getByRole("cell", { name: "606300" })).toBeVisible();
-  await expect(page.getByText(/Total débit 89,90/)).toBeVisible();
+  await expect(page.getByText(/Total débit/)).toBeVisible();
 
   await page.goBack();
   await page.getByRole("button", { name: "Supprimer" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Supprimer" }).click();
   await expect(page).toHaveURL(/\/entries\/$/);
-  await expect(page.getByText(/Écriture AC-\d{4}-0001 supprimée\./)).toBeVisible();
+  await expect(page.getByText(`Écriture ${reference} supprimée.`)).toBeVisible();
   await expect(page.getByText("Écriture introuvable.")).toHaveCount(0);
-  await expect(page.getByText("Aucune écriture pour ces critères.")).toBeVisible();
+  await expect(page.getByRole("link", { name: reference })).toHaveCount(0);
 });
 
 test("tableau de bord de l'exercice", async ({ page }) => {

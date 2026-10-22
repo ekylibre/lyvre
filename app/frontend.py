@@ -27,10 +27,9 @@ CONTENT_ZONE = "page-content"
 
 
 # ---------------------------------------------------------------------------
-# React islands assets (Vite) — see frontend/vite.config.ts
+# SPA assets (Vite) — see frontend/vite.config.ts
 # ---------------------------------------------------------------------------
 
-VITE_ENTRY = "src/islands.tsx"
 SPA_ENTRY = "src/main.tsx"
 _manifest_cache = {"mtime": None, "data": None}
 
@@ -53,8 +52,8 @@ def _load_manifest():
     return _manifest_cache["data"]
 
 
-def vite_assets(entry=VITE_ENTRY):
-    """<script>/<link> tags loading the islands bundle.
+def vite_assets(entry=SPA_ENTRY):
+    """<script>/<link> tags loading the SPA bundle (app/templates/spa.html).
 
     Development (``VITE_DEV_SERVER`` set, e.g. http://localhost:5173): scripts
     come from the Vite dev server, with the React Refresh preamble (HMR).

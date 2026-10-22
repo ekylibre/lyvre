@@ -222,12 +222,13 @@ NEWFILEUID:NONE
 def test_ofx_import_settles_pending_invoice(books, login_as):
     p = invoice(books)
     client = login_as()
-    page = client.post("/imports/ofx", data={"bank_account_id": str(books["bank"].id),
-                                              "ofx_file": (io.BytesIO(OFX.encode()), "releve.ofx")},
-                       content_type="multipart/form-data", follow_redirects=True)
-    text = page.get_data(as_text=True)
-    assert "1 transaction(s) importée(s)" in text
-    assert "1 facture(s) d&#39;achat rattachée(s) à leur paiement, 1 règlement(s) passé(s)" in text
+    body = client.post("/api/v1/imports/ofx", data={"bank_account_id": str(books["bank"].id),
+                                                     "ofx_file": (io.BytesIO(OFX.encode()), "releve.ofx")},
+                       content_type="multipart/form-data").get_json()
+    messages = [n["message"] for n in body["notices"]]
+    assert "1 transaction(s) importée(s), 0 doublon(s) ignoré(s)." in messages
+    assert "1 facture(s) d'achat rattachée(s) à leur paiement, 1 règlement(s) passé(s)." in messages
+    assert body["result"]["settled"] == 1
     db.session.expire_all()
     assert Purchase.query.get(p.id).payments[0].journal_entry is not None
 

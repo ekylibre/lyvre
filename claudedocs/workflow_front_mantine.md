@@ -172,6 +172,16 @@ aux anciens sur la copie Seconde Nature (totaux comparés) ; dashboard lisible c
 | E.4 | Versements Stancer (liste, fiche, synchros) ; import OFX (dropzone, résultat avec règlements automatiques) |
 | E.5 | Bascule ; îlot `ReconcileWorkspace` et entrée « islands » supprimés |
 
+— *Réalisé (2026-10-22)* : API `bank_accounts` (comptes, détail, Qonto lecture / rattachement /
+date / détachement / synchro, contreparties, contexte du rapprochement), transactions enrichies
+(filtres justificatif / débit sans facture, factures payées), `payouts`, `imports/ofx`. Pages :
+comptes bancaires, transactions (carte Qonto, `JobStatus` qui interroge `/jobs/<id>`), comptes
+Qonto, contreparties, **rapprochement Mantine** (`logic.ts` et raccourcis repris, panneau de saisie =
+`EntryEditor` préparé par `/entries/form?bt_id=`), Stancer, import OFX (Dropzone). **Îlots supprimés**
+(`islands.tsx`, `mount.tsx`, `EntryForm`, `ReconcileWorkspace`, `AccountCombobox`, `_island.html`) :
+une seule entrée Vite. Import circulaire `app.tenant` ↔ `app.api` corrigé à la source. Copie d'essai
+Seconde Nature : identifiants Qonto de la SCI retirés. pytest 684, Vitest 59, E2E 11.
+
 **✅ CP E** : E2E **rapprochement + Ctrl+Z** ; import OFX sur la copie Seconde Nature ; synchro
 Qonto **en lecture** sur la copie SCI.
 

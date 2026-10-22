@@ -4,7 +4,7 @@
 
 - Python 3.10 ou supérieur
 - pip
-- **Node.js 22** (`.nvmrc`) et npm — uniquement pour construire le front (îlots React) ; inutile
+- **Node.js 22** (`.nvmrc`) et npm — uniquement pour construire le front (SPA React + Mantine) ; inutile
   pour un déploiement Docker, où le build est fait dans l'image
 - **Tesseract** avec le français, pour l'OCR des factures d'achat scannées ou photographiées
   (`sudo apt install tesseract-ocr tesseract-ocr-fra`) ; facultatif : sans lui, les PDF texte et
@@ -122,7 +122,7 @@ Default instance created: seconde-nature → sqlite:///seconde-nature.db
 ### 6. Démarrer l'application
 
 ```bash
-# Construire les îlots React (saisie d'écriture, rapprochement) une première fois
+# Construire le front (SPA React + Mantine) une première fois
 npm --prefix frontend ci
 npm --prefix frontend run build      # → app/static/dist/
 

@@ -5,7 +5,7 @@
 import { forwardRef, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Combobox, Group, InputBase, Loader, Text, useCombobox } from "@mantine/core";
 import { api } from "../api/client";
-import { accountLabel, loadRecents, rememberAccount } from "./AccountCombobox";
+import { accountLabel, loadRecents, rememberAccount } from "../lib/recentAccounts";
 import type { Account } from "../lib/types";
 
 export { rememberAccount };
@@ -74,8 +74,10 @@ export const AccountSelect = forwardRef<HTMLInputElement, AccountSelectProps>(fu
     } else if (e.key === "Tab" && !e.shiftKey && combobox.dropdownOpened && text && results.length) {
       const index = Math.max(combobox.selectedOptionIndex, 0);
       if (results[index]) choose(results[index]);
-    } else if (e.key === "Enter" || e.key === "Escape") {
-      e.stopPropagation(); // le formulaire parent ne doit pas réagir (ligne, envoi)
+    } else if (e.key === "Enter" || (e.key === "Escape" && combobox.dropdownOpened)) {
+      // Le formulaire parent ne doit pas réagir (ligne, envoi) ; Échap liste fermée remonte
+      // (fermeture du panneau qui contient le formulaire).
+      e.stopPropagation();
     }
   }
 

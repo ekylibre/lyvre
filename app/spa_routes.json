@@ -41,6 +41,16 @@
     {"rule": "/reports/balance", "endpoint": "reports.balance"},
     {"rule": "/reports/grand-livre", "endpoint": "reports.grand_livre"},
     {"rule": "/reports/bilan", "endpoint": "reports.bilan"},
-    {"rule": "/reports/compte-de-resultat", "endpoint": "reports.compte_resultat"}
+    {"rule": "/reports/compte-de-resultat", "endpoint": "reports.compte_resultat"},
+    {"rule": "/bank-accounts/", "endpoint": "bank_accounts.index"},
+    {"rule": "/bank-accounts/new", "endpoint": "bank_accounts.new"},
+    {"rule": "/bank-accounts/<int:ba_id>/edit", "endpoint": "bank_accounts.edit"},
+    {"rule": "/bank-accounts/<int:ba_id>/transactions", "endpoint": "bank_accounts.transactions"},
+    {"rule": "/bank-accounts/<int:ba_id>/counterparties", "endpoint": "bank_accounts.counterparties_view"},
+    {"rule": "/bank-accounts/qonto", "endpoint": "bank_accounts.qonto_accounts"},
+    {"rule": "/reconciliation/", "endpoint": "reconciliation.index"},
+    {"rule": "/payouts/", "endpoint": "payouts.index"},
+    {"rule": "/payouts/<int:payout_id>", "endpoint": "payouts.detail"},
+    {"rule": "/imports/ofx", "endpoint": "imports.ofx"}
   ]
 }

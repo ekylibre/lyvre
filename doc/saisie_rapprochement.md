@@ -1,9 +1,10 @@
 # Saisie d'écritures et rapprochement bancaire
 
-Deux écrans sont des **îlots React** utilisables entièrement au clavier : la saisie d'écriture
-(`/entries/new`, `/entries/<id>/edit`) et l'espace de rapprochement (`/reconciliation/`). Ils
-enregistrent via l'API JSON `/api/v1` ([routes.md](routes.md#api-json-apiv1)) ; la validation
-comptable reste faite par le serveur, qui fait foi.
+Deux écrans de la SPA (React + Mantine) s'utilisent entièrement au clavier : la saisie d'écriture
+(`/entries/new`, `/entries/<id>/edit`) et l'espace de rapprochement (`/reconciliation/`, saisie
+dans un panneau latéral avec la même logique). Ils enregistrent via l'API JSON `/api/v1`
+([routes.md](routes.md#api-json-apiv1)) ; la validation comptable reste faite par le serveur, qui
+fait foi.
 
 ---
 

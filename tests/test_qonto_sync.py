@@ -299,21 +299,21 @@ def admin(login_as, ba, monkeypatch):
 def test_sync_route_runs_job_and_shows_summary(admin, ba, monkeypatch):
     fake = FakeClient([tx("t1", 1000)])
     monkeypatch.setattr(qonto_client, "from_app_config", lambda **kw: fake)
-    resp = admin.post(f"/bank-accounts/{ba.id}/qonto/sync", headers={"HX-Request": "true"})
+    resp = admin.post(f"/api/v1/bank-accounts/{ba.id}/qonto/sync")
     assert resp.status_code == 200
     job = SyncJob.query.filter_by(kind="qonto_transactions").one()
     assert (job.status, job.bank_account_id) == ("done", ba.id)
-    html = admin.get(f"/bank-accounts/{ba.id}/qonto/sync/{job.id}").get_data(as_text=True)
-    assert "1 nouvelle(s)" in html
-    page = admin.get(f"/bank-accounts/{ba.id}/transactions").get_data(as_text=True)
-    assert "Synchroniser Qonto" in page and "1 nouvelle(s)" in page
+    body = admin.get(f"/api/v1/jobs/{resp.get_json()['job']['id']}").get_json()["job"]
+    assert body["result"]["created"] == 1
+    detail = admin.get(f"/api/v1/bank-accounts/{ba.id}").get_json()
+    assert detail["qonto_job"]["id"] == job.id and detail["item"]["qonto"]["synced_at"]
 
 
 def test_sync_route_failure_message_is_masked(admin, ba, monkeypatch):
     def boom(**kw):
         raise QontoError("clé qonto-secret-xyz refusée")
     monkeypatch.setattr(qonto_client, "from_app_config", boom)
-    admin.post(f"/bank-accounts/{ba.id}/qonto/sync", headers={"HX-Request": "true"})
+    admin.post(f"/api/v1/bank-accounts/{ba.id}/qonto/sync")
     db.session.expire_all()  # le job a été finalisé par le fil d'exécution
     job = SyncJob.query.filter_by(kind="qonto_transactions").one()
     assert job.status == "failed"
@@ -322,21 +322,14 @@ def test_sync_route_failure_message_is_masked(admin, ba, monkeypatch):
 
 def test_sync_route_refused_when_disabled(admin, ba):
     external_config.set_enabled("qonto", False)
-    resp = admin.post(f"/bank-accounts/{ba.id}/qonto/sync", headers={"HX-Request": "true"})
-    assert "Qonto désactivée" in resp.get_data(as_text=True)
+    resp = admin.post(f"/api/v1/bank-accounts/{ba.id}/qonto/sync")
+    assert resp.status_code == 409 and "Qonto désactivée" in resp.get_json()["error"]["message"]
     assert SyncJob.query.count() == 0
-
-
-def test_status_route_rejects_other_jobs(admin, ba):
-    job = SyncJob(kind="payouts", status="done")
-    db.session.add(job)
-    db.session.commit()
-    assert admin.get(f"/bank-accounts/{ba.id}/qonto/sync/{job.id}").status_code == 404
 
 
 def test_last_sync_shown_in_integration(admin, ba, monkeypatch):
     monkeypatch.setattr(qonto_client, "from_app_config", lambda **kw: FakeClient([]))
-    admin.post(f"/bank-accounts/{ba.id}/qonto/sync")
+    admin.post(f"/api/v1/bank-accounts/{ba.id}/qonto/sync")
     html = admin.get("/configuration/integrations/qonto").get_data(as_text=True)
     assert "Terminée" in html and "Comptes bancaires →" in html
 

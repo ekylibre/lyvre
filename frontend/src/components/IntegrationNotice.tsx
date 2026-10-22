@@ -6,7 +6,9 @@ import { useCurrentSession } from "../api/session";
 
 export interface IntegrationState { available: boolean; message: string | null }
 
-const LABELS: Record<string, string> = { helloasso: "HelloAsso", odoo: "Odoo", smtp: "SMTP (relance email)" };
+const LABELS: Record<string, string> = {
+  helloasso: "HelloAsso", odoo: "Odoo", smtp: "SMTP (relance email)", qonto: "Qonto", stancer: "Stancer",
+};
 
 export function IntegrationNotice({ name, state, consequence }: {
   name: string; state: IntegrationState | undefined; consequence: string;

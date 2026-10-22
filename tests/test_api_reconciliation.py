@@ -156,32 +156,16 @@ def test_bad_payloads(client, base):
 # --- page : îlot ReconcileWorkspace -----------------------------------------
 
 
-def test_reconciliation_page_props(client, base):
-    import json
-    import re
-    from html import unescape
-
-    html = client.get(f"/reconciliation/?bank_account_id={base['ba'].id}&month=2026-03").get_data(as_text=True)
-    m = re.search(r'data-island="reconcile-workspace" data-props="([^"]*)"', html)
-    props = json.loads(unescape(m.group(1)))
-    assert props["bankAccounts"] == [{"id": base["ba"].id, "label": "CA Courant",
-                                      "account": {"id": base["bank"].id, "code": "5121", "label": "CA"}}]
-    assert props["bankAccountId"] == base["ba"].id and props["month"] == "2026-03"
-    assert props["urls"] == {"api": "/api/v1", "page": "/reconciliation/"}
-    assert props["entryForm"]["defaultJournalId"] == base["bq"].id
-    assert [f["label"] for f in props["entryForm"]["fiscalYears"]] == ["2026"]
-    assert len(props["monthOptions"]) == 12
+def test_reconciliation_context(client, base):
+    body = client.get("/api/v1/reconciliation/context").get_json()
+    assert [(b["id"], b["label"], b["account"]["code"]) for b in body["bank_accounts"]] == [(base["ba"].id, "CA Courant", "5121")]
+    assert body["default_journal_id"] == base["bq"].id
+    assert len(body["months"]) == 12
+    assert '<div id="root"></div>' in client.get("/reconciliation/?bank_account_id=999").get_data(as_text=True)
 
 
-def test_reconciliation_page_unknown_account_falls_back(client, base):
-    import re
-    html = client.get("/reconciliation/?bank_account_id=999").get_data(as_text=True)
-    assert re.search(r"&#34;bankAccountId&#34;: %d" % base["ba"].id, html)
-
-
-def test_reconciliation_page_without_bank_account(client, session):
-    html = client.get("/reconciliation/").get_data(as_text=True)
-    assert "Aucun compte bancaire" in html and "data-island" not in html
+def test_reconciliation_context_without_bank_account(client, session):
+    assert client.get("/api/v1/reconciliation/context").get_json()["bank_accounts"] == []
 
 
 @pytest.mark.parametrize("method, url", [

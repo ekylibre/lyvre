@@ -36,15 +36,15 @@ export function plural(n: number, one: string, many: string): string {
 
 export const REVERSED_MESSAGE = "Transaction annulée par la banque : elle ne peut pas être rapprochée.";
 
-/** Pastille de justificatif : libellé et classe Bootstrap, ou null (source sans justificatifs). */
-export function attachmentBadge(status: AttachmentStatus): { label: string; className: string } | null {
+/** Pastille de justificatif : libellé et ton du badge, ou null (source sans justificatifs). */
+export function attachmentBadge(status: AttachmentStatus): { label: string; tone: "ok" | "todo" | "neutral" } | null {
   switch (status) {
     case "ok":
-      return { label: "Justificatif", className: "bg-light text-success border" };
+      return { label: "Justificatif", tone: "ok" };
     case "missing":
-      return { label: "Justificatif manquant", className: "bg-warning text-dark" };
+      return { label: "Justificatif manquant", tone: "todo" };
     case "lost":
-      return { label: "Justificatif perdu", className: "bg-secondary" };
+      return { label: "Justificatif perdu", tone: "neutral" };
     default:
       return null;
   }
