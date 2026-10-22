@@ -187,6 +187,13 @@ rechargé à l'identique (charges 6 145,75 €, produits 15 109,75 €, résulta
 carte Budget au tableau de bord. **US-C1 cochée.** Copie SN 5001 vérifiée (suivi 2026 au 22/10, CdR
 « Jardin partagé », carte). pytest 772, Vitest 78, E2E 20.
 
+**C.4 fait (2026-10-23)** : table `cash_forecast_items` (migration `a8c3e5f7b209`), service
+`cash_forecast` (soldes hors à-nouveaux + transactions non comptabilisées, factures non réglées,
+budget restant hors 68/78, saisies répétées, alerte), API `/api/v1/cash-forecast[/items]`, écran
+Banque › Prévisionnel (graphique, tableau, détail d'un mois, saisies), alerte au tableau de bord.
+**US-C2 cochée.** Copie SN 5001 : trésorerie 20 473,74 €, mouvements d'octobre à décembre (factures,
+budget 2026), aucun budget 2027. pytest 776, Vitest 78, E2E 21.
+
 ## 5. Lot B — Reçus fiscaux
 
 | Phase | Tâches | CP |

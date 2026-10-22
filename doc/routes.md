@@ -250,6 +250,19 @@ règles.
 
 ---
 
+## Prévisionnel de trésorerie (`/treasury/forecast`)
+
+Page de la SPA (Banque › Prévisionnel) : 12 mois glissants à partir du mois en cours (graphique,
+tableau mois × nature, détail d'un mois), saisies manuelles ; alerte de solde négatif aussi au
+tableau de bord. API :
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/api/v1/cash-forecast` | `accounts` (solde comptable hors à-nouveaux + transactions non comptabilisées ; caisses 53), `opening_cents`, `months` (`inflows` / `outflows` par nature : factures clients, factures d'achat, budget restant, saisies manuelles ; `details`), `first_negative`, `items` ; `?today=` pour simuler une date |
+| POST · PUT · DELETE | `/api/v1/cash-forecast/items[/<id>]` | `{date, label, amount_cents (positif : encaissement), repeat_monthly_until?, bank_account_id?}` |
+
+---
+
 ## Budget (`/budget/`)
 
 Pages de la SPA : `/budget/tracking?fiscal_year_id=&project_id=&as_of=` (Compta › Suivi budgétaire :

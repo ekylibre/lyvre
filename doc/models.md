@@ -305,6 +305,13 @@ CASCADE (NULL : budget général), `month` (rang du mois dans l'exercice, 1 = pr
 montant annuel réparti par douzièmes), `amount_cents` (≥ 0, dans le sens naturel du compte). Index
 `(fiscal_year_id, project_id)`. Un projet qui a un budget ne se supprime pas (archivage).
 
+## CashForecastItem — Saisie du prévisionnel
+
+**Table :** `cash_forecast_items` (lot C.4, migration `a8c3e5f7b209`) : `date`, `label`, `amount_cents`
+(positif : encaissement, négatif : décaissement), `bank_account_id` SET NULL (facultatif),
+`repeat_monthly_until` (répétition mensuelle jusqu'à cette date), `created_at`. Le prévisionnel
+lui-même est calculé à la demande (`services/cash_forecast.py`), sans stockage.
+
 ## DedicatedFund / DedicatedFundMovement — Fonds dédiés
 
 `dedicated_funds(label, kind subsidy|contribution|public_generosity, resource_account_id NULL,

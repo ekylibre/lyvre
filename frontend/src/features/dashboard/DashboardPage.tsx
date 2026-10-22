@@ -1,4 +1,5 @@
-// Tableau de bord : indicateurs de l'exercice, suivi du budget (s'il y en a un), résultat, ventes et
+// Tableau de bord : alerte de trésorerie négative prévue, indicateurs de l'exercice, suivi du budget
+// (s'il y en a un), résultat, ventes et
 // solde bancaire mensuels, dernières écritures. Graphiques Mantine Charts (FM6), couleurs de la charte.
 import type { ReactNode } from "react";
 import { Alert, Anchor, Center, Group, Loader, Paper, Select, SimpleGrid, Stack, Table, Text, Title } from "@mantine/core";
@@ -12,6 +13,7 @@ import { formatDate, formatEuros } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
 import type { ReportMeta } from "../reports/ReportFrame";
 import { RateBar, useTracking } from "../budget/BudgetTrackingPage";
+import { NegativeAlert, useForecast } from "../cash-forecast/CashForecastPage";
 
 interface Month { month: string; produits: number; charges: number; net: number; ventes: number; pos: number; factures: number; solde: number }
 interface Dashboard {
@@ -70,6 +72,11 @@ function BudgetCard({ fyId }: { fyId: number }) {
   );
 }
 
+function ForecastAlert() {
+  const { data } = useForecast();
+  return data ? <NegativeAlert forecast={data} /> : null;
+}
+
 export default function DashboardPage() {
   const [params, setParams] = useUrlParams({ fy_id: "" });
   const { data, isPending } = useQuery({
@@ -87,6 +94,7 @@ export default function DashboardPage() {
         <Alert color="paille">Aucun exercice : <Anchor component={AppLink} href="/fiscal-years/new">créer un exercice</Anchor> pour commencer.</Alert>
       ) : (
         <Stack gap="lg">
+          <ForecastAlert />
           <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
             <StatTile label="Ventes de l'exercice" meta="Caisse et factures Odoo"><MoneyText cents={stats.total_sales_cents} /></StatTile>
             <StatTile label="Adhésions" meta="Adhérents de l'exercice">{stats.new_members}</StatTile>

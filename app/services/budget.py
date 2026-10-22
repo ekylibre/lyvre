@@ -212,7 +212,7 @@ def project_or_error(value):
 # ------------------------------------------------------------------ suivi (lot C.3)
 
 
-def _actuals(fy, project, start, end) -> dict[str, int]:
+def actuals(fy, project, start, end) -> dict[str, int]:
     """Réalisé par compte (sens naturel : charges au débit, produits au crédit) sur [start, end]."""
     query = (db.session.query(Account.code, func.sum(JournalLine.debit_cents - JournalLine.credit_cents))
              .join(JournalLine, JournalLine.account_id == Account.id)
@@ -232,16 +232,16 @@ def tracking(fy, project=None, as_of=None) -> dict:
     as_of = min(max(as_of or date.today(), fy.start_date), fy.end_date)
     starts = month_starts(fy)
     elapsed = sum(1 for s in starts if s <= as_of)
-    actuals = _actuals(fy, project, fy.start_date, as_of)
+    realised = actuals(fy, project, fy.start_date, as_of)
     rows, covered = [], set()
     for row in grid(fy, project):
-        codes = [c for c in actuals if c.startswith(row["code"])]
+        codes = [c for c in realised if c.startswith(row["code"])]
         covered.update(codes)
-        actual = sum(actuals[c] for c in codes)
+        actual = sum(realised[c] for c in codes)
         planned_to_date = sum(row["months"][:elapsed])
         rows.append(_tracking_row(row["code"], row["label"], row["kind"], row["total_cents"], planned_to_date, actual))
     extra: dict[str, int] = {}
-    for code, value in actuals.items():
+    for code, value in realised.items():
         if code not in covered and value:
             extra[code[:ACTUAL_LEVEL]] = extra.get(code[:ACTUAL_LEVEL], 0) + value
     labels = {a.code: a.label for a in Account.query.filter(Account.code.in_(list(extra)))} if extra else {}

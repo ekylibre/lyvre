@@ -247,7 +247,7 @@ dépenses par catégorie, importe son relevé et édite son compte de résultat 
 
 **US-C2 — Anticiper la trésorerie.** Le trésorier voit le solde prévisionnel mois par mois sur
 12 mois (banques et caisse).
-- [ ] Prise en compte des factures non réglées, du budget restant et des saisies manuelles ;
+- [x] Prise en compte des factures non réglées, du budget restant et des saisies manuelles ;
       alerte si solde prévu négatif.
 
 ## 8. Risques et points d'attention

@@ -28,6 +28,7 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
   ...pages(["products.index", "products.new", "products.edit"], () => import("../features/products/ProductsPage")),
   ...pages(["projects.index", "projects.new", "projects.edit"], () => import("../features/projects/ProjectsPage")),
   "budgets.index": () => import("../features/budget/BudgetPage"),
+  "cash_forecast.index": () => import("../features/cash-forecast/CashForecastPage"),
   "budgets.tracking": () => import("../features/budget/BudgetTrackingPage"),
   "projects.statement": () => import("../features/projects/ProjectStatementPage"),
   ...pages(["rules.index", "rules.new", "rules.edit"], () => import("../features/rules/RulesPage")),
