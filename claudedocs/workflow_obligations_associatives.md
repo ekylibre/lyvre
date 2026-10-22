@@ -194,6 +194,12 @@ Banque › Prévisionnel (graphique, tableau, détail d'un mois, saisies), alert
 **US-C2 cochée.** Copie SN 5001 : trésorerie 20 473,74 €, mouvements d'octobre à décembre (factures,
 budget 2026), aucun budget 2027. pytest 776, Vitest 78, E2E 21.
 
+**C.5 fait (2026-10-24) — lot C terminé** : `dedicated_funds.project_id` (migration `b9d4f6a8c310`),
+proposition de dotation / utilisation d'après les charges du projet dans l'étape 3, choix du projet
+à la création ou ensuite ; montants des messages au format français. Copie SN 5001 : subvention de
+500 € sur « Jardin partagé » (100 € de charges 2026) → dotation proposée 400 €, enregistrée
+(OD-2026-0002) puis retirée. US-C1 et US-C2 cochées. pytest 777, Vitest 78, E2E 21.
+
 ## 5. Lot B — Reçus fiscaux
 
 | Phase | Tâches | CP |

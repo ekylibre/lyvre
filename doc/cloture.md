@@ -29,7 +29,10 @@ motif** (5 caractères au moins), qui reste visible dans la liste des étapes.
    affecté à un projet et non entièrement utilisé : créer la ressource (nature, montant reçu,
    compte de produit facultatif), puis **doter** la part non utilisée (689x / 19x). Les années
    suivantes, l'assistant présente le solde du fonds : enregistrer l'**utilisation** (19x /
-   789x). Sans ressource affectée, ignorer l'étape avec « sans objet ».
+   789x). Si la ressource finance un **projet** (Compta › Projets), l'assistant **propose** le
+   montant d'après les charges du projet : dotation de la part non dépensée l'année de la
+   ressource, utilisation à hauteur des dépenses du projet ensuite ; un clic l'enregistre. Sans
+   ressource affectée, ignorer l'étape avec « sans objet ».
 4. **Résultat** — Produits, charges et excédent ou déficit, écritures d'inventaire et de fonds
    dédiés comprises.
 5. **Contrôle du FEC** — Le fichier des écritures comptables est produit « à blanc » et relu (18
