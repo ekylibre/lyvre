@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { useParams } from "react-router";
 import {
-  ActionIcon, Alert, Anchor, Autocomplete, Button, Center, Grid, Group, List, Loader, NavLink, Paper, Select, SimpleGrid,
+  ActionIcon, Alert, Anchor, Autocomplete, Button, Center, Grid, Group, Input, List, Loader, NavLink, Paper, Select, SimpleGrid,
   Stack, Table, Text, Textarea, TextInput, Title,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
@@ -41,6 +41,7 @@ interface ClosingView {
   inventory_options: Record<string, InventoryOption>;
   result: { income_cents: number; expense_cents: number; result_cents: number };
   next_fiscal_year: FiscalYear | null; events: ClosingEvent[];
+  dedicated_funds: { funds: DedicatedFund[]; kinds: { value: string; label: string; accounts: string[] }[] };
   opening: {
     lines: { account_code: string; label: string; debit_cents: number; credit_cents: number }[];
     error: string | null; reversals_planned: number; next_start_date: string;
@@ -52,19 +53,26 @@ interface ClosingView {
   };
 }
 interface EntryLink { id: number; reference: string; url: string }
+interface DedicatedFund {
+  id: number; label: string; kind: string; kind_label: string; origin: string; amount_cents: number;
+  resource_account: string | null; funder: string | null; balance_start_cents: number; balance_end_cents: number;
+  allocatable_cents: number;
+  movements: { id: number; kind: "allocation" | "use"; kind_label: string; amount_cents: number; entry: EntryLink | null }[];
+}
 
 const STATES: Record<StepState, [string, Tone]> = {
   todo: ["À faire", "todo"], done: ["Fait", "ok"], skipped: ["Ignorée", "neutral"], provisional: ["Provisoire", "info"],
 };
 const ACTIONS: Record<string, string> = {
   step_done: "Étape faite", step_skipped: "Étape ignorée", step_todo: "Étape remise à faire", add: "Écriture ajoutée",
-  generate: "À-nouveaux générés", allocate: "Résultat affecté", cancel: "Affectation annulée",
+  generate: "À-nouveaux générés", fund_add: "Fonds dédié créé", fund_delete: "Fonds dédié supprimé",
+  allocation: "Dotation en fonds dédiés", use: "Utilisation de fonds dédiés", allocate: "Résultat affecté", cancel: "Affectation annulée",
   delete: "Écriture supprimée", provisional: "Clôture provisoire", final: "Clôture définitive", reopen: "Réouverture",
 };
 const DESCRIPTIONS: Record<string, string> = {
   checks: "Rapprochements, écritures déséquilibrées ou hors dates, factures d'achat non comptabilisées, comptes d'attente.",
   inventory: "Charges à payer, produits à recevoir, charges et produits constatés d'avance, datés du dernier jour de l'exercice.",
-  dedicated_funds: "Subventions ou dons affectés non utilisés à la clôture (comptes 689 / 19).",
+  dedicated_funds: "Ressources affectées non utilisées à la clôture : dotation 689x / 19x ; reprise 19x / 789x à leur utilisation.",
   result: "Produits (classe 7) moins charges (classe 6), écritures d'inventaire comprises.",
   fec: "Fichier des écritures comptables produit à blanc et relu avant la clôture.",
   close: "Clôture provisoire : écritures verrouillées et numérotées. Clôture définitive : FEC figé, irréversible.",
@@ -126,9 +134,7 @@ function StepBody({ step, view }: { step: Step; view: ClosingView }) {
   switch (step.key) {
     case "checks": return <Checks checks={view.checks} />;
     case "inventory": return <Inventory view={view} />;
-    case "dedicated_funds":
-      return <Text size="sm">Le suivi des fonds dédiés arrive avec la phase A.6. Sans subvention ou don affecté restant à
-        utiliser, ignorez l'étape en indiquant « sans objet ».</Text>;
+    case "dedicated_funds": return <DedicatedFunds view={view} />;
     case "result": return <Result result={view.result} />;
     case "fec": return <FecPanel fiscalYearId={fy.id} preview={fy.status === "open"} />;
     case "close": return <Close view={view} />;
@@ -241,7 +247,9 @@ function InventoryForm({ view }: { view: ClosingView }) {
         <Select label="Type" allowDeselect={false} value={kind}
           data={Object.entries(view.inventory_options).map(([value, o]) => ({ value, label: o.label }))}
           onChange={(v) => { setKind(v ?? "accrued_expense"); setAccount(null); setCounterpart(null); }} />
-        <AccountSelect label={`Compte de classe ${option.classes.join("/")}`} recentsScope="inventory" value={account} onChange={setAccount} />
+        <Input.Wrapper label={`Compte de classe ${option.classes.join("/")}`}>
+          <AccountSelect label={`Compte de classe ${option.classes.join("/")}`} recentsScope="inventory" value={account} onChange={setAccount} />
+        </Input.Wrapper>
         <Select label="Contrepartie" placeholder={option.counterparts[0]?.label ?? "Créée au besoin"} clearable
           data={option.counterparts} value={counterpart} onChange={setCounterpart} />
         <MoneyInput label="Montant" value={amount} onChange={setAmount} />
@@ -318,6 +326,113 @@ function Close({ view }: { view: ClosingView }) {
         </Stack>
       </FormModal>
     </Stack>
+  );
+}
+
+function DedicatedFunds({ view }: { view: ClosingView }) {
+  const can = useCan();
+  const fy = view.fiscal_year;
+  const editable = can.write && fy.status === "open";
+  const { funds, kinds } = view.dedicated_funds;
+  const removeFund = useClosingAction(fy.id, (id: number) => api.delete<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}/dedicated-funds/${id}`));
+  const removeMovement = useClosingAction(fy.id, (id: number) =>
+    api.delete<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}/dedicated-fund-movements/${id}`));
+  return (
+    <Stack>
+      {funds.length === 0 && <Text size="sm" c="dimmed">Aucune ressource affectée en cours. Sans subvention, contribution ou don
+        affecté restant à utiliser, ignorez l'étape en indiquant « sans objet ».</Text>}
+      {funds.map((f) => (
+        <Paper key={f.id} withBorder p="sm">
+          <Group justify="space-between" align="flex-start">
+            <div>
+              <Text fw={600} size="sm">{f.label}</Text>
+              <Text size="xs" c="dimmed">{f.kind_label} · reçue en {f.origin}{f.resource_account && ` (compte ${f.resource_account})`}
+                {f.funder && ` · ${f.funder}`}</Text>
+            </div>
+            {editable && f.movements.length === 0 && f.origin === fy.label && (
+              <Button variant="subtle" size="compact-sm" color="brique" onClick={() => confirmAction({
+                title: `Supprimer le fonds « ${f.label} » ?`, confirmLabel: "Supprimer", onConfirm: () => removeFund.mutate(f.id),
+              })}>Supprimer</Button>
+            )}
+          </Group>
+          <SimpleGrid cols={{ base: 2, sm: 4 }} mt="xs">
+            <Figure label="Ressource" value={<MoneyText cents={f.amount_cents} />} />
+            <Figure label="Solde au début" value={<MoneyText cents={f.balance_start_cents} />} />
+            <Figure label="Solde à la clôture" value={<MoneyText cents={f.balance_end_cents} />} />
+            <Figure label="Reste à doter" value={<MoneyText cents={f.allocatable_cents} />} />
+          </SimpleGrid>
+          {f.movements.length > 0 && (
+            <Table mt="xs">
+              <Table.Tbody>
+                {f.movements.map((m) => (
+                  <Table.Tr key={m.id}>
+                    <Table.Td>{m.kind_label}</Table.Td>
+                    <Table.Td>{m.entry && <Anchor component={AppLink} href={m.entry.url} size="sm">{m.entry.reference}</Anchor>}</Table.Td>
+                    <Table.Td ta="right"><MoneyText cents={m.amount_cents} /></Table.Td>
+                    {editable && <Table.Td ta="right"><Button variant="subtle" size="compact-sm" color="brique"
+                      onClick={() => removeMovement.mutate(m.id)}>Supprimer</Button></Table.Td>}
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          )}
+          {editable && (f.allocatable_cents > 0 || f.balance_start_cents > 0) && <FundMovementForm fyId={fy.id} fund={f} />}
+        </Paper>
+      ))}
+      {editable && <FundForm fyId={fy.id} kinds={kinds} />}
+    </Stack>
+  );
+}
+
+function FundMovementForm({ fyId, fund }: { fyId: number; fund: DedicatedFund }) {
+  const used = fund.movements.filter((m) => m.kind === "use").reduce((sum, m) => sum + m.amount_cents, 0);
+  const choices = [
+    ...(fund.allocatable_cents > 0 ? [{ value: "allocation", label: "Dotation (689x / 19x)" }] : []),
+    ...(fund.balance_start_cents - used > 0 ? [{ value: "use", label: "Utilisation (19x / 789x)" }] : []),
+  ];
+  const [kind, setKind] = useState<string | null>(choices[0]?.value ?? null);
+  const [amount, setAmount] = useState<number | null>(null);
+  const add = useClosingAction(fyId, () => api.post<{ notices: Notice[] }>(
+    `/api/v1/fiscal-years/${fyId}/dedicated-funds/${fund.id}/movements`, { kind, amount_cents: amount }));
+  if (!choices.length) return null;
+  return (
+    <Group mt="xs" align="flex-end" wrap="nowrap">
+      <Select aria-label="Mouvement" data={choices} value={kind} onChange={setKind} allowDeselect={false} style={{ flex: 2 }} />
+      <MoneyInput aria-label="Montant du mouvement" value={amount} onChange={setAmount} style={{ flex: 1 }} />
+      <Button variant="default" loading={add.isPending} disabled={!kind || !amount}
+        onClick={() => add.mutate(undefined, { onSuccess: () => setAmount(null) })}>Enregistrer</Button>
+    </Group>
+  );
+}
+
+function FundForm({ fyId, kinds }: { fyId: number; kinds: ClosingView["dedicated_funds"]["kinds"] }) {
+  const [label, setLabel] = useState("");
+  const [kind, setKind] = useState<string | null>("subsidy");
+  const [amount, setAmount] = useState<number | null>(null);
+  const [resource, setResource] = useState<Account | null>(null);
+  const add = useClosingAction(fyId, () => api.post<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fyId}/dedicated-funds`, {
+    label, kind, amount_cents: amount, resource_account_code: resource?.code,
+  }));
+  const accounts = kinds.find((k) => k.value === kind)?.accounts;
+  return (
+    <Paper withBorder p="sm">
+      <Text fw={600} size="sm" mb="xs">Ajouter une ressource affectée</Text>
+      <SimpleGrid cols={{ base: 1, sm: 2 }}>
+        <TextInput label="Libellé" placeholder="Subvention région — projet jardin" value={label} onChange={(e) => setLabel(e.currentTarget.value)} />
+        <Select label="Nature" allowDeselect={false} data={kinds} value={kind} onChange={setKind}
+          description={accounts && `Comptes ${accounts.join(" / ")}`} />
+        <MoneyInput label="Montant reçu" value={amount} onChange={setAmount} />
+        <Input.Wrapper label="Compte de la ressource (facultatif)">
+          <AccountSelect label="Compte de la ressource" recentsScope="dedicated-funds" value={resource} onChange={setResource} />
+        </Input.Wrapper>
+      </SimpleGrid>
+      <Group mt="sm">
+        <Button loading={add.isPending} disabled={!label.trim() || !amount}
+          onClick={() => add.mutate(undefined, { onSuccess: () => { setLabel(""); setAmount(null); setResource(null); } })}>
+          Créer le fonds
+        </Button>
+      </Group>
+    </Paper>
   );
 }
 
@@ -472,7 +587,7 @@ function History({ events, steps }: { events: ClosingEvent[]; steps: Step[] }) {
 
 function describe(details: Record<string, unknown> | null) {
   if (!details) return "";
-  return [details.note, details.reason, details.body, details.entry].filter(Boolean).join(" · ");
+  return [details.note, details.reason, details.body, details.fund, details.entry].filter(Boolean).join(" · ");
 }
 
 function Figure({ label, value }: { label: string; value: React.ReactNode }) {

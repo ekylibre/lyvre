@@ -9,7 +9,7 @@ from app.access import current_role, instance_admin_required
 from app.extensions import db
 from app.models import FiscalYear
 from app.models.instance_membership import ROLE_ADMIN
-from app.services import closing, fec
+from app.services import closing, dedicated_funds, fec
 from app.services.ledger import LedgerError
 
 from . import ApiError, bp, get_or_404, invalid, json_body, notice
@@ -108,6 +108,8 @@ def fiscal_years_closing(fy_id):
         inventory_options=closing.inventory_options(),
         result=closing.result(fy),
         next_fiscal_year=fiscal_year_payload(following) if following else None,
+        dedicated_funds={"funds": [dedicated_funds.payload(f, fy) for f in dedicated_funds.funds_for(fy)],
+                         "kinds": dedicated_funds.options()},
         opening=_opening_payload(fy, following),
         allocation=_allocation_payload(fy),
         events=closing.events(fy),
@@ -144,6 +146,45 @@ def _allocation_payload(fy):
         "entry": _entry_link(closing.allocation_entry(fy)),
         "options": closing.allocation_options(),
     }
+
+
+@bp.route("/fiscal-years/<int:fy_id>/dedicated-funds", methods=["POST"])
+def fiscal_years_dedicated_fund_add(fy_id):
+    """Étape 3 : `{label, kind, amount_cents, resource_account_code?}` (ressource affectée reçue en N)."""
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    data = json_body()
+    with _closing_errors():
+        fund = dedicated_funds.create_fund(fy, data.get("label"), data.get("kind"), data.get("amount_cents"),
+                                           data.get("resource_account_code"), current_user.id)
+    return jsonify(notices=[notice(f"Fonds dédié « {fund.label} » créé.")]), 201
+
+
+@bp.route("/fiscal-years/<int:fy_id>/dedicated-funds/<int:fund_id>", methods=["DELETE"])
+def fiscal_years_dedicated_fund_delete(fy_id, fund_id):
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    with _closing_errors():
+        dedicated_funds.delete_fund(fy, fund_id, current_user.id)
+    return jsonify(notices=[notice("Fonds dédié supprimé.")])
+
+
+@bp.route("/fiscal-years/<int:fy_id>/dedicated-funds/<int:fund_id>/movements", methods=["POST"])
+def fiscal_years_dedicated_fund_movement(fy_id, fund_id):
+    """`{kind: allocation|use, amount_cents}` : écriture 689x/19x ou 19x/789x au dernier jour."""
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    data = json_body()
+    with _closing_errors():
+        movement = dedicated_funds.add_movement(fy, fund_id, data.get("kind"), data.get("amount_cents"),
+                                                current_user.id)
+    label = dedicated_funds.MOVEMENT_LABELS[movement.kind]
+    return jsonify(notices=[notice(f"{label} enregistrée : écriture {movement.entry.reference}.")]), 201
+
+
+@bp.route("/fiscal-years/<int:fy_id>/dedicated-fund-movements/<int:movement_id>", methods=["DELETE"])
+def fiscal_years_dedicated_fund_movement_delete(fy_id, movement_id):
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    with _closing_errors():
+        dedicated_funds.delete_movement(fy, movement_id, current_user.id)
+    return jsonify(notices=[notice("Mouvement de fonds dédié supprimé.")])
 
 
 @bp.route("/fiscal-years/<int:fy_id>/opening", methods=["POST"])

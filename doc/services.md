@@ -62,11 +62,12 @@ même montant signé) **dans la même transaction** ; sinon `LedgerError` et rie
 Remplace l'en-tête et les lignes. `LedgerError` si l'exercice est clôturé ou si l'écriture est
 rapprochée (`entry_is_reconciled(entry)`).
 
-### `delete_entries(entry_ids) → list[dict]`
+### `delete_entries(entry_ids, allow_managed=False) → list[dict]`
 
 Supprime des écritures dans une seule transaction en **défaisant d'abord leurs rapprochements**
 (une ligne supprimée ne doit pas rester liée à une transaction bancaire). Exercice clôturé →
-refus pour l'écriture concernée. Résultat par écriture : `{entry_id, status, reference | message}`.
+refus pour l'écriture concernée ; écriture gérée par l'assistant de clôture (`MANAGED_SOURCES`)
+→ refus, sauf `allow_managed=True` (appels de l'assistant). Résultat par écriture : `{entry_id, status, reference | message}`.
 La facture d'achat ou le règlement adossé à une écriture supprimée (`purchases.journal_entry_id`,
 `purchase_payments.journal_entry_id`) est délié : SQLite n'applique pas les `ON DELETE SET NULL`.
 
@@ -1067,3 +1068,39 @@ caractères hors jeu sans accent ou « ? »), nom `<SIREN>FEC<AAAAMMJJ>.txt` (da
 | `freeze(fy)` | Clôture définitive : fichier écrit dans `instance/uploads/<slug>/fec/` (donc dans les sauvegardes `.zip`), `fec_path` et `fec_sha256` enregistrés |
 
 La validation officielle reste l'outil « Test Compta Demat » de la DGFiP.
+
+---
+
+## closing.py — Assistant de clôture
+
+Guide utilisateur : [Clôturer un exercice](cloture.md). Seule la décision de l'utilisateur est
+stockée (`closing_steps`) ; les contrôles et soldes sont recalculés à chaque lecture ; toute
+action est tracée dans `closing_events`. Erreurs métier : `ClosingError(message, status)`
+(409 par défaut, 422 pour une saisie invalide, 404).
+
+| Fonction | Rôle |
+|---|---|
+| `checks(fy) → list[Check]` | Étape 1 : transactions non rapprochées, écritures déséquilibrées ou hors dates, achats non comptabilisés, achats non réglés (info), 47x non soldés, 512 / 53 créditeurs |
+| `add_inventory` · `delete_inventory` | Étape 2 : écriture d'inventaire (OD, dernier jour, `source='INVENTORY'`, `inventory_kind`) ; contreparties imposées par type |
+| `result(fy)` | Étape 4 : produits (7), charges (6), résultat |
+| `set_step(fy, step, state, note)` | Étapes 1 à 5 : fait, ignoré (motif), à faire |
+| `close_provisional` · `close_final` · `reopen` | Étape 6 : numérotation (`fec.validate`), FEC figé (`fec.freeze`), réouverture motivée |
+| `opening_lines` · `generate_opening(fy, create_next)` | Étape 7 : à-nouveaux (journal AN, classes 1 à 5, résultat en 120 / 129 ou sous-compte, à défaut 12) et extournes (`reverses_entry_id`) au 1er jour de l'exercice suivant |
+| `allocate` · `cancel_allocation` · `result_to_allocate` | Étape 8 : décision (organe, date dans N+1) et répartition sur 10x / 11x / 455x |
+
+## dedicated_funds.py — Fonds dédiés (étape 3)
+
+Ressource affectée (`DedicatedFund`) et ses mouvements (`DedicatedFundMovement`) : dotation
+(débit 689x, crédit 19x) l'année de la ressource, utilisation (débit 19x, crédit 789x) les années
+suivantes ; écritures OD au dernier jour (`source='DEDICATED_FUND'`). Plafonds : dotations cumulées
+≤ ressource, utilisation ≤ solde au début de l'exercice. `funds_for(fy)` liste les fonds de
+l'exercice (créés en N, mouvementés en N ou non soldés) ; `payload` donne soldes et reste à doter.
+
+## fec.py — Fichier des écritures comptables
+
+Art. A47 A-1 du LPF : 18 champs, tabulation, CRLF, ISO-8859-15, dates `AAAAMMJJ`, montants `1234,56`,
+nom `<SIREN>FEC<AAAAMMJJ>.txt`, à-nouveaux (AN) en tête, 401 / 411 en comptes auxiliaires.
+`validate` / `unvalidate` (numérotation par journal à la clôture provisoire), `check`, `build`,
+`verify` (relecture interne), `preview` (essai à blanc dans un point de sauvegarde annulé),
+`freeze` (fichier figé et SHA-256 à la clôture définitive). Le contrôle officiel reste l'outil
+« Test Compta Demat » de la DGFiP.

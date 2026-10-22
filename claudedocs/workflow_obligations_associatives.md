@@ -148,6 +148,12 @@ pytest 753, Vitest 78, E2E 18 (assistant complet).
 | A.6.2 | Docs : guide utilisateur « Clôturer un exercice », `routes`, `models`, `services` ; relecture par l'expert-comptable (FEC, affectation SCI) |
 
 **✅ CP lot A** : US-A1, US-A2, US-A3 cochées ; `make check` + `make e2e` verts.
+— *A.6 fait (2026-10-23)* : tables `dedicated_funds` / `dedicated_fund_movements` (migration
+`d5f3b8e1a426`), service `dedicated_funds` (dotation 689x/19x, utilisation 19x/789x, plafonds,
+écritures OD gérées par l'assistant), étape 3 de l'assistant ; guide `doc/cloture.md`, `routes`,
+`models`, `services` à jour. US-A2 et US-A3 cochées ; **US-A1 en attente du passage du FEC dans
+« Test Compta Demat »** (utilisateur) ; relecture de l'affectation SCI (455x) par
+l'expert-comptable à faire. Copies 5001 migrées (`*.before-A6.db`).
 
 ## 4. Lot C — Projets, budget, prévisionnel
 

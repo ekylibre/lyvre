@@ -259,7 +259,7 @@ FiscalYear ──────────────────── JournalE
 | `reference` | String(50) | Auto-générée : `{CODE}-{ANNÉE}-{SÉQUENCE:04d}` ex : `BQ-2024-0001` |
 | `description` | String(500) | Libellé libre |
 | `is_balanced` | Boolean default=False | `True` si Σ débit = Σ crédit (validé au moment de la saisie) |
-| `source` | String(20) default=`MANUAL` | `MANUAL`, `OFX_IMPORT`, `QONTO_IMPORT`, `ODOO_IMPORT`, `PURCHASE` (écriture d'achat) |
+| `source` | String(20) default=`MANUAL` | `MANUAL`, `OFX_IMPORT`, `QONTO_IMPORT`, `ODOO_IMPORT`, `PURCHASE` (écriture d'achat) ; assistant de clôture (non modifiables ailleurs) : `INVENTORY`, `DEDICATED_FUND`, `OPENING`, `REVERSAL`, `ALLOCATION` |
 | `source_ref` | String(200) | Référence d'origine (FITID OFX ou numéro de facture Odoo) |
 | `created_at` | DateTime | |
 | `validation_number` · `validated_at` | Integer · DateTime | Numéro continu par journal et exercice, attribué à la clôture provisoire (FEC) |
@@ -286,7 +286,17 @@ Sources de clôture (`OPENING`, `REVERSAL`, `ALLOCATION`, `CLOSING`) : jamais pr
 `closing_steps(fiscal_year_id, step, state todo|done|skipped, note, user_id, updated_at)`, unique par
 exercice et étape (`checks`, `inventory`, `dedicated_funds`, `result`, `fec`, `close`, `opening`,
 `allocation`) ; `closing_events(fiscal_year_id, step, action, user_id, at, details_json)` : journal
-d'audit. Utilisés à partir de la phase A.4.
+d'audit. L'étape `close` est déduite du statut de l'exercice ; `opening` et
+`allocation` sont marquées par l'assistant (remises à faire à la réouverture).
+
+## DedicatedFund / DedicatedFundMovement — Fonds dédiés
+
+`dedicated_funds(label, kind subsidy|contribution|public_generosity, resource_account_id NULL,
+entity_id NULL (financeur), origin_fiscal_year_id, amount_cents, created_at)` : ressource affectée
+reçue. Comptes par nature (ANC 2018-06) : 6894 / 194 / 7894, 6895 / 195 / 7895, 6896 / 196 / 7896.
+`dedicated_fund_movements(fund_id CASCADE, fiscal_year_id CASCADE, kind allocation|use, amount_cents,
+entry_id SET NULL)` : dotation ou utilisation d'un exercice, avec son écriture
+(`source='DEDICATED_FUND'`). Migration `d5f3b8e1a426` (phase A.6).
 
 **Propriétés calculées :**
 - `total_debit` — somme des `debit_cents` de toutes les lignes

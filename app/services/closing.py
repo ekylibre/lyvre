@@ -539,7 +539,8 @@ def cancel_allocation(fy, user_id=None):
 def events(fy, limit=50):
     rows = (ClosingEvent.query.filter_by(fiscal_year_id=fy.id)
             .order_by(ClosingEvent.at.desc(), ClosingEvent.id.desc()).limit(limit).all())
-    return [{"at": e.at.isoformat(), "step": e.step, "action": e.action, "user_id": e.user_id,
+    # `at` est en UTC (utcnow) : suffixe Z pour un affichage en heure locale dans la SPA.
+    return [{"at": e.at.isoformat() + "Z", "step": e.step, "action": e.action, "user_id": e.user_id,
              "details": json.loads(e.details_json) if e.details_json else None} for e in rows]
 
 

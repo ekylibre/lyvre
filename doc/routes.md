@@ -153,18 +153,32 @@ La recherche des listes de saisie reste `GET /api/v1/accounts?q=` (ci-dessous).
 
 ## Exercices comptables (`/fiscal-years/`)
 
-Pages de la SPA (liste ; la création / modification s'ouvre dans une fenêtre portée par l'URL) : `/fiscal-years/`, `/fiscal-years/new`. API :
+Pages de la SPA : `/fiscal-years/` (liste ; la création s'ouvre dans une fenêtre portée par l'URL,
+`/fiscal-years/new`) et `/fiscal-years/<id>/closing` (**assistant de clôture**, 8 étapes, ouvert par
+« Clôturer… » ; consultable par l'expert-comptable). Guide : [Clôturer un exercice](cloture.md). API :
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
 | GET | `/api/v1/fiscal-years` | Exercices, du plus récent au plus ancien |
 | POST | `/api/v1/fiscal-years` | `label`, `start_date`, `end_date` (ISO, fin ≥ début), `vat_liable` |
 | PATCH | `/api/v1/fiscal-years/<id>` | `vat_liable` (exercice ouvert ; vaut pour les comptabilisations suivantes) |
-| POST | `/api/v1/fiscal-years/<id>/close` | **Clôture provisoire** : écritures verrouillées (`status = provisional`) et **numérotées** pour le FEC ; 409 si déjà clôturé. La clôture complète passera par l'assistant (phase A.4) |
+| GET | `/api/v1/fiscal-years/<id>/closing` | État de l'assistant : `steps` (état, motif, disponibilité), `checks` recalculés, `inventory`, `inventory_options`, `dedicated_funds`, `result`, `opening` (à-nouveaux prévus et portés), `allocation`, `next_fiscal_year`, `events` (historique) |
+| POST | `/api/v1/fiscal-years/<id>/closing/<step>` | Étapes 1 à 5 : `{state: done\|skipped\|todo, note}` ; motif ≥ 5 caractères pour `skipped` ; « contrôles » fait refusé s'il reste une anomalie, « FEC » fait refusé si l'essai à blanc échoue |
+| POST · DELETE | `/api/v1/fiscal-years/<id>/inventory[/<entry_id>]` | Écriture d'inventaire `{kind, account_code, amount_cents, label, counterpart_code?}` (OD, dernier jour) |
+| POST · DELETE | `/api/v1/fiscal-years/<id>/dedicated-funds[/<fund_id>]` | Ressource affectée `{label, kind: subsidy\|contribution\|public_generosity, amount_cents, resource_account_code?}` ; suppression si aucun mouvement |
+| POST | `/api/v1/fiscal-years/<id>/dedicated-funds/<fund_id>/movements` | `{kind: allocation\|use, amount_cents}` : dotation 689x / 19x ou utilisation 19x / 789x |
+| DELETE | `/api/v1/fiscal-years/<id>/dedicated-fund-movements/<movement_id>` | Supprime le mouvement et son écriture |
+| GET | `/api/v1/fiscal-years/<id>/fec/preview` | FEC à blanc sur l'exercice ouvert (numérotation provisoire annulée) : erreurs, avertissements, relecture, totaux |
+| POST | `/api/v1/fiscal-years/<id>/close` | `{final: false}` **clôture provisoire** (trésorier, administrateur ; 422 si une étape 1-5 est à faire) : écritures verrouillées et numérotées. `{final: true}` **clôture définitive** (administrateur) : FEC figé (SHA-256), irréversible |
+| POST | `/api/v1/fiscal-years/<id>/reopen` | Administrateur, `{reason}` : clôture provisoire rouverte, numéros retirés, à-nouveaux et extournes de l'exercice suivant supprimés ; 409 si le résultat est affecté ou l'exercice suivant clôturé |
+| POST | `/api/v1/fiscal-years/<id>/opening` | `{create_next}` : à-nouveaux (journal AN) et extournes dans l'exercice suivant, créé au besoin ; regénération |
+| POST · DELETE | `/api/v1/fiscal-years/<id>/allocation` | `{decided_on, body, lines: [{account_code, amount_cents}]}` : affectation du résultat (OD dans l'exercice suivant) ; DELETE l'annule |
 | GET | `/api/v1/fiscal-years/<id>/fec/check` | Contrôles avant export (`errors` bloquantes : SIREN, exercice ouvert, écriture déséquilibrée ou hors dates ; `warnings` : à-nouveaux absents…), puis relecture du fichier produit (`problems`), totaux, nom, empreinte SHA-256, `download_url` |
 | GET | `/fiscal-years/<id>/fec` (route Flask) | Téléchargement du FEC (tous les rôles) : fichier figé si l'exercice est clôturé définitivement (409 si son empreinte ne correspond plus), sinon produit à la demande (409 si un contrôle bloque) |
 
-> La clôture positionne `FiscalYear.closed = True`. Les écritures de cet exercice ne peuvent plus être supprimées.
+> Une écriture de l'assistant (`INVENTORY`, `DEDICATED_FUND`, `OPENING`, `REVERSAL`,
+> `ALLOCATION`) ne se modifie ni ne se supprime depuis les écritures (409) : seulement depuis
+> l'assistant.
 
 ---
 

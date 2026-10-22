@@ -213,19 +213,21 @@ Pour les petites associations sans obligation de comptabilité en partie double 
 **US-A1 — Transmettre les comptes.** Le trésorier (ou l'expert-comptable) exporte le FEC.
 - [ ] FEC d'un exercice de test accepté par l'outil de contrôle « Test Compta Demat » de la DGFiP
       (ou validateur équivalent) ; totaux débit = crédit = balance.
+      *Relecture interne conforme et totaux = balance (copie SN 2025) ; passage dans l'outil de
+      la DGFiP à faire par l'utilisateur.*
 
 **US-A3 — Donner accès à l'expert-comptable.** L'administrateur invite l'expert-comptable sur son
 instance.
-- [ ] L'expert-comptable ne voit que les instances attribuées ; il consulte écritures, états et
+- [x] L'expert-comptable ne voit que les instances attribuées ; il consulte écritures, états et
       pièces, exporte le FEC ; toute modification lui est refusée (interface et API).
-- [ ] Accès révocable ; les utilisateurs existants gardent leurs accès après la mise en place.
+- [x] Accès révocable ; les utilisateurs existants gardent leurs accès après la mise en place.
 
 **US-A2 — Clôturer.** Le trésorier clôture N et ouvre N+1 avec l'assistant.
-- [ ] Les 8 étapes s'enchaînent, chacune avec son état ; l'assistant se reprend là où on l'a laissé.
-- [ ] Contrôles avec liens ; écritures d'inventaire saisies, extournées automatiquement en N+1.
-- [ ] Clôture provisoire puis définitive (administrateur seulement).
-- [ ] À-nouveaux générés dans N+1 : bilan d'ouverture N+1 = bilan de clôture N.
-- [ ] Affectation du résultat saisie après l'AG ; écriture générée et datée.
+- [x] Les 8 étapes s'enchaînent, chacune avec son état ; l'assistant se reprend là où on l'a laissé.
+- [x] Contrôles avec liens ; écritures d'inventaire saisies, extournées automatiquement en N+1.
+- [x] Clôture provisoire puis définitive (administrateur seulement).
+- [x] À-nouveaux générés dans N+1 : bilan d'ouverture N+1 = bilan de clôture N.
+- [x] Affectation du résultat saisie après l'AG ; écriture générée et datée.
 
 **US-B1 — Émettre les reçus.** Une association éligible émet les reçus annuels de ses donateurs,
 particuliers et entreprises.

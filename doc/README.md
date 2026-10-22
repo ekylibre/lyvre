@@ -15,6 +15,7 @@ Application web de comptabilité pour associations loi 1901 (plan comptable des 
 | [Routes](routes.md) | Référence complète de toutes les URLs |
 | [Services](services.md) | Logique métier : comptabilité, imports, rapprochement |
 | [Imports](imports.md) | Guide import OFX (banque) et CSV Odoo |
+| [Clôturer un exercice](cloture.md) | Assistant de clôture : contrôles, inventaire, fonds dédiés, FEC, clôture provisoire / définitive, à-nouveaux, affectation |
 | [États financiers](reports.md) | Balance, grand livre, Bilan, Compte de résultat (asso / SCI) |
 | [Saisie et rapprochement](saisie_rapprochement.md) | Écrans au clavier : saisie d'écriture, espace de rapprochement, raccourcis |
 | [Factures d'achat](achats.md) | Factures fournisseurs Qonto ou saisies (lecture Factur-X / PDF / OCR, pièce jointe) : catalogue, TVA de l'exercice, comptabilisation en engagement, règlements Qonto ou OFX |
@@ -32,7 +33,7 @@ Application web de comptabilité pour associations loi 1901 (plan comptable des 
 - **Import Odoo** — CSV de lignes de facturation, table de staging avant comptabilisation
 - **Rapprochement bancaire** — Espace de travail au clavier : suggestions notées (compte bancaire, montant, date), rapprochement en un geste ou en masse, création d'écriture en panneau latéral, règles sur la sélection, annulation (Ctrl+Z), contrôles de montant et de compte
 - **États financiers** — Balance, grand livre, Bilan et Compte de résultat au format du plan de l'instance (associatif ou SCI) avec comparaison N/N-1 ; chaque compte compté une seule fois, tiers ventilés selon le sens du solde, bilan équilibré avant comme après clôture
-- **Clôture d'exercice** — Verrouillage des écritures (obligation légale française)
+- **Clôture d'exercice** — Assistant en 8 étapes : contrôles avec liens, écritures d'inventaire extournées en N+1, fonds dédiés, résultat, FEC (art. A47 A-1 du LPF) contrôlé à blanc, clôture provisoire (écritures numérotées) puis définitive (FEC figé), réouverture motivée, à-nouveaux et affectation du résultat ; rôle expert-comptable en lecture seule
 - **Entités** — Répertoire de tiers (clients, fournisseurs, salariés, organismes) liés aux transactions bancaires
 - **Moteur de règles** — Fichier YAML de règles pour catégoriser automatiquement les transactions importées et générer les écritures comptables associées (charges 6xx / produits 7xx)
 - **Tableau de bord** — Sélecteur d'exercice, indicateurs (écritures, transactions non rapprochées, écritures déséquilibrées), graphiques Mantine Charts (résultat mensuel, ventes mensuelles, solde bancaire cumulé)
