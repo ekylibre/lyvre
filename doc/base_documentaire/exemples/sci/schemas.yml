@@ -1,0 +1,58 @@
+# EXEMPLE — gabarit de data/kb/regles/sci/schemas.yml. STATUT : brouillon.
+# Aucun schéma SCI n'est publiable avant validation des fiches S-xx (doc 6 §6.3).
+# Comptes vérifiés le 2026-10-23 dans data/plan_comptable_sci.json.
+
+- id: loyer_appele
+  libelle: Loyer appelé (quittance)
+  fiche: S-02
+  journal: OD
+  statut: brouillon
+  parametres:
+    montant: {type: montant}
+    locataire: {type: tiers, role: CLIENT}
+    immeuble: {type: projet, requis: si_plusieurs_immeubles}     # question ouverte S-09
+  lignes:
+    - {compte: "411", debit: montant, tiers: locataire}
+    - {compte: "7083", credit: montant, projet: immeuble}        # 2072 ligne 1
+
+- id: charges_refacturees
+  libelle: Charges récupérables refacturées au locataire
+  fiche: S-02
+  journal: OD
+  statut: brouillon
+  parametres:
+    montant: {type: montant}
+    locataire: {type: tiers, role: CLIENT}
+  lignes:
+    - {compte: "411", debit: montant, tiers: locataire}
+    - {compte: "7085", credit: montant}                         # 2072 ligne 2
+
+- id: apport_compte_courant
+  libelle: Apport d'un associé en compte courant
+  fiche: S-05
+  journal: BQ
+  statut: brouillon
+  parametres:
+    montant: {type: montant}
+    associe: {type: compte, filtre: "455"}
+  lignes:
+    - {compte: "512", debit: montant}
+    - {compte: "{associe}", credit: montant}
+
+- id: echeance_emprunt
+  libelle: Échéance d'emprunt immobilier (capital + intérêts + assurance)
+  fiche: S-04
+  journal: BQ
+  statut: bloque
+  # ⚠️ BLOQUÉ : le plan SCI ne contient que l'en-tête 66 « CHARGES FINANCIÈRES » (aucun compte 661x).
+  # Impossible de proposer cette écriture sans créer d'abord le compte d'intérêts (et sa ligne 2072).
+  comptes_requis: ["164", "6611", "616"]
+  parametres:
+    capital: {type: montant}
+    interets: {type: montant}
+    assurance: {type: montant}
+  lignes:
+    - {compte: "164", debit: capital}
+    - {compte: "6611", debit: interets}
+    - {compte: "616", debit: assurance}
+    - {compte: "512", credit: "capital + interets + assurance"}

@@ -1,0 +1,107 @@
+# EXEMPLE — généré le 2026-10-23 depuis data/plan_comptable_sci.json (mention « (ligne n) » des libellés).
+# Gabarit de data/kb/regles/sci/correspondance_2072.yml (doc 3 §3.7).
+# ⚠️ Numéros de ligne à contrôler sur le formulaire 2072 de l'année (millésime non indiqué dans le plan).
+# ⚠️ Lacune : aucun compte de classe 66 (intérêts d'emprunt) ne porte de ligne — à compléter (fiche S-04).
+# Un code « 61490 » couvre la plage indiquée dans le libellé (ex. 61490 à 61494).
+referentiel: sci
+declaration: "2072"
+statut: a_confirmer
+lignes:
+  "1":
+    - {compte: "7083", libelle: "Fermages ou loyers encaissés"}
+  "2":
+    - {compte: "7085", libelle: "Dépenses par nature déductibles incombant normalement à la société immobilière et mises par convention à la charge des locataires"}
+  "3":
+    - {compte: "7718", libelle: "Recettes diverses"}
+    - {compte: "7719", libelle: "Produits exceptionnels"}
+    - {compte: "7788", libelle: "Autres produits exceptionnels"}
+    - {compte: "7911", libelle: "Remboursements d’assurances"}
+  "4":
+    - {compte: "7916", libelle: "Valeur locative des immeubles"}
+  "6":
+    - {compte: "611", libelle: "Frais de gardiennage"}
+    - {compte: "613211", libelle: "Frais de gérance de la copropriété"}
+    - {compte: "613511", libelle: "Locations"}
+    - {compte: "6136", libelle: "Charges locatives"}
+    - {compte: "614011", libelle: "Charges locatives"}
+    - {compte: "615211", libelle: "Dépenses d’entretien"}
+    - {compte: "615511", libelle: "Entretien mobilier"}
+    - {compte: "615611", libelle: "Maintenance"}
+    - {compte: "618111", libelle: "Documentation"}
+    - {compte: "621011", libelle: "Personnel extérieur"}
+    - {compte: "621111", libelle: "Personnel intérimaire"}
+    - {compte: "621411", libelle: "Personnel extérieur"}
+    - {compte: "6221", libelle: "Rémunération de gérance"}
+    - {compte: "6222", libelle: "Rémunération d’intermédiaires"}
+    - {compte: "6226", libelle: "Honoraires"}
+    - {compte: "6227", libelle: "Frais de contentieux"}
+    - {compte: "623111", libelle: "Frais de promotion et de publicité"}
+    - {compte: "625111", libelle: "Frais de déplacement"}
+    - {compte: "6282", libelle: "Frais de gardiennage"}
+    - {compte: "6284", libelle: "Services divers"}
+    - {compte: "6285", libelle: "Services divers"}
+    - {compte: "631", libelle: "Impôts, taxes et versements assimilés sur rémunérations (Administration des Impôts)"}
+    - {compte: "6330", libelle: "6330 à 6335 Impôts"}
+    - {compte: "64110", libelle: "64110 à 64114 Rémunération gardes et concierges"}
+    - {compte: "6417", libelle: "Rémunérations"}
+    - {compte: "64510", libelle: "64510 à 64514 Charges sociales associés"}
+    - {compte: "64516", libelle: "64516 à 64519 Charges de sécurité sociale et de prévoyance"}
+    - {compte: "6452", libelle: "6452 à 6455 Charges de sécurité sociale et de prévoyance"}
+    - {compte: "6470", libelle: "6470 à 6475 Autres charges sociales"}
+    - {compte: "6480", libelle: "6480 à 6485 Autres charges de personnel"}
+  "8":
+    - {compte: "61600", libelle: "61600 à 61601 Primes d’assurances"}
+    - {compte: "616021", libelle: "616021 à 616159 Primes d’assurance"}
+    - {compte: "616161", libelle: "616161 à 616299 Primes d’assurance"}
+    - {compte: "6164", libelle: "6164 à 6167 Primes d’assurance"}
+  "9":
+    - {compte: "613212", libelle: "Travaux de la propriété"}
+    - {compte: "613213", libelle: "Dépenses d’entretien"}
+    - {compte: "613512", libelle: "Locations"}
+    - {compte: "613513", libelle: "Locations"}
+    - {compte: "614012", libelle: "Charges locatives"}
+    - {compte: "614013", libelle: "Charges locatives"}
+    - {compte: "615212", libelle: "Travaux"}
+    - {compte: "615213", libelle: "Dépenses d’entretien"}
+    - {compte: "615512", libelle: "Travaux sur la propriété"}
+    - {compte: "615513", libelle: "Dépenses d’entretien"}
+    - {compte: "615612", libelle: "Entretien et réparation"}
+    - {compte: "615613", libelle: "Entretien et réparation"}
+    - {compte: "6283", libelle: "Frais de nettoyage des locaux"}
+  "12":
+    - {compte: "613216", libelle: "Grosses réparations"}
+    - {compte: "613516", libelle: "Locations"}
+    - {compte: "614016", libelle: "Charges locatives"}
+    - {compte: "615216", libelle: "Grosses réparations"}
+    - {compte: "615516", libelle: "Grosses réparations"}
+    - {compte: "615616", libelle: "Entretien et réparation"}
+  "14":
+    - {compte: "6255", libelle: "Frais de relogement"}
+    - {compte: "6281", libelle: "Frais d’adhésion à une association"}
+    - {compte: "6512", libelle: "Indemnité d’éviction"}
+  "15":
+    - {compte: "63512", libelle: "Taxe foncière"}
+    - {compte: "63513", libelle: "Autres impôts"}
+    - {compte: "63515", libelle: "Autres impôts"}
+    - {compte: "63580", libelle: "Autres impôts"}
+    - {compte: "67123", libelle: "Impositions exceptionnelles"}
+  "16":
+    - {compte: "61490", libelle: "61490 à 61494 Provisions pour charges de copropriété"}
+  "17":
+    - {compte: "61495", libelle: "61495 à 61499 Régularisation des provisions pour charges de copropriété"}
+  "20a":
+    - {compte: "613215", libelle: "Locations"}
+    - {compte: "613515", libelle: "Locations"}
+    - {compte: "614015", libelle: "Charges locatives"}
+    - {compte: "615215", libelle: "Entretien et réparation"}
+    - {compte: "615515", libelle: "Entretien et réparation"}
+    - {compte: "615615", libelle: "Entretien et réparation"}
+  "20b":
+    - {compte: "613217", libelle: "Locations"}
+    - {compte: "613517", libelle: "Locations"}
+    - {compte: "614017", libelle: "Charges locatives"}
+    - {compte: "615217", libelle: "Entretien et réparation"}
+    - {compte: "615517", libelle: "Entretien et réparation"}
+    - {compte: "615617", libelle: "Entretien et réparation"}
+  "22":
+    - {compte: "62272", libelle: "Frais d’acte sur emprunts"}

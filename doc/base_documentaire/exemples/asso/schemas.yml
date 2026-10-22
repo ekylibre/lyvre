@@ -1,0 +1,102 @@
+# EXEMPLE — gabarit de data/kb/regles/asso_2018_06/schemas.yml (+ socle pcg2026), doc 3 §3.5.
+# Un schéma est une PROPOSITION : le logiciel vérifie comptes (∈ plan de l'instance) et équilibre,
+# puis ouvre le formulaire de saisie prérempli ; l'utilisateur enregistre lui-même.
+# `calcul` = fonction Python d'un registre fermé (jamais un calcul fait par le modèle).
+# Comptes vérifiés le 2026-10-23 dans data/plan_comptable_asso.json.
+
+# ---- socle pcg2026 ---------------------------------------------------------------------------
+- id: virement_interne
+  libelle: Virement entre deux comptes bancaires de la structure
+  fiche: D-05
+  journal: OD
+  parametres:
+    montant: {type: montant}
+    depart:  {type: compte, filtre: "512 53"}
+    arrivee: {type: compte, filtre: "512 53"}
+  # Deux écritures (une par relevé), qui se soldent par le compte de virements internes.
+  # ⚠️ Le plan asso n'a pas 580 mais 581 « Virements de fonds » ; le plan SCI n'a que l'en-tête 58
+  #    (compte à créer). D'où `compte_virement` résolu par référentiel (comptes.yml).
+  ecritures:
+    - lignes:
+        - {compte: "{compte_virement}", debit: montant}
+        - {compte: "{depart}", credit: montant}
+    - lignes:
+        - {compte: "{arrivee}", debit: montant}
+        - {compte: "{compte_virement}", credit: montant}
+
+- id: attente_reclassement
+  libelle: Reclassement d'une opération passée en compte d'attente
+  fiche: D-04
+  journal: OD
+  parametres:
+    montant: {type: montant}
+    attente: {type: compte, filtre: "47"}
+    cible:   {type: compte}
+  lignes:
+    - {compte: "{cible}", debit: montant}      # sens inversé si le 47x est créditeur
+    - {compte: "{attente}", credit: montant}
+
+# ---- couche asso_2018_06 ---------------------------------------------------------------------
+- id: cotisation_encaissee
+  libelle: Cotisation encaissée
+  fiche: C-06
+  journal: BQ
+  parametres:
+    montant: {type: montant}
+    contrepartie: {type: choix, valeurs: {sans: "7561", avec: "7562"}}
+    banque: {type: compte, filtre: "512"}
+  lignes:
+    - {compte: "{banque}", debit: montant}
+    - {compte: "{contrepartie}", credit: montant}
+
+- id: fonds_dedies_report
+  libelle: Report en fonds dédiés (ressource affectée non utilisée à la clôture)
+  fiche: C-03
+  journal: OD
+  quand: cloture
+  parametres:
+    origine: {type: choix, valeurs: {subvention: "4", contribution: "5", generosite: "6"}}
+    projet:  {type: projet, requis: true}
+    montant: {type: montant, calcul: dedicated_funds.reliquat}    # ressources − charges affectées
+  lignes:
+    - {compte: "689{origine}", debit: montant, projet: projet}
+    - {compte: "19{origine}", credit: montant, projet: projet}
+
+- id: fonds_dedies_reprise
+  libelle: Utilisation de fonds dédiés en N+1
+  fiche: C-03
+  journal: OD
+  parametres:
+    origine: {type: choix, valeurs: {subvention: "4", contribution: "5", generosite: "6"}}
+    projet:  {type: projet, requis: true}
+    montant: {type: montant}
+  lignes:
+    - {compte: "19{origine}", debit: montant, projet: projet}
+    - {compte: "789{origine}", credit: montant, projet: projet}
+
+- id: benevolat_valorise
+  libelle: Valorisation du bénévolat (contributions volontaires en nature)
+  fiche: C-05
+  journal: CVN                 # journal dédié hors résultat (à créer, cf. C-05 « Dans le logiciel »)
+  parametres:
+    heures: {type: nombre}
+    taux:   {type: montant, defaut: parametre_instance.taux_benevolat}
+    montant: {type: montant, calcul: cvn.valorisation}            # heures × taux, arrondi au centime
+  lignes:
+    - {compte: "864", debit: montant}
+    - {compte: "875", credit: montant}
+
+- id: abandon_frais_benevole
+  libelle: Abandon de frais par un bénévole
+  fiche: C-06
+  journal: OD
+  parametres:
+    montant: {type: montant}
+    charge:  {type: compte, filtre: "6", defaut: "6251"}
+  ecritures:
+    - lignes:                                   # 1. la dépense engagée par le bénévole
+        - {compte: "{charge}", debit: montant}
+        - {compte: "4681", credit: montant}
+    - lignes:                                   # 2. la renonciation au remboursement
+        - {compte: "4681", debit: montant}
+        - {compte: "75412", credit: montant}

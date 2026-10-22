@@ -1,0 +1,53 @@
+# EXEMPLE — gabarit de data/kb/referentiels.yml (doc 2 §2.5).
+# Pile de référentiels par type de structure (Instance.chart). Une couche « etend » une autre :
+# ses fiches et règles s'ajoutent, et celles de même id remplacent celles du socle.
+
+referentiels:
+  pcg2026:
+    titre: Plan comptable général (règlement ANC 2014-03 modifié, version au 1er janvier 2026)
+    sources: [PCG26, PDC-ANC, LPF, BOFIP]
+    # Plan de référence du socle (arrhes/PCG, CC0) : contrôle des comptes cités par les fiches du socle,
+    # statut obligatoire/facultatif (system: minimal|facultatif, art. 1121-1), diff annuel à reporter.
+    # Ce n'est PAS le plan d'une instance : chaque couche fournit le sien.
+    plan_reference: data/kb/pcg/pcg_2026.json
+    textes: [data/kb/pcg/pcg_20260101.md, data/kb/pcg/recueil_20260101.md]
+    plan: null
+
+  eic:
+    titre: Entreprises industrielles et commerciales (recueil EIC 2026)
+    etend: pcg2026
+    sources: [REC-EIC26]
+    plan: null                       # couche future (lot 4) ; fiches B-xx déjà disponibles
+    actif: false
+
+  asso_2018_06:
+    titre: Associations et fondations (règlement ANC 2018-06, recueil non lucratif 2026)
+    etend: pcg2026
+    sources: [REC-NL26, GUIDE-BENEVOLAT]
+    plan: data/plan_comptable_asso.json
+    # Comptes dont le sens diffère du PCG : le libellé de la couche prime (fiche C-08).
+    comptes_redefinis:
+      "657": {pcg: "Valeurs comptables des immobilisations cédées", ici: "Aides financières"}
+      "754": {pcg: "Ristournes perçues des coopératives", ici: "Ressources liées à la générosité du public"}
+      "756": {pcg: "Gains de change sur dettes et créances commerciales", ici: "Cotisations"}
+    regles_remplacees:
+      - pcg2026.schemas.cession_immobilisation     # 657/757 n'a pas le même sens en asso
+
+  sci:
+    titre: Sociétés civiles immobilières (PCG + déclaration 2072)
+    etend: pcg2026
+    sources: [PLAN-SCI]
+    plan: data/plan_comptable_sci.json
+    declarations: ["2072"]
+    statut: brouillon                # aucune fiche S-xx validée à ce jour (doc 6 §6.3)
+
+# Résolution : Instance.chart → pile (du plus général au plus spécifique)
+structures:
+  asso: [pcg2026, asso_2018_06]
+  sci:  [pcg2026, sci]
+
+# Règles datées : appliquées selon FiscalYear.start_date (cf. Ekylibre, un accounting_system par exercice)
+effets:
+  anc_2022_06:
+    fiche: A-09
+    exercices_ouverts_depuis: 2025-01-01

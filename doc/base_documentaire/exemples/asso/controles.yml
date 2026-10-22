@@ -1,0 +1,119 @@
+# EXEMPLE — gabarit de data/kb/regles/asso_2018_06/controles.yml (+ socle pcg2026).
+# Chaque contrôle produit un Check (app/services/closing.py) : code = id, level = gravite, + fiche.
+# Les six premiers reprennent les contrôles déjà codés dans closing.checks (type python) ;
+# les suivants sont nouveaux (invariants des fiches C-03 à C-05).
+# Les fonctions closing.check_* sont à extraire de closing.checks (aujourd'hui un seul bloc) au lot 2.3.
+
+# ---- socle pcg2026 (existants, rattachés à leur fiche) ----------------------------------------
+- id: unreconciled            # code réel : unreconciled_<bank_account_id>
+  type: python
+  fonction: closing.check_unreconciled
+  gravite: anomalie
+  fiche: D-06
+- id: unbalanced
+  type: python
+  fonction: closing.check_unbalanced
+  gravite: critique            # bloque la clôture provisoire
+  fiche: A-03
+- id: outside
+  type: python
+  fonction: closing.check_outside_fiscal_year
+  gravite: anomalie
+  fiche: A-06
+- id: purchases_not_posted
+  type: python
+  fonction: closing.check_purchases_not_posted
+  gravite: anomalie
+  fiche: A-12
+- id: suspense                # code réel : suspense_<compte>
+  type: solde_nul
+  comptes: "471 472 473"       # PCG art. 1214-47 ; closing.checks teste aujourd'hui tout le préfixe "47" (476/477 = écarts de conversion)
+  quand: cloture
+  gravite: anomalie
+  fiche: D-04
+  message: "Compte d'attente {compte} non soldé ({solde} €)."
+- id: credit                  # code réel : credit_<compte>
+  type: sens_interdit
+  comptes: "512 53"
+  sens: crediteur
+  quand: cloture
+  gravite: anomalie
+  fiche: D-06
+  message: "Compte {compte} créditeur en fin d'exercice ({solde} €) : trésorerie négative ou écriture manquante."
+
+# ---- nouveaux : socle ------------------------------------------------------------------------
+- id: virements_internes_soldes
+  type: solde_nul
+  comptes: "58"
+  quand: cloture
+  gravite: anomalie
+  fiche: D-05
+  message: "Virement interne {compte} non soldé ({solde} €) : la contrepartie manque sur l'autre compte."
+
+- id: etats_coherents
+  type: etats_coherents        # résultat CDR = résultat bilan, actif = passif, couverture des comptes
+  gravite: critique
+  fiche: A-15
+  message: "États incohérents : {detail}."
+- id: fec_comptes_du_plan     # complète fec.verify (CT2)
+  type: python
+  fonction: fec.check_accounts_in_chart
+  gravite: anomalie
+  fiche: A-07
+  message: "{n} compte(s) du FEC absents du plan de l'instance."
+- id: tiers_sens_anormal
+  type: sens_anormal
+  comptes: {crediteur: "411", debiteur: "401"}
+  gravite: info
+  fiche: A-12
+  message: "Compte {compte} {sens} ({solde} €) : avoir, acompte ou règlement non affecté ?"
+- id: variation_cdr
+  type: variation
+  etat: compte_resultat
+  seuil_pct: 10                # paperasse closing.md : « investiguer toute variation > 10 % »
+  seuil_min: 50000             # centimes (500 €), pour éviter le bruit dans les petites structures
+  gravite: info
+  fiche: A-15
+  message: "{ligne} : {n_1} € → {n} € ({pct} %), à expliquer dans l'annexe ou le rapport."
+
+# ---- nouveaux : couche asso_2018_06 ----------------------------------------------------------
+- id: fonds_dedies_jamais_debiteurs
+  type: sens_interdit
+  comptes: "194 195 196"
+  sens: debiteur
+  gravite: anomalie
+  fiche: C-03
+  message: "Fonds dédiés {compte} débiteur ({solde} €) : reprise supérieure au report."
+- id: fonds_reportes_jamais_debiteurs
+  type: sens_interdit
+  comptes: "191"
+  sens: debiteur
+  gravite: anomalie
+  fiche: C-04
+- id: fonds_dedies_avec_projet
+  type: axe_obligatoire
+  comptes: "194 195 196 6894 6895 6896 7894 7895 7896"
+  axe: projet
+  gravite: anomalie
+  fiche: C-03
+  message: "{n} ligne(s) de fonds dédiés sans projet."
+- id: biens_legues_non_amortis
+  type: python                 # le plan asso n'a pas de compte 284x : on contrôle les écritures
+  fonction: closing.check_bequest_assets_not_depreciated   # dotation 681x avec contrepartie 28x sur un bien du compte 24
+  gravite: anomalie
+  fiche: C-04
+  message: "Amortissement constaté sur des biens reçus par legs destinés à être cédés (compte 24)."
+- id: cvn_equilibrees
+  type: egalite
+  gauche: {comptes: "86", sens: debit}
+  droite: {comptes: "87", sens: credit}
+  gravite: anomalie
+  fiche: C-05
+  message: "Contributions volontaires déséquilibrées : emplois {gauche} € / ressources {droite} €."
+- id: cvn_hors_banque
+  type: aucune_ligne
+  comptes: "86 87"
+  sources_ecriture: [OFX_IMPORT, QONTO_IMPORT]   # JournalEntry.source des écritures nées d'une transaction bancaire
+  gravite: anomalie
+  fiche: C-05
+  message: "Écriture de contributions en nature issue d'un import bancaire."

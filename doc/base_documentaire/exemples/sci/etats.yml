@@ -1,0 +1,103 @@
+# EXEMPLE — généré le 2026-10-23 depuis app/services/reports.py (CDR_SECTIONS['sci'], BILAN_LAYOUTS['sci']).
+# Gabarit de data/kb/regles/sci/etats.yml (doc 3 §3.3). Test attendu au lot 2.2 :
+# le chargement de ce fichier doit redonner EXACTEMENT les constantes Python actuelles.
+# Notation des comptes : "70 !701 !707" = préfixes inclus, !préfixe = exclu (cf. Ekylibre).
+
+referentiel: sci
+
+compte_resultat:
+  - section: produits_exploitation
+    sens: credit
+    lignes:
+      - {cle: loyers, libelle: "Loyers et fermages", comptes: "7083"}
+      - {cle: charges_refacturees, libelle: "Charges refacturées aux locataires", comptes: "7085"}
+      - {cle: autres_ventes, libelle: "Autres ventes et prestations de services", comptes: "70 !7083 !7085"}
+      - {cle: subventions, libelle: "Subventions d'exploitation (ANAH…)", comptes: "74"}
+      - {cle: reprises_transferts, libelle: "Reprises sur amortissements et provisions, transferts de charges", comptes: "78 79 !786 !787 !796 !797"}
+      - {cle: autres_produits, libelle: "Autres produits", comptes: "71 72 73 75"}
+  - section: charges_exploitation
+    sens: debit
+    lignes:
+      - {cle: achats, libelle: "Achats et variation de stocks", comptes: "60"}
+      - {cle: charges_locatives, libelle: "Charges locatives et de copropriété", comptes: "614"}
+      - {cle: entretien, libelle: "Entretien et réparations", comptes: "615"}
+      - {cle: assurances, libelle: "Primes d'assurance", comptes: "616"}
+      - {cle: honoraires, libelle: "Honoraires", comptes: "622"}
+      - {cle: autres_charges_externes, libelle: "Autres charges externes", comptes: "61 62 !614 !615 !616 !622"}
+      - {cle: taxe_fonciere, libelle: "Taxe foncière", comptes: "63512"}
+      - {cle: impots_taxes, libelle: "Autres impôts et taxes", comptes: "63 !63512"}
+      - {cle: charges_personnel, libelle: "Charges de personnel", comptes: "64"}
+      - {cle: dotations, libelle: "Dotations aux amortissements et provisions", comptes: "68 !686 !687"}
+      - {cle: autres_charges, libelle: "Autres charges de gestion courante", comptes: "65"}
+  - section: produits_financiers
+    sens: credit
+    lignes:
+      - {cle: produits_financiers, libelle: "Produits financiers", comptes: "76"}
+      - {cle: reprises_transferts, libelle: "Reprises sur provisions et transferts de charges", comptes: "786 796"}
+  - section: charges_financieres
+    sens: debit
+    lignes:
+      - {cle: interets_emprunts, libelle: "Intérêts des emprunts", comptes: "661"}
+      - {cle: autres_charges_financieres, libelle: "Autres charges financières", comptes: "66 !661"}
+      - {cle: dotations, libelle: "Dotations financières aux amortissements et provisions", comptes: "686"}
+  - section: produits_exceptionnels
+    sens: credit
+    lignes:
+      - {cle: sur_operations_gestion, libelle: "Sur opérations de gestion", comptes: "77 !775 !777 !778"}
+      - {cle: sur_operations_capital, libelle: "Sur opérations en capital", comptes: "775 777 778"}
+      - {cle: reprises_transferts, libelle: "Reprises sur provisions et transferts de charges", comptes: "787 797"}
+  - section: charges_exceptionnelles
+    sens: debit
+    lignes:
+      - {cle: sur_operations_gestion, libelle: "Sur opérations de gestion", comptes: "67 !675 !678"}
+      - {cle: sur_operations_capital, libelle: "Sur opérations en capital", comptes: "675 678"}
+      - {cle: dotations, libelle: "Dotations aux amortissements et provisions", comptes: "687"}
+
+# Résultat : participation "691", impôts sur les bénéfices "69 !691"
+
+bilan:
+  actif:   # sens par défaut : debit
+    - {ligne: "Capital souscrit non appelé", comptes: "109", indent: 1}
+    - {section: "ACTIF IMMOBILISÉ"}
+    - {ligne: "Immobilisations incorporelles", comptes: "20 232 237", indent: 1}
+    - {ligne: "Terrains", comptes: "211 212", indent: 1}
+    - {ligne: "Constructions", comptes: "213 214", indent: 1}
+    - {ligne: "Autres immobilisations corporelles", comptes: "21 22 !211 !212 !213 !214", indent: 1}
+    - {ligne: "Immobilisations corporelles en cours", comptes: "23 !232 !236 !237", indent: 1}
+    - {ligne: "Immobilisations financières", comptes: "26 27 236", indent: 1}
+    - {ligne: "Amortissements et dépréciations", comptes: "28 29", indent: 1}
+    - {section: "ACTIF CIRCULANT"}
+    - {ligne: "Stocks et en-cours", comptes: "3", indent: 1}
+    - {ligne: "Créances locataires et comptes rattachés", comptes: "41", indent: 1, mode: debit_only}
+    - {ligne: "Associés — comptes débiteurs", comptes: "45", indent: 1, mode: debit_only}
+    - {ligne: "Autres créances", comptes: "40 42 43 44 46 47", indent: 1, mode: debit_only}
+    - {ligne: "Dépréciations des comptes de tiers", comptes: "49", indent: 1}
+    - {ligne: "Valeurs mobilières de placement", comptes: "50 59", indent: 1}
+    - {ligne: "Disponibilités", comptes: "51 52 53 54 58", indent: 1, mode: debit_only}
+    - {ligne: "Charges constatées d'avance", comptes: "486", indent: 1}
+    - {ligne: "Charges à répartir sur plusieurs exercices", comptes: "48 !486 !487", indent: 1}
+    - {ligne: "Primes de remboursement des obligations", comptes: "169", indent: 1}
+    - {total: "TOTAL ACTIF"}
+  passif:   # sens par défaut : credit
+    - {section: "CAPITAUX PROPRES"}
+    - {ligne: "Capital social", comptes: "101 108", indent: 1}
+    - {ligne: "Primes liées au capital social", comptes: "104", indent: 1}
+    - {ligne: "Écarts de réévaluation", comptes: "105", indent: 1}
+    - {ligne: "Réserves", comptes: "10 !101 !104 !105 !108 !109", indent: 1}
+    - {ligne: "Report à nouveau", comptes: "11", indent: 1}
+    - {ligne: "Résultat de l'exercice", comptes: "12 6 7", indent: 1}
+    - {ligne: "Subventions d'investissement", comptes: "13", indent: 1}
+    - {ligne: "Provisions réglementées", comptes: "14", indent: 1}
+    - {section: "PROVISIONS"}
+    - {ligne: "Provisions pour risques et charges", comptes: "15", indent: 1}
+    - {section: "DETTES"}
+    - {ligne: "Emprunts auprès des établissements de crédit", comptes: "164", indent: 1}
+    - {ligne: "Concours bancaires courants", comptes: "51 52 53 54 58", indent: 1, mode: credit_only}
+    - {ligne: "Dépôts de garantie reçus", comptes: "165", indent: 1}
+    - {ligne: "Autres emprunts et dettes financières", comptes: "16 17 18 !164 !165 !169", indent: 1}
+    - {ligne: "Associés — comptes courants", comptes: "45", indent: 1, mode: credit_only}
+    - {ligne: "Dettes fournisseurs et comptes rattachés", comptes: "40", indent: 1, mode: credit_only}
+    - {ligne: "Dettes fiscales et sociales", comptes: "42 43 44", indent: 1, mode: credit_only}
+    - {ligne: "Autres dettes", comptes: "41 46 47", indent: 1, mode: credit_only}
+    - {ligne: "Produits constatés d'avance", comptes: "487", indent: 1}
+    - {total: "TOTAL PASSIF"}

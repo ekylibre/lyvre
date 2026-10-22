@@ -1,0 +1,159 @@
+# EXEMPLE — généré le 2026-10-23 depuis app/services/reports.py (CDR_SECTIONS['asso'], BILAN_LAYOUTS['asso']).
+# Gabarit de data/kb/regles/asso_2018_06/etats.yml (doc 3 §3.3). Test attendu au lot 2.2 :
+# le chargement de ce fichier doit redonner EXACTEMENT les constantes Python actuelles.
+# Notation des comptes : "70 !701 !707" = préfixes inclus, !préfixe = exclu (cf. Ekylibre).
+
+referentiel: asso_2018_06
+
+compte_resultat:
+  - section: produits_exploitation
+    sens: credit
+    lignes:
+      - {cle: cotisations, libelle: "Cotisations", comptes: "756", fiche: C-06}
+      - {cle: ventes_biens, libelle: "Ventes de biens", comptes: "701 702 703 707"}
+      - {cle: dont_ventes_dons_nature, libelle: "dont ventes de dons en nature", comptes: "7073"}
+      - {cle: ventes_prestations, libelle: "Ventes de prestations de services", comptes: "70 !701 !702 !703 !707"}
+      - {cle: dont_parrainages, libelle: "dont parrainages", comptes: "7063"}
+      - {cle: concours_publics_subventions, libelle: "Concours publics et subventions d'exploitation", comptes: "73 74", fiche: C-06}
+      - {cle: versements_fondateurs_dotation, libelle: "Versements des fondateurs / dotation consomptible", comptes: "753"}
+      - {cle: dons_manuels, libelle: "Dons manuels", comptes: "754 !7542 !7543", fiche: C-06}
+      - {cle: mecenat, libelle: "Mécénats", comptes: "7542", fiche: C-06}
+      - {cle: legs_donations, libelle: "Legs, donations et assurances-vie", comptes: "7543", fiche: C-04}
+      - {cle: contributions_financieres, libelle: "Contributions financières", comptes: "755", fiche: C-06}
+      - {cle: reprises_amort_provisions, libelle: "Reprises sur amortissements, dépréciations, provisions et transferts de charges", comptes: "78 79 !786 !787 !789 !796 !797"}
+      - {cle: utilisations_fonds_dedies, libelle: "Utilisations des fonds dédiés", comptes: "789", fiche: C-03}
+      - {cle: autres_produits, libelle: "Autres produits", comptes: "71 72 75 !753 !754 !755 !756"}
+  - section: charges_exploitation
+    sens: debit
+    lignes:
+      - {cle: achats_marchandises, libelle: "Achats de marchandises", comptes: "607"}
+      - {cle: variation_stocks, libelle: "Variation de stocks", comptes: "603"}
+      - {cle: autres_achats_charges_externes, libelle: "Autres achats et charges externes", comptes: "60 61 62 !603 !607"}
+      - {cle: aides_financieres, libelle: "Aides financières", comptes: "657", fiche: C-08}
+      - {cle: impots_taxes, libelle: "Impôts, taxes et versements assimilés", comptes: "63"}
+      - {cle: salaires_traitements, libelle: "Salaires et traitements", comptes: "641 642"}
+      - {cle: charges_sociales, libelle: "Charges sociales", comptes: "64 !641 !642"}
+      - {cle: dotations_amort_depreciations, libelle: "Dotations aux amortissements et aux dépréciations", comptes: "68 !6815 !686 !687 !689"}
+      - {cle: dotations_provisions, libelle: "Dotations aux provisions", comptes: "6815"}
+      - {cle: reports_fonds_dedies, libelle: "Reports en fonds dédiés", comptes: "689", fiche: C-03}
+      - {cle: autres_charges, libelle: "Autres charges", comptes: "65 !657"}
+  - section: produits_financiers
+    sens: credit
+    lignes:
+      - {cle: de_participations, libelle: "De participations", comptes: "761"}
+      - {cle: autres_valeurs_mobilieres, libelle: "D'autres valeurs mobilières et créances de l'actif immobilisé", comptes: "762 763 764"}
+      - {cle: autres_interets, libelle: "Autres intérêts et produits assimilés", comptes: "76 !761 !762 !763 !764 !766 !767"}
+      - {cle: reprises_provisions, libelle: "Reprises sur provisions et transferts de charges", comptes: "786 796"}
+      - {cle: differences_positives_change, libelle: "Différences positives de change", comptes: "766"}
+      - {cle: produits_nets_cessions_vmp, libelle: "Produits nets sur cessions de VMP", comptes: "767"}
+  - section: charges_financieres
+    sens: debit
+    lignes:
+      - {cle: dotations_amort, libelle: "Dotations aux amortissements, dépréciations et provisions", comptes: "686"}
+      - {cle: interets_charges, libelle: "Intérêts et charges assimilées", comptes: "66 !666 !667"}
+      - {cle: differences_negatives_change, libelle: "Différences négatives de change", comptes: "666"}
+      - {cle: charges_nettes_cessions_vmp, libelle: "Charges nettes sur cessions de VMP", comptes: "667"}
+  - section: produits_exceptionnels
+    sens: credit
+    lignes:
+      - {cle: sur_operations_gestion, libelle: "Sur opérations de gestion", comptes: "77 !775 !777 !778"}
+      - {cle: sur_operations_capital, libelle: "Sur opérations en capital", comptes: "775 777 778"}
+      - {cle: reprises_provisions, libelle: "Reprises sur provisions et transferts de charges", comptes: "787 797"}
+  - section: charges_exceptionnelles
+    sens: debit
+    lignes:
+      - {cle: sur_operations_gestion, libelle: "Sur opérations de gestion", comptes: "67 !675 !678"}
+      - {cle: sur_operations_capital, libelle: "Sur opérations en capital", comptes: "675 678"}
+      - {cle: dotations_amort, libelle: "Dotations aux amortissements, dépréciations et provisions", comptes: "687"}
+  - section: contributions_produits
+    sens: credit
+    lignes:
+      - {cle: dons_nature, libelle: "Dons en nature", comptes: "870"}
+      - {cle: prestations_nature, libelle: "Prestations en nature", comptes: "871"}
+      - {cle: benevolat, libelle: "Bénévolat", comptes: "875"}
+  - section: contributions_charges
+    sens: debit
+    lignes:
+      - {cle: secours_nature, libelle: "Secours en nature", comptes: "860"}
+      - {cle: mise_dispo_biens, libelle: "Mise à disposition gratuite de biens", comptes: "861"}
+      - {cle: prestations_nature, libelle: "Prestations en nature", comptes: "862"}
+      - {cle: personnel_benevole, libelle: "Personnel bénévole", comptes: "864"}
+
+# Résultat : participation "691", impôts sur les bénéfices "69 !691"
+
+bilan:
+  actif:   # sens par défaut : debit
+    - {section: "ACTIF IMMOBILISÉ"}
+    - {section: "Immobilisations incorporelles"}
+    - {ligne: "Frais d'établissement", comptes: "201", indent: 2}
+    - {ligne: "Frais de recherche et développement", comptes: "203", indent: 2}
+    - {ligne: "Donations temporaires d'usufruit", comptes: "204", indent: 2}
+    - {ligne: "Concessions, brevets, licences…", comptes: "205", indent: 2}
+    - {ligne: "Autres immobilisations incorporelles", comptes: "20 !201 !203 !204 !205", indent: 2}
+    - {ligne: "Immobilisations incorporelles en cours", comptes: "232 237", indent: 2}
+    - {section: "Immobilisations corporelles"}
+    - {ligne: "Terrains", comptes: "211 212", indent: 2}
+    - {ligne: "Constructions", comptes: "213 214", indent: 2}
+    - {ligne: "Installations techniques, matériel…", comptes: "215", indent: 2}
+    - {ligne: "Autres immobilisations corporelles", comptes: "21 22 !211 !212 !213 !214 !215", indent: 2}
+    - {ligne: "Immobilisations corporelles en cours", comptes: "23 !232 !237", indent: 2}
+    - {ligne: "Biens reçus par legs ou donations", comptes: "24", indent: 1}
+    - {section: "Immobilisations financières"}
+    - {ligne: "Participations et créances rattachées", comptes: "26", indent: 2}
+    - {ligne: "Autres titres immobilisés", comptes: "27 !274 !275 !276", indent: 2}
+    - {ligne: "Prêts", comptes: "274", indent: 2}
+    - {ligne: "Autres", comptes: "275 276", indent: 2}
+    - {ligne: "Amortissements et dépréciations des immobilisations", comptes: "28 29", indent: 1}
+    - {section: "ACTIF CIRCULANT"}
+    - {ligne: "Stocks et en-cours", comptes: "3", indent: 1}
+    - {ligne: "Créances clients, usagers", comptes: "41", indent: 1, mode: debit_only}
+    - {ligne: "Créances reçues par legs ou donations", comptes: "461", indent: 1}
+    - {ligne: "Autres créances", comptes: "40 42 43 44 45 46 47 !461 !466 !476 !477", indent: 1, mode: debit_only}
+    - {ligne: "Dépréciations des comptes de tiers", comptes: "49", indent: 1}
+    - {ligne: "Valeurs mobilières de placement", comptes: "50 59", indent: 1}
+    - {ligne: "Instruments de trésorerie", comptes: "52", indent: 1, mode: debit_only}
+    - {ligne: "Disponibilités", comptes: "51 53 54 58", indent: 1, mode: debit_only}
+    - {ligne: "Charges constatées d'avance", comptes: "486", indent: 1}
+    - {section: "COMPTES DE RÉGULARISATION"}
+    - {ligne: "Frais d'émission des emprunts et charges à répartir", comptes: "48 !486 !487", indent: 1}
+    - {ligne: "Primes de remboursement des emprunts", comptes: "169", indent: 1}
+    - {ligne: "Écarts de conversion actif", comptes: "476", indent: 1}
+    - {total: "TOTAL ACTIF"}
+  passif:   # sens par défaut : credit
+    - {section: "FONDS PROPRES"}
+    - {section: "Fonds propres sans droit de reprise"}
+    - {ligne: "Fonds propres statutaires", comptes: "1021 1022", indent: 2}
+    - {ligne: "Fonds propres complémentaires", comptes: "102 !1021 !1022", indent: 2}
+    - {section: "Fonds propres avec droit de reprise"}
+    - {ligne: "Fonds statutaires", comptes: "1032", indent: 2}
+    - {ligne: "Fonds propres complémentaires", comptes: "103 !1032", indent: 2}
+    - {ligne: "Écarts de réévaluation", comptes: "105", indent: 1}
+    - {section: "Réserves"}
+    - {ligne: "Réserves statutaires ou contractuelles", comptes: "1063", indent: 2}
+    - {ligne: "Réserves pour projet de l'entité", comptes: "10681", indent: 2}
+    - {ligne: "Autres réserves", comptes: "10 !102 !103 !105 !1063 !10681 !108", indent: 2}
+    - {ligne: "Report à nouveau", comptes: "11", indent: 1}
+    - {ligne: "Excédent ou déficit de l'exercice", comptes: "12 6 7", indent: 1}
+    - {ligne: "Fonds propres consomptibles", comptes: "108", indent: 1}
+    - {ligne: "Subventions d'investissement", comptes: "13", indent: 1}
+    - {ligne: "Provisions réglementées", comptes: "14", indent: 1}
+    - {section: "FONDS REPORTÉS ET DÉDIÉS"}
+    - {ligne: "Fonds reportés liés aux legs ou donations", comptes: "191 192", indent: 1}
+    - {ligne: "Fonds dédiés", comptes: "19 !191 !192", indent: 1}
+    - {section: "PROVISIONS"}
+    - {ligne: "Provisions pour risques", comptes: "151", indent: 1}
+    - {ligne: "Provisions pour charges", comptes: "15 !151", indent: 1}
+    - {section: "DETTES"}
+    - {ligne: "Emprunts obligataires et assimilés (titres associatifs)", comptes: "161 163", indent: 1}
+    - {ligne: "Emprunts établissements de crédit", comptes: "164", indent: 1}
+    - {ligne: "Concours bancaires courants", comptes: "51 53 54 58", indent: 1, mode: credit_only}
+    - {ligne: "Emprunts et dettes financières diverses", comptes: "16 17 18 !161 !163 !164 !169", indent: 1}
+    - {ligne: "Dettes fournisseurs et comptes rattachés", comptes: "40 !404 !405", indent: 1, mode: credit_only}
+    - {ligne: "Dettes des legs ou donations", comptes: "466", indent: 1}
+    - {ligne: "Dettes sur immobilisations et comptes rattachés", comptes: "404 405", indent: 1, mode: credit_only}
+    - {ligne: "Dettes fiscales et sociales", comptes: "42 43 44", indent: 1, mode: credit_only}
+    - {ligne: "Autres dettes", comptes: "41 45 46 47 !461 !466 !476 !477", indent: 1, mode: credit_only}
+    - {ligne: "Instruments de trésorerie", comptes: "52", indent: 1, mode: credit_only}
+    - {ligne: "Produits constatés d'avance", comptes: "487", indent: 1}
+    - {ligne: "Écarts de conversion passif", comptes: "477", indent: 1}
+    - {total: "TOTAL PASSIF"}

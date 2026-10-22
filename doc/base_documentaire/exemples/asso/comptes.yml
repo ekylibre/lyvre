@@ -1,0 +1,28 @@
+# EXEMPLE — gabarit de data/kb/regles/asso_2018_06/comptes.yml (doc 3 §3.6).
+# Surcouche du plan data/plan_comptable_asso.json (inchangé) : sens normal, fiche, axe, rôle.
+
+roles:                         # comptes « logiques » utilisés par les schémas du socle
+  compte_virement: "581"       # le plan asso n'a pas 580 (vérifié le 2026-10-23)
+  compte_attente: "471"
+  resultat_excedent: "120"
+  resultat_deficit: "129"
+
+comptes:
+  "102":  {sens: crediteur, fiche: C-02}
+  "103":  {sens: crediteur, fiche: C-02}
+  "191":  {sens: crediteur, fiche: C-04, jamais: debiteur}
+  "194":  {sens: crediteur, fiche: C-03, axe: projet, jamais: debiteur}
+  "195":  {sens: crediteur, fiche: C-03, axe: projet, jamais: debiteur}
+  "196":  {sens: crediteur, fiche: C-03, axe: projet, jamais: debiteur}
+  "24":   {sens: debiteur,  fiche: C-04, amortissable: false}
+  "4681": {fiche: C-06}
+  "471":  {fiche: D-04, solde_a_cloture: nul}
+  "581":  {fiche: D-05, solde_a_cloture: nul}
+  "657":  {sens: debiteur,  fiche: C-08, libelle_ref: "Aides financières"}
+  "689":  {sens: debiteur,  fiche: C-03}
+  "754":  {sens: crediteur, fiche: C-06, libelle_ref: "Ressources liées à la générosité du public"}
+  "75412": {sens: crediteur, fiche: C-06}
+  "756":  {sens: crediteur, fiche: C-06, libelle_ref: "Cotisations"}
+  "789":  {sens: crediteur, fiche: C-03}
+  "86":   {sens: debiteur,  fiche: C-05, hors_bilan: true}
+  "87":   {sens: crediteur, fiche: C-05, hors_bilan: true}
