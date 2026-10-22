@@ -39,6 +39,7 @@ def create_app(config_name=None):
     from .views.instances import bp as instances_bp
     from .views.fec import bp as fec_bp
     from .views.purchases import bp as purchases_bp
+    from .views.exports import bp as exports_bp
     from .views.integrations import legacy_bp as external_connections_bp
 
     # Pages migrées vers la SPA : avant les blueprints (un doublon d'endpoint échoue).
@@ -53,6 +54,7 @@ def create_app(config_name=None):
     app.register_blueprint(instances_bp)
     app.register_blueprint(fec_bp)
     app.register_blueprint(purchases_bp)
+    app.register_blueprint(exports_bp)
     app.register_blueprint(external_connections_bp)
 
     _register_template_filters(app)

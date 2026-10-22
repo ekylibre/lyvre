@@ -17,6 +17,7 @@ import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { useRouteModal } from "../../app/useRouteModal";
+import { AppLink } from "../../app/navigation";
 import { FISCAL_YEARS_KEY, type FiscalYear } from "../fiscal-years/FiscalYearsPage";
 
 export interface Project {
@@ -79,6 +80,7 @@ export default function ProjectsPage() {
     { accessor: "actions", title: "", hideable: false, textAlign: "right",
       render: (p) => (
         <Group gap={4} justify="flex-end" wrap="nowrap">
+          <Button variant="subtle" size="compact-sm" component={AppLink} href={`/projects/${p.id}/statement`}>Compte de résultat</Button>
           <Button variant="subtle" size="compact-sm" onClick={() => modal.openEdit(p.id)}>Modifier</Button>
           {p.lines === 0 && (
             <Button variant="subtle" size="compact-sm" color="brique" onClick={() => confirmAction({

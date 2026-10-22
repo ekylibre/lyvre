@@ -170,3 +170,43 @@ def fiscal_year_or_none(value):
         return db.session.get(FiscalYear, int(value)) if value else None
     except (TypeError, ValueError):
         return None
+
+
+def statement(project: Project, start: date, end: date) -> dict:
+    """Compte de résultat du projet sur [start, end] (pour un financeur) : charges et produits par
+    compte, puis le détail des lignes avec leur pièce (facture d'achat jointe quand il y en a)."""
+    from app.models import Purchase
+    lines = (JournalLine.query.join(JournalEntry, JournalEntry.id == JournalLine.entry_id)
+             .join(Account, Account.id == JournalLine.account_id)
+             .filter(JournalLine.project_id == project.id, JournalEntry.entry_date.between(start, end),
+                     db.or_(Account.code.like("6%"), Account.code.like("7%")))
+             .order_by(JournalEntry.entry_date, JournalEntry.id, JournalLine.id).all())
+    purchases = {p.journal_entry_id: p for p in Purchase.query.filter(
+        Purchase.journal_entry_id.in_({l.entry_id for l in lines} or {0}), Purchase.attachment_path.isnot(None))}
+    by_account: dict[str, dict] = {}
+    details = []
+    for line in lines:
+        code = line.account.code
+        amount = line.debit_cents - line.credit_cents if code.startswith("6") else line.credit_cents - line.debit_cents
+        bucket = by_account.setdefault(code, {"code": code, "label": line.account.label,
+                                              "kind": "expense" if code.startswith("6") else "income", "amount_cents": 0})
+        bucket["amount_cents"] += amount
+        purchase = purchases.get(line.entry_id)
+        details.append({"date": line.entry.entry_date.isoformat(), "reference": line.entry.reference,
+                        "entry_url": f"/entries/{line.entry_id}", "label": line.label or line.entry.description or "",
+                        "account": code, "kind": bucket["kind"], "amount_cents": amount,
+                        "document_url": f"/purchases/{purchase.id}/attachment" if purchase else None})
+    accounts = sorted(by_account.values(), key=lambda a: (a["kind"] != "expense", a["code"]))
+    expense = sum(a["amount_cents"] for a in accounts if a["kind"] == "expense")
+    income = sum(a["amount_cents"] for a in accounts if a["kind"] == "income")
+    return {"project": payload(project), "start": start.isoformat(), "end": end.isoformat(), "accounts": accounts,
+            "lines": details, "totals": {"expense_cents": expense, "income_cents": income, "result_cents": income - expense}}
+
+
+def default_period(project: Project) -> tuple[date, date]:
+    """Dates du projet, sinon l'exercice en cours (ou l'année civile)."""
+    today = date.today()
+    fy = FiscalYear.query.filter(FiscalYear.start_date <= today, FiscalYear.end_date >= today).first()
+    start = project.start_date or (fy.start_date if fy else date(today.year, 1, 1))
+    end = project.end_date or (fy.end_date if fy else date(today.year, 12, 31))
+    return start, end

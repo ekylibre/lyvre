@@ -24,4 +24,12 @@ test("budget : saisie annuelle et mensuelle, enregistrement et rechargement", as
   await expect(page.getByLabel("706000, mois 2", { exact: true })).toHaveValue("250,00");
   // 750 de produits − 1 200 de charges.
   await expect(page.getByRole("row", { name: /Résultat prévu/ }).getByText("−450,00 €")).toBeVisible();
+
+  // Suivi : postes du budget (606300 : 45,00 € réalisés par BQ-E2E-1), export tableur.
+  await page.getByRole("link", { name: "Suivi budgétaire" }).first().click();
+  await expect(page.getByRole("heading", { name: "Suivi budgétaire" })).toBeVisible();
+  await expect(page.getByRole("row", { name: /606300.*1 200,00/ })).toBeVisible();
+  const href = await page.getByRole("link", { name: "Exporter (XLSX)" }).getAttribute("href");
+  const resp = await page.request.get(href!);
+  expect(resp.headers()["content-type"]).toContain("spreadsheetml");
 });

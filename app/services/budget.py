@@ -207,3 +207,60 @@ def project_or_error(value):
     if project is None:
         raise BudgetError("Projet inconnu.", "project_id")
     return project
+
+
+# ------------------------------------------------------------------ suivi (lot C.3)
+
+
+def _actuals(fy, project, start, end) -> dict[str, int]:
+    """Réalisé par compte (sens naturel : charges au débit, produits au crédit) sur [start, end]."""
+    query = (db.session.query(Account.code, func.sum(JournalLine.debit_cents - JournalLine.credit_cents))
+             .join(JournalLine, JournalLine.account_id == Account.id)
+             .join(JournalEntry, JournalEntry.id == JournalLine.entry_id)
+             .filter(JournalEntry.fiscal_year_id == fy.id, JournalEntry.entry_date.between(start, end),
+                     db.or_(*[Account.code.like(f"{c}%") for c in CLASSES])))
+    if project is not None:
+        query = query.filter(JournalLine.project_id == project.id)
+    return {code: (int(v or 0) if code.startswith("6") else -int(v or 0))
+            for code, v in query.group_by(Account.code)}
+
+
+def tracking(fy, project=None, as_of=None) -> dict:
+    """Prévu (année et à date), réalisé à date, écart par poste du budget ; réalisé hors budget
+    regroupé au compte à 3 chiffres. « À date » : mois entamés jusqu'à `as_of` (défaut : aujourd'hui,
+    borné à l'exercice)."""
+    as_of = min(max(as_of or date.today(), fy.start_date), fy.end_date)
+    starts = month_starts(fy)
+    elapsed = sum(1 for s in starts if s <= as_of)
+    actuals = _actuals(fy, project, fy.start_date, as_of)
+    rows, covered = [], set()
+    for row in grid(fy, project):
+        codes = [c for c in actuals if c.startswith(row["code"])]
+        covered.update(codes)
+        actual = sum(actuals[c] for c in codes)
+        planned_to_date = sum(row["months"][:elapsed])
+        rows.append(_tracking_row(row["code"], row["label"], row["kind"], row["total_cents"], planned_to_date, actual))
+    extra: dict[str, int] = {}
+    for code, value in actuals.items():
+        if code not in covered and value:
+            extra[code[:ACTUAL_LEVEL]] = extra.get(code[:ACTUAL_LEVEL], 0) + value
+    labels = {a.code: a.label for a in Account.query.filter(Account.code.in_(list(extra)))} if extra else {}
+    unbudgeted = [_tracking_row(code, labels.get(code, "Hors budget"), kind(code), 0, 0, value, unbudgeted=True)
+                  for code, value in sorted(extra.items())]
+    all_rows = sorted(rows + unbudgeted, key=lambda r: (r["kind"] != "expense", r["unbudgeted"], r["code"]))
+    summary = {}
+    for k in ("expense", "income"):
+        part = [r for r in all_rows if r["kind"] == k]
+        summary[k] = {key: sum(r[key] for r in part) for key in ("planned_cents", "planned_to_date_cents", "actual_cents")}
+        summary[k]["gap_cents"] = summary[k]["actual_cents"] - summary[k]["planned_to_date_cents"]
+    summary["result"] = {key: summary["income"][key] - summary["expense"][key]
+                         for key in ("planned_cents", "planned_to_date_cents", "actual_cents")}
+    return {"as_of": as_of.isoformat(), "elapsed_months": elapsed, "months": len(starts), "rows": all_rows,
+            "summary": summary}
+
+
+def _tracking_row(code, label, row_kind, planned, planned_to_date, actual, unbudgeted=False) -> dict:
+    gap = actual - planned_to_date
+    return {"code": code, "label": label, "kind": row_kind, "unbudgeted": unbudgeted, "planned_cents": planned,
+            "planned_to_date_cents": planned_to_date, "actual_cents": actual, "gap_cents": gap,
+            "rate": round(actual / planned_to_date * 100, 1) if planned_to_date else None}

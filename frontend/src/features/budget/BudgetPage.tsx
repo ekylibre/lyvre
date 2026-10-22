@@ -10,6 +10,7 @@ import { useCan } from "../../api/session";
 import { FilterBar, useUrlParams } from "../../components/FilterBar";
 import { MoneyInput, MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
+import { AppLink } from "../../app/navigation";
 import { FISCAL_YEARS_KEY, type FiscalYear } from "../fiscal-years/FiscalYearsPage";
 
 interface Row {
@@ -49,7 +50,9 @@ export default function BudgetPage() {
   const { data } = useQuery({ queryKey: [...KEY, query], enabled: !!fyId, queryFn: () => api.get<BudgetView>(query) });
   return (
     <>
-      <PageHeader title="Budget" description="Montants prévus par compte de charge et de produit, en annuel ou par mois." />
+      <PageHeader title="Budget" description="Montants prévus par compte de charge et de produit, en annuel ou par mois."
+        actions={<Button variant="default" component={AppLink}
+          href={`/budget/tracking?fiscal_year_id=${fyId}&project_id=${params.project_id}`}>Suivi budgétaire</Button>} />
       <FilterBar>
         <Select aria-label="Exercice" w={180} allowDeselect={false} value={fyId || null}
           data={(years.data?.items ?? []).map((fy) => ({ value: String(fy.id), label: `Exercice ${fy.label}` }))}

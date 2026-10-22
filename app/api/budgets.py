@@ -1,6 +1,7 @@
 """Budget (lot C.2) : grille comptes × mois d'un exercice, globale ou par projet ; copie de
 l'exercice précédent (budget ou réalisé)."""
 from contextlib import contextmanager
+from datetime import date
 
 from flask import jsonify, request
 
@@ -58,3 +59,26 @@ def budgets_copy(fy_id):
         project = budget.project_or_error(request.args.get("project_id"))
         rows = budget.copy_rows(fy, project, request.args.get("source"))
     return jsonify(_payload(fy, project, rows))
+
+
+@bp.route("/budgets/<int:fy_id>/tracking")
+def budgets_tracking(fy_id):
+    """Suivi `?project_id=&as_of=` : prévu (année, à date), réalisé à date, écart par poste ; hors budget."""
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    with _errors():
+        project = budget.project_or_error(request.args.get("project_id"))
+        as_of = _as_of(request.args.get("as_of"))
+    data = budget.tracking(fy, project, as_of)
+    query = f"fiscal_year_id={fy.id}&as_of={data['as_of']}" + (f"&project_id={project.id}" if project else "")
+    return jsonify(fiscal_year={"id": fy.id, "label": fy.label}, project_id=project.id if project else None,
+                   projects=projects.options([project.id] if project else []),
+                   export_url=f"/budget/tracking.xlsx?{query}", **data)
+
+
+def _as_of(value):
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        raise budget.BudgetError("Date invalide.", "as_of") from None

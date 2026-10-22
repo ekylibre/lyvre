@@ -180,6 +180,13 @@ prévu, colonne des comptes figée). Copie SN 5001 : budget 2026 copié du réal
 rechargé à l'identique (charges 6 145,75 €, produits 15 109,75 €, résultat 8 964,00 € = résultat
 2025). pytest 768, Vitest 78, E2E 20.
 
+**C.3 fait (2026-10-23)** : `budget.tracking` (prévu année / à date, réalisé par préfixe et projet,
+écart, hors budget), `projects.statement` (CdR d'un projet sur une période, factures jointes) ; API
+`/budgets/<fy_id>/tracking`, `/projects/<id>/statement` ; exports XLSX (`app/views/exports.py`) ;
+écrans Suivi budgétaire (graphique, impression) et Compte de résultat du projet (impression PDF) ;
+carte Budget au tableau de bord. **US-C1 cochée.** Copie SN 5001 vérifiée (suivi 2026 au 22/10, CdR
+« Jardin partagé », carte). pytest 772, Vitest 78, E2E 20.
+
 ## 5. Lot B — Reçus fiscaux
 
 | Phase | Tâches | CP |

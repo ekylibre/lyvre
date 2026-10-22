@@ -1,6 +1,7 @@
 """Projets / activités (lot C.1) : liste avec charges et produits, création, modification,
 archivage ; affectation et ventilation des lignes d'écriture."""
 from contextlib import contextmanager
+from datetime import date
 
 from flask import jsonify, request
 
@@ -89,3 +90,19 @@ def _line(entry_id, line_id):
     if line is None or line.entry_id != entry_id:
         raise ApiError("not_found", "Ligne d'écriture introuvable.", 404)
     return line
+
+
+@bp.route("/projects/<int:project_id>/statement")
+def projects_statement(project_id):
+    """Compte de résultat du projet `?start=&end=` (défaut : dates du projet ou exercice en cours)."""
+    project = get_or_404(Project, project_id, "Projet introuvable.")
+    start, end = projects.default_period(project)
+    try:
+        start = date.fromisoformat(request.args["start"]) if request.args.get("start") else start
+        end = date.fromisoformat(request.args["end"]) if request.args.get("end") else end
+    except ValueError:
+        raise ApiError("validation_error", "Date invalide.", 422) from None
+    if end < start:
+        raise ApiError("validation_error", "La fin doit suivre le début.", 422)
+    data = projects.statement(project, start, end)
+    return jsonify(export_url=f"/projects/{project.id}/statement.xlsx?start={start}&end={end}", **data)

@@ -108,7 +108,7 @@ html, body { background: var(--lv-paper); }
 .lv-print-only { display: none; }
 @media print {
   .mantine-AppShell-navbar, .mantine-AppShell-header, .mantine-Button-root, .mantine-Select-root,
-  .mantine-TextInput-root, .mantine-ActionIcon-root { display: none !important; }
+  .mantine-TextInput-root, .mantine-ActionIcon-root, .mantine-DateInput-root, .lv-no-print { display: none !important; }
   .mantine-AppShell-main { padding: 0 !important; }
   html, body, .mantine-AppShell-main { background: #fff !important; }
   .lv-print-only { display: block; }

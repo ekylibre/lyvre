@@ -240,6 +240,8 @@ Pages de la SPA : `/projects/`, `/projects/new`, `/projects/<id>/edit` (Compta �
 | GET | `/api/v1/projects/options` | Projets actifs pour les listes de choix |
 | POST · PUT | `/api/v1/projects[/<id>]` | `{name, description, start_date, end_date, manager, archived}` ; nom unique (sans casse), fin ≥ début |
 | GET · DELETE | `/api/v1/projects/<id>` | Fiche ; suppression refusée (409) si le projet est utilisé : l'archiver |
+| GET | `/api/v1/projects/<id>/statement` | **Compte de résultat du projet** `?start=&end=` (défaut : dates du projet, sinon exercice en cours) : charges et produits par compte, détail des lignes avec la facture d'achat jointe (`document_url`), totaux, `export_url` |
+| GET | `/projects/<id>/statement.xlsx` (route Flask) | Export tableur (feuilles « Compte de résultat » et « Détail ») ; page SPA `/projects/<id>/statement` imprimable (PDF) |
 
 Le projet se saisit aussi dans l'éditeur d'écriture (colonne « Projet » si l'instance a des projets ;
 `project_id` dans `lines` et dans `GET /api/v1/entries/form`), sur la fiche d'une écriture (affecter,
@@ -250,7 +252,9 @@ règles.
 
 ## Budget (`/budget/`)
 
-Page de la SPA : `/budget/?fiscal_year_id=&project_id=` (Compta › Budget) : grille comptes × mois,
+Pages de la SPA : `/budget/tracking?fiscal_year_id=&project_id=&as_of=` (Compta › Suivi budgétaire :
+synthèse, graphique des charges, tableau par poste, impression, export ; carte « Budget » au tableau de
+bord quand l'exercice a un budget général) et `/budget/?fiscal_year_id=&project_id=` (Compta › Budget) : grille comptes × mois,
 budget général ou d'un projet, saisie annuelle (répartie par douzièmes) ou mensuelle, copie de
 l'exercice précédent à relire avant d'enregistrer. API :
 
@@ -258,6 +262,8 @@ l'exercice précédent à relire avant d'enregistrer. API :
 |---------|-----|-------------|
 | GET | `/api/v1/budgets/<fy_id>` | `?project_id=` (vide : budget général) : `months`, `rows` (`mode` annual\|monthly, `months`, `total_cents`), `totals`, options de comptes (6 et 7, regroupements compris) et de projets |
 | PUT | `/api/v1/budgets/<fy_id>` | `{project_id, rows: [{account_id, annual_cents} \| {account_id, months: [...]}]}` : remplace le budget du périmètre ; 422 si compte hors classes 6/7, doublon, ou compte qui en regroupe un autre |
+| GET | `/api/v1/budgets/<fy_id>/tracking` | **Suivi** `?project_id=&as_of=` (défaut : aujourd'hui, borné à l'exercice) : par poste prévu (année), prévu à date (mois entamés), réalisé à date (par préfixe ; lignes du projet si filtré), écart, taux ; réalisé hors budget regroupé à 3 chiffres ; `summary`, `export_url` |
+| GET | `/budget/tracking.xlsx` (route Flask) | Export tableur du suivi (`fiscal_year_id`, `project_id`, `as_of`) ; tous les rôles |
 | GET | `/api/v1/budgets/<fy_id>/copy` | `?source=budget\|actual&project_id=` : grille proposée d'après l'exercice précédent (réalisé regroupé au compte à 3 chiffres), non enregistrée |
 
 ---

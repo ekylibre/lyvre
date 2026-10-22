@@ -32,4 +32,10 @@ test("projets : création, ventilation d'une ligne, charges par projet", async (
   await page.goto("/projects/");
   await expect(page.getByRole("row", { name: /Festival.*60,00/ })).toBeVisible();
   await expect(page.getByRole("row", { name: /Jardin.*30,00/ })).toBeVisible();
+
+  // Compte de résultat du projet pour un financeur.
+  await page.getByRole("row", { name: /Festival/ }).getByRole("link", { name: "Compte de résultat" }).click();
+  await expect(page.getByRole("heading", { name: "Projet « Festival »" })).toBeVisible();
+  await expect(page.getByText("Total charges")).toBeVisible();
+  await expect(page.getByRole("link", { name: "BQ-E2E-PROJ" })).toBeVisible();
 });

@@ -237,8 +237,8 @@ particuliers et entreprises.
 
 **US-C1 — Suivre le budget.** Le bureau saisit le budget N par poste et par projet et suit
 l'exécution.
-- [ ] Prévu / réalisé / écart par poste et par projet, à date, export tableur.
-- [ ] CdR d'un projet sur une période, pour un financeur.
+- [x] Prévu / réalisé / écart par poste et par projet, à date, export tableur.
+- [x] CdR d'un projet sur une période, pour un financeur.
 
 **US-D1 — Tenir une comptabilité simplifiée.** Une petite association saisit recettes et
 dépenses par catégorie, importe son relevé et édite son compte de résultat simplifié.
