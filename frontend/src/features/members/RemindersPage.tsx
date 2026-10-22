@@ -8,6 +8,7 @@ import { confirmAction } from "../../components/ConfirmButton";
 import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { IntegrationNotice } from "../../components/IntegrationNotice";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
 import { filterQuery, MEMBERS_KEY, type Integrations, type Member } from "./types";
@@ -37,12 +38,12 @@ export default function RemindersPage() {
       <PageHeader title="Relancer les adhésions échues"
         description="Adhérents dont l'adhésion est échue et dont l'email est connu."
         actions={<>
-          <Button variant="default" component={AppLink} href="/entities/members/reminder-template">Modifier le message</Button>
-          <Button disabled={!selected.length || !smtp?.available} loading={send.isPending}
+          <Can><Button variant="default" component={AppLink} href="/entities/members/reminder-template">Modifier le message</Button></Can>
+          <Can><Button disabled={!selected.length || !smtp?.available} loading={send.isPending}
             onClick={() => confirmAction({
               title: `Envoyer ${selected.length} email(s) de relance ?`, danger: false, confirmLabel: "Envoyer",
               message: "Chaque adhérent coché reçoit le message de relance.", onConfirm: () => send.mutate(undefined),
-            })}>Envoyer la relance</Button>
+            })}>Envoyer la relance</Button></Can>
         </>} />
       <IntegrationNotice name="smtp" state={smtp} consequence="envoi des relances impossible" />
       {data?.meta?.helloasso_url ? (

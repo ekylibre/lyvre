@@ -5,9 +5,10 @@ import { Sparkline } from "@mantine/charts";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
-import { useCurrentSession } from "../../api/session";
+import { useCan } from "../../api/session";
 import { useUrlParams } from "../../components/FilterBar";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
@@ -47,7 +48,7 @@ export function useImpact() {
 }
 
 export default function ImpactPage() {
-  const session = useCurrentSession();
+  const can = useCan();
   const { data, query, change } = useImpact();
   const opts = { invalidate: [IMPACT_KEY] };
   const syncMonth = useAction(() => api.post<{ notices: Notice[] }>("/api/v1/impact/sync", { scope: "month", month: data?.current.month }), opts);
@@ -58,13 +59,13 @@ export default function ImpactPage() {
     <>
       <PageHeader title="Visibilité & Impact" description={data?.period.label}
         actions={<>
-          <Button variant="default" component={AppLink} href="/impact/manual">Saisie manuelle</Button>
-          {session.user?.is_admin && <Button variant="default" component={AppLink} href="/impact/factors">Facteurs d'impact</Button>}
+          <Can><Button variant="default" component={AppLink} href="/impact/manual">Saisie manuelle</Button></Can>
+          {can.instanceAdmin && <Button variant="default" component={AppLink} href="/impact/factors">Facteurs d'impact</Button>}
           <Button variant="default" component={AppLink} href={`/impact/report${query}`}>Rapport imprimable</Button>
           {data && <Button variant="default" component="a" href={data.meta.export_url}>Exporter (XLSX)</Button>}
         </>} />
       <PeriodFilter view={data} onChange={change} />
-      <Group gap="xs" mb="md">
+      <Can><Group gap="xs" mb="md">
         <Tooltip label="GA4 et Facebook indisponibles" disabled={ga4 || facebook}>
           <Button size="compact-md" variant="default" disabled={!ga4 && !facebook} loading={syncMonth.isPending}
             onClick={() => syncMonth.mutate()}>Synchroniser le mois</Button>
@@ -73,7 +74,7 @@ export default function ImpactPage() {
           <Button size="compact-md" disabled={!ga4} loading={syncYear.isPending}
             onClick={() => syncYear.mutate()}>Synchroniser l'année {data?.current.year} (GA4)</Button>
         </Tooltip>
-      </Group>
+      </Group></Can>
       <Group gap="md" mb="md">
         {data?.sources.map((s) => (
           <Group key={s.source} gap={6}>

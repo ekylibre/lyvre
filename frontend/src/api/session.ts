@@ -15,10 +15,15 @@ export interface Preferences {
   [key: string]: unknown;
 }
 
+export type InstanceRole = "admin" | "treasurer" | "accountant";
+
 export interface Session {
   user: { id: number; email: string; full_name: string | null; is_admin: boolean } | null;
   instance: { id: number; slug: string; label: string; chart: string } | null;
   instances: { id: number; label: string }[];
+  /** Rôle sur l'instance courante ; `permissions` en découle (le serveur reste seul juge). */
+  role?: InstanceRole | null;
+  permissions?: { write: boolean; instance_admin: boolean };
   nav: NavMenu[];
   admin_links: { label: string; url: string }[];
   preferences: Preferences;
@@ -29,6 +34,7 @@ export const SESSION_KEY = ["session"] as const;
 
 const ANONYMOUS: Session = {
   user: null, instance: null, instances: [], nav: [], admin_links: [], preferences: {}, csrf_token: "",
+  role: null, permissions: { write: false, instance_admin: false },
 };
 
 function accept(session: Session): Session {
@@ -54,6 +60,20 @@ export function useSession() {
 export function useCurrentSession(): Session {
   const { data } = useSession();
   return data ?? ANONYMOUS;
+}
+
+/**
+ * Droits de l'utilisateur sur l'instance courante : `write` (tout sauf l'expert-comptable),
+ * `instanceAdmin` (administrateur de l'instance). Sert à masquer les actions ; l'API refuse de
+ * toute façon ce qui n'est pas permis.
+ */
+export function useCan(): { write: boolean; instanceAdmin: boolean; role: InstanceRole | null } {
+  const session = useCurrentSession();
+  return {
+    write: session.permissions?.write ?? true,
+    instanceAdmin: session.permissions?.instance_admin ?? false,
+    role: session.role ?? null,
+  };
 }
 
 export function useLogin() {

@@ -4,7 +4,7 @@ import { Alert, Anchor, Button, Group, Paper, Text, TextInput } from "@mantine/c
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
-import { useCurrentSession } from "../../api/session";
+import { useCan } from "../../api/session";
 import { confirmAction } from "../../components/ConfirmButton";
 import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { FilterBar, useUrlParams } from "../../components/FilterBar";
@@ -17,8 +17,7 @@ import { FiscalYearSelect, REPORT_KEY, useReportContext, withFy } from "./shared
 interface Archive { id: number; version: number; label: string | null; prorata: boolean; created_at: string | null; url: string }
 
 export default function ArchivesPage() {
-  const session = useCurrentSession();
-  const admin = session.user?.is_admin;
+  const admin = useCan().instanceAdmin;
   const { setParams, context } = useReportContext();
   const [params] = useUrlParams({ fy_id: "" });
   const key = [...REPORT_KEY, "archives", params.fy_id];
@@ -34,7 +33,7 @@ export default function ArchivesPage() {
     { accessor: "label", title: "Libellé", render: (a) => a.label ?? "—" },
     { accessor: "prorata", title: "Éco", render: (a) => <StatusBadge tone="neutral">{a.prorata ? "pro-rata" : "indivisible"}</StatusBadge> },
     { accessor: "created_at", title: "Créée le", render: (a) => <span className="lv-num">{formatDateTime(a.created_at)}</span> },
-    { accessor: "actions", title: "", hideable: false, textAlign: "right", render: (a) => (
+    { accessor: "open", title: "", hideable: false, textAlign: "right", render: (a) => (
       <Group gap="xs" justify="flex-end" wrap="nowrap">
         <Anchor href={a.url} target="_blank" rel="noopener" size="sm">Consulter</Anchor>
         {admin && <Button size="compact-sm" variant="subtle" color="red" onClick={() => confirmAction({

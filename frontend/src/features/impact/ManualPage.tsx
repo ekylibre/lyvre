@@ -8,11 +8,12 @@ import { useUrlParams } from "../../components/FilterBar";
 import { PageHeader } from "../../components/PageHeader";
 import { AppLink } from "../../app/navigation";
 import { IMPACT_KEY } from "./types";
+import { writeOnly } from "../../components/ReadOnlyPage";
 
 interface Field { key: string; label: string; unit: string; in_euros: boolean; value: number | null }
 interface Manual { month: string; fields: Field[]; meta: { months: { value: string; label: string }[] } }
 
-export default function ManualPage() {
+function ManualPage() {
   const [params, setParams] = useUrlParams({ month: "" });
   const key = [...IMPACT_KEY, "manual", params.month];
   const { data } = useQuery({ queryKey: key, placeholderData: (prev) => prev,
@@ -48,3 +49,5 @@ export default function ManualPage() {
     </>
   );
 }
+
+export default writeOnly(ManualPage, "Saisie manuelle", { href: "/impact/", label: "Voir le tableau de bord." });

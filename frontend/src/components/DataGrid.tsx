@@ -7,7 +7,7 @@ import {
   DataTable, type DataTableColumn, type DataTableProps, type DataTableSortStatus,
 } from "mantine-datatable";
 import { Columns3 } from "lucide-react";
-import { usePreferences } from "../api/session";
+import { useCan, usePreferences } from "../api/session";
 import { compareValues } from "../lib/format";
 
 export type GridColumn<T> = DataTableColumn<T> & {
@@ -67,10 +67,17 @@ export interface DataGridProps<T> {
   toolbar?: ReactNode;
 }
 
+/** Colonne des actions d'écriture d'une ligne (modifier, supprimer…) : absente en lecture seule. */
+export const ACTIONS_COLUMN = "actions";
+
 export function DataGrid<T>({
-  id, records, columns, idAccessor = "id" as keyof T & string, fetching, sort, onSortChange,
-  defaultSort, pagination, perPage, selection, onRowClick, emptyText = "Aucun élément.", toolbar,
+  id, records, columns: allColumns, idAccessor = "id" as keyof T & string, fetching, sort, onSortChange,
+  defaultSort, pagination, perPage, selection: allSelection, onRowClick, emptyText = "Aucun élément.", toolbar,
 }: DataGridProps<T>) {
+  // Lecture seule (expert-comptable) : ni colonne d'actions ni sélection pour actions groupées.
+  const can = useCan();
+  const columns = can.write ? allColumns : allColumns.filter((c) => c.accessor !== ACTIONS_COLUMN);
+  const selection = can.write ? allSelection : undefined;
   const [preferences, updatePreferences] = usePreferences();
   const hidden = preferences.tables?.[id]?.hidden ?? [];
   const [localSort, setLocalSort] = useState<SortState | null>(defaultSort ?? null);

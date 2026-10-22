@@ -5,12 +5,13 @@ import { Alert, Anchor, Button, Group, Select, Text, TextInput } from "@mantine/
 import { useForm } from "@mantine/form";
 import { api } from "../../api/client";
 import { useAction, useList, type Notice } from "../../api/resources";
-import { useCurrentSession } from "../../api/session";
+import { useCan } from "../../api/session";
 import { applyApiError, FormBody } from "../../components/ApiForm";
 import { confirmAction } from "../../components/ConfirmButton";
 import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { FormModal } from "../../components/FormModal";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { AppLink } from "../../app/navigation";
 import { useRouteModal } from "../../app/useRouteModal";
@@ -45,7 +46,7 @@ function BankAccountForm({ bankAccount, glAccounts, onDone }: { bankAccount: Ban
 
 export default function BankAccountsPage() {
   const modal = useRouteModal("/bank-accounts/", "ba_id");
-  const session = useCurrentSession();
+  const can = useCan();
   const { data, isFetching } = useList<BankAccount, Meta>(BANK_ACCOUNTS_KEY, "/api/v1/bank-accounts");
   const editing = modal.mode === "edit" ? data?.items.find((b) => b.id === modal.id) ?? null : null;
   const remove = useAction((b: BankAccount) => api.delete<{ notices: Notice[] }>(`/api/v1/bank-accounts/${b.id}`),
@@ -79,8 +80,8 @@ export default function BankAccountsPage() {
     <>
       <PageHeader title="Comptes bancaires" description="Chaque compte bancaire est lié à un compte 512 du plan comptable."
         actions={<>
-          {session.user?.is_admin && <Button variant="default" component={AppLink} href="/bank-accounts/qonto">Comptes Qonto</Button>}
-          <Button onClick={modal.openNew}>Créer un compte</Button>
+          {can.instanceAdmin && <Button variant="default" component={AppLink} href="/bank-accounts/qonto">Comptes Qonto</Button>}
+          <Can><Button onClick={modal.openNew}>Créer un compte</Button></Can>
         </>} />
       <DataGrid id="bank-accounts" records={data?.items} columns={columns} fetching={isFetching}
         emptyText="Aucun compte bancaire : créez le premier." />

@@ -12,6 +12,7 @@ from flask_login import current_user, login_required, login_user, logout_user
 from flask_wtf.csrf import generate_csrf
 from sqlalchemy import func
 
+from app.access import accessible_instances, permissions, role_for
 from app.extensions import db
 from app.menu_config import build_nav
 from app.models import Instance, SyncJob, User
@@ -21,14 +22,11 @@ from . import ApiError, bp, json_body
 PREFERENCES_MAX_BYTES = 16 * 1024
 COLOR_SCHEMES = ("light", "dark", "auto")
 
-def _active_instances():
-    return Instance.query.filter(Instance.is_active.is_(True)).order_by(Instance.label).all()
-
-
 def _current_instance():
+    """Instance de la session, si l'utilisateur y a (encore) accès."""
     instance_id = flask_session.get("instance_id")
     inst = db.session.get(Instance, instance_id) if instance_id is not None else None
-    return inst if inst is not None and inst.is_active else None
+    return inst if role_for(current_user, inst) is not None else None
 
 
 def _resolve_nav(menus):
@@ -60,17 +58,19 @@ def session_payload() -> dict:
     """Utilisateur, instance, menus, préférences et jeton CSRF (vide si non connecté)."""
     if not current_user.is_authenticated:
         return {"user": None, "instance": None, "instances": [], "nav": [], "admin_links": [],
-                "preferences": {},
+                "role": None, "permissions": permissions(None), "preferences": {},
                 "csrf_token": generate_csrf()}
     inst = getattr(g, "current_instance", None) or _current_instance()
     is_admin = bool(current_user.is_admin)
+    role = role_for(current_user, inst) if inst else None
     return {
         "user": {"id": current_user.id, "email": current_user.email,
                  "full_name": current_user.full_name, "is_admin": is_admin},
         "instance": ({"id": inst.id, "slug": inst.slug, "label": inst.label, "chart": inst.chart}
                      if inst else None),
-        "instances": [{"id": i.id, "label": i.label} for i in _active_instances()],
-        "nav": _resolve_nav(build_nav(chart=inst.chart, is_admin=is_admin)) if inst else [],
+        "instances": [{"id": i.id, "label": i.label} for i in accessible_instances(current_user)],
+        "role": role, "permissions": permissions(role),
+        "nav": _resolve_nav(build_nav(chart=inst.chart, is_admin=role == "admin")) if inst else [],
         # Menu de l'utilisateur (en-tête) : administration réservée aux admins.
         "admin_links": ([{"label": "Utilisateurs", "url": url_for("users.index")},
                          {"label": "Instances", "url": url_for("instances.index")}] if is_admin else []),
@@ -98,7 +98,7 @@ def login():
     login_user(user)
     user.last_login_at = datetime.utcnow()
     db.session.commit()
-    instances = _active_instances()
+    instances = accessible_instances(user)
     if len(instances) == 1 and _current_instance() is None:
         flask_session["instance_id"] = instances[0].id
     return jsonify(session_payload())
@@ -120,9 +120,9 @@ def select_instance():
         raise ApiError("validation_error", "Sélection invalide.", status=422,
                        fields={"instance_id": "Choisissez une instance."}) from None
     inst = db.session.get(Instance, instance_id)
-    if inst is None or not inst.is_active:
-        raise ApiError("validation_error", "Instance introuvable ou désactivée.", status=422,
-                       fields={"instance_id": "Instance introuvable ou désactivée."})
+    if role_for(current_user, inst) is None:
+        raise ApiError("validation_error", "Instance introuvable, désactivée ou non autorisée.", status=422,
+                       fields={"instance_id": "Instance introuvable, désactivée ou non autorisée."})
     flask_session["instance_id"] = inst.id
     g.current_instance = inst
     return jsonify(session_payload())

@@ -102,13 +102,29 @@ changement d'interrupteur ou au premier test.
 | `email` | String(200) UNIQUE NOT NULL | Login (case-insensitive) |
 | `password_hash` | String(255) NOT NULL | Hash Werkzeug `pbkdf2:sha256` |
 | `full_name` | String(200) nullable | Nom affiché |
-| `is_admin` | Boolean default=False | Donne accès aux CRUD users + instances |
+| `is_admin` | Boolean default=False | Administrateur global : CRUD users + instances, administrateur de toutes les instances |
 | `is_active` | Boolean default=True | Faux = login refusé, déconnexion forcée |
 | `last_login_at` | DateTime nullable | Mis à jour à chaque login réussi |
 | `preferences` | Text NOT NULL default=`{}` | Préférences d'interface de la SPA (JSON : `color_scheme`, `tables.<id>.hidden`…), modifiées par `PATCH /api/v1/me/preferences` |
 | `created_at` | DateTime default=utcnow | |
 
 Hérite de `flask_login.UserMixin`. Méthodes `set_password(p)` / `check_password(p)`.
+
+### InstanceMembership — Accès d'un utilisateur à une instance
+
+**Table :** `instance_memberships` (méta-base)
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| `id` | Integer PK | |
+| `user_id` | Integer FK→users ON DELETE CASCADE (indexé) | |
+| `instance_id` | Integer FK→instances ON DELETE CASCADE (indexé) | |
+| `role` | String(20) NOT NULL | `admin`, `treasurer`, `accountant` |
+| `created_at` | DateTime NOT NULL | |
+| `created_by_user_id` | Integer | Auteur de l'accès |
+
+Contrainte `uq_membership_user_instance (user_id, instance_id)`. Un administrateur global n'a pas
+besoin de ligne. Voir [multi_tenant.md](multi_tenant.md#accès-par-instance-et-rôles).
 
 ---
 

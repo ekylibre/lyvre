@@ -11,6 +11,7 @@ import { JobStatus, type Job } from "../../components/JobStatus";
 import { MoneyText } from "../../components/Money";
 import { MonthSelect } from "../../components/MonthSelect";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
@@ -52,8 +53,8 @@ export default function PayoutDetailPage() {
       <PageHeader title={`Versement du ${formatDate(p.date_payout)}`} description={p.stancer_id}
         actions={<>
           <Button variant="default" component={AppLink} href="/payouts/">Retour aux versements</Button>
-          <Button loading={start.isPending} disabled={!data.meta.stancer.available || shown?.status === "running"}
-            onClick={() => start.mutate(undefined, { onSuccess: (r) => setJob(r.job) })}>Synchroniser les paiements</Button>
+          <Can><Button loading={start.isPending} disabled={!data.meta.stancer.available || shown?.status === "running"}
+            onClick={() => start.mutate(undefined, { onSuccess: (r) => setJob(r.job) })}>Synchroniser les paiements</Button></Can>
         </>} />
       {shown && <JobStatus key={shown.id} job={shown} renderResult={syncResult}
         onDone={() => void client.invalidateQueries({ queryKey: [...PAYOUTS_KEY, id] })} />}

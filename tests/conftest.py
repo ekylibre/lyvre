@@ -56,15 +56,20 @@ def session(app):
 def login_as(app):
     """Client authentifié (utilisateur méta + instance pointant sur la base de test).
 
-    Usage : ``client = login_as(is_admin=True)``.
+    Usage : ``client = login_as(is_admin=True)`` ; ``login_as(role="accountant")`` pour un
+    expert-comptable ; ``role=None`` : connecté sans accès à l'instance.
     """
-    from app.models import Instance, User
+    from app.models import Instance, InstanceMembership, User
 
-    def _login(is_admin=False):
+    def _login(is_admin=False, role="treasurer"):
         user = User(email=f"{'admin' if is_admin else 'user'}@example.org", is_admin=is_admin)
         user.set_password("x")
         instance = Instance(slug="test", label="Test", database_url=os.environ["DATABASE_URL"])
         db.session.add_all([user, instance])
+        db.session.flush()
+        if not is_admin and role:
+            # Accès à l'instance de test (sans rôle : aucun accès, cf. app/access.py).
+            db.session.add(InstanceMembership(user_id=user.id, instance_id=instance.id, role=role))
         db.session.commit()
         client = app.test_client()
         with client.session_transaction() as sess:

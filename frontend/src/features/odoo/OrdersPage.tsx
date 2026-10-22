@@ -8,6 +8,7 @@ import { IntegrationNotice } from "../../components/IntegrationNotice";
 import { MoneyText } from "../../components/Money";
 import { MonthSelect } from "../../components/MonthSelect";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDateTime } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
@@ -41,8 +42,8 @@ export default function OrdersPage() {
   return (
     <>
       <PageHeader title="Commandes point de vente" description="Commandes Odoo (pos.order) synchronisées."
-        actions={<Button loading={sync.isPending} disabled={!data?.meta?.odoo.available} title={SYNC_HINT}
-          onClick={() => sync.mutate()}>Synchroniser depuis Odoo</Button>} />
+        actions={<Can><Button loading={sync.isPending} disabled={!data?.meta?.odoo.available} title={SYNC_HINT}
+          onClick={() => sync.mutate()}>Synchroniser depuis Odoo</Button></Can>} />
       <IntegrationNotice name="odoo" state={data?.meta?.odoo} consequence="synchronisation des commandes indisponible" />
       <FilterBar><MonthSelect value={params.month} onChange={(month) => setParams({ month })} options={data?.meta?.months} /></FilterBar>
       <DataGrid id="orders" records={data?.items} columns={COLUMNS} fetching={isFetching}

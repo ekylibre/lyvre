@@ -21,6 +21,11 @@ bp = Blueprint("api", __name__, url_prefix="/api/v1")
 # Seules routes accessibles sans être connecté (toutes les autres : 401 JSON).
 PUBLIC_ENDPOINTS = {"api.login", "api.logout"}
 
+# Écritures permises en lecture seule (expert-comptable) : session et préférences personnelles.
+READ_ONLY_ALLOWED = {"api.login", "api.logout", "api.select_instance", "api.update_preferences",
+                     "api.notifications_mark_read"}
+WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+
 _HTTP_CODES = {
     400: "bad_request",
     401: "unauthenticated",
@@ -103,6 +108,18 @@ def _require_login():
     return None
 
 
+@bp.before_request
+def _read_only_accountant():
+    """L'expert-comptable consulte tout mais ne modifie rien, quelle que soit la route."""
+    from app.access import current_role
+    from app.models.instance_membership import ROLE_ACCOUNTANT
+
+    if request.method in WRITE_METHODS and request.endpoint not in READ_ONLY_ALLOWED \
+            and current_role() == ROLE_ACCOUNTANT:
+        return error_response("read_only", "Accès en lecture seule (expert-comptable) : modification impossible.", 403)
+    return None
+
+
 def register_api(app):
     app.register_blueprint(bp)
 
@@ -135,7 +152,7 @@ def register_api(app):
 
 # Routes are attached to ``bp`` by these modules (import for side effects).
 from . import (  # noqa: E402,F401
-    activity_report, bank_accounts, chart, entities, entries, fiscal_years, impact, imports,
+    access, activity_report, bank_accounts, chart, entities, entries, fiscal_years, impact, imports,
     instances, integrations, journals, lookups, members, notifications, odoo, payouts, products,
     purchases, reconciliation, reports, rules, search, session, task_types, users, work_times,
 )

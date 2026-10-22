@@ -1,18 +1,17 @@
 // Indicateurs › Rapport d'activité : aperçu du rapport (HTML produit par le serveur, sans script),
 // mode éco, PDF et exports (HTML, DOCX, ODT) ; accès aux textes, tonnages, photos et archives.
 import { Alert, Button, Center, Group, Loader, Switch } from "@mantine/core";
-import { useCurrentSession } from "../../api/session";
+import { useCan } from "../../api/session";
 import { FilterBar } from "../../components/FilterBar";
 import { PageHeader } from "../../components/PageHeader";
 import { AppLink } from "../../app/navigation";
 import { FiscalYearSelect, useReportContext, withFy } from "./shared";
 
 export default function ReportPage() {
-  const session = useCurrentSession();
   const { setParams, context } = useReportContext();
   const data = context.data;
   const fyId = data?.fiscal_year.id;
-  const admin = session.user?.is_admin;
+  const admin = useCan().instanceAdmin;
   if (context.error) return <><PageHeader title="Rapport d'activité" /><Alert color="ardoise">{(context.error as Error).message}</Alert></>;
   return (
     <>

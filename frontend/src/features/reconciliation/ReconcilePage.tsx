@@ -20,6 +20,7 @@ import type { ApplyRulesResponse, BankTransaction, BatchResponse, Counters, Sugg
 import { AppLink } from "../../app/navigation";
 import { EntryEditor, type EntryFormData } from "../entries/EntryEditor";
 import { activeAfterRemoval, attachmentBadge, bestSuggestion, plural, rangeIds, REVERSED_MESSAGE } from "./logic";
+import { writeOnly } from "../../components/ReadOnlyPage";
 
 const UNDO_VISIBLE_MS = 10_000;
 const PREFETCH_NEXT = 3;
@@ -55,7 +56,7 @@ function EntryPanel({ bt, onClose, onSaved }: {
   );
 }
 
-export default function ReconcilePage() {
+function ReconcilePage() {
   const [search, setSearch] = useSearchParams();
   const { data: context } = useQuery({ queryKey: ["reconciliation", "context"],
     queryFn: () => api.get<Context>("/api/v1/reconciliation/context") });
@@ -428,3 +429,4 @@ export default function ReconcilePage() {
   );
 }
 
+export default writeOnly(ReconcilePage, "Rapprochement bancaire", { href: "/bank-accounts/", label: "Voir les comptes bancaires et leurs transactions." });

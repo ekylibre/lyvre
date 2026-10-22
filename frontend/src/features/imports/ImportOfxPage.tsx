@@ -12,10 +12,11 @@ import { upload } from "../../api/upload";
 import { PageHeader } from "../../components/PageHeader";
 import { AppLink } from "../../app/navigation";
 import { BANK_ACCOUNTS_KEY, type BankAccount } from "../bank-accounts/types";
+import { writeOnly } from "../../components/ReadOnlyPage";
 
 interface Result { imported: number; duplicates: number; errors: string[]; matched: number; settled: number }
 
-export default function ImportOfxPage() {
+function ImportOfxPage() {
   const [search] = useSearchParams();
   const client = useQueryClient();
   const { data } = useQuery({ queryKey: BANK_ACCOUNTS_KEY, queryFn: () => api.get<{ items: BankAccount[] }>("/api/v1/bank-accounts") });
@@ -75,3 +76,5 @@ export default function ImportOfxPage() {
     </>
   );
 }
+
+export default writeOnly(ImportOfxPage, "Importer un relevé OFX", { href: "/bank-accounts/", label: "Voir les comptes bancaires." });

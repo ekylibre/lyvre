@@ -19,6 +19,7 @@ import { AttachmentPreview } from "./AttachmentPreview";
 import { EMPTY_LINE, cents } from "./lines";
 import { LinesEditor } from "./LinesEditor";
 import { PURCHASES_KEY, type FormOptions, type LineRow, type Option } from "./types";
+import { writeOnly } from "../../components/ReadOnlyPage";
 
 type Values = Record<string, string>;
 interface Preview { url: string; mime: string }
@@ -43,7 +44,7 @@ function FileDrop({ onFile, loading, title, hint }: { onFile: (file: File) => vo
   );
 }
 
-export default function PurchaseFormPage() {
+function PurchaseFormPage() {
   const editId = Number(useParams().purchase_id) || null;
   const [search] = useSearchParams();
   const goTo = useGoTo();
@@ -231,3 +232,5 @@ export default function PurchaseFormPage() {
     </>
   );
 }
+
+export default writeOnly(PurchaseFormPage, "Nouvelle facture d'achat", { href: "/purchases/", label: "Voir les factures d'achat." });

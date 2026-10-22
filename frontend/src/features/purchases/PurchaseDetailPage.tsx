@@ -8,9 +8,11 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
+import { useCan } from "../../api/session";
 import { ConfirmButton } from "../../components/ConfirmButton";
 import { MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink, useGoTo } from "../../app/navigation";
@@ -26,6 +28,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 const amount = (cents: number | null) => (cents === null ? "—" : <MoneyText cents={cents} />);
 
 export default function PurchaseDetailPage() {
+  const can = useCan();
   const id = Number(useParams().purchase_id);
   const goTo = useGoTo();
   const key = [...PURCHASES_KEY, id];
@@ -67,10 +70,10 @@ export default function PurchaseDetailPage() {
           </Group>
         }
         actions={<>
-          {p.source === "manual" && editable && <Button variant="default" component={AppLink} href={`/purchases/${id}/edit`}>Modifier l'en-tête</Button>}
+          <Can>{p.source === "manual" && editable && <Button variant="default" component={AppLink} href={`/purchases/${id}/edit`}>Modifier l'en-tête</Button>}
           <ConfirmButton title={`Supprimer ${name} ?`} confirmLabel="Supprimer" loading={remove.isPending}
             message={[p.journal_entry_id && "Son écriture d'achat sera supprimée aussi.", p.in_qonto && "Elle reste dans Qonto."].filter(Boolean).join(" ") || undefined}
-            onConfirm={() => remove.mutate(undefined, { onSuccess: () => goTo("/purchases/") })}>Supprimer</ConfirmButton>
+            onConfirm={() => remove.mutate(undefined, { onSuccess: () => goTo("/purchases/") })}>Supprimer</ConfirmButton></Can>
           <Button variant="default" component={AppLink} href="/purchases/">Retour</Button>
         </>} />
 
@@ -102,13 +105,13 @@ export default function PurchaseDetailPage() {
                       {p.qonto_upload_status === "sent" ? <StatusBadge tone="ok">Déposée dans Qonto</StatusBadge>
                         : p.qonto_upload_status === "failed" ? <><StatusBadge tone="gap">Envoi en échec</StatusBadge><Text size="sm" c="var(--lv-brique)">{p.qonto_upload_error}</Text></>
                         : <Text size="sm" c="dimmed">Non envoyée</Text>}
-                      {data.meta.qonto.upload && data.can_send && (
+                      <Can>{data.meta.qonto.upload && data.can_send && (
                         <ConfirmButton danger={false} size="compact-sm" variant="default" loading={sendToQonto.isPending}
                           title={p.qonto_upload_status === "failed" ? "Renvoyer la pièce à Qonto ?" : "Envoyer la pièce à Qonto ?"}
                           message="La pièce est déposée dans Qonto (factures fournisseurs)." confirmLabel="Envoyer"
                           onConfirm={() => sendToQonto.mutate()}>
                           {p.qonto_upload_status === "failed" ? "Renvoyer à Qonto" : "Envoyer à Qonto"}</ConfirmButton>
-                      )}
+                      )}</Can>
                     </Group>
                   </Row>
                 )}
@@ -128,10 +131,10 @@ export default function PurchaseDetailPage() {
           {p.entry ? (
             <Paper p="md">
               <Text size="sm">Écriture <Anchor component={AppLink} href={p.entry.url} size="sm">{p.entry.reference}</Anchor> du {formatDate(p.entry.date)}</Text>
-              <ConfirmButton mt="sm" size="compact-md" title="Annuler la comptabilisation ?" message="L'écriture d'achat est supprimée ; la facture redevient modifiable."
-                confirmLabel="Annuler la comptabilisation" loading={unpost.isPending} onConfirm={() => unpost.mutate()}>Annuler la comptabilisation</ConfirmButton>
+              <Can><ConfirmButton mt="sm" size="compact-md" title="Annuler la comptabilisation ?" message="L'écriture d'achat est supprimée ; la facture redevient modifiable."
+                confirmLabel="Annuler la comptabilisation" loading={unpost.isPending} onConfirm={() => unpost.mutate()}>Annuler la comptabilisation</ConfirmButton></Can>
             </Paper>
-          ) : p.state.code === "ready" && <Button loading={post.isPending} onClick={() => post.mutate()}>Comptabiliser</Button>}
+          ) : p.state.code === "ready" && <Can><Button loading={post.isPending} onClick={() => post.mutate()}>Comptabiliser</Button></Can>}
         </Grid.Col>
       </Grid>
 
@@ -150,8 +153,8 @@ export default function PurchaseDetailPage() {
                     <Table.Td className="lv-num">{formatDate(t.date)}</Table.Td><Table.Td>{t.bank_account}</Table.Td>
                     <Table.Td><Text size="sm">{t.label} {t.rule && <Badge size="xs" color="paille" variant="light" title="Déjà passée par une règle : son écriture sera à remplacer">règle</Badge>}</Text></Table.Td>
                     <Table.Td ta="right"><MoneyText cents={t.amount_cents} /></Table.Td>
-                    <Table.Td ta="right"><Button size="compact-sm" variant="default" loading={link.isPending && link.variables === t.id}
-                      onClick={() => link.mutate(t.id)}>Régler avec cette transaction</Button></Table.Td>
+                    <Table.Td ta="right"><Can><Button size="compact-sm" variant="default" loading={link.isPending && link.variables === t.id}
+                      onClick={() => link.mutate(t.id)}>Régler avec cette transaction</Button></Can></Table.Td>
                   </Table.Tr>
                 ))}</Table.Tbody>
               </Table>
@@ -188,8 +191,8 @@ export default function PurchaseDetailPage() {
                 <Table.Td ta="right">{pay.origin !== "qonto" && (
                   <Group gap={6} justify="flex-end" wrap="nowrap">
                     <Text size="xs" c="dimmed">{pay.origin === "match" ? "auto" : "choisi"}</Text>
-                    <ConfirmButton size="compact-sm" variant="subtle" title="Défaire ce règlement ?" message="Son écriture sera supprimée."
-                      confirmLabel="Défaire" onConfirm={() => unlink.mutate(pay.id)}>Défaire</ConfirmButton>
+                    <Can><ConfirmButton size="compact-sm" variant="subtle" title="Défaire ce règlement ?" message="Son écriture sera supprimée."
+                      confirmLabel="Défaire" onConfirm={() => unlink.mutate(pay.id)}>Défaire</ConfirmButton></Can>
                   </Group>
                 )}</Table.Td>
               </Table.Tr>
@@ -199,7 +202,7 @@ export default function PurchaseDetailPage() {
       )}
 
       <Title order={3} mb={4}>Lignes</Title>
-      {editable ? (
+      {editable && can.write ? (
         <form onSubmit={(e) => { e.preventDefault(); saveLines.mutate(rows); }}>
           <LinesEditor rows={rows} onChange={setRows} products={data.meta.products} accounts={data.meta.charge_accounts}
             expected={p.total_cents} expectedLabel={fromQonto ? "TTC Qonto" : "TTC"} />

@@ -10,6 +10,7 @@ import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { FilterBar, useUrlParams } from "../../components/FilterBar";
 import { FormModal } from "../../components/FormModal";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useRouteModal } from "../../app/useRouteModal";
 
@@ -120,7 +121,7 @@ export default function ProductsPage() {
   return (
     <>
       <PageHeader title="Catalogue" description="Produits et services : comptes et taux de TVA proposés sur les lignes de facture."
-        actions={<Button onClick={modal.openNew}>Créer un produit</Button>} />
+        actions={<Can><Button onClick={modal.openNew}>Créer un produit</Button></Can>} />
       <FilterBar>
         <Switch label="Afficher les archivés" checked={archived}
           onChange={(e) => setParams({ archived: e.currentTarget.checked ? "1" : "" })} />

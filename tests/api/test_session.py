@@ -39,8 +39,11 @@ def test_login_errors(app):
 
 
 def test_login_selects_single_instance_and_returns_session(app):
-    _user(email="Tresorier@Example.org", full_name="Trésorier")
+    from app.models import InstanceMembership
+    user = _user(email="Tresorier@Example.org", full_name="Trésorier")
     inst = _instance(chart="sci")
+    db.session.add(InstanceMembership(user_id=user.id, instance_id=inst.id, role="treasurer"))
+    db.session.commit()
     client = app.test_client()
     body = _login(client, email=" tresorier@example.org ").get_json()
     assert body["user"]["email"] == "Tresorier@Example.org" and body["user"]["is_admin"] is False
@@ -51,6 +54,7 @@ def test_login_selects_single_instance_and_returns_session(app):
     compta = next(m for m in body["nav"] if m["key"] == "compta")
     assert {"key": "entries", "label": "Écritures", "url": "/entries/"} in compta["items"]
     assert body["csrf_token"] and body["preferences"] == {} and body["admin_links"] == []
+    assert body["role"] == "treasurer" and body["permissions"] == {"write": True, "instance_admin": False}
     assert client.get("/api/v1/session").get_json()["instance"]["id"] == inst.id
     assert User.query.one().last_login_at is not None
 

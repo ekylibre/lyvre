@@ -11,6 +11,7 @@ import { useAction, type Notice } from "../../api/resources";
 import { FormDrawer } from "../../components/FormModal";
 import { MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { StatusBadge, type Tone } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
@@ -95,12 +96,12 @@ export default function EntityDetailPage() {
         description={identity}
         actions={<>
           {e.is_member && (
-            <Button variant="default" loading={odooNote.isPending} disabled={!data.meta.integrations.odoo.available}
+            <Can><Button variant="default" loading={odooNote.isPending} disabled={!data.meta.integrations.odoo.available}
               title="Écrire la date anniversaire et le statut d'adhésion dans « Notes interne » d'Odoo"
-              onClick={() => odooNote.mutate(undefined)}>Mettre à jour la fiche Odoo</Button>
+              onClick={() => odooNote.mutate(undefined)}>Mettre à jour la fiche Odoo</Button></Can>
           )}
           <Button variant="default" component={AppLink} href="/entities/">Retour à la liste</Button>
-          <Button onClick={() => setEditing(true)}>Modifier</Button>
+          <Can><Button onClick={() => setEditing(true)}>Modifier</Button></Can>
         </>} />
       {e.notes && <Text c="dimmed" mb="md">{e.notes}</Text>}
 

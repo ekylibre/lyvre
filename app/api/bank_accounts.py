@@ -5,7 +5,7 @@ from datetime import date
 
 from flask import current_app, jsonify, request, url_for
 
-from app.decorators import admin_required
+from app.access import instance_admin_required
 from app.extensions import db
 from app.models import Account, BankAccount, Entity, Journal
 from app.services import counterparties, external_config, qonto_sync
@@ -143,7 +143,7 @@ def _date(value, field):
 
 
 @bp.route("/qonto/accounts")
-@admin_required
+@instance_admin_required
 def qonto_accounts():
     accounts, error = _qonto_accounts()
     gl = _gl_accounts()
@@ -163,7 +163,7 @@ def qonto_accounts():
 
 
 @bp.route("/qonto/accounts/link", methods=["POST"])
-@admin_required
+@instance_admin_required
 def qonto_link():
     """`{qonto_account_id, mode: existing|new, bank_account_id | label + gl_account_id, sync_from}`."""
     data = json_body()
@@ -190,7 +190,7 @@ def qonto_link():
 
 
 @bp.route("/bank-accounts/<int:ba_id>/qonto", methods=["DELETE"])
-@admin_required
+@instance_admin_required
 def qonto_unlink(ba_id):
     ba = get_or_404(BankAccount, ba_id, "Compte bancaire introuvable.")
     qonto_sync.unlink_account(ba)
@@ -199,7 +199,7 @@ def qonto_unlink(ba_id):
 
 
 @bp.route("/bank-accounts/<int:ba_id>/qonto", methods=["PATCH"])
-@admin_required
+@instance_admin_required
 def qonto_settings(ba_id):
     """`{sync_from}` : reculer la date relance une synchronisation complète (sans doublon)."""
     ba = get_or_404(BankAccount, ba_id, "Compte bancaire introuvable.")

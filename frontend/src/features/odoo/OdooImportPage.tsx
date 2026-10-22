@@ -12,13 +12,14 @@ import { PageHeader } from "../../components/PageHeader";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
 import { ODOO_IMPORTS_KEY } from "./types";
+import { writeOnly } from "../../components/ReadOnlyPage";
 
 interface Result {
   batch: string; imported: number; errors: string[]; url: string;
   preview: { invoice_number: string; invoice_date: string | null; partner_name: string; amount_ttc_cents: number; account_code: string }[];
 }
 
-export default function OdooImportPage() {
+function OdooImportPage() {
   const client = useQueryClient();
   const { data } = useQuery({ queryKey: ODOO_IMPORTS_KEY,
     queryFn: () => api.get<{ items: { name: string; lines: number; url: string }[] }>("/api/v1/imports/odoo") });
@@ -92,3 +93,5 @@ export default function OdooImportPage() {
     </>
   );
 }
+
+export default writeOnly(OdooImportPage, "Import de lignes Odoo");

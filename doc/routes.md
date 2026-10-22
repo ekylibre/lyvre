@@ -26,7 +26,7 @@ Le dropdown de mois est alimenté par les **12 mois de l'exercice comptable cour
 | GET | `/select-instance` | Page de la SPA (choix de l'instance) ; connexion exigée |
 | GET | `/logout` | Détruit la session (login + instance), redirige vers `/login` (lien direct ; la SPA utilise `POST /api/v1/session/logout`) |
 
-Connexion, déconnexion et choix d'instance passent par l'API (`/api/v1/session/*`, ci-dessous).
+Connexion, déconnexion et choix d'instance passent par l'API (`/api/v1/session/*`, ci-dessous). La session ne liste que les instances accessibles à l'utilisateur et renvoie son `role` et ses `permissions` sur l'instance courante.
 
 ## Pages de la SPA
 
@@ -46,8 +46,8 @@ Pages de la SPA (liste ; la création / modification s'ouvre dans une fenêtre p
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/api/v1/users` | Utilisateurs (`is_me` pour le compte connecté) |
-| POST | `/api/v1/users` | `email` (unique, en minuscules), `password` (obligatoire), `full_name`, `is_admin`, `is_active` |
+| GET | `/api/v1/users` | Utilisateurs (`is_me` pour le compte connecté, `memberships` : instance et rôle) ; `meta` : instances, rôles |
+| POST | `/api/v1/users` | `email` (unique, en minuscules), `password` (obligatoire), `full_name`, `is_admin`, `is_active`, `memberships` (`[{instance_id, role}]`, remplace les accès) |
 | PATCH | `/api/v1/users/<id>` | Mêmes champs (`password` vide = inchangé) ; `{"is_active"}` seul = activer / désactiver |
 | DELETE | `/api/v1/users/<id>` | Supprime (refusé sur soi-même, 409) |
 
@@ -55,6 +55,19 @@ Un admin ne peut pas retirer son propre `is_admin`, se désactiver, ni se suppri
 utilisateurs reçoivent 403.
 
 ---
+
+## Accès à l'instance (`/configuration/access/`) — administrateur de l'instance
+
+Page de la SPA `/configuration/access/`. API (instance courante, rôle `admin` ou administrateur global ; sinon 403) :
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/api/v1/access/members` | Membres de l'instance (administrateurs globaux compris, non modifiables) : rôle, compte actif ; `meta.roles` |
+| POST | `/api/v1/access/members` | `{email, role, full_name?, password?}` : compte existant, sinon créé avec le mot de passe initial (8 caractères au moins, sinon 422) → 201 |
+| PATCH | `/api/v1/access/members/<user_id>` | `{role}` ; 409 si l'instance perdait son dernier administrateur |
+| DELETE | `/api/v1/access/members/<user_id>` | Retire l'accès (le compte reste) ; même garde |
+
+Rôles et lecture seule de l'expert-comptable : voir [multi_tenant.md](multi_tenant.md#accès-par-instance-et-rôles).
 
 ## Instances (`/instances/`) — admin uniquement
 

@@ -16,6 +16,8 @@ export const TEST_SESSION: Session = {
   admin_links: [],
   preferences: {},
   csrf_token: "token",
+  role: "treasurer",
+  permissions: { write: true, instance_admin: false },
 };
 
 export function renderWithProviders(ui: ReactElement, options: { session?: Session; route?: string } = {}) {

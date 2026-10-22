@@ -9,6 +9,7 @@ import { FilterBar, SearchInput, useUrlParams } from "../../components/FilterBar
 import { FormDrawer } from "../../components/FormModal";
 import { IntegrationNotice } from "../../components/IntegrationNotice";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
@@ -71,9 +72,9 @@ export default function EntitiesPage() {
       <PageHeader title="Entités" description="Fournisseurs, clients, organismes et autres tiers. Les adhérents ont leur propre écran."
         actions={<>
           <Button variant="default" component={AppLink} href="/entities/members">Voir les adhérents</Button>
-          <Button variant="default" loading={sync.isPending} disabled={!meta?.integrations.helloasso.available}
-            onClick={() => sync.mutate(undefined)}>Synchroniser HelloAsso</Button>
-          <Button onClick={modal.openNew}>Créer un tiers</Button>
+          <Can><Button variant="default" loading={sync.isPending} disabled={!meta?.integrations.helloasso.available}
+            onClick={() => sync.mutate(undefined)}>Synchroniser HelloAsso</Button></Can>
+          <Can><Button onClick={modal.openNew}>Créer un tiers</Button></Can>
         </>} />
       <IntegrationNotice name="helloasso" state={meta?.integrations.helloasso}
         consequence="synchronisation des adhérents impossible" />

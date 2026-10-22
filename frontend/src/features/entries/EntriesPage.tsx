@@ -7,6 +7,7 @@ import { FilterBar, SearchInput, useUrlParams } from "../../components/FilterBar
 import { MoneyText } from "../../components/Money";
 import { MonthSelect, type MonthOption } from "../../components/MonthSelect";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
@@ -49,7 +50,7 @@ export default function EntriesPage() {
   return (
     <>
       <PageHeader title="Écritures" description="Les écritures de l'exercice, de la plus récente à la plus ancienne."
-        actions={<Button component={AppLink} href="/entries/new">Saisir une écriture</Button>} />
+        actions={<Can><Button component={AppLink} href="/entries/new">Saisir une écriture</Button></Can>} />
       <FilterBar>
         <Select label="Exercice" data={meta?.fiscal_years ?? []} value={fyValue} w={160} allowDeselect={false}
           onChange={(v) => setParams({ fy_id: v ?? "", month: "" })} />

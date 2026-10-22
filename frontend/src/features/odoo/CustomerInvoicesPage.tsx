@@ -8,6 +8,7 @@ import { IntegrationNotice } from "../../components/IntegrationNotice";
 import { MoneyText } from "../../components/Money";
 import { MonthSelect } from "../../components/MonthSelect";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
@@ -51,8 +52,8 @@ export default function CustomerInvoicesPage() {
   return (
     <>
       <PageHeader title="Factures clients" description="Factures Odoo (account.move · out_invoice) synchronisées."
-        actions={<Button loading={sync.isPending} disabled={!data?.meta?.odoo.available} title={SYNC_HINT}
-          onClick={() => sync.mutate()}>Synchroniser depuis Odoo</Button>} />
+        actions={<Can><Button loading={sync.isPending} disabled={!data?.meta?.odoo.available} title={SYNC_HINT}
+          onClick={() => sync.mutate()}>Synchroniser depuis Odoo</Button></Can>} />
       <IntegrationNotice name="odoo" state={data?.meta?.odoo} consequence="synchronisation des factures indisponible" />
       <FilterBar>
         <SearchInput value={params.q} onChange={(q) => setParams({ q })} placeholder="Numéro, client, email…" />

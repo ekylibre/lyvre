@@ -9,6 +9,7 @@ import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { FilterBar, SearchInput, useUrlParams } from "../../components/FilterBar";
 import { FormModal } from "../../components/FormModal";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { useRouteModal } from "../../app/useRouteModal";
 
 export interface ChartAccount {
@@ -83,7 +84,7 @@ export default function AccountsPage() {
   return (
     <>
       <PageHeader title="Plan comptable" description="Les comptes utilisables dans les écritures, les produits et les règles."
-        actions={<Button onClick={modal.openNew}>Créer un compte</Button>} />
+        actions={<Can><Button onClick={modal.openNew}>Créer un compte</Button></Can>} />
       <FilterBar>
         <SearchInput value={params.q} onChange={(q) => setParams({ q })} placeholder="Code ou libellé…" />
       </FilterBar>

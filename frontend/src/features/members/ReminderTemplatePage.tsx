@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { AppLink } from "../../app/navigation";
 
 interface Preview { subject: string; body_html: string; error: string | null; sample: { name: string; email: string; real: boolean } }
@@ -90,7 +91,7 @@ export default function ReminderTemplatePage() {
       <PageHeader title="Message de relance" description="Envoyé aux adhérents dont l'adhésion est échue."
         actions={<>
           <Button variant="default" component={AppLink} href="/entities/members/reminders">Retour aux relances</Button>
-          <Button loading={save.isPending} disabled={!data} onClick={() => save.mutate(undefined)}>Enregistrer le message</Button>
+          <Can><Button loading={save.isPending} disabled={!data} onClick={() => save.mutate(undefined)}>Enregistrer le message</Button></Can>
         </>} />
       {data && (
         <Grid gap="lg">

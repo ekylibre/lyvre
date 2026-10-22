@@ -8,7 +8,7 @@ import { DateInput } from "@mantine/dates";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
-import { useCurrentSession } from "../../api/session";
+import { useCan } from "../../api/session";
 import { confirmAction } from "../../components/ConfirmButton";
 import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { FilterBar, useUrlParams } from "../../components/FilterBar";
@@ -17,6 +17,7 @@ import { JobStatus, type Job } from "../../components/JobStatus";
 import { MoneyText } from "../../components/Money";
 import { MonthSelect, type MonthOption } from "../../components/MonthSelect";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import type { BankTransaction } from "../../lib/types";
@@ -56,7 +57,7 @@ function QontoResult({ r, baId }: { r: Record<string, number | string[] | undefi
 }
 
 function QontoCard({ detail, onSynced }: { detail: Detail; onSynced: () => void }) {
-  const session = useCurrentSession();
+  const can = useCan();
   const ba = detail.item;
   const [job, setJob] = useState<Job | null>(detail.qonto_job);
   const [syncFrom, setSyncFrom] = useState<string | null>(ba.qonto?.sync_from ?? null);
@@ -72,12 +73,12 @@ function QontoCard({ detail, onSynced }: { detail: Detail; onSynced: () => void 
           <Group gap="xs"><StatusBadge tone="info">Qonto</StatusBadge><Text size="sm">Synchronisé à partir du {formatDate(ba.qonto.sync_from)}</Text></Group>
           <Text size="sm" c="dimmed">Dernière synchronisation : {ba.qonto.synced_at ? `${formatDate(ba.qonto.synced_at)} à ${ba.qonto.synced_at.slice(11, 16)}` : "jamais"}</Text>
         </Stack>
-        <Button loading={start.isPending} disabled={!detail.meta.qonto.available || job?.status === "running"}
-          onClick={() => start.mutate(undefined, { onSuccess: (r) => setJob(r.job) })}>Synchroniser Qonto</Button>
+        <Can><Button loading={start.isPending} disabled={!detail.meta.qonto.available || job?.status === "running"}
+          onClick={() => start.mutate(undefined, { onSuccess: (r) => setJob(r.job) })}>Synchroniser Qonto</Button></Can>
       </Group>
       <IntegrationNotice name="qonto" state={detail.meta.qonto} consequence="synchronisation impossible" />
       {job && <JobStatus key={job.id} job={job} onDone={onSynced} renderResult={(r) => <QontoResult r={r as never} baId={ba.id} />} />}
-      {session.user?.is_admin && (
+      {can.instanceAdmin && (
         <Group align="flex-end" mt="sm" gap="sm">
           <DateInput label="Synchroniser à partir du" valueFormat="DD/MM/YYYY" value={syncFrom} onChange={setSyncFrom} w={200}
             description="Reculer la date relance une synchronisation complète, sans doublon." />
@@ -95,7 +96,7 @@ function QontoCard({ detail, onSynced }: { detail: Detail; onSynced: () => void 
 export default function TransactionsPage() {
   const baId = Number(useParams().ba_id);
   const client = useQueryClient();
-  const session = useCurrentSession();
+  const can = useCan();
   const [params, setParams] = useUrlParams({ filter: "all", month: "", sort: "desc" });
   const { data: detail } = useQuery({ queryKey: [...BANK_ACCOUNTS_KEY, baId],
     queryFn: () => api.get<Detail>(`/api/v1/bank-accounts/${baId}`) });
@@ -141,11 +142,11 @@ export default function TransactionsPage() {
         actions={<>
           <Button variant="default" component={AppLink} href="/bank-accounts/">Retour aux comptes</Button>
           <Button variant="default" component={AppLink} href="/rules/">Règles</Button>
-          {!ba.qonto && <Button variant="default" component={AppLink} href={`/imports/ofx?bank_account_id=${ba.id}`}>Importer un OFX</Button>}
-          <Button component={AppLink} href={`/reconciliation/?bank_account_id=${ba.id}`}>Rapprocher</Button>
+          <Can>{!ba.qonto && <Button variant="default" component={AppLink} href={`/imports/ofx?bank_account_id=${ba.id}`}>Importer un OFX</Button>}</Can>
+          <Can><Button component={AppLink} href={`/reconciliation/?bank_account_id=${ba.id}`}>Rapprocher</Button></Can>
         </>} />
       <QontoCard detail={detail} onSynced={() => void client.invalidateQueries({ queryKey: [...BANK_ACCOUNTS_KEY, baId] })} />
-      {!ba.qonto && session.user?.is_admin && detail.meta.qonto.available && (
+      {!ba.qonto && can.instanceAdmin && detail.meta.qonto.available && (
         <Text size="sm" mb="sm"><Anchor component={AppLink} href="/bank-accounts/qonto">Rattacher ce compte à Qonto</Anchor></Text>
       )}
       {detail.reversed_reconciled.length > 0 && (

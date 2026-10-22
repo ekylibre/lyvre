@@ -66,10 +66,27 @@ def _default_instance_chart() -> str:
     return resolve_chart(None, codes, os.environ.get("DEFAULT_INSTANCE_CHART"))
 
 
+def _backfill_memberships() -> None:
+    """Reprise des accès lors de la création de `instance_memberships` (une seule fois) :
+    chaque utilisateur garde l'accès à chaque instance qu'il voyait jusque-là (toutes),
+    avec le rôle administrateur s'il était administrateur global, trésorier sinon.
+    Ne repasse jamais ensuite : un accès retiré n'est pas recréé au démarrage suivant."""
+    from app.models import InstanceMembership
+
+    users = db.session.query(User).all()
+    instances = db.session.query(Instance).all()
+    for user in users:
+        for instance in instances:
+            db.session.add(InstanceMembership(user_id=user.id, instance_id=instance.id,
+                                              role="admin" if user.is_admin else "treasurer"))
+    print(f"Accès repris : {len(users)} utilisateur(s) × {len(instances)} instance(s).")
+
+
 def main() -> int:
     app = create_app()
     with app.app_context():
-        # Create meta tables.
+        # Create meta tables (the memberships backfill runs only when its table is new).
+        memberships_existed = "instance_memberships" in inspect(db.engines["meta"]).get_table_names()
         db.create_all(bind_key=["meta"])
         _ensure_instance_chart_column()
         _ensure_user_preferences_column()
@@ -110,6 +127,9 @@ def main() -> int:
         else:
             print(f"Default instance already exists: {instance_slug}")
 
+        db.session.flush()
+        if not memberships_existed:
+            _backfill_memberships()
         db.session.commit()
     return 0
 

@@ -7,6 +7,7 @@ import { useAction, type Notice } from "../../api/resources";
 import { confirmAction } from "../../components/ConfirmButton";
 import { MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink, useGoTo } from "../../app/navigation";
@@ -34,14 +35,14 @@ export default function EntryDetailPage() {
         description={`${data.journal} · ${formatDate(data.entry_date)} · exercice ${data.fiscal_year}`}
         actions={<>
           <Button variant="default" component={AppLink} href="/entries/">Retour à la liste</Button>
-          {data.editable && <>
+          <Can>{data.editable && <>
             <Button variant="default" color="brique"
               onClick={() => confirmAction({ title: `Supprimer l'écriture ${data.reference ?? ""} ?`, confirmLabel: "Supprimer",
                 message: data.reconciled ? "Le rapprochement bancaire sera défait." : undefined,
                 onConfirm: () => remove.mutate(undefined, { onSuccess: () => goTo("/entries/") }) })}>Supprimer</Button>
             <Button component={AppLink} href={`/entries/${data.id}/edit`} disabled={data.reconciled}
               title={data.reconciled ? "Annulez le rapprochement avant de modifier l'écriture." : undefined}>Modifier</Button>
-          </>}
+          </>}</Can>
         </>} />
       {data.description && <Text mb="sm">{data.description}</Text>}
       {data.source !== "MANUAL" && data.source_ref && <Text size="sm" c="dimmed" mb="sm">Origine : {data.source} · {data.source_ref}</Text>}

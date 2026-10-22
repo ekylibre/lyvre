@@ -6,6 +6,7 @@ import {
 import { useForm } from "@mantine/form";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { api } from "../../api/client";
+import { useCan } from "../../api/session";
 import { useAction, useList, type Notice } from "../../api/resources";
 import { applyApiError, FormBody } from "../../components/ApiForm";
 import { confirmAction } from "../../components/ConfirmButton";
@@ -13,6 +14,7 @@ import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { FormDrawer } from "../../components/FormModal";
 import { MoneyInput } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatEuros } from "../../lib/format";
 import { useRouteModal } from "../../app/useRouteModal";
@@ -124,6 +126,7 @@ function RuleForm({ rule, entityTypes, onDone }: { rule: Rule | null; entityType
 }
 
 export default function RulesPage() {
+  const can = useCan();
   const modal = useRouteModal("/rules/", "rule_id");
   const [overwrite, setOverwrite] = useState(false);
   const { data, isFetching } = useList<Rule, { entity_types: string[] }>(KEY, "/api/v1/rules");
@@ -148,7 +151,8 @@ export default function RulesPage() {
         ? <Text size="sm"><span className="lv-num">{r.account_code}</span> <Text span c="dimmed" size="sm">{r.account_code.startsWith("6") ? "charge" : "produit"}</Text></Text>
         : "—" },
     { accessor: "is_active", title: "Active", hideable: false,
-      render: (r) => <Switch checked={r.is_active} aria-label={`Activer la règle ${r.name}`} onChange={() => toggle.mutate(r)} /> },
+      render: (r) => <Switch checked={r.is_active} aria-label={`Activer la règle ${r.name}`} disabled={!can.write}
+        onChange={() => toggle.mutate(r)} /> },
     { accessor: "actions", title: "", hideable: false, textAlign: "right",
       render: (r) => {
         const index = items.findIndex((x) => x.id === r.id);
@@ -174,8 +178,8 @@ export default function RulesPage() {
         actions={<>
           <Checkbox label="Réappliquer aux transactions déjà catégorisées" checked={overwrite}
             onChange={(e) => setOverwrite(e.currentTarget.checked)} />
-          <Button variant="default" loading={apply.isPending} onClick={() => apply.mutate(undefined)}>Appliquer les règles</Button>
-          <Button onClick={modal.openNew}>Créer une règle</Button>
+          <Can><Button variant="default" loading={apply.isPending} onClick={() => apply.mutate(undefined)}>Appliquer les règles</Button></Can>
+          <Can><Button onClick={modal.openNew}>Créer une règle</Button></Can>
         </>} />
       <DataGrid id="rules" records={items} columns={columns} fetching={isFetching}
         emptyText="Aucune règle : créez-en une pour catégoriser les transactions automatiquement." />

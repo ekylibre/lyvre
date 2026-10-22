@@ -1,5 +1,6 @@
 from .user import User
 from .instance import Instance
+from .instance_membership import InstanceMembership
 from .fiscal_year import FiscalYear
 from .account import Account
 from .journal import Journal

@@ -11,6 +11,7 @@ import { JobStatus, type Job } from "../../components/JobStatus";
 import { MoneyText } from "../../components/Money";
 import { MonthSelect, type MonthOption } from "../../components/MonthSelect";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { StatusBadge, type Tone } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
@@ -57,8 +58,8 @@ export default function PayoutsPage() {
   return (
     <>
       <PageHeader title="Versements Stancer" description="Versements reçus de Stancer et paiements qu'ils regroupent."
-        actions={<Button loading={start.isPending} disabled={!data?.meta?.stancer.available || shown?.status === "running"}
-          onClick={() => start.mutate(undefined, { onSuccess: (r) => setJob(r.job) })}>Synchroniser Stancer</Button>} />
+        actions={<Can><Button loading={start.isPending} disabled={!data?.meta?.stancer.available || shown?.status === "running"}
+          onClick={() => start.mutate(undefined, { onSuccess: (r) => setJob(r.job) })}>Synchroniser Stancer</Button></Can>} />
       <IntegrationNotice name="stancer" state={data?.meta?.stancer} consequence="synchronisation impossible" />
       {shown && <JobStatus key={shown.id} job={shown} renderResult={syncResult}
         onDone={() => void client.invalidateQueries({ queryKey: PAYOUTS_KEY })} />}

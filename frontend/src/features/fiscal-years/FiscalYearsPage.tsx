@@ -10,6 +10,7 @@ import { confirmAction } from "../../components/ConfirmButton";
 import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { FormModal } from "../../components/FormModal";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { useRouteModal } from "../../app/useRouteModal";
@@ -99,7 +100,7 @@ export default function FiscalYearsPage() {
   return (
     <>
       <PageHeader title="Exercices" description="Un exercice ouvert reçoit les écritures ; une fois clôturé, il est figé."
-        actions={<Button onClick={modal.openNew}>Créer un exercice</Button>} />
+        actions={<Can><Button onClick={modal.openNew}>Créer un exercice</Button></Can>} />
       <DataGrid id="fiscal-years" records={data?.items} columns={columns} fetching={isFetching}
         emptyText="Aucun exercice : créez le premier pour commencer à saisir." />
       <FormModal opened={modal.mode === "new"} onClose={modal.close} title="Créer un exercice">

@@ -5,7 +5,7 @@ fournisseurs à valider. Les pièces restent servies par Flask (`purchases.attac
 (montants « 39,99 ») : ils passent par purchase_entry.validate_header."""
 from flask import current_app, jsonify, request, url_for
 
-from app.decorators import admin_required
+from app.access import instance_admin_required
 from app.extensions import db
 from app.models import Account, Entity, Purchase, PurchasePayment
 from app.models.purchase import PURCHASE_SOURCES
@@ -155,7 +155,7 @@ def purchases_sync():
 
 
 @bp.route("/purchases/sync-from", methods=["PATCH"])
-@admin_required
+@instance_admin_required
 def purchases_sync_from():
     from datetime import date
     try:

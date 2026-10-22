@@ -6,7 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 import { api } from "../../api/client";
 import { useAction, useList, type Notice } from "../../api/resources";
-import { useCurrentSession } from "../../api/session";
+import { useCan } from "../../api/session";
 import { confirmAction } from "../../components/ConfirmButton";
 import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { FilterBar, SearchInput, useUrlParams } from "../../components/FilterBar";
@@ -15,6 +15,7 @@ import { JobStatus, type Job } from "../../components/JobStatus";
 import { MoneyText } from "../../components/Money";
 import { MonthSelect } from "../../components/MonthSelect";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
@@ -61,7 +62,7 @@ function SyncFrom({ value }: { value: string }) {
 
 export default function PurchasesPage() {
   const client = useQueryClient();
-  const session = useCurrentSession();
+  const can = useCan();
   const [params, setParams] = useUrlParams(FILTERS);
   const query = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
   const { data, isFetching } = useList<Purchase, PurchasesMeta>(PURCHASES_KEY, `/api/v1/purchases${query ? `?${query}` : ""}`);
@@ -111,9 +112,9 @@ export default function PurchasesPage() {
     <>
       <PageHeader title="Factures d'achat" description="Factures fournisseurs reçues dans Qonto ou saisies dans l'application."
         actions={<>
-          <Button component={AppLink} href="/purchases/new">Nouvelle facture</Button>
+          <Can><Button component={AppLink} href="/purchases/new">Nouvelle facture</Button>
           <Button variant="default" loading={sync.isPending} disabled={!meta?.qonto.available || shown?.status === "running"}
-            onClick={() => sync.mutate(undefined, { onSuccess: (r) => setJob(r.job) })}>Synchroniser les factures Qonto</Button>
+            onClick={() => sync.mutate(undefined, { onSuccess: (r) => setJob(r.job) })}>Synchroniser les factures Qonto</Button></Can>
         </>} />
       <IntegrationNotice name="qonto" state={meta?.qonto} consequence="synchronisation impossible" />
       {meta && (
@@ -121,7 +122,7 @@ export default function PurchasesPage() {
           <Group justify="space-between" gap="sm">
             <Text size="sm">Qonto : factures à partir du {formatDate(meta.sync.from)} · dernière synchronisation :{" "}
               {meta.sync.synced_at ? `${formatDate(meta.sync.synced_at)} à ${meta.sync.synced_at.slice(11, 16)}` : "jamais"}</Text>
-            {session.user?.is_admin && <SyncFrom key={meta.sync.from} value={meta.sync.from} />}
+            {can.instanceAdmin && <SyncFrom key={meta.sync.from} value={meta.sync.from} />}
           </Group>
         </Paper>
       )}
@@ -142,8 +143,8 @@ export default function PurchasesPage() {
               {counters.supplier_proposals > 0 && <Anchor component={AppLink} href="/purchases/suppliers" size="sm" fw={600}>{counters.supplier_proposals} fournisseur(s) à valider</Anchor>}
               {counters.to_review > 0 && <Text size="sm" c="var(--lv-brique)">{counters.to_review} facture(s) comptabilisée(s) modifiée(s) dans Qonto, à revoir.</Text>}
             </Group>
-            {counters.ready > 0 && <Button size="compact-md" variant="default" loading={postReady.isPending} onClick={() => postReady.mutate()}>
-              Comptabiliser les factures prêtes ({counters.ready})</Button>}
+            <Can>{counters.ready > 0 && <Button size="compact-md" variant="default" loading={postReady.isPending} onClick={() => postReady.mutate()}>
+              Comptabiliser les factures prêtes ({counters.ready})</Button>}</Can>
           </Group>
         </Alert>
       )}

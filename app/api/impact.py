@@ -6,7 +6,7 @@ from datetime import date
 from flask import jsonify, request, url_for
 from flask_login import current_user
 
-from app.decorators import admin_required
+from app.access import instance_admin_required
 from app.extensions import db
 from app.models import ImpactFactor, MetricSnapshot
 from app.services import dashboard_service, external_config, impact_engine, metric_catalog, metrics_sync
@@ -142,14 +142,14 @@ def _factor(f: ImpactFactor) -> dict:
 
 
 @bp.route("/impact/factors")
-@admin_required
+@instance_admin_required
 def impact_factors():
     impact_engine.ensure_seeded()
     return jsonify(items=[_factor(f) for f in ImpactFactor.query.order_by(ImpactFactor.key)])
 
 
 @bp.route("/impact/factors", methods=["PUT"])
-@admin_required
+@instance_admin_required
 def impact_factors_save():
     rows = {f.id: f for f in ImpactFactor.query.all()}
     items = json_body().get("items")

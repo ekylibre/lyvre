@@ -220,10 +220,30 @@ Voir [models.md](models.md#rule--règle-de-catégorisation-tenant) pour le sché
 
 Les bases tenant SQLite peuvent être sauvegardées et restaurées depuis l'UI `/instances/<id>`. Les archives vivent dans `instance/backups/<slug>-YYYYMMDD-HHMMSS.zip` (base + pièces jointes de `instance/uploads/<slug>/`). Voir [backups.md](backups.md) pour le workflow utilisateur et les limitations connues.
 
+## Accès par instance et rôles
+
+Table méta `instance_memberships(user_id, instance_id, role)` (`app/access.py`) :
+
+| Rôle | Droits |
+|------|--------|
+| **Administrateur global** (`users.is_admin`) | Utilisateurs, instances ; administrateur de **toutes** les instances (sans ligne d'accès) |
+| `admin` | Tout sur l'instance, dont **Configuration › Accès** et **Intégrations** (`instance_admin_required`) |
+| `treasurer` | Saisie, rapprochement, imports, synchronisations ; pas d'administration de l'instance |
+| `accountant` (expert-comptable) | **Lecture seule** : tout consulter (écritures, états, pièces, exports) ; toute écriture de l'API est refusée (403 `read_only`) sauf préférences, notifications lues et session |
+
+- Le hook tenant vérifie l'accès **à chaque requête** (`g.instance_role`) : un accès retiré prend
+  effet immédiatement (409 `no_instance` → choix d'instance).
+- `GET /api/v1/session` ne liste que les instances accessibles et renvoie `role` et `permissions`
+  (`write`, `instance_admin`) ; la SPA masque les actions (`useCan`, `<Can>`, `writeOnly`, colonne
+  `actions` des tableaux), le serveur fait foi (test : toute route d'écriture de l'API refusée à
+  l'expert-comptable).
+- Une instance garde au moins un administrateur (hors administrateurs globaux).
+- **Reprise** (`seed_meta`, une seule fois, à la création de la table) : chaque utilisateur reçoit
+  l'accès à chaque instance existante, `admin` s'il est administrateur global, `treasurer` sinon ;
+  un accès retiré ensuite n'est jamais recréé.
+
 ## Hors-périmètre (v1)
 
-- Liaison fine **user × instance** (un user actif voit toutes les instances actives).
-- Rôles fins (admin / comptable / lecture seule). Le seul axe est `is_admin` / non-admin.
 - Reset de mot de passe par email (l'admin réinitialise via le CRUD).
 - 2FA / SSO.
 - Provisioning automatique de bases Postgres (le mode "Manuel" suffit).

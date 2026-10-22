@@ -103,6 +103,7 @@ def register_tenant_hooks(app):
     def _select_tenant():
         g.tenant_engine = None
         g.current_instance = None
+        g.instance_role = None
 
         if not current_user.is_authenticated:
             return None
@@ -126,6 +127,16 @@ def register_tenant_hooks(app):
                 return error_response("no_instance", "Aucune instance sélectionnée.", 409)
             return redirect(url_for("auth.select_instance", next=request.url))
 
+        # Accès vérifié à chaque requête : un retrait d'accès prend effet immédiatement.
+        from app.access import role_for
+        role = role_for(current_user, inst)
+        if role is None:
+            flask_session.pop("instance_id", None)
+            if is_api_request():
+                return error_response("no_instance", "Vous n'avez pas accès à cette instance.", 409)
+            return redirect(url_for("auth.select_instance", next=request.url))
+
         g.current_instance = inst
+        g.instance_role = role
         g.tenant_engine = get_tenant_engine(inst)
         return None

@@ -8,7 +8,7 @@ from flask import current_app, jsonify, request, url_for
 from flask_login import current_user
 from werkzeug.utils import secure_filename
 
-from app.decorators import admin_required
+from app.access import instance_admin_required
 from app.extensions import db
 from app.models import EcoDeclaration, FiscalYear, ReportArchive, ReportAsset, ReportContent
 from app.services import branding, report_pdf, site_content_import
@@ -59,7 +59,7 @@ def activity_report_context():
 
 
 @bp.route("/activity-report/texts")
-@admin_required
+@instance_admin_required
 def activity_report_texts():
     fy = _fiscal_year()
     existing = {c.block_key: c for c in ReportContent.query.filter_by(fiscal_year_id=fy.id)}
@@ -73,7 +73,7 @@ def activity_report_texts():
 
 
 @bp.route("/activity-report/texts", methods=["PUT"])
-@admin_required
+@instance_admin_required
 def activity_report_texts_save():
     data = json_body()
     fy = _fiscal_year(data.get("fy_id"))
@@ -99,7 +99,7 @@ def activity_report_texts_save():
 
 
 @bp.route("/activity-report/texts/import-site", methods=["POST"])
-@admin_required
+@instance_admin_required
 def activity_report_import_site():
     data = json_body()
     result = site_content_import.import_site_content(_fiscal_year(data.get("fy_id")), overwrite=bool(data.get("overwrite")))
@@ -121,13 +121,13 @@ def _eco_rows():
 
 
 @bp.route("/activity-report/eco")
-@admin_required
+@instance_admin_required
 def activity_report_eco():
     return jsonify(items=_eco_rows())
 
 
 @bp.route("/activity-report/eco", methods=["PUT"])
-@admin_required
+@instance_admin_required
 def activity_report_eco_save():
     """`{rows: [{id, entrant_t, sortant_t, financing_cents, delete?}]}` : lignes modifiées seulement."""
     rows = {r.id: r for r in EcoDeclaration.query.all()}
@@ -157,7 +157,7 @@ def activity_report_eco_save():
 
 
 @bp.route("/activity-report/eco/import", methods=["POST"])
-@admin_required
+@instance_admin_required
 def activity_report_eco_import():
     file = request.files.get("file")
     if file is None or not file.filename:
@@ -201,13 +201,13 @@ def _remove_file(relpath):
 
 
 @bp.route("/activity-report/photos")
-@admin_required
+@instance_admin_required
 def activity_report_photos():
     return jsonify(_photos_payload(_fiscal_year()))
 
 
 @bp.route("/activity-report/photos", methods=["POST"])
-@admin_required
+@instance_admin_required
 def activity_report_photo_upload():
     """Multipart `fy_id`, `slot`, `file` : remplace la photo de l'emplacement."""
     fy = _fiscal_year(request.form.get("fy_id", type=int))
@@ -236,7 +236,7 @@ def activity_report_photo_upload():
 
 
 @bp.route("/activity-report/photos/<int:asset_id>", methods=["PATCH"])
-@admin_required
+@instance_admin_required
 def activity_report_photo_caption(asset_id):
     asset = get_or_404(ReportAsset, asset_id, "Photo introuvable.")
     asset.caption = str(json_body().get("caption") or "").strip()[:300] or None
@@ -245,7 +245,7 @@ def activity_report_photo_caption(asset_id):
 
 
 @bp.route("/activity-report/photos/<int:asset_id>", methods=["DELETE"])
-@admin_required
+@instance_admin_required
 def activity_report_photo_delete(asset_id):
     asset = get_or_404(ReportAsset, asset_id, "Photo introuvable.")
     _remove_file(asset.path)
@@ -255,7 +255,7 @@ def activity_report_photo_delete(asset_id):
 
 
 @bp.route("/activity-report/logo", methods=["POST"])
-@admin_required
+@instance_admin_required
 def activity_report_logo_upload():
     file = request.files.get("file")
     if file is None or not file.filename:
@@ -268,7 +268,7 @@ def activity_report_logo_upload():
 
 
 @bp.route("/activity-report/logo", methods=["DELETE"])
-@admin_required
+@instance_admin_required
 def activity_report_logo_delete():
     branding.delete_logo()
     return jsonify(logo_url=None, notices=[notice("Logo de la structure supprimé.")])
@@ -287,7 +287,7 @@ def activity_report_archives():
 
 
 @bp.route("/activity-report/archives", methods=["POST"])
-@admin_required
+@instance_admin_required
 def activity_report_archive_create():
     data = json_body()
     fy = _fiscal_year(data.get("fy_id"))
@@ -303,7 +303,7 @@ def activity_report_archive_create():
 
 
 @bp.route("/activity-report/archives/<int:archive_id>", methods=["DELETE"])
-@admin_required
+@instance_admin_required
 def activity_report_archive_delete(archive_id):
     arc = get_or_404(ReportArchive, archive_id, "Version introuvable.")
     _remove_file(arc.path)

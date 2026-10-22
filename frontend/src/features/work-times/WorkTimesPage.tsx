@@ -13,6 +13,7 @@ import { FormModal } from "../../components/FormModal";
 import { MoneyText } from "../../components/Money";
 import { MonthSelect, type MonthOption } from "../../components/MonthSelect";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
 import { useRouteModal } from "../../app/useRouteModal";
@@ -104,7 +105,7 @@ export default function WorkTimesPage() {
         actions={<>
           <Button variant="default" component={AppLink} href="/work-times/task-types">Types de tâches</Button>
           <Button variant="default" component={AppLink} href="/work-times/import">Importer</Button>
-          <Button onClick={modal.openNew}>Saisir un temps</Button>
+          <Can><Button onClick={modal.openNew}>Saisir un temps</Button></Can>
         </>} />
       <FilterBar>
         <Select label="Bénévole" placeholder="Tous" clearable searchable data={meta?.benevoles ?? []} w={220}

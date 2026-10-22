@@ -7,8 +7,9 @@ import { PageHeader } from "../../components/PageHeader";
 import { useGoTo } from "../../app/navigation";
 import { EntryEditor, type EntryFormData } from "./EntryEditor";
 import { ENTRIES_KEY } from "./EntriesPage";
+import { writeOnly } from "../../components/ReadOnlyPage";
 
-export default function EntryFormPage() {
+function EntryFormPage() {
   const params = useParams();
   const [search] = useSearchParams();
   const goTo = useGoTo();
@@ -46,3 +47,5 @@ export default function EntryFormPage() {
     </>
   );
 }
+
+export default writeOnly(EntryFormPage, "Saisir une écriture", { href: "/entries/", label: "Voir les écritures." });

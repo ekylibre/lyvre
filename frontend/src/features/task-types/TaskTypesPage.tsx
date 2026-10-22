@@ -10,6 +10,7 @@ import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { FormModal } from "../../components/FormModal";
 import { MoneyInput, MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useRouteModal } from "../../app/useRouteModal";
 
@@ -76,7 +77,7 @@ export default function TaskTypesPage() {
     <>
       <PageHeader title="Types de tâches"
         description={<>Les tâches proposées à la saisie des <Anchor href="/work-times/">temps de travaux</Anchor> et leur valorisation.</>}
-        actions={<Button onClick={modal.openNew}>Créer un type</Button>} />
+        actions={<Can><Button onClick={modal.openNew}>Créer un type</Button></Can>} />
       <DataGrid id="task-types" records={data?.items} columns={columns} fetching={isFetching}
         defaultSort={{ column: "name", direction: "asc" }} emptyText="Aucun type de tâche." />
       <FormModal opened={modal.mode === "new" || (modal.mode === "edit" && !!editing)} onClose={modal.close}

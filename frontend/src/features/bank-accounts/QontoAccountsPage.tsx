@@ -12,6 +12,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
 import { BANK_ACCOUNTS_KEY, type BankAccount, type Option } from "./types";
+import { writeOnly } from "../../components/ReadOnlyPage";
 
 interface QontoAccount {
   qonto_id: string; name: string; iban: string | null; status: string; main: boolean; closed: boolean;
@@ -59,7 +60,7 @@ function LinkForm({ account, meta }: { account: QontoAccount; meta: Response["me
   );
 }
 
-export default function QontoAccountsPage() {
+function QontoAccountsPage() {
   const { data, isPending } = useQuery({ queryKey: KEY, queryFn: () => api.get<Response>("/api/v1/qonto/accounts") });
   return (
     <>
@@ -90,3 +91,5 @@ export default function QontoAccountsPage() {
     </>
   );
 }
+
+export default writeOnly(QontoAccountsPage, "Comptes Qonto", { href: "/bank-accounts/", label: "Voir les comptes bancaires." });

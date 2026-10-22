@@ -8,6 +8,7 @@ import { ApiError } from "../../api/client";
 import { showNotices, type Notice } from "../../api/resources";
 import { upload } from "../../api/upload";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { AppLink } from "../../app/navigation";
 import { WORK_TIMES_KEY } from "./WorkTimesPage";
 
@@ -48,7 +49,7 @@ export default function WorkTimesImportPage() {
       <PageHeader title="Importer des temps de travaux" description="Une ligne par temps : le bénévole et le type de tâche doivent exister."
         actions={<Button variant="default" component={AppLink} href="/work-times/">Retour aux temps</Button>} />
       <Stack maw={720}>
-        <Dropzone onDrop={(files) => files[0] && void send(files[0])} accept={ACCEPT} multiple={false}
+        <Can><Dropzone onDrop={(files) => files[0] && void send(files[0])} accept={ACCEPT} multiple={false}
           loading={progress !== null} onReject={() => setError("Fichier refusé : CSV ou XLSX attendu.")}>
           <Group justify="center" mih={140} style={{ pointerEvents: "none" }}>
             <FileSpreadsheet size={36} />
@@ -57,7 +58,7 @@ export default function WorkTimesImportPage() {
               <Text size="sm" c="dimmed">CSV (séparateur ;) ou XLSX.</Text>
             </div>
           </Group>
-        </Dropzone>
+        </Dropzone></Can>
         {progress !== null && <Progress value={progress} aria-label="Envoi du fichier" />}
         <Text size="sm" c="dimmed">
           Colonnes : <span className="lv-num">Bénévole</span> (nom ou email), <span className="lv-num">Type de tâche</span>,{" "}

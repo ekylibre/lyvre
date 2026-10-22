@@ -4,15 +4,15 @@
 import type { ReactNode } from "react";
 import { useLocation } from "react-router";
 import {
-  ActionIcon, AppShell, Box, Burger, Divider, Group, Image, Kbd, Menu, NavLink, ScrollArea, Text,
+  ActionIcon, AppShell, Badge, Box, Burger, Divider, Group, Image, Kbd, Menu, NavLink, ScrollArea, Text,
   Tooltip, UnstyledButton, useComputedColorScheme, useMantineColorScheme,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { spotlight } from "@mantine/spotlight";
-import { ArrowLeftRight, ChevronDown, LogOut, Moon, Search, Sun } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, Eye, LogOut, Moon, Search, Sun } from "lucide-react";
 import symbolInverse from "../../assets/lyvre-symbole-inverse.svg";
 import {
-  useCurrentSession, useLogout, usePreferences, useSelectInstance, type NavMenu,
+  useCan, useCurrentSession, useLogout, usePreferences, useSelectInstance, type NavMenu,
 } from "../../api/session";
 import { AppLink } from "../navigation";
 import { NotificationBell } from "./NotificationBell";
@@ -113,6 +113,17 @@ function InstanceMenu() {
   );
 }
 
+/** Expert-comptable : rappel permanent que l'accès est en lecture seule. */
+function ReadOnlyBadge() {
+  const can = useCan();
+  if (can.write || !can.role) return null;
+  return (
+    <Tooltip label="Accès expert-comptable : vous consultez les comptes sans pouvoir les modifier.">
+      <Badge variant="light" color="ardoise" leftSection={<Eye size={12} />} tt="none">Lecture seule</Badge>
+    </Tooltip>
+  );
+}
+
 function UserMenu() {
   const session = useCurrentSession();
   const logout = useLogout();
@@ -155,6 +166,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <Group gap="sm" wrap="nowrap">
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" aria-label="Menu" />
             <InstanceMenu />
+            <ReadOnlyBadge />
           </Group>
           <Group gap="xs" wrap="nowrap">
             <Tooltip label={<>Rechercher <Kbd size="xs">Ctrl</Kbd> + <Kbd size="xs">K</Kbd></>}>

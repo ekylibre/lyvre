@@ -3,7 +3,7 @@ connexion, dernière synchronisation). Un secret n'est jamais renvoyé : champ v
 enregistrée conservée, `clear` l'efface."""
 from flask import jsonify, url_for
 
-from app.decorators import admin_required
+from app.access import instance_admin_required
 from app.extensions import db
 from app.models import ExternalConnection
 from app.services import external_config, integrations
@@ -104,19 +104,19 @@ def _detail(service) -> dict:
 
 
 @bp.route("/integrations")
-@admin_required
+@instance_admin_required
 def integrations_list():
     return jsonify(items=[_view(v) for v in integrations.overview()])
 
 
 @bp.route("/integrations/<service>")
-@admin_required
+@instance_admin_required
 def integrations_detail(service):
     return jsonify(_detail(_service(service)))
 
 
 @bp.route("/integrations/<service>", methods=["PUT"])
-@admin_required
+@instance_admin_required
 def integrations_save(service):
     """`{values: {clé: valeur}, clear: [clés secrètes à effacer]}` puis test si l'intégration est active."""
     _service(service)
@@ -151,7 +151,7 @@ def integrations_save(service):
 
 
 @bp.route("/integrations/<service>/enabled", methods=["POST"])
-@admin_required
+@instance_admin_required
 def integrations_toggle(service):
     _service(service)
     enabled = bool(json_body().get("enabled"))
@@ -162,7 +162,7 @@ def integrations_toggle(service):
 
 
 @bp.route("/integrations/<service>/check", methods=["POST"])
-@admin_required
+@instance_admin_required
 def integrations_check(service):
     _service(service)
     if not (external_config.is_enabled(service) and external_config.is_configured(service)):

@@ -36,7 +36,7 @@ export default function SelectInstancePage() {
           <Text size="sm" c="dimmed">Connecté en tant que {session.user.email}.</Text>
           {session.instances.length === 0 ? (
             <Alert color="yellow">
-              Aucune instance disponible. Contactez un administrateur pour en créer une.
+              Aucune instance ne vous est accessible. Demandez à l'administrateur de votre structure de vous donner un accès.
             </Alert>
           ) : (
             <Radio.Group value={value} onChange={setChoice} name="instance_id" label="Instance">

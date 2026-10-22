@@ -48,6 +48,14 @@ C.4 utilise les caisses si D.1 est fait ; sinon banques seules, caisses ajoutée
 
 **✅ CP A.1** : un expert-comptable ne voit que son instance, consulte tout, ne peut rien modifier
 (interface et API) ; aucun utilisateur existant ne perd d'accès sur les copies 5001.
+— *Fait (2026-10-22)* : `instance_memberships` + reprise unique ; `app/access.py` ; hook tenant
+(`g.instance_role`) ; refus centralisé des écritures pour `accountant` (test sur **toutes** les
+routes d'écriture de l'API) ; `instance_admin_required` sur intégrations, Qonto, rapport
+d'activité, facteurs d'impact, date de synchro des factures ; API et écran **Accès** ; accès par
+instance dans l'écran Utilisateurs ; front : `useCan`, `<Can>`, `writeOnly`, colonne `actions` et
+fenêtres de saisie neutralisées en lecture seule, badge « Lecture seule ». Copie 5001 : reprise
+appliquée deux fois (seconde sans effet), expert-comptable créé par l'écran Accès et vérifié en
+lecture seule dans Chrome. pytest 718, Vitest 78, E2E 17.
 
 ### Phase A.2 — Structure et statut d'exercice (D3, D11, reprise §8)
 

@@ -8,6 +8,7 @@ import { applyApiError, FormBody } from "../../components/ApiForm";
 import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { FormModal } from "../../components/FormModal";
 import { PageHeader } from "../../components/PageHeader";
+import { Can } from "../../components/Can";
 import { useRouteModal } from "../../app/useRouteModal";
 
 export interface Journal { id: number; code: string; label: string }
@@ -44,7 +45,7 @@ export default function JournalsPage() {
   return (
     <>
       <PageHeader title="Journaux" description="Les journaux classent les écritures : achats, ventes, banque, opérations diverses."
-        actions={<Button onClick={modal.openNew}>Créer un journal</Button>} />
+        actions={<Can><Button onClick={modal.openNew}>Créer un journal</Button></Can>} />
       <DataGrid id="journals" records={data?.items} columns={COLUMNS} fetching={isFetching}
         defaultSort={{ column: "code", direction: "asc" }} emptyText="Aucun journal." />
       <FormModal opened={modal.mode === "new"} onClose={modal.close} title="Créer un journal">
