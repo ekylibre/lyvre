@@ -24,15 +24,17 @@ Le dropdown de mois est alimenté par les **12 mois de l'exercice comptable cour
 |---------|-----|-------------|
 | GET | `/login` | Page de la SPA (connexion) ; `?next=` suivi seulement s'il désigne une page de l'application |
 | GET | `/select-instance` | Page de la SPA (choix de l'instance) ; connexion exigée |
-| GET | `/logout` | Détruit la session (login + instance), redirige vers `/login` (lien des pages Jinja) |
+| GET | `/logout` | Détruit la session (login + instance), redirige vers `/login` (lien direct ; la SPA utilise `POST /api/v1/session/logout`) |
 
 Connexion, déconnexion et choix d'instance passent par l'API (`/api/v1/session/*`, ci-dessous).
 
 ## Pages de la SPA
 
-Les pages migrées vers React + Mantine sont listées dans `app/spa_routes.json` (règle Flask,
-nom d'endpoint d'origine, `public`). Flask y sert la coquille `templates/spa.html` en GET ; le
-routeur React affiche la page. Les autres URL restent des pages Jinja.
+Toutes les pages sont servies par la SPA React + Mantine et listées dans `app/spa_routes.json`
+(règle Flask, nom d'endpoint d'origine, `public`). Flask y sert la coquille `templates/spa.html` en
+GET ; le routeur React affiche la page, qui lit et écrit par l'API `/api/v1`. Les seules autres
+routes Flask servent des fichiers (exports CSV / ODS / XLSX, PDF, pièces jointes, sauvegardes) et
+`/logout`.
 
 > Toutes les routes ci-dessous nécessitent d'avoir choisi une instance. Sinon, redirection vers `/select-instance`. Les routes `/users/*` et `/instances/*` font exception : elles ne tapent que dans la méta-base et restent accessibles sans instance sélectionnée.
 
@@ -472,7 +474,7 @@ Fichiers servis par Flask : `GET /rapport-activite/apercu` (HTML autonome, graph
 
 ## API JSON (`/api/v1`)
 
-Utilisée par la SPA et les îlots React. Mêmes règles que les pages : session Flask-Login
+Utilisée par la SPA. Mêmes règles que les pages : session Flask-Login
 (**connexion exigée sur toute l'API** sauf `session/login` et `session/logout`), instance courante
 (`app/tenant.py`), CSRF obligatoire en POST/PUT/PATCH/DELETE via l'en-tête `X-CSRFToken`. Montants
 en **centimes entiers**, dates ISO `YYYY-MM-DD`. Les actions renvoient `item` (la ressource à jour)
@@ -517,4 +519,4 @@ Codes : `bad_request` / `csrf_error` (400), `unauthenticated` (401, jamais de re
 
 Les écritures groupées renvoient `{"results": [...], "counters": {...}, "undo": {...}}` : `results`
 donne le statut de chaque élément (`ok` / `error` + `message`) et `undo` la requête qui annule la
-partie réussie (`{"method": "POST", "url": ..., "body": ...}`), rejouée par l'îlot pour « Annuler ».
+partie réussie (`{"method": "POST", "url": ..., "body": ...}`), rejouée par la SPA pour « Annuler ».

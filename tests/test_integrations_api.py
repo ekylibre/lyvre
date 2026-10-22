@@ -170,12 +170,3 @@ def test_no_secret_in_any_api_response(client, probes):
     assert "compta:***@db.local" in text
     # Les secrets sont toujours en base (rien d'effacé en enregistrant des champs vides).
     assert all(external_config.get(s, k) == v for (s, k), v in secrets.items())
-
-
-def test_local_dt_filter(app):
-    from datetime import datetime
-
-    local_dt = app.jinja_env.filters["local_dt"]
-    assert local_dt(datetime(2026, 10, 20, 19, 52)) == "20/10/2026 21:52"  # heure d'été
-    assert local_dt(datetime(2026, 12, 1, 8, 0)) == "01/12/2026 09:00"
-    assert local_dt(None) == ""

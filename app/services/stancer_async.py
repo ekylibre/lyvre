@@ -4,7 +4,7 @@
 `sync_jobs` : un `SyncJob` est créé, la sync tourne dans un fil d'exécution sur la base
 de l'instance courante, et la progression du job est mise à jour au fil du traitement.
 
-Le frontend consulte `/payouts/sync/status/<job_id>` (HTMX polling) pour suivre l'avancée.
+Le frontend suit l'avancée par `GET /api/v1/jobs/<id>`.
 """
 import requests
 from sqlalchemy import or_

@@ -74,10 +74,9 @@ def test_color_boundaries():
     assert member_status(ha_green, None, TODAY)["color"] == "green"
 
 
-def test_status_includes_css_and_label():
+def test_status_includes_color_and_label():
     s = member_status(None, None, TODAY)
-    assert s["css"] == "bg-danger"
-    assert s["label"] == s["status"]
+    assert s["label"] == s["status"] and s["color"] == "red"
 
 
 # --- build_member_rows / sort_member_rows ------------------------------------

@@ -5,7 +5,7 @@ exécute `work(job_id)` dans un fil d'exécution. Le fil pousse un `app_context`
 **sélectionne la même instance** (`g.current_instance`, `g.tenant_engine`) : sans
 cela, `db.session` retomberait sur la base par défaut et non sur celle de l'instance.
 
-Le frontend suit l'avancement en interrogeant le job (fragment HTMX en polling).
+Le frontend suit l'avancement en interrogeant le job (`GET /api/v1/jobs/<id>`).
 """
 import json
 import threading

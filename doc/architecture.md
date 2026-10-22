@@ -7,28 +7,48 @@ compta-asso/
 │
 ├── run.py                        # Point d'entrée : charge .env, crée l'app Flask
 ├── seed_accounts.py              # Charge le plan comptable (asso|sci, détecté si omis) + journaux
-├── seed_meta.py                  # Méta-base : admin, instance par défaut, migration instances.chart
+├── seed_meta.py                  # Méta-base : admin, instance par défaut, colonnes ajoutées
 ├── requirements.txt
-├── Makefile                      # make check : typecheck + tests front + build + pytest
-├── .nvmrc                        # Node 22 (dev et build du front uniquement)
+├── Makefile                      # make check (typecheck, Vitest, build, pytest) ; make e2e (Playwright)
+├── .nvmrc                        # Node 22 (développement et build du front uniquement)
 ├── .env                          # Variables d'environnement (gitignorée)
+├── scripts/e2e_server.py         # Serveur jetable (port 5099) des tests de bout en bout
 │
-├── frontend/                     # Îlots React (TypeScript + Vite), compilés vers app/static/dist/
+├── frontend/                     # SPA React 19 + Mantine 9 (TypeScript, Vite) → app/static/dist/
 │   ├── vite.config.ts            # base /static/dist/, manifest, serveur de dev :5173
+│   ├── e2e/                      # Parcours Playwright (fixtures.json, helpers.ts, *.spec.ts)
 │   └── src/
-│       ├── main.tsx              # Monte les éléments [data-island] (aussi après un swap HTMX)
-│       ├── islands/              # registry.ts, EntryForm/, ReconcileWorkspace/
-│       ├── components/           # AccountCombobox (ARIA combobox, comptes récents)
-│       └── lib/                  # api.ts (fetch + CSRF), money.ts, types.ts, toast.ts
+│       ├── main.tsx              # Point d'entrée unique : fournisseurs + routeur
+│       ├── app/                  # Coquille : AppShell (menus, en-tête), routes.ts (spa_routes.json →
+│       │                         #   pages), navigation (AppLink, useGoTo), thème Lyvre (theme.ts,
+│       │                         #   lyvre.css), palette Ctrl+K (Spotlight), useRouteModal
+│       ├── api/                  # client.ts (fetch + CSRF, ApiError), resources.ts (useList,
+│       │                         #   useAction, notices), session.ts, upload.ts (multipart + progression)
+│       ├── components/           # DataGrid, FormModal/FormDrawer, ApiForm, FilterBar, Money,
+│       │                         #   StatusBadge, AccountSelect, EntitySelect, JobStatus, ConfirmButton…
+│       ├── features/             # Un dossier par domaine (pages, types, logique testée)
+│       └── lib/                  # format.ts, money.ts, types.ts, recentAccounts.ts
 │
 ├── app/
-│   ├── __init__.py               # App factory : create_app(), filtres Jinja2, menus (nav_menus)
-│   ├── menu_config.py            # Menus de navigation par plan comptable (MENUS, build_nav)
+│   ├── __init__.py               # App factory : create_app(), blueprints, filtre `euros` (rapport)
+│   ├── spa.py                    # Coquille spa.html servie sous les endpoints d'origine (url_for)
+│   ├── spa_routes.json           # Pages de la SPA : règle Flask, endpoint, publique ou non
+│   ├── frontend.py               # vite_assets() : bundle (manifest) ou serveur de dev Vite
+│   ├── menu_config.py            # Menus par plan comptable (MENUS, build_nav) → /api/v1/session
 │   ├── tenant.py                 # Routage multi-tenant, current_instance(), current_chart()
-│   ├── frontend.py               # Conventions HTMX (toasts, HX-Location) + vite_assets()
-│   ├── api/                      # API JSON /api/v1 pour les îlots (entries, lookups, reconciliation)
+│   ├── decorators.py             # admin_required
 │   ├── config.py                 # Classes de configuration (Dev / Prod)
 │   ├── extensions.py             # Singletons : db, migrate, login_manager, csrf
+│   │
+│   ├── api/                      # API JSON /api/v1 (un module par domaine, conventions §API)
+│   │   ├── __init__.py           # Blueprint, ApiError, notice(), get_or_404, json_body, erreurs JSON
+│   │   ├── session.py            # Session, connexion, instance, préférences, tâches (jobs)
+│   │   ├── journals.py · fiscal_years.py · chart.py · products.py · rules.py · task_types.py
+│   │   ├── entries.py · reports.py · lookups.py · search.py
+│   │   ├── entities.py · members.py · work_times.py · users.py
+│   │   ├── bank_accounts.py · reconciliation.py · imports.py · payouts.py · purchases.py
+│   │   ├── odoo.py · impact.py · activity_report.py
+│   │   └── integrations.py · instances.py
 │   │
 │   ├── models/                   # Modèles SQLAlchemy (un fichier par table)
 │   │   ├── fiscal_year.py
@@ -59,24 +79,17 @@ compta-asso/
 │   │   ├── user.py               # Utilisateurs (méta-base)
 │   │   └── instance.py           # Déclaration d'instance (méta-base)
 │   │
-│   ├── views/                    # Blueprints Flask (un fichier par domaine)
-│   │   ├── auth.py
-│   │   ├── dashboard.py
-│   │   ├── accounts.py
-│   │   ├── fiscal_years.py
-│   │   ├── journals.py
-│   │   ├── entries.py
-│   │   ├── reconciliation.py
-│   │   ├── reports.py
-│   │   ├── entities.py           # CRUD tiers (dont TVA, SIRET, IBAN) + listes HelloAsso/POS/factures par tiers
-│   │   ├── products.py           # Catalogue produits / services
-│   │   ├── purchases.py          # Pièces des factures d'achat (écrans : SPA, API : api/purchases.py)
-│   │   ├── instances.py          # Téléchargement d'une sauvegarde (écrans : SPA, API : api/instances.py)
-│   │   ├── rules.py              # Affichage règles + application
-│   │   ├── payouts.py            # Liste + détail + sync Payouts/Payments Stancer
-│   │   ├── impact.py             # Export XLSX Visibilité & Impact (écrans : SPA, API : api/impact.py)
-│   │   ├── activity_report.py    # Aperçu HTML, PDF, exports, photos, logo, archives du rapport d'activité
+│   ├── views/                    # Routes Flask restantes : fichiers et exports seulement
+│   │   ├── auth.py               # Chargement de l'utilisateur, /logout
+│   │   ├── reports.py            # Exports CSV / ODS des états
+│   │   ├── entities.py           # Exports des adhérents (CSV / XLSX)
+│   │   ├── purchases.py          # Pièces des factures d'achat
+│   │   ├── impact.py             # Export XLSX Visibilité & Impact
+│   │   ├── activity_report.py    # Aperçu HTML, PDF, exports, photos, logo, archives du rapport
+│   │   ├── instances.py          # Téléchargement d'une sauvegarde
 │   │   └── integrations.py       # Ancienne adresse des intégrations → page de la SPA
+│   │
+│   ├── queries/                  # Requêtes de lecture partagées (tableau de bord, tiers)
 │   │
 │   ├── services/                 # Logique métier (sans dépendance Flask)
 │   │   ├── ledger.py             # Moteur comptable : validation, saisie, soldes
@@ -110,28 +123,17 @@ compta-asso/
 │   │   ├── helloasso_sync.py     # Sync forms/orders/items/payments + flag is_member
 │   │   └── helloasso_create.py   # Création de Memberships côté HelloAsso
 │   │
-│   ├── utils/                    # Helpers transverses (sans dépendance Flask hors `request`)
-│   │   └── list_filters.py       # Parse sort/month, calcule les options de mois pour le FY courant
+│   ├── utils/                    # Helpers transverses
+│   │   └── list_filters.py       # Parse sort/month, options de mois des exercices
 │   │
-│   ├── templates/                # Templates Jinja2
-│   │   ├── base.html             # Layout principal (nav générée depuis menu_config, Bootstrap, HTMX)
-│   │   ├── _list_helpers.html    # Macros partagées : sortable_date_header, month_filter_select
-│   │   ├── auth/
-│   │   ├── dashboard/
-│   │   ├── accounts/
-│   │   ├── fiscal_years/
-│   │   ├── journals/
-│   │   ├── entries/
-│   │   ├── reconciliation/
-│   │   ├── reports/
-│   │   ├── entities/
-│   │   ├── rules/
-│   │   ├── payouts/
-│   │   └── products/             # Catalogue
+│   ├── templates/
+│   │   ├── spa.html              # Coquille de la SPA (CSRF, favicon, bundle Vite)
+│   │   └── activity_report/      # _body.html, pdf.html, export.html : PDF, exports, aperçu
 │   │
 │   └── static/
-│       ├── css/app.css           # Surcharges Bootstrap + styles impression
-│       └── js/app.js             # Indicateur de balance, helpers HTMX
+│       ├── dist/                 # Build Vite (gitignoré)
+│       ├── css/report.css        # Styles du rapport d'activité (inlinés dans le PDF et les exports)
+│       └── favicon.svg
 │
 ├── data/
 │   ├── plan_comptable_asso.json  # 783 comptes PCA (source : fichier XLS)
@@ -139,7 +141,8 @@ compta-asso/
 │   └── rules.yml                 # Règles de catégorisation (éditable sans redémarrage)
 │
 ├── migrations/                   # Migrations Alembic (versioning schéma)
-├── instance/                     # seconde-nature.db (gitignorée)
+├── tests/                        # pytest : services, API (tests/api/), coquille
+├── instance/                     # Bases SQLite, pièces jointes, sauvegardes (gitignoré)
 └── doc/                          # Cette documentation
 ```
 
@@ -151,47 +154,46 @@ compta-asso/
 
 | Composant | Rôle |
 |-----------|------|
-| **Flask 3.1** | Framework web WSGI, routing, Jinja2 |
+| **Flask 3.1** | Framework web WSGI : API JSON, coquille de la SPA, fichiers et exports |
 | **SQLAlchemy 3.1** | ORM, gestion des modèles, requêtes |
 | **Flask-Migrate** | Migrations de schéma via Alembic |
-| **Flask-Login** | Gestion de session, décorateur `@login_required` |
-| **Flask-WTF** | Protection CSRF sur tous les formulaires POST |
+| **Flask-Login** | Session ; non connecté → 401 JSON sur `/api/`, redirection vers `/login` sinon |
+| **Flask-WTF** | Protection CSRF : jeton `X-CSRFToken` envoyé par la SPA sur toute écriture |
+| **Jinja2** | Coquille `spa.html` et gabarits du rapport d'activité (PDF weasyprint, exports) |
 | **ofxtools** | Parsing OFX 1.x (SGML) et 2.x (XML) |
-| **pandas** | Lecture et mapping des CSV Odoo |
+| **pandas** | Lecture et mapping des CSV Odoo, exports XLSX |
 | **PyYAML** | Lecture du fichier de règles de catégorisation |
 | **odfpy** | Génération des exports ODS du compte de résultat |
-| **@mantine/charts** (Recharts) | Graphiques du tableau de bord (SPA) ; le rapport d'activité garde ECharts (HTML serveur) et `chart_svg` (PDF) |
-| **requests** | Appels REST à l'API Stancer v2 + HelloAsso v5 (OAuth2 client_credentials) |
-| **xmlrpc.client** (stdlib) | Client XML-RPC Odoo — endpoints `/xmlrpc/2/common` + `/xmlrpc/2/object`, API key passée comme password |
+| **PyMuPDF / Tesseract** | Lecture des factures d'achat (texte, Factur-X, OCR) |
+| **weasyprint / LibreOffice** | PDF et exports DOCX / ODT du rapport d'activité |
+| **requests** | Appels REST : Stancer v2, HelloAsso v5 (OAuth2), Qonto, GA4, Facebook |
+| **xmlrpc.client** (stdlib) | Client XML-RPC Odoo — `/xmlrpc/2/common` + `/xmlrpc/2/object`, clé API comme mot de passe |
 
 ### Frontend
 
-Architecture **hybride** (détail : `claudedocs/design_front_reactif.md`) :
+**SPA** React + Mantine servie par Flask aux **mêmes URL** que les anciennes pages (détail :
+`claudedocs/design_front_mantine.md`) :
 
 | Composant | Rôle |
 |-----------|------|
-| **Bootstrap 5.3** (CDN) | Grille, composants UI, toasts |
-| **HTMX 2.0** (CDN) | Toutes les pages Jinja : filtres, tri, recherche, actions et formulaires **sans rechargement** (zone `#page-content`, voir ci-dessous) |
-| **React 18 + TypeScript** (build Vite) | Deux îlots au clavier : saisie d'écriture (`EntryForm`) et espace de rapprochement (`ReconcileWorkspace`), via l'API `/api/v1` |
-| **Apache ECharts 5** (CDN) | Graphiques (options préparées côté serveur), réinitialisés après un swap HTMX |
+| **React 19 + TypeScript** (build Vite 8) | Toutes les pages, un seul bundle, pages chargées à la demande |
+| **Mantine 9** (core, form, dates, modals, notifications, spotlight, dropzone, charts, tiptap) | Composants, thème Lyvre (clair / sombre), palette Ctrl+K, dépôt de fichiers, éditeur de texte |
+| **mantine-datatable** | Tableaux (tri, sélection, colonnes masquables mémorisées dans le compte, pagination) |
+| **TanStack Query 5** | Lecture de l'API, cache, invalidation après une action |
+| **react-router 8** | Routes déduites de `app/spa_routes.json` |
+| **@mantine/charts** (Recharts) | Graphiques du tableau de bord et tendances des indicateurs ; le rapport d'activité garde `chart_svg` (SVG côté serveur) |
+| **Vitest / Playwright** | Tests des composants et de la logique ; parcours de bout en bout |
 
-**Conventions HTMX** (`app/frontend.py`, macros `app/templates/_list_helpers.html`) :
+**Pages et URL.** `app/spa_routes.json` liste chaque page (règle Flask, endpoint d'origine,
+`public`). `app/spa.py` enregistre la coquille sous ces endpoints avant les blueprints : `url_for`
+continue de fonctionner, et un endpoint en double fait échouer le démarrage (une page ne peut pas être
+à la fois Flask et SPA). Côté client, `frontend/src/app/routes.ts` associe chaque endpoint à sa page
+(vérifié par un test).
 
-- `base.html` enveloppe le contenu dans `<main id="page-content">`. Les macros `hx_filter` (formulaire
-  de filtre GET), `hx_nav` (liens de tri) et `hx_submit` (formulaires POST, `hx-boost`) demandent la
-  page complète au serveur ; HTMX n'en garde que la zone (`hx-select`) et met l'URL à jour. Les vues
-  restent de simples vues Flask.
-- Une recherche au fil de la frappe cible une zone `#list` qui n'inclut pas le champ saisi.
-- Les messages `flash()` d'une réponse HTMX partent dans l'en-tête `HX-Trigger` (événement `toast`) ;
-  une redirection devient `HX-Location` (rechargement AJAX de la zone) ou, vers la connexion,
-  `HX-Redirect`.
-- Formulaire invalide → réponse **422** affichée (erreurs sous les champs, macros `field_error`).
-- Confirmations par `hx-confirm` : HTMX ignore un `onsubmit="return confirm()"`.
-
-**Îlots React** : la macro `island(name, props)` (`_island.html`) place un `<div data-island>` avec
-ses props JSON ; `vite_assets()` charge le bundle (manifest Vite en production, serveur Vite avec
-rechargement à chaud si `VITE_DEV_SERVER` est défini). Node n'est utilisé qu'en développement et à
-l'étape de build Docker.
+**Conventions de l'API** (`app/api/`) : erreurs `{error: {code, message, fields}}` ; 422 validation,
+409 refus métier, 404, 403 admin ; les actions renvoient `item` et `notices` (messages affichés en
+notifications) ; listes `{items, meta}` ; tâches longues → `job` suivi par `GET /api/v1/jobs/<id>`.
+Les exports, PDF et pièces jointes restent des routes Flask (liens directs).
 
 ---
 
@@ -227,7 +229,7 @@ Routage géré par `MultiTenantSession.get_bind` (`app/extensions.py`) + hook `b
 HTTP Request
     │
     ▼
-[Blueprint / View]          ← gère HTTP, session, flash, redirect
+[API /api/v1 ou route Flask] ← HTTP, session, JSON (ou fichier)
     │
     ▼
 [Service]                   ← logique métier pure, testable sans Flask
@@ -248,7 +250,9 @@ Les services (`app/services/`) n'importent jamais de `flask` directement. Ils re
 ### Saisie d'une écriture manuelle
 
 ```
-GET /entries/new  → page Jinja + îlot EntryForm (props : exercices ouverts, journaux, préremplissage)
+/entries/new (page de la SPA, EntryEditor au clavier)
+    │
+    ├── GET /api/v1/entries/form[?entry_id=|bt_id=]  (exercices ouverts, journaux, préremplissage)
     │
     ├── POST /api/v1/entries/validate   (400 ms après chaque modification, rien n'est enregistré)
     │     └── ledger.validate_entry_payload(data) → (clean, errors par champ)
@@ -265,7 +269,7 @@ GET /entries/new  → page Jinja + îlot EntryForm (props : exercices ouverts, j
 ### Import OFX
 
 ```
-POST /imports/ofx
+POST /api/v1/imports/ofx         (multipart, page /imports/ofx)
     │
     ├── Récupère bank_account_id + fichier
     │
@@ -275,9 +279,10 @@ POST /imports/ofx
           │     ├── Cherche (bank_account_id, fitid) en base
           │     ├── Si trouvé → duplicate++
           │     └── Sinon → INSERT bank_transactions
-          └── Retourne {imported, duplicates, errors}
+          ├── Retourne {imported, duplicates, errors}
+          └── puis purchase_settlement.auto_match : règlement des factures d'achat saisies
 
-POST /payouts/sync               (asynchrone, non-bloquant)
+POST /api/v1/payouts/sync        (asynchrone, non-bloquant)
     │
     └── stancer_async.start_sync_payouts(app)
           ├── Si un SyncJob kind='payouts' status='running' existe → le retourne (idempotent)
@@ -302,20 +307,15 @@ POST /payouts/sync               (asynchrone, non-bloquant)
           ├── _finalize : status='done'/'failed', finished_at, result_json
           └── retourne SyncJob immédiatement
     │
-    └── Réponse HTTP : fragment _sync_status.html (HTMX), qui s'auto-rafraîchit
-          via hx-get="/payouts/sync/status/<id>" hx-trigger="every 2s"
+    └── Réponse : {job} ; la SPA (composant JobStatus) interroge
+          GET /api/v1/jobs/<id> chaque seconde jusqu'à done / failed (résultat affiché)
 
-POST /payouts/<id>/sync-payments     (asynchrone, sync ciblée d'un payout)
+POST /api/v1/payouts/<id>/sync-payments   (asynchrone, sync ciblée d'un payout)
     │
     └── stancer_async.start_sync_payments_for_payout(app, payout_id)
-          (même contrat : SyncJob kind='payout_payments', polling identique)
+          (même contrat : SyncJob kind='payout_payments', suivi identique)
 
-GET /payouts/sync/status/<job_id>    (polling HTMX)
-    │
-    └── retourne le fragment HTML du SyncJob (running/done/failed,
-        progress_done/total, message, result_json affiché si terminé)
-
-POST /rules/apply
+POST /api/v1/rules/apply
     │
     └── rules_engine.apply_rules(overwrite=False)
           ├── Charge data/rules.yml
@@ -336,7 +336,7 @@ POST /rules/apply
 ### Rapprochement bancaire
 
 ```
-GET /reconciliation/  → page Jinja + îlot ReconcileWorkspace
+/reconciliation/ (page de la SPA, raccourcis clavier, panneau de saisie EntryEditor)
     │
     ├── GET /api/v1/bank-accounts/<id>/transactions?status=unreconciled&month=
     ├── GET /api/v1/bank-transactions/<id>/suggestions
@@ -378,7 +378,7 @@ POST /api/v1/customer-invoices/sync (sync factures clients, synchrone)
 ### Synchronisation HelloAsso
 
 ```
-POST /entities/sync-helloasso
+POST /api/v1/helloasso/sync
     │
     └── helloasso_sync.sync_helloasso()
           ├── helloasso_client.from_app_config() → token OAuth2 client_credentials
@@ -399,7 +399,7 @@ helloasso_create.create_membership_for_entity(...)
 ### États financiers (Bilan / CdR)
 
 ```
-GET /reports/bilan
+GET /api/v1/reports/bilan        (page /reports/bilan ; exports CSV / ODS : routes Flask)
     │
     ├── Détermine l'exercice courant et N-1
     │
@@ -417,73 +417,35 @@ GET /reports/bilan
 
 ## Tri & filtre par mois sur les listes
 
-Les 8 listes datées de l'application partagent un mécanisme commun de tri par date + filtre par mois, factorisé dans `app/utils/list_filters.py` et `app/templates/_list_helpers.html`.
+Les listes datées (écritures, transactions bancaires, versements Stancer et leurs paiements, commandes
+POS, factures clients, factures d'achat, rapprochement, lots Odoo) partagent les mêmes paramètres
+d'URL, transmis tels quels à l'API :
 
-**Listes concernées** :
+- `sort` = `asc` | `desc` (défaut `desc`) ;
+- `month` = `YYYY-MM` (ex : `2026-03` → `column >= 2026-03-01 AND column < 2026-04-01`).
 
-| Liste | Endpoint Flask | Colonne triée |
-|-------|---------------|---------------|
-| Écritures | `entries.index` | `JournalEntry.entry_date` |
-| Transactions bancaires | `bank_accounts.transactions` | `BankTransaction.transaction_date` |
-| Versements Stancer | `payouts.index` | `Payout.date_payout` |
-| Paiements d'un versement | `payouts.detail` | `Payment.date_payment` |
-| Commandes POS | `orders.index` | `Order.date_order` |
-| Factures clients | `customer_invoices.index` | `CustomerInvoice.invoice_date` |
-| Rapprochement | `reconciliation.index` | `BankTransaction.transaction_date` |
-| Lot Odoo CSV | `imports.odoo_batch` | `OdooImportLine.invoice_date` |
-
-**Convention des paramètres GET** :
-
-- `sort` = `asc` | `desc` (défaut `desc`)
-- `month` = `YYYY-MM` (ex : `2026-03` → filtre `WHERE column >= 2026-03-01 AND column < 2026-04-01`)
-
-**Helpers Python** (`app.utils.list_filters`) :
+**Côté serveur** (`app.utils.list_filters`) :
 
 ```python
 parse_sort(arg, default='desc')         # → 'asc' | 'desc'
 parse_month(arg)                        # → (year, month) | None
-apply_date_sort(query, column, sort)    # → query.order_by(column.desc().nullslast()) ou .asc().nullsfirst()
-apply_month_filter(query, column, ym)   # → query.filter(column >= start, column < end)
-month_options_for_fy(fy=None)           # → [{value:'2026-03', label:'mars 2026'}, ...]
-sort_and_filter_context(sort, month)    # sucre qui prépare le dict pour le template
+apply_date_sort(query, column, sort)    # → order_by(column.desc().nullslast()) ou .asc().nullsfirst()
+apply_month_filter(query, column, ym)   # → filter(column >= start, column < end)
+month_options_for_fy(fy=None)           # → [{value:'2026-03', label:'mars 2026'}, ...] (renvoyé dans meta.months)
 ```
 
-`month_options_for_fy()` lit l'exercice non clôturé le plus récent (sinon le plus récent tout court) et génère les 12 mois en français (`janvier 2026`, `février 2026`, ...).
+`month_options_for_fy()` lit l'exercice non clôturé le plus récent (sinon le plus récent) et génère
+ses 12 mois en français.
 
-**Macros Jinja** (`templates/_list_helpers.html`) :
+**Côté SPA** : `useUrlParams` (`components/FilterBar.tsx`) garde les filtres dans l'URL (liens
+partageables, retour arrière) ; `MonthSelect` affiche `meta.months` ; `DataGrid` envoie le tri par
+`onSortChange`. Exemple :
 
-- `sortable_date_header(label, current_sort, endpoint, extra_args)` — génère le `<th>` avec lien qui bascule `asc ↔ desc` à chaque clic, indicateur ▲/▼, en préservant les autres query args (filtre les valeurs nulles/vides). Exemple :
-
-  ```jinja
-  {% from "_list_helpers.html" import sortable_date_header, month_filter_select %}
-  <th>{{ sortable_date_header('Date', current_sort, 'orders.index', {'month': current_month}) }}</th>
-  ```
-
-- `month_filter_select(name, options, selected)` — `<select>` Bootstrap-friendly avec option « Tous les mois » en tête.
-
-**Pattern d'intégration dans une vue** :
-
-```python
-from app.utils.list_filters import (
-    parse_sort, parse_month, apply_date_sort, apply_month_filter,
-    sort_and_filter_context,
-)
-
-@bp.route("/")
-@login_required
-def index():
-    sort = parse_sort(request.args.get("sort"))
-    month_arg = request.args.get("month")
-    month_tuple = parse_month(month_arg)
-
-    query = MyModel.query
-    query = apply_month_filter(query, MyModel.my_date, month_tuple)
-    query = apply_date_sort(query, MyModel.my_date, sort)
-    rows = query.all()
-    return render_template(
-        "my/index.html", rows=rows,
-        **sort_and_filter_context(sort, month_arg),
-    )
+```tsx
+const [params, setParams] = useUrlParams({ month: "", sort: "desc" });
+const query = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
+const { data } = useList<Order, OdooMeta>(ORDERS_KEY, `/api/v1/orders${query ? `?${query}` : ""}`);
+// <MonthSelect value={params.month} onChange={(month) => setParams({ month })} options={data?.meta?.months} />
 ```
 
 ---
@@ -496,8 +458,8 @@ Tous les montants sont stockés en **centimes entiers** (`INTEGER`) :
 # Stockage
 debit_cents = int(round(float(form_value) * 100))   # ex: 1234 pour 12,34 €
 
-# Affichage (filtre Jinja2)
-{{ amount_cents | euros }}   # → "1 234,00 €"
+# Affichage : SPA (MoneyText, formatEuros) ou gabarits du rapport (filtre `euros`)
+<MoneyText cents={amount_cents} />   # → « 1 234,00 € » (moins typographique « − »)
 ```
 
 Cela évite tout problème d'arrondi flottant dans les calculs comptables.
@@ -509,12 +471,14 @@ Cela évite tout problème d'arrondi flottant dans les calculs comptables.
 | Mécanisme | Implémentation |
 |-----------|---------------|
 | Credentials services externes | Table tenant `external_connections(service, key, value)` (voir [multi_tenant.md](multi_tenant.md#credentials-externes-per-instance)). Repli sur `.env` global quand la ligne est absente. Activation et dernier test : table `integration_states`. UI : **Configuration › Intégrations** (admin uniquement), services `external_config` + `integrations`. |
-| Sauvegardes d'instance | Copie SQLite atomique (`sqlite3.Connection.backup`) déposée dans `instance/backups/`. Restauration via upload + `PRAGMA integrity_check` + snapshot `pre-restore-…`. Voir [backups.md](backups.md). |
+| Sauvegardes d'instance | Archive `.zip` (copie SQLite atomique + pièces jointes) dans `instance/backups/`. Restauration via dépôt + contrôle de l'archive + `PRAGMA integrity_check` + snapshot `pre-restore-…`, après **confirmation forte** (slug saisi, vérifié côté serveur). Voir [backups.md](backups.md). |
 | Authentification | Flask-Login, utilisateurs stockés en méta-base avec `password_hash` (Werkzeug `pbkdf2:sha256`) |
 | Autorisation admin | Décorateur `@admin_required` (`app/decorators.py`) — 403 si `current_user.is_admin` est faux |
 | Isolation multi-tenant | `before_request` charge l'instance depuis `session["instance_id"]` ; les requêtes SQLAlchemy par défaut sont rebindées vers l'engine tenant correspondant |
-| CSRF | Flask-WTF : jeton dans chaque formulaire POST ; en-tête `X-CSRFToken` (balise `<meta name="csrf-token">`) pour les requêtes HTMX et l'API JSON |
+| CSRF | Flask-WTF : en-tête `X-CSRFToken` sur toute écriture de la SPA (jeton de la coquille, renouvelé par `/api/v1/session` à la connexion) |
 | API JSON `/api/v1` | Même session et même routage d'instance que les pages ; non connecté → 401 JSON (pas de redirection) ; même origine uniquement (pas de CORS) |
+| Secrets | Jamais renvoyés par l'API (intégrations : champ vide = valeur conservée ; URL de base d'une instance sans mot de passe) — test dédié |
+| Contenus HTML | Notes Odoo en texte seul ; aperçu du rapport d'activité dans un `iframe` en bac à sable (`script-src 'none'`) ; gabarit de relance rendu en bac à sable Jinja |
 | Injection SQL | Impossible via SQLAlchemy ORM (requêtes paramétrées) |
 | Clôture d'exercice | `FiscalYear.closed` vérifié avant toute mutation d'écriture |
 | Sessions | Cookie signé par `SECRET_KEY` |

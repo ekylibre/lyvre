@@ -25,7 +25,7 @@ class FakeSMTP:
 def _row(name, color, email="x@y.fr", status="ok", birthday=date(2026, 1, 1)):
     return {
         "name": name, "email": email, "color": color, "status": status,
-        "birthday": birthday, "label": status, "css": "bg-danger",
+        "birthday": birthday, "label": status,
     }
 
 

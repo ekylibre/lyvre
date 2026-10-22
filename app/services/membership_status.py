@@ -15,14 +15,6 @@ EXPIRING_SOON_DAYS = 30
 # Gravité croissante : rouge (expiré) < orange (bientôt) < vert (à jour).
 STATUS_ORDER = {"red": 0, "orange": 1, "green": 2}
 
-# Couleur -> classe de badge Bootstrap.
-COLOR_CSS = {
-    "red": "bg-danger",
-    "orange": "bg-warning text-dark",
-    "green": "bg-success",
-}
-
-
 def _as_date(value):
     """Normalise un datetime/date/None en date (ou None)."""
     if value is None:
@@ -46,7 +38,7 @@ def member_birthday(last_ha, last_pos, today=None):
 
 
 def member_status(last_ha, last_pos, today=None):
-    """Retourne ``{"status", "color", "label", "css"}``.
+    """Retourne ``{"status", "color", "label"}``.
 
     ``status`` (présence de données d'adhésion) :
         - HA et POS absents        -> "?"
@@ -79,7 +71,6 @@ def member_status(last_ha, last_pos, today=None):
         "status": status,
         "color": color,
         "label": status,
-        "css": COLOR_CSS[color],
     }
 
 
@@ -105,7 +96,6 @@ def build_member_rows(members_list, last_ha, last_pos, today=None):
             "status": status["status"],
             "color": status["color"],
             "label": status["label"],
-            "css": status["css"],
         })
     return rows
 

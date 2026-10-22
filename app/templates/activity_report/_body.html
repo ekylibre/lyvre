@@ -1,5 +1,5 @@
-{# Corps du rapport — partagé entre l'aperçu (report.html), le PDF (pdf.html) et
-   les exports HTML/DOCX/ODT (export.html). #}
+{# Corps du rapport — partagé entre le PDF (pdf.html) et les exports HTML/DOCX/ODT et
+   l'aperçu de la SPA (export.html) : graphes en SVG, aucun script. #}
 {% macro sn_logo(cls='') -%}
 <svg class="sn-logo {{ cls }}" viewBox="0 0 24 28" width="22" height="26" aria-hidden="true">
   <path fill="currentColor" d="M12 1 4 11h3L2 19h7v8h6v-8h7l-5-8h3z"/>
@@ -83,20 +83,6 @@
     {% if s.eco.prorata %}<p class="eco-note">Tonnages répartis au pro-rata des trimestres à cheval sur l'exercice.</p>{% endif %}
     {% endif %}
 
-    {# Étiquette ADEME (impactco2.fr) — sur la section « Réemploi & impact » (s.eco défini).
-       value = kg CO₂ évités ; repli à 100 (exemple) tant qu'aucun tonnage n'est importé.
-       Iframe injectée en JS : absente du PDF weasyprint (qui n'exécute pas de JS). #}
-    {% if not pdf and s.eco %}
-    {% set co2_kg = (s.eco.co2e_avoided_kg | round(0) | int) or 100 %}
-    <div class="eco-impactco2">
-      <script data-name="impact-co2"
-              src="https://impactco2.fr/iframe.js"
-              data-type="comparateur/etiquette"
-              data-search="?value={{ co2_kg }}&comparisons=tshirtencoton,chauffagegaz,hotel,piscine&language=fr&theme=default"></script>
-    </div>
-    {% if not s.eco.has_data %}<p class="eco-note">Étiquette d'exemple (value = {{ co2_kg }} kg CO₂) — aucun tonnage éco importé pour cet exercice.</p>{% endif %}
-    {% endif %}
-
     {% if s.kpis %}
     <div class="figure-grid">
       {% for kpi in s.kpis %}
@@ -146,8 +132,7 @@
 
     {% if s.charts %}
       {% for chart_id in s.charts %}
-        {% if pdf %}<div class="report-chart">{{ chart_svgs[chart_id] | safe }}</div>
-        {% else %}<div class="report-chart" id="{{ chart_id }}"></div>{% endif %}
+        <div class="report-chart">{{ chart_svgs[chart_id] | safe }}</div>
       {% endfor %}
     {% endif %}
 
@@ -160,28 +145,3 @@
   {% endfor %}
 
 </div>
-
-{% if view.charts and not pdf %}
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
-<script>
-(function () {
-  const charts = {{ view.charts | tojson }};
-  function init() {
-    const instances = [];
-    Object.keys(charts).forEach(function (id) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      const inst = echarts.init(el);
-      inst.setOption(charts[id]);
-      instances.push(inst);
-    });
-    window.addEventListener('resize', function () {
-      instances.forEach(function (i) { if (!i.isDisposed() && i.getDom().isConnected) i.resize(); });
-    });
-  }
-  // Après un remplacement HTMX, ECharts peut être encore en cours de chargement.
-  if (window.echarts) init();
-  else document.querySelector('script[src*="echarts"]').addEventListener('load', init, { once: true });
-})();
-</script>
-{% endif %}

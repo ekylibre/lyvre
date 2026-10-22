@@ -12,7 +12,7 @@ def _row(**kw):
         "is_benevole": False, "notes": "note",
         "last_ha": None, "last_pos": None,
         "birthday": date(2026, 1, 1), "status": "ok", "color": "red",
-        "label": "ok", "css": "bg-danger",
+        "label": "ok",
     }
     base.update(kw)
     return base

@@ -1,6 +1,6 @@
 # Workflow — Front React + Mantine
 
-> Statut : **plan** (2026-10-22). Sources : [`besoins_front_mantine.md`](besoins_front_mantine.md)
+> Statut : **réalisé** (2026-10-22, phases A–I sur `main` local, non poussé). Sources : [`besoins_front_mantine.md`](besoins_front_mantine.md)
 > (FM1–FM16, F1–F14, NF1–NF9, US1–US7), [`design_front_mantine.md`](design_front_mantine.md) (D1–D14).
 > Exécution : `/sc:implement`, phase par phase, sur `main` local non poussé (FM16).
 
@@ -272,8 +272,22 @@ interrupteur, test, instances). E2E : secret Stancer non réaffiché après rech
 | I.2 | Supprimer les routes POST HTML restantes et `tests/test_htmx_*`, `test_frontend` HTMX |
 | I.3 | Docs : `architecture.md`, `routes.md` (pages = SPA, API complète), `installation.md`, `docker.md`, `saisie_rapprochement.md`, guides ; besoins cochés, design « réalisé » |
 
+— *Réalisé (2026-10-22)* : supprimés `base.html`, `_list_helpers.html`, `_toasts.html`,
+`static/css/app.css`, `static/js/app.js`, hooks HTMX de `app/frontend.py` (ne reste que
+`vite_assets`), filtres et globals Jinja des anciens écrans (reste `euros` pour le rapport), classe
+Bootstrap `css` du statut d'adhésion, branches d'affichage interactif de `_body.html` (ECharts,
+impactco2 : mortes depuis l'aperçu serveur) ; tests `test_htmx_*` retirés, `test_frontend.py` réduit
+aux assets Vite et au CSRF, plus un test « aucune trace de Bootstrap / HTMX dans app/ ».
+`architecture.md` réécrit (arborescence, pile, conventions de l'API, flux, filtres de liste,
+sécurité) ; README, routes, docker, services, models mis à jour ; besoins cochés, design et
+workflow « réalisé ». pytest 693, Vitest 70, E2E 16.
+
 **✅ CP final** : `make check` + `make e2e` verts ; plus aucune référence à Bootstrap / HTMX ;
 image Docker OK ; US1–US7 cochées.
+— *Fait* : `make check` et `make e2e` verts ; test `test_no_bootstrap_or_htmx_left` ; PDF du rapport
+toujours identique (15 pages, texte et pixels) ; `docker compose build` puis conteneur lancé :
+`/login` 200, bundle 200, API 401 sans session, pas de Node dans l'image ; US1–US7 cochées (deux
+annotations : lien vers écran non migré devenu sans objet, étiquette ADEME de l'ancien aperçu).
 
 ## 5. Estimation indicative
 

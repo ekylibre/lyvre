@@ -502,7 +502,7 @@ Le gabarit `membership_reminder` est seedé par la migration.
 
 **Table :** `sync_jobs`
 
-Suit l'exécution d'une synchronisation lancée en arrière-plan (thread daemon, voir `services/sync_jobs.py`) : Stancer, Qonto, et métriques (GA4 / Facebook, synchrones). Permet à l'UI HTMX d'afficher la progression sans bloquer la requête HTTP.
+Suit l'exécution d'une synchronisation lancée en arrière-plan (thread daemon, voir `services/sync_jobs.py`) : Stancer, Qonto, et métriques (GA4 / Facebook, synchrones). Permet à la SPA d'afficher la progression (`GET /api/v1/jobs/<id>`, composant `JobStatus`) sans bloquer la requête HTTP.
 
 | Colonne | Type | Description |
 |---------|------|-------------|

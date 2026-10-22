@@ -79,10 +79,10 @@ Les credentials externes (`STANCER_*`, `ODOO_*`, `HELLOASSO_*`, `QONTO_*`) reste
 
 ---
 
-## Build du front (îlots React)
+## Build du front (SPA React)
 
 Le `Dockerfile` est **multi-étapes** : l'étape `front` (`node:22-slim`) installe les dépendances
-(`npm ci`, à partir de `frontend/package-lock.json`) et construit les îlots avec Vite ; l'image
+(`npm ci`, à partir de `frontend/package-lock.json`) et construit la SPA avec Vite ; l'image
 finale ne reçoit que `app/static/dist/` (bundle + manifest lu par `vite_assets()`). Aucune action
 manuelle : `docker compose build` (ou le build Dokploy) fait tout. `frontend/node_modules` et un
 éventuel `app/static/dist/` local sont exclus du contexte (`.dockerignore`).

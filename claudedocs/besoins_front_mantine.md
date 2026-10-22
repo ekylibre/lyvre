@@ -1,6 +1,6 @@
 # Besoins — Front React + Mantine
 
-> Statut : **validé** (brainstorm du 2026-10-22, réponses aux questions au §9).
+> Statut : **réalisé** (2026-10-22) — validé au brainstorm du 2026-10-22 (réponses au §9), US1–US7 cochées au §7.
 > Étape suivante : `/sc:design` (architecture de la SPA, API, routage, coexistence), puis `/sc:workflow`.
 
 ## 1. Contexte
@@ -140,35 +140,38 @@ sauf décision contraire notée dans le workflow.
 ## 7. Récits utilisateur et critères d'acceptation
 
 **US1 — Socle.** L'utilisateur se connecte, choisit son instance, navigue.
-- [ ] Connexion, déconnexion, choix et changement d'instance en React ; retour à l'écran demandé.
-- [ ] Menus identiques à `menu_config` selon le plan comptable et les droits.
-- [ ] Thème aux couleurs de l'association, bascule clair / sombre mémorisée.
-- [ ] Un lien vers un écran non migré ouvre l'ancienne page ; le retour vers un écran migré fonctionne.
+- [x] Connexion, déconnexion, choix et changement d'instance en React ; retour à l'écran demandé.
+- [x] Menus identiques à `menu_config` selon le plan comptable et les droits.
+- [x] Thème aux couleurs de l'association, bascule clair / sombre mémorisée.
+- [x] Un lien vers un écran non migré ouvre l'ancienne page ; le retour vers un écran migré fonctionne.
+      *(vrai pendant la migration ; depuis la phase H, tous les écrans sont dans la SPA.)*
 
 **US2 — Écran simple (ex. journaux, exercices, plan comptable).**
-- [ ] Liste en tableau avancé (tri, filtre, colonnes), création / modification en modale,
+- [x] Liste en tableau avancé (tri, filtre, colonnes), création / modification en modale,
       suppression confirmée, erreurs au champ.
-- [ ] Ancienne page et gabarit supprimés ; tests d'API couvrant les mêmes cas que les anciens tests de vues.
+- [x] Ancienne page et gabarit supprimés ; tests d'API couvrant les mêmes cas que les anciens tests de vues.
 
 **US3 — Saisie et rapprochement.**
-- [ ] Mêmes raccourcis et mêmes comportements que les îlots actuels, en composants Mantine.
-- [ ] Parcours E2E : saisir une écriture équilibrée ; rapprocher puis annuler (Ctrl+Z).
+- [x] Mêmes raccourcis et mêmes comportements que les îlots actuels, en composants Mantine.
+- [x] Parcours E2E : saisir une écriture équilibrée ; rapprocher puis annuler (Ctrl+Z).
 
 **US4 — Factures d'achat.**
-- [ ] Liste (filtres, badges, suppression), dépôt glisser-déposer, formulaire prérempli avec champs
+- [x] Liste (filtres, badges, suppression), dépôt glisser-déposer, formulaire prérempli avec champs
       « à vérifier » et aperçu, fiche, règlements, envoi à Qonto (avec la même garde).
-- [ ] Parcours E2E : déposer une facture PDF, l'enregistrer, la retrouver comptabilisée.
+- [x] Parcours E2E : déposer une facture PDF, l'enregistrer, la retrouver comptabilisée.
 
 **US5 — Palette de commandes.**
-- [ ] Ctrl+K ouvre la palette ; recherche d'un tiers, d'une facture, d'une écriture ; ouverture de l'écran.
+- [x] Ctrl+K ouvre la palette ; recherche d'un tiers, d'une facture, d'une écriture ; ouverture de l'écran.
 
 **US6 — Tableau de bord et rapports.**
-- [ ] Graphiques équivalents (Mantine Charts ou ECharts) lisibles en clair et sombre ; exports
-      (CSV / ODS / XLSX / PDF) inchangés.
+- [x] Graphiques équivalents (Mantine Charts ou ECharts) lisibles en clair et sombre ; exports
+      (CSV / ODS / XLSX / PDF) inchangés. *(PDF du rapport d'activité vérifié identique. L'étiquette
+      ADEME impactco2.fr, qui n'existait que dans l'ancien aperçu à l'écran, n'est plus affichée : à rétablir
+      si besoin.)*
 
 **US7 — Fin de migration.**
-- [ ] Plus aucun gabarit d'écran Jinja (seuls restent ceux d'impression / PDF), plus de Bootstrap ni HTMX.
-- [ ] Documentation (`architecture`, `routes`, `installation`, `docker`, guides) à jour.
+- [x] Plus aucun gabarit d'écran Jinja (seuls restent ceux d'impression / PDF), plus de Bootstrap ni HTMX.
+- [x] Documentation (`architecture`, `routes`, `installation`, `docker`, guides) à jour.
 
 ## 8. Risques
 

@@ -5,8 +5,8 @@ from app.extensions import db, login_manager
 from app.models import User
 
 # Connexion et choix d'instance : pages de la SPA (app/spa_routes.json) et API
-# app/api/session.py ; seuls restent le chargement de l'utilisateur et la
-# déconnexion par lien (pages Jinja).
+# app/api/session.py ; restent le chargement de l'utilisateur et la déconnexion
+# par lien (`/logout`, favoris et tests de bout en bout).
 bp = Blueprint("auth", __name__)
 
 

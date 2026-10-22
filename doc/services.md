@@ -38,7 +38,7 @@ lines = [
 
 ### `validate_entry_payload(data) → (clean, errors)`
 
-Validation d'une écriture soumise par l'îlot EntryForm / l'API (montants en centimes). Les lignes
+Validation d'une écriture soumise par l'API (écran de saisie de la SPA ; montants en centimes). Les lignes
 entièrement vides sont ignorées. `errors` associe un champ à un message :
 
 | Champ | Règle |

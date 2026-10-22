@@ -1,6 +1,6 @@
 # Design — Front React + Mantine
 
-> Statut : **proposé** (2026-10-22), à valider. Besoins : [`besoins_front_mantine.md`](besoins_front_mantine.md)
+> Statut : **réalisé** (2026-10-22, phases A–I du workflow). Besoins : [`besoins_front_mantine.md`](besoins_front_mantine.md)
 > (FM1 à FM16, F1 à F14, NF1 à NF9). Étape suivante : `/sc:workflow`.
 > Remplace à terme [`design_front_reactif.md`](design_front_reactif.md) (HTMX + îlots).
 
