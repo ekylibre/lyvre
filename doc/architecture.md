@@ -396,10 +396,9 @@ POST /entities/sync-helloasso
           │     Entity créée si besoin (entity_type='ADHERENT' pour items Membership)
           └── Pour toute Entity avec ≥ 1 item Membership → is_member=True
 
-POST /entities/create-helloasso-memberships
-    │
-    └── helloasso_create.create_membership_for_entity(...)
-          (création côté HelloAsso pour tiers ayant adhésion POS sans HA)
+helloasso_create.create_membership_for_entity(...)
+    (création côté HelloAsso pour tiers ayant adhésion POS sans HA : plus d'écran,
+     l'API HelloAsso v5 ne permettant pas de créer une adhésion manuelle)
 ```
 
 ### États financiers (Bilan / CdR)

@@ -12,12 +12,16 @@ ne pas dépendre d'une config Flask-Mail globale (incompatible multi-tenant).
 import smtplib
 from email.message import EmailMessage
 
-from flask import render_template_string
+from jinja2.sandbox import SandboxedEnvironment
 
 from app.extensions import db
 from app.models import HelloAssoOrder, HelloAssoItem
 from app.models.email_template import EmailTemplate, MEMBERSHIP_REMINDER_KEY
 from app.services import external_config
+
+# Gabarit modifiable depuis l'écran : rendu en bac à sable (pas d'accès aux objets Python,
+# donc pas d'exécution de code par le gabarit), variables échappées comme une page HTML.
+_SANDBOX = SandboxedEnvironment(autoescape=True)
 
 
 def _truthy(value):
@@ -114,8 +118,8 @@ def render_reminder(template, row, helloasso_url):
         "date_anniversaire": row["birthday"].strftime("%d/%m/%Y"),
         "lien_helloasso": helloasso_url,
     }
-    subject = render_template_string(template.subject, **context)
-    body = render_template_string(template.body_html, **context)
+    subject = _SANDBOX.from_string(template.subject).render(**context)
+    body = _SANDBOX.from_string(template.body_html).render(**context)
     return subject, body
 
 

@@ -17,31 +17,42 @@ import {
 import { AppLink } from "../navigation";
 import { Wordmark } from "./Wordmark";
 
-/** L'URL du menu correspond-elle à la page affichée ? */
-function isActive(url: string, pathname: string): boolean {
-  const path = new URL(url, window.location.origin).pathname;
-  return path === "/" ? pathname === "/" : pathname.startsWith(path.replace(/\/$/, ""));
+const pathOf = (url: string) => new URL(url, window.location.origin).pathname.replace(/\/$/, "") || "/";
+
+/** URL du menu qui correspond le mieux à la page (préfixe le plus long : /entities/members
+ * l'emporte sur /entities/ pour la page des adhérents). */
+export function activeUrl(menus: NavMenu[], pathname: string): string | null {
+  const urls = menus.flatMap((m) => [m.url, ...(m.items ?? []).map((i) => ("url" in i ? i.url : undefined))])
+    .filter((u): u is string => !!u);
+  const current = pathname.replace(/\/$/, "") || "/";
+  const matches = urls.filter((u) => {
+    const path = pathOf(u);
+    return path === "/" ? current === "/" : current === path || current.startsWith(`${path}/`);
+  });
+  return matches.sort((a, b) => pathOf(b).length - pathOf(a).length)[0] ?? null;
 }
 
 function NavMenus({ menus, onNavigate }: { menus: NavMenu[]; onNavigate: () => void }) {
   const { pathname } = useLocation();
+  const current = activeUrl(menus, pathname);
+  const isActive = (url: string) => url === current;
   return (
     <>
       {menus.map((menu) => {
         if (menu.url) {
-          const active = isActive(menu.url, pathname);
+          const active = isActive(menu.url);
           return (
             <NavLink key={menu.key} component={AppLink} href={menu.url} label={menu.label}
               active={active} aria-current={active ? "page" : undefined} onClick={onNavigate} />
           );
         }
         const items = menu.items ?? [];
-        const opened = items.some((i) => "url" in i && isActive(i.url, pathname));
+        const opened = items.some((i) => "url" in i && isActive(i.url));
         return (
           <NavLink key={menu.key} label={menu.label} defaultOpened={opened} childrenOffset="sm">
             {items.map((item, index) => {
               if ("divider" in item) return <Divider key={`d${index}`} my={4} />;
-              const active = isActive(item.url, pathname);
+              const active = isActive(item.url);
               return (
                 <NavLink key={item.key} component={AppLink} href={item.url} label={item.label}
                   active={active} aria-current={active ? "page" : undefined} onClick={onNavigate} />

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from app.extensions import db
-from app.models import BankAccount, Account, Entity, TaskType, WorkTime
+from app.models import BankAccount, Account, Purchase
 
 TEMPLATES = Path(__file__).resolve().parent.parent / "app" / "templates"
 # Requête émise par un formulaire hx_submit / un lien hx_nav (cible = zone de contenu).
@@ -28,36 +28,34 @@ def _location(resp):
 # --- redirections ---------------------------------------------------------
 
 
-def _work_time(session):
-    ent = Entity(name="Alice", is_benevole=True)
-    tt = TaskType(name="Caisse", hourly_rate_cents=2500)
-    wt = WorkTime(entity=ent, task_type=tt, work_date=date(2026, 10, 1), hours=2)
-    session.add_all([ent, tt, wt])
+def _purchase(session, number="F-1"):
+    p = Purchase(source="manual", invoice_number=number, issue_date=date(2026, 10, 1), total_cents=1000)
+    session.add(p)
     session.commit()
-    return wt
+    return p
 
 
 def test_redirect_after_action_becomes_hx_location(client, session):
-    wt = _work_time(session)
+    p = _purchase(session)
 
-    resp = client.post(f"/work-times/{wt.id}/delete", headers=HX_CONTENT)
+    resp = client.post(f"/purchases/{p.id}/delete", headers=HX_CONTENT)
     assert resp.status_code == 200 and resp.get_data() == b""
     loc = _location(resp)
-    assert loc == {"path": "/work-times/", "target": "#page-content", "select": "#page-content",
+    assert loc == {"path": "/purchases/", "target": "#page-content", "select": "#page-content",
                    "swap": "outerHTML show:none"}
-    assert WorkTime.query.count() == 0
+    assert Purchase.query.count() == 0
 
     # Le message flash part avec la requête suivante (chargement HX-Location).
     follow = client.get(loc["path"], headers={"HX-Request": "true", "HX-Target": "page-content"})
     toast = json.loads(follow.headers["HX-Trigger"])["toast"]
-    assert toast[0]["level"] == "success" and "supprimé" in toast[0]["message"]
-    assert "Temps de travaux supprimé" not in follow.get_data(as_text=True)  # pas rendu dans la page
+    assert toast[0]["level"] == "success" and "supprimée" in toast[0]["message"]
+    assert "Facture F-1 supprimée" not in follow.get_data(as_text=True)  # pas rendu dans la page
 
 
 def test_redirect_outside_content_zone_stays_hx_redirect(client, session):
-    wt = _work_time(session)
-    resp = client.post(f"/work-times/{wt.id}/delete", headers={"HX-Request": "true"})
-    assert resp.headers["HX-Redirect"] == "/work-times/"
+    p = _purchase(session)
+    resp = client.post(f"/purchases/{p.id}/delete", headers={"HX-Request": "true"})
+    assert resp.headers["HX-Redirect"] == "/purchases/"
     assert "HX-Location" not in resp.headers
 
 
@@ -66,43 +64,6 @@ def test_redirect_to_login_is_full_page_even_from_content_zone(app):
     resp = client.get("/entries/", headers=HX_CONTENT)
     assert "/login" in resp.headers["HX-Redirect"]
     assert "HX-Location" not in resp.headers
-
-
-# --- formulaires : erreurs au champ (US5) ---------------------------------
-
-
-@pytest.fixture()
-def benevole(session):
-    ent = Entity(name="Alice", is_benevole=True)
-    tt = TaskType(name="Caisse", hourly_rate_cents=2500)
-    session.add_all([ent, tt])
-    session.commit()
-    return ent, tt
-
-
-def test_work_time_invalid_form_shows_errors_next_to_fields(client, benevole):
-    ent, _tt = benevole
-    resp = client.post("/work-times/new", data={"entity_id": ent.id, "hours": "0"},
-                       headers=HX_CONTENT)
-    assert resp.status_code == 422
-    html = resp.get_data(as_text=True)
-    for field in ("task_type_id", "work_date", "hours"):
-        assert f'id="err-{field}"' in html
-        assert f'aria-describedby="err-{field}"' in html
-    assert 'id="err-entity_id"' not in html
-    assert "is-invalid" in html
-    assert "HX-Trigger" not in resp.headers  # pas de toast : erreurs affichées au champ
-    assert WorkTime.query.count() == 0
-
-
-def test_work_time_valid_form_redirects_in_content_zone(client, benevole):
-    ent, tt = benevole
-    resp = client.post("/work-times/new", headers=HX_CONTENT, data={
-        "entity_id": ent.id, "task_type_id": tt.id, "work_date": "2026-10-01", "hours": "2,5",
-    })
-    assert _location(resp)["path"] == "/work-times/"
-    wt = WorkTime.query.one()
-    assert wt.work_date == date(2026, 10, 1) and float(wt.hours) == 2.5
 
 
 def test_htmx_config_swaps_422(app):
@@ -167,7 +128,6 @@ def test_delete_actions_keep_a_confirmation():
 
 
 def test_rendered_confirmation_is_escaped(client, session):
-    session.add(Entity(name='Dupont "et fils"', entity_type="FOURNISSEUR"))
-    session.commit()
-    html = client.get("/entities/").get_data(as_text=True)
-    assert 'hx-confirm="Supprimer Dupont &#34;et fils&#34; ?"' in html
+    _purchase(session, number='F "spéciale"')
+    html = client.get("/purchases/").get_data(as_text=True)
+    assert 'hx-confirm="Supprimer la facture F &#34;spéciale&#34; ?"' in html

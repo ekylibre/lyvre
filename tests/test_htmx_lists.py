@@ -60,9 +60,6 @@ def test_no_full_reload_selectors_left_in_templates():
     ("payouts", "#page-content"),
     ("orders", "#page-content"),
     ("customer_invoices", "#list"),
-    ("work_times", "#page-content"),
-    ("entities", "#list"),
-    ("members", "#list"),
     ("balance", "#page-content"),
     ("grand_livre", "#page-content"),
     ("bilan", "#page-content"),
@@ -76,9 +73,6 @@ def test_filter_form_is_htmx(client, data, url_name, target):
         "payouts": "/payouts/",
         "orders": "/orders/",
         "customer_invoices": "/customer-invoices/",
-        "work_times": "/work-times/",
-        "entities": "/entities/",
-        "members": "/entities/members",
         "balance": "/reports/balance",
         "grand_livre": "/reports/grand-livre",
         "bilan": "/reports/bilan",
@@ -120,13 +114,6 @@ def test_entries_search(client, data):
     assert "OD-2026-0001" in html and "OD-2026-0002" not in html
     html = client.get("/entries/?q=OD-2026-0002").get_data(as_text=True)
     assert "OD-2026-0002" in html and "Facture EDF" not in html
-
-
-def test_entities_search_by_name_and_email(client, data):
-    html = client.get("/entities/?q=leroy.fr").get_data(as_text=True)
-    assert "Leroy Merlin" in html and ">EDF<" not in html
-    html = client.get("/entities/?q=zzz").get_data(as_text=True)
-    assert "Aucune entité ne correspond" in html
 
 
 def test_flash_messages_not_rendered_in_htmx_page(app, client, data):

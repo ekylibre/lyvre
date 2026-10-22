@@ -124,6 +124,18 @@ retrouvées après reconnexion.
 | C.3 | Temps de travaux : liste (serveur), saisie / modification (modale), suppression, import (dropzone) |
 | C.4 | `EntitySelect`, `ProductSelect` ; `GET /api/v1/search` (tiers, factures, écritures) branché dans la palette |
 
+— *Réalisé (2026-10-22)* : API `tiers` (gestion ; `/entities` reste la recherche), `members`
+(liste, bénévoles, notes Odoo, relances, gabarit), `work-times`, `search` ; requêtes partagées
+`app/queries/entities.py` ; `views/entities.py` réduit aux exports CSV / XLSX ; blueprint
+`work_times` supprimé. Pages : entités (panneau), fiche tiers, adhérents (tri serveur, sélection et
+actions groupées, exports), relances, message de relance (**@mantine/tiptap** à la place de Quill
+chargé par CDN ; aperçu en `iframe` sandboxée), temps de travaux (totaux), import (Dropzone).
+Palette : recherche tiers / factures / écritures. **Sécurité** : gabarit de relance rendu en
+`SandboxedEnvironment` (avant : `render_template_string`, exécution de code possible depuis le
+gabarit). Menu : seule l'entrée la plus précise est active. **Retiré** : l'écran « créer les
+adhésions HelloAsso » (bouton déjà grisé : API HelloAsso v5 sans création manuelle). pytest 675,
+Vitest 68, E2E 7.
+
 **✅ CP C** : `make check` / `make e2e` verts ; relance testée sans envoi réel (SMTP simulé) ;
 palette : recherche d'un tiers ouvre sa fiche.
 

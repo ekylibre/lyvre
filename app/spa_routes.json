@@ -3,7 +3,6 @@
   "routes": [
     {"rule": "/login", "endpoint": "auth.login", "public": true},
     {"rule": "/select-instance", "endpoint": "auth.select_instance"},
-
     {"rule": "/journals/", "endpoint": "journals.index"},
     {"rule": "/journals/new", "endpoint": "journals.new"},
     {"rule": "/fiscal-years/", "endpoint": "fiscal_years.index"},
@@ -22,6 +21,17 @@
     {"rule": "/work-times/task-types/<int:task_type_id>/edit", "endpoint": "work_times.task_type_edit"},
     {"rule": "/users/", "endpoint": "users.index"},
     {"rule": "/users/new", "endpoint": "users.new"},
-    {"rule": "/users/<int:user_id>/edit", "endpoint": "users.edit"}
+    {"rule": "/users/<int:user_id>/edit", "endpoint": "users.edit"},
+    {"rule": "/entities/", "endpoint": "entities.index"},
+    {"rule": "/entities/new", "endpoint": "entities.new"},
+    {"rule": "/entities/<int:entity_id>", "endpoint": "entities.detail"},
+    {"rule": "/entities/<int:entity_id>/edit", "endpoint": "entities.edit"},
+    {"rule": "/entities/members", "endpoint": "entities.members"},
+    {"rule": "/entities/members/reminders", "endpoint": "entities.members_reminders"},
+    {"rule": "/entities/members/reminder-template", "endpoint": "entities.reminder_template"},
+    {"rule": "/work-times/", "endpoint": "work_times.index"},
+    {"rule": "/work-times/new", "endpoint": "work_times.new"},
+    {"rule": "/work-times/<int:work_time_id>/edit", "endpoint": "work_times.edit"},
+    {"rule": "/work-times/import", "endpoint": "work_times.import_view"}
   ]
 }

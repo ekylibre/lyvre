@@ -42,3 +42,10 @@ if (!("ResizeObserver" in window)) {
   };
 }
 window.HTMLElement.prototype.scrollTo = window.HTMLElement.prototype.scrollTo ?? (() => {});
+// Textarea autosize de Mantine écoute le chargement des polices (absent de jsdom).
+if (!("fonts" in document)) {
+  Object.defineProperty(document, "fonts", {
+    value: { addEventListener: () => {}, removeEventListener: () => {}, ready: Promise.resolve() },
+    configurable: true,
+  });
+}

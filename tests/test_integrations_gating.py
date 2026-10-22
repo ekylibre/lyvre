@@ -124,28 +124,6 @@ def test_orders_and_invoices_unconfigured_notice(admin):
         assert "non configurée" in html, url
 
 
-def test_entities_helloasso_disabled_notice(admin):
-    external_config.set_many("helloasso", HELLOASSO)
-    external_config.set_enabled("helloasso", False)
-    html = admin.get("/entities/").get_data(as_text=True)
-    assert "Intégration <strong>HelloAsso</strong>" in html and "désactivée" in html
-
-
-def test_members_smtp_disabled_notice(admin):
-    external_config.set_enabled("smtp", False)
-    html = admin.get("/entities/members").get_data(as_text=True)
-    assert "Intégration <strong>SMTP (relance email)</strong>" in html
-    assert "relance email indisponible" in html
-
-
-def test_non_admin_sees_no_integration_link(login_as):
-    client = login_as(is_admin=False)
-    external_config.set_enabled("smtp", False)
-    html = client.get("/entities/members").get_data(as_text=True)
-    assert "Contactez un administrateur." in html
-    assert "/configuration/integrations/smtp" not in html
-
-
 def test_impact_sync_buttons_disabled(admin):
     html = admin.get("/impact/").get_data(as_text=True)
     assert 'title="GA4 et Facebook indisponibles"' in html

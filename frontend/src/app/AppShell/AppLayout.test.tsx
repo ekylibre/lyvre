@@ -44,3 +44,17 @@ describe("AppLayout", () => {
     vi.useRealTimers();
   });
 });
+
+describe("menu actif", () => {
+  it("retient l'entrée la plus précise", async () => {
+    const { activeUrl } = await import("./AppLayout");
+    const menus = [{ key: "tiers", label: "Tiers", items: [
+      { key: "entities", label: "Entités", url: "/entities/" },
+      { key: "members", label: "Adhérents", url: "/entities/members" },
+    ] }, { key: "dashboard", label: "Tableau de bord", url: "/" }];
+    expect(activeUrl(menus, "/entities/members")).toBe("/entities/members");
+    expect(activeUrl(menus, "/entities/12")).toBe("/entities/");
+    expect(activeUrl(menus, "/entities-x")).toBeNull();
+    expect(activeUrl(menus, "/")).toBe("/");
+  });
+});

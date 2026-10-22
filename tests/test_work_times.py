@@ -1,4 +1,4 @@
-"""Tests du module Temps de travaux : modèle, bulk bénévole, import, CRUD types."""
+"""Temps de travaux : valorisation, import (API : tests/api/test_tiers.py)."""
 import io
 from datetime import date
 
@@ -54,39 +54,6 @@ def test_valuation_zero_rate(session):
     db.session.add(wt)
     db.session.commit()
     assert wt.valuation_cents == 0
-
-
-# --- bulk bénévole --------------------------------------------------------
-
-
-def test_bulk_benevole_set_and_unset(client, session):
-    a = Entity(name="A", entity_type="ADHERENT")
-    b = Entity(name="B", entity_type="ADHERENT")
-    c = Entity(name="C", entity_type="ADHERENT")
-    db.session.add_all([a, b, c])
-    db.session.commit()
-
-    resp = client.post("/entities/members/bulk-benevole", data={
-        "action": "set", "selected": [str(a.id), str(b.id)],
-    }, follow_redirects=False)
-    assert resp.status_code == 302
-    assert Entity.query.get(a.id).is_benevole is True
-    assert Entity.query.get(b.id).is_benevole is True
-    assert Entity.query.get(c.id).is_benevole is False
-
-    resp = client.post("/entities/members/bulk-benevole", data={
-        "action": "unset", "selected": [str(a.id)],
-    })
-    assert resp.status_code == 302
-    assert Entity.query.get(a.id).is_benevole is False
-    assert Entity.query.get(b.id).is_benevole is True
-
-
-def test_bulk_benevole_no_selection(client, session):
-    resp = client.post("/entities/members/bulk-benevole",
-                       data={"action": "set"}, follow_redirects=True)
-    assert resp.status_code == 200
-    assert "Aucun adhérent sélectionné".encode() in resp.data
 
 
 # --- import ---------------------------------------------------------------

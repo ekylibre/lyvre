@@ -176,18 +176,6 @@ def test_post_ready_button_and_state_filter(app, login_as):
     assert "F-009" in client.get("/purchases/?state=posted").get_data(as_text=True)
 
 
-def test_entity_detail_shows_purchases_and_balance(app, login_as):
-    from app.services import purchase_posting
-    accounts = _books()
-    p = _incomplete_purchase(accounts)
-    p.lines[0].total_cents = 12000
-    db.session.commit()
-    purchase_posting.post_ready([p])
-    page = login_as().get(f"/entities/{p.entity.id}").get_data(as_text=True)
-    assert "Factures d'achat (1)" in page and "F-009" in page
-    assert "401001" in page and "120,00 €" in page and "dû" in page
-
-
 def test_moving_sync_from_back_resets_cursor(app):
     from datetime import datetime
     purchase_sync.set_sync_from(date(2026, 3, 1))

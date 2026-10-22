@@ -39,7 +39,6 @@ def create_app(config_name=None):
     from .views.reports import bp as reports_bp
     from .views.auth import bp as auth_bp
     from .views.entities import bp as entities_bp
-    from .views.work_times import bp as work_times_bp
     from .views.impact import bp as impact_bp
     from .views.activity_report import bp as activity_report_bp
     from .views.payouts import bp as payouts_bp
@@ -61,7 +60,6 @@ def create_app(config_name=None):
     app.register_blueprint(reconciliation_bp)
     app.register_blueprint(reports_bp)
     app.register_blueprint(entities_bp)
-    app.register_blueprint(work_times_bp)
     app.register_blueprint(impact_bp)
     app.register_blueprint(activity_report_bp)
     app.register_blueprint(payouts_bp)

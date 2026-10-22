@@ -296,37 +296,47 @@ supprimées.
 
 ---
 
-## Entités (`/entities/`)
+## Entités et adhérents (`/entities/`)
+
+Pages de la SPA : `/entities/` (`?q=`), `/entities/new`, `/entities/<id>/edit` (panneau latéral),
+`/entities/<id>` (fiche), `/entities/members` (filtres `q`, `date_from`, `date_to`, `sort_by`
+= `name`/`birthday`/`status`, `sort`), `/entities/members/reminders`,
+`/entities/members/reminder-template`. Fichiers servis par Flask :
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/entities/` | Liste toutes les entités (hors `ADHERENT`) avec dates de dernière adhésion HelloAsso et POS |
-| GET | `/entities/members` | Liste des adhérents (`entity_type='ADHERENT'`). Colonnes calculées **Date anniversaire** et **Statut** (pilule de couleur). Paramètres : `?q=`, `?date_from=`, `?date_to=`, `?sort_by=name\|birthday\|status`, `?sort=asc\|desc` |
-| GET | `/entities/members/export` | Export des adhérents — `?format=csv\|xlsx` (alias `xls`→`xlsx`), mêmes filtres + tri que `/members`. Colonnes : Nom, Email, Adhérent, Dernière adh. HA, Dernière adh. POS, Date anniversaire, Statut, Couleur, Notes |
+| GET | `/entities/members/export` | Export des adhérents — `?format=csv\|xlsx` (alias `xls`→`xlsx`), mêmes filtres + tri que la liste. Colonnes : Nom, Email, Adhérent, Bénévole, Dernière adh. HA, Dernière adh. POS, Date anniversaire, Statut, Couleur, Notes |
 | GET | `/entities/members.csv` | Compat : redirige (302) vers `/members/export?format=csv` |
-| GET/POST | `/entities/members/reminders` | GET = preview des adhérents expirés (statut rouge + email) ; POST = envoie les relances par email (Flask-Mail) |
-| GET/POST | `/entities/members/reminder-template` | Édition du gabarit d'email de relance (modèle `EmailTemplate`, clé `membership_reminder`) |
-| GET | `/entities/<id>` | Vue détail : commandes POS Odoo + factures clients + (si adhérent) commandes/articles/paiements HelloAsso |
-| GET | `/entities/new` | Formulaire de création |
-| POST | `/entities/new` | Crée l'entité ; champs fournisseur : `default_product_id`, `vat_number`, `siret` (14 chiffres, espaces et points tolérés ; sinon refus), `iban` |
-| GET | `/entities/<id>/edit` | Formulaire de modification |
-| POST | `/entities/<id>/edit` | Enregistre les modifications (mêmes champs fournisseur) |
-| POST | `/entities/<id>/delete` | Supprime l'entité (interdit si des transactions y sont liées) |
-| POST | `/entities/sync-helloasso` | Lance la synchronisation HelloAsso (synchrone, voir [services.md](services.md#helloasso_syncpy--synchronisation-helloasso)) |
-| GET | `/entities/create-helloasso-memberships` | Preview des tiers ayant une adhésion POS sans adhésion HelloAsso |
-| POST | `/entities/create-helloasso-memberships` | Crée les adhésions manquantes côté HelloAsso via l'API |
 
-**Paramètres POST `/entities/new` et `/entities/<id>/edit` :**
+API (la recherche des listes de saisie reste `GET /api/v1/entities?q=`) :
 
-| Champ | Obligatoire | Description |
-|-------|-------------|-------------|
-| `name` | oui | Nom unique (max 200 caractères) |
-| `entity_type` | non | `CLIENT`, `FOURNISSEUR`, `SALARIE`, `ADHERENT`, `ORGANISME` ou `AUTRE` (défaut) |
-| `account_code` | non | Code compte GL associé |
-| `email` | non | Email — clé de rattachement HelloAsso/Odoo |
-| `is_member` | non (checkbox) | Marque le tiers comme adhérent |
-| `notes` | non | Notes libres |
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/api/v1/tiers` | Tiers hors adhérents (`?q=` nom ou email), dernières adhésions HelloAsso / caisse, nombre de transactions ; `meta` : types, produits d'achat, état des intégrations HelloAsso / Odoo / SMTP |
+| POST | `/api/v1/tiers` | `name` (unique), `entity_type`, `account_code`, `email`, `is_member`, `is_benevole`, `notes`, `default_product_id`, `vat_number`, `siret` (14 chiffres, espaces et points tolérés), `iban` |
+| GET | `/api/v1/tiers/<id>` | Fiche : identité, solde du compte fournisseur, factures d'achat, commandes de caisse Odoo (lignes, paiements), factures clients, temps de travaux, HelloAsso (commandes, articles, paiements) |
+| PATCH | `/api/v1/tiers/<id>` | Mêmes champs que la création |
+| DELETE | `/api/v1/tiers/<id>` | Supprime (409 si des transactions y sont liées) |
+| POST | `/api/v1/tiers/<id>/odoo-note` | Écrit la note d'adhésion dans « Notes interne » d'Odoo (409 si Odoo indisponible) |
+| POST | `/api/v1/helloasso/sync` | Synchronisation HelloAsso (synchrone, voir [services.md](services.md#helloasso_syncpy--synchronisation-helloasso)) |
+| GET | `/api/v1/members` | Adhérents filtrés et triés (`color` : `red` échue, `orange` sous 30 jours, `green` à jour) ; `meta.export_urls` |
+| POST | `/api/v1/members/benevole` | `{ids, value}` : marque ou retire le statut bénévole |
+| POST | `/api/v1/members/odoo-notes` | `{ids, filtres}` : notes d'adhésion des fiches Odoo choisies |
+| GET / POST | `/api/v1/members/reminders` | Adhérents à relancer (échus, email connu) / `{ids, filtres}` : envoie la relance (409 si SMTP indisponible) |
+| GET / PUT | `/api/v1/members/reminder-template` | Gabarit du message (`subject`, `body_html`, modèle `EmailTemplate` clé `membership_reminder`) |
+| POST | `/api/v1/members/reminder-template/preview` | Rendu du gabarit (bac à sable Jinja) avec un adhérent réel ou fictif ; `error` si le gabarit est invalide |
 
+## Temps de travaux (`/work-times/`)
+
+Pages de la SPA : `/work-times/` (filtres `entity_id`, `task_type_id`, `month`, `sort`),
+`/work-times/new`, `/work-times/<id>/edit`, `/work-times/import`. API :
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/api/v1/work-times` | Temps filtrés ; `meta` : bénévoles, types de tâches, mois de l'exercice, `total_hours`, `total_valuation_cents` |
+| POST / PATCH | `/api/v1/work-times[/<id>]` | `entity_id`, `task_type_id`, `work_date`, `hours` (0 à 24), `notes` |
+| DELETE | `/api/v1/work-times/<id>` | Supprime le temps |
+| POST | `/api/v1/work-times/import` | Fichier `file` CSV (séparateur `;`) ou XLSX : colonnes Bénévole, Type de tâche, Date, Heures, Notes |
 ---
 
 ## Moteur de règles (`/rules/`)
@@ -532,6 +542,7 @@ Codes : `bad_request` / `csrf_error` (400), `unauthenticated` (401, jamais de re
 | POST | `/api/v1/session/instance` | `{instance_id}` → session ; 422 si l'instance est inconnue ou désactivée |
 | PATCH | `/api/v1/me/preferences` | Fusion profonde dans `users.preferences` (`null` supprime une clé) ; `color_scheme` ∈ `light`/`dark`/`auto` ; 413 au-delà de 16 Ko |
 | GET | `/api/v1/jobs/<id>` | État d'une tâche longue (`sync_jobs`) : statut, progression, résultat |
+| GET | `/api/v1/search?q=` | Palette Ctrl+K : tiers, factures d'achat, écritures (5 par groupe, 2 caractères au moins) |
 | GET/POST | `/api/v1/task-types` | Types de tâches des temps de travaux (`name` unique, `hourly_rate_cents`, `is_active` ; `work_times` = temps saisis). Pages SPA `/work-times/task-types`, `…/new`, `…/<id>/edit` |
 | PATCH/DELETE | `/api/v1/task-types/<id>` | Modifie ; supprime un type sans temps saisis (sinon 409) |
 | GET | `/api/v1/accounts?q=&limit=20` | Comptes utilisables (hors regroupement) : début de code, puis mots du libellé (sans accents) |

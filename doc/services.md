@@ -771,9 +771,11 @@ Synchronise les formulaires + commandes + items + paiements de l'organisation He
 
 ### `create_membership_for_entity(entity, amount_cents, payment_date, form_type, form_slug, client) → (bool, str)`
 
-Crée une adhésion côté HelloAsso pour un tiers ayant une adhésion POS mais pas encore d'adhésion HA. Retourne `(True, info)` en succès, `(False, message_erreur)` sinon. Utilisé par `/entities/create-helloasso-memberships`.
+Crée une adhésion côté HelloAsso pour un tiers ayant une adhésion POS mais pas encore d'adhésion HA. Retourne `(True, info)` en succès, `(False, message_erreur)` sinon. Plus d'écran depuis la refonte du front : l'API HelloAsso v5 ne permet pas de créer une adhésion manuelle (le bouton était déjà grisé).
 
 ## membership_reminders.py — Relance email des adhérents expirés
+
+Le gabarit, modifiable depuis l'écran, est rendu dans un **bac à sable Jinja** (`SandboxedEnvironment`, échappement HTML) : il n'a accès qu'aux variables `nom`, `email`, `date_anniversaire`, `lien_helloasso`.
 
 Relance par email des adhérents dont l'adhésion est échue (statut `red`). Le service reçoit les `rows` déjà construites par la vue (`membership_status.build_member_rows`) pour éviter toute dépendance circulaire avec le blueprint `entities`.
 
