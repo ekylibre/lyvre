@@ -165,7 +165,7 @@ compta-asso/
 | **pandas** | Lecture et mapping des CSV Odoo |
 | **PyYAML** | Lecture du fichier de règles de catégorisation |
 | **odfpy** | Génération des exports ODS du compte de résultat |
-| **echarts-python** | Construction côté serveur des options ECharts pour le tableau de bord |
+| **@mantine/charts** (Recharts) | Graphiques du tableau de bord (SPA) ; le rapport d'activité garde ECharts (HTML serveur) et `chart_svg` (PDF) |
 | **requests** | Appels REST à l'API Stancer v2 + HelloAsso v5 (OAuth2 client_credentials) |
 | **xmlrpc.client** (stdlib) | Client XML-RPC Odoo — endpoints `/xmlrpc/2/common` + `/xmlrpc/2/object`, API key passée comme password |
 

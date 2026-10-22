@@ -1,17 +1,15 @@
+"""Tableau de bord : indicateurs et séries mensuelles d'un exercice (extraits de l'ancienne
+vue Jinja ; les graphiques sont dessinés par la SPA)."""
 from datetime import date
-from flask import Blueprint, render_template, request
-from flask_login import login_required
-from sqlalchemy import func, extract
-from echarts import Echart, Bar, Line, Axis, Legend
+
+from sqlalchemy import extract, func
+
 from app.extensions import db
 from app.models import (
-    FiscalYear, BankTransaction, JournalEntry, JournalLine, Account,
-    Order, OrderLine, CustomerInvoice, Payout, HelloAssoOrder, HelloAssoItem,
+    BankTransaction, CustomerInvoice, HelloAssoItem, HelloAssoOrder, JournalEntry, JournalLine,
+    Account, Order, OrderLine, Payout,
 )
 from app.services.reports import build_compte_resultat, section_total
-from app.tenant import current_chart
-
-bp = Blueprint("dashboard", __name__)
 
 
 def _months_in_fy(fy):
@@ -217,6 +215,8 @@ def _resultat_courant_cents(fy):
 
     Aggregated from build_compte_resultat to stay aligned with the official report of the instance chart.
     """
+    from app.tenant import current_chart  # import tardif : app.tenant importe l'API
+
     data = build_compte_resultat(fy, chart=current_chart())
     p_expl = section_total(data["produits_exploitation"])[0]
     c_expl = section_total(data["charges_exploitation"])[0]
@@ -236,115 +236,25 @@ def _total_payouts_cents(fy):
     return int(total)
 
 
-def _build_charts(fy):
-    """Returns dict of ECharts JSON options for dashboard charts."""
-    res_labels, produits, charges, nets = _monthly_result(fy)
-    sales_labels, sales, pos_sales, inv_sales = _monthly_sales(fy)
-    bank_labels, balances = _bank_balance_evolution(fy)
-
-    # Résultat (produits/charges/net)
-    cdr = Echart("Résultat mensuel", f"Exercice {fy.label}")
-    cdr.use(Bar("Produits", produits))
-    cdr.use(Bar("Charges", charges))
-    cdr.use(Line("Net", nets))
-    cdr.use(Legend(["Produits", "Charges", "Net"]))
-    cdr.use(Axis("category", "bottom", data=res_labels))
-    cdr.use(Axis("value", "left"))
-
-    # Ventes
-    ventes = Echart("Ventes mensuelles")
-    ventes.use(Bar("Ventes (70x)", sales))
-    ventes.use(Bar("Commandes POS", pos_sales))
-    ventes.use(Bar("Factures Odoo", inv_sales))
-    ventes.use(Legend(["Ventes (70x)", "Commandes POS", "Factures Odoo"]))
-    ventes.use(Axis("category", "bottom", data=sales_labels))
-    ventes.use(Axis("value", "left"))
-
-    # Solde bancaire
-    solde = Echart("Solde bancaire", "Cumulé fin de mois")
-    solde.use(Line("Solde", balances))
-    solde.use(Legend(["Solde"]))
-    solde.use(Axis("category", "bottom", data=bank_labels))
-    solde.use(Axis("value", "left"))
-
-    # Adapt to ECharts 5+ (xAxis/yAxis as objects, area on lines, tooltip)
-    def adapt(opt, *, area_lines=False, color_series=None):
-        opt = dict(opt)
-        if isinstance(opt.get("xAxis"), list) and opt["xAxis"]:
-            opt["xAxis"] = opt["xAxis"][0]
-        if isinstance(opt.get("yAxis"), list) and opt["yAxis"]:
-            opt["yAxis"] = opt["yAxis"][0]
-        if not opt.get("yAxis") or opt["yAxis"] == {}:
-            opt["yAxis"] = {"type": "value", "axisLabel": {"formatter": "{value} €"}}
-        else:
-            opt["yAxis"]["axisLabel"] = {"formatter": "{value} €"}
-        opt["tooltip"] = {"trigger": "axis",
-                          "valueFormatter": "FMT_EUR"}
-        opt["grid"] = {"left": 60, "right": 30, "top": 70, "bottom": 40}
-        opt.setdefault("legend", {})
-        opt["legend"]["top"] = 28
-        opt["toolbox"] = {
-            "show": True,
-            "right": 20,
-            "top": 8,
-            "feature": {
-                "dataView": {"title": "Données", "readOnly": True,
-                             "lang": ["Données", "Fermer", "Rafraîchir"]},
-                "saveAsImage": {"title": "Exporter en image", "name": opt.get("title", {}).get("text", "chart"),
-                                "type": "png", "pixelRatio": 2},
-            },
-        }
-        for i, s in enumerate(opt.get("series", [])):
-            if area_lines and s.get("type") == "line":
-                s["areaStyle"] = {"opacity": 0.15}
-                s["smooth"] = True
-            if s.get("type") == "line":
-                s["smooth"] = True
-                s["symbol"] = "circle"
-                s["symbolSize"] = 6
-            if color_series and i < len(color_series):
-                s["itemStyle"] = {"color": color_series[i]}
-                s["lineStyle"] = {"color": color_series[i]}
-        return opt
-
+def dashboard_data(fy):
+    """Indicateurs, séries mensuelles (euros) et dernières écritures de l'exercice."""
+    labels, produits, charges, nets = _monthly_result(fy)
+    _, sales, pos_sales, inv_sales = _monthly_sales(fy)
+    _, balances = _bank_balance_evolution(fy)
+    recent = (JournalEntry.query.filter_by(fiscal_year_id=fy.id)
+              .order_by(JournalEntry.entry_date.desc()).limit(10).all())
     return {
-        "resultat": adapt(cdr.json, color_series=["#1abc9c", "#e74c3c", "#34495e"]),
-        "ventes": adapt(ventes.json, color_series=["#3498db", "#f39c12", "#27ae60"]),
-        "solde": adapt(solde.json, area_lines=True, color_series=["#9b59b6"]),
+        "stats": {
+            "total_sales_cents": _total_sales_cents(fy),
+            "new_members": _new_members_count(fy),
+            "resultat_courant_cents": _resultat_courant_cents(fy),
+            "total_payouts_cents": _total_payouts_cents(fy),
+        },
+        "monthly": [
+            {"month": label, "produits": p, "charges": c, "net": n, "ventes": v, "pos": ps,
+             "factures": inv, "solde": b}
+            for label, p, c, n, v, ps, inv, b in zip(labels, produits, charges, nets, sales,
+                                                     pos_sales, inv_sales, balances)
+        ],
+        "recent_entries": recent,
     }
-
-
-@bp.route("/")
-@login_required
-def index():
-    fiscal_years = FiscalYear.query.order_by(FiscalYear.start_date.desc()).all()
-
-    fy_id = request.args.get("fy_id", type=int)
-    selected_fy = None
-    if fy_id:
-        selected_fy = next((fy for fy in fiscal_years if fy.id == fy_id), None)
-    if selected_fy is None and fiscal_years:
-        selected_fy = fiscal_years[0]  # ordered desc by start_date → latest
-
-    stats = {}
-    charts = None
-    if selected_fy:
-        stats["total_sales_cents"] = _total_sales_cents(selected_fy)
-        stats["new_members"] = _new_members_count(selected_fy)
-        stats["resultat_courant_cents"] = _resultat_courant_cents(selected_fy)
-        stats["total_payouts_cents"] = _total_payouts_cents(selected_fy)
-        stats["recent_entries"] = (
-            JournalEntry.query.filter_by(fiscal_year_id=selected_fy.id)
-            .order_by(JournalEntry.entry_date.desc())
-            .limit(10)
-            .all()
-        )
-        charts = _build_charts(selected_fy)
-
-    return render_template(
-        "dashboard/index.html",
-        fiscal_years=fiscal_years,
-        active_fy=selected_fy,
-        stats=stats,
-        charts=charts,
-    )

@@ -149,6 +149,16 @@ palette : recherche d'un tiers ouvre sa fiche.
 | D.4 | Tableau de bord : indicateurs + graphiques (Mantine Charts ; ECharts si besoin, décidé par graphique) |
 | D.5 | Bascule ; îlot `EntryForm` (version Jinja) supprimé |
 
+— *Réalisé (2026-10-22)* : API `entries` (liste paginée serveur, fiche, `form` = préparation
+création / modification / depuis une transaction, suppression), `reports` (balance, grand livre,
+bilan, compte de résultat), `dashboard` (indicateurs + séries mensuelles, requêtes extraites dans
+`app/queries/dashboard.py`). Vues `entries` et `dashboard` supprimées ; `views/reports.py` réduit aux
+exports CSV / ODS ; `echarts-python` retiré des dépendances. Front : `EntryEditor` (Mantine, même
+`entryState.ts` et mêmes raccourcis que l'îlot), `AccountSelect` (Combobox Mantine, comptes récents),
+pages écritures / états (cadre commun, impression) / tableau de bord (**Mantine Charts** :
+CompositeChart, BarChart, AreaChart). L'îlot `EntryForm` reste pour le rapprochement (phase E).
+Base E2E : instance « SCI E2E » avec exercice, journaux et comptes. pytest 675, Vitest 70, E2E 9.
+
 **✅ CP D** : E2E **saisie d'écriture** (clavier : lignes, `=`, Ctrl+Entrée) ; rapports identiques
 aux anciens sur la copie Seconde Nature (totaux comparés) ; dashboard lisible clair / sombre.
 

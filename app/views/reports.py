@@ -1,11 +1,11 @@
+"""Exports du compte de résultat (CSV, ODS). Les états financiers sont des pages de la SPA
+(app/spa_routes.json) alimentées par app/api/reports.py."""
 import csv
 from io import StringIO
-from flask import Blueprint, render_template, request, Response, abort
+from flask import Blueprint, request, Response, abort
 from flask_login import login_required
-from app.models import FiscalYear, Account, JournalEntry, JournalLine
-from app.extensions import db
-from app.services.ledger import trial_balance, general_ledger
-from app.services.reports import build_bilan, build_compte_resultat, compte_resultat_rows
+from app.models import FiscalYear
+from app.services.reports import build_compte_resultat, compte_resultat_rows
 from app.tenant import current_chart
 
 bp = Blueprint("reports", __name__, url_prefix="/reports")
@@ -26,64 +26,6 @@ def _get_prev_fy(fy):
         .filter(FiscalYear.start_date < fy.start_date)
         .order_by(FiscalYear.start_date.desc())
         .first()
-    )
-
-
-@bp.route("/balance")
-@login_required
-def balance():
-    fiscal_years = FiscalYear.query.order_by(FiscalYear.start_date.desc()).all()
-    fy = _get_fy()
-    rows, _ = trial_balance(fy.id) if fy else ([], None)
-    return render_template("reports/balance.html", rows=rows, fy=fy, fiscal_years=fiscal_years)
-
-
-@bp.route("/grand-livre")
-@login_required
-def grand_livre():
-    fiscal_years = FiscalYear.query.order_by(FiscalYear.start_date.desc()).all()
-    fy = _get_fy()
-    account_id = request.args.get("account_id", type=int)
-    account, rows = general_ledger(account_id, fy.id) if account_id and fy else (None, [])
-    accounts = Account.query.filter_by(is_header=False).order_by(Account.code).all()
-    return render_template(
-        "reports/grand_livre.html",
-        account=account,
-        rows=rows,
-        fy=fy,
-        fiscal_years=fiscal_years,
-        accounts=accounts,
-        selected_account_id=account_id,
-    )
-
-
-@bp.route("/bilan")
-@login_required
-def bilan():
-    fiscal_years = FiscalYear.query.order_by(FiscalYear.start_date.desc()).all()
-    fy = _get_fy()
-    fy_prev = _get_prev_fy(fy)
-    chart = current_chart()
-    data = build_bilan(fy, fy_prev, chart) if fy else None
-    return render_template(
-        "reports/bilan.html", data=data, fy=fy, fy_prev=fy_prev,
-        fiscal_years=fiscal_years, chart=chart,
-    )
-
-
-@bp.route("/compte-de-resultat")
-@login_required
-def compte_resultat():
-    from datetime import date
-    fiscal_years = FiscalYear.query.order_by(FiscalYear.start_date.desc()).all()
-    fy = _get_fy()
-    fy_prev = _get_prev_fy(fy)
-    chart = current_chart()
-    data = build_compte_resultat(fy, fy_prev, chart) if fy else None
-    rows = list(compte_resultat_rows(data, chart)) if data else []
-    return render_template(
-        "reports/compte_resultat.html", rows=rows, fy=fy, fy_prev=fy_prev,
-        fiscal_years=fiscal_years, now_date=date.today(),
     )
 
 

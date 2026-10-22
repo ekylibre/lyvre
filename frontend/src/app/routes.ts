@@ -36,6 +36,14 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
   "entities.reminder_template": () => import("../features/members/ReminderTemplatePage"),
   ...pages(["work_times.index", "work_times.new", "work_times.edit"], () => import("../features/work-times/WorkTimesPage")),
   "work_times.import_view": () => import("../features/work-times/WorkTimesImportPage"),
+  "dashboard.index": () => import("../features/dashboard/DashboardPage"),
+  "entries.index": () => import("../features/entries/EntriesPage"),
+  ...pages(["entries.new", "entries.edit"], () => import("../features/entries/EntryFormPage")),
+  "entries.detail": () => import("../features/entries/EntryDetailPage"),
+  "reports.balance": () => import("../features/reports/BalancePage"),
+  "reports.grand_livre": () => import("../features/reports/GeneralLedgerPage"),
+  "reports.bilan": () => import("../features/reports/BilanPage"),
+  "reports.compte_resultat": () => import("../features/reports/CompteResultatPage"),
 };
 
 /** Pages sans la mise en page de l'application (en-tête, menus). */

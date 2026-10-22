@@ -31,9 +31,7 @@ def create_app(config_name=None):
     from .tenant import register_tenant_hooks
     register_tenant_hooks(app)
 
-    from .views.dashboard import bp as dashboard_bp
     from .views.bank_accounts import bp as bank_accounts_bp
-    from .views.entries import bp as entries_bp
     from .views.imports import bp as imports_bp
     from .views.reconciliation import bp as reconciliation_bp
     from .views.reports import bp as reports_bp
@@ -53,9 +51,7 @@ def create_app(config_name=None):
     register_spa(app)
 
     app.register_blueprint(auth_bp)
-    app.register_blueprint(dashboard_bp)
     app.register_blueprint(bank_accounts_bp)
-    app.register_blueprint(entries_bp)
     app.register_blueprint(imports_bp)
     app.register_blueprint(reconciliation_bp)
     app.register_blueprint(reports_bp)

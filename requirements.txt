@@ -9,7 +9,6 @@ pyyaml==6.0.*
 requests==2.*
 weasyprint==69.*
 odfpy==1.4.*
-echarts-python==0.1.*
 stancer==1.*
 pandas==2.2.*
 xlrd==2.0.*

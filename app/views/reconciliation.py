@@ -3,7 +3,7 @@ from flask_login import login_required
 
 from app.models import BankAccount, Journal
 from app.utils.list_filters import month_options_for_fy
-from app.views.entries import api_base_url, entry_form_options
+from app.api.entries import api_base_url, entry_form_options
 
 bp = Blueprint("reconciliation", __name__, url_prefix="/reconciliation")
 

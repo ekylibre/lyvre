@@ -166,6 +166,6 @@ def test_entry_delete_view_unlinks_reconciliation(app, base):
     bt = txn(base, -100)
     e, line = entry(base, -100)
     reconcile_many([(bt.id, line.id)])
-    resp = app.test_client().post(f"/entries/{e.id}/delete")
-    assert resp.status_code == 302
+    resp = app.test_client().delete(f"/api/v1/entries/{e.id}")
+    assert resp.status_code == 200
     assert db.session.get(BankTransaction, bt.id).reconciled is False

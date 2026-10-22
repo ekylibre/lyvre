@@ -199,25 +199,23 @@ def test_asso_layout_unchanged(session):
     assert any(l["label"] == "Fonds dédiés" for l in bilan["passif"])
 
 
-def test_report_templates_render_for_both_charts(app, session):
+def test_report_api_for_both_charts(app, session, monkeypatch):
+    """Compte de résultat et bilan de l'API selon le plan de l'instance (asso / sci)."""
     fy = _sci_year(session)
+    app.config["LOGIN_DISABLED"] = True
+    client = app.test_client()
+    import app.api.reports as api_reports
+
     for chart in ("asso", "sci"):
-        with app.test_request_context():
-            g.current_instance = SimpleNamespace(chart=chart)
-            data = build_compte_resultat(fy, chart=chart)
-            html = render_template(
-                "reports/compte_resultat.html",
-                rows=list(compte_resultat_rows(data, chart)),
-                fy=fy, fy_prev=None, fiscal_years=[fy], now_date=date.today(),
-            )
-            assert ("Loyers et fermages" in html) == (chart == "sci")
-            assert ("Cotisations" in html) == (chart == "asso")
-            html = render_template(
-                "reports/bilan.html", data=build_bilan(fy, chart=chart),
-                fy=fy, fy_prev=None, fiscal_years=[fy], chart=chart,
-            )
-            assert "TOTAL ACTIF" in html
-            assert ("Fonds dédiés" in html) == (chart == "asso")
+        monkeypatch.setattr(api_reports, "current_chart", lambda chart=chart: chart)
+        labels = [r["label"] for r in client.get(f"/api/v1/reports/compte-de-resultat?fy_id={fy.id}").get_json()["items"]]
+        assert ("Loyers et fermages" in labels) == (chart == "sci")
+        assert any("Cotisations" in label for label in labels) == (chart == "asso")
+        bilan = client.get(f"/api/v1/reports/bilan?fy_id={fy.id}").get_json()
+        actif = [line["label"] for line in bilan["actif"]]
+        passif = [line["label"] for line in bilan["passif"]]
+        assert "TOTAL ACTIF" in actif
+        assert any("Fonds dédiés" in label for label in passif) == (chart == "asso")
 
 
 def test_ods_export_for_both_charts(session):

@@ -21,11 +21,28 @@ os.environ["META_DATABASE_URL"] = f"sqlite:///{os.path.join(TMPDIR, 'meta.db')}"
 os.environ["DATABASE_URL"] = f"sqlite:///{os.path.join(TMPDIR, 'default.db')}"
 os.environ.pop("VITE_DEV_SERVER", None)
 
-from sqlalchemy import create_engine  # noqa: E402
+from datetime import date  # noqa: E402
+
+from sqlalchemy import create_engine, text  # noqa: E402
 
 from app import create_app  # noqa: E402
 from app.extensions import db  # noqa: E402
 from app.models import Instance, User  # noqa: E402
+
+
+def _seed_books(engine):
+    """Exercice de l'année, journaux et quelques comptes (parcours de saisie)."""
+    year = date.today().year
+    with engine.begin() as conn:
+        conn.execute(text("INSERT INTO fiscal_years (label, start_date, end_date, closed, vat_liable) "
+                          "VALUES (:l, :s, :e, 0, 0)"),
+                     {"l": str(year), "s": f"{year}-01-01", "e": f"{year}-12-31"})
+        for code, label in (("AC", "Achats"), ("BQ", "Banque"), ("OD", "Opérations diverses")):
+            conn.execute(text("INSERT INTO journals (code, label) VALUES (:c, :l)"), {"c": code, "l": label})
+        for code, label, kind in (("512000", "Banque", "ASSET"), ("606300", "Petit équipement", "EXPENSE"),
+                                  ("401000", "Fournisseurs", "TIERS"), ("706000", "Prestations", "REVENUE")):
+            conn.execute(text("INSERT INTO accounts (code, label, account_type, is_header) VALUES (:c, :l, :t, 0)"),
+                         {"c": code, "l": label, "t": kind})
 
 
 def seed(app):
@@ -38,6 +55,8 @@ def seed(app):
             url = f"sqlite:///{os.path.join(TMPDIR, spec['slug'] + '.db')}"
             engine = create_engine(url)
             db.metadata.create_all(engine)  # tables tenant (la méta-base a ses propres métadonnées)
+            if spec.get("books"):
+                _seed_books(engine)
             engine.dispose()
             db.session.add(Instance(slug=spec["slug"], label=spec["label"], chart=spec["chart"],
                                     database_url=url))

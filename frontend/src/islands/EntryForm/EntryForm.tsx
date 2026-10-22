@@ -9,7 +9,7 @@ import type { EntryResponse, FieldErrors } from "../../lib/types";
 import {
   balancingAmount, balancingLine, computeTotals, isComplete, isEmptyLine, newLine, reducer,
   toPayload, withMinimumLines, type EntryState, type InitialLine,
-} from "./entryState";
+} from "../../features/entries/entryState";
 
 const VALIDATE_DELAY_MS = 400;
 

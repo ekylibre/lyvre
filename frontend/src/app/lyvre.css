@@ -103,3 +103,13 @@ html, body { background: var(--lv-paper); }
 /* Ce qui flotte (menus, dialogues, notifications) porte la seule ombre. */
 .mantine-Menu-dropdown, .mantine-Modal-content, .mantine-Notification-root, .mantine-Popover-dropdown,
 .mantine-Combobox-dropdown, .mantine-Spotlight-content { box-shadow: var(--lv-shadow-float); }
+
+/* Impression des états : sans barre latérale ni en-tête ni boutons. */
+.lv-print-only { display: none; }
+@media print {
+  .mantine-AppShell-navbar, .mantine-AppShell-header, .mantine-Button-root, .mantine-Select-root,
+  .mantine-TextInput-root, .mantine-ActionIcon-root { display: none !important; }
+  .mantine-AppShell-main { padding: 0 !important; }
+  html, body, .mantine-AppShell-main { background: #fff !important; }
+  .lv-print-only { display: block; }
+}

@@ -4,6 +4,6 @@
   "user": {"email": "e2e@example.org", "password": "e2e-mot-de-passe"},
   "instances": [
     {"slug": "asso-e2e", "label": "Association E2E", "chart": "asso"},
-    {"slug": "sci-e2e", "label": "SCI E2E", "chart": "sci"}
+    {"slug": "sci-e2e", "label": "SCI E2E", "chart": "sci", "books": true}
   ]
 }

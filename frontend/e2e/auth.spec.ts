@@ -20,9 +20,9 @@ test("connexion puis choix d'instance et retour à la page demandée", async ({ 
 
   await page.getByLabel("SCI E2E").check();
   await page.getByRole("button", { name: "Continuer" }).click();
-  // Page encore servie par Flask (Jinja) : la navigation complète a bien eu lieu.
   await expect(page).toHaveURL(/\/entries\/$/);
-  await expect(page.locator("nav")).toContainText("SCI E2E");
+  await expect(page.getByRole("heading", { name: "Écritures" })).toBeVisible();
+  await expect(page.getByRole("banner")).toContainText("SCI E2E");
 
   // La page de connexion n'est plus utile une fois connecté.
   await page.goto("/login");
@@ -41,11 +41,11 @@ test("changer d'instance depuis la page de choix", async ({ page }) => {
   await page.getByRole("button", { name: "Se connecter" }).click();
   await page.getByLabel("Association E2E").check();
   await page.getByRole("button", { name: "Continuer" }).click();
-  await expect(page.locator("nav")).toContainText("Association E2E");
+  await expect(page.getByRole("banner")).toContainText("Association E2E");
 
   await page.goto("/select-instance");
   await expect(page.getByLabel("Association E2E")).toBeChecked();
   await page.getByLabel("SCI E2E").check();
   await page.getByRole("button", { name: "Continuer" }).click();
-  await expect(page.locator("nav")).toContainText("SCI E2E");
+  await expect(page.getByRole("banner")).toContainText("SCI E2E");
 });

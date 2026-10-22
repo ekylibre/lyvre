@@ -32,6 +32,15 @@
     {"rule": "/work-times/", "endpoint": "work_times.index"},
     {"rule": "/work-times/new", "endpoint": "work_times.new"},
     {"rule": "/work-times/<int:work_time_id>/edit", "endpoint": "work_times.edit"},
-    {"rule": "/work-times/import", "endpoint": "work_times.import_view"}
+    {"rule": "/work-times/import", "endpoint": "work_times.import_view"},
+    {"rule": "/", "endpoint": "dashboard.index"},
+    {"rule": "/entries/", "endpoint": "entries.index"},
+    {"rule": "/entries/new", "endpoint": "entries.new"},
+    {"rule": "/entries/<int:entry_id>", "endpoint": "entries.detail"},
+    {"rule": "/entries/<int:entry_id>/edit", "endpoint": "entries.edit"},
+    {"rule": "/reports/balance", "endpoint": "reports.balance"},
+    {"rule": "/reports/grand-livre", "endpoint": "reports.grand_livre"},
+    {"rule": "/reports/bilan", "endpoint": "reports.bilan"},
+    {"rule": "/reports/compte-de-resultat", "endpoint": "reports.compte_resultat"}
   ]
 }

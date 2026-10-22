@@ -118,14 +118,6 @@ Voir [doc/multi_tenant.md](multi_tenant.md) pour le détail de l'architecture.
 
 ---
 
-## Tableau de bord
-
-| Méthode | URL | Description |
-|---------|-----|-------------|
-| GET | `/` | Affiche les statistiques de l'exercice courant et les 10 dernières écritures |
-
----
-
 ## Plan comptable (`/accounts/`)
 
 Pages de la SPA (liste ; la création / modification s'ouvre dans une fenêtre portée par l'URL) : `/accounts/` (`?q=` : code ou mots du libellé), `/accounts/new`, `/accounts/<id>/edit`. API :
@@ -164,17 +156,18 @@ Pages de la SPA (liste ; la création / modification s'ouvre dans une fenêtre p
 
 ## Écritures comptables (`/entries/`)
 
+Pages de la SPA : `/entries/` (filtres `fy_id`, `journal_id`, `month`, `q`, `sort`, `page`),
+`/entries/new` (`?bt_id=` : depuis une transaction bancaire, retour au rapprochement après
+l'enregistrement), `/entries/<id>`, `/entries/<id>/edit` ([guide de saisie](saisie_rapprochement.md)). API :
+
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/entries/` | Liste les écritures avec actions Modifier / Supprimer. Filtres : `?fy_id=`, `?journal_id=`, `?month=`, `?q=` (référence ou description, recherche au fil de la frappe) |
-| GET | `/entries/new` | Page de saisie : îlot React **EntryForm** ([guide](saisie_rapprochement.md)). Paramètre optionnel `?bt_id=` pour préremplir depuis une transaction bancaire (date, journal `BQ`, exercice englobant la date, ligne banque au débit ou au crédit selon le signe) ; transaction déjà rapprochée → retour au rapprochement. L'enregistrement passe par `POST /api/v1/entries`. |
-| GET | `/entries/<id>` | Détail d'une écriture avec toutes ses lignes |
-| GET | `/entries/<id>/edit` | Modification dans l'îlot EntryForm (`PUT /api/v1/entries/<id>`) ; refusée (redirection + message) si l'exercice est clôturé ou si une ligne est rapprochée |
-| POST | `/entries/<id>/delete` | Supprime l'écriture et **défait d'abord ses rapprochements** (`ledger.delete_entries`) ; interdit si l'exercice est clôturé |
-
-Les anciennes routes `POST /entries/new`, `POST /entries/<id>/edit`, `/entries/new-line` et
-`/accounts/search` (formulaire HTMX) ont été supprimées.
-
+| GET | `/api/v1/entries` | Liste paginée côté serveur (`page`, `per_page` ≤ 200 ; exercice ouvert le plus récent par défaut) ; `meta` : exercices, journaux, mois de l'exercice |
+| GET | `/api/v1/entries/form` | Préparation du formulaire : options (exercices ouverts, journaux, portée des comptes récents) et valeurs initiales ; `?entry_id=` modification (409 si exercice clôturé ou écriture rapprochée), `?bt_id=` création depuis une transaction (409 si déjà rapprochée) |
+| POST | `/api/v1/entries/validate` | Validation à blanc |
+| POST / PUT | `/api/v1/entries[/<id>]` | Création (`bank_transaction_id` facultatif : création et rapprochement atomiques) / modification |
+| GET | `/api/v1/entries/<id>` | Fiche : journal, exercice, origine, lignes, totaux, `reconciled`, `editable` |
+| DELETE | `/api/v1/entries/<id>` | Supprime l'écriture et **défait d'abord ses rapprochements** (`ledger.delete_entries`) ; 409 si l'exercice est clôturé |
 ---
 
 ## Comptes bancaires (`/bank-accounts/`)
@@ -446,35 +439,31 @@ Le bouton de synchronisation est désactivé tant que `STANCER_SECRET_KEY` n'est
 
 ## Tableau de bord (`/`)
 
-| Méthode | URL | Description |
-|---------|-----|-------------|
-| GET | `/?fy_id=<id>` | Tableau de bord de l'exercice. Si `fy_id` n'est pas fourni, l'exercice le plus récent (`start_date desc`) est sélectionné par défaut. |
+Page de la SPA (`?fy_id=`, exercice le plus récent par défaut) ; `GET /api/v1/dashboard` renvoie :
+- `stats` : ventes de l'exercice (caisse Odoo et factures Odoo hors caisse), adhésions de
+  l'exercice (HelloAsso ou caisse), résultat courant (exploitation et financier, selon le plan de
+  l'instance), versements Stancer ;
+- `monthly` : par mois, produits (7x) / charges (6x) / net, ventes (70x, caisse, factures Odoo),
+  solde bancaire cumulé fin de mois (base = transactions antérieures à l'exercice), en euros ;
+- `recent_entries` : les 10 dernières écritures.
 
-Le tableau de bord affiche :
-- Quatre cartes d'indicateurs : nombre d'écritures, transactions non rapprochées **sur la période de l'exercice**, écritures déséquilibrées, dates et statut de l'exercice.
-- Trois graphiques ECharts :
-  - **Résultat mensuel** — barres Produits (7x) / Charges (6x) + courbe Net.
-  - **Ventes mensuelles** — barres sur les comptes 70x.
-  - **Solde bancaire** — courbe cumulée fin de mois (base = total des transactions antérieures à l'exercice).
-- Liste des 10 dernières écritures de l'exercice.
-
+Graphiques **Mantine Charts** (résultat : barres et courbe ; ventes : barres ; solde : aire).
 ---
 
 ## États financiers (`/reports/`)
 
-Tous les rapports acceptent le paramètre `?fy_id=` pour sélectionner l'exercice.
+Pages de la SPA : `/reports/balance`, `/reports/grand-livre` (`?account_id=`), `/reports/bilan`,
+`/reports/compte-de-resultat`, toutes avec `?fy_id=` (exercice ouvert le plus récent par défaut)
+et un bouton « Imprimer » (`window.print()`, navigation masquée en `@media print`).
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/reports/balance` | Balance des comptes (tous les comptes avec mouvements) |
-| GET | `/reports/grand-livre` | Grand livre d'un compte. Paramètre supplémentaire : `?account_id=` |
-| GET | `/reports/bilan` | Bilan actif/passif selon le plan comptable de l'instance, comparaison N / N-1 |
-| GET | `/reports/compte-de-resultat` | Compte de résultat selon le plan comptable de l'instance, comparaison N / N-1 |
-| GET | `/reports/compte-de-resultat.csv` | Export CSV (séparateur `;`, UTF-8 BOM, virgule décimale) du compte de résultat |
-| GET | `/reports/compte-de-resultat.ods` | Export ODS (OpenDocument Spreadsheet) avec formules de totaux (somme des cellules, lignes « dont » exclues), références `[.B<row>]`, styles et format monétaire |
-
-Tous les rapports disposent d'un bouton "Imprimer" qui déclenche `window.print()` avec les éléments de navigation masqués (CSS `@media print`).
-
+| GET | `/api/v1/reports/balance` | Balance (comptes avec mouvements : débit, crédit, soldes) |
+| GET | `/api/v1/reports/grand-livre` | Lignes d'un compte avec solde cumulé ; `meta.accounts` |
+| GET | `/api/v1/reports/bilan` | Actif / passif selon le plan de l'instance, N et N-1 (lignes `section` / `row` / `total`) |
+| GET | `/api/v1/reports/compte-de-resultat` | Lignes `section` / `subhead` / `row` / `total` / `result` avec `indent`, N et N-1 ; `meta.export_urls` |
+| GET | `/reports/compte-de-resultat.csv` | Export CSV (séparateur `;`, UTF-8 BOM, virgule décimale) |
+| GET | `/reports/compte-de-resultat.ods` | Export ODS avec formules de totaux (somme des cellules, lignes « dont » exclues), styles et format monétaire |
 ---
 
 ## Indicateurs — Visibilité & Impact (`/impact/`)

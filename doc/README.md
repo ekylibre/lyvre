@@ -67,7 +67,7 @@ python run.py
 | Rapport PDF | weasyprint (rendu serveur, graphes en SVG) |
 | Export DOCX / ODT | LibreOffice headless (`soffice --convert-to`) depuis un HTML autonome |
 | Éditeur de texte | Quill 2.0.3 (WYSIWYG, blocs narratifs du rapport d'activité) |
-| Graphiques | echarts-python (génère le JSON) + Apache ECharts 5 (rendu navigateur) |
+| Graphiques | Mantine Charts (tableau de bord) ; ECharts et SVG serveur pour le rapport d'activité |
 | API Stancer | requests + SDK officiel `stancer` |
 | API Odoo | xmlrpc.client (stdlib) — endpoints `/xmlrpc/2/common` + `/xmlrpc/2/object` |
 | API HelloAsso | requests — OAuth2 client_credentials v5 |

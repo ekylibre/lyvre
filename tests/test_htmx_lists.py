@@ -55,29 +55,17 @@ def test_no_full_reload_selectors_left_in_templates():
 
 
 @pytest.mark.parametrize("url_name, target", [
-    ("entries", "#list"),
     ("transactions", "#page-content"),
     ("payouts", "#page-content"),
     ("orders", "#page-content"),
     ("customer_invoices", "#list"),
-    ("balance", "#page-content"),
-    ("grand_livre", "#page-content"),
-    ("bilan", "#page-content"),
-    ("compte_resultat", "#page-content"),
-    ("dashboard", "#page-content"),
 ])
 def test_filter_form_is_htmx(client, data, url_name, target):
     urls = {
-        "entries": "/entries/",
         "transactions": f"/bank-accounts/{data['ba'].id}/transactions",
         "payouts": "/payouts/",
         "orders": "/orders/",
         "customer_invoices": "/customer-invoices/",
-        "balance": "/reports/balance",
-        "grand_livre": "/reports/grand-livre",
-        "bilan": "/reports/bilan",
-        "compte_resultat": "/reports/compte-de-resultat",
-        "dashboard": "/",
     }
     resp = client.get(urls[url_name])
     assert resp.status_code == 200, resp.status_code
@@ -93,27 +81,6 @@ def test_filter_form_is_htmx(client, data, url_name, target):
         assert "input changed delay:300ms" in form
         list_zone = html.split('id="list"', 1)[1]
         assert 'type="search"' not in list_zone
-
-
-def test_sort_header_navigates_with_htmx(client, data):
-    html = client.get("/entries/").get_data(as_text=True)
-    link = re.search(r'<a href="[^"]*sort=asc[^"]*"[^>]*>', html).group(0)
-    assert "hx-get=" in link and 'hx-target="#page-content"' in link
-    assert 'hx-push-url="true"' in link
-
-
-def test_htmx_request_returns_page_with_selectable_zone(client, data):
-    resp = client.get("/entries/?month=2026-03", headers=HX)
-    html = resp.get_data(as_text=True)
-    assert resp.status_code == 200
-    assert 'id="list"' in html and "OD-2026-0001" in html
-
-
-def test_entries_search(client, data):
-    html = client.get("/entries/?q=edf", headers=HX).get_data(as_text=True)
-    assert "OD-2026-0001" in html and "OD-2026-0002" not in html
-    html = client.get("/entries/?q=OD-2026-0002").get_data(as_text=True)
-    assert "OD-2026-0002" in html and "Facture EDF" not in html
 
 
 def test_flash_messages_not_rendered_in_htmx_page(app, client, data):

@@ -1,0 +1,48 @@
+// Tableau d'un état (bilan, compte de résultat) : sections, lignes indentées, totaux,
+// résultats ; colonnes N et N-1.
+import { Paper, Table, Text } from "@mantine/core";
+import { MoneyText } from "../../components/Money";
+
+export interface StatementLine {
+  kind: "section" | "subhead" | "row" | "total" | "result";
+  label: string; indent?: number; n?: number | null; p?: number | null;
+}
+
+function Amount({ cents, strong }: { cents: number | null | undefined; strong?: boolean }) {
+  if (cents === null || cents === undefined) return null;
+  return <MoneyText cents={cents} fw={strong ? 600 : undefined} />;
+}
+
+export function StatementTable({ title, lines, nLabel, pLabel, showPrevious }: {
+  title: string; lines: StatementLine[]; nLabel: string; pLabel: string; showPrevious: boolean;
+}) {
+  return (
+    <Paper p={0} style={{ overflowX: "auto" }}>
+      <Table verticalSpacing={6} style={{ minWidth: 560 }}>
+        <Table.Thead bg="var(--lv-sauge)">
+          <Table.Tr><Table.Th>{title}</Table.Th><Table.Th ta="right">{nLabel}</Table.Th>
+            {showPrevious && <Table.Th ta="right">{pLabel}</Table.Th>}</Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {lines.map((line, i) => {
+            if (line.kind === "section") {
+              return <Table.Tr key={i} bg="var(--lv-surface-sunken)"><Table.Td colSpan={showPrevious ? 3 : 2}>
+                <Text fw={700} size="sm" tt="uppercase" style={{ letterSpacing: "0.06em" }}>{line.label}</Text></Table.Td></Table.Tr>;
+            }
+            const strong = line.kind === "total" || line.kind === "result";
+            const bg = line.kind === "result" ? "var(--lv-sauge)" : undefined;
+            return (
+              <Table.Tr key={i} bg={bg}>
+                <Table.Td pl={8 + (line.indent ?? 0) * 16}>
+                  <Text size="sm" fw={strong || line.kind === "subhead" ? 600 : 400} fs={line.label.startsWith("dont ") ? "italic" : undefined}>{line.label}</Text>
+                </Table.Td>
+                <Table.Td ta="right"><Amount cents={line.n} strong={strong} /></Table.Td>
+                {showPrevious && <Table.Td ta="right" c="dimmed"><Amount cents={line.p} strong={strong} /></Table.Td>}
+              </Table.Tr>
+            );
+          })}
+        </Table.Tbody>
+      </Table>
+    </Paper>
+  );
+}
