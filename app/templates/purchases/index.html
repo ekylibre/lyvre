@@ -150,6 +150,7 @@
       <th>État</th>
       <th>Statut Qonto</th>
       <th>Échéance</th>
+      <th><span class="visually-hidden">Actions</span></th>
     </tr>
   </thead>
   <tbody>
@@ -181,6 +182,16 @@
         {% if p.review_reason %}<span class="badge bg-danger" title="{{ p.review_reason }}">à revoir</span>{% endif %}
       </td>
       <td>{{ p.due_date.strftime('%d/%m/%Y') if p.due_date else '—' }}</td>
+      <td class="text-end">
+        {% set name = ('l\'avoir ' if p.is_credit_note else 'la facture ') ~ (p.invoice_number or 'sans numéro') %}
+        {% set confirm = 'Supprimer ' ~ name ~ ' ?'
+             ~ (' Son écriture d\'achat sera supprimée aussi.' if p.journal_entry_id else '')
+             ~ (' Elle reste dans Qonto.' if p.qonto_id else '') %}
+        <form method="post" action="{{ url_for('purchases.delete', purchase_id=p.id) }}" class="m-0" {{ hx_submit(confirm=confirm) }}>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-link btn-sm text-danger p-0" title="Supprimer" aria-label="Supprimer {{ name }}">✕</button>
+        </form>
+      </td>
     </tr>
     {% endfor %}
   </tbody>

@@ -968,6 +968,8 @@ ses montants, sa date ou sa nature : le changement est noté dans `review_reason
 | `post_ready(purchases)` | Comptabilise les prêtes, une transaction SQL chacune, puis `settle` ; `{posted, settled, errors}` |
 | `supplier_account(entity)` / `next_supplier_code()` | Compte 401 du fournisseur (code de la fiche, sinon 401NNN suivant), créé dans le plan (parent 401, `TIERS`) |
 | `unpost(p)` | Supprime l'écriture AC et réapplique la dernière réponse Qonto (`purchase_sync.apply_payload`) |
+| `delete_blockers(p)` | Motifs de refus de suppression : statut Qonto validé (`QONTO_VALIDATED_STATUSES` : à payer, programmée, payée, archivée…), paiement lié, avoir lié à une facture (dans un sens ou l'autre), écriture d'un exercice clôturé |
+| `delete(p)` | Supprime la facture, son écriture AC et sa pièce jointe ; `LedgerError` avec les motifs si elle est liée ; une facture Qonto n'est supprimée que dans l'application |
 | `save_lines(p, rows)` | Lignes saisies (TVA calculée si vide, compte 6… exigé) ; `lines_edited = True` ; puis `post_ready` |
 
 ---

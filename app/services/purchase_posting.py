@@ -254,6 +254,59 @@ def unpost(p: Purchase) -> None:
     db.session.commit()
 
 
+# ------------------------------------------------------------------ suppression
+
+# Statuts Qonto d'une facture validée (approuvée, à payer, payée…) : elle n'est plus supprimable.
+QONTO_VALIDATED_STATUSES = {"to_pay", "awaiting_payment", "pending", "scheduled", "paid", "archived"}
+
+
+def delete_blockers(p: Purchase) -> list[str]:
+    """Motifs qui empêchent de supprimer la facture ; liste vide si elle est supprimable."""
+    from app.models import PurchasePayment
+    from app.services.purchase_sync import STATUS_LABELS
+
+    reasons = []
+    if p.qonto_status in QONTO_VALIDATED_STATUSES:
+        reasons.append(f"elle est validée dans Qonto (statut « {STATUS_LABELS.get(p.qonto_status, p.qonto_status)} »)")
+    if PurchasePayment.query.filter_by(purchase_id=p.id).count():
+        reasons.append("elle est liée à un paiement (transaction bancaire ou règlement)")
+    linked = bool(p.related_qonto_ids and json.loads(p.related_qonto_ids))
+    if not linked and p.qonto_id:
+        linked = Purchase.query.filter(Purchase.id != p.id,
+                                       Purchase.related_qonto_ids.contains(p.qonto_id)).count() > 0
+    if linked:
+        reasons.append("elle est liée à une autre facture (avoir)")
+    if p.journal_entry is not None and p.journal_entry.fiscal_year.closed:
+        reasons.append("son écriture est dans un exercice clôturé")
+    return reasons
+
+
+def delete(p: Purchase) -> str | None:
+    """Supprime la facture, son écriture d'achat et sa pièce ; LedgerError si elle est liée.
+
+    Renvoie la référence de l'écriture supprimée, s'il y en avait une. Une facture Qonto
+    n'est supprimée que dans l'application.
+    """
+    from app.services import attachments
+
+    reasons = delete_blockers(p)
+    if reasons:
+        raise LedgerError("Suppression impossible : " + " ; ".join(reasons) + ".")
+    reference = None
+    if p.journal_entry_id is not None:
+        (outcome,) = delete_entries([p.journal_entry_id])
+        if outcome["status"] != "ok":
+            raise LedgerError(outcome["message"])
+        reference = outcome["reference"]
+        db.session.refresh(p)
+    path = attachments.path_of(p)
+    db.session.delete(p)
+    db.session.commit()
+    if path is not None:
+        path.unlink(missing_ok=True)
+    return reference
+
+
 # ------------------------------------------------------------------ lignes saisies
 
 def parse_cents(value) -> int | None:

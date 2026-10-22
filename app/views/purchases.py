@@ -396,6 +396,21 @@ def unpost(purchase_id):
     return redirect(url_for("purchases.detail", purchase_id=purchase.id))
 
 
+@bp.route("/<int:purchase_id>/delete", methods=["POST"])
+@login_required
+def delete(purchase_id):
+    purchase = Purchase.query.get_or_404(purchase_id)
+    label = f"{'Avoir' if purchase.is_credit_note else 'Facture'} {purchase.invoice_number or 'sans numéro'}"
+    try:
+        reference = purchase_posting.delete(purchase)
+    except LedgerError as exc:
+        db.session.rollback()
+        flash(f"{label} : {exc}", "danger")
+        return redirect(url_for("purchases.index"))
+    flash(f"{label} supprimée" + (f", ainsi que son écriture {reference}." if reference else "."), "success")
+    return redirect(url_for("purchases.index"))
+
+
 @bp.route("/post-ready", methods=["POST"])
 @login_required
 def post_ready():

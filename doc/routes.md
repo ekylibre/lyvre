@@ -269,6 +269,7 @@ Les anciennes routes `POST /entries/new`, `POST /entries/<id>/edit`, `/entries/n
 | POST | `/purchases/<id>/payments/<payment_id>/delete` | Défait un règlement hors Qonto (écriture supprimée, rapprochement défait) |
 | POST | `/purchases/<id>/post` | Comptabilise une facture prête |
 | POST | `/purchases/<id>/unpost` | Supprime l'écriture d'achat et réapplique les données Qonto |
+| POST | `/purchases/<id>/delete` | Supprime la facture, son écriture d'achat et sa pièce ; refusé (message) si elle est validée dans Qonto ou liée à un paiement ou à un avoir |
 | POST | `/purchases/post-ready` | Comptabilise toutes les factures prêtes (puis leurs règlements) |
 | GET/POST | `/purchases/suppliers` | Fournisseurs des factures à valider : `action` = `create` (+`name`), `link` (+`entity_id`) ou `ignore`, `name_key`, `label` |
 | GET | `/purchases/settlements` | Paiements de factures déjà passés par une écriture de règle (remplaçables) ou manuelle (signalés) |

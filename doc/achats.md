@@ -105,6 +105,19 @@ l'en-tête** (fiche) permet de corriger fournisseur, n°, dates, montants et de 
 pièce se consulte et se télécharge depuis la fiche ; elle est rangée dans le dossier de l'instance
 (`instance/uploads/<instance>/achats/AAAA/MM/`). Filtre **Origine** de la liste : Qonto ou saisies.
 
+### Supprimer une facture
+
+Le bouton **✕** de la liste supprime la facture après confirmation, avec son écriture d'achat et sa
+pièce jointe. La suppression est **refusée**, avec un message, si la facture :
+
+- est **validée dans Qonto** (à payer, programmée, payée, archivée…) ;
+- est liée à un **paiement** (transaction Qonto ou règlement hors Qonto : défaites-le d'abord) ;
+- est un avoir lié à une facture, ou une facture qu'un avoir désigne ;
+- a son écriture dans un **exercice clôturé**.
+
+Une facture venue de Qonto (ou envoyée à Qonto) n'est supprimée que dans l'application : elle reste
+dans Qonto et revient à la synchronisation si elle y est modifiée.
+
 ## Règlements
 
 Qonto indique les transactions qui ont payé chaque facture. Quand la transaction est importée dans le

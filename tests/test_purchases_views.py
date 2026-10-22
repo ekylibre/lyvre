@@ -406,3 +406,69 @@ def test_send_to_qonto_route_guards(entry_books, login_as):
     external_config.set_many("qonto", {"login": "org", "secret_key": "secret"})
     page = client.post(f"/purchases/{p.id}/qonto", follow_redirects=True).get_data(as_text=True)
     assert "ne peut pas être envoyée" in page  # pas de pièce
+
+
+# ------------------------------------------------------------------ suppression
+
+def test_delete_entered_invoice_with_entry_and_attachment(entry_books, login_as):
+    from app.models import JournalEntry
+    from app.services import attachments
+    client = login_as()
+    token = _read(client, entry_books).get_data(as_text=True).split('name="token" value="')[1].split('"')[0]
+    client.post("/purchases/new", data=_save_form(token))
+    p = Purchase.query.one()
+    path = attachments.path_of(p)
+    assert path.is_file() and p.journal_entry_id is not None
+    page = client.get("/purchases/").get_data(as_text=True)
+    assert f"/purchases/{p.id}/delete" in page and "Son écriture d&#39;achat sera supprimée aussi." in page
+
+    resp = client.post(f"/purchases/{p.id}/delete", follow_redirects=True)
+    assert "Facture 1400000013 supprimée, ainsi que son écriture AC-" in resp.get_data(as_text=True)
+    assert Purchase.query.count() == 0 and JournalEntry.query.count() == 0
+    assert not path.exists()
+
+
+def test_delete_refused_when_validated_in_qonto_or_linked(app, login_as):
+    from app.models import PurchasePayment
+    _purchases()
+    client = login_as()
+    paid = Purchase.query.filter_by(invoice_number="F-001").one()
+    resp = client.post(f"/purchases/{paid.id}/delete", follow_redirects=True)
+    assert "validée dans Qonto (statut « Payée »)" in resp.get_data(as_text=True)
+
+    pending = Purchase.query.filter_by(invoice_number="F-002").one()
+    pending.payments.append(PurchasePayment(qonto_transaction_id="tx-1"))
+    credit = Purchase(qonto_id="si-5", invoice_number="AV-002", supplier_name="Inconnu SARL",
+                      issue_date=date(2026, 8, 6), total_cents=500, is_credit_note=True,
+                      qonto_status="to_review", related_qonto_ids='["si-2"]')
+    db.session.add(credit)
+    db.session.commit()
+    page = client.post(f"/purchases/{pending.id}/delete", follow_redirects=True).get_data(as_text=True)
+    assert "liée à un paiement" in page and "liée à une autre facture (avoir)" in page
+    page = client.post(f"/purchases/{credit.id}/delete", follow_redirects=True).get_data(as_text=True)
+    assert "liée à une autre facture (avoir)" in page
+    assert Purchase.query.count() == 5
+
+
+def test_delete_qonto_invoice_to_review(app, login_as):
+    _purchases()
+    client = login_as()
+    p = Purchase.query.filter_by(invoice_number="F-002").one()
+    assert "Elle reste dans Qonto." in client.get("/purchases/").get_data(as_text=True)
+    page = client.post(f"/purchases/{p.id}/delete", follow_redirects=True).get_data(as_text=True)
+    assert "Facture F-002 supprimée." in page
+    assert Purchase.query.filter_by(invoice_number="F-002").count() == 0
+
+
+def test_delete_refused_in_closed_fiscal_year(app, login_as):
+    from app.models import FiscalYear
+    accounts = _books()
+    p = _incomplete_purchase(accounts)
+    p.qonto_status = "to_review"
+    client = login_as()
+    client.post(f"/purchases/{p.id}/lines", data=form_lines(
+        {"account_code": "6061", "label": "Électricité", "untaxed": "100,00", "vat_rate": "20"}))
+    FiscalYear.query.one().closed = True
+    db.session.commit()
+    page = client.post(f"/purchases/{p.id}/delete", follow_redirects=True).get_data(as_text=True)
+    assert "exercice clôturé" in page and Purchase.query.count() == 1
