@@ -18,6 +18,7 @@ from .organization import Organization
 from .closing import ClosingEvent, ClosingStep
 from .dedicated_fund import DedicatedFund, DedicatedFundMovement
 from .project import Project
+from .budget import BudgetLine
 from .order import Order
 from .order_line import OrderLine
 from .order_payment import OrderPayment

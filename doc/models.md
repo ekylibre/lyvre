@@ -297,6 +297,14 @@ d'audit. L'étape `close` est déduite du statut de l'exercice ; `opening` et
 saisie), `created_at`. Axe analytique unique (OA11), porté par `journal_lines`, `purchase_lines` et
 `rules` (`project_id`, ON DELETE SET NULL). Un projet utilisé ne se supprime pas : on l'archive.
 
+## BudgetLine — Budget
+
+**Table :** `budget_lines` (lot C.2, migration `f2b6d8a3c147`) : `fiscal_year_id` CASCADE,
+`account_id` (classe 6 ou 7, regroupement admis : le réalisé se calcule par préfixe), `project_id`
+CASCADE (NULL : budget général), `month` (rang du mois dans l'exercice, 1 = premier mois ; NULL =
+montant annuel réparti par douzièmes), `amount_cents` (≥ 0, dans le sens naturel du compte). Index
+`(fiscal_year_id, project_id)`. Un projet qui a un budget ne se supprime pas (archivage).
+
 ## DedicatedFund / DedicatedFundMovement — Fonds dédiés
 
 `dedicated_funds(label, kind subsidy|contribution|public_generosity, resource_account_id NULL,

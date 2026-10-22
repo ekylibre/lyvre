@@ -61,7 +61,7 @@ MENUS = [
         "key": "compta",
         "label": "Compta",
         "charts": _ALL,
-        "active": ["accounts", "journals", "fiscal_years", "products", "entries", "reports", "projects"],
+        "active": ["accounts", "journals", "fiscal_years", "products", "entries", "reports", "projects", "budgets"],
         "items": [
             {"key": "entries", "label": "Écritures", "endpoint": "entries.index", "charts": _ALL},
             {"divider": True, "charts": _ALL},
@@ -70,6 +70,7 @@ MENUS = [
             {"key": "bilan", "label": "Bilan", "endpoint": "reports.bilan", "charts": _ALL},
             {"key": "compte_resultat", "label": "Compte de résultat", "endpoint": "reports.compte_resultat", "charts": _ALL},
             {"key": "projects", "label": "Projets", "endpoint": "projects.index", "charts": _ALL},
+            {"key": "budgets", "label": "Budget", "endpoint": "budgets.index", "charts": _ALL},
             {"divider": True, "charts": _ALL},
             {"key": "accounts", "label": "Plan comptable", "endpoint": "accounts.index", "charts": _ALL},
             {"key": "journals", "label": "Journaux", "endpoint": "journals.index", "charts": _ALL},

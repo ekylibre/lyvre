@@ -173,6 +173,13 @@ rapprochée (sauf la ligne bancaire). Copie SN 5001 : ligne 607 de BQ-2026-0005 
 ventilée 100,00 € projet / 54,24 € sans projet ; rapprochement conservé ; FEC 2026 à blanc conforme
 (débit = crédit). pytest 763, Vitest 78, E2E 19.
 
+**C.2 fait (2026-10-23)** : table `budget_lines` (migration `f2b6d8a3c147`), service `budget`
+(grille, enregistrement par périmètre, contrôles de chevauchement, copie N-1 budget / réalisé),
+API `/api/v1/budgets/<fy_id>[/copy]`, écran Compta › Budget (annuel / mensuel, sous-totaux, résultat
+prévu, colonne des comptes figée). Copie SN 5001 : budget 2026 copié du réalisé 2025, enregistré et
+rechargé à l'identique (charges 6 145,75 €, produits 15 109,75 €, résultat 8 964,00 € = résultat
+2025). pytest 768, Vitest 78, E2E 20.
+
 ## 5. Lot B — Reçus fiscaux
 
 | Phase | Tâches | CP |

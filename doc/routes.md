@@ -248,6 +248,20 @@ règles.
 
 ---
 
+## Budget (`/budget/`)
+
+Page de la SPA : `/budget/?fiscal_year_id=&project_id=` (Compta › Budget) : grille comptes × mois,
+budget général ou d'un projet, saisie annuelle (répartie par douzièmes) ou mensuelle, copie de
+l'exercice précédent à relire avant d'enregistrer. API :
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/api/v1/budgets/<fy_id>` | `?project_id=` (vide : budget général) : `months`, `rows` (`mode` annual\|monthly, `months`, `total_cents`), `totals`, options de comptes (6 et 7, regroupements compris) et de projets |
+| PUT | `/api/v1/budgets/<fy_id>` | `{project_id, rows: [{account_id, annual_cents} \| {account_id, months: [...]}]}` : remplace le budget du périmètre ; 422 si compte hors classes 6/7, doublon, ou compte qui en regroupe un autre |
+| GET | `/api/v1/budgets/<fy_id>/copy` | `?source=budget\|actual&project_id=` : grille proposée d'après l'exercice précédent (réalisé regroupé au compte à 3 chiffres), non enregistrée |
+
+---
+
 ## Catalogue (`/products/`)
 
 Pages de la SPA (liste ; la création / modification s'ouvre dans une fenêtre portée par l'URL) : `/products/` (`?archived=1`), `/products/new`, `/products/<id>/edit`. API :

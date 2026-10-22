@@ -27,6 +27,7 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
   ...pages(["accounts.index", "accounts.new", "accounts.edit"], () => import("../features/accounts/AccountsPage")),
   ...pages(["products.index", "products.new", "products.edit"], () => import("../features/products/ProductsPage")),
   ...pages(["projects.index", "projects.new", "projects.edit"], () => import("../features/projects/ProjectsPage")),
+  "budgets.index": () => import("../features/budget/BudgetPage"),
   ...pages(["rules.index", "rules.new", "rules.edit"], () => import("../features/rules/RulesPage")),
   ...pages(["work_times.task_types", "work_times.task_type_new", "work_times.task_type_edit"],
     () => import("../features/task-types/TaskTypesPage")),

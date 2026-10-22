@@ -11,7 +11,7 @@ from datetime import date
 from sqlalchemy import case, func
 
 from app.extensions import db
-from app.models import Account, BankTransaction, FiscalYear, JournalEntry, JournalLine, Project, PurchaseLine, Rule
+from app.models import Account, BankTransaction, BudgetLine, FiscalYear, JournalEntry, JournalLine, Project, PurchaseLine, Rule
 from app.models.journal_entry import MANAGED_SOURCES
 
 
@@ -101,9 +101,11 @@ def save(project: Project | None, data: dict) -> Project:
 def delete(project: Project):
     used = (JournalLine.query.filter_by(project_id=project.id).count()
             + PurchaseLine.query.filter_by(project_id=project.id).count()
-            + Rule.query.filter_by(project_id=project.id).count())
+            + Rule.query.filter_by(project_id=project.id).count()
+            + BudgetLine.query.filter_by(project_id=project.id).count())
     if used:
-        raise ProjectError(f"Projet utilisé ({used} ligne(s) ou règle(s)) : archivez-le plutôt.", status=409)
+        raise ProjectError(f"Projet utilisé ({used} ligne(s), règle(s) ou montant(s) de budget) : archivez-le plutôt.",
+                           status=409)
     db.session.delete(project)
     db.session.commit()
 
