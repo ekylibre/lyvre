@@ -1,6 +1,6 @@
 // Compta › Exercices : liste, création, assujettissement à la TVA, clôture.
 import { useState } from "react";
-import { Button, Checkbox, Group, TextInput } from "@mantine/core";
+import { Button, Checkbox, Group, Text, TextInput } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { api } from "../../api/client";
@@ -14,6 +14,7 @@ import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { useRouteModal } from "../../app/useRouteModal";
+import { FecPanel } from "./FecPanel";
 
 export interface FiscalYear {
   id: number; label: string; start_date: string; end_date: string; closed: boolean; vat_liable: boolean;
@@ -64,6 +65,7 @@ function FiscalYearForm({ years, onDone }: { years: FiscalYear[] | undefined; on
 
 export default function FiscalYearsPage() {
   const modal = useRouteModal("/fiscal-years/");
+  const [fecFor, setFecFor] = useState<FiscalYear | null>(null);
   const { data, isFetching } = useList<FiscalYear>(FISCAL_YEARS_KEY, "/api/v1/fiscal-years");
   const close = useAction((fy: FiscalYear) => api.post<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}/close`),
     { invalidate: [FISCAL_YEARS_KEY] });
@@ -79,6 +81,10 @@ export default function FiscalYearsPage() {
       render: (fy) => <StatusBadge tone={STATUS_TONES[fy.status] ?? "neutral"}>{fy.status_label}</StatusBadge> },
     { accessor: "vat_liable", title: "TVA",
       render: (fy) => <StatusBadge tone={fy.vat_liable ? "info" : "neutral"}>{fy.vat_liable ? "Soumis" : "Non soumis"}</StatusBadge> },
+    // Hors colonne « actions » : l'expert-comptable (lecture seule) exporte aussi le FEC.
+    { accessor: "fec", title: "FEC", hideable: false,
+      render: (fy) => fy.status === "open" ? <Text size="sm" c="dimmed">après clôture</Text>
+        : <Button variant="subtle" size="compact-sm" onClick={() => setFecFor(fy)}>FEC</Button> },
     { accessor: "actions", title: "", hideable: false, textAlign: "right",
       render: (fy) => fy.closed ? null : (
         <Group gap="xs" justify="flex-end" wrap="nowrap">
@@ -109,6 +115,9 @@ export default function FiscalYearsPage() {
         emptyText="Aucun exercice : créez le premier pour commencer à saisir." />
       <FormModal opened={modal.mode === "new"} onClose={modal.close} title="Créer un exercice">
         <FiscalYearForm years={data?.items} onDone={modal.close} />
+      </FormModal>
+      <FormModal opened={!!fecFor} onClose={() => setFecFor(null)} title={`Fichier des écritures comptables — ${fecFor?.label ?? ""}`} size="lg">
+        {fecFor && <FecPanel fiscalYearId={fecFor.id} />}
       </FormModal>
     </>
   );

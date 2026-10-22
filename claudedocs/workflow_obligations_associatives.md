@@ -87,6 +87,13 @@ verrouillé testée sur copie jetable. pytest 725, Vitest 78, E2E 17.
 | A.3.4 | Validation externe : FEC d'un exercice de test (base E2E + copie SN) passé dans « Test Compta Demat » ; correction de l'encodage / séparateur au besoin (point ouvert 1) |
 
 **✅ CP A.3** : FEC accepté par l'outil de la DGFiP ; totaux = balance ; refus sans SIREN.
+— *Fait (2026-10-22), sauf l'outil de la DGFiP* : service `fec` (validation, contrôles, génération,
+relecture interne, figeage SHA-256), numérotation à la clôture provisoire, API de contrôle, route de
+téléchargement (tous rôles), fenêtre « FEC » dans Exercices ; E2E (SIREN → clôture provisoire →
+FEC) sur un exercice ancien ajouté à la base E2E. Données réelles (copie SN, exercice 2025) : 105
+écritures, 210 lignes, débit = crédit = 21 255,50 €, relecture conforme ; fichier remis à
+l'utilisateur pour « Test Compta Demat » (application de bureau de la DGFiP, non lancée ici).
+pytest 734, Vitest 78, E2E 18.
 
 ### Phase A.4 — Assistant de clôture, étapes 1 à 6 (D4, D7)
 

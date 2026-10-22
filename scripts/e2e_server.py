@@ -62,6 +62,20 @@ def _seed_books(engine):
         for account, debit, credit in ((ids["606300"], 4500, 0), (ids["512000"], 0, 4500)):
             conn.execute(text("INSERT INTO journal_lines (entry_id, account_id, label, debit_cents, credit_cents) "
                               "VALUES (:e, :a, 'Perceuse', :d, :c)"), {"e": entry, "a": account, "d": debit, "c": credit})
+        # Exercice ancien (6 ans) avec une écriture : clôture provisoire et FEC sans toucher à
+        # l'exercice courant des autres parcours.
+        old = year - 6
+        conn.execute(text("INSERT INTO fiscal_years (label, start_date, end_date, closed, vat_liable) "
+                          "VALUES (:l, :s, :e, 0, 0)"), {"l": str(old), "s": f"{old}-01-01", "e": f"{old}-12-31"})
+        old_fy = conn.execute(text("SELECT id FROM fiscal_years WHERE label = :l"), {"l": str(old)}).scalar()
+        conn.execute(text("INSERT INTO journal_entries (fiscal_year_id, journal_id, entry_date, reference, description, "
+                          "is_balanced, source) VALUES (:f, :j, :d, 'BQ-E2E-OLD', 'Prestation', 1, 'MANUAL')"),
+                     {"f": old_fy, "j": bq, "d": f"{old}-06-15"})
+        old_entry = conn.execute(text("SELECT id FROM journal_entries WHERE reference = 'BQ-E2E-OLD'")).scalar()
+        income = conn.execute(text("SELECT id FROM accounts WHERE code = '706000'")).scalar()
+        for account, debit, credit in ((ids["512000"], 25000, 0), (income, 0, 25000)):
+            conn.execute(text("INSERT INTO journal_lines (entry_id, account_id, label, debit_cents, credit_cents) "
+                              "VALUES (:e, :a, 'Prestation', :d, :c)"), {"e": old_entry, "a": account, "d": debit, "c": credit})
 
 
 def seed(app):

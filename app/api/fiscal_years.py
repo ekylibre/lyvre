@@ -1,11 +1,12 @@
 """Exercices comptables : création, clôture, assujettissement à la TVA."""
 from datetime import date
 
-from flask import jsonify
+from flask import jsonify, url_for
 
 from app.extensions import db
 from app.models import FiscalYear
 from app.models.fiscal_year import FY_PROVISIONAL
+from app.services import fec
 
 from . import ApiError, bp, get_or_404, invalid, json_body, notice
 
@@ -50,8 +51,10 @@ def fiscal_years_close(fy_id):
     fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
     if fy.closed:
         raise ApiError("conflict", "Cet exercice est déjà clôturé.", status=409)
-    # Clôture provisoire (verrou réversible) ; l'assistant de clôture complète viendra la remplacer.
+    # Clôture provisoire (verrou réversible) : les écritures sont numérotées pour le FEC.
     fy.status = FY_PROVISIONAL
+    db.session.flush()
+    fec.validate(fy)
     db.session.commit()
     return jsonify(item=fiscal_year_payload(fy), notices=[notice(
         f"Exercice « {fy.label} » en clôture provisoire : les écritures sont verrouillées.")])
@@ -72,3 +75,22 @@ def fiscal_years_update(fy_id):
     return jsonify(item=fiscal_year_payload(fy), notices=[notice(
         f"Exercice « {fy.label} » {state} à la TVA. "
         "S'applique aux factures comptabilisées à partir de maintenant.")])
+
+
+@bp.route("/fiscal-years/<int:fy_id>/fec/check")
+def fiscal_years_fec_check(fy_id):
+    """Contrôles avant export du FEC, puis relecture du fichier produit (format, équilibre,
+    numérotation) ; lien de téléchargement si tout est bon."""
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    errors, warnings = fec.check(fy)
+    body = {"errors": errors, "warnings": warnings, "problems": [], "filename": None, "stats": None,
+            "frozen": bool(fy.fec_sha256), "sha256": fy.fec_sha256, "download_url": None}
+    if not errors:
+        fec_file = fec.build(fy)
+        body.update(problems=fec.verify(fec_file.content), filename=fec_file.filename,
+                    sha256=fy.fec_sha256 or fec_file.sha256,
+                    stats={"lines": fec_file.lines, "entries": fec_file.entries,
+                           "total_debit_cents": fec_file.total_debit_cents,
+                           "total_credit_cents": fec_file.total_credit_cents},
+                    download_url=url_for("fec.download", fy_id=fy.id))
+    return jsonify(body)

@@ -160,7 +160,9 @@ Pages de la SPA (liste ; la création / modification s'ouvre dans une fenêtre p
 | GET | `/api/v1/fiscal-years` | Exercices, du plus récent au plus ancien |
 | POST | `/api/v1/fiscal-years` | `label`, `start_date`, `end_date` (ISO, fin ≥ début), `vat_liable` |
 | PATCH | `/api/v1/fiscal-years/<id>` | `vat_liable` (exercice ouvert ; vaut pour les comptabilisations suivantes) |
-| POST | `/api/v1/fiscal-years/<id>/close` | **Clôture provisoire** : écritures verrouillées (`status = provisional`) ; 409 si déjà clôturé. La clôture complète passera par l'assistant (phase A.4) |
+| POST | `/api/v1/fiscal-years/<id>/close` | **Clôture provisoire** : écritures verrouillées (`status = provisional`) et **numérotées** pour le FEC ; 409 si déjà clôturé. La clôture complète passera par l'assistant (phase A.4) |
+| GET | `/api/v1/fiscal-years/<id>/fec/check` | Contrôles avant export (`errors` bloquantes : SIREN, exercice ouvert, écriture déséquilibrée ou hors dates ; `warnings` : à-nouveaux absents…), puis relecture du fichier produit (`problems`), totaux, nom, empreinte SHA-256, `download_url` |
+| GET | `/fiscal-years/<id>/fec` (route Flask) | Téléchargement du FEC (tous les rôles) : fichier figé si l'exercice est clôturé définitivement (409 si son empreinte ne correspond plus), sinon produit à la demande (409 si un contrôle bloque) |
 
 > La clôture positionne `FiscalYear.closed = True`. Les écritures de cet exercice ne peuvent plus être supprimées.
 

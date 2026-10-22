@@ -1048,3 +1048,22 @@ plus de 24 h (appelé à chaque dépôt).
 Dans `qonto_sync.sync_bank_account`, par page : `link_transactions` et `settle` **avant** `apply_rules`
 (résumé : `settled`).
 
+---
+
+## fec.py — Fichier des écritures comptables (FEC)
+
+Format de l'article A47 A-1 du LPF : 18 champs (`JournalCode` … `Idevise`), première ligne = noms
+des champs, séparateur tabulation, fin de ligne CRLF, dates `AAAAMMJJ`, montants `1234,56` (virgule,
+sans séparateur de milliers), encodage **ISO-8859-15** (ponctuation typographique transcrite, autres
+caractères hors jeu sans accent ou « ? »), nom `<SIREN>FEC<AAAAMMJJ>.txt` (date de fin d'exercice).
+
+| Fonction | Rôle |
+|----------|------|
+| `validate(fy, at=None)` | Numérote les écritures **par journal et par exercice** (ordre date, id) et pose `validated_at` ; déterministe, recalculable tant que l'exercice n'est pas clôturé définitivement. Appelée à la clôture provisoire |
+| `unvalidate(fy)` | Efface la numérotation (réouverture) ; refusée sur un exercice définitif |
+| `check(fy)` | `(errors, warnings)` : SIREN, exercice ouvert, écritures vides / déséquilibrées / hors dates ; avertit si l'exercice n'a pas d'à-nouveaux alors qu'un exercice le précède |
+| `build(fy)` | `FecFile` (nom, contenu, lignes, écritures, totaux, `sha256`) : à-nouveaux (journal `AN`) en tête puis ordre chronologique ; `EcritureNum` = code journal + numéro sur 6 chiffres ; `PieceRef` = référence affichée ; comptes 401/411 d'un tiers en `CompAuxNum` / `CompAuxLib` |
+| `verify(content)` | Relecture : en-têtes, 18 champs, champs obligatoires, formats de dates et montants, équilibre par écriture et global, numérotation continue par journal, caractères de contrôle |
+| `freeze(fy)` | Clôture définitive : fichier écrit dans `instance/uploads/<slug>/fec/` (donc dans les sauvegardes `.zip`), `fec_path` et `fec_sha256` enregistrés |
+
+La validation officielle reste l'outil « Test Compta Demat » de la DGFiP.
