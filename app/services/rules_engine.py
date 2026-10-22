@@ -9,6 +9,7 @@ from app.models import (
     Journal,
     Rule,
 )
+from app.services import projects
 from app.services.ledger import LedgerError, post_entry
 
 
@@ -77,7 +78,7 @@ def _direction_error(account_code, amount_cents):
     return None
 
 
-def _post_entry_for_transaction(txn, account_code, description):
+def _post_entry_for_transaction(txn, account_code, description, project_id=None):
     """Create a balanced journal entry for a categorized bank transaction.
 
     Convention:
@@ -128,7 +129,7 @@ def _post_entry_for_transaction(txn, account_code, description):
             {"account_id": bank_gl_id, "label": label,
              "debit_cents": bank_debit, "credit_cents": bank_credit},
             {"account_id": counterpart.id, "label": label,
-             "debit_cents": cp_debit, "credit_cents": cp_credit},
+             "debit_cents": cp_debit, "credit_cents": cp_credit, "project_id": project_id},
         ],
         source="QONTO_IMPORT" if txn.source == "qonto" else "OFX_IMPORT",
         source_ref=f"FITID:{txn.fitid}",
@@ -212,7 +213,7 @@ def apply_rules(transactions=None, overwrite=False):
             description = matched_rule.name or matched_rule.category or ""
             try:
                 bank_line = _post_entry_for_transaction(
-                    txn, matched_rule.account_code, description
+                    txn, matched_rule.account_code, description, matched_rule.project_id
                 )
                 txn.journal_line_id = bank_line.id
                 txn.reconciled = True
@@ -312,6 +313,13 @@ def validate_rule_data(form) -> dict:
                 f"Compte « {account_code} » est un compte d'en-tête, non utilisable."
             )
 
+    try:
+        project = projects.resolve(form.get("project_id"))
+    except ValueError as exc:
+        raise RuleValidationError(str(exc)) from None
+    if project is not None and not account_code:
+        raise RuleValidationError("Le projet s'applique à l'écriture générée : renseignez aussi le compte.")
+
     return {
         "name": name,
         "label_contains": label_contains,
@@ -323,5 +331,6 @@ def validate_rule_data(form) -> dict:
         "entity_type": entity_type,
         "category": _clean(form.get("category")),
         "account_code": account_code,
+        "project_id": project.id if project else None,
         "is_active": bool(form.get("is_active")),
     }

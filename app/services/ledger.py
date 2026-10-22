@@ -5,6 +5,7 @@ from app.models import (
     PurchasePayment,
 )
 from app.models.journal_entry import MANAGED_SOURCES
+from app.services import projects
 
 
 class LedgerError(Exception):
@@ -28,7 +29,7 @@ def validate_entry_payload(data):
     """Validate an entry submitted by the entry form / API.
 
     ``data``: ``{fiscal_year_id, journal_id, entry_date (ISO), description,
-    lines: [{account_id, label, debit_cents, credit_cents}]}`` (amounts in
+    lines: [{account_id, label, debit_cents, credit_cents, project_id?}]}`` (amounts in
     cents). Completely empty lines (no account, no amount) are ignored.
 
     Returns ``(clean, errors)``: ``errors`` maps a field (``fiscal_year_id``,
@@ -90,12 +91,18 @@ def validate_entry_payload(data):
             errors[f"lines[{i}].amount"] = "Montant invalide."
         elif bool(debit) == bool(credit):
             errors[f"lines[{i}].amount"] = "Saisir soit un débit, soit un crédit."
+        try:
+            project = projects.resolve(raw.get("project_id"))
+        except ValueError as exc:
+            errors[f"lines[{i}].project_id"] = str(exc)
+            project = None
         lines.append({
             "index": i,
             "account_id": account_id,
             "label": (raw.get("label") or "").strip(),
             "debit_cents": debit or 0,
             "credit_cents": credit or 0,
+            "project_id": project.id if project else None,
         })
     clean["lines"] = lines
 
@@ -184,6 +191,7 @@ def post_entry(fiscal_year_id, journal_id, entry_date, description, lines, sourc
             label=l.get("label", ""),
             debit_cents=l.get("debit_cents", 0),
             credit_cents=l.get("credit_cents", 0),
+            project_id=l.get("project_id"),
         ))
 
     if commit:
@@ -263,6 +271,7 @@ def update_entry(entry, clean):
                 label=l["label"],
                 debit_cents=l["debit_cents"],
                 credit_cents=l["credit_cents"],
+                project_id=l.get("project_id"),
             ))
         db.session.commit()
     except Exception:

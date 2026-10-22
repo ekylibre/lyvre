@@ -1,13 +1,13 @@
-// Éditeur des lignes d'une facture d'achat : produit, compte, libellé, HT, taux, TVA ; TTC
-// recalculé à la saisie et comparé au TTC attendu.
+// Éditeur des lignes d'une facture d'achat : produit, compte, libellé, projet (si l'instance en a),
+// HT, taux, TVA ; TTC recalculé à la saisie et comparé au TTC attendu.
 import { ActionIcon, Autocomplete, Button, Select, Table, Text, TextInput } from "@mantine/core";
 import { Plus, X } from "lucide-react";
 import { MoneyText } from "../../components/Money";
 import { EMPTY_LINE, lineTotal, linesTotal, updateLine } from "./lines";
 import type { LineRow, Option, ProductOption } from "./types";
 
-export function LinesEditor({ rows, onChange, products, accounts, expected, expectedLabel = "TTC" }: {
-  rows: LineRow[]; onChange: (rows: LineRow[]) => void; products: ProductOption[]; accounts: Option[];
+export function LinesEditor({ rows, onChange, products, accounts, projects = [], expected, expectedLabel = "TTC" }: {
+  rows: LineRow[]; onChange: (rows: LineRow[]) => void; products: ProductOption[]; accounts: Option[]; projects?: Option[];
   /** TTC attendu en centimes (null : inconnu). */
   expected: number | null; expectedLabel?: string;
 }) {
@@ -26,6 +26,7 @@ export function LinesEditor({ rows, onChange, products, accounts, expected, expe
         <Table verticalSpacing={4}>
           <Table.Thead>
             <Table.Tr><Table.Th>Produit</Table.Th><Table.Th>Compte</Table.Th><Table.Th>Libellé</Table.Th>
+              {projects.length > 0 && <Table.Th>Projet</Table.Th>}
               <Table.Th ta="right">HT</Table.Th><Table.Th ta="right">Taux %</Table.Th><Table.Th ta="right">TVA</Table.Th>
               <Table.Th ta="right">TTC</Table.Th><Table.Th /></Table.Tr>
           </Table.Thead>
@@ -39,6 +40,8 @@ export function LinesEditor({ rows, onChange, products, accounts, expected, expe
                   renderOption={({ option }) => <Text size="sm">{accountData.find((a) => a.value === option.value)?.label}</Text>} /></Table.Td>
                 <Table.Td><TextInput aria-label={`Libellé (ligne ${index + 1})`} value={row.label} miw={160}
                   onChange={(e) => set(index, "label", e.currentTarget.value)} /></Table.Td>
+                {projects.length > 0 && <Table.Td><Select aria-label={`Projet (ligne ${index + 1})`} data={projects} value={row.project_id || null}
+                  clearable searchable placeholder="—" w={150} onChange={(v) => set(index, "project_id", v ?? "")} /></Table.Td>}
                 <Table.Td>{amount(index, "untaxed", "HT", 100)}</Table.Td>
                 <Table.Td>{amount(index, "vat_rate", "Taux de TVA", 70, "?")}</Table.Td>
                 <Table.Td>{amount(index, "vat", "TVA", 90)}</Table.Td>
@@ -50,7 +53,7 @@ export function LinesEditor({ rows, onChange, products, accounts, expected, expe
           </Table.Tbody>
           <Table.Tfoot>
             <Table.Tr>
-              <Table.Td colSpan={6} ta="right"><Text fw={600} size="sm">Total des lignes / {expectedLabel}</Text></Table.Td>
+              <Table.Td colSpan={projects.length > 0 ? 7 : 6} ta="right"><Text fw={600} size="sm">Total des lignes / {expectedLabel}</Text></Table.Td>
               <Table.Td ta="right" style={{ whiteSpace: "nowrap" }}>
                 <MoneyText cents={total} fw={600} size="sm" anomaly={expected !== null && total !== expected} />
                 {" / "}{expected === null ? "—" : <MoneyText cents={expected} size="sm" />}

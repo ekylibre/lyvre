@@ -204,7 +204,7 @@ export default function PurchaseDetailPage() {
       <Title order={3} mb={4}>Lignes</Title>
       {editable && can.write ? (
         <form onSubmit={(e) => { e.preventDefault(); saveLines.mutate(rows); }}>
-          <LinesEditor rows={rows} onChange={setRows} products={data.meta.products} accounts={data.meta.charge_accounts}
+          <LinesEditor rows={rows} onChange={setRows} products={data.meta.products} accounts={data.meta.charge_accounts} projects={data.meta.projects}
             expected={p.total_cents} expectedLabel={fromQonto ? "TTC Qonto" : "TTC"} />
           <Group mt="sm"><Button type="submit" loading={saveLines.isPending}>Enregistrer les lignes</Button></Group>
           <Text size="xs" c="dimmed" mt={4}>TVA laissée vide : calculée à partir du taux. Une remise obtenue se saisit en ligne négative (609).
@@ -216,7 +216,7 @@ export default function PurchaseDetailPage() {
             <Table.Th ta="right">Taux %</Table.Th><Table.Th ta="right">TVA</Table.Th><Table.Th ta="right">TTC</Table.Th></Table.Tr></Table.Thead>
           <Table.Tbody>{data.lines_view.map((l, i) => (
             <Table.Tr key={i}>
-              <Table.Td>{l.product ?? "—"}</Table.Td><Table.Td><Code>{l.account ?? "—"}</Code></Table.Td><Table.Td>{l.label}</Table.Td>
+              <Table.Td>{l.product ?? "—"}</Table.Td><Table.Td><Code>{l.account ?? "—"}</Code></Table.Td><Table.Td>{l.label}{l.project && <Text span size="xs" c="dimmed"> · projet {l.project}</Text>}</Table.Td>
               <Table.Td ta="right"><MoneyText cents={l.untaxed_cents} /></Table.Td><Table.Td ta="right" className="lv-num">{l.vat_rate ?? "?"}</Table.Td>
               <Table.Td ta="right"><MoneyText cents={l.vat_cents} /></Table.Td><Table.Td ta="right"><MoneyText cents={l.total_cents} /></Table.Td>
             </Table.Tr>

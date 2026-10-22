@@ -203,6 +203,8 @@ l'enregistrement), `/entries/<id>`, `/entries/<id>/edit` ([guide de saisie](sais
 | POST / PUT | `/api/v1/entries[/<id>]` | Création (`bank_transaction_id` facultatif : création et rapprochement atomiques) / modification |
 | GET | `/api/v1/entries/<id>` | Fiche : journal, exercice, origine, lignes, totaux, `reconciled`, `editable` |
 | DELETE | `/api/v1/entries/<id>` | Supprime l'écriture et **défait d'abord ses rapprochements** (`ledger.delete_entries`) ; 409 si l'exercice est clôturé |
+| PUT | `/api/v1/entries/<id>/lines/<line_id>/project` | `{project_id}` (null : aucun) : projet d'une ligne, même sur une écriture rapprochée ; 409 si exercice clôturé ou écriture de l'assistant |
+| POST | `/api/v1/entries/<id>/lines/<line_id>/split` | **Ventilation** `{parts: [{project_id, amount_cents}]}` (≥ 2 parts, total = montant de la ligne) : lignes de même compte et même sens ; 409 sur la ligne rapprochée elle-même |
 ---
 
 ## Comptes bancaires (`/bank-accounts/`)
@@ -225,6 +227,24 @@ sans facture ; mois ; carte Qonto avec synchronisation, date de début, détache
 | POST | `/api/v1/bank-accounts/<id>/qonto/sync` | Synchronisation en arrière-plan (lecture des transactions Qonto) → `job`, suivi par `/api/v1/jobs/<id>` |
 | GET | `/api/v1/bank-accounts/<id>/counterparties` | Contreparties de débits sans tiers, regroupées |
 | POST | `/api/v1/counterparties` | `action` = `create` (+ `name`) / `link` (+ `entity_id`) / `ignore`, `key`, `label` |
+
+---
+
+## Projets (`/projects/`)
+
+Pages de la SPA : `/projects/`, `/projects/new`, `/projects/<id>/edit` (Compta › Projets). API :
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/api/v1/projects` | Projets (archivés en dernier) avec charges (6), produits (7), résultat et nombre de lignes ; `?fiscal_year_id=` limite à un exercice |
+| GET | `/api/v1/projects/options` | Projets actifs pour les listes de choix |
+| POST · PUT | `/api/v1/projects[/<id>]` | `{name, description, start_date, end_date, manager, archived}` ; nom unique (sans casse), fin ≥ début |
+| GET · DELETE | `/api/v1/projects/<id>` | Fiche ; suppression refusée (409) si le projet est utilisé : l'archiver |
+
+Le projet se saisit aussi dans l'éditeur d'écriture (colonne « Projet » si l'instance a des projets ;
+`project_id` dans `lines` et dans `GET /api/v1/entries/form`), sur la fiche d'une écriture (affecter,
+ventiler), sur les lignes de facture d'achat (`project_id` des `rows`, `meta.projects`) et dans les
+règles.
 
 ---
 
@@ -353,7 +373,7 @@ Pages de la SPA (liste ; la création / modification s'ouvre dans une fenêtre p
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/api/v1/rules` | Règles dans l'ordre d'évaluation ; `meta.entity_types` |
+| GET | `/api/v1/rules` | Règles dans l'ordre d'évaluation ; `meta.entity_types`, `meta.projects` (champ `project_id` d'une règle : projet de la ligne 6xx/7xx générée) |
 | POST | `/api/v1/rules` | Crée la règle (position = max + 1) |
 | PATCH | `/api/v1/rules/<id>` | Met à jour ; `{"is_active"}` seul = activer / désactiver |
 | DELETE | `/api/v1/rules/<id>` | Supprime |

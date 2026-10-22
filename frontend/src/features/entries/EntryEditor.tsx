@@ -28,6 +28,7 @@ export interface EntryFormData {
     fiscalYears: { id: number; label: string; start_date: string; end_date: string }[];
     journals: { id: number; code: string; label: string }[];
     recentsScope: string;
+    projects?: { value: string; label: string }[];
   };
   initial: { fiscal_year_id: number | null; journal_id: number | null; entry_date: string;
     description: string; lines: InitialLine[] };
@@ -70,6 +71,8 @@ export function EntryEditor({ data, onSaved, onCancel, focusAccountOfLine }: {
 
   const totals = useMemo(() => computeTotals(state.lines), [state.lines]);
   const fiscalYear = options.fiscalYears.find((f) => f.id === state.fiscalYearId);
+  // Colonne « Projet » seulement si l'instance a des projets (ou si l'écriture en porte).
+  const withProjects = (options.projects?.length ?? 0) > 0;
   const dateOutside = !!(fiscalYear && state.date && (state.date < fiscalYear.start_date || state.date > fiscalYear.end_date));
   const filledLines = state.lines.filter((l) => !isEmptyLine(l));
 
@@ -207,6 +210,7 @@ export function EntryEditor({ data, onSaved, onCancel, focusAccountOfLine }: {
               <Table.Thead bg="var(--lv-sauge)">
                 <Table.Tr>
                   <Table.Th w="34%">Compte</Table.Th><Table.Th w="30%">Libellé</Table.Th>
+                  {withProjects && <Table.Th w="16%">Projet</Table.Th>}
                   <Table.Th w="15%" ta="right">Débit</Table.Th><Table.Th w="15%" ta="right">Crédit</Table.Th>
                   <Table.Th w="6%"><VisuallyHidden>Actions</VisuallyHidden></Table.Th>
                 </Table.Tr>
@@ -228,6 +232,13 @@ export function EntryEditor({ data, onSaved, onCancel, focusAccountOfLine }: {
                           data-field="label" value={line.label}
                           onChange={(e) => dispatch({ type: "line", index: i, patch: { label: e.currentTarget.value } })} />
                       </Table.Td>
+                      {withProjects && (
+                        <Table.Td>
+                          <Select aria-label={`Projet, ligne ${i + 1}`} data={options.projects} value={line.projectId} clearable
+                            searchable placeholder="—" data-line={i} data-field="project" error={err(`lines[${i}].project_id`)}
+                            onChange={(projectId) => dispatch({ type: "line", index: i, patch: { projectId } })} />
+                        </Table.Td>
+                      )}
                       {(["debit", "credit"] as Column[]).map((column) => (
                         <Table.Td key={column}>
                           <TextInput ref={fieldRef(line.key, column)} inputMode="decimal" data-line={i} data-field={column}
@@ -249,7 +260,7 @@ export function EntryEditor({ data, onSaved, onCancel, focusAccountOfLine }: {
               </Table.Tbody>
               <Table.Tfoot>
                 <Table.Tr>
-                  <Table.Td colSpan={2}><Button variant="default" size="compact-md" onClick={addBalancingLine}>Ajouter une ligne</Button></Table.Td>
+                  <Table.Td colSpan={withProjects ? 3 : 2}><Button variant="default" size="compact-md" onClick={addBalancingLine}>Ajouter une ligne</Button></Table.Td>
                   <Table.Td ta="right" className="lv-num" fw={600}>{formatEuros(totals.debit)}</Table.Td>
                   <Table.Td ta="right" className="lv-num" fw={600}>{formatEuros(totals.credit)}</Table.Td>
                   <Table.Td />

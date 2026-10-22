@@ -7,10 +7,10 @@ from flask import current_app, jsonify, request, url_for
 
 from app.access import instance_admin_required
 from app.extensions import db
-from app.models import Account, Entity, Purchase, PurchasePayment
+from app.models import Account, Entity, Project, Purchase, PurchasePayment
 from app.models.purchase import PURCHASE_SOURCES
 from app.services import (
-    attachments, catalog, counterparties, external_config, purchase_entry, purchase_posting,
+    attachments, catalog, counterparties, external_config, projects, purchase_entry, purchase_posting,
     purchase_settlement, purchase_sync,
 )
 from app.services.attachments import AttachmentError
@@ -24,7 +24,7 @@ from .session import job_payload
 
 KEY_FIELDS = ("entity_id", "new_name", "supplier_name", "supplier_vat", "supplier_siret", "supplier_iban",
               "invoice_number", "issue_date", "due_date", "is_credit_note", "total", "untaxed", "tax")
-ROW_FIELDS = ("product_id", "account_code", "label", "untaxed", "vat_rate", "vat")
+ROW_FIELDS = ("product_id", "account_code", "label", "untaxed", "vat_rate", "vat", "project_id")
 
 
 def _iso(value):
@@ -218,7 +218,9 @@ def purchase_detail(p: Purchase) -> dict:
         "lines_view": [{"product": l.product.name if l.product else None,
                         "account": l.account.code if l.account else None, "label": l.label or "",
                         "untaxed_cents": l.untaxed_cents, "vat_rate": catalog.format_rate(l.vat_rate_bp) or None,
-                        "vat_cents": l.vat_cents, "total_cents": l.total_cents} for l in p.lines],
+                        "vat_cents": l.vat_cents, "total_cents": l.total_cents,
+                        "project": db.session.get(Project, l.project_id).name if l.project_id else None}
+                       for l in p.lines],
         "payments": [_payment(pay) for pay in p.payments],
         "awaiting_payment": awaiting,
         "suggestions": [{"id": t.id, "date": t.transaction_date.isoformat(), "bank_account": t.bank_account.label,
@@ -226,7 +228,8 @@ def purchase_detail(p: Purchase) -> dict:
                         for t in (purchase_settlement.match_candidates(p) if awaiting else [])],
         "match_window": [window[0].isoformat(), window[1].isoformat()] if window else None,
         "can_send": purchase_entry.can_send_to_qonto(p),
-        "meta": {"products": _products(), "charge_accounts": _charge_accounts(), "qonto": _qonto()},
+        "meta": {"products": _products(), "charge_accounts": _charge_accounts(), "qonto": _qonto(),
+                 "projects": projects.options([l.project_id for l in p.lines if l.project_id])},
     }
 
 
@@ -335,7 +338,8 @@ def purchases_send_to_qonto(purchase_id):
 @bp.route("/purchases/form-options")
 def purchases_form_options():
     return jsonify(entities=[{"value": str(e.id), "label": e.name} for e in Entity.query.order_by(Entity.name)],
-                   products=_products(), charge_accounts=_charge_accounts(), qonto=_qonto())
+                   products=_products(), charge_accounts=_charge_accounts(), qonto=_qonto(),
+                   projects=projects.options())
 
 
 def _stage():

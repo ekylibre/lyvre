@@ -216,7 +216,7 @@ function PurchaseFormPage() {
           </Fieldset>
         )) : (
           <Fieldset legend="Lignes">
-            <LinesEditor rows={form.rows} onChange={(rows) => setForm({ ...form, rows })} products={options.data?.products ?? []}
+            <LinesEditor rows={form.rows} onChange={(rows) => setForm({ ...form, rows })} products={options.data?.products ?? []} projects={options.data?.projects}
               accounts={options.data?.charge_accounts ?? []} expected={cents(v.total ?? "")} />
             <Text size="xs" c="dimmed" mt={4}>Produit du catalogue : compte et taux préremplis. Une remise obtenue est une ligne négative (609).
               Le total des lignes doit égaler le TTC pour que la facture soit comptabilisée.</Text>

@@ -28,6 +28,7 @@ Voir [multi_tenant.md](multi_tenant.md) pour l'architecture du routage par requ�
 | `entity_type` | String(20) nullable | `CLIENT`/`FOURNISSEUR`/`SALARIE`/`ADHERENT`/`ORGANISME`/`AUTRE` |
 | `category` | String(200) nullable | Étiquette libre posée sur la transaction |
 | `account_code` | String(20) nullable | Code 6xx/7xx du plan comptable — déclenche la création d'écriture |
+| `project_id` | Integer FK→projects SET NULL nullable | Projet porté sur la ligne 6xx/7xx de l'écriture générée (exige `account_code`) |
 | `is_active` | Boolean default=True | Désactivable sans suppression |
 | `created_at` / `updated_at` | DateTime | |
 
@@ -289,6 +290,13 @@ exercice et étape (`checks`, `inventory`, `dedicated_funds`, `result`, `fec`, `
 d'audit. L'étape `close` est déduite du statut de l'exercice ; `opening` et
 `allocation` sont marquées par l'assistant (remises à faire à la réouverture).
 
+## Project — Projet / activité
+
+**Table :** `projects` (lot C.1, migration `e7a4c2d9f531`) : `name` unique, `description`,
+`start_date` · `end_date` (facultatives), `manager` (texte libre), `archived` (n'est plus proposé à la
+saisie), `created_at`. Axe analytique unique (OA11), porté par `journal_lines`, `purchase_lines` et
+`rules` (`project_id`, ON DELETE SET NULL). Un projet utilisé ne se supprime pas : on l'archive.
+
 ## DedicatedFund / DedicatedFundMovement — Fonds dédiés
 
 `dedicated_funds(label, kind subsidy|contribution|public_generosity, resource_account_id NULL,
@@ -318,6 +326,7 @@ entry_id SET NULL)` : dotation ou utilisation d'un exercice, avec son écriture
 | `label` | String(300) | Libellé optionnel de la ligne |
 | `debit_cents` | Integer default=0 | Montant débit **en centimes** |
 | `credit_cents` | Integer default=0 | Montant crédit **en centimes** |
+| `project_id` | Integer FK→projects SET NULL, indexé | Projet / activité (lot C.1) ; une ligne ventilée devient plusieurs lignes de même compte |
 | `created_at` | DateTime | |
 
 > Les montants sont stockés en centimes entiers pour éviter les erreurs d'arrondi flottant. Ex : 1 234,56 € → `123456`.
@@ -407,7 +416,8 @@ l'application (`manual`).
 | `source_updated_at`, `raw_payload`, `created_at`, `updated_at` | | `raw_payload` : dernière réponse Qonto |
 
 **`purchase_lines`** (CASCADE) : `position`, `product_id`, `account_id`, `label`, `untaxed_cents`,
-`vat_rate_bp` (NULL = à confirmer), `vat_cents`, `total_cents`.
+`vat_rate_bp` (NULL = à confirmer), `vat_cents`, `total_cents`, `project_id` (repris sur la ligne de
+charge à la comptabilisation).
 
 **`purchase_payments`** (CASCADE) : `qonto_transaction_id` (UUID de la transaction = `fitid` ;
 NULL pour un lien hors Qonto), `origin` (`qonto`, `match` automatique, `manual` choisi),

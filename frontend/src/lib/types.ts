@@ -11,6 +11,7 @@ export interface EntryLinePayload {
   label: string;
   debit_cents: number;
   credit_cents: number;
+  project_id?: number | null;
 }
 
 export interface EntryPayload {

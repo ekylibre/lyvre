@@ -7,6 +7,7 @@ export interface Line {
   label: string;
   debit: string; // saisie brute en euros
   credit: string;
+  projectId: string | null;
 }
 
 export interface EntryState {
@@ -22,6 +23,7 @@ export interface InitialLine {
   label?: string;
   debit_cents?: number;
   credit_cents?: number;
+  project_id?: string | null;
 }
 
 let nextKey = 1;
@@ -33,6 +35,7 @@ export function newLine(init: Partial<InitialLine> = {}): Line {
     label: init.label ?? "",
     debit: toInput(init.debit_cents ?? 0),
     credit: toInput(init.credit_cents ?? 0),
+    projectId: init.project_id ?? null,
   };
 }
 
@@ -144,6 +147,7 @@ export function toPayload(state: EntryState, bankTransactionId?: number): EntryP
         label: l.label.trim() || state.description.trim(),
         debit_cents: c.debit ?? 0,
         credit_cents: c.credit ?? 0,
+        project_id: l.projectId ? Number(l.projectId) : null,
       };
     }),
   };

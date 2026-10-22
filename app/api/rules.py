@@ -4,6 +4,7 @@ from flask import jsonify
 from app.extensions import db
 from app.models import Rule
 from app.models.rule import RULE_ENTITY_TYPES
+from app.services import projects
 from app.services.rules_engine import RuleValidationError, apply_rules, validate_rule_data
 
 from . import bp, get_or_404, invalid, json_body, notice
@@ -16,6 +17,7 @@ def rule_payload(r: Rule) -> dict:
         "amount_min_cents": r.amount_min_cents, "amount_max_cents": r.amount_max_cents,
         "raw_type": r.raw_type, "entity_name": r.entity_name, "entity_type": r.entity_type,
         "category": r.category, "account_code": r.account_code, "is_active": r.is_active,
+        "project_id": r.project_id, "project": r.project.name if r.project else None,
     }
 
 
@@ -23,7 +25,7 @@ def _form(data: dict) -> dict:
     """Champs JSON (montants en centimes) → formulaire de rules_engine.validate_rule_data."""
     form = {key: "" if data.get(key) is None else str(data.get(key))
             for key in ("name", "label_contains", "label_regex", "raw_type", "entity_name",
-                        "entity_type", "category", "account_code")}
+                        "entity_type", "category", "account_code", "project_id")}
     for key in ("amount_min", "amount_max"):
         cents = data.get(f"{key}_cents")
         if cents in (None, ""):
@@ -49,8 +51,10 @@ def _ordered():
 
 @bp.route("/rules")
 def rules_list():
-    return jsonify(items=[rule_payload(r) for r in _ordered()],
-                   meta={"entity_types": RULE_ENTITY_TYPES})
+    rules = _ordered()
+    return jsonify(items=[rule_payload(r) for r in rules],
+                   meta={"entity_types": RULE_ENTITY_TYPES,
+                         "projects": projects.options([r.project_id for r in rules if r.project_id])})
 
 
 @bp.route("/rules", methods=["POST"])

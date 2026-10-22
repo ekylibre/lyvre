@@ -21,7 +21,7 @@ from decimal import Decimal, InvalidOperation
 
 from app.extensions import db
 from app.models import Account, Entity, FiscalYear, Journal, Product, Purchase, PurchaseLine
-from app.services import catalog
+from app.services import catalog, projects
 from app.services.ledger import LedgerError, delete_entries, post_entry
 
 STATE_LABELS = {
@@ -160,13 +160,13 @@ def entry_lines(p: Purchase, fy: FiscalYear, supplier: Account) -> list[dict]:
     for line in p.lines:
         amount = line.untaxed_cents if fy.vat_liable else line.total_cents
         if amount:
-            debits.append((line.account_id, line.label or label, amount))
+            debits.append((line.account_id, line.label or label, amount, line.project_id))
     vat = sum(line.vat_cents for line in p.lines) if fy.vat_liable else 0
     if vat:
-        debits.append((vat_account().id, f"TVA — {label}", vat))
+        debits.append((vat_account().id, f"TVA — {label}", vat, None))
     # Une ligne négative (remise obtenue, 609) passe au crédit.
     lines = [{"account_id": acc, "label": text, "debit_cents": max(amount, 0),
-              "credit_cents": max(-amount, 0)} for acc, text, amount in debits]
+              "credit_cents": max(-amount, 0), "project_id": project_id} for acc, text, amount, project_id in debits]
     lines.append({"account_id": supplier.id, "label": label, "debit_cents": 0,
                   "credit_cents": p.total_cents})
     if p.is_credit_note:
@@ -345,11 +345,16 @@ def build_lines(rows) -> list[PurchaseLine]:
             account = product.purchase_account
         if account is not None and (account.is_header or not account.code.startswith("6")):
             raise LedgerError(f"Compte « {account.code} » : un compte de charge (6…) est attendu.")
+        try:
+            project = projects.resolve(row.get("project_id"))
+        except ValueError as exc:
+            raise LedgerError(str(exc)) from None
         lines.append(PurchaseLine(
             position=len(lines), product_id=product.id if product else None,
             account_id=account.id if account else None,
             label=(row.get("label") or (product.name if product else "")).strip()[:300] or None,
             untaxed_cents=untaxed, vat_rate_bp=rate, vat_cents=vat, total_cents=untaxed + vat,
+            project_id=project.id if project else None,
         ))
     return lines
 

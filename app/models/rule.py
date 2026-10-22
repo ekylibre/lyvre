@@ -34,8 +34,10 @@ class Rule(db.Model):
     entity_type = db.Column(db.String(20), nullable=True)
     category = db.Column(db.String(200), nullable=True)
     account_code = db.Column(db.String(20), nullable=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id", ondelete="SET NULL"), nullable=True)
 
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    project = db.relationship("Project")
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(
         db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow

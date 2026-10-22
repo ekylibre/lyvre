@@ -30,11 +30,13 @@ export interface PurchasesMeta {
 }
 
 /** Ligne de saisie : champs texte, comme le formulaire (montants « 33,33 »). */
-export interface LineRow { product_id: string; account_code: string; label: string; untaxed: string; vat_rate: string; vat: string }
+export interface LineRow {
+  product_id: string; account_code: string; label: string; untaxed: string; vat_rate: string; vat: string; project_id?: string;
+}
 
 export interface ProductOption extends Option { account: string; rate: string }
 
-export interface FormOptions { products: ProductOption[]; charge_accounts: Option[]; qonto: QontoState }
+export interface FormOptions { products: ProductOption[]; charge_accounts: Option[]; qonto: QontoState; projects?: Option[] }
 
 export interface Payment {
   id: number; origin: "qonto" | "match" | "manual"; status: "to_import" | "settled" | "reversed" | "other_entry" | "pending";
@@ -53,6 +55,7 @@ export interface PurchaseDetail {
   fiscal_year: { label: string; vat_liable: boolean } | null;
   lines: LineRow[];
   lines_view: { product: string | null; account: string | null; label: string; untaxed_cents: number; vat_rate: string | null;
+    project?: string | null;
     vat_cents: number; total_cents: number }[];
   payments: Payment[];
   awaiting_payment: boolean;

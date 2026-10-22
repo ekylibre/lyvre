@@ -84,6 +84,7 @@ def line_rows(lines) -> list[dict]:
         "vat_rate": catalog.format_rate(line.vat_rate_bp).replace(" %", "")
         if line.vat_rate_bp is not None else "",
         "vat": fmt_cents(line.vat_cents),
+        "project_id": str(line.project_id or ""),
     } for line in lines]
 
 

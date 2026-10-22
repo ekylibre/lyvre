@@ -1104,3 +1104,13 @@ nom `<SIREN>FEC<AAAAMMJJ>.txt`, à-nouveaux (AN) en tête, 401 / 411 en comptes 
 `verify` (relecture interne), `preview` (essai à blanc dans un point de sauvegarde annulé),
 `freeze` (fichier figé et SHA-256 à la clôture définitive). Le contrôle officiel reste l'outil
 « Test Compta Demat » de la DGFiP.
+
+## projects.py — Projets / activités (lot C.1)
+
+`resolve(project_id)` (projet saisi, ValueError si inconnu ; utilisé par `ledger`, `purchase_posting`
+et `rules_engine`), `totals(fiscal_year_id=None)` (charges, produits, résultat par projet), `save`,
+`delete` (refus si utilisé), `set_line_project(line, project_id)` et `split_line(line, parts)` :
+la ligne d'origine prend la première part, les suivantes sont de nouvelles lignes de même compte,
+libellé et sens — l'écriture reste équilibrée et le FEC garde ses totaux. Refus : exercice clôturé,
+écriture de l'assistant de clôture, ligne bancaire rapprochée. Erreurs : `ProjectError(message,
+status, field)`.

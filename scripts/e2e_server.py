@@ -68,6 +68,14 @@ def _seed_books(engine):
         old = year - 6
         conn.execute(text("INSERT INTO fiscal_years (label, start_date, end_date, closed, vat_liable) "
                           "VALUES (:l, :s, :e, 0, 0)"), {"l": str(old), "s": f"{old}-01-01", "e": f"{old}-12-31"})
+        # Écriture non rapprochée réservée au parcours « projets » (ventilation d'une ligne de charge).
+        conn.execute(text("INSERT INTO journal_entries (fiscal_year_id, journal_id, entry_date, reference, description, "
+                          "is_balanced, source) VALUES (:f, :j, :d, 'BQ-E2E-PROJ', 'Matériel', 1, 'MANUAL')"),
+                     {"f": fy, "j": bq, "d": f"{year}-04-20"})
+        proj_entry = conn.execute(text("SELECT id FROM journal_entries WHERE reference = 'BQ-E2E-PROJ'")).scalar()
+        for account, debit, credit in ((ids["606300"], 9000, 0), (ids["512000"], 0, 9000)):
+            conn.execute(text("INSERT INTO journal_lines (entry_id, account_id, label, debit_cents, credit_cents) "
+                              "VALUES (:e, :a, 'Matériel', :d, :c)"), {"e": proj_entry, "a": account, "d": debit, "c": credit})
         # Exercice suivant (vide) : reçoit les à-nouveaux et l'affectation de l'assistant.
         conn.execute(text("INSERT INTO fiscal_years (label, start_date, end_date, closed, vat_liable) "
                           "VALUES (:l, :s, :e, 0, 0)"), {"l": str(old + 1), "s": f"{old + 1}-01-01", "e": f"{old + 1}-12-31"})

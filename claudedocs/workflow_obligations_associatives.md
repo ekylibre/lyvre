@@ -165,6 +165,14 @@ l'expert-comptable à faire. Copies 5001 migrées (`*.before-A6.db`).
 | **C.4 Prévisionnel** (D14) | Service 12 mois glissants ; `cash_forecast_items` (récurrence) ; écran **Trésorerie › Prévisionnel** (graphique + tableau) ; alerte de solde négatif au tableau de bord | US-C2 cochée |
 | **C.5 Fonds dédiés × projets** | `dedicated_funds.project_id` ; étape 3 de l'assistant proposant le reste non utilisé d'après le réalisé du projet | Assistant sur une subvention affectée à un projet |
 
+**C.1 fait (2026-10-23)** : table `projects` et `project_id` sur `journal_lines`, `purchase_lines`,
+`rules` (migration `e7a4c2d9f531`) ; service `projects` (CRUD, totaux, affectation, ventilation) ;
+écran Compta › Projets ; colonne Projet dans l'éditeur d'écriture (si l'instance a des projets),
+les lignes d'achat et les règles ; affectation / ventilation sur la fiche d'une écriture, y compris
+rapprochée (sauf la ligne bancaire). Copie SN 5001 : ligne 607 de BQ-2026-0005 (rapprochée)
+ventilée 100,00 € projet / 54,24 € sans projet ; rapprochement conservé ; FEC 2026 à blanc conforme
+(débit = crédit). pytest 763, Vitest 78, E2E 19.
+
 ## 5. Lot B — Reçus fiscaux
 
 | Phase | Tâches | CP |

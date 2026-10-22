@@ -11,10 +11,12 @@ class JournalLine(db.Model):
     label = db.Column(db.String(300))
     debit_cents = db.Column(db.Integer, default=0, nullable=False)
     credit_cents = db.Column(db.Integer, default=0, nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id", ondelete="SET NULL"), index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     entry = db.relationship("JournalEntry", back_populates="lines")
     account = db.relationship("Account", back_populates="journal_lines")
+    project = db.relationship("Project")
     bank_transaction = db.relationship("BankTransaction", back_populates="journal_line", uselist=False)
 
     def __repr__(self):

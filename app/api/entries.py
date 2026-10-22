@@ -7,6 +7,7 @@ from flask_login import login_required
 
 from app.extensions import db
 from app.models import BankTransaction, FiscalYear, Journal, JournalEntry
+from app.services import projects
 from app.services.ledger import (
     MANAGED_SOURCES, LedgerError, delete_entries, entry_is_reconciled, post_validated_entry, update_entry,
     validate_entry_payload,
@@ -26,8 +27,8 @@ def api_base_url():
     return url_for("api.session_info").rsplit("/", 1)[0]
 
 
-def entry_form_options():
-    """Exercices ouverts, journaux et portée des comptes récents du formulaire de saisie."""
+def entry_form_options(project_ids=()):
+    """Exercices ouverts, journaux, projets et portée des comptes récents du formulaire de saisie."""
     fiscal_years = FiscalYear.query.filter_by(closed=False).order_by(FiscalYear.start_date.desc()).all()
     instance = getattr(g, "current_instance", None)
     return {
@@ -36,6 +37,7 @@ def entry_form_options():
         "journals": [{"id": j.id, "code": j.code, "label": j.label}
                      for j in Journal.query.order_by(Journal.code).all()],
         "recentsScope": instance.slug if instance else "default",
+        "projects": projects.options(project_ids),
     }
 
 
@@ -61,7 +63,9 @@ def serialize_entry(entry):
         "lines": [
             {"id": l.id, "account_id": l.account_id, "account_code": l.account.code,
              "account_label": l.account.label, "label": l.label or "",
-             "debit_cents": l.debit_cents, "credit_cents": l.credit_cents}
+             "debit_cents": l.debit_cents, "credit_cents": l.credit_cents,
+             "project_id": l.project_id, "project": l.project.name if l.project else None,
+             "reconciled": l.bank_transaction is not None}
             for l in entry.lines
         ],
     }
@@ -201,9 +205,10 @@ def entries_form():
     `?bt_id=` : création depuis une transaction bancaire (ligne banque préremplie) ;
     sinon : nouvelle écriture du jour.
     """
-    options = entry_form_options()
-    journals = Journal.query.order_by(Journal.code).all()
     entry_id = request.args.get("entry_id", type=int)
+    used = [l.project_id for l in _get_entry(entry_id).lines if l.project_id] if entry_id else []
+    options = entry_form_options(used)
+    journals = Journal.query.order_by(Journal.code).all()
     bt_id = request.args.get("bt_id", type=int)
     if entry_id:
         entry = _get_entry(entry_id)
@@ -216,7 +221,8 @@ def entries_form():
             "fiscal_year_id": entry.fiscal_year_id, "journal_id": entry.journal_id,
             "entry_date": entry.entry_date.isoformat(), "description": entry.description or "",
             "lines": [{"account": _account_json(l.account), "label": l.label or "",
-                       "debit_cents": l.debit_cents, "credit_cents": l.credit_cents} for l in entry.lines]})
+                       "debit_cents": l.debit_cents, "credit_cents": l.credit_cents,
+                       "project_id": str(l.project_id) if l.project_id else None} for l in entry.lines]})
     if bt_id:
         bt = db.session.get(BankTransaction, bt_id)
         if bt is None:

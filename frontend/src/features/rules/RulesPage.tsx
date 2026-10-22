@@ -23,8 +23,9 @@ export interface Rule {
   id: number; position: number; name: string; label_contains: string | null; label_regex: string | null;
   amount_min_cents: number | null; amount_max_cents: number | null; raw_type: string | null;
   entity_name: string | null; entity_type: string | null; category: string | null;
-  account_code: string | null; is_active: boolean;
+  account_code: string | null; is_active: boolean; project_id: number | null; project: string | null;
 }
+interface Option { value: string; label: string }
 
 const KEY = ["rules"];
 
@@ -73,7 +74,9 @@ function RegexTester({ pattern }: { pattern: string }) {
   );
 }
 
-function RuleForm({ rule, entityTypes, onDone }: { rule: Rule | null; entityTypes: string[]; onDone: () => void }) {
+function RuleForm({ rule, entityTypes, projects, onDone }: {
+  rule: Rule | null; entityTypes: string[]; projects: Option[]; onDone: () => void;
+}) {
   const [error, setError] = useState<string | null>(null);
   const form = useForm({
     initialValues: {
@@ -81,6 +84,7 @@ function RuleForm({ rule, entityTypes, onDone }: { rule: Rule | null; entityType
       amount_min_cents: rule?.amount_min_cents ?? null, amount_max_cents: rule?.amount_max_cents ?? null,
       raw_type: rule?.raw_type ?? "", entity_name: rule?.entity_name ?? "", entity_type: rule?.entity_type ?? "",
       category: rule?.category ?? "", account_code: rule?.account_code ?? "", is_active: rule?.is_active ?? true,
+      project_id: rule?.project_id ? String(rule.project_id) : null as string | null,
     },
   });
   const save = useAction((values: typeof form.values) => rule
@@ -119,6 +123,10 @@ function RuleForm({ rule, entityTypes, onDone }: { rule: Rule | null; entityType
         <TextInput label="Compte de l'écriture" classNames={{ input: "lv-num" }} placeholder="616 ou 707"
           description="Facultatif : un compte 6 (charge) ou 7 (produit) génère l'écriture."
           {...form.getInputProps("account_code")} />
+        {projects.length > 0 && (
+          <Select label="Projet" data={projects} clearable searchable placeholder="Aucun"
+            description="Porté sur la ligne de charge ou de produit de l'écriture générée." {...form.getInputProps("project_id")} />
+        )}
         <Switch label="Règle active" {...form.getInputProps("is_active", { type: "checkbox" })} />
       </FormBody>
     </form>
@@ -129,7 +137,7 @@ export default function RulesPage() {
   const can = useCan();
   const modal = useRouteModal("/rules/", "rule_id");
   const [overwrite, setOverwrite] = useState(false);
-  const { data, isFetching } = useList<Rule, { entity_types: string[] }>(KEY, "/api/v1/rules");
+  const { data, isFetching } = useList<Rule, { entity_types: string[]; projects: Option[] }>(KEY, "/api/v1/rules");
   const editing = modal.mode === "edit" ? data?.items.find((r) => r.id === modal.id) ?? null : null;
   const toggle = useAction((r: Rule) => api.patch<{ notices: Notice[] }>(`/api/v1/rules/${r.id}`, { is_active: !r.is_active }),
     { invalidate: [KEY] });
@@ -150,6 +158,7 @@ export default function RulesPage() {
       render: (r) => r.account_code
         ? <Text size="sm"><span className="lv-num">{r.account_code}</span> <Text span c="dimmed" size="sm">{r.account_code.startsWith("6") ? "charge" : "produit"}</Text></Text>
         : "—" },
+    { accessor: "project", title: "Projet", render: (r) => r.project ?? "—" },
     { accessor: "is_active", title: "Active", hideable: false,
       render: (r) => <Switch checked={r.is_active} aria-label={`Activer la règle ${r.name}`} disabled={!can.write}
         onChange={() => toggle.mutate(r)} /> },
@@ -185,7 +194,8 @@ export default function RulesPage() {
         emptyText="Aucune règle : créez-en une pour catégoriser les transactions automatiquement." />
       <FormDrawer opened={modal.mode === "new" || (modal.mode === "edit" && !!editing)} onClose={modal.close}
         title={editing ? `Modifier « ${editing.name} »` : "Créer une règle"}>
-        <RuleForm key={editing?.id ?? "new"} rule={editing} entityTypes={data?.meta?.entity_types ?? []} onDone={modal.close} />
+        <RuleForm key={editing?.id ?? "new"} rule={editing} entityTypes={data?.meta?.entity_types ?? []}
+          projects={data?.meta?.projects ?? []} onDone={modal.close} />
       </FormDrawer>
     </>
   );

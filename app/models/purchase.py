@@ -97,6 +97,7 @@ class PurchaseLine(db.Model):
     vat_rate_bp = db.Column(db.Integer)
     vat_cents = db.Column(db.Integer, nullable=False, default=0)
     total_cents = db.Column(db.Integer, nullable=False, default=0)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id", ondelete="SET NULL"), nullable=True)
 
     purchase = db.relationship("Purchase", back_populates="lines")
     product = db.relationship("Product")
