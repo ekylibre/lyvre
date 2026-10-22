@@ -172,7 +172,9 @@ validation, repasse `open`, marque `opening` à refaire ; refusée si N+1 est cl
 |---|---|---|
 | GET / PUT | `/api/v1/organization` | lecture : tous ; écriture : admin instance |
 | GET | `/api/v1/fiscal-years/<id>/closing` | état des 8 étapes + données de chaque étape |
-| POST | `/api/v1/fiscal-years/<id>/closing/<step>` | `{state: done|skipped, note}` |
+| POST | `/api/v1/fiscal-years/<id>/closing/<step>` | `{state: done|skipped|todo, note}` |
+| GET | `/api/v1/fiscal-years/<id>/fec/preview` | FEC à blanc (exercice ouvert, savepoint annulé) — étape 5 |
+| GET | `/api/v1/fiscal-years/<id>/fec/check` | contrôles + relecture du FEC (exercice clôturé) |
 | GET / POST / DELETE | `/api/v1/fiscal-years/<id>/inventory[/<entry_id>]` | écritures d'inventaire |
 | GET / POST | `/api/v1/dedicated-funds` · `/api/v1/fiscal-years/<id>/dedicated-funds` | fonds et mouvements |
 | POST | `/api/v1/fiscal-years/<id>/close` | `{final: bool}` (final = admin) |

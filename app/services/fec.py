@@ -125,13 +125,13 @@ def filename(fy: FiscalYear, siren: str) -> str:
 # ------------------------------------------------------------------ contrôles et génération
 
 
-def check(fy: FiscalYear) -> tuple[list[str], list[str]]:
-    """Erreurs bloquantes et avertissements avant génération."""
+def check(fy: FiscalYear, allow_open: bool = False) -> tuple[list[str], list[str]]:
+    """Erreurs bloquantes et avertissements avant génération (`allow_open` : essai à blanc)."""
     errors, warnings = [], []
     org = organization.get()
     if not org.siren:
         errors.append("SIREN de la structure manquant (Configuration › Structure).")
-    if fy.status == FY_OPEN:
+    if fy.status == FY_OPEN and not allow_open:
         errors.append("Exercice ouvert : le FEC se génère après la clôture provisoire (écritures validées).")
     entries = _ordered_entries(fy)
     if not entries:
@@ -155,14 +155,16 @@ def check(fy: FiscalYear) -> tuple[list[str], list[str]]:
     return errors[:50], warnings
 
 
-def build(fy: FiscalYear) -> FecFile:
-    """FEC de l'exercice (refus si `check` trouve une erreur bloquante)."""
-    errors, warnings = check(fy)
+def build(fy: FiscalYear, preview: bool = False) -> FecFile:
+    """FEC de l'exercice (refus si `check` trouve une erreur bloquante). `preview` : essai à blanc
+    sur un exercice ouvert, numérotation provisoire non enregistrée (voir `preview`)."""
+    errors, warnings = check(fy, allow_open=preview)
     if errors:
         raise FecError(errors)
-    if any(e.validation_number is None for e in JournalEntry.query.filter_by(fiscal_year_id=fy.id)):
-        validate(fy)
-        db.session.commit()
+    if preview or any(e.validation_number is None for e in JournalEntry.query.filter_by(fiscal_year_id=fy.id)):
+        validate(fy, at=datetime.utcnow() if preview else None)
+        if not preview:
+            db.session.commit()
     siren = organization.get().siren
     journals = {j.id: j for j in Journal.query.all()}
     accounts = {a.id: a for a in Account.query.all()}
@@ -193,6 +195,21 @@ def build(fy: FiscalYear) -> FecFile:
             lines += 1
     content = ("\r\n".join(rows) + "\r\n").encode(ENCODING)
     return FecFile(filename(fy, siren), content, lines, len(entries), total_debit, total_credit, warnings)
+
+
+def preview(fy: FiscalYear) -> tuple[FecFile | None, list[str], list[str], list[str]]:
+    """Essai à blanc avant clôture : FEC produit avec une numérotation provisoire, relu, puis
+    tout est annulé (point de sauvegarde). Renvoie (fichier, erreurs, avertissements, anomalies)."""
+    organization.get()  # la création de la fiche valide la transaction : avant le point de sauvegarde
+    savepoint = db.session.begin_nested()
+    try:
+        errors, warnings = check(fy, allow_open=True)
+        if errors:
+            return None, errors, warnings, []
+        fec_file = build(fy, preview=True)
+        return fec_file, [], warnings, verify(fec_file.content)
+    finally:
+        savepoint.rollback()
 
 
 # ------------------------------------------------------------------ relecture

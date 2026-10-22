@@ -78,12 +78,13 @@ def test_status_and_lock_stay_in_sync(app):
     assert legacy.status == FY_PROVISIONAL
 
 
-def test_close_endpoint_is_provisional_and_locks(login_as):
+def test_close_endpoint_is_provisional_and_locks(login_as, closing_ready):
     client = login_as()
     fy = _fy()
     db.session.add_all([Journal(code="OD", label="OD"), Account(code="6061", label="x", account_type="EXPENSE"),
                         Account(code="401", label="y", account_type="TIERS")])
     db.session.commit()
+    closing_ready(fy)
     item = client.post(f"/api/v1/fiscal-years/{fy.id}/close").get_json()["item"]
     assert item["status"] == "provisional" and item["status_label"] == "Clôture provisoire" and item["closed"]
     journal = Journal.query.one()

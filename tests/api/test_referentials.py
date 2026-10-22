@@ -68,7 +68,7 @@ def test_journals(client):
 # ------------------------------------------------------------------ exercices
 
 
-def test_fiscal_years_create_vat_and_close(client):
+def test_fiscal_years_create_vat_and_close(client, closing_ready):
     create = lambda **kw: client.post("/api/v1/fiscal-years", json={
         "label": "2027", "start_date": "2027-01-01", "end_date": "2027-12-31", **kw})
     fy27 = create(vat_liable=True).get_json()["item"]
@@ -79,6 +79,9 @@ def test_fiscal_years_create_vat_and_close(client):
     body = client.patch(f"/api/v1/fiscal-years/{fy28['id']}", json={"vat_liable": True}).get_json()
     assert body["item"]["vat_liable"] and "soumis à la TVA" in body["notices"][0]["message"]
 
+    assert _error(client.post(f"/api/v1/fiscal-years/{fy27['id']}/close"), 422)["message"].startswith("Étapes à terminer")
+    from app.models import FiscalYear
+    closing_ready(FiscalYear.query.get(fy27["id"]))
     assert client.post(f"/api/v1/fiscal-years/{fy27['id']}/close").get_json()["item"]["closed"]
     assert _error(client.post(f"/api/v1/fiscal-years/{fy27['id']}/close"), 409)["code"] == "conflict"
     assert _error(client.patch(f"/api/v1/fiscal-years/{fy27['id']}", json={"vat_liable": False}), 409)

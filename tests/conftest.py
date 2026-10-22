@@ -79,3 +79,18 @@ def login_as(app):
         return client
 
     return _login
+
+
+@pytest.fixture()
+def closing_ready():
+    """Décide les étapes 1 à 5 de l'assistant de clôture (ignorées avec motif) : la clôture
+    provisoire devient possible. Usage : ``closing_ready(fy)``."""
+    from app.models import ClosingStep
+    from app.services.closing import DECIDED_BEFORE_CLOSE
+
+    def _ready(fy):
+        for step in DECIDED_BEFORE_CLOSE:
+            db.session.add(ClosingStep(fiscal_year_id=fy.id, step=step, state="skipped", note="test"))
+        db.session.commit()
+
+    return _ready

@@ -26,7 +26,7 @@ test("journaux : création, doublon refusé au champ", async ({ page }) => {
   await expect(dialog).toBeHidden();
 });
 
-test("exercices : création puis clôture provisoire confirmée ; adresse du formulaire", async ({ page }) => {
+test("exercices : création, accès à l'assistant de clôture ; adresse du formulaire", async ({ page }) => {
   await login(page, "Association E2E", "/fiscal-years/new");
   const dialog = page.getByRole("dialog", { name: "Créer un exercice" });
   await expect(dialog).toBeVisible();  // ancienne adresse du formulaire : fenêtre ouverte
@@ -36,11 +36,11 @@ test("exercices : création puis clôture provisoire confirmée ; adresse du for
 
   const row = page.getByRole("row", { name: /2026/ });
   await expect(row.getByText("Ouvert")).toBeVisible();
-  await row.getByRole("button", { name: "Clôturer" }).click();
-  await page.getByRole("dialog", { name: "Clôturer l'exercice 2026 ?" })
-    .getByRole("button", { name: "Clôturer l'exercice" }).click();
-  await expect(row.getByText("Clôture provisoire")).toBeVisible();
-  await expect(row.getByRole("button", { name: "Clôturer" })).toHaveCount(0);
+  await row.getByRole("link", { name: "Clôturer…" }).click();
+  await expect(page.getByRole("heading", { name: "Clôture de l'exercice 2026" })).toBeVisible();
+  await page.getByRole("button", { name: /6\. Clôture/ }).click();
+  await expect(page.getByText("Étapes à terminer avant la clôture")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Clôture provisoire" })).toBeDisabled();
 });
 
 test("colonnes masquées gardées après reconnexion", async ({ page }) => {

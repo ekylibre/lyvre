@@ -1,4 +1,4 @@
-// Compta › Exercices : liste, création, assujettissement à la TVA, clôture.
+// Compta › Exercices : liste, création, assujettissement à la TVA ; la clôture passe par l'assistant (ClosingPage).
 import { useState } from "react";
 import { Button, Checkbox, Group, Text, TextInput } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
@@ -6,7 +6,6 @@ import { useForm } from "@mantine/form";
 import { api } from "../../api/client";
 import { useAction, useList, type Notice } from "../../api/resources";
 import { applyApiError, FormBody } from "../../components/ApiForm";
-import { confirmAction } from "../../components/ConfirmButton";
 import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { FormModal } from "../../components/FormModal";
 import { PageHeader } from "../../components/PageHeader";
@@ -14,6 +13,7 @@ import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { useRouteModal } from "../../app/useRouteModal";
+import { AppLink } from "../../app/navigation";
 import { FecPanel } from "./FecPanel";
 
 export interface FiscalYear {
@@ -67,8 +67,6 @@ export default function FiscalYearsPage() {
   const modal = useRouteModal("/fiscal-years/");
   const [fecFor, setFecFor] = useState<FiscalYear | null>(null);
   const { data, isFetching } = useList<FiscalYear>(FISCAL_YEARS_KEY, "/api/v1/fiscal-years");
-  const close = useAction((fy: FiscalYear) => api.post<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}/close`),
-    { invalidate: [FISCAL_YEARS_KEY] });
   const setVat = useAction((fy: FiscalYear) =>
     api.patch<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}`, { vat_liable: !fy.vat_liable }),
     { invalidate: [FISCAL_YEARS_KEY] });
@@ -85,6 +83,9 @@ export default function FiscalYearsPage() {
     { accessor: "fec", title: "FEC", hideable: false,
       render: (fy) => fy.status === "open" ? <Text size="sm" c="dimmed">après clôture</Text>
         : <Button variant="subtle" size="compact-sm" onClick={() => setFecFor(fy)}>FEC</Button> },
+    { accessor: "closing", title: "Clôture", hideable: false,
+      render: (fy) => <Button variant={fy.status === "open" ? "default" : "subtle"} size="compact-sm" component={AppLink}
+        href={`/fiscal-years/${fy.id}/closing`}>{fy.status === "open" ? "Clôturer…" : "Assistant"}</Button> },
     { accessor: "actions", title: "", hideable: false, textAlign: "right",
       render: (fy) => fy.closed ? null : (
         <Group gap="xs" justify="flex-end" wrap="nowrap">
@@ -92,16 +93,6 @@ export default function FiscalYearsPage() {
             title="S'applique aux factures comptabilisées à partir de maintenant"
             onClick={() => setVat.mutate(fy)}>
             {fy.vat_liable ? "Déclarer non soumis" : "Déclarer soumis"}
-          </Button>
-          <Button variant="default" size="compact-sm" color="brique"
-            onClick={() => confirmAction({
-              title: `Clôturer l'exercice ${fy.label} ?`,
-              message: "Clôture provisoire : ses écritures sont verrouillées. La clôture complète (à-nouveaux, FEC, "
-                + "clôture définitive) se fait ensuite avec l'assistant de clôture.",
-              confirmLabel: "Clôturer l'exercice",
-              onConfirm: () => close.mutate(fy),
-            })}>
-            Clôturer
           </Button>
         </Group>
       ) },

@@ -23,6 +23,7 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
   "auth.select_instance": () => import("../features/auth/SelectInstancePage"),
   ...pages(["journals.index", "journals.new"], () => import("../features/journals/JournalsPage")),
   ...pages(["fiscal_years.index", "fiscal_years.new"], () => import("../features/fiscal-years/FiscalYearsPage")),
+  "fiscal_years.closing": () => import("../features/fiscal-years/ClosingPage"),
   ...pages(["accounts.index", "accounts.new", "accounts.edit"], () => import("../features/accounts/AccountsPage")),
   ...pages(["products.index", "products.new", "products.edit"], () => import("../features/products/ProductsPage")),
   ...pages(["rules.index", "rules.new", "rules.edit"], () => import("../features/rules/RulesPage")),

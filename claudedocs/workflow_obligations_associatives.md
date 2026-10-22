@@ -106,6 +106,16 @@ pytest 734, Vitest 78, E2E 18.
 
 **✅ CP A.4** : sur une copie 5001, un exercice passe en clôture provisoire puis est rouvert puis
 reclôturé avec des numéros identiques ; l'expert-comptable consulte l'assistant sans agir.
+— *Fait (2026-10-22)* : service `closing` (contrôles : rapprochements, écritures déséquilibrées ou
+hors dates, achats non comptabilisés, factures non réglées (info), 47x non soldés, 512/53 créditeurs ;
+inventaire 408/4686, 4687/418/441, 486, 487 en journal OD au dernier jour ; étapes faites / ignorées
+avec motif ≥ 5 caractères, « Contrôles » fait refusé s'il reste une anomalie, « FEC » fait exigeant un
+essai à blanc propre ; clôture provisoire après les 5 étapes, définitive et réouverture (motif) admin ;
+historique `closing_events`). `fec.preview` (point de sauvegarde annulé). Écran
+`/fiscal-years/<id>/closing` (liste d'étapes + panneau, historique), bouton « Clôturer… » de la liste.
+Suggestions de factures non parvenues non faites (reportées). Copie 5001 : SN 2025 rouvert puis
+reclôturé, 105 numéros identiques ; expert-comptable sur la copie SCI : assistant visible, aucune action.
+pytest 746, Vitest 78, E2E 18.
 
 ### Phase A.5 — Ouverture, extournes, affectation (D8, D9)
 

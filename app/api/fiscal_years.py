@@ -1,12 +1,15 @@
 """Exercices comptables : création, clôture, assujettissement à la TVA."""
+from contextlib import contextmanager
 from datetime import date
 
-from flask import jsonify, url_for
+from flask import jsonify, request, url_for
+from flask_login import current_user
 
+from app.access import current_role, instance_admin_required
 from app.extensions import db
 from app.models import FiscalYear
-from app.models.fiscal_year import FY_PROVISIONAL
-from app.services import fec
+from app.models.instance_membership import ROLE_ADMIN
+from app.services import closing, fec
 
 from . import ApiError, bp, get_or_404, invalid, json_body, notice
 
@@ -48,16 +51,102 @@ def fiscal_years_create():
 
 @bp.route("/fiscal-years/<int:fy_id>/close", methods=["POST"])
 def fiscal_years_close(fy_id):
+    """`{final: false}` : clôture provisoire (étapes 1 à 5 décidées) ; `{final: true}` : clôture
+    définitive (administrateur de l'instance), FEC figé, irréversible."""
     fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
-    if fy.closed:
-        raise ApiError("conflict", "Cet exercice est déjà clôturé.", status=409)
-    # Clôture provisoire (verrou réversible) : les écritures sont numérotées pour le FEC.
-    fy.status = FY_PROVISIONAL
-    db.session.flush()
-    fec.validate(fy)
-    db.session.commit()
-    return jsonify(item=fiscal_year_payload(fy), notices=[notice(
-        f"Exercice « {fy.label} » en clôture provisoire : les écritures sont verrouillées.")])
+    data = request.get_json(silent=True) or {}
+    final = bool(data.get("final"))
+    if final and current_role() != ROLE_ADMIN:
+        raise ApiError("forbidden", "Clôture définitive réservée à l'administrateur de l'instance.", status=403)
+    with _closing_errors():
+        if final:
+            closing.close_final(fy, current_user.id)
+            message = f"Exercice « {fy.label} » clôturé définitivement : FEC figé."
+        else:
+            closing.close_provisional(fy, current_user.id)
+            message = f"Exercice « {fy.label} » en clôture provisoire : écritures verrouillées et numérotées."
+    return jsonify(item=fiscal_year_payload(fy), notices=[notice(message)])
+
+
+@bp.route("/fiscal-years/<int:fy_id>/reopen", methods=["POST"])
+@instance_admin_required
+def fiscal_years_reopen(fy_id):
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    with _closing_errors():
+        closing.reopen(fy, current_user.id, json_body().get("reason"))
+    return jsonify(item=fiscal_year_payload(fy), notices=[notice(f"Exercice « {fy.label} » rouvert.")])
+
+
+@contextmanager
+def _closing_errors():
+    try:
+        yield
+    except closing.ClosingError as exc:
+        db.session.rollback()
+        code = {404: "not_found", 422: "validation_error"}.get(exc.status, "conflict")
+        raise ApiError(code, exc.message, status=exc.status) from None
+
+
+@bp.route("/fiscal-years/<int:fy_id>/closing")
+def fiscal_years_closing(fy_id):
+    """État de l'assistant : étapes, contrôles recalculés, écritures d'inventaire, résultat."""
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    following = closing.next_fiscal_year(fy)
+    return jsonify(
+        fiscal_year=fiscal_year_payload(fy),
+        steps=closing.steps(fy),
+        checks=[c.__dict__ for c in closing.checks(fy)],
+        inventory=[{"id": e.id, "reference": e.reference, "kind": e.inventory_kind,
+                    "kind_label": closing.INVENTORY_KINDS.get(e.inventory_kind, {}).get("label", ""),
+                    "description": e.description, "amount_cents": sum(l.debit_cents for l in e.lines),
+                    "lines": [{"account": l.account.code, "debit_cents": l.debit_cents, "credit_cents": l.credit_cents}
+                              for l in e.lines]} for e in closing.inventory_entries(fy)],
+        inventory_options=closing.inventory_options(),
+        result=closing.result(fy),
+        next_fiscal_year=fiscal_year_payload(following) if following else None,
+        events=closing.events(fy),
+    )
+
+
+@bp.route("/fiscal-years/<int:fy_id>/closing/<step>", methods=["POST"])
+def fiscal_years_closing_step(fy_id, step):
+    """`{state: done|skipped|todo, note}` (motif obligatoire pour `skipped`)."""
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    data = json_body()
+    with _closing_errors():
+        closing.set_step(fy, step, data.get("state"), data.get("note"), current_user.id)
+    return jsonify(steps=closing.steps(fy))
+
+
+@bp.route("/fiscal-years/<int:fy_id>/inventory", methods=["POST"])
+def fiscal_years_inventory_add(fy_id):
+    """`{kind, account_code, amount_cents, label, counterpart_code?}`."""
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    data = json_body()
+    with _closing_errors():
+        entry = closing.add_inventory(fy, data.get("kind"), data.get("account_code"), data.get("amount_cents"),
+                                      data.get("label"), data.get("counterpart_code"), current_user.id)
+    return jsonify(notices=[notice(f"Écriture d'inventaire {entry.reference} enregistrée.")]), 201
+
+
+@bp.route("/fiscal-years/<int:fy_id>/inventory/<int:entry_id>", methods=["DELETE"])
+def fiscal_years_inventory_delete(fy_id, entry_id):
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    with _closing_errors():
+        closing.delete_inventory(fy, entry_id, current_user.id)
+    return jsonify(notices=[notice("Écriture d'inventaire supprimée.")])
+
+
+@bp.route("/fiscal-years/<int:fy_id>/fec/preview")
+def fiscal_years_fec_preview(fy_id):
+    """Essai à blanc du FEC (exercice encore ouvert) : contrôles, relecture, totaux."""
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    fec_file, errors, warnings, problems = fec.preview(fy)
+    return jsonify(errors=errors, warnings=warnings, problems=problems,
+                   filename=fec_file.filename if fec_file else None, frozen=False, sha256=None, download_url=None,
+                   stats={"lines": fec_file.lines, "entries": fec_file.entries,
+                          "total_debit_cents": fec_file.total_debit_cents,
+                          "total_credit_cents": fec_file.total_credit_cents} if fec_file else None)
 
 
 @bp.route("/fiscal-years/<int:fy_id>", methods=["PATCH"])

@@ -1,6 +1,6 @@
 // Contrôles et téléchargement du FEC d'un exercice (GET /api/v1/fiscal-years/<id>/fec/check) :
 // erreurs bloquantes, avertissements, relecture du fichier, totaux, lien de téléchargement.
-// Réutilisé par l'assistant de clôture.
+// `preview` (assistant de clôture) : essai à blanc sur l'exercice ouvert (…/fec/preview), sans fichier.
 import { Alert, Anchor, Button, Center, Group, List, Loader, SimpleGrid, Stack, Text } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { Download } from "lucide-react";
@@ -14,9 +14,10 @@ export interface FecCheck {
   stats: { lines: number; entries: number; total_debit_cents: number; total_credit_cents: number } | null;
 }
 
-export function FecPanel({ fiscalYearId }: { fiscalYearId: number }) {
-  const { data, isFetching } = useQuery({ queryKey: ["fec-check", fiscalYearId], staleTime: 0,
-    queryFn: () => api.get<FecCheck>(`/api/v1/fiscal-years/${fiscalYearId}/fec/check`) });
+export function FecPanel({ fiscalYearId, preview = false }: { fiscalYearId: number; preview?: boolean }) {
+  const endpoint = preview ? "preview" : "check";
+  const { data, isFetching } = useQuery({ queryKey: [`fec-${endpoint}`, fiscalYearId], staleTime: 0,
+    queryFn: () => api.get<FecCheck>(`/api/v1/fiscal-years/${fiscalYearId}/fec/${endpoint}`) });
   if (!data) return <Center h={120}><Loader /></Center>;
   const sirenMissing = data.errors.some((e) => e.includes("SIREN"));
   return (
@@ -42,6 +43,9 @@ export function FecPanel({ fiscalYearId }: { fiscalYearId: number }) {
             <Stat label="Total crédit" value={<MoneyText cents={data.stats.total_credit_cents} />} />
           </SimpleGrid>
           {data.problems.length === 0 && <Text size="sm" c="var(--lv-lichen)">✓ Format relu : 18 champs, écritures équilibrées, numérotation continue par journal.</Text>}
+          {preview ? (
+            <Text size="xs" c="dimmed">Essai à blanc avec une numérotation provisoire : le fichier définitif se télécharge après la clôture provisoire.</Text>
+          ) : (<>
           <Text size="xs" c="dimmed">
             {data.frozen ? "Fichier figé à la clôture définitive" : "Fichier produit à la demande"} · empreinte SHA-256{" "}
             <Text span className="lv-num" size="xs">{data.sha256?.slice(0, 16)}…</Text>. Contrôle officiel : outil « Test Compta Demat » de la DGFiP.
@@ -51,6 +55,7 @@ export function FecPanel({ fiscalYearId }: { fiscalYearId: number }) {
               Télécharger {data.filename}
             </Button>
           </Group>
+          </>)}
         </>
       )}
     </Stack>

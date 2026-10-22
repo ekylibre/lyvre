@@ -134,8 +134,9 @@ def test_api_check_and_download_for_accountant(books, login_as):
     assert resp.data.decode("iso-8859-15").startswith("JournalCode\tJournalLib")
 
 
-def test_provisional_close_numbers_entries(books, login_as):
+def test_provisional_close_numbers_entries(books, login_as, closing_ready):
     client = login_as()
+    closing_ready(books)
     client.post(f"/api/v1/fiscal-years/{books.id}/close")
     assert {e.validation_number for e in JournalEntry.query.all()} == {1, 2}
 
