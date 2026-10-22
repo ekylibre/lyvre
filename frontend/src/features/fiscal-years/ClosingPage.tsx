@@ -1,13 +1,15 @@
 // Compta › Exercices › Clôture : assistant en étapes (GET /api/v1/fiscal-years/<id>/closing).
 // Contrôles, écritures d'inventaire, fonds dédiés, résultat, FEC à blanc, puis clôture
-// provisoire (trésorier, admin), définitive et réouverture (admin). Chaque étape est faite ou
-// ignorée avec un motif ; l'expert-comptable consulte sans agir.
+// provisoire (trésorier, admin), définitive et réouverture (admin) ; ensuite à-nouveaux et
+// extournes dans l'exercice suivant, et affectation du résultat. Les étapes 1 à 5 sont faites ou
+// ignorées avec un motif ; l'expert-comptable consulte sans agir.
 import { useState } from "react";
 import { useParams } from "react-router";
 import {
-  Alert, Anchor, Button, Center, Grid, Group, List, Loader, NavLink, Paper, Select, SimpleGrid, Stack, Table, Text,
-  Textarea, TextInput, Title,
+  ActionIcon, Alert, Anchor, Autocomplete, Button, Center, Grid, Group, List, Loader, NavLink, Paper, Select, SimpleGrid,
+  Stack, Table, Text, Textarea, TextInput, Title,
 } from "@mantine/core";
+import { DateInput } from "@mantine/dates";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
@@ -18,7 +20,7 @@ import { FormModal } from "../../components/FormModal";
 import { MoneyInput, MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge, type Tone } from "../../components/StatusBadge";
-import { formatDateTime } from "../../lib/format";
+import { formatDate, formatDateTime } from "../../lib/format";
 import type { Account } from "../../lib/types";
 import { AppLink } from "../../app/navigation";
 import { FecPanel } from "./FecPanel";
@@ -39,13 +41,24 @@ interface ClosingView {
   inventory_options: Record<string, InventoryOption>;
   result: { income_cents: number; expense_cents: number; result_cents: number };
   next_fiscal_year: FiscalYear | null; events: ClosingEvent[];
+  opening: {
+    lines: { account_code: string; label: string; debit_cents: number; credit_cents: number }[];
+    error: string | null; reversals_planned: number; next_start_date: string;
+    entries: (EntryLink & { source: string; description: string })[];
+  };
+  allocation: {
+    result_cents: number; decided_on: string | null; body: string | null; entry: EntryLink | null;
+    options: { value: string; label: string }[];
+  };
 }
+interface EntryLink { id: number; reference: string; url: string }
 
 const STATES: Record<StepState, [string, Tone]> = {
   todo: ["À faire", "todo"], done: ["Fait", "ok"], skipped: ["Ignorée", "neutral"], provisional: ["Provisoire", "info"],
 };
 const ACTIONS: Record<string, string> = {
   step_done: "Étape faite", step_skipped: "Étape ignorée", step_todo: "Étape remise à faire", add: "Écriture ajoutée",
+  generate: "À-nouveaux générés", allocate: "Résultat affecté", cancel: "Affectation annulée",
   delete: "Écriture supprimée", provisional: "Clôture provisoire", final: "Clôture définitive", reopen: "Réouverture",
 };
 const DESCRIPTIONS: Record<string, string> = {
@@ -66,9 +79,10 @@ export default function ClosingPage() {
   const [current, setCurrent] = useState<string | null>(null);
   if (!data) return <Center h={200}><Loader /></Center>;
   const fy = data.fiscal_year;
-  // Exercice ouvert : première étape à faire ; sinon (ou tout décidé) l'étape Clôture.
+  // Première étape à faire (après la clôture : ouverture puis affectation), sinon l'étape Clôture.
   const active = data.steps.find((s) => s.key === current)
-    ?? (fy.status === "open" ? data.steps.find((s) => s.available && s.state === "todo") : undefined)
+    ?? data.steps.find((s) => s.available && s.state === "todo"
+      && (fy.status === "open" || ["opening", "allocation"].includes(s.key)))
     ?? data.steps.find((s) => s.key === "close")!;
   return (
     <>
@@ -80,7 +94,7 @@ export default function ClosingPage() {
             {data.steps.map((s, i) => (
               <NavLink key={s.key} component="button" active={s.key === active.key} onClick={() => setCurrent(s.key)}
                 label={`${i + 1}. ${s.label}`} disabled={!s.available}
-                description={s.available ? s.note ?? undefined : "Prochainement"}
+                description={s.available ? s.note ?? undefined : "Après la clôture"}
                 rightSection={s.available ? <StatusBadge tone={STATES[s.state][1]}>{STATES[s.state][0]}</StatusBadge> : null} />
             ))}
           </Paper>
@@ -93,7 +107,7 @@ export default function ClosingPage() {
                 <Text size="sm" c="dimmed">{DESCRIPTIONS[active.key]}</Text>
               </div>
               <StepBody step={active} view={data} />
-              {active.key !== "close" && active.available && <StepActions step={active} view={data} />}
+              {!["close", "opening", "allocation"].includes(active.key) && active.available && <StepActions step={active} view={data} />}
             </Stack>
           </Paper>
           <History events={data.events} steps={data.steps} />
@@ -118,7 +132,9 @@ function StepBody({ step, view }: { step: Step; view: ClosingView }) {
     case "result": return <Result result={view.result} />;
     case "fec": return <FecPanel fiscalYearId={fy.id} preview={fy.status === "open"} />;
     case "close": return <Close view={view} />;
-    default: return <Text size="sm" c="dimmed">Disponible prochainement.</Text>;
+    case "opening": return <Opening view={view} />;
+    case "allocation": return <Allocation view={view} />;
+    default: return null;
   }
 }
 
@@ -305,6 +321,134 @@ function Close({ view }: { view: ClosingView }) {
   );
 }
 
+function Opening({ view }: { view: ClosingView }) {
+  const can = useCan();
+  const fy = view.fiscal_year;
+  const { opening, allocation } = view;
+  const next = view.next_fiscal_year;
+  const generate = useClosingAction(fy.id, (createNext: boolean) =>
+    api.post<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}/opening`, { create_next: createNext }));
+  const allocated = !!allocation.decided_on;
+  const nextYear = next?.label ?? opening.next_start_date.slice(0, 4);
+  return (
+    <Stack>
+      {opening.error && <Alert color="brique" title="À-nouveaux impossibles">{opening.error}</Alert>}
+      {opening.lines.length > 0 && (
+        <Table>
+          <Table.Thead><Table.Tr><Table.Th>Compte</Table.Th><Table.Th>Libellé</Table.Th>
+            <Table.Th ta="right">Débit</Table.Th><Table.Th ta="right">Crédit</Table.Th></Table.Tr></Table.Thead>
+          <Table.Tbody>
+            {opening.lines.map((l) => (
+              <Table.Tr key={l.account_code}>
+                <Table.Td className="lv-num">{l.account_code}</Table.Td><Table.Td>{l.label}</Table.Td>
+                <Table.Td ta="right">{l.debit_cents ? <MoneyText cents={l.debit_cents} /> : null}</Table.Td>
+                <Table.Td ta="right">{l.credit_cents ? <MoneyText cents={l.credit_cents} /> : null}</Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+      )}
+      <Text size="sm">
+        À-nouveaux datés du {formatDate(opening.next_start_date)} (journal AN)
+        {opening.reversals_planned > 0 && `, ${opening.reversals_planned} extourne(s) d'écritures d'inventaire`}.
+      </Text>
+      {opening.entries.length > 0 && (
+        <Text size="sm">Déjà générées en {nextYear} :{" "}
+          {opening.entries.map((e, i) => <span key={e.id}>{i > 0 && ", "}<Anchor component={AppLink} href={e.url} size="sm">{e.reference}</Anchor></span>)}
+        </Text>
+      )}
+      {allocated && <Text size="sm" c="dimmed">Résultat affecté : annulez l'affectation (étape 8) pour regénérer les à-nouveaux.</Text>}
+      {can.write && !allocated && !opening.error && (next ? next.status === "open" : true) && (
+        <Group>
+          <Button loading={generate.isPending} onClick={() => generate.mutate(!next)}>
+            {!next ? `Créer l'exercice ${nextYear} et générer` : opening.entries.length ? "Regénérer les à-nouveaux" : "Générer les à-nouveaux"}
+          </Button>
+        </Group>
+      )}
+    </Stack>
+  );
+}
+
+const BODIES = ["Assemblée générale", "Assemblée des associés", "Conseil d'administration"];
+
+function Allocation({ view }: { view: ClosingView }) {
+  const can = useCan();
+  const fy = view.fiscal_year;
+  const { allocation } = view;
+  const amount = allocation.result_cents;
+  const cancel = useClosingAction(fy.id, () => api.delete<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}/allocation`));
+  const summary = amount === 0 ? "Résultat nul" : amount > 0 ? "Excédent à affecter" : "Déficit à affecter";
+  return (
+    <Stack>
+      <Figure label={summary} value={<MoneyText cents={Math.abs(amount)} anomaly={amount < 0} />} />
+      {allocation.decided_on ? (
+        <>
+          <Text size="sm">Décision : {allocation.body} du {formatDate(allocation.decided_on)}
+            {allocation.entry && <> · écriture <Anchor component={AppLink} href={allocation.entry.url} size="sm">{allocation.entry.reference}</Anchor></>}.
+          </Text>
+          {can.write && <Group><Button variant="default" color="brique" loading={cancel.isPending} onClick={() => confirmAction({
+            title: "Annuler l'affectation du résultat ?", confirmLabel: "Annuler l'affectation",
+            message: "L'écriture d'affectation est supprimée ; la décision pourra être saisie de nouveau.",
+            onConfirm: () => cancel.mutate(undefined),
+          })}>Annuler l'affectation</Button></Group>}
+        </>
+      ) : can.write ? <AllocationForm view={view} /> : <Text size="sm" c="dimmed">Pas encore de décision d'affectation.</Text>}
+    </Stack>
+  );
+}
+
+function AllocationForm({ view }: { view: ClosingView }) {
+  const fyId = view.fiscal_year.id;
+  const { allocation, next_fiscal_year: next } = view;
+  const target = Math.abs(allocation.result_cents);
+  const [decidedOn, setDecidedOn] = useState<string | null>(null);
+  const [body, setBody] = useState("Assemblée générale");
+  const [lines, setLines] = useState<{ account: string | null; amount: number | null }[]>(
+    [{ account: null, amount: target || null }]);
+  const total = lines.reduce((sum, l) => sum + (l.amount ?? 0), 0);
+  const save = useClosingAction(fyId, () => api.post<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fyId}/allocation`, {
+    decided_on: decidedOn, body,
+    lines: target ? lines.map((l) => ({ account_code: l.account, amount_cents: l.amount })) : [],
+  }));
+  const update = (i: number, patch: Partial<(typeof lines)[number]>) =>
+    setLines(lines.map((l, j) => (j === i ? { ...l, ...patch } : l)));
+  return (
+    <Paper withBorder p="sm">
+      <SimpleGrid cols={{ base: 1, sm: 2 }}>
+        <DateInput label="Date de la décision" required valueFormat="DD/MM/YYYY" value={decidedOn} onChange={setDecidedOn}
+          minDate={next?.start_date} maxDate={next?.end_date} />
+        <Autocomplete label="Organe" required data={BODIES} value={body} onChange={setBody} />
+      </SimpleGrid>
+      {target > 0 && (
+        <Stack gap="xs" mt="sm">
+          {lines.map((l, i) => (
+            <Group key={i} align="flex-end" wrap="nowrap">
+              <Select label={i === 0 ? "Compte" : undefined} aria-label="Compte" placeholder="10x, 11x ou 455x" searchable
+                data={allocation.options} value={l.account} onChange={(v) => update(i, { account: v })} style={{ flex: 2 }} />
+              <MoneyInput label={i === 0 ? "Montant" : undefined} aria-label="Montant" value={l.amount}
+                onChange={(v) => update(i, { amount: v })} style={{ flex: 1 }} />
+              {lines.length > 1 && <ActionIcon variant="subtle" color="brique" aria-label="Retirer la ligne" mb={6}
+                onClick={() => setLines(lines.filter((_l, j) => j !== i))}>×</ActionIcon>}
+            </Group>
+          ))}
+          <Group justify="space-between">
+            <Button variant="subtle" size="compact-sm" onClick={() => setLines([...lines, { account: null, amount: target - total > 0 ? target - total : null }])}>
+              Ajouter une ligne
+            </Button>
+            <Text size="sm" c={total === target ? undefined : "var(--lv-brique)"}>
+              Réparti : <MoneyText cents={total} /> / <MoneyText cents={target} />
+            </Text>
+          </Group>
+        </Stack>
+      )}
+      <Group mt="sm">
+        <Button loading={save.isPending} disabled={!decidedOn || !body.trim() || (target > 0 && (total !== target || lines.some((l) => !l.account)))}
+          onClick={() => save.mutate(undefined)}>Enregistrer l'affectation</Button>
+      </Group>
+    </Paper>
+  );
+}
+
 function History({ events, steps }: { events: ClosingEvent[]; steps: Step[] }) {
   if (!events.length) return null;
   const labels = Object.fromEntries(steps.map((s) => [s.key, s.label]));
@@ -328,7 +472,7 @@ function History({ events, steps }: { events: ClosingEvent[]; steps: Step[] }) {
 
 function describe(details: Record<string, unknown> | null) {
   if (!details) return "";
-  return [details.note, details.reason, details.entry].filter(Boolean).join(" · ");
+  return [details.note, details.reason, details.body, details.entry].filter(Boolean).join(" · ");
 }
 
 function Figure({ label, value }: { label: string; value: React.ReactNode }) {

@@ -16,7 +16,7 @@ import { ENTRIES_KEY } from "./EntriesPage";
 interface EntryDetail {
   id: number; reference: string | null; fiscal_year: string; journal: string; entry_date: string;
   description: string; source: string; source_ref: string | null; is_balanced: boolean;
-  total_debit_cents: number; total_credit_cents: number; reconciled: boolean; editable: boolean;
+  total_debit_cents: number; total_credit_cents: number; reconciled: boolean; editable: boolean; managed?: boolean;
   lines: { id: number; account_code: string; account_label: string; label: string; debit_cents: number; credit_cents: number }[];
 }
 
@@ -46,7 +46,9 @@ export default function EntryDetailPage() {
         </>} />
       {data.description && <Text mb="sm">{data.description}</Text>}
       {data.source !== "MANUAL" && data.source_ref && <Text size="sm" c="dimmed" mb="sm">Origine : {data.source} · {data.source_ref}</Text>}
-      {!data.editable && <Alert color="ardoise" variant="light" mb="sm">Exercice clôturé : l'écriture ne peut plus être modifiée.</Alert>}
+      {!data.editable && <Alert color="ardoise" variant="light" mb="sm">{data.managed
+        ? "Écriture gérée par l'assistant de clôture : elle se modifie depuis l'assistant de l'exercice."
+        : "Exercice clôturé : l'écriture ne peut plus être modifiée."}</Alert>}
       {!data.is_balanced && <Alert color="brique" role="alert" mb="sm">Cette écriture n'est pas équilibrée.</Alert>}
       <Paper p={0} style={{ overflowX: "auto" }}>
         <Table verticalSpacing="xs">

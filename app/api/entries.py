@@ -8,7 +8,7 @@ from flask_login import login_required
 from app.extensions import db
 from app.models import BankTransaction, FiscalYear, Journal, JournalEntry
 from app.services.ledger import (
-    LedgerError, delete_entries, entry_is_reconciled, post_validated_entry, update_entry,
+    MANAGED_SOURCES, LedgerError, delete_entries, entry_is_reconciled, post_validated_entry, update_entry,
     validate_entry_payload,
 )
 from app.utils.list_filters import (
@@ -18,6 +18,7 @@ from app.utils.list_filters import (
 from . import ApiError, bp, json_body, notice
 
 PER_PAGE_MAX = 200
+MANAGED_MESSAGE = "Écriture gérée par l'assistant de clôture : modifiez-la depuis l'assistant."
 
 
 def api_base_url():
@@ -54,7 +55,8 @@ def serialize_entry(entry):
         "total_debit_cents": entry.total_debit,
         "total_credit_cents": entry.total_credit,
         "reconciled": entry_is_reconciled(entry),
-        "editable": not entry.fiscal_year.closed,
+        "editable": not entry.fiscal_year.closed and entry.source not in MANAGED_SOURCES,
+        "managed": entry.source in MANAGED_SOURCES,
         "url": url_for("entries.detail", entry_id=entry.id),
         "lines": [
             {"id": l.id, "account_id": l.account_id, "account_code": l.account.code,
@@ -119,6 +121,8 @@ def entries_get(entry_id):
 @login_required
 def entries_update(entry_id):
     entry = _get_entry(entry_id)
+    if entry.source in MANAGED_SOURCES:
+        raise ApiError("conflict", MANAGED_MESSAGE, 409)
     clean = _validated(json_body())
     try:
         update_entry(entry, clean)

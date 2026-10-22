@@ -40,7 +40,8 @@ def _seed_books(engine):
         for code, label in (("AC", "Achats"), ("BQ", "Banque"), ("OD", "Opérations diverses")):
             conn.execute(text("INSERT INTO journals (code, label) VALUES (:c, :l)"), {"c": code, "l": label})
         for code, label, kind in (("512000", "Banque", "ASSET"), ("606300", "Petit équipement", "EXPENSE"),
-                                  ("401000", "Fournisseurs", "TIERS"), ("706000", "Prestations", "REVENUE")):
+                                  ("401000", "Fournisseurs", "TIERS"), ("706000", "Prestations", "REVENUE"),
+                                  ("110000", "Report à nouveau", "EQUITY"), ("120000", "Excédent", "EQUITY")):
             conn.execute(text("INSERT INTO accounts (code, label, account_type, is_header) VALUES (:c, :l, :t, 0)"),
                          {"c": code, "l": label, "t": kind})
         # Rapprochement : un compte bancaire, un débit qui a son écriture, un crédit sans écriture.
@@ -62,11 +63,14 @@ def _seed_books(engine):
         for account, debit, credit in ((ids["606300"], 4500, 0), (ids["512000"], 0, 4500)):
             conn.execute(text("INSERT INTO journal_lines (entry_id, account_id, label, debit_cents, credit_cents) "
                               "VALUES (:e, :a, 'Perceuse', :d, :c)"), {"e": entry, "a": account, "d": debit, "c": credit})
-        # Exercice ancien (6 ans) avec une écriture : clôture provisoire et FEC sans toucher à
-        # l'exercice courant des autres parcours.
+        # Exercice ancien (6 ans) avec une écriture : assistant de clôture complet et FEC sans toucher
+        # à l'exercice courant des autres parcours.
         old = year - 6
         conn.execute(text("INSERT INTO fiscal_years (label, start_date, end_date, closed, vat_liable) "
                           "VALUES (:l, :s, :e, 0, 0)"), {"l": str(old), "s": f"{old}-01-01", "e": f"{old}-12-31"})
+        # Exercice suivant (vide) : reçoit les à-nouveaux et l'affectation de l'assistant.
+        conn.execute(text("INSERT INTO fiscal_years (label, start_date, end_date, closed, vat_liable) "
+                          "VALUES (:l, :s, :e, 0, 0)"), {"l": str(old + 1), "s": f"{old + 1}-01-01", "e": f"{old + 1}-12-31"})
         old_fy = conn.execute(text("SELECT id FROM fiscal_years WHERE label = :l"), {"l": str(old)}).scalar()
         conn.execute(text("INSERT INTO journal_entries (fiscal_year_id, journal_id, entry_date, reference, description, "
                           "is_balanced, source) VALUES (:f, :j, :d, 'BQ-E2E-OLD', 'Prestation', 1, 'MANUAL')"),

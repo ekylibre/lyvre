@@ -1,10 +1,11 @@
-// FEC (phases A.3, A.4) : SIREN renseigné, assistant de clôture d'un exercice ancien (étapes,
-// clôture provisoire, réouverture, nouvelle clôture), contrôles et téléchargement du FEC.
+// FEC et assistant complet (phases A.3 à A.5) : SIREN, étapes d'un exercice ancien, clôture
+// provisoire, réouverture, nouvelle clôture, à-nouveaux, affectation, puis contrôles et FEC.
 import { expect, test } from "@playwright/test";
 import { login } from "./helpers";
 
 test("FEC : SIREN, assistant de clôture, réouverture, contrôles et téléchargement", async ({ page }) => {
   const old = String(new Date().getFullYear() - 6);
+  const next = String(new Date().getFullYear() - 5);
   await login(page, "SCI E2E", "/configuration/organization");
   await page.getByLabel("SIREN").fill("732 829 320");
   await page.getByRole("button", { name: "Enregistrer" }).click();
@@ -28,19 +29,34 @@ test("FEC : SIREN, assistant de clôture, réouverture, contrôles et téléchar
   await page.getByRole("button", { name: "Marquer comme fait" }).click();
   await expect(page.getByText(/Essai à blanc avec une numérotation provisoire/)).toBeVisible();
   await page.getByRole("button", { name: "Marquer comme fait" }).click();
-  await page.getByRole("button", { name: "Clôture provisoire" }).click();
-  await page.getByRole("dialog", { name: `Clôture provisoire de l'exercice ${old} ?` }).getByRole("button", { name: "Clôturer" }).click();
-  await expect(page.getByText(/Écritures verrouillées et numérotées/)).toBeVisible();
+  const closeStep = page.getByRole("button", { name: /6\. Clôture/ });
+  const closeProvisionally = async () => {
+    await page.getByRole("button", { name: "Clôture provisoire", exact: true }).click();
+    await page.getByRole("dialog", { name: `Clôture provisoire de l'exercice ${old} ?` }).getByRole("button", { name: "Clôturer" }).click();
+    await expect(closeStep.getByText("Provisoire")).toBeVisible();
+  };
+  await closeProvisionally();
 
-  // Réouverture (motif obligatoire) puis nouvelle clôture : même numérotation.
+  // Réouverture (motif obligatoire) puis nouvelle clôture.
+  await closeStep.click();
   await page.getByRole("button", { name: "Rouvrir…" }).click();
   const reopen = page.getByRole("dialog", { name: `Rouvrir l'exercice ${old}` });
   await reopen.getByLabel("Motif").fill("Facture oubliée");
   await reopen.getByRole("button", { name: "Rouvrir l'exercice" }).click();
   await expect(page.getByText("Réouverture")).toBeVisible();
-  await page.getByRole("button", { name: "Clôture provisoire" }).click();
-  await page.getByRole("dialog", { name: `Clôture provisoire de l'exercice ${old} ?` }).getByRole("button", { name: "Clôturer" }).click();
-  await expect(page.getByText(/Écritures verrouillées et numérotées/)).toBeVisible();
+  await closeProvisionally();
+
+  // Étape 7 : à-nouveaux dans l'exercice suivant ; étape 8 : affectation du résultat (250,00).
+  await page.getByRole("button", { name: /7\. Ouverture/ }).click();
+  await page.getByRole("button", { name: "Générer les à-nouveaux" }).click();
+  await expect(page.getByText(`Déjà générées en ${next}`)).toBeVisible();
+  await page.getByRole("button", { name: /8\. Affectation/ }).click();
+  await page.getByLabel("Date de la décision").fill(`15/06/${next}`);
+  await page.getByLabel("Date de la décision").press("Tab");
+  await page.getByRole("combobox", { name: "Compte" }).click();
+  await page.getByRole("option", { name: "110000 — Report à nouveau" }).click();
+  await page.getByRole("button", { name: "Enregistrer l'affectation" }).click();
+  await expect(page.getByText(new RegExp(`Décision : Assemblée générale du 15/06/${next}`))).toBeVisible();
 
   await page.getByRole("link", { name: "Retour aux exercices" }).click();
   await expect(row.getByText("Clôture provisoire")).toBeVisible();

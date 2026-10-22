@@ -127,6 +127,18 @@ pytest 746, Vitest 78, E2E 18.
 
 **✅ CP A.5** : sur la copie SN, cycle complet 2025 → 2026 ; bilan 2026 avec soldes d'ouverture ;
 E2E « assistant complet » sur la base E2E.
+— *Fait (2026-10-23)* : `closing.generate_opening` (exercice suivant créé au besoin, contigu et
+ouvert ; à-nouveaux journal AN classes 1-5 + résultat en 120/129, sous-compte 120xxx accepté, à
+défaut 12 (plan SCI) ; extournes OD des écritures d'inventaire avec `reverses_entry_id` ;
+regénération sans doublon), `allocate` / `cancel_allocation` (organe, date dans N+1, répartition
+sur 10x / 11x / 455x totalisant le résultat ; écriture OD dans N+1). Réouverture de N : supprime
+à-nouveaux et extournes, refusée si le résultat est affecté ou si N+1 est clôturé. Écritures gérées
+par l'assistant (INVENTORY, OPENING, REVERSAL, ALLOCATION) non modifiables ni supprimables ailleurs
+(`ledger.delete_entries`, API écritures). Saisie clavier des dates corrigée dans toute la SPA
+(plugin dayjs `customParseFormat`). Copie SN : 2025 → 2026, AN-2026-0001 (5121 / 120 : 8 964,00 €),
+affectation en 110 (OD-2026-0001), bilan 2026 équilibré avec soldes d'ouverture. Le point ouvert 3
+(affectation SCI en 455x) reste à valider avec l'expert-comptable : la répartition est libre.
+pytest 753, Vitest 78, E2E 18 (assistant complet).
 
 ### Phase A.6 — Fonds dédiés minimal (D10) et clôture du lot A
 

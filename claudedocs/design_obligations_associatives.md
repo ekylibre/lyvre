@@ -179,8 +179,8 @@ validation, repasse `open`, marque `opening` à refaire ; refusée si N+1 est cl
 | GET / POST | `/api/v1/dedicated-funds` · `/api/v1/fiscal-years/<id>/dedicated-funds` | fonds et mouvements |
 | POST | `/api/v1/fiscal-years/<id>/close` | `{final: bool}` (final = admin) |
 | POST | `/api/v1/fiscal-years/<id>/reopen` | admin, exercice `provisional` |
-| POST | `/api/v1/fiscal-years/<id>/opening` | génère / regénère à-nouveaux + extournes |
-| POST | `/api/v1/fiscal-years/<id>/allocation` | `{decided_on, body, lines: [{account, amount}]}` |
+| POST | `/api/v1/fiscal-years/<id>/opening` | `{create_next}` ; génère / regénère à-nouveaux + extournes |
+| POST / DELETE | `/api/v1/fiscal-years/<id>/allocation` | `{decided_on, body, lines: [{account_code, amount_cents}]}` ; DELETE = annulation |
 | GET | `/fiscal-years/<id>/fec` (route Flask, fichier) | tous les rôles |
 | GET / POST / PATCH / DELETE | `/api/v1/instances/<id>/members[/<user_id>]` | admin instance |
 

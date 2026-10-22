@@ -10,6 +10,8 @@ SOURCE_ALLOCATION = "ALLOCATION"    # affectation du résultat
 SOURCE_CLOSING = "CLOSING"          # écritures de clôture
 SOURCE_INVENTORY = "INVENTORY"      # écritures d'inventaire (charges à payer, CCA, PCA…)
 CLOSING_SOURCES = (SOURCE_OPENING, SOURCE_REVERSAL, SOURCE_ALLOCATION, SOURCE_CLOSING)
+# Écritures produites par l'assistant de clôture : modifiées ou supprimées seulement par lui.
+MANAGED_SOURCES = (*CLOSING_SOURCES, SOURCE_INVENTORY)
 INVENTORY_KINDS = ("accrued_expense", "accrued_income", "prepaid_expense", "deferred_income")
 
 

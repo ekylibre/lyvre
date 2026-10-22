@@ -8,6 +8,8 @@ import "@mantine/charts/styles.css";
 import "mantine-datatable/styles.css";
 import "./lyvre.css";
 import "dayjs/locale/fr";
+import dayjs from "dayjs";
+import customParseFormat from "dayjs/plugin/customParseFormat";
 
 import type { ReactNode } from "react";
 import { MantineProvider } from "@mantine/core";
@@ -18,6 +20,9 @@ import { Notifications, notifications } from "@mantine/notifications";
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ApiError } from "../api/client";
 import { theme } from "./theme";
+
+// Saisie clavier des DateInput (« 15/06/2026 ») : analyse selon valueFormat.
+dayjs.extend(customParseFormat);
 
 function notifyError(error: unknown) {
   // 401 / 409 « pas d'instance » : redirection en cours (api/client.ts).

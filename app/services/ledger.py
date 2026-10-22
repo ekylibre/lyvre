@@ -4,6 +4,7 @@ from app.models import (
     Account, BankTransaction, FiscalYear, Journal, JournalEntry, JournalLine, Purchase,
     PurchasePayment,
 )
+from app.models.journal_entry import MANAGED_SOURCES
 
 
 class LedgerError(Exception):
@@ -338,11 +339,12 @@ def general_ledger(account_id, fiscal_year_id):
     return account, rows
 
 
-def delete_entries(entry_ids):
+def delete_entries(entry_ids, allow_managed=False):
     """Delete entries in one transaction, undoing their bank reconciliations
     first (a deleted line must not stay linked to a bank transaction).
 
-    Entries of a closed fiscal year are refused. Returns
+    Entries of a closed fiscal year are refused, and so are entries managed by
+    the closing wizard unless ``allow_managed``. Returns
     ``[{entry_id, status, reference?, message?}]``.
     """
     results = []
@@ -355,6 +357,10 @@ def delete_entries(entry_ids):
         if entry.fiscal_year.closed:
             results.append({"entry_id": entry_id, "status": "error",
                             "message": "Exercice clôturé : suppression impossible."})
+            continue
+        if entry.source in MANAGED_SOURCES and not allow_managed:
+            results.append({"entry_id": entry_id, "status": "error",
+                            "message": "écriture gérée par l'assistant de clôture."})
             continue
         line_ids = [l.id for l in entry.lines]
         if line_ids:

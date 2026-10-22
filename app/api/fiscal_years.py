@@ -1,6 +1,6 @@
-"""Exercices comptables : création, clôture, assujettissement à la TVA."""
+"""Exercices comptables : création, assistant de clôture (étapes 1 à 8), assujettissement à la TVA."""
 from contextlib import contextmanager
-from datetime import date
+from datetime import date, timedelta
 
 from flask import jsonify, request, url_for
 from flask_login import current_user
@@ -10,6 +10,7 @@ from app.extensions import db
 from app.models import FiscalYear
 from app.models.instance_membership import ROLE_ADMIN
 from app.services import closing, fec
+from app.services.ledger import LedgerError
 
 from . import ApiError, bp, get_or_404, invalid, json_body, notice
 
@@ -85,6 +86,9 @@ def _closing_errors():
         db.session.rollback()
         code = {404: "not_found", 422: "validation_error"}.get(exc.status, "conflict")
         raise ApiError(code, exc.message, status=exc.status) from None
+    except LedgerError as exc:
+        db.session.rollback()
+        raise ApiError("conflict", str(exc), status=409) from None
 
 
 @bp.route("/fiscal-years/<int:fy_id>/closing")
@@ -104,8 +108,74 @@ def fiscal_years_closing(fy_id):
         inventory_options=closing.inventory_options(),
         result=closing.result(fy),
         next_fiscal_year=fiscal_year_payload(following) if following else None,
+        opening=_opening_payload(fy, following),
+        allocation=_allocation_payload(fy),
         events=closing.events(fy),
     )
+
+
+def _entry_link(entry):
+    return {"id": entry.id, "reference": entry.reference, "url": f"/entries/{entry.id}"} if entry else None
+
+
+def _opening_payload(fy, following):
+    """Étape 7 : à-nouveaux prévus (exercice au moins en clôture provisoire) et déjà portés."""
+    carried = closing.opening_entries(fy)
+    preview, error = [], None
+    if fy.status != "open":
+        try:
+            preview = closing.opening_lines(fy)
+        except closing.ClosingError as exc:
+            error = exc.message
+    return {
+        "lines": [{k: line[k] for k in ("account_code", "label", "debit_cents", "credit_cents")} for line in preview],
+        "error": error,
+        "reversals_planned": len(closing.inventory_entries(fy)),
+        "entries": [dict(_entry_link(e), source=e.source, description=e.description) for e in carried],
+        "next_start_date": (fy.end_date + timedelta(days=1)).isoformat(),
+    }
+
+
+def _allocation_payload(fy):
+    return {
+        "result_cents": closing.result_to_allocate(fy),
+        "decided_on": fy.allocation_decided_on.isoformat() if fy.allocation_decided_on else None,
+        "body": fy.allocation_body,
+        "entry": _entry_link(closing.allocation_entry(fy)),
+        "options": closing.allocation_options(),
+    }
+
+
+@bp.route("/fiscal-years/<int:fy_id>/opening", methods=["POST"])
+def fiscal_years_opening(fy_id):
+    """Étape 7 : `{create_next}` ; à-nouveaux et extournes (re)générés dans l'exercice suivant."""
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    with _closing_errors():
+        following, opening, reversals = closing.generate_opening(
+            fy, current_user.id, create_next=bool(json_body().get("create_next")))
+    parts = [f"à-nouveaux {opening.reference}" if opening else "aucun solde à reporter"]
+    if reversals:
+        parts.append(f"{len(reversals)} extourne(s)")
+    return jsonify(notices=[notice(f"Exercice {following.label} : " + ", ".join(parts) + ".")])
+
+
+@bp.route("/fiscal-years/<int:fy_id>/allocation", methods=["POST"])
+def fiscal_years_allocation(fy_id):
+    """Étape 8 : `{decided_on, body, lines: [{account_code, amount_cents}]}`."""
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    data = json_body()
+    with _closing_errors():
+        entry = closing.allocate(fy, data.get("decided_on"), data.get("body"), data.get("lines"), current_user.id)
+    detail = f" : écriture {entry.reference}" if entry else ""
+    return jsonify(notices=[notice(f"Affectation du résultat {fy.label} enregistrée{detail}.")])
+
+
+@bp.route("/fiscal-years/<int:fy_id>/allocation", methods=["DELETE"])
+def fiscal_years_allocation_cancel(fy_id):
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    with _closing_errors():
+        closing.cancel_allocation(fy, current_user.id)
+    return jsonify(notices=[notice(f"Affectation du résultat {fy.label} annulée.")])
 
 
 @bp.route("/fiscal-years/<int:fy_id>/closing/<step>", methods=["POST"])

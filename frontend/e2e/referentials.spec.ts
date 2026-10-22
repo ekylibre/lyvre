@@ -40,7 +40,7 @@ test("exercices : création, accès à l'assistant de clôture ; adresse du form
   await expect(page.getByRole("heading", { name: "Clôture de l'exercice 2026" })).toBeVisible();
   await page.getByRole("button", { name: /6\. Clôture/ }).click();
   await expect(page.getByText("Étapes à terminer avant la clôture")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Clôture provisoire" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Clôture provisoire", exact: true })).toBeDisabled();
 });
 
 test("colonnes masquées gardées après reconnexion", async ({ page }) => {
