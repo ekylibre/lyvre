@@ -19,11 +19,12 @@ compta-asso/
 │   ├── e2e/                      # Parcours Playwright (fixtures.json, helpers.ts, *.spec.ts)
 │   └── src/
 │       ├── main.tsx              # Point d'entrée unique : fournisseurs + routeur
-│       ├── app/                  # Coquille : AppShell (menus, en-tête), routes.ts (spa_routes.json →
+│       ├── app/                  # Coquille : AppShell (menus, en-tête, cloche des notifications), routes.ts (spa_routes.json →
 │       │                         #   pages), navigation (AppLink, useGoTo), thème Lyvre (theme.ts,
 │       │                         #   lyvre.css), palette Ctrl+K (Spotlight), useRouteModal
 │       ├── api/                  # client.ts (fetch + CSRF, ApiError), resources.ts (useList,
-│       │                         #   useAction, notices), session.ts, upload.ts (multipart + progression)
+│       │                         #   useAction, notices), session.ts, upload.ts (multipart + progression),
+│       │                         #   jobs.ts (jobs suivis à l'écran)
 │       ├── components/           # DataGrid, FormModal/FormDrawer, ApiForm, FilterBar, Money,
 │       │                         #   StatusBadge, AccountSelect, EntitySelect, JobStatus, ConfirmButton…
 │       ├── features/             # Un dossier par domaine (pages, types, logique testée)
@@ -194,6 +195,12 @@ continue de fonctionner, et un endpoint en double fait échouer le démarrage (u
 409 refus métier, 404, 403 admin ; les actions renvoient `item` et `notices` (messages affichés en
 notifications) ; listes `{items, meta}` ; tâches longues → `job` suivi par `GET /api/v1/jobs/<id>`.
 Les exports, PDF et pièces jointes restent des routes Flask (liens directs).
+
+**Notifications** : à la fin d'une tâche en arrière-plan, `sync_jobs.run` crée une notification
+pour l'utilisateur qui l'a lancée (`services/notifications.py`). La cloche de l'en-tête
+(`AppShell/NotificationBell.tsx`) interroge `GET /api/v1/notifications` toutes les 30 s (pas quand
+l'onglet est caché) et aussitôt qu'un `JobStatus` affiché voit son job finir ; une notification
+arrivée pendant la session s'affiche aussi en message, sauf si son job est déjà suivi à l'écran.
 
 ---
 

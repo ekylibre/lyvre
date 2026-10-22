@@ -40,7 +40,8 @@ describe("AppLayout", () => {
     renderWithProviders(<AppLayout><p /></AppLayout>, { session: SESSION });
     await userEvent.click(screen.getByRole("button", { name: "Changer de thème" }));
     await vi.advanceTimersByTimeAsync(600);
-    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({ color_scheme: "dark" });
+    const patch = fetchMock.mock.calls.find(([url]) => String(url) === "/api/v1/me/preferences");
+    expect(JSON.parse(String(patch?.[1]?.body))).toEqual({ color_scheme: "dark" });
     vi.useRealTimers();
   });
 });

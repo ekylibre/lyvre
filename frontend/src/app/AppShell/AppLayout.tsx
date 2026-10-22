@@ -1,6 +1,6 @@
 // Mise en page de l'application (charte Lyvre, composant Navigation) : barre latérale
 // sombre de 240 px avec la marque et les menus de menu_config (reçus avec la session),
-// en-tête avec instance, recherche, thème et utilisateur ; contenu limité à 1200 px.
+// en-tête avec instance, recherche, notifications, thème et utilisateur ; contenu limité à 1200 px.
 import type { ReactNode } from "react";
 import { useLocation } from "react-router";
 import {
@@ -15,6 +15,7 @@ import {
   useCurrentSession, useLogout, usePreferences, useSelectInstance, type NavMenu,
 } from "../../api/session";
 import { AppLink } from "../navigation";
+import { NotificationBell } from "./NotificationBell";
 import { Wordmark } from "./Wordmark";
 
 const pathOf = (url: string) => new URL(url, window.location.origin).pathname.replace(/\/$/, "") || "/";
@@ -161,6 +162,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 <Search />
               </ActionIcon>
             </Tooltip>
+            {session.instance && <NotificationBell />}
             <ColorSchemeToggle />
             <UserMenu />
           </Group>

@@ -2,8 +2,9 @@
 // les secondes tant qu'elle tourne ; `onDone` à la fin (rechargement des listes).
 import { useEffect, useRef, type ReactNode } from "react";
 import { Alert, Progress, Text } from "@mantine/core";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { watchJob } from "../api/jobs";
 import { formatDate } from "../lib/format";
 
 export interface Job {
@@ -23,13 +24,17 @@ export function JobStatus({ job, onDone, renderResult }: {
     refetchInterval: (query) => (query.state.data?.job.status === "running" ? 1000 : false),
   });
   const current = data.job;
+  const client = useQueryClient();
+  useEffect(() => watchJob(job.id), [job.id]);
   const reported = useRef(current.status !== "running");
   useEffect(() => {
     if (current.status !== "running" && !reported.current) {
       reported.current = true;
       onDone?.(current);
+      // La notification de fin vient d'être créée : la cloche se met à jour sans attendre.
+      void client.invalidateQueries({ queryKey: ["notifications"] });
     }
-  }, [current, onDone]);
+  }, [current, onDone, client]);
 
   const color = current.status === "running" ? "ardoise" : current.status === "done" ? "lichen" : "brique";
   const title = current.status === "running" ? "Synchronisation en cours…"
