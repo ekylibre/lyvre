@@ -93,6 +93,11 @@ def _is_tenant_free_endpoint() -> bool:
     return request.endpoint.startswith(("users.", "instances.", "api.users_", "api.instances_"))
 
 
+def _relative_next():
+    """Page demandée, en chemin relatif : la SPA ne suit que les chemins de l'application."""
+    return request.full_path.rstrip("?")
+
+
 def register_tenant_hooks(app):
     """Wire up the before_request hook that selects the tenant per request."""
 
@@ -125,7 +130,7 @@ def register_tenant_hooks(app):
             flask_session.pop("instance_id", None)
             if is_api_request():
                 return error_response("no_instance", "Aucune instance sélectionnée.", 409)
-            return redirect(url_for("auth.select_instance", next=request.url))
+            return redirect(url_for("auth.select_instance", next=_relative_next()))
 
         # Accès vérifié à chaque requête : un retrait d'accès prend effet immédiatement.
         from app.access import role_for
@@ -134,7 +139,7 @@ def register_tenant_hooks(app):
             flask_session.pop("instance_id", None)
             if is_api_request():
                 return error_response("no_instance", "Vous n'avez pas accès à cette instance.", 409)
-            return redirect(url_for("auth.select_instance", next=request.url))
+            return redirect(url_for("auth.select_instance", next=_relative_next()))
 
         g.current_instance = inst
         g.instance_role = role

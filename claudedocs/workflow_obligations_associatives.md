@@ -68,6 +68,14 @@ lecture seule dans Chrome. pytest 718, Vitest 78, E2E 17.
 
 **✅ CP A.2** : migration montée / descendue sur copies ; exercices existants en « clôture
 provisoire » ; aucun test existant cassé.
+— *Fait (2026-10-22)* : migration `c4e2a7d9b315` (organization, statut et horodatages d'exercice,
+colonnes de validation / extourne / inventaire, `closing_steps`, `closing_events`) ; `status` et
+`closed` synchronisés à chaque enregistrement (les 11 contrôles existants inchangés) ; bouton
+« Clôturer » = clôture provisoire ; écritures de clôture exclues du rapprochement ; API et écran
+**Structure** (SIREN avec clé de Luhn, RNA, code postal) ; statut affiché dans Exercices.
+Correctif : la redirection vers le choix d'instance passait une URL absolue en `next` (ignorée par
+la SPA). Copies 5001 migrées (sauvegardes `*.before-A2.db`), descente testée, reprise d'un exercice
+verrouillé testée sur copie jetable. pytest 725, Vitest 78, E2E 17.
 
 ### Phase A.3 — Validation et FEC (D5, D6)
 

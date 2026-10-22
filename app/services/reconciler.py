@@ -10,6 +10,7 @@ REVERSED_MESSAGE = "Transaction annulée par la banque : elle ne peut pas être 
 from datetime import timedelta
 
 from app.extensions import db
+from app.models.journal_entry import CLOSING_SOURCES
 from app.models import BankTransaction, JournalEntry, JournalLine
 
 
@@ -34,6 +35,8 @@ def suggest_matches_scored(bank_transaction_id, window_days=3):
             JournalLine.account_id == bt.bank_account.account_id,
             JournalLine.bank_transaction == None,  # noqa: E711
             JournalEntry.entry_date.between(date_from, date_to),
+            # À-nouveaux, extournes, affectation : jamais le reflet d'une opération bancaire.
+            JournalEntry.source.notin_(CLOSING_SOURCES),
         )
     )
     if target < 0:

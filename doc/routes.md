@@ -56,6 +56,15 @@ utilisateurs reçoivent 403.
 
 ---
 
+## Structure (`/configuration/organization`)
+
+Page de la SPA `/configuration/organization` (modifiable par l'administrateur de l'instance, lisible par tous).
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/api/v1/organization` | Identité de la structure (créée au besoin avec le nom de l'instance) ; `fec_ready` = SIREN renseigné |
+| PUT | `/api/v1/organization` | `name`, `siren` (9 chiffres, clé de Luhn), `rna` (`W` + 9 chiffres), adresse, `purpose`, signataire ; 422 `fields` ; administrateur de l'instance |
+
 ## Accès à l'instance (`/configuration/access/`) — administrateur de l'instance
 
 Page de la SPA `/configuration/access/`. API (instance courante, rôle `admin` ou administrateur global ; sinon 403) :
@@ -151,7 +160,7 @@ Pages de la SPA (liste ; la création / modification s'ouvre dans une fenêtre p
 | GET | `/api/v1/fiscal-years` | Exercices, du plus récent au plus ancien |
 | POST | `/api/v1/fiscal-years` | `label`, `start_date`, `end_date` (ISO, fin ≥ début), `vat_liable` |
 | PATCH | `/api/v1/fiscal-years/<id>` | `vat_liable` (exercice ouvert ; vaut pour les comptabilisations suivantes) |
-| POST | `/api/v1/fiscal-years/<id>/close` | Clôture (irréversible ; 409 si déjà clôturé) |
+| POST | `/api/v1/fiscal-years/<id>/close` | **Clôture provisoire** : écritures verrouillées (`status = provisional`) ; 409 si déjà clôturé. La clôture complète passera par l'assistant (phase A.4) |
 
 > La clôture positionne `FiscalYear.closed = True`. Les écritures de cet exercice ne peuvent plus être supprimées.
 

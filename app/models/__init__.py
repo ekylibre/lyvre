@@ -14,6 +14,8 @@ from .payout import Payout
 from .payment import Payment
 from .sync_job import SyncJob
 from .notification import Notification
+from .organization import Organization
+from .closing import ClosingEvent, ClosingStep
 from .order import Order
 from .order_line import OrderLine
 from .order_payment import OrderPayment

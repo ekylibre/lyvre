@@ -3,6 +3,15 @@ from app.extensions import db
 
 SOURCES = ["MANUAL", "OFX_IMPORT", "QONTO_IMPORT", "ODOO_IMPORT", "PURCHASE"]
 
+# Écritures générées par la clôture (lot A) : jamais proposées au rapprochement bancaire.
+SOURCE_OPENING = "OPENING"          # à-nouveaux (journal AN)
+SOURCE_REVERSAL = "REVERSAL"        # extourne d'une écriture d'inventaire
+SOURCE_ALLOCATION = "ALLOCATION"    # affectation du résultat
+SOURCE_CLOSING = "CLOSING"          # écritures de clôture
+SOURCE_INVENTORY = "INVENTORY"      # écritures d'inventaire (charges à payer, CCA, PCA…)
+CLOSING_SOURCES = (SOURCE_OPENING, SOURCE_REVERSAL, SOURCE_ALLOCATION, SOURCE_CLOSING)
+INVENTORY_KINDS = ("accrued_expense", "accrued_income", "prepaid_expense", "deferred_income")
+
 
 class JournalEntry(db.Model):
     __tablename__ = "journal_entries"
@@ -17,6 +26,11 @@ class JournalEntry(db.Model):
     source = db.Column(db.String(20), default="MANUAL", nullable=False)
     source_ref = db.Column(db.String(200))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # Numéro continu par journal et par exercice, attribué à la clôture provisoire (FEC).
+    validation_number = db.Column(db.Integer)
+    validated_at = db.Column(db.DateTime)
+    reverses_entry_id = db.Column(db.Integer, db.ForeignKey("journal_entries.id", ondelete="SET NULL"))
+    inventory_kind = db.Column(db.String(20))
 
     fiscal_year = db.relationship("FiscalYear", back_populates="entries")
     journal = db.relationship("Journal", back_populates="entries")

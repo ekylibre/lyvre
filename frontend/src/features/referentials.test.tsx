@@ -15,8 +15,10 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 describe("exercice suivant proposé", () => {
   it("suit le dernier exercice connu", () => {
     const years = [
-      { id: 1, label: "2025", start_date: "2025-01-01", end_date: "2025-12-31", closed: true, vat_liable: false },
-      { id: 2, label: "2025-26", start_date: "2025-07-01", end_date: "2026-06-30", closed: false, vat_liable: false },
+      { id: 1, label: "2025", start_date: "2025-01-01", end_date: "2025-12-31", closed: true, vat_liable: false,
+        status: "provisional" as const, status_label: "Clôture provisoire" },
+      { id: 2, label: "2025-26", start_date: "2025-07-01", end_date: "2026-06-30", closed: false, vat_liable: false,
+        status: "open" as const, status_label: "Ouvert" },
     ];
     expect(nextFiscalYear(years)).toEqual({ label: "2026", start_date: "2026-07-01", end_date: "2027-06-30" });
     expect(nextFiscalYear([]).start_date).toMatch(/^\d{4}-01-01$/);

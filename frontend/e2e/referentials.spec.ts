@@ -26,7 +26,7 @@ test("journaux : création, doublon refusé au champ", async ({ page }) => {
   await expect(dialog).toBeHidden();
 });
 
-test("exercices : création puis clôture confirmée ; lien Jinja vers la création", async ({ page }) => {
+test("exercices : création puis clôture provisoire confirmée ; adresse du formulaire", async ({ page }) => {
   await login(page, "Association E2E", "/fiscal-years/new");
   const dialog = page.getByRole("dialog", { name: "Créer un exercice" });
   await expect(dialog).toBeVisible();  // ancienne adresse du formulaire : fenêtre ouverte
@@ -39,7 +39,7 @@ test("exercices : création puis clôture confirmée ; lien Jinja vers la créat
   await row.getByRole("button", { name: "Clôturer" }).click();
   await page.getByRole("dialog", { name: "Clôturer l'exercice 2026 ?" })
     .getByRole("button", { name: "Clôturer l'exercice" }).click();
-  await expect(row.getByText("Clôturé")).toBeVisible();
+  await expect(row.getByText("Clôture provisoire")).toBeVisible();
   await expect(row.getByRole("button", { name: "Clôturer" })).toHaveCount(0);
 });
 

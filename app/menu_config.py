@@ -150,8 +150,9 @@ MENUS = [
         "label": "Configuration",
         "charts": _ALL,
         "admin_only": True,
-        "active": ["integrations", "access"],
+        "active": ["organization", "integrations", "access"],
         "items": [
+            {"key": "organization", "label": "Structure", "endpoint": "organization.index", "charts": _ALL},
             {"key": "integrations", "label": "Intégrations", "endpoint": "integrations.index", "charts": _ALL},
             {"key": "access", "label": "Accès", "endpoint": "access.index", "charts": _ALL},
         ],

@@ -75,6 +75,7 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
   "integrations.index": () => import("../features/integrations/IntegrationsPage"),
   "integrations.detail": () => import("../features/integrations/IntegrationDetailPage"),
   "access.index": () => import("../features/access/AccessPage"),
+  "organization.index": () => import("../features/organization/OrganizationPage"),
   ...pages(["instances.index", "instances.new", "instances.edit"], () => import("../features/instances/InstancesPage")),
   ...pages(["instances.detail", "instances.restore"], () => import("../features/instances/InstanceDetailPage")),
   "instances.import_upload": () => import("../features/instances/ImportInstancePage"),

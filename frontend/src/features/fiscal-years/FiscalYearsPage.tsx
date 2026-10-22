@@ -17,7 +17,10 @@ import { useRouteModal } from "../../app/useRouteModal";
 
 export interface FiscalYear {
   id: number; label: string; start_date: string; end_date: string; closed: boolean; vat_liable: boolean;
+  status: "open" | "provisional" | "closed"; status_label: string;
 }
+
+const STATUS_TONES = { open: "ok", provisional: "todo", closed: "neutral" } as const;
 
 export const FISCAL_YEARS_KEY = ["fiscal-years"];
 
@@ -72,8 +75,8 @@ export default function FiscalYearsPage() {
     { accessor: "label", title: "Libellé", hideable: false },
     { accessor: "start_date", title: "Début", render: (fy) => <span className="lv-num">{formatDate(fy.start_date)}</span> },
     { accessor: "end_date", title: "Fin", render: (fy) => <span className="lv-num">{formatDate(fy.end_date)}</span> },
-    { accessor: "closed", title: "Statut",
-      render: (fy) => <StatusBadge tone={fy.closed ? "neutral" : "ok"}>{fy.closed ? "Clôturé" : "Ouvert"}</StatusBadge> },
+    { accessor: "status", title: "Statut",
+      render: (fy) => <StatusBadge tone={STATUS_TONES[fy.status] ?? "neutral"}>{fy.status_label}</StatusBadge> },
     { accessor: "vat_liable", title: "TVA",
       render: (fy) => <StatusBadge tone={fy.vat_liable ? "info" : "neutral"}>{fy.vat_liable ? "Soumis" : "Non soumis"}</StatusBadge> },
     { accessor: "actions", title: "", hideable: false, textAlign: "right",
@@ -87,7 +90,8 @@ export default function FiscalYearsPage() {
           <Button variant="default" size="compact-sm" color="brique"
             onClick={() => confirmAction({
               title: `Clôturer l'exercice ${fy.label} ?`,
-              message: "Ses écritures ne pourront plus être modifiées ni supprimées. Cette action est irréversible.",
+              message: "Clôture provisoire : ses écritures sont verrouillées. La clôture complète (à-nouveaux, FEC, "
+                + "clôture définitive) se fait ensuite avec l'assistant de clôture.",
               confirmLabel: "Clôturer l'exercice",
               onConfirm: () => close.mutate(fy),
             })}>

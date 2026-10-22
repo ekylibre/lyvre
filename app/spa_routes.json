@@ -76,6 +76,7 @@
     {"rule": "/configuration/integrations/", "endpoint": "integrations.index"},
     {"rule": "/configuration/integrations/<service>", "endpoint": "integrations.detail"},
     {"rule": "/configuration/access/", "endpoint": "access.index"},
+    {"rule": "/configuration/organization", "endpoint": "organization.index"},
     {"rule": "/instances/", "endpoint": "instances.index"},
     {"rule": "/instances/new", "endpoint": "instances.new"},
     {"rule": "/instances/import", "endpoint": "instances.import_upload"},

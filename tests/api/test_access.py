@@ -112,7 +112,7 @@ def test_instance_admin_features(login_as):
     assert treasurer.get("/api/v1/session").get_json()["permissions"]["instance_admin"] is True
     nav = treasurer.get("/api/v1/session").get_json()["nav"]
     config = next(m for m in nav if m["key"] == "configuration")
-    assert [i["label"] for i in config["items"]] == ["Intégrations", "Accès"]
+    assert [i["label"] for i in config["items"]] == ["Structure", "Intégrations", "Accès"]
 
 
 @pytest.fixture()
@@ -200,3 +200,12 @@ def test_backfill_keeps_everyone_access(app):
     rows = {(m.user.email, m.instance.slug): m.role for m in InstanceMembership.query.all()}
     assert rows == {("a@x.fr", "a"): "admin", ("a@x.fr", "b"): "admin",
                     ("u@x.fr", "a"): "treasurer", ("u@x.fr", "b"): "treasurer"}
+
+
+def test_redirect_to_instance_choice_keeps_relative_next(login_as):
+    client = login_as()
+    db.session.query(InstanceMembership).delete()
+    db.session.commit()
+    resp = client.get("/configuration/organization?x=1")
+    assert resp.status_code == 302
+    assert resp.headers["Location"].endswith("/select-instance?next=/configuration/organization?x%3D1")

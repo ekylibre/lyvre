@@ -5,13 +5,15 @@ from flask import jsonify
 
 from app.extensions import db
 from app.models import FiscalYear
+from app.models.fiscal_year import FY_PROVISIONAL
 
 from . import ApiError, bp, get_or_404, invalid, json_body, notice
 
 
 def fiscal_year_payload(fy: FiscalYear) -> dict:
     return {"id": fy.id, "label": fy.label, "start_date": fy.start_date.isoformat(),
-            "end_date": fy.end_date.isoformat(), "closed": fy.closed, "vat_liable": fy.vat_liable}
+            "end_date": fy.end_date.isoformat(), "closed": fy.closed, "status": fy.status,
+            "status_label": fy.status_label, "vat_liable": fy.vat_liable}
 
 
 def _date(data, key, label):
@@ -48,9 +50,11 @@ def fiscal_years_close(fy_id):
     fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
     if fy.closed:
         raise ApiError("conflict", "Cet exercice est déjà clôturé.", status=409)
-    fy.closed = True
+    # Clôture provisoire (verrou réversible) ; l'assistant de clôture complète viendra la remplacer.
+    fy.status = FY_PROVISIONAL
     db.session.commit()
-    return jsonify(item=fiscal_year_payload(fy), notices=[notice(f"Exercice « {fy.label} » clôturé.")])
+    return jsonify(item=fiscal_year_payload(fy), notices=[notice(
+        f"Exercice « {fy.label} » en clôture provisoire : les écritures sont verrouillées.")])
 
 
 @bp.route("/fiscal-years/<int:fy_id>", methods=["PATCH"])

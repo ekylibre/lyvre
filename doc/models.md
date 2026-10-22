@@ -172,7 +172,11 @@ FiscalYear ──────────────────── JournalE
 | `label` | String(50) NOT NULL | Ex : `"2024-2025"` |
 | `start_date` | Date NOT NULL | |
 | `end_date` | Date NOT NULL | |
-| `closed` | Boolean default=False | Si `True`, les écritures ne peuvent plus être supprimées |
+| `closed` | Boolean default=False | Verrou lu par tous les contrôles d'écriture : vrai dès la clôture provisoire. Tenu à jour avec `status` à chaque enregistrement |
+| `status` | String(12) NOT NULL default=`open` | `open`, `provisional` (clôture provisoire, réversible), `closed` (clôture définitive) |
+| `provisional_at` · `closed_at` · `closed_by_user_id` | DateTime · DateTime · Integer | Horodatages de clôture et auteur (méta-base) |
+| `fec_sha256` · `fec_path` | String | FEC figé à la clôture définitive (phase A.3) |
+| `allocation_decided_on` · `allocation_body` | Date · String(100) | Décision d'affectation du résultat (phase A.5) |
 | `vat_liable` | Boolean NOT NULL default=False | Soumis à la TVA : TVA des factures d'achat en 44566 ; sinon incluse dans la charge |
 | `created_at` | DateTime | |
 
@@ -258,6 +262,31 @@ FiscalYear ──────────────────── JournalE
 | `source` | String(20) default=`MANUAL` | `MANUAL`, `OFX_IMPORT`, `QONTO_IMPORT`, `ODOO_IMPORT`, `PURCHASE` (écriture d'achat) |
 | `source_ref` | String(200) | Référence d'origine (FITID OFX ou numéro de facture Odoo) |
 | `created_at` | DateTime | |
+| `validation_number` · `validated_at` | Integer · DateTime | Numéro continu par journal et exercice, attribué à la clôture provisoire (FEC) |
+| `reverses_entry_id` | Integer FK→journal_entries ON DELETE SET NULL | Écriture d'inventaire extournée |
+| `inventory_kind` | String(20) | `accrued_expense`, `accrued_income`, `prepaid_expense`, `deferred_income` |
+
+Sources de clôture (`OPENING`, `REVERSAL`, `ALLOCATION`, `CLOSING`) : jamais proposées au rapprochement bancaire.
+
+## Organization — Identité de la structure
+
+**Table :** `organization` (une ligne par base d'instance, créée à la première lecture avec le nom de l'instance)
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| `name` | String(200) NOT NULL | Raison sociale |
+| `siren` | String(9) | Contrôlé par la clé de Luhn ; nomme le FEC |
+| `rna` | String(10) | `W` + 9 chiffres |
+| `address_line1/2` · `postal_code` · `city` · `country` | String | Adresse du siège (`country` défaut `France` ; code postal français sur 5 chiffres) |
+| `purpose` | Text | Objet |
+| `signatory_name` · `signatory_title` · `signature_path` | String | Signataire des reçus fiscaux (lot B) |
+
+## ClosingStep / ClosingEvent — Assistant de clôture
+
+`closing_steps(fiscal_year_id, step, state todo|done|skipped, note, user_id, updated_at)`, unique par
+exercice et étape (`checks`, `inventory`, `dedicated_funds`, `result`, `fec`, `close`, `opening`,
+`allocation`) ; `closing_events(fiscal_year_id, step, action, user_id, at, details_json)` : journal
+d'audit. Utilisés à partir de la phase A.4.
 
 **Propriétés calculées :**
 - `total_debit` — somme des `debit_cents` de toutes les lignes
