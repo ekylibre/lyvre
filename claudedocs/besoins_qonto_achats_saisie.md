@@ -150,7 +150,7 @@ qui n'y passent pas, et la situation diffère selon l'instance :
 - [x] Deux candidats → suggestions sur la fiche ; un clic règle la facture.
 
 **US5 — SCI avec Qonto.** Le trésorier saisit une facture, case « Envoyer à Qonto » cochée.
-- [ ] La facture apparaît dans Qonto ; la synchronisation suivante ne crée pas de doublon et garde la saisie.
+- [x] La facture apparaît dans Qonto ; la synchronisation suivante ne crée pas de doublon et garde la saisie.
   *(testé avec un client simulé ; essai réel unique reporté à la demande de l'utilisateur)*
 - [x] Case décochée : la facture reste locale et se règle comme en US4.
 - [x] Envoi en échec : message clair, bouton Renvoyer sans doublon.

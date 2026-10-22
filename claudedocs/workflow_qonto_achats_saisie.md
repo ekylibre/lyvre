@@ -1,7 +1,7 @@
 # Workflow — Qonto, lot 2b : saisie de factures d'achat, pièce jointe et OCR
 
-> **Statut : RÉALISÉ** (2026-10-22), sauf **E.5** (envoi réel unique à Qonto) reporté à la demande de
-> l'utilisateur. Écarts au design : [`design_qonto_achats_saisie.md` §9](design_qonto_achats_saisie.md). Sources : [`besoins_qonto_achats_saisie.md`](besoins_qonto_achats_saisie.md)
+> **Statut : RÉALISÉ** (2026-10-22), y compris **E.5** (envoi réel unique à Qonto, accordé par
+> l'utilisateur). Écarts au design : [`design_qonto_achats_saisie.md` §9](design_qonto_achats_saisie.md). Sources : [`besoins_qonto_achats_saisie.md`](besoins_qonto_achats_saisie.md)
 > (QB1 à QB8), [`design_qonto_achats_saisie.md`](design_qonto_achats_saisie.md) (D1 à D13).
 
 ## 1. Objectif
@@ -130,7 +130,10 @@ comptabilisé ; candidat unique exigé pour l'ensemble des factures en attente.
 5xx avec la même clé ; envoi, échec, renvoi, erreur réseau ; retour Qonto d'une facture saisie : saisie
 gardée, vides complétés). Paramètres vérifiés dans la documentation Qonto (`source` facultatif, omis).
 Écarts : « Annuler la comptabilisation » ne réapplique plus les données Qonto à une facture saisie ;
-une facture saisie revenue de Qonto n'est jamais masquée par son statut Qonto. **E.5** : en attente.
+une facture saisie revenue de Qonto n'est jamais masquée par son statut Qonto. **E.5** (2026-10-22) :
+facture Free n° 1500000046 du 02/10/2026 (39,99 €), choisie par l'utilisateur, saisie et envoyée depuis le
+serveur d'essai (copie SCI) : déposée, statut Qonto « À traiter » ; synchro suivante « 0 nouvelle, 1 mise à
+jour » : pas de doublon, saisie, lignes et écriture conservées.
 
 ### Phase F — Sauvegardes et finitions (S8, D12)
 
@@ -145,7 +148,7 @@ une facture saisie revenue de Qonto n'est jamais masquée par son statut Qonto. 
 — *Réalisé* : 629 tests. Sauvegarde de la copie SCI : archive `database.db` + 2 pièces ; factures et
 pièces supprimées puis restaurées depuis l'archive (4 factures, 2 PDF ; `pre-restore-….zip` créé).
 Image Docker reconstruite : Tesseract 5.3.0 (`fra`), PyMuPDF 1.26.7 ; scan Free 1,2 s, photo du ticket
-2,0 s, PDF texte instantané. US5 : critère « apparaît dans Qonto » en attente de l'essai réel (E.5).
+2,0 s, PDF texte instantané. US5 : vérifié par l'essai réel (E.5).
 
 ## 5. Points d'attention
 
