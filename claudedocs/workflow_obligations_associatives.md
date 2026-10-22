@@ -1,10 +1,10 @@
 # Workflow — Obligations associatives (lots A → C → B → D)
 
-> Statut (2026-10-24) : **lots A et C réalisés** (main local, non poussé) ; **prochaine étape : lot B,
-> phase B.1** (`/sc:implement phase B.1`). En attente côté utilisateur : passage du FEC de test dans
+> Statut (2026-10-24) : **lots A et C réalisés, B.1 fait** (main local, non poussé) ; **prochaine
+> étape : B.2** (`/sc:implement phase B.2`). En attente côté utilisateur : passage du FEC de test dans
 > « Test Compta Demat » (US-A1), relecture de l'affectation SCI 455x par l'expert-comptable, accord
-> pour migrer les vraies bases (6 migrations tenant : `c4e2a7d9b315` → `b9d4f6a8c310`, plus la
-> table méta `instance_memberships`). Travail parallèle : cadrage de la base documentaire et de
+> pour migrer les vraies bases (elles sont à `9c41b7e2d5a8` : 8 migrations tenant jusqu'à
+> `c1e5a7b9d402`, plus `seed_meta.py` pour la table méta `instance_memberships`). Travail parallèle : cadrage de la base documentaire et de
 > l'assistant dans [`doc/base_documentaire/`](../doc/base_documentaire/README.md) (autre session).
 >
 > Plan initial du 2026-10-22. Sources : [`besoins_obligations_associatives.md`](besoins_obligations_associatives.md)
@@ -214,6 +214,13 @@ proposition de dotation / utilisation d'après les charges du projet dans l'éta
 | **B.1 Tiers et paramètres** (D15, D17) | Adresse et nature des tiers (fiche, import existant inchangé) ; table `receipt_settings` ; écran **Configuration › Reçus fiscaux** (éligibilité + avertissement, articles du CGI, comptes de dons, signataire, signature) | Activation par un admin d'instance seulement |
 | **B.2 Émission et PDF** (D16, D18) | Tables `receipt_counters`, `donation_receipts`, `donation_receipt_items`, `in_kind_donations` ; candidats par année (lignes 7541 avec tiers non reçues + dons en nature) ; émission unitaire / annuelle ; gabarits particuliers et entreprises (CERFA en vigueur, point ouvert 2) ; PDF figé | Reçus conformes relus face aux modèles ; numérotation sans trou sous concurrence |
 | **B.3 Lot, envoi, annulation, état annuel** | Job d'émission en lot et d'envoi email (SMTP, notification de fin) ; annulation + réémission ; état annuel (nombre, montant) ; écran **Dons › Reçus** | US-B1 cochée ; E2E « émettre et télécharger un reçu » |
+
+**B.1 fait (2026-10-24)** : colonnes d'adresse et `person_kind` sur `entities`, table
+`receipt_settings` (migration `c1e5a7b9d402`), service `receipts` (paramètres, mentions requises,
+déclaration de responsabilité, signature), API `/api/v1/receipts/settings[/signature]` (admin
+d'instance ; 404 en SCI), écran Configuration › Reçus fiscaux, adresse et nature dans la fiche du
+tiers. Copies 5001 recréées depuis les vraies bases (lecture seule) après le redémarrage, migrées
+(8 migrations) ; page vérifiée sur la copie SN. pytest 783, Vitest 78, E2E 22.
 
 ## 6. Lot D — Comptabilité simplifiée et caisse
 

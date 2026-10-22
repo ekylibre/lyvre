@@ -84,6 +84,9 @@ export default function EntityDetailPage() {
     types[e.entity_type] ?? e.entity_type, e.email,
     e.account_code && `compte ${e.account_code}`, e.vat_number && `TVA ${e.vat_number}`,
     e.siret && `SIRET ${e.siret}`, e.default_product && `produit par défaut : ${e.default_product}`,
+    e.person_kind && (e.person_kind === "individual" ? "particulier" : "entreprise ou organisme"),
+    [e.address_line1, e.address_line2, [e.postal_code, e.city].filter(Boolean).join(" "), e.country]
+      .filter(Boolean).join(", "),
   ].filter(Boolean).join(" · ");
   const balance = data.supplier.balance_cents;
   const totalHours = data.work_times.reduce((s, w) => s + w.hours, 0);

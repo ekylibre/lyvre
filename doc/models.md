@@ -312,6 +312,15 @@ montant annuel réparti par douzièmes), `amount_cents` (≥ 0, dans le sens nat
 `repeat_monthly_until` (répétition mensuelle jusqu'à cette date), `created_at`. Le prévisionnel
 lui-même est calculé à la demande (`services/cash_forecast.py`), sans stockage.
 
+## ReceiptSettings — Paramètres des reçus fiscaux
+
+**Table :** `receipt_settings` (une ligne, lot B.1, migration `c1e5a7b9d402`) : `enabled`,
+`eligibility` (`general_interest` / `public_utility` / `other`), `eligibility_detail`, `rescrit_ref`,
+`cgi_articles_json` (`["200", "238bis", "978"]`), `donation_prefixes_json` (défaut `["7541"]`),
+`default_mode` (`annual` / `single`), `acknowledged_at` · `acknowledged_by_user_id` (déclaration de
+responsabilité), `updated_at`. Signataire et signature : table `organization`
+(`signatory_name`, `signatory_title`, `signature_path`).
+
 ## DedicatedFund / DedicatedFundMovement — Fonds dédiés
 
 `dedicated_funds(label, kind subsidy|contribution|public_generosity, resource_account_id NULL,
@@ -473,6 +482,8 @@ comme fournisseur, pour les transactions présentes et futures.
 | `default_product_id` | FK→products ON DELETE SET NULL | Produit proposé sur les lignes de ses factures d'achat |
 | `qonto_supplier_id` | String(36) (indexé) | Identifiant du fournisseur dans Qonto |
 | `vat_number` / `siret` / `iban` | String(30) / String(14) (indexés) / String(34) | Reconnaissance du fournisseur : id Qonto → TVA → SIRET → IBAN → nom (`purchase_sync.find_supplier`) |
+| `address_line1` · `address_line2` · `postal_code` · `city` · `country` | String | Adresse du donateur (lot B.1, migration `c1e5a7b9d402`) ; exigée à l'émission d'un reçu, pas à la saisie |
+| `person_kind` | String(12) nullable | `individual` (particulier) ou `company` (entreprise ou organisme) : modèle de reçu |
 | `created_at` | DateTime | |
 
 **Types d'entité (`entity_type`) :**

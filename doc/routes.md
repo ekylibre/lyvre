@@ -264,6 +264,23 @@ tableau de bord. API :
 
 ---
 
+## Reçus fiscaux — paramètres (`/configuration/receipts`)
+
+Page de la SPA (Configuration › Reçus fiscaux, plan associatif seulement) : avertissement de
+responsabilité, mentions requises (identité, adresse, objet, signataire, signature, éligibilité,
+articles du CGI, comptes de dons), éligibilité, comptes de dons, mode d'émission, signature,
+déclaration et activation. Lecture pour tous, modification par l'administrateur de l'instance ;
+404 pour une SCI. API :
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/api/v1/receipts/settings` | Paramètres, `readiness` (mentions requises : `ok`, écran où compléter), comptes de dons couverts, options |
+| PUT | `/api/v1/receipts/settings` | `{enabled, eligibility (general_interest\|public_utility\|other), eligibility_detail, rescrit_ref, cgi_articles (200, 238bis, 978), donation_prefixes (comptes 7…), default_mode (annual\|single), acknowledged}` ; activation refusée (422) tant qu'une mention manque ou sans déclaration ; changer l'éligibilité efface la déclaration |
+| POST · DELETE | `/api/v1/receipts/settings/signature` | Image PNG / JPEG ≤ 500 Ko (`signature`, multipart) rangée dans `uploads/<slug>/recus/` ; la retirer désactive les reçus |
+| GET | `/receipts/signature` (route Flask) | Image de la signature (aperçu) |
+
+---
+
 ## Budget (`/budget/`)
 
 Pages de la SPA : `/budget/tracking?fiscal_year_id=&project_id=&as_of=` (Compta › Suivi budgétaire :
@@ -375,7 +392,7 @@ API (la recherche des listes de saisie reste `GET /api/v1/entities?q=`) :
 | Méthode | URL | Description |
 |---------|-----|-------------|
 | GET | `/api/v1/tiers` | Tiers hors adhérents (`?q=` nom ou email), dernières adhésions HelloAsso / caisse, nombre de transactions ; `meta` : types, produits d'achat, état des intégrations HelloAsso / Odoo / SMTP |
-| POST | `/api/v1/tiers` | `name` (unique), `entity_type`, `account_code`, `email`, `is_member`, `is_benevole`, `notes`, `default_product_id`, `vat_number`, `siret` (14 chiffres, espaces et points tolérés), `iban` |
+| POST | `/api/v1/tiers` | `name` (unique), `entity_type`, `account_code`, `email`, `is_member`, `is_benevole`, `notes`, `default_product_id`, `vat_number`, `siret` (14 chiffres, espaces et points tolérés), `iban` ; reçus fiscaux : `address_line1`, `address_line2`, `postal_code` (5 chiffres en France), `city`, `country`, `person_kind` (`individual` \| `company`), modifiés seulement s'ils sont envoyés |
 | GET | `/api/v1/tiers/<id>` | Fiche : identité, solde du compte fournisseur, factures d'achat, commandes de caisse Odoo (lignes, paiements), factures clients, temps de travaux, HelloAsso (commandes, articles, paiements) |
 | PATCH | `/api/v1/tiers/<id>` | Mêmes champs que la création |
 | DELETE | `/api/v1/tiers/<id>` | Supprime (409 si des transactions y sont liées) |

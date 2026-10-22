@@ -1140,3 +1140,14 @@ comptes de caisse 53. `forecast(today)` : 12 mois glissants ; factures d'achat n
 du mois (hors 68 / 78 ; mois en cours : prévu moins réalisé), saisies manuelles répétées ;
 échéance dépassée → mois en cours ; `first_negative` (alerte). `save_item`, `item_payload` ;
 erreurs `ForecastError(message, field)`.
+
+## receipts.py — Reçus fiscaux (lot B)
+
+**B.1 — paramètres.** `get()` (ligne unique créée au besoin), `readiness()` (mentions requises du
+reçu : identité et SIREN ou RNA, adresse, objet, signataire, signature, éligibilité, articles,
+comptes de dons présents), `save(data, user_id)` (activation refusée tant qu'une mention manque ou
+sans déclaration de responsabilité ; changer l'éligibilité efface la déclaration),
+`donation_accounts(prefixes)`, `save_signature` / `delete_signature` (PNG / JPEG ≤ 500 Ko, rangée
+avec les pièces de l'instance ; la retirer désactive les reçus). L'outil n'évalue pas l'éligibilité.
+Erreurs : `ReceiptError(message, field, status)`.
+

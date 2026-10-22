@@ -1,6 +1,8 @@
 """Tiers : liste, fiche (commandes, factures, temps, achats), création, modification,
 suppression, synchronisation HelloAsso, note Odoo. `/entities` reste la recherche des
 listes de saisie (lookups.py) ; la gestion des tiers est sous `/tiers`."""
+import re
+
 from flask import current_app, jsonify, request, url_for
 
 from app.extensions import db
@@ -43,6 +45,7 @@ def entity_payload(e: Entity, last_ha=None, last_pos=None, transactions=None) ->
         "notes": e.notes, "default_product_id": e.default_product_id,
         "default_product": e.default_product.name if e.default_product else None,
         "vat_number": e.vat_number, "siret": e.siret, "iban": e.iban,
+        **{key: getattr(e, key) for key in ADDRESS_FIELDS}, "person_kind": e.person_kind,
         "last_helloasso_membership": _iso(last_ha), "last_pos_membership": _iso(last_pos),
         "transactions": e.transactions.count() if transactions is None else transactions,
     }
@@ -70,6 +73,27 @@ def tiers_list():
                           for e in entities], meta=_meta())
 
 
+ADDRESS_FIELDS = {"address_line1": 200, "address_line2": 200, "postal_code": 10, "city": 100, "country": 60}
+PERSON_KINDS = ("individual", "company")
+
+
+def _apply_address(entity: Entity, data: dict) -> None:
+    """Adresse et nature (reçus fiscaux) : seulement les champs envoyés (les autres écrans des tiers
+    ne les transmettent pas). Tout est vérifié avant d'être appliqué."""
+    values = {key: str(data.get(key) or "").strip()[:size] or None for key, size in ADDRESS_FIELDS.items() if key in data}
+    kind = data.get("person_kind") or None
+    if "person_kind" in data and kind is not None and kind not in PERSON_KINDS:
+        raise invalid("Nature inconnue (particulier ou entreprise).", "person_kind")
+    postal = values.get("postal_code", entity.postal_code)
+    country = (values.get("country", entity.country) or "France").strip().lower()
+    if postal and country == "france" and not re.fullmatch(r"\d{5}", postal):
+        raise invalid("Code postal français : 5 chiffres.", "postal_code")
+    for key, value in values.items():
+        setattr(entity, key, value)
+    if "person_kind" in data:
+        entity.person_kind = kind
+
+
 def _apply(entity: Entity, data: dict) -> None:
     name = str(data.get("name") or "").strip()
     if not name:
@@ -92,6 +116,7 @@ def _apply(entity: Entity, data: dict) -> None:
         product_id = None
     if product_id is not None and db.session.get(Product, product_id) is None:
         product_id = None
+    _apply_address(entity, data)  # vérifie (et applique) l'adresse avant le reste
     text = lambda key, size: (str(data.get(key) or "").strip()[:size] or None)  # noqa: E731
     entity.name, entity.entity_type = name[:200], entity_type
     entity.account_code, entity.email = text("account_code", 20), text("email", 200)

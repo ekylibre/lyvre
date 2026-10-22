@@ -95,3 +95,16 @@ def project_statement_xlsx(project_id):
            [[l["date"], l["reference"], l["label"], l["account"], kinds[l["kind"]], l["amount_cents"] / 100,
              request.host_url.rstrip("/") + l["document_url"] if l["document_url"] else ""] for l in data["lines"]], (6,))
     return _response(wb, f"projet-{project.name}-{data['start']}-{data['end']}.xlsx".replace(" ", "-"))
+
+
+@bp.route("/receipts/signature")
+@login_required
+def receipts_signature():
+    """Image de la signature des reçus (aperçu dans les paramètres)."""
+    from flask import send_file
+
+    from app.services import receipts
+    path = receipts.signature_file()
+    if path is None:
+        abort(404)
+    return send_file(path, max_age=0)

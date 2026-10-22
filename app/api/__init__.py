@@ -154,6 +154,6 @@ def register_api(app):
 from . import (  # noqa: E402,F401
     access, activity_report, bank_accounts, budgets, cash_forecast, chart, entities, entries, fiscal_years, impact, imports,
     instances, integrations, journals, lookups, members, notifications, odoo, organization, payouts,
-    products, projects, purchases, reconciliation, reports, rules, search, session, task_types, users,
+    products, projects, purchases, receipts, reconciliation, reports, rules, search, session, task_types, users,
     work_times,
 )

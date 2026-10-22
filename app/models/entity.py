@@ -33,6 +33,13 @@ class Entity(db.Model):
     vat_number = db.Column(db.String(30), index=True)
     siret = db.Column(db.String(14), index=True)
     iban = db.Column(db.String(34))
+    # Adresse et nature (lot B, reçus fiscaux) : exigées à l'émission d'un reçu, pas à la saisie.
+    address_line1 = db.Column(db.String(200))
+    address_line2 = db.Column(db.String(200))
+    postal_code = db.Column(db.String(10))
+    city = db.Column(db.String(100))
+    country = db.Column(db.String(60))
+    person_kind = db.Column(db.String(12))       # individual | company
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     transactions = db.relationship("BankTransaction", back_populates="entity", lazy="dynamic")

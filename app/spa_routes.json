@@ -12,6 +12,7 @@
     {"rule": "/accounts/new", "endpoint": "accounts.new"},
     {"rule": "/accounts/<int:account_id>/edit", "endpoint": "accounts.edit"},
     {"rule": "/treasury/forecast", "endpoint": "cash_forecast.index"},
+    {"rule": "/configuration/receipts", "endpoint": "receipts.settings"},
     {"rule": "/budget/", "endpoint": "budgets.index"},
     {"rule": "/budget/tracking", "endpoint": "budgets.tracking"},
     {"rule": "/projects/<int:project_id>/statement", "endpoint": "projects.statement"},
