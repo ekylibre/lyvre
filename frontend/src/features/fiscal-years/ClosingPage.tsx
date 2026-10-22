@@ -41,7 +41,8 @@ interface ClosingView {
   inventory_options: Record<string, InventoryOption>;
   result: { income_cents: number; expense_cents: number; result_cents: number };
   next_fiscal_year: FiscalYear | null; events: ClosingEvent[];
-  dedicated_funds: { funds: DedicatedFund[]; kinds: { value: string; label: string; accounts: string[] }[] };
+  dedicated_funds: { funds: DedicatedFund[]; kinds: { value: string; label: string; accounts: string[] }[];
+    projects: { value: string; label: string }[] };
   opening: {
     lines: { account_code: string; label: string; debit_cents: number; credit_cents: number }[];
     error: string | null; reversals_planned: number; next_start_date: string;
@@ -56,7 +57,8 @@ interface EntryLink { id: number; reference: string; url: string }
 interface DedicatedFund {
   id: number; label: string; kind: string; kind_label: string; origin: string; amount_cents: number;
   resource_account: string | null; funder: string | null; balance_start_cents: number; balance_end_cents: number;
-  allocatable_cents: number;
+  allocatable_cents: number; project_id: number | null; project: string | null;
+  suggestion: { kind: "allocation" | "use"; amount_cents: number; spent_cents: number; explanation: string } | null;
   movements: { id: number; kind: "allocation" | "use"; kind_label: string; amount_cents: number; entry: EntryLink | null }[];
 }
 
@@ -66,7 +68,7 @@ const STATES: Record<StepState, [string, Tone]> = {
 const ACTIONS: Record<string, string> = {
   step_done: "Étape faite", step_skipped: "Étape ignorée", step_todo: "Étape remise à faire", add: "Écriture ajoutée",
   generate: "À-nouveaux générés", fund_add: "Fonds dédié créé", fund_delete: "Fonds dédié supprimé",
-  allocation: "Dotation en fonds dédiés", use: "Utilisation de fonds dédiés", allocate: "Résultat affecté", cancel: "Affectation annulée",
+  allocation: "Dotation en fonds dédiés", use: "Utilisation de fonds dédiés", fund_project: "Projet du fonds", allocate: "Résultat affecté", cancel: "Affectation annulée",
   delete: "Écriture supprimée", provisional: "Clôture provisoire", final: "Clôture définitive", reopen: "Réouverture",
 };
 const DESCRIPTIONS: Record<string, string> = {
@@ -333,7 +335,7 @@ function DedicatedFunds({ view }: { view: ClosingView }) {
   const can = useCan();
   const fy = view.fiscal_year;
   const editable = can.write && fy.status === "open";
-  const { funds, kinds } = view.dedicated_funds;
+  const { funds, kinds, projects } = view.dedicated_funds;
   const removeFund = useClosingAction(fy.id, (id: number) => api.delete<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}/dedicated-funds/${id}`));
   const removeMovement = useClosingAction(fy.id, (id: number) =>
     api.delete<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}/dedicated-fund-movements/${id}`));
@@ -347,7 +349,7 @@ function DedicatedFunds({ view }: { view: ClosingView }) {
             <div>
               <Text fw={600} size="sm">{f.label}</Text>
               <Text size="xs" c="dimmed">{f.kind_label} · reçue en {f.origin}{f.resource_account && ` (compte ${f.resource_account})`}
-                {f.funder && ` · ${f.funder}`}</Text>
+                {f.funder && ` · ${f.funder}`}{f.project && !editable && ` · projet ${f.project}`}</Text>
             </div>
             {editable && f.movements.length === 0 && f.origin === fy.label && (
               <Button variant="subtle" size="compact-sm" color="brique" onClick={() => confirmAction({
@@ -376,11 +378,36 @@ function DedicatedFunds({ view }: { view: ClosingView }) {
               </Table.Tbody>
             </Table>
           )}
+          {editable && projects.length > 0 && <FundProject fyId={fy.id} fund={f} projects={projects} />}
+          {f.suggestion && <FundSuggestion fyId={fy.id} fund={f} editable={editable} />}
           {editable && (f.allocatable_cents > 0 || f.balance_start_cents > 0) && <FundMovementForm fyId={fy.id} fund={f} />}
         </Paper>
       ))}
-      {editable && <FundForm fyId={fy.id} kinds={kinds} />}
+      {editable && <FundForm fyId={fy.id} kinds={kinds} projects={projects} />}
     </Stack>
+  );
+}
+
+function FundProject({ fyId, fund, projects }: { fyId: number; fund: DedicatedFund; projects: { value: string; label: string }[] }) {
+  const save = useClosingAction(fyId, (projectId: string | null) => api.put<{ notices: Notice[] }>(
+    `/api/v1/fiscal-years/${fyId}/dedicated-funds/${fund.id}`, { project_id: projectId ? Number(projectId) : null }));
+  return (
+    <Select mt="xs" size="xs" w={260} aria-label={`Projet financé — ${fund.label}`} placeholder="Projet financé (facultatif)" clearable
+      data={projects} value={fund.project_id ? String(fund.project_id) : null} onChange={(v) => save.mutate(v)} />
+  );
+}
+
+function FundSuggestion({ fyId, fund, editable }: { fyId: number; fund: DedicatedFund; editable: boolean }) {
+  const s = fund.suggestion!;
+  const apply = useClosingAction(fyId, () => api.post<{ notices: Notice[] }>(
+    `/api/v1/fiscal-years/${fyId}/dedicated-funds/${fund.id}/movements`, { kind: s.kind, amount_cents: s.amount_cents }));
+  const what = s.kind === "allocation" ? "Dotation proposée" : "Utilisation proposée";
+  return (
+    <Alert mt="xs" color="ardoise" variant="light" title={<>{what} : <MoneyText cents={s.amount_cents} /></>}>
+      <Text size="sm">{s.explanation} (projet « {fund.project} »).</Text>
+      {editable && <Button mt="xs" size="compact-sm" loading={apply.isPending} onClick={() => apply.mutate(undefined)}>
+        Enregistrer {s.kind === "allocation" ? "la dotation" : "l'utilisation"}</Button>}
+    </Alert>
   );
 }
 
@@ -405,13 +432,16 @@ function FundMovementForm({ fyId, fund }: { fyId: number; fund: DedicatedFund })
   );
 }
 
-function FundForm({ fyId, kinds }: { fyId: number; kinds: ClosingView["dedicated_funds"]["kinds"] }) {
+function FundForm({ fyId, kinds, projects }: {
+  fyId: number; kinds: ClosingView["dedicated_funds"]["kinds"]; projects: ClosingView["dedicated_funds"]["projects"];
+}) {
   const [label, setLabel] = useState("");
   const [kind, setKind] = useState<string | null>("subsidy");
   const [amount, setAmount] = useState<number | null>(null);
   const [resource, setResource] = useState<Account | null>(null);
+  const [project, setProject] = useState<string | null>(null);
   const add = useClosingAction(fyId, () => api.post<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fyId}/dedicated-funds`, {
-    label, kind, amount_cents: amount, resource_account_code: resource?.code,
+    label, kind, amount_cents: amount, resource_account_code: resource?.code, project_id: project ? Number(project) : null,
   }));
   const accounts = kinds.find((k) => k.value === kind)?.accounts;
   return (
@@ -425,10 +455,12 @@ function FundForm({ fyId, kinds }: { fyId: number; kinds: ClosingView["dedicated
         <Input.Wrapper label="Compte de la ressource (facultatif)">
           <AccountSelect label="Compte de la ressource" recentsScope="dedicated-funds" value={resource} onChange={setResource} />
         </Input.Wrapper>
+        {projects.length > 0 && <Select label="Projet financé (facultatif)" clearable data={projects} value={project} onChange={setProject}
+          description="L'assistant proposera la dotation d'après les charges du projet." />}
       </SimpleGrid>
       <Group mt="sm">
         <Button loading={add.isPending} disabled={!label.trim() || !amount}
-          onClick={() => add.mutate(undefined, { onSuccess: () => { setLabel(""); setAmount(null); setResource(null); } })}>
+          onClick={() => add.mutate(undefined, { onSuccess: () => { setLabel(""); setAmount(null); setResource(null); setProject(null); } })}>
           Créer le fonds
         </Button>
       </Group>

@@ -5,8 +5,9 @@ from datetime import date
 import pytest
 
 from app.extensions import db
-from app.models import Account, DedicatedFund, FiscalYear, Journal, JournalEntry
+from app.models import Account, DedicatedFund, FiscalYear, Journal, JournalEntry, Project
 from app.services import closing
+from app.services.ledger import post_entry
 
 
 def _error(resp, status):
@@ -46,7 +47,7 @@ def test_allocation_then_use(years, login_as):
     assert entry.entry_date == date(2025, 12, 31) and entry.journal.code == "OD" and entry.fiscal_year_id == n.id
     assert _lines(entry) == {"6894": (4000, 0), "194": (0, 4000)}
     assert closing.result(n)["expense_cents"] == 4000
-    assert "60.00" in _error(client.post(url, json={"kind": "allocation", "amount_cents": 7000}), 422)["message"]
+    assert "60,00 €" in _error(client.post(url, json={"kind": "allocation", "amount_cents": 7000}), 422)["message"]
     _error(client.post(url, json={"kind": "use", "amount_cents": 1}), 422)  # rien à utiliser en N
 
     funds = client.get(f"/api/v1/fiscal-years/{n.id}/closing").get_json()["dedicated_funds"]["funds"]
@@ -56,7 +57,7 @@ def test_allocation_then_use(years, login_as):
     nxt = client.get(f"/api/v1/fiscal-years/{n1.id}/closing").get_json()["dedicated_funds"]["funds"]
     assert [f["balance_start_cents"] for f in nxt] == [4000]
     use_url = f"/api/v1/fiscal-years/{n1.id}/dedicated-funds/{fund.id}/movements"
-    assert "40.00" in _error(client.post(use_url, json={"kind": "use", "amount_cents": 5000}), 422)["message"]
+    assert "40,00 €" in _error(client.post(use_url, json={"kind": "use", "amount_cents": 5000}), 422)["message"]
     assert client.post(use_url, json={"kind": "use", "amount_cents": 3000}).status_code == 201
     use = JournalEntry.query.filter_by(source="DEDICATED_FUND", fiscal_year_id=n1.id).one()
     assert _lines(use) == {"194": (3000, 0), "7894": (0, 3000)} and use.entry_date == date(2026, 12, 31)
@@ -111,3 +112,47 @@ def test_accountant_reads_only(years, login_as):
     client = login_as(role="accountant")
     assert client.get(f"/api/v1/fiscal-years/{n.id}/closing").status_code == 200
     _error(_fund(client, n), 403)
+
+
+# ------------------------------------------------------------------ lot C.5 : fonds × projets
+
+
+def test_project_fund_suggestions(years, login_as):
+    n, n1 = years
+    project = Project(name="Jardin")
+    db.session.add(project)
+    db.session.commit()
+    ids = {a.code: a.id for a in Account.query}
+    bq = Journal.query.one().id
+
+    charge = Account(code="6061", label="Fournitures", account_type="OTHER")
+    db.session.add(charge)
+    db.session.commit()
+
+    def spend(fy, day, cents):
+        post_entry(fy.id, bq, day, "Achat", [
+            {"account_id": charge.id, "debit_cents": cents, "project_id": project.id},
+            {"account_id": ids["512"], "credit_cents": cents}])
+
+    client = login_as()
+    assert _fund(client, n, project_id=project.id).status_code == 201
+    fund = DedicatedFund.query.one()
+    spend(n, date(2025, 6, 1), 3500)
+    body = client.get(f"/api/v1/fiscal-years/{n.id}/closing").get_json()["dedicated_funds"]
+    assert body["projects"][0]["label"] == "Jardin"
+    payload = body["funds"][0]
+    assert payload["project"] == "Jardin"
+    assert payload["suggestion"] == {"kind": "allocation", "amount_cents": 6500, "spent_cents": 3500,
+                                     "explanation": "Ressource 100,00 € − charges du projet 35,00 € = 65,00 € non utilisés"}
+    url = f"/api/v1/fiscal-years/{n.id}/dedicated-funds/{fund.id}/movements"
+    client.post(url, json={"kind": "allocation", "amount_cents": 6500})
+    # La dotation (689x) n'est pas une charge du projet ; plus rien à proposer.
+    assert client.get(f"/api/v1/fiscal-years/{n.id}/closing").get_json()["dedicated_funds"]["funds"][0]["suggestion"] is None
+    # N+1 : utilisation à hauteur des charges du projet, dans la limite du solde (65,00).
+    spend(n1, date(2026, 3, 1), 8000)
+    nxt = client.get(f"/api/v1/fiscal-years/{n1.id}/closing").get_json()["dedicated_funds"]["funds"][0]
+    assert nxt["suggestion"]["kind"] == "use" and nxt["suggestion"]["amount_cents"] == 6500
+    # Changement de projet : plus de charges rattachées, plus de proposition.
+    assert client.put(f"/api/v1/fiscal-years/{n1.id}/dedicated-funds/{fund.id}", json={"project_id": None}).status_code == 200
+    assert client.get(f"/api/v1/fiscal-years/{n1.id}/closing").get_json()["dedicated_funds"]["funds"][0]["suggestion"] is None
+    _error(client.put(f"/api/v1/fiscal-years/{n1.id}/dedicated-funds/{fund.id}", json={"project_id": 999}), 422)

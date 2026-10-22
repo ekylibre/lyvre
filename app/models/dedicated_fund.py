@@ -22,11 +22,13 @@ class DedicatedFund(db.Model):
     kind = db.Column(db.String(20), nullable=False)
     resource_account_id = db.Column(db.Integer, db.ForeignKey("accounts.id", ondelete="SET NULL"))
     entity_id = db.Column(db.Integer, db.ForeignKey("entities.id", ondelete="SET NULL"))  # financeur
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id", ondelete="SET NULL"))  # lot C.5
     origin_fiscal_year_id = db.Column(db.Integer, db.ForeignKey("fiscal_years.id"), nullable=False)
     amount_cents = db.Column(db.Integer, nullable=False)   # montant de la ressource reçue
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     resource_account = db.relationship("Account")
+    project = db.relationship("Project")
     origin_fiscal_year = db.relationship("FiscalYear")
     movements = db.relationship("DedicatedFundMovement", backref="fund", cascade="all, delete-orphan",
                                 order_by="DedicatedFundMovement.id")

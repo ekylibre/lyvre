@@ -11,8 +11,9 @@ from datetime import date
 from sqlalchemy import case, func
 
 from app.extensions import db
-from app.models import Account, BankTransaction, BudgetLine, FiscalYear, JournalEntry, JournalLine, Project, PurchaseLine, Rule
+from app.models import Account, BankTransaction, BudgetLine, DedicatedFund, FiscalYear, JournalEntry, JournalLine, Project, PurchaseLine, Rule
 from app.models.journal_entry import MANAGED_SOURCES
+from app.utils.money import euros
 
 
 class ProjectError(Exception):
@@ -102,7 +103,8 @@ def delete(project: Project):
     used = (JournalLine.query.filter_by(project_id=project.id).count()
             + PurchaseLine.query.filter_by(project_id=project.id).count()
             + Rule.query.filter_by(project_id=project.id).count()
-            + BudgetLine.query.filter_by(project_id=project.id).count())
+            + BudgetLine.query.filter_by(project_id=project.id).count()
+            + DedicatedFund.query.filter_by(project_id=project.id).count())
     if used:
         raise ProjectError(f"Projet utilisé ({used} ligne(s), règle(s) ou montant(s) de budget) : archivez-le plutôt.",
                            status=409)
@@ -135,7 +137,7 @@ def split_line(line: JournalLine, parts) -> list[JournalLine]:
             raise ProjectError(str(exc), field=f"parts[{i}].project_id") from None
         cleaned.append((project, cents))
     if sum(cents for _p, cents in cleaned) != amount:
-        raise ProjectError(f"Les parts doivent totaliser {amount / 100:.2f} € (montant de la ligne).")
+        raise ProjectError(f"Les parts doivent totaliser {euros(amount)} (montant de la ligne).")
     side = "debit_cents" if line.debit_cents else "credit_cents"
     created = []
     (first_project, first_cents), rest = cleaned[0], cleaned[1:]

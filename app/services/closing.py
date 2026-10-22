@@ -36,6 +36,7 @@ from app.models.journal_entry import SOURCE_ALLOCATION, SOURCE_INVENTORY, SOURCE
 from app.services import fec
 from app.services.ledger import delete_entries, post_entry
 from app.services.purchase_posting import purchase_state
+from app.utils.money import euros
 
 STEP_LABELS = {
     "checks": "Contrôles", "inventory": "Écritures d'inventaire", "dedicated_funds": "Fonds dédiés",
@@ -402,7 +403,7 @@ def opening_lines(fy) -> list[dict]:
                       "debit_cents": max(-amount, 0), "credit_cents": max(amount, 0)})
     gap = sum(line["debit_cents"] - line["credit_cents"] for line in lines)
     if gap:
-        raise ClosingError(f"À-nouveaux déséquilibrés de {gap / 100:.2f} € : des comptes hors classes 1 à 7 "
+        raise ClosingError(f"À-nouveaux déséquilibrés de {euros(gap)} : des comptes hors classes 1 à 7 "
                            "(classe 8 ?) ne sont pas soldés.", 422)
     return lines
 
@@ -505,7 +506,7 @@ def allocate(fy, decided_on, body, lines, user_id=None):
             raise ClosingError(f"Compte {account.code} : affectation sur un compte 10x, 11x ou 455x.", 422)
         targets.append((account, cents))
     if sum(cents for _a, cents in targets) != abs(amount):
-        raise ClosingError(f"La répartition doit totaliser {abs(amount) / 100:.2f} € (résultat à affecter).", 422)
+        raise ClosingError(f"La répartition doit totaliser {euros(abs(amount))} (résultat à affecter).", 422)
     entry = None
     if amount:
         source = _result_account(amount > 0)

@@ -95,7 +95,7 @@ def test_split_line_keeps_balance_and_fec(books, login_as, app, tmp_path, monkey
     client = login_as()
     charge = next(l for l in entry.lines if l.account_id == books["6063"].id)
     url = f"/api/v1/entries/{entry.id}/lines/{charge.id}/split"
-    assert "100.00" in _error(client.post(url, json={"parts": [{"project_id": ids["Jardin"], "amount_cents": 6000},
+    assert "100,00 €" in _error(client.post(url, json={"parts": [{"project_id": ids["Jardin"], "amount_cents": 6000},
                                                                 {"project_id": ids["Festival"], "amount_cents": 3000}]}),
                               422)["message"]
     _error(client.post(url, json={"parts": [{"project_id": ids["Jardin"], "amount_cents": 10000}]}), 422)

@@ -165,7 +165,8 @@ Pages de la SPA : `/fiscal-years/` (liste ; la création s'ouvre dans une fenêt
 | GET | `/api/v1/fiscal-years/<id>/closing` | État de l'assistant : `steps` (état, motif, disponibilité), `checks` recalculés, `inventory`, `inventory_options`, `dedicated_funds`, `result`, `opening` (à-nouveaux prévus et portés), `allocation`, `next_fiscal_year`, `events` (historique) |
 | POST | `/api/v1/fiscal-years/<id>/closing/<step>` | Étapes 1 à 5 : `{state: done\|skipped\|todo, note}` ; motif ≥ 5 caractères pour `skipped` ; « contrôles » fait refusé s'il reste une anomalie, « FEC » fait refusé si l'essai à blanc échoue |
 | POST · DELETE | `/api/v1/fiscal-years/<id>/inventory[/<entry_id>]` | Écriture d'inventaire `{kind, account_code, amount_cents, label, counterpart_code?}` (OD, dernier jour) |
-| POST · DELETE | `/api/v1/fiscal-years/<id>/dedicated-funds[/<fund_id>]` | Ressource affectée `{label, kind: subsidy\|contribution\|public_generosity, amount_cents, resource_account_code?}` ; suppression si aucun mouvement |
+| POST · DELETE | `/api/v1/fiscal-years/<id>/dedicated-funds[/<fund_id>]` | Ressource affectée `{label, kind: subsidy\|contribution\|public_generosity, amount_cents, resource_account_code?, project_id?}` ; suppression si aucun mouvement |
+| PUT | `/api/v1/fiscal-years/<id>/dedicated-funds/<fund_id>` | `{project_id}` : projet financé ; chaque fonds de `GET …/closing` porte alors une `suggestion` (dotation ou utilisation d'après les charges du projet) |
 | POST | `/api/v1/fiscal-years/<id>/dedicated-funds/<fund_id>/movements` | `{kind: allocation\|use, amount_cents}` : dotation 689x / 19x ou utilisation 19x / 789x |
 | DELETE | `/api/v1/fiscal-years/<id>/dedicated-fund-movements/<movement_id>` | Supprime le mouvement et son écriture |
 | GET | `/api/v1/fiscal-years/<id>/fec/preview` | FEC à blanc sur l'exercice ouvert (numérotation provisoire annulée) : erreurs, avertissements, relecture, totaux |

@@ -8,14 +8,22 @@ journal OD au dernier jour de l'exercice (`source='DEDICATED_FUND'`, gérées pa
 - Dotations cumulées ≤ montant de la ressource ; utilisation ≤ solde au début de l'exercice.
 - Mouvements possibles seulement sur un exercice ouvert ; supprimer un mouvement supprime son
   écriture.
+- Lot C.5 : un fonds peut financer un **projet**. L'assistant propose alors le mouvement d'après le
+  réalisé du projet (charges de classe 6 de l'exercice, hors dotations aux fonds dédiés) : l'année
+  de la ressource, dotation du reste non utilisé (ressource − charges du projet) ; les années
+  suivantes, utilisation à hauteur des charges du projet, dans la limite du solde du fonds.
 """
 from app.extensions import db
-from app.models import Account, DedicatedFund, DedicatedFundMovement, Entity, FiscalYear
+from sqlalchemy import func
+
+from app.models import Account, DedicatedFund, DedicatedFundMovement, Entity, FiscalYear, JournalEntry, JournalLine
 from app.models.dedicated_fund import FUND_KINDS, MOVEMENT_KINDS
 from app.models.fiscal_year import FY_OPEN
 from app.models.journal_entry import SOURCE_DEDICATED_FUND
+from app.services import projects as project_service
 from app.services.closing import ClosingError, _journal, log
 from app.services.ledger import delete_entries, post_entry
+from app.utils.money import euros
 
 MOVEMENT_LABELS = {"allocation": "Dotation", "use": "Utilisation"}
 
@@ -55,6 +63,41 @@ def funds_for(fy):
     return out
 
 
+def project_spending(project, fy) -> int:
+    """Charges du projet sur l'exercice (classe 6, hors écritures de fonds dédiés)."""
+    value = (db.session.query(func.sum(JournalLine.debit_cents - JournalLine.credit_cents))
+             .join(JournalEntry, JournalEntry.id == JournalLine.entry_id)
+             .join(Account, Account.id == JournalLine.account_id)
+             .filter(JournalLine.project_id == project.id, JournalEntry.fiscal_year_id == fy.id,
+                     Account.code.like("6%"), JournalEntry.source != SOURCE_DEDICATED_FUND).scalar())
+    return int(value or 0)
+
+
+def suggestion(fund, fy) -> dict | None:
+    """Mouvement proposé d'après le réalisé du projet (None sans projet ou si rien à proposer)."""
+    if fund.project is None:
+        return None
+    spent = project_spending(fund.project, fy)
+    current = [m for m in fund.movements if m.fiscal_year_id == fy.id]
+    if fund.origin_fiscal_year_id == fy.id:
+        allocated_total = sum(m.amount_cents for m in fund.movements if m.kind == "allocation")
+        done = sum(m.amount_cents for m in current if m.kind == "allocation")
+        target = max(fund.amount_cents - spent, 0)
+        amount = min(target - done, fund.amount_cents - allocated_total)
+        why = (f"Ressource {euros(fund.amount_cents)} − charges du projet {euros(spent)} "
+               f"= {euros(target)} non utilisés")
+        kind = "allocation"
+    else:
+        done = sum(m.amount_cents for m in current if m.kind == "use")
+        target = min(balance_before(fund, fy), spent)
+        amount = target - done
+        why = f"Charges du projet {euros(spent)}, dans la limite du solde du fonds"
+        kind = "use"
+    if amount <= 0:
+        return None
+    return {"kind": kind, "amount_cents": amount, "spent_cents": spent, "explanation": why}
+
+
 def payload(fund, fy) -> dict:
     current = [m for m in fund.movements if m.fiscal_year_id == fy.id]
     allocated = sum(m.amount_cents for m in fund.movements if m.kind == "allocation")
@@ -65,6 +108,8 @@ def payload(fund, fy) -> dict:
         "origin": fund.origin_fiscal_year.label, "amount_cents": fund.amount_cents,
         "resource_account": fund.resource_account.code if fund.resource_account else None,
         "funder": db.session.get(Entity, fund.entity_id).name if fund.entity_id else None,
+        "project_id": fund.project_id, "project": fund.project.name if fund.project else None,
+        "suggestion": suggestion(fund, fy),
         "balance_start_cents": start, "balance_end_cents": end,
         "allocatable_cents": max(fund.amount_cents - allocated, 0),
         "movements": [{"id": m.id, "kind": m.kind, "kind_label": MOVEMENT_LABELS[m.kind], "amount_cents": m.amount_cents,
@@ -77,7 +122,26 @@ def options():
     return [{"value": k, "label": v["label"], "accounts": list(v["accounts"])} for k, v in FUND_KINDS.items()]
 
 
-def create_fund(fy, label, kind, amount_cents, resource_account_code=None, user_id=None):
+def _project(project_id):
+    try:
+        return project_service.resolve(project_id)
+    except ValueError as exc:
+        raise ClosingError(str(exc), 422) from None
+
+
+def set_project(fy, fund_id, project_id, user_id=None):
+    _open(fy)
+    fund = db.session.get(DedicatedFund, fund_id)
+    if fund is None or fund.origin_fiscal_year.start_date > fy.start_date:
+        raise ClosingError("Fonds dédié introuvable pour cet exercice.", 404)
+    project = _project(project_id)
+    fund.project_id = project.id if project else None
+    log(fy, "dedicated_funds", "fund_project", user_id, fund=fund.label, project=project.name if project else None)
+    db.session.commit()
+    return fund
+
+
+def create_fund(fy, label, kind, amount_cents, resource_account_code=None, user_id=None, project_id=None):
     _open(fy)
     label = (label or "").strip()[:200]
     if not label:
@@ -91,8 +155,10 @@ def create_fund(fy, label, kind, amount_cents, resource_account_code=None, user_
         resource = Account.query.filter_by(code=str(resource_account_code).strip(), is_header=False).first()
         if resource is None or not resource.code.startswith("7"):
             raise ClosingError("Compte de la ressource : compte de produit (classe 7) attendu.", 422)
+    project = _project(project_id)
     fund = DedicatedFund(label=label, kind=kind, amount_cents=amount_cents, origin_fiscal_year_id=fy.id,
-                         resource_account_id=resource.id if resource else None)
+                         resource_account_id=resource.id if resource else None,
+                         project_id=project.id if project else None)
     db.session.add(fund)
     db.session.flush()
     log(fy, "dedicated_funds", "fund_add", user_id, fund=label, amount_cents=amount_cents)
@@ -124,14 +190,14 @@ def add_movement(fy, fund_id, kind, amount_cents, user_id=None):
     if kind == "allocation":
         allocated = sum(m.amount_cents for m in fund.movements if m.kind == "allocation")
         if allocated + amount_cents > fund.amount_cents:
-            raise ClosingError(f"Dotation limitée au montant non encore doté ({(fund.amount_cents - allocated) / 100:.2f} €).",
+            raise ClosingError(f"Dotation limitée au montant non encore doté ({euros(fund.amount_cents - allocated)}).",
                                422)
     else:
         start = balance_before(fund, fy)
         used = sum(m.amount_cents for m in fund.movements if m.fiscal_year_id == fy.id and m.kind == "use")
         if used + amount_cents > start:
             raise ClosingError(f"Utilisation limitée au solde du fonds au début de l'exercice "
-                               f"({(start - used) / 100:.2f} €).", 422)
+                               f"({euros(start - used)}).", 422)
     expense, reserve, income = (_account(code) for code in FUND_KINDS[fund.kind]["accounts"])
     debit, credit = (expense, reserve) if kind == "allocation" else (reserve, income)
     text = f"{MOVEMENT_LABELS[kind]} fonds dédié — {fund.label}"

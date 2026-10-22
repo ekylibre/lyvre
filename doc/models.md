@@ -315,7 +315,8 @@ lui-même est calculé à la demande (`services/cash_forecast.py`), sans stockag
 ## DedicatedFund / DedicatedFundMovement — Fonds dédiés
 
 `dedicated_funds(label, kind subsidy|contribution|public_generosity, resource_account_id NULL,
-entity_id NULL (financeur), origin_fiscal_year_id, amount_cents, created_at)` : ressource affectée
+entity_id NULL (financeur), project_id NULL (projet financé, lot C.5, migration `b9d4f6a8c310`),
+origin_fiscal_year_id, amount_cents, created_at)` : ressource affectée
 reçue. Comptes par nature (ANC 2018-06) : 6894 / 194 / 7894, 6895 / 195 / 7895, 6896 / 196 / 7896.
 `dedicated_fund_movements(fund_id CASCADE, fiscal_year_id CASCADE, kind allocation|use, amount_cents,
 entry_id SET NULL)` : dotation ou utilisation d'un exercice, avec son écriture

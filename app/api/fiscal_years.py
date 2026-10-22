@@ -9,7 +9,7 @@ from app.access import current_role, instance_admin_required
 from app.extensions import db
 from app.models import FiscalYear
 from app.models.instance_membership import ROLE_ADMIN
-from app.services import closing, dedicated_funds, fec
+from app.services import closing, dedicated_funds, fec, projects
 from app.services.ledger import LedgerError
 
 from . import ApiError, bp, get_or_404, invalid, json_body, notice
@@ -109,7 +109,7 @@ def fiscal_years_closing(fy_id):
         result=closing.result(fy),
         next_fiscal_year=fiscal_year_payload(following) if following else None,
         dedicated_funds={"funds": [dedicated_funds.payload(f, fy) for f in dedicated_funds.funds_for(fy)],
-                         "kinds": dedicated_funds.options()},
+                         "kinds": dedicated_funds.options(), "projects": projects.options()},
         opening=_opening_payload(fy, following),
         allocation=_allocation_payload(fy),
         events=closing.events(fy),
@@ -155,8 +155,17 @@ def fiscal_years_dedicated_fund_add(fy_id):
     data = json_body()
     with _closing_errors():
         fund = dedicated_funds.create_fund(fy, data.get("label"), data.get("kind"), data.get("amount_cents"),
-                                           data.get("resource_account_code"), current_user.id)
+                                           data.get("resource_account_code"), current_user.id, data.get("project_id"))
     return jsonify(notices=[notice(f"Fonds dédié « {fund.label} » créé.")]), 201
+
+
+@bp.route("/fiscal-years/<int:fy_id>/dedicated-funds/<int:fund_id>", methods=["PUT"])
+def fiscal_years_dedicated_fund_project(fy_id, fund_id):
+    """`{project_id}` (null : aucun) : projet financé par la ressource (lot C.5)."""
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    with _closing_errors():
+        fund = dedicated_funds.set_project(fy, fund_id, json_body().get("project_id"), current_user.id)
+    return jsonify(notices=[notice(f"Fonds « {fund.label} » : projet enregistré.")])
 
 
 @bp.route("/fiscal-years/<int:fy_id>/dedicated-funds/<int:fund_id>", methods=["DELETE"])

@@ -139,7 +139,7 @@ def test_allocation_association(asso, login_as, closing_ready):
     assert [o["value"] for o in alloc["options"]] == ["102", "1068", "110", "119"]
     good = {"decided_on": "2026-06-15", "body": "Assemblée générale",
             "lines": [{"account_code": "110", "amount_cents": 5000}, {"account_code": "1068", "amount_cents": 2000}]}
-    assert "totaliser 70.00" in _error(client.post(f"{base}/allocation", json={**good, "lines": good["lines"][:1]}),
+    assert "totaliser 70,00 €" in _error(client.post(f"{base}/allocation", json={**good, "lines": good["lines"][:1]}),
                                        422)["message"]
     _error(client.post(f"{base}/allocation", json={**good, "decided_on": "2025-12-31"}), 422)
     _error(client.post(f"{base}/allocation", json={**good, "body": ""}), 422)
