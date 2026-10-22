@@ -99,6 +99,18 @@ Jinja ouverte depuis la SPA et inversement ; image Docker OK.
 | B.6 | Types de tâches (`/work-times/task-types`) | liste, création, modification, suppression |
 | B.7 | Utilisateurs (`/users`, admin) | liste, création, modification, activation, suppression |
 
+— *Réalisé (2026-10-22)* : **charte Lyvre appliquée d'abord** (`app/theme.ts`, `app/lyvre.css` :
+tokens `--lv-*` clair / sombre, polices auto-hébergées @fontsource, icônes **lucide-react** à la place
+de Tabler, logos SVG de la charte, barre latérale `night` 240 px, montants « − » en chasse fixe).
+API : `journals`, `fiscal-years`, `chart-of-accounts` (le plan ; `/accounts` reste la recherche),
+`products`, `rules`, `task-types`, `users` ; **connexion exigée sur tout `/api/v1`** (liste blanche
+login / logout). Pages : création / modification dans une fenêtre portée par l'URL
+(`useRouteModal` : `/products/3/edit` ouvre la liste avec la fenêtre), les anciennes adresses
+(`accounts.new`, `fiscal_years.new` liées depuis des pages Jinja) restent valides. Vues, gabarits et
+tests de vues supprimés ; tests API `tests/api/test_referentials.py` ; E2E journaux, exercices,
+colonnes masquées après reconnexion. pytest 673, Vitest 64, E2E 5. Écart : en-têtes triables de
+mantine-datatable annoncés en anglais aux lecteurs d'écran (« Sorted ascending »).
+
 **✅ CP B** : écrans B en React, gabarits supprimés, tests API ≥ cas des anciens tests de vues ;
 E2E **écran simple** (journal ou produit : créer / modifier / supprimer) ; colonnes masquées
 retrouvées après reconnexion.

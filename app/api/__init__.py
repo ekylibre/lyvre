@@ -9,13 +9,17 @@ Common rules:
 
     {"error": {"code": "validation_error", "message": "…", "fields": {"lines[1].account_id": "…"}}}
 """
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
+from flask_login import current_user
 from flask_wtf.csrf import CSRFError
 from werkzeug.exceptions import HTTPException
 
 API_PREFIX = "/api/"
 
 bp = Blueprint("api", __name__, url_prefix="/api/v1")
+
+# Seules routes accessibles sans être connecté (toutes les autres : 401 JSON).
+PUBLIC_ENDPOINTS = {"api.login", "api.logout"}
 
 _HTTP_CODES = {
     400: "bad_request",
@@ -61,12 +65,42 @@ def error_response(code, message, status, fields=None):
     return jsonify(error=body), status
 
 
+def get_or_404(model, object_id, message="Ressource introuvable."):
+    """Ligne du modèle, ou ApiError 404 (au lieu de la page HTML de Flask)."""
+    from app.extensions import db
+
+    obj = db.session.get(model, object_id)
+    if obj is None:
+        raise ApiError("not_found", message, status=404)
+    return obj
+
+
+def invalid(message, field=None):
+    """Erreur de validation 422, rattachée à un champ du formulaire si `field` est donné."""
+    return ApiError("validation_error", message, status=422, fields={field: message} if field else None)
+
+
+def notice(message, level="success"):
+    """Message métier renvoyé avec une action (`notices`, design §5)."""
+    return {"level": level, "message": message}
+
+
 def json_body() -> dict:
     """Request JSON object, or a 400 ApiError."""
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         raise ApiError("bad_request", "Corps JSON (objet) attendu.", status=400)
     return data
+
+
+@bp.before_request
+def _require_login():
+    """Connexion exigée sur toute l'API, sauf PUBLIC_ENDPOINTS (aucune route oubliée)."""
+    if request.endpoint in PUBLIC_ENDPOINTS or current_app.config.get("LOGIN_DISABLED"):
+        return None
+    if not current_user.is_authenticated:
+        return error_response("unauthenticated", _HTTP_MESSAGES[401], 401)
+    return None
 
 
 def register_api(app):
@@ -100,4 +134,7 @@ def register_api(app):
 
 
 # Routes are attached to ``bp`` by these modules (import for side effects).
-from . import entries, lookups, reconciliation, session  # noqa: E402,F401
+from . import (  # noqa: E402,F401
+    chart, entries, fiscal_years, journals, lookups, products, reconciliation, rules, session,
+    task_types, users,
+)

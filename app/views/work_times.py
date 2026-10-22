@@ -19,14 +19,6 @@ bp = Blueprint("work_times", __name__, url_prefix="/work-times")
 # --- helpers --------------------------------------------------------------
 
 
-def _parse_rate_to_cents(raw):
-    """Convertit un taux saisi en euros (« 25 » ou « 25,50 ») en centimes."""
-    value = (raw or "").strip().replace(",", ".")
-    if not value:
-        return 0
-    return int(round(float(value) * 100))
-
-
 def _parse_hours(raw):
     """Parse un nombre d'heures (« 2,5 » ou « 2.5 ») en float, ou None."""
     value = (raw or "").strip().replace(",", ".")
@@ -209,91 +201,3 @@ def import_view():
                 flash(f"Erreur lors de l'import : {e}", "danger")
 
     return render_template("work_times/import.html", result=result)
-
-
-# --- paramétrage des types de tâches --------------------------------------
-
-
-@bp.route("/task-types")
-@login_required
-def task_types():
-    types = TaskType.query.order_by(TaskType.name).all()
-    return render_template("work_times/task_types.html", types=types)
-
-
-@bp.route("/task-types/new", methods=["GET", "POST"])
-@login_required
-def task_type_new():
-    if request.method == "POST":
-        name = (request.form.get("name") or "").strip()
-        errors = {}
-        if not name:
-            errors["name"] = "Le nom est obligatoire."
-        elif TaskType.query.filter(db.func.lower(TaskType.name) == name.lower()).first():
-            errors["name"] = f"Un type nommé « {name} » existe déjà."
-        else:
-            tt = TaskType(
-                name=name,
-                hourly_rate_cents=_parse_rate_to_cents(request.form.get("hourly_rate")),
-                is_active=bool(request.form.get("is_active")),
-            )
-            db.session.add(tt)
-            db.session.commit()
-            flash(f"Type de tâche « {name} » créé.", "success")
-            return redirect(url_for("work_times.task_types"))
-        return render_template(
-            "work_times/task_type_form.html", task_type=None, form=request.form, errors=errors,
-        ), 422
-
-    return render_template(
-        "work_times/task_type_form.html", task_type=None,
-        form={"is_active": True},
-    )
-
-
-@bp.route("/task-types/<int:task_type_id>/edit", methods=["GET", "POST"])
-@login_required
-def task_type_edit(task_type_id):
-    tt = TaskType.query.get_or_404(task_type_id)
-    if request.method == "POST":
-        name = (request.form.get("name") or "").strip()
-        existing = TaskType.query.filter(
-            db.func.lower(TaskType.name) == name.lower(), TaskType.id != tt.id
-        ).first()
-        errors = {}
-        if not name:
-            errors["name"] = "Le nom est obligatoire."
-        elif existing:
-            errors["name"] = f"Un autre type nommé « {name} » existe déjà."
-        else:
-            tt.name = name
-            tt.hourly_rate_cents = _parse_rate_to_cents(request.form.get("hourly_rate"))
-            tt.is_active = bool(request.form.get("is_active"))
-            db.session.commit()
-            flash(f"Type de tâche « {name} » mis à jour.", "success")
-            return redirect(url_for("work_times.task_types"))
-        return render_template(
-            "work_times/task_type_form.html", task_type=tt, form=request.form, errors=errors,
-        ), 422
-
-    return render_template(
-        "work_times/task_type_form.html", task_type=tt, form=None,
-    )
-
-
-@bp.route("/task-types/<int:task_type_id>/delete", methods=["POST"])
-@login_required
-def task_type_delete(task_type_id):
-    tt = TaskType.query.get_or_404(task_type_id)
-    count = tt.work_times.count()
-    if count > 0:
-        flash(
-            f"Impossible de supprimer « {tt.name} » : {count} temps de travaux "
-            "y sont rattachés.",
-            "danger",
-        )
-        return redirect(url_for("work_times.task_types"))
-    db.session.delete(tt)
-    db.session.commit()
-    flash(f"Type de tâche « {tt.name} » supprimé.", "success")
-    return redirect(url_for("work_times.task_types"))

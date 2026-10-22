@@ -90,8 +90,8 @@ def _is_tenant_free_endpoint() -> bool:
         return True
     if request.endpoint in _TENANT_FREE_ENDPOINTS:
         return True
-    # /users/* and /instances/* admin pages run on meta only.
-    return request.endpoint.startswith(("users.", "instances."))
+    # /users/* and /instances/* admin pages (and their API) run on meta only.
+    return request.endpoint.startswith(("users.", "instances.", "api.users_"))
 
 
 def register_tenant_hooks(app):

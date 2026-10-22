@@ -6,10 +6,12 @@ import "@mantine/spotlight/styles.css";
 import "@mantine/dropzone/styles.css";
 import "@mantine/charts/styles.css";
 import "mantine-datatable/styles.css";
+import "./lyvre.css";
 import "dayjs/locale/fr";
 
 import type { ReactNode } from "react";
 import { MantineProvider } from "@mantine/core";
+import { LucideProvider } from "lucide-react";
 import { DatesProvider } from "@mantine/dates";
 import { ModalsProvider } from "@mantine/modals";
 import { Notifications, notifications } from "@mantine/notifications";
@@ -48,12 +50,15 @@ export function Providers({ children, client }: { children: ReactNode; client: Q
   return (
     <QueryClientProvider client={client}>
       <MantineProvider theme={theme} defaultColorScheme="auto">
+        {/* Icônes Lucide au trait de 1,5 px, 20 px dans l'interface (charte). */}
+        <LucideProvider strokeWidth={1.5} size={20}>
         <DatesProvider settings={{ locale: "fr", firstDayOfWeek: 1 }}>
           <ModalsProvider labels={{ confirm: "Confirmer", cancel: "Annuler" }}>
             <Notifications position="top-right" />
             {children}
           </ModalsProvider>
         </DatesProvider>
+        </LucideProvider>
       </MantineProvider>
     </QueryClientProvider>
   );

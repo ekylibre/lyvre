@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router";
 import { Group, TextInput } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
-import { IconSearch } from "@tabler/icons-react";
+import { Search } from "lucide-react";
 
 /**
  * Paramètres d'URL d'une liste : valeurs courantes (défauts compris) et mise à jour.
@@ -41,7 +41,7 @@ export function SearchInput({ value, onChange, placeholder = "Rechercher…" }: 
   }, [debounced]);
   return (
     <TextInput type="search" aria-label="Rechercher" placeholder={placeholder} value={text}
-      leftSection={<IconSearch size={16} />} onChange={(e) => setText(e.currentTarget.value)} w={260} />
+      leftSection={<Search size={16} />} onChange={(e) => setText(e.currentTarget.value)} w={260} />
   );
 }
 

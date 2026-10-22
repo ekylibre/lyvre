@@ -94,6 +94,14 @@ describe("Money", () => {
     renderWithProviders(<MoneyText cents={123456} />);
     expect(screen.getByText(/1\s234,56\s€/)).toBeInTheDocument();
   });
+
+  it("utilise le signe moins typographique, sans rouge par défaut", () => {
+    renderWithProviders(<><MoneyText cents={-124800} /><MoneyText cents={500} plus /></>);
+    const debit = screen.getByText(/1\s248,00/);
+    expect(debit.textContent!.startsWith("\u2212")).toBe(true);
+    expect(debit).not.toHaveStyle({ color: "var(--lv-brique)" });
+    expect(screen.getByText(/^\+5,00/)).toBeInTheDocument();
+  });
 });
 
 describe("ConfirmButton", () => {

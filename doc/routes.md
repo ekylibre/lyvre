@@ -40,27 +40,17 @@ routeur React affiche la page. Les autres URL restent des pages Jinja.
 
 ## Utilisateurs (`/users/`) — admin uniquement
 
+Pages de la SPA (liste ; la création / modification s'ouvre dans une fenêtre portée par l'URL) : `/users/`, `/users/new`, `/users/<id>/edit`. API (méta-base, sans instance) :
+
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/users/` | Liste tous les utilisateurs |
-| GET | `/users/new` | Formulaire de création |
-| POST | `/users/new` | Crée l'utilisateur (email unique, mot de passe hashé) |
-| GET | `/users/<id>/edit` | Formulaire de modification |
-| POST | `/users/<id>/edit` | Met à jour. Champ `password` vide = inchangé. |
-| POST | `/users/<id>/delete` | Supprime (interdit sur soi-même) |
-| POST | `/users/<id>/toggle-active` | Bascule `is_active` (interdit sur soi-même) |
+| GET | `/api/v1/users` | Utilisateurs (`is_me` pour le compte connecté) |
+| POST | `/api/v1/users` | `email` (unique, en minuscules), `password` (obligatoire), `full_name`, `is_admin`, `is_active` |
+| PATCH | `/api/v1/users/<id>` | Mêmes champs (`password` vide = inchangé) ; `{"is_active"}` seul = activer / désactiver |
+| DELETE | `/api/v1/users/<id>` | Supprime (refusé sur soi-même, 409) |
 
-**Paramètres POST `/users/new` et `/users/<id>/edit` :**
-
-| Champ | Obligatoire | Description |
-|-------|-------------|-------------|
-| `email` | oui | Email unique (case-insensitive) |
-| `password` | oui (création) / non (édition) | Mot de passe en clair, hashé via `pbkdf2:sha256` |
-| `full_name` | non | Nom affiché |
-| `is_admin` | non (checkbox) | Donne accès aux CRUD users + instances |
-| `is_active` | non (checkbox) | Permet la connexion ; faux = login refusé |
-
-Un admin ne peut pas retirer son propre `is_admin`, se désactiver, ni se supprimer.
+Un admin ne peut pas retirer son propre `is_admin`, se désactiver, ni se supprimer. Les autres
+utilisateurs reçoivent 403.
 
 ---
 
@@ -138,35 +128,28 @@ Voir [doc/multi_tenant.md](multi_tenant.md) pour le détail de l'architecture.
 
 ## Plan comptable (`/accounts/`)
 
+Pages de la SPA (liste ; la création / modification s'ouvre dans une fenêtre portée par l'URL) : `/accounts/` (`?q=` : code ou mots du libellé), `/accounts/new`, `/accounts/<id>/edit`. API :
+
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/accounts/` | Liste tous les comptes. Paramètre `?q=` pour filtrer par code ou libellé |
-| GET | `/accounts/new` | Formulaire de création d'un compte |
-| POST | `/accounts/new` | Crée le compte |
-| GET | `/accounts/<id>/edit` | Formulaire de modification |
-| POST | `/accounts/<id>/edit` | Enregistre les modifications |
-| GET | `/accounts/search` | **HTMX** — Retourne des `<option>` filtrés (param `?q=`). Utilisé dans les formulaires d'écriture |
+| GET | `/api/v1/chart-of-accounts` | Tous les comptes (`is_header`, `parent_code`) ; `meta.types` |
+| POST | `/api/v1/chart-of-accounts` | `code` (unique), `label`, `account_type` (`ASSET`, `LIABILITY`, `EQUITY`, `EXPENSE`, `REVENUE`, `TIERS`, `OFFBALANCE`, `OTHER`), `parent_code` |
+| PATCH | `/api/v1/chart-of-accounts/<id>` | `label`, `account_type` (le code ne change pas) |
 
-**Paramètres POST `/accounts/new` :**
-
-| Champ | Obligatoire | Description |
-|-------|-------------|-------------|
-| `code` | oui | Code unique (ex : `512001`) |
-| `label` | oui | Libellé |
-| `account_type` | oui | Type parmi : `ASSET`, `LIABILITY`, `EQUITY`, `EXPENSE`, `REVENUE`, `TIERS`, `OFFBALANCE`, `OTHER` |
-| `parent_code` | non | Code du compte parent |
+La recherche des listes de saisie reste `GET /api/v1/accounts?q=` (ci-dessous).
 
 ---
 
 ## Exercices comptables (`/fiscal-years/`)
 
+Pages de la SPA (liste ; la création / modification s'ouvre dans une fenêtre portée par l'URL) : `/fiscal-years/`, `/fiscal-years/new`. API :
+
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/fiscal-years/` | Liste tous les exercices |
-| GET | `/fiscal-years/new` | Formulaire de création |
-| POST | `/fiscal-years/new` | Crée l'exercice |
-| POST | `/fiscal-years/<id>/close` | Clôture l'exercice (irréversible) |
-| POST | `/fiscal-years/<id>/vat` | `vat_liable=1\|0` : exercice soumis ou non à la TVA (exercice ouvert ; vaut pour les comptabilisations suivantes) |
+| GET | `/api/v1/fiscal-years` | Exercices, du plus récent au plus ancien |
+| POST | `/api/v1/fiscal-years` | `label`, `start_date`, `end_date` (ISO, fin ≥ début), `vat_liable` |
+| PATCH | `/api/v1/fiscal-years/<id>` | `vat_liable` (exercice ouvert ; vaut pour les comptabilisations suivantes) |
+| POST | `/api/v1/fiscal-years/<id>/close` | Clôture (irréversible ; 409 si déjà clôturé) |
 
 > La clôture positionne `FiscalYear.closed = True`. Les écritures de cet exercice ne peuvent plus être supprimées.
 
@@ -174,11 +157,8 @@ Voir [doc/multi_tenant.md](multi_tenant.md) pour le détail de l'architecture.
 
 ## Journaux (`/journals/`)
 
-| Méthode | URL | Description |
-|---------|-----|-------------|
-| GET | `/journals/` | Liste tous les journaux |
-| GET | `/journals/new` | Formulaire de création |
-| POST | `/journals/new` | Crée le journal |
+Pages de la SPA (liste ; la création / modification s'ouvre dans une fenêtre portée par l'URL) : `/journals/`, `/journals/new`. API : `GET /api/v1/journals`, `POST /api/v1/journals`
+(`code` unique, 10 caractères au plus, mis en capitales ; `label`).
 
 ---
 
@@ -231,12 +211,14 @@ Les anciennes routes `POST /entries/new`, `POST /entries/<id>/edit`, `/entries/n
 
 ## Catalogue (`/products/`)
 
+Pages de la SPA (liste ; la création / modification s'ouvre dans une fenêtre portée par l'URL) : `/products/` (`?archived=1`), `/products/new`, `/products/<id>/edit`. API :
+
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/products/` | Produits actifs (`?archived=1` : archivés aussi), nombre d'utilisations |
-| GET/POST | `/products/new`, `/products/<id>/edit` | `name`, `reference`, `kind` (`purchase`/`sale`/`both`), `purchase_account_code` (6…), `sale_account_code` (7…), `vat_rate` (« 20 », « 5,5 ») |
-| POST | `/products/<id>/archive` | Archive / réactive |
-| POST | `/products/<id>/delete` | Supprime un produit **inutilisé** (sinon refus) |
+| GET | `/api/v1/products` | Produits actifs (`?archived=1` : archivés aussi), `usages` ; `meta` : sens, comptes 6 et 7 |
+| POST | `/api/v1/products` | `name`, `reference`, `kind` (`purchase`/`sale`/`both`), `purchase_account_code` (6…), `sale_account_code` (7…), `vat_rate` (« 20 », « 5,5 ») |
+| PATCH | `/api/v1/products/<id>` | Mêmes champs ; `{"active"}` seul = archiver / réactiver |
+| DELETE | `/api/v1/products/<id>` | Supprime un produit **inutilisé** (sinon 409) |
 
 ---
 
@@ -349,46 +331,38 @@ supprimées.
 
 ## Moteur de règles (`/rules/`)
 
+Pages de la SPA (liste ; la création / modification s'ouvre dans une fenêtre portée par l'URL) : `/rules/`, `/rules/new`, `/rules/<id>/edit` (panneau latéral, avec testeur d'expression). API :
+
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/rules/` | Liste toutes les règles (table `rules` de l'instance courante) avec actions Modifier / Activer-Désactiver / ↑↓ / Supprimer |
-| GET | `/rules/new` | Formulaire de création (inclut l'aide REGEX + testeur live) |
-| POST | `/rules/new` | Crée la règle (position = max+1) |
-| GET | `/rules/<id>/edit` | Formulaire de modification |
-| POST | `/rules/<id>/edit` | Met à jour la règle |
-| POST | `/rules/<id>/delete` | Supprime la règle |
-| POST | `/rules/<id>/toggle-active` | Bascule `is_active` |
-| POST | `/rules/<id>/move-up` | Échange position avec la règle au-dessus |
-| POST | `/rules/<id>/move-down` | Échange position avec la règle au-dessous |
-| POST | `/rules/apply` | Applique les règles aux transactions non catégorisées et génère les écritures pour celles avec `account_code` |
+| GET | `/api/v1/rules` | Règles dans l'ordre d'évaluation ; `meta.entity_types` |
+| POST | `/api/v1/rules` | Crée la règle (position = max + 1) |
+| PATCH | `/api/v1/rules/<id>` | Met à jour ; `{"is_active"}` seul = activer / désactiver |
+| DELETE | `/api/v1/rules/<id>` | Supprime |
+| POST | `/api/v1/rules/<id>/move` | `{"direction": "up"\|"down"}` : échange avec la voisine ; renvoie la liste |
+| POST | `/api/v1/rules/apply` | `{"overwrite": bool}` : applique aux transactions (catégorisées aussi si `overwrite`) ; `result` + `notices` |
 
-**Paramètres POST `/rules/new` et `/rules/<id>/edit` :**
+**Champs d'une règle :**
 
 | Champ | Obligatoire | Description |
 |-------|-------------|-------------|
 | `name` | oui | Libellé court |
-| `label_contains` | non | Sous-chaîne (case-insensitive) |
+| `label_contains` | non | Sous-chaîne (insensible à la casse) |
 | `label_regex` | non | Regex Python (validée serveur via `re.compile`) |
-| `amount_min` / `amount_max` | non | En euros, convertis en centimes |
+| `amount_min_cents` / `amount_max_cents` | non | En centimes |
 | `raw_type` | non | Filtre type OFX |
 | `entity_name` / `entity_type` | non | Tiers à rattacher (créé si nécessaire) |
 | `category` | non | Étiquette libre |
 | `account_code` | non | Code 6xx/7xx du plan comptable — déclenche la génération d'écriture |
-| `is_active` | non (checkbox) | Activer la règle |
+| `is_active` | non | Règle active (vrai par défaut) |
 
-Au moins une condition (`label_contains`, `label_regex`, `amount_min`, `amount_max`, `raw_type`) est obligatoire — sinon le formulaire est refusé.
-
-**Paramètres POST `/rules/apply` :**
-
-| Champ | Description |
-|-------|-------------|
-| `overwrite` | `1` pour ré-appliquer les règles sur les transactions déjà catégorisées |
+Au moins une condition (`label_contains`, `label_regex`, `amount_min_cents`, `amount_max_cents`, `raw_type`) est obligatoire (422 sinon).
 
 **Effet sur les écritures :** pour chaque règle qui définit `account`, une écriture est créée dans le journal `BQ` :
 - compte commençant par `6` (charge) → débit du compte 6xx, crédit du compte bancaire
 - compte commençant par `7` (produit) → débit du compte bancaire, crédit du compte 7xx
 
-La transaction bancaire est automatiquement rapprochée à la ligne d'écriture côté banque. La page affiche également la syntaxe YAML de référence pour créer ou modifier les règles.
+La transaction bancaire est automatiquement rapprochée à la ligne d'écriture côté banque.
 
 ---
 
@@ -532,9 +506,12 @@ L'**import de tonnages** (`/rapport-activite/eco`) est également proposé dans 
 
 ## API JSON (`/api/v1`)
 
-Utilisée par les îlots React (saisie, rapprochement). Mêmes règles que les pages : session
-Flask-Login, instance courante (`app/tenant.py`), CSRF obligatoire en POST/PUT/DELETE via l'en-tête
-`X-CSRFToken`. Montants en **centimes entiers**, dates ISO `YYYY-MM-DD`.
+Utilisée par la SPA et les îlots React. Mêmes règles que les pages : session Flask-Login
+(**connexion exigée sur toute l'API** sauf `session/login` et `session/logout`), instance courante
+(`app/tenant.py`), CSRF obligatoire en POST/PUT/PATCH/DELETE via l'en-tête `X-CSRFToken`. Montants
+en **centimes entiers**, dates ISO `YYYY-MM-DD`. Les actions renvoient `item` (la ressource à jour)
+et `notices` (`[{"level": "success|info|warning|danger", "message"}]`, affichés en notifications) ;
+un refus métier est un 409 `conflict`.
 
 **Erreurs** (format unique) :
 
@@ -555,6 +532,8 @@ Codes : `bad_request` / `csrf_error` (400), `unauthenticated` (401, jamais de re
 | POST | `/api/v1/session/instance` | `{instance_id}` → session ; 422 si l'instance est inconnue ou désactivée |
 | PATCH | `/api/v1/me/preferences` | Fusion profonde dans `users.preferences` (`null` supprime une clé) ; `color_scheme` ∈ `light`/`dark`/`auto` ; 413 au-delà de 16 Ko |
 | GET | `/api/v1/jobs/<id>` | État d'une tâche longue (`sync_jobs`) : statut, progression, résultat |
+| GET/POST | `/api/v1/task-types` | Types de tâches des temps de travaux (`name` unique, `hourly_rate_cents`, `is_active` ; `work_times` = temps saisis). Pages SPA `/work-times/task-types`, `…/new`, `…/<id>/edit` |
+| PATCH/DELETE | `/api/v1/task-types/<id>` | Modifie ; supprime un type sans temps saisis (sinon 409) |
 | GET | `/api/v1/accounts?q=&limit=20` | Comptes utilisables (hors regroupement) : début de code, puis mots du libellé (sans accents) |
 | GET | `/api/v1/entities?q=&limit=20` | Tiers par nom ou email |
 | POST | `/api/v1/entries/validate` | Validation à blanc : `{"errors": {champ: message}}`, rien n'est enregistré |

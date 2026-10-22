@@ -6,7 +6,7 @@ import { ActionIcon, Checkbox, Group, Menu, Paper, Text, Tooltip } from "@mantin
 import {
   DataTable, type DataTableColumn, type DataTableProps, type DataTableSortStatus,
 } from "mantine-datatable";
-import { IconColumns3 } from "@tabler/icons-react";
+import { Columns3 } from "lucide-react";
 import { usePreferences } from "../api/session";
 import { compareValues } from "../lib/format";
 
@@ -161,7 +161,7 @@ export function DataGrid<T>({
             <Menu.Target>
               <Tooltip label="Colonnes affichées">
                 <ActionIcon variant="subtle" color="gray" aria-label="Colonnes affichées">
-                  <IconColumns3 size={18} />
+                  <Columns3 size={18} />
                 </ActionIcon>
               </Tooltip>
             </Menu.Target>

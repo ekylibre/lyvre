@@ -2,7 +2,7 @@
 // factures et écritures est branchée en phase C (GET /api/v1/search).
 import { useMemo } from "react";
 import { Spotlight, type SpotlightActionData } from "@mantine/spotlight";
-import { IconSearch } from "@tabler/icons-react";
+import { Search } from "lucide-react";
 import { useCurrentSession } from "../api/session";
 import { useGoTo } from "./navigation";
 
@@ -27,6 +27,6 @@ export function AppSpotlight() {
   }, [session, goTo]);
   return (
     <Spotlight actions={actions} shortcut={["mod + K"]} nothingFound="Aucun résultat" highlightQuery
-      limit={12} searchProps={{ leftSection: <IconSearch size={18} />, placeholder: "Aller à…" }} />
+      limit={12} searchProps={{ leftSection: <Search size={18} />, placeholder: "Aller à…" }} />
   );
 }

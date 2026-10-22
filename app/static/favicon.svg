@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Lyvre">
+  <rect width="64" height="64" rx="14" fill="#2F6B4F"></rect>
+  <svg x="4" y="9" width="56" height="46" viewBox="6 18 108 88">
+    <path d="M83 28 C80 23 70 22 64 26 C58 30 52 38 46 46 C40 54 34 62 30 68 L10 98 L13 101 L16 99 L36 76 C46 78 58 76 66 68 C74 60 80 50 82 44 C83 41 84 38 85 36 Z" fill="#F6F4EE"></path>
+    <circle cx="95" cy="36" r="6" fill="#D9A441"></circle>
+    <path d="M83 26.5 C90 26 97 28 102 31.5 C96 31.5 90 32 84 33 Z M84 35 C90 37 96 39 100 40.5 C94 41 88 40.5 85 39.5 Z" fill="#F6F4EE"></path>
+    <path d="M8 87 L104 87" stroke="#D9A441" stroke-width="4" stroke-linecap="round" fill="none"></path>
+  </svg>
+</svg>

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from app.extensions import db
-from app.models import BankAccount, Account, Entity, Rule, TaskType, WorkTime
+from app.models import BankAccount, Account, Entity, TaskType, WorkTime
 
 TEMPLATES = Path(__file__).resolve().parent.parent / "app" / "templates"
 # Requête émise par un formulaire hx_submit / un lien hx_nav (cible = zone de contenu).
@@ -28,31 +28,36 @@ def _location(resp):
 # --- redirections ---------------------------------------------------------
 
 
-def test_redirect_after_action_becomes_hx_location(client, session):
-    rule = Rule(position=1, name="EDF", label_contains="EDF", is_active=True)
-    session.add(rule)
+def _work_time(session):
+    ent = Entity(name="Alice", is_benevole=True)
+    tt = TaskType(name="Caisse", hourly_rate_cents=2500)
+    wt = WorkTime(entity=ent, task_type=tt, work_date=date(2026, 10, 1), hours=2)
+    session.add_all([ent, tt, wt])
     session.commit()
+    return wt
 
-    resp = client.post(f"/rules/{rule.id}/toggle-active", headers=HX_CONTENT)
+
+def test_redirect_after_action_becomes_hx_location(client, session):
+    wt = _work_time(session)
+
+    resp = client.post(f"/work-times/{wt.id}/delete", headers=HX_CONTENT)
     assert resp.status_code == 200 and resp.get_data() == b""
     loc = _location(resp)
-    assert loc == {"path": "/rules/", "target": "#page-content", "select": "#page-content",
+    assert loc == {"path": "/work-times/", "target": "#page-content", "select": "#page-content",
                    "swap": "outerHTML show:none"}
-    assert db.session.get(Rule, rule.id).is_active is False
+    assert WorkTime.query.count() == 0
 
     # Le message flash part avec la requête suivante (chargement HX-Location).
     follow = client.get(loc["path"], headers={"HX-Request": "true", "HX-Target": "page-content"})
     toast = json.loads(follow.headers["HX-Trigger"])["toast"]
-    assert toast[0]["level"] == "success" and "désactivée" in toast[0]["message"]
-    assert "désactivée" not in follow.get_data(as_text=True)  # pas rendu dans la page
+    assert toast[0]["level"] == "success" and "supprimé" in toast[0]["message"]
+    assert "Temps de travaux supprimé" not in follow.get_data(as_text=True)  # pas rendu dans la page
 
 
 def test_redirect_outside_content_zone_stays_hx_redirect(client, session):
-    rule = Rule(position=1, name="EDF", label_contains="EDF", is_active=True)
-    session.add(rule)
-    session.commit()
-    resp = client.post(f"/rules/{rule.id}/toggle-active", headers={"HX-Request": "true"})
-    assert resp.headers["HX-Redirect"] == "/rules/"
+    wt = _work_time(session)
+    resp = client.post(f"/work-times/{wt.id}/delete", headers={"HX-Request": "true"})
+    assert resp.headers["HX-Redirect"] == "/work-times/"
     assert "HX-Location" not in resp.headers
 
 
@@ -98,13 +103,6 @@ def test_work_time_valid_form_redirects_in_content_zone(client, benevole):
     assert _location(resp)["path"] == "/work-times/"
     wt = WorkTime.query.one()
     assert wt.work_date == date(2026, 10, 1) and float(wt.hours) == 2.5
-
-
-def test_task_type_duplicate_name_error_at_field(client, benevole):
-    resp = client.post("/work-times/task-types/new", data={"name": "caisse"}, headers=HX_CONTENT)
-    assert resp.status_code == 422
-    html = resp.get_data(as_text=True)
-    assert 'id="err-name"' in html and "existe déjà" in html
 
 
 def test_htmx_config_swaps_422(app):

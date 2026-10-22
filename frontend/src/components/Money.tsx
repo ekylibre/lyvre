@@ -18,6 +18,8 @@ export function MoneyInput({ value, onChange, ...props }: MoneyInputProps) {
       hideControls
       rightSection="€"
       inputMode="decimal"
+      classNames={{ input: "lv-num" }}
+      styles={{ input: { textAlign: "right" } }}
       {...props}
       value={value === null ? "" : value / 100}
       onChange={(v) => onChange(v === "" || v === null ? null : Math.round(Number(v) * 100))}
@@ -25,11 +27,16 @@ export function MoneyInput({ value, onChange, ...props }: MoneyInputProps) {
   );
 }
 
-export function MoneyText({ cents, colored = false, ...props }: TextProps & { cents: number; colored?: boolean }) {
+/**
+ * Montant affiché (charte : chasse fixe, chiffres tabulaires, « − » typographique).
+ * Un débit n'est pas en rouge ; `anomaly` (écart, erreur) le met en brique.
+ */
+export function MoneyText({ cents, plus = false, anomaly = false, ...props }:
+  TextProps & { cents: number; plus?: boolean; anomaly?: boolean }) {
   return (
-    <Text component="span" inherit c={colored && cents < 0 ? "red" : undefined}
-      style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }} {...props}>
-      {formatEuros(cents)}
+    <Text component="span" className="lv-num" c={anomaly ? "var(--lv-brique)" : undefined}
+      style={{ whiteSpace: "nowrap" }} {...props}>
+      {formatEuros(cents, { plus })}
     </Text>
   );
 }
