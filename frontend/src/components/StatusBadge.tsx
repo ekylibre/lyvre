@@ -14,7 +14,7 @@ const TONES: Record<Tone, { bg: string; c: string }> = {
 export function StatusBadge({ tone, children }: { tone: Tone; children: string }) {
   const colors = TONES[tone];
   return (
-    <Badge radius="xl" variant="filled" bg={colors.bg} c={colors.c} tt="none" fw={600}
+    <Badge radius="xl" variant="filled" bg={colors.bg} c={colors.c} tt="none" fw={600} style={{ flexShrink: 0 }}
       leftSection={<span aria-hidden style={{ width: 6, height: 6, borderRadius: 99, background: "currentColor", display: "inline-block" }} />}>
       {children}
     </Badge>

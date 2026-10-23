@@ -73,7 +73,7 @@ export default function SubscriptionsPage() {
   const columns: GridColumn<Subscription>[] = [
     { accessor: "label", title: "Abonnement", hideable: false, render: (s) => (
       <Group gap={6} wrap="nowrap"><Anchor component={AppLink} href={`/subscriptions/${s.id}`} size="sm">{s.label}</Anchor>
-        {s.notice_alert && <StatusBadge tone="gap">{`préavis avant le ${formatDate(s.notice_deadline)}`}</StatusBadge>}</Group>
+        {s.notice_alert && <span title={`Résiliation avant le ${formatDate(s.notice_deadline)}`}><StatusBadge tone="gap">préavis</StatusBadge></span>}</Group>
     ) },
     { accessor: "supplier", title: "Fournisseur", render: (s) => s.supplier.name },
     { accessor: "category_label", title: "Catégorie" },
@@ -84,7 +84,7 @@ export default function SubscriptionsPage() {
       ? <Group gap={6} wrap="nowrap"><Text size="sm" className="lv-num">{formatDate(s.last_period.due_date)}</Text>
         <StatusBadge tone={PERIOD_TONES[s.last_period.status]}>{s.last_period.status_label}</StatusBadge></Group> : null },
     { accessor: "missing", title: "Manquantes", textAlign: "right", render: (s) => s.missing ? <Text size="sm" c="var(--lv-brique)">{s.missing}</Text> : null },
-    { accessor: "active", title: "État", render: (s) => <StatusBadge tone={s.active ? "ok" : "neutral"}>{s.active ? "En cours" : "Terminé"}</StatusBadge> },
+    { accessor: "active", title: "État", render: (s) => s.active ? null : <StatusBadge tone="neutral">Terminé</StatusBadge> },
   ];
   return (
     <>

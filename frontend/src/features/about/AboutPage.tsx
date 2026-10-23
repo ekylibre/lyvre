@@ -7,7 +7,7 @@ import {
   useComputedColorScheme,
 } from "@mantine/core";
 import {
-  BadgeCheck, Banknote, BarChart3, BookOpen, Building2, Calculator, FileCheck2, HandCoins, Landmark, Receipt, ShieldCheck,
+  BadgeCheck, Banknote, BarChart3, BookOpen, Building2, Calculator, FileCheck2, FileText, HandCoins, Landmark, Receipt, ShieldCheck,
   Users,
 } from "lucide-react";
 import symbol from "../../assets/lyvre-symbole.svg";
@@ -34,6 +34,12 @@ const DOMAINS: Domain[] = [
   { icon: <Receipt size={18} />, title: "Achats", items: [
     "Factures fournisseurs Qonto ou déposées : lecture Factur-X, PDF ou photo (OCR)",
     "Catalogue de produits, comptabilisation en engagement (401 par fournisseur), règlements rapprochés",
+    "Abonnements (internet, téléphone, assurance, banque) : échéances attendues, facture et prélèvement rattachés, préavis",
+  ] },
+  { icon: <FileText size={18} />, title: "Ventes", items: [
+    "Devis, factures et avoirs numérotés, PDF Factur-X, écriture au journal des ventes, envoi par email",
+    "Encaissements rapprochés de la banque, TVA à l'encaissement ou sur les débits, relances",
+    "Factures récurrentes, baux, avis d'échéance et quittances ; émission par Qonto en option",
   ] },
   { icon: <Users size={18} />, title: "Adhérents et tiers", items: [
     "Répertoire des tiers, adhésions HelloAsso et caisse, relances par email",
@@ -55,7 +61,7 @@ const DOMAINS: Domain[] = [
     "Compte de résultat d'un projet pour un financeur, exports tableur",
   ] },
   { icon: <BarChart3 size={18} />, title: "Pilotage et rapport d'AG", items: [
-    "Tableau de bord : résultat, ventes, trésorerie, budget",
+    "Tableau de bord : résultat, facturé et encours clients, trésorerie, budget",
     "Indicateurs de visibilité et d'impact, rapport d'activité PDF / DOCX / ODT",
   ] },
   { icon: <ShieldCheck size={18} />, title: "Collaboration et souveraineté", items: [
@@ -85,7 +91,7 @@ const ROWS: Row[] = [
   { key: "ag_report", label: "Rapport pour l'assemblée générale", lyvre: "yes" },
   { key: "multi_users", label: "Plusieurs utilisateurs, rôles", lyvre: "yes" },
   { key: "multi_entities", label: "Plusieurs structures", lyvre: "yes" },
-  { key: "sales_invoices", label: "Factures clients, devis", lyvre: "partial", note: "Lyvre : via Odoo" },
+  { key: "sales_invoices", label: "Factures clients, devis", lyvre: "yes" },
   { key: "cheques_ticketing", label: "Remise de chèques, billetterie", lyvre: "no" },
   { key: "website_crm", label: "Site web, CRM, communication", lyvre: "no" },
   { key: "mobile_app", label: "Application mobile", lyvre: "partial", note: "Lyvre : interface lisible sur mobile" },
@@ -95,7 +101,7 @@ const ROWS: Row[] = [
 
 const LIMITS = [
   "Pas d'application mobile native : l'interface s'adapte au téléphone.",
-  "Factures clients et devis seulement par l'intégration Odoo ; pas de remise de chèques ni de billetterie.",
+  "Pas de remise de chèques ni de billetterie ; la facture électronique (réforme 2026-2027) passe par Qonto.",
   "Pas d'immobilisations ni d'amortissements calculés (comptes présents, sans suivi).",
   "Pas de paiement en ligne propre : les adhésions et dons en ligne passent par HelloAsso.",
   "Modèles de reçus fiscaux à faire relire face aux formulaires Cerfa en vigueur avant usage.",

@@ -38,7 +38,7 @@ describe("abonnements", () => {
   it("coûts, échéances manquantes, préavis", async () => {
     renderWithProviders(<SubscriptionsPage />);
     expect(await screen.findByText(/2 échéance\(s\) passée\(s\) sans facture/)).toBeTruthy();
-    expect(screen.getByText("préavis avant le 01/11/2026")).toBeTruthy();
+    expect(screen.getByTitle("Résiliation avant le 01/11/2026")).toBeTruthy();
     expect(screen.getByText(/1 contrat\(s\) arrivent à la date limite/)).toBeTruthy();
   });
 

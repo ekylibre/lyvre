@@ -104,7 +104,7 @@ def _seed_sales(engine):
     with engine.begin() as conn:
         conn.execute(text("INSERT INTO fiscal_years (label, start_date, end_date, closed, vat_liable, vat_on_receipts) "
                           "VALUES (:l, :s, :e, 0, 0, 1)"),
-                     {"l": str(today.year), "s": f"{today.year - 1}-07-01", "e": f"{today.year}-12-31"})
+                     {"l": str(today.year), "s": f"{today.year}-01-01", "e": f"{today.year}-12-31"})
         conn.execute(text("INSERT INTO journals (code, label) VALUES ('BQ', 'Banque')"))
         for code, label, kind, header in (("411", "Clients", "TIERS", 1), ("706", "Loyers et prestations", "REVENUE", 0),
                                           ("708", "Charges refacturées", "REVENUE", 0), ("512000", "Banque", "ASSET", 0)):
