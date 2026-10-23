@@ -535,8 +535,16 @@ Structure, onglet Facturation (`/configuration/organization?tab=billing`). API :
 | POST | `/api/v1/sales/send` | Envoi des pièces choisies `{ids}` à l'adresse de leur client (50 au plus) |
 | GET / PUT | `/api/v1/billing-settings` | Réglages de facturation (PUT : administrateur de l'instance) |
 | POST / DELETE | `/api/v1/billing-settings/logo` | Logo PNG ou JPEG (500 Ko) |
+| GET | `/api/v1/sales/<id>/payment-options` | Restant dû, crédits bancaires candidats (montant exact, même client, écriture de règle à remplacer), banques et caisses |
+| POST | `/api/v1/sales/match` | `{bank_transaction_id, allocations: [{sale_id, amount_cents}]}` : une transaction encaisse des factures d'un seul client (somme = montant) ; écriture BQ 512 / 411 (+ 44574 → 44571), rapprochée |
+| POST | `/api/v1/sales/<id>/payments` | Encaissement saisi `{amount, paid_on, bank_account_id, method}` (BQ ou CA) |
+| DELETE | `/api/v1/sale-payments/<id>` | Défaire : écriture supprimée, rapprochement défait |
+| POST | `/api/v1/sales/auto-match` | Encaisse les factures au crédit candidat unique (aussi après un import OFX et une synchronisation Qonto) |
+| POST | `/api/v1/sales/remind` | Relance des factures choisies non soldées `{ids}` (message de relance) |
+| POST | `/api/v1/sales/<id>/remind` | Relance d'une facture, message modifiable `{to, cc, subject, body}` |
 
-`PATCH /api/v1/fiscal-years/<id>` accepte aussi `vat_on_receipts`.
+`PATCH /api/v1/fiscal-years/<id>` accepte aussi `vat_on_receipts`. `GET /api/v1/dashboard` renvoie `sales`
+(CA facturé HT de l'exercice, encours clients, échues).
 
 ## Rapprochement bancaire (`/reconciliation/`)
 

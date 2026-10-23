@@ -19,9 +19,19 @@ Veuillez trouver ci-joint {article} {type_minuscule} n° {numero} du {date}, d'u
 {echeance}
 Bien cordialement,
 {organisation}"""
+DEFAULT_REMINDER_SUBJECT = "Relance : facture n° {numero} — {organisation}"
+DEFAULT_REMINDER_BODY = """Bonjour,
+
+Sauf erreur de notre part, notre facture n° {numero} du {date}, arrivée à échéance le {date_echeance}, reste impayée : {restant} restent dus.
+
+Merci de procéder à son règlement, ou de nous indiquer s'il a déjà été effectué. La facture est jointe à ce message.
+
+Bien cordialement,
+{organisation}"""
 DEFAULT_LATE_PENALTY = ("En cas de retard de paiement, pénalités au taux d'intérêt de la BCE majoré de 10 points.")
 TEXT_FIELDS = {"legal_form": 100, "rcs": 100, "vat_number": 20, "iban": 34, "bic": 11, "send_subject": 255,
-               "late_penalty_text": None, "discount_text": None, "footer": None, "send_body": None}
+               "late_penalty_text": None, "discount_text": None, "footer": None, "send_body": None,
+               "reminder_subject": 255, "reminder_body": None}
 
 
 def get() -> BillingSettings:
@@ -63,6 +73,7 @@ def payload(settings: BillingSettings | None = None) -> dict:
         "payment_terms_days": settings.payment_terms_days, "recovery_fee": settings.recovery_fee,
         "has_logo": logo_file(settings) is not None,
         "defaults": {"send_subject": DEFAULT_SEND_SUBJECT, "send_body": DEFAULT_SEND_BODY,
+                     "reminder_subject": DEFAULT_REMINDER_SUBJECT, "reminder_body": DEFAULT_REMINDER_BODY,
                      "late_penalty_text": DEFAULT_LATE_PENALTY},
         "readiness": readiness(settings, vat_liable=True),
     }

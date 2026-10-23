@@ -139,6 +139,13 @@ def test_credit_notes(admin):
     assert partial["kind"] == "credit_note" and partial["total_cents"] == 2852
     issued = admin.post(f"{API}/{partial['id']}/issue").get_json()["item"]
     assert issued["number"] == "AV-2026-0001" and db.session.get(Sale, item["id"]).status == "issued"
+    # Avoir de plus de la moitié : la facture n'est pas annulée pour autant (régression).
+    half = admin.post(f"{API}/{item['id']}/credit-note", json={"reason": "Geste", "line_ids": [invoice.lines[0].id]}).get_json()["item"]
+    resp = admin.patch(f"{API}/{half['id']}", json={"entity_id": half["client"]["id"], "issue_date": half["issue_date"],
+                                                   "lines": [{"label": "Geste", "unit_price": "12", "vat_rate": "20", "account_code": "706"}]})
+    assert resp.status_code == 200, resp.get_json()
+    assert admin.post(f"{API}/{half['id']}/issue").status_code == 200
+    assert db.session.get(Sale, item["id"]).status == "issued"
     note = db.session.get(Sale, partial["id"])
     assert _lines(note.journal_entry) == [("411001", 0, 2852), ("44571", 149, 0), ("707", 2703, 0)]
     name, xml = facturx.get_xml_from_pdf(sale_documents.pdf_file(note).read_bytes(), check_xsd=True)
@@ -149,8 +156,12 @@ def test_credit_notes(admin):
     assert resp.status_code == 409 and "dépasse" in resp.get_json()["error"]["message"]
     rest = admin.post(f"{API}/{item['id']}/credit-note", json={"reason": "Annulation",
                                                               "line_ids": [invoice.lines[0].id]}).get_json()["item"]
+    resp = admin.patch(f"{API}/{rest['id']}", json={"entity_id": rest["client"]["id"], "issue_date": rest["issue_date"],
+                                                   "lines": [{"label": "Solde", "unit_price": "188", "vat_rate": "20", "account_code": "706"}]})
+    assert resp.status_code == 200 and resp.get_json()["item"]["total_cents"] == 22560  # 268,52 − 28,52 − 14,40
     admin.delete(f"{API}/{full['id']}")
-    assert admin.post(f"{API}/{rest['id']}/issue").status_code == 200
+    resp = admin.post(f"{API}/{rest['id']}/issue")
+    assert resp.status_code == 200, resp.get_json()
     assert db.session.get(Sale, item["id"]).status == "canceled"  # avoirs = montant de la facture
 
 

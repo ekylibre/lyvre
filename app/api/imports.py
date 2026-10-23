@@ -34,6 +34,12 @@ def imports_ofx():
             notices.append(notice(f"{matching['matched']} facture(s) d'achat rattachée(s) à leur paiement, "
                                   f"{matching['settled']} règlement(s) passé(s)."))
         notices += [notice(e, "danger") for e in matching["errors"]]
+        # Factures de vente : crédit unique de même montant que le restant dû → encaissée.
+        from app.services import sale_settlement
+        sales = sale_settlement.auto_match()
+        if sales["matched"]:
+            notices.append(notice(f"{sales['matched']} facture(s) de vente encaissée(s)."))
+        notices += [notice(e, "danger") for e in sales["errors"]]
     return jsonify(result={"imported": result["imported"], "duplicates": result["duplicates"],
                            "errors": result["errors"], "matched": matching["matched"],
                            "settled": matching["settled"]}, notices=notices)

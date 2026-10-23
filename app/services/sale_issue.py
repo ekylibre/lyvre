@@ -11,7 +11,7 @@ from sqlalchemy import func, update
 from app.extensions import db
 from app.models import Sale, SaleCounter, SaleEmail, SaleLine
 from app.models.sale import SERIES
-from app.services import billing, organization, sale_documents, sale_posting
+from app.services import billing, organization, sale_documents, sale_posting, sale_settlement
 from app.services.ledger import LedgerError
 from app.services.sale_entry import SaleError, client_snapshot, compute, fiscal_year_for, json_snapshot, vat_mode_for
 from app.utils.money import euros
@@ -100,8 +100,11 @@ def issue(sale: Sale) -> Sale:
         sale_posting.post(sale, fiscal_year_for(sale.issue_date))
         sale_documents.store_pdf(sale)
         written = sale_documents.pdf_file(sale)
-        if sale.kind == "credit_note" and credited_cents(sale.invoice) + sale.total_cents >= sale.invoice.total_cents:
-            sale.invoice.status = "canceled"  # avoir total : la facture est annulée
+        # credited_cents compte déjà cet avoir (émis ci-dessus, vidé dans la session par la requête).
+        if sale.kind == "credit_note" and credited_cents(sale.invoice) >= sale.invoice.total_cents:
+            sale.invoice.status = "canceled"  # avoirs = montant de la facture : elle est annulée
+        elif sale.kind == "credit_note":
+            sale_settlement.refresh_status(sale.invoice)  # le restant dû baisse (payée si soldée)
         db.session.commit()
     except LedgerError as exc:
         db.session.rollback()
@@ -154,15 +157,20 @@ def recipients_of(sale: Sale) -> list[str]:
     return seen
 
 
-def message_for(sale: Sale) -> tuple[str, str]:
+def message_for(sale: Sale, purpose: str = "send") -> tuple[str, str]:
     settings, org = billing.get(), organization.get()
     title = sale_documents.TITLES.get(sale.kind, "Facture")
     due = (f"Échéance : {sale.due_date:%d/%m/%Y}.\n" if sale.kind == "invoice" and sale.due_date else "")
     values = {"type": title, "type_minuscule": title.lower(), "article": "notre",
               "numero": sale.number or "", "date": f"{sale.issue_date:%d/%m/%Y}", "montant": euros(sale.total_cents),
-              "echeance": due, "organisation": org.name, "client": sale.entity.name}
-    subject = (settings.send_subject or billing.DEFAULT_SEND_SUBJECT)
-    body = (settings.send_body or billing.DEFAULT_SEND_BODY)
+              "echeance": due, "date_echeance": f"{sale.due_date:%d/%m/%Y}" if sale.due_date else "",
+              "restant": euros(sale_settlement.due_cents(sale)), "organisation": org.name, "client": sale.entity.name}
+    if purpose == "reminder":
+        subject = settings.reminder_subject or billing.DEFAULT_REMINDER_SUBJECT
+        body = settings.reminder_body or billing.DEFAULT_REMINDER_BODY
+    else:
+        subject = settings.send_subject or billing.DEFAULT_SEND_SUBJECT
+        body = settings.send_body or billing.DEFAULT_SEND_BODY
     for key, value in values.items():
         subject, body = subject.replace("{" + key + "}", value), body.replace("{" + key + "}", value)
     return subject, body
@@ -173,9 +181,10 @@ def _html(body: str) -> str:
     return "".join(f"<p>{escape(p).replace(chr(10), '<br>')}</p>" for p in body.strip().split("\n\n"))
 
 
-def send(sales, to=None, cc=None, subject=None, body=None) -> dict:
+def send(sales, to=None, cc=None, subject=None, body=None, purpose="send") -> dict:
     """Envoie chaque pièce émise (PDF joint) ; `to`/`subject`/`body` pour un envoi unitaire, sinon
-    destinataires et message par défaut. Un échec n'arrête pas les autres envois."""
+    destinataires et message par défaut. `purpose = reminder` : relance d'une facture échue non
+    soldée (message de relance, compteur de relances). Un échec n'arrête pas les autres envois."""
     from app.services.membership_reminders import _build_message, _open_smtp, smtp_settings
 
     if len(sales) > MAX_BATCH:
@@ -188,26 +197,34 @@ def send(sales, to=None, cc=None, subject=None, body=None) -> dict:
             if sale.status == "draft" or not sale.number:
                 skipped += 1
                 continue
+            if purpose == "reminder" and not sale_settlement.due_cents(sale):
+                skipped += 1
+                errors.append(f"{sale.number} : rien à relancer (soldée ou annulée).")
+                continue
             recipients = list(to) if to else recipients_of(sale)
             path = sale_documents.pdf_file(sale)
             if not recipients or path is None:
                 skipped += 1
                 errors.append(f"{sale.number} : {'aucune adresse email' if not recipients else 'PDF introuvable'}.")
                 continue
-            default_subject, default_body = message_for(sale)
+            default_subject, default_body = message_for(sale, purpose)
             text_subject = (subject or default_subject)[:255]
             message = _build_message(settings["sender"], ", ".join(recipients), text_subject, _html(body or default_body))
             if cc:
                 message["Cc"] = ", ".join(cc)
             message.add_attachment(path.read_bytes(), maintype="application", subtype="pdf",
                                    filename=sale_documents.filename(sale))
-            log = SaleEmail(sale=sale, purpose="send", channel="smtp", subject=text_subject,
+            log = SaleEmail(sale=sale, purpose=purpose, channel="smtp", subject=text_subject,
                             recipients=", ".join(recipients + list(cc or [])))
             try:
                 if server is None:
                     server = _open_smtp(settings)
                 server.send_message(message)
-                log.status, sale.sent_at = "sent", datetime.utcnow()
+                log.status = "sent"
+                if purpose == "reminder":
+                    sale.reminder_count, sale.last_reminder_at = (sale.reminder_count or 0) + 1, datetime.utcnow()
+                else:
+                    sale.sent_at = datetime.utcnow()
                 sent += 1
             except Exception as exc:  # noqa: BLE001 — échec isolé par pièce
                 log.status, log.error = "failed", str(exc)[:500]

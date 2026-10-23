@@ -175,8 +175,10 @@ def apply_rules(transactions=None, overwrite=False):
     errors = []
     created_entry_ids = []
     # Paiement d'une facture d'achat : réglé par 401 / banque, jamais par une règle.
+    from app.services import sale_settlement
     from app.services.purchase_settlement import linked_transaction_ids
     paying_invoices = linked_transaction_ids([t.id for t in transactions])
+    paying_invoices |= sale_settlement.linked_transaction_ids([t.id for t in transactions])
 
     for txn in transactions:
         if txn.is_reversed or txn.id in paying_invoices:  # annulée, ou règlement de facture

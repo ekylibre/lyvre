@@ -1326,3 +1326,4 @@ mouvements de reprise, écritures AN datées de la reprise contre le compte de c
 | `sale_documents` | Gabarit `templates/sales/document.html` (mentions obligatoires), PDF/A-3 Factur-X pour une pièce émise, PDF simple pour un brouillon ; conservation `ventes/AAAA/<numéro>.pdf` |
 | `billing` | Réglages de facturation, mentions requises (`readiness`), logo |
 | `einvoice` | XML CII EN 16931 (bibliothèque `factur-x`, contrôle XSD) et insertion dans le PDF/A-3 |
+| `sale_settlement` (S2) | Restant dû, statut payé, TVA à virer au prorata (`vat_release`), candidats (crédits libres, écriture de règle 7… / 411 remplaçable), `match` (transaction → factures d'un client), `record_manual`, `auto_match` (candidat unique et exclusif), `unlink`, `forget_entry_payments` (appelé par `ledger.delete_entries`), `receivables_summary` (tableau de bord) ; les règles de catégorisation ignorent les transactions qui encaissent une facture |

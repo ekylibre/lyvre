@@ -114,8 +114,11 @@ def dashboard():
     if fy is None:
         return jsonify(stats=None, monthly=[], recent_entries=[], meta=_meta(years, None))
     data = dashboard_data(fy)
+    from app.services import sale_settlement
     return jsonify(
         stats=data["stats"], monthly=data["monthly"],
+        # Ventes : CA facturé de l'exercice, encours clients, échues (tuiles seulement s'il y a des factures).
+        sales=sale_settlement.receivables_summary(fy.start_date, fy.end_date),
         recent_entries=[{"id": e.id, "url": url_for("entries.detail", entry_id=e.id),
                          "reference": e.reference, "date": e.entry_date.isoformat(),
                          "description": e.description or "", "total_cents": e.total_debit}

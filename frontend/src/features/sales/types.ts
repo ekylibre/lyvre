@@ -12,6 +12,19 @@ export interface SaleRow {
   id: number; kind: SaleKind; kind_label: string; status: SaleStatus; status_label: string; number: string | null;
   source: "app" | "qonto"; client: { id: number; name: string }; issue_date: string | null; due_date: string | null;
   untaxed_cents: number; tax_cents: number; total_cents: number; paid_cents: number; sent_at: string | null; overdue: boolean;
+  due_cents: number; reminder_count: number; last_reminder_at: string | null;
+}
+
+export interface SalePayment {
+  id: number; amount_cents: number; paid_on: string; origin: "bank" | "manual"; method: string; vat_released_cents: number;
+  account: string | null; transaction: { id: number; label: string | null } | null; journal_entry: { id: number; reference: string } | null;
+}
+
+export interface PaymentOptions {
+  due_cents: number;
+  candidates: { id: number; date: string; label: string; amount_cents: number; account: string; same_client: boolean; exact: boolean; rule: boolean }[];
+  accounts: { value: string; label: string; kind: "bank" | "cash" }[];
+  methods: { value: string; label: string }[];
 }
 
 export interface SaleLineRow {
@@ -29,7 +42,9 @@ export interface SaleDetail extends Omit<SaleRow, "client"> {
   journal_entry: { id: number; reference: string } | null; invoice: { id: number; number: string } | null;
   credit_notes: { id: number; number: string | null; status: SaleStatus; total_cents: number }[];
   remaining_credit_cents: number; issue_problems: string[]; recipients: string[];
-  emails: { sent_at: string; recipients: string; subject: string | null; status: "sent" | "failed"; error: string | null }[];
+  emails: { sent_at: string; recipients: string; subject: string | null; status: "sent" | "failed"; error: string | null;
+    purpose: "send" | "reminder" }[];
+  payments: SalePayment[];
   pdf_url: string;
 }
 

@@ -1,6 +1,7 @@
 // Ventes › Facture ou avoir (/sales/<id>) : client, lignes, totaux et TVA par taux ; brouillon :
 // modifier, supprimer, émettre (numéro, écriture VE, PDF Factur-X) ; pièce émise : PDF, envoi par
-// email (SMTP, message modifiable), avoir, historique des envois.
+// email (SMTP, message modifiable), avoir, encaissements (transaction ou saisie, défaire), relance,
+// historique des envois et relances.
 import { useState } from "react";
 import { useParams } from "react-router";
 import {
@@ -19,24 +20,26 @@ import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate, formatDateTime } from "../../lib/format";
 import { AppLink, useGoTo } from "../../app/navigation";
+import { PaymentForm } from "./PaymentForm";
 import { SALES_KEY, STATUS_TONES, VAT_MODE_LABELS, type SaleDetail } from "./types";
 
 const rate = (bp: number) => `${(bp / 100).toLocaleString("fr-FR")} %`;
 
-function SendForm({ sale, onDone }: { sale: SaleDetail; onDone: (s: SaleDetail) => void }) {
+function SendForm({ sale, onDone, purpose = "send" }: { sale: SaleDetail; onDone: (s: SaleDetail) => void; purpose?: "send" | "reminder" }) {
   const [to, setTo] = useState<string[]>(sale.recipients);
   const [cc, setCc] = useState<string[]>([]);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
-  const send = useAction(() => api.post<{ item: SaleDetail; notices: Notice[] }>(`/api/v1/sales/${sale.id}/send`, { to, cc, subject, body }),
-    { invalidate: [SALES_KEY] });
+  const send = useAction(() => api.post<{ item: SaleDetail; notices: Notice[] }>(
+    `/api/v1/sales/${sale.id}/${purpose === "reminder" ? "remind" : "send"}`, { to, cc, subject, body }), { invalidate: [SALES_KEY] });
   return (
     <form onSubmit={(e) => { e.preventDefault(); send.mutate(undefined, { onSuccess: (r) => onDone(r.item) }); }}>
-      <FormBody submitLabel="Envoyer" onCancel={() => onDone(sale)} loading={send.isPending}>
+      <FormBody submitLabel={purpose === "reminder" ? "Envoyer la relance" : "Envoyer"} onCancel={() => onDone(sale)} loading={send.isPending}>
         <TagsInput label="Destinataires" required value={to} onChange={setTo} description="Email du client (fiche du tiers) ; Entrée pour ajouter une adresse." />
         <TagsInput label="Copie" value={cc} onChange={setCc} />
         <TextInput label="Objet" placeholder="Objet par défaut (Configuration › Structure › Facturation)" value={subject} onChange={(e) => setSubject(e.currentTarget.value)} />
-        <Textarea label="Message" placeholder="Message par défaut" autosize minRows={4} value={body} onChange={(e) => setBody(e.currentTarget.value)} />
+        <Textarea label="Message" placeholder={purpose === "reminder" ? "Message de relance par défaut (restant dû, échéance)" : "Message par défaut"}
+          autosize minRows={4} value={body} onChange={(e) => setBody(e.currentTarget.value)} />
         <Text size="sm" c="dimmed">Le PDF de la pièce est joint.</Text>
       </FormBody>
     </form>
@@ -69,11 +72,12 @@ export default function SaleDetailPage() {
   const goTo = useGoTo();
   const key = [...SALES_KEY, id];
   const { data, error } = useQuery({ queryKey: key, retry: false, queryFn: () => api.get<{ item: SaleDetail }>(`/api/v1/sales/${id}`) });
-  const [modal, setModal] = useState<"send" | "credit" | null>(null);
+  const [modal, setModal] = useState<"send" | "credit" | "pay" | "remind" | null>(null);
   const smtp = useIntegrationGuard("smtp", "L'envoi par email");
   const refresh = (item: SaleDetail) => { client.setQueryData(key, { item }); void client.invalidateQueries({ queryKey: SALES_KEY }); };
   const issue = useAction(() => api.post<{ item: SaleDetail; notices: Notice[] }>(`/api/v1/sales/${id}/issue`));
   const remove = useAction(() => api.delete<{ notices: Notice[] }>(`/api/v1/sales/${id}`), { invalidate: [SALES_KEY] });
+  const unpay = useAction((paymentId: number) => api.delete<{ item: SaleDetail; notices: Notice[] }>(`/api/v1/sale-payments/${paymentId}`));
 
   if (error) return <Alert color="brique" mt="md">{(error as Error).message}</Alert>;
   if (!data) return <Center h={300}><Loader /></Center>;
@@ -98,7 +102,10 @@ export default function SaleDetailPage() {
               title={`Émettre ${s.kind === "credit_note" ? "l'avoir" : "la facture"} ?`} confirmLabel="Émettre"
               message="Un numéro définitif est attribué, l'écriture comptable est passée et le PDF Factur-X est produit. La pièce ne pourra plus être modifiée ni supprimée (on la corrige par un avoir)."
               onConfirm={() => issue.mutate(undefined, { onSuccess: (r) => refresh(r.item) })}>Émettre</ConfirmButton>}
+            {s.kind === "invoice" && s.due_cents > 0 && <Button onClick={() => setModal("pay")}>Encaisser</Button>}
             {!draft && <Button variant="default" onClick={smtp.guard(() => setModal("send"))}>Envoyer</Button>}
+            {s.kind === "invoice" && s.overdue && s.due_cents > 0 &&
+              <Button variant="default" onClick={smtp.guard(() => setModal("remind"))}>Relancer</Button>}
             {!draft && s.kind === "invoice" && s.status !== "canceled" && s.remaining_credit_cents > 0 &&
               <Button variant="default" onClick={() => setModal("credit")}>Avoir</Button>}
           </Can>
@@ -167,6 +174,34 @@ export default function SaleDetailPage() {
         </Stack>
       </Paper>
 
+      {s.kind === "invoice" && !draft && (
+        <Paper p="md" mb="md">
+          <Group justify="space-between" mb="xs">
+            <Title order={3}>Encaissements</Title>
+            <Text size="sm">Encaissé <MoneyText cents={s.paid_cents} size="sm" /> · restant dû <MoneyText cents={s.due_cents} size="sm" fw={600} />
+              {s.reminder_count > 0 && <Text span size="sm" c="dimmed"> · {s.reminder_count} relance(s), la dernière le {formatDate(s.last_reminder_at)}</Text>}</Text>
+          </Group>
+          {s.payments.length === 0 ? <Text size="sm" c="dimmed">Aucun encaissement.</Text> : (
+            <Table>
+              <Table.Tbody>
+                {s.payments.map((p) => (
+                  <Table.Tr key={p.id}>
+                    <Table.Td className="lv-num">{formatDate(p.paid_on)}</Table.Td>
+                    <Table.Td>{p.origin === "bank" ? <>Transaction : {p.transaction?.label ?? "—"}</> : <>{p.method} — {p.account}</>}
+                      {p.vat_released_cents > 0 && <Text size="xs" c="dimmed">TVA encaissée virée : <MoneyText cents={p.vat_released_cents} size="xs" /></Text>}</Table.Td>
+                    <Table.Td>{p.journal_entry && <Anchor component={AppLink} href={`/entries/${p.journal_entry.id}`} size="sm" className="lv-num">{p.journal_entry.reference}</Anchor>}</Table.Td>
+                    <Table.Td ta="right"><MoneyText cents={p.amount_cents} size="sm" /></Table.Td>
+                    <Table.Td ta="right"><Can><ConfirmButton size="compact-sm" variant="subtle" title="Défaire cet encaissement ?" confirmLabel="Défaire"
+                      message="Son écriture est supprimée et la transaction bancaire n'est plus rapprochée (une transaction partagée entre plusieurs factures est défaite pour toutes)."
+                      loading={unpay.isPending} onConfirm={() => unpay.mutate(p.id, { onSuccess: (r) => refresh(r.item) })}>Défaire</ConfirmButton></Can></Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          )}
+        </Paper>
+      )}
+
       {(s.credit_notes.length > 0 || s.emails.length > 0) && (
         <Grid>
           {s.credit_notes.length > 0 && <Grid.Col span={{ base: 12, md: 6 }}><Paper p="md">
@@ -177,13 +212,19 @@ export default function SaleDetailPage() {
           {s.emails.length > 0 && <Grid.Col span={{ base: 12, md: 6 }}><Paper p="md">
             <Title order={3} mb="xs">Envois</Title>
             {s.emails.map((e) => <Text key={e.sent_at + e.recipients} size="sm" c={e.status === "failed" ? "var(--lv-brique)" : undefined}>
-              {formatDateTime(e.sent_at)} — {e.recipients}{e.status === "failed" && ` : échec (${e.error})`}</Text>)}
+              {formatDateTime(e.sent_at)} — {e.purpose === "reminder" ? "relance — " : ""}{e.recipients}{e.status === "failed" && ` : échec (${e.error})`}</Text>)}
           </Paper></Grid.Col>}
         </Grid>
       )}
 
       <FormModal opened={modal === "send"} onClose={() => setModal(null)} title={`Envoyer ${title}`} size="lg">
         {modal === "send" && <SendForm sale={s} onDone={(item) => { refresh(item); setModal(null); }} />}
+      </FormModal>
+      <FormModal opened={modal === "remind"} onClose={() => setModal(null)} title={`Relancer ${title}`} size="lg">
+        {modal === "remind" && <SendForm sale={s} purpose="reminder" onDone={(item) => { refresh(item); setModal(null); }} />}
+      </FormModal>
+      <FormModal opened={modal === "pay"} onClose={() => setModal(null)} title={`Encaisser ${title}`} size="lg">
+        {modal === "pay" && <PaymentForm sale={s} onDone={(item) => { if (item) refresh(item); setModal(null); }} />}
       </FormModal>
       <FormModal opened={modal === "credit"} onClose={() => setModal(null)} title={`Avoir sur la facture ${s.number}`}>
         {modal === "credit" && <CreditForm sale={s} onDone={(noteId) => { setModal(null); if (noteId) goTo(`/sales/${noteId}`); }} />}

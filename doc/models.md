@@ -897,3 +897,11 @@ Colonnes ajoutées : `entities.customer_account_code` (411NNN), `entities.billin
 `products.description`, `unit`, `sale_price_cents`, `nature` ; `fiscal_years.vat_on_receipts`
 (TVA des prestations à l'encaissement, sinon d'après les débits ; vrai par défaut).
 Une écriture de source `SALE` n'est ni modifiable ni supprimable (on passe un avoir).
+
+**`sale_payments`** (lot S2, migration `d4e6f8a0b2c5`) : encaissement d'une facture — `amount_cents`,
+`paid_on`, `origin` (`bank` : transaction rapprochée ; `manual` : chèque, espèces…), `method`,
+`bank_transaction_id`, `bank_account_id`, `journal_entry_id` (écriture `SALE_PAYMENT`, partagée par
+les factures d'un même client payées par une transaction), `vat_released_cents` (TVA virée de 44574
+à 44571), `qonto_marked` (lot S4). `sales.paid_cents` et le statut (`partially_paid`, `paid`) en
+découlent ; supprimer l'écriture (Écritures ou « Défaire ») supprime l'encaissement.
+`billing_settings` gagne `reminder_subject`, `reminder_body`.

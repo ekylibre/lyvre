@@ -14,13 +14,13 @@ import { BILLING_KEY } from "./types";
 interface Billing {
   legal_form: string; share_capital: string; rcs: string; vat_number: string; iban: string; bic: string;
   payment_terms_days: number; late_penalty_text: string; recovery_fee: boolean; discount_text: string; footer: string;
-  send_subject: string; send_body: string; has_logo: boolean;
-  defaults: { send_subject: string; send_body: string; late_penalty_text: string };
+  send_subject: string; send_body: string; reminder_subject: string; reminder_body: string; has_logo: boolean;
+  defaults: { send_subject: string; send_body: string; reminder_subject: string; reminder_body: string; late_penalty_text: string };
   readiness: { key: string; label: string; ok: boolean }[];
 }
 type Values = Omit<Billing, "has_logo" | "defaults" | "readiness" | "payment_terms_days"> & { payment_terms_days: string };
 const TEXT = ["legal_form", "share_capital", "rcs", "vat_number", "iban", "bic", "late_penalty_text", "discount_text", "footer",
-  "send_subject", "send_body"] as const;
+  "send_subject", "send_body", "reminder_subject", "reminder_body"] as const;
 
 export function BillingSettings() {
   const can = useCan();
@@ -93,6 +93,13 @@ export function BillingSettings() {
             <TextInput label="Objet" placeholder={d.defaults.send_subject} readOnly={readOnly} {...form.getInputProps("send_subject")} />
             <Textarea label="Message" autosize minRows={5} placeholder={d.defaults.send_body} readOnly={readOnly} {...form.getInputProps("send_body")} />
             <Text size="xs" c="dimmed">Champs : {"{type}"}, {"{numero}"}, {"{date}"}, {"{montant}"}, {"{echeance}"}, {"{client}"}, {"{organisation}"}. Vide : message par défaut.</Text>
+          </Stack>
+        </Fieldset>
+        <Fieldset legend="Message de relance">
+          <Stack>
+            <TextInput label="Objet" placeholder={d.defaults.reminder_subject} readOnly={readOnly} {...form.getInputProps("reminder_subject")} />
+            <Textarea label="Message" autosize minRows={5} placeholder={d.defaults.reminder_body} readOnly={readOnly} {...form.getInputProps("reminder_body")} />
+            <Text size="xs" c="dimmed">Champs supplémentaires : {"{date_echeance}"}, {"{restant}"} (restant dû).</Text>
           </Stack>
         </Fieldset>
         {!readOnly && <Group><Button type="submit" loading={save.isPending}>Enregistrer</Button></Group>}

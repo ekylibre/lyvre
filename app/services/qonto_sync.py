@@ -319,6 +319,11 @@ def sync_bank_account(bank_account_id, client=None, progress_cb=None) -> dict:
                 settlement = purchase_settlement.settle(transactions=created)
                 result["settled"] += settlement["settled"]
                 result["errors"].extend(settlement["errors"])
+                # Crédit de même montant que le restant dû d'une seule facture de vente : encaissée.
+                from app.services import sale_settlement
+                sales = sale_settlement.auto_match()
+                result["settled"] += sales["matched"]
+                result["errors"].extend(sales["errors"])
                 rules = rules_engine.apply_rules(created)
                 result["rules_matched"] += rules["matched"]
                 result["rules_posted"] += rules["posted"]

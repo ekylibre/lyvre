@@ -1,5 +1,6 @@
 // Ventes : factures et avoirs de l'application ; filtres (type, état, client, mois, échues),
-// totaux des pièces émises, envoi par email d'une sélection (SMTP).
+// totaux des pièces émises, restant dû ; envoi et relance par email d'une sélection (SMTP) ;
+// rapprochement automatique des encaissements (crédit unique du montant restant dû).
 import { useState } from "react";
 import { Anchor, Badge, Button, Checkbox, Group, SegmentedControl, Select, Text } from "@mantine/core";
 import { api } from "../../api/client";
@@ -27,8 +28,11 @@ export default function SalesPage() {
   const [selected, setSelected] = useState<SaleRow[]>([]);
   const smtp = useIntegrationGuard("smtp", "L'envoi par email");
   const send = useAction((ids: number[]) => api.post<{ notices: Notice[] }>("/api/v1/sales/send", { ids }), { invalidate: [SALES_KEY] });
+  const remind = useAction((ids: number[]) => api.post<{ notices: Notice[] }>("/api/v1/sales/remind", { ids }), { invalidate: [SALES_KEY] });
+  const autoMatch = useAction(() => api.post<{ notices: Notice[] }>("/api/v1/sales/auto-match"), { invalidate: [SALES_KEY] });
   const meta = data?.meta;
   const sendable = selected.filter((s) => s.status !== "draft");
+  const remindable = selected.filter((s) => s.kind === "invoice" && s.due_cents > 0 && s.overdue);
 
   const columns: GridColumn<SaleRow>[] = [
     { accessor: "issue_date", title: "Date", hideable: false, render: (s) => <span className="lv-num">{formatDate(s.issue_date)}</span> },
@@ -45,14 +49,21 @@ export default function SalesPage() {
       <Group gap={6} wrap="nowrap"><StatusBadge tone={STATUS_TONES[s.status]}>{s.status_label}</StatusBadge>
         {s.overdue && <StatusBadge tone="gap">échue</StatusBadge>}</Group>
     ) },
+    { accessor: "due_cents", title: "Restant dû", textAlign: "right", render: (s) => s.kind === "invoice" && s.status !== "draft"
+      ? <MoneyText cents={s.due_cents} size="sm" anomaly={s.overdue && s.due_cents > 0} /> : null },
     { accessor: "due_date", title: "Échéance", render: (s) => <span className="lv-num">{formatDate(s.due_date)}</span> },
+    { accessor: "reminder_count", title: "Relances", render: (s) => s.reminder_count
+      ? <Text size="sm" c="dimmed">{s.reminder_count} (le {formatDate(s.last_reminder_at)})</Text> : null },
     { accessor: "sent_at", title: "Envoyée", render: (s) => <Text size="sm" c="dimmed">{s.sent_at ? formatDate(s.sent_at) : ""}</Text> },
   ];
 
   return (
     <>
       <PageHeader title="Ventes" description="Factures et avoirs émis par l'application : numérotés, comptabilisés au journal des ventes, PDF Factur-X."
-        actions={<Can><Button component={AppLink} href="/sales/new">Nouvelle facture</Button></Can>} />
+        actions={<Can>
+          <Button variant="default" loading={autoMatch.isPending} onClick={() => autoMatch.mutate()}
+            title="Encaisse les factures dont un crédit bancaire unique a le montant exact du restant dû">Rapprocher les encaissements</Button>
+          <Button component={AppLink} href="/sales/new">Nouvelle facture</Button></Can>} />
       <FilterBar>
         <SegmentedControl value={params.kind} onChange={(kind) => setParams({ kind })}
           data={[{ value: "", label: "Tout" }, { value: "invoice", label: "Factures" }, { value: "credit_note", label: "Avoirs" }]} />
@@ -72,9 +83,15 @@ export default function SalesPage() {
         emptyText="Aucune facture : créez la première."
         selection={{
           selected, onChange: setSelected,
-          actions: () => <Button size="compact-sm" disabled={!sendable.length} loading={send.isPending}
-            onClick={smtp.guard(() => send.mutate(sendable.map((s) => s.id), { onSuccess: () => setSelected([]) }))}>
-            Envoyer par email ({sendable.length})</Button>,
+          actions: () => <>
+            <Button size="compact-sm" disabled={!sendable.length} loading={send.isPending}
+              onClick={smtp.guard(() => send.mutate(sendable.map((s) => s.id), { onSuccess: () => setSelected([]) }))}>
+              Envoyer par email ({sendable.length})</Button>
+            <Button size="compact-sm" variant="default" disabled={!remindable.length} loading={remind.isPending}
+              title="Factures échues non soldées de la sélection"
+              onClick={smtp.guard(() => remind.mutate(remindable.map((s) => s.id), { onSuccess: () => setSelected([]) }))}>
+              Relancer ({remindable.length})</Button>
+          </>,
         }} />
     </>
   );

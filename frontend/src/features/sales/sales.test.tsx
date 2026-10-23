@@ -34,7 +34,7 @@ function detail(fields: Partial<SaleDetail> = {}): SaleDetail {
       untaxed_cents: 50000, vat_cents: 10000, total_cents: 60000 }],
     vat_rows: [{ rate: 2000, base: 50000, tax: 10000 }], journal_entry: { id: 3, reference: "VE-0001" }, invoice: null,
     credit_notes: [], remaining_credit_cents: 60000, issue_problems: [], recipients: ["compta@client.example"], emails: [],
-    pdf_url: "/api/v1/sales/7/pdf", ...fields,
+    pdf_url: "/api/v1/sales/7/pdf", due_cents: 60000, reminder_count: 0, last_reminder_at: null, payments: [], ...fields,
   };
 }
 
@@ -50,6 +50,10 @@ beforeEach(() => {
     if (url === "/api/v1/sales/form-options") return json(200, OPTIONS);
     if (url === "/api/v1/sales" && method === "POST") return json(201, { item: detail({ id: 8, status: "draft", number: null }), notices: [] });
     if (url === "/api/v1/sales/7" && method === "GET") return json(200, { item: current });
+    if (url === "/api/v1/sales/7/payment-options") return json(200, { due_cents: 60000,
+      candidates: [{ id: 31, date: "2026-10-25", label: "VIR CLIENT SARL", amount_cents: 60000, account: "Compte courant", same_client: true, exact: true, rule: false }],
+      accounts: [{ value: "1", label: "Compte courant", kind: "bank" }], methods: [{ value: "check", label: "Chèque" }] });
+    if (url === "/api/v1/sales/match") return json(200, { items: [detail({ status: "paid", due_cents: 0 })], notices: [] });
     if (url === "/api/v1/sales/7/credit-note") return json(201, { item: detail({ id: 9, kind: "credit_note", status: "draft", number: null }), notices: [] });
     return json(404, { error: { code: "not_found", message: "?" } });
   }) as typeof fetch);
@@ -108,5 +112,21 @@ describe("fiche d'une facture", () => {
     page({ ...ADMIN, instance: { ...ADMIN.instance!, integrations: { enabled: [], proposed: [] } } });
     await user.click(await screen.findByRole("button", { name: "Envoyer" }));
     expect(await screen.findByText("L'envoi par email nécessite l'intégration SMTP (emails), désactivée.")).toBeTruthy();
+  });
+
+  it("encaisser par la transaction proposée", async () => {
+    const user = userEvent.setup();
+    page();
+    await user.click(await screen.findByRole("button", { name: "Encaisser" }));
+    await user.click(await screen.findByRole("radio", { name: /VIR CLIENT SARL/ }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Encaisser" }));
+    await waitFor(() => expect(calls.find((c) => c.url === "/api/v1/sales/match")?.body).toEqual({
+      bank_transaction_id: 31, allocations: [{ sale_id: 7, amount_cents: 60000 }] }));
+  });
+
+  it("relancer une facture échue", async () => {
+    current = detail({ overdue: true });
+    page();
+    expect(await screen.findByRole("button", { name: "Relancer" })).toBeTruthy();
   });
 });

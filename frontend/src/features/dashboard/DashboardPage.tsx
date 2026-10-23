@@ -20,6 +20,8 @@ import { IntegrationProposals } from "../integrations/IntegrationProposals";
 interface Month { month: string; produits: number; charges: number; net: number; ventes: number; pos: number; factures: number; solde: number }
 interface Dashboard {
   stats: { total_sales_cents: number; new_members: number; resultat_courant_cents: number; total_payouts_cents: number } | null;
+  /** Module Ventes : CA facturé HT de l'exercice, encours clients, factures échues. */
+  sales?: { revenue_cents: number; receivable_cents: number; overdue_count: number; overdue_cents: number; has_sales: boolean };
   monthly: Month[];
   recent_entries: { id: number; url: string; reference: string | null; date: string; description: string; total_cents: number }[];
   meta: ReportMeta;
@@ -109,6 +111,16 @@ export default function DashboardPage() {
             </StatTile>
             {stancer && <StatTile label="Versements Stancer" meta="Reçus sur l'exercice"><MoneyText cents={stats.total_payouts_cents} /></StatTile>}
           </SimpleGrid>
+          {data.sales?.has_sales && (
+            <SimpleGrid cols={{ base: 1, sm: 3 }}>
+              <StatTile label="Facturé" meta="Factures émises de l'exercice, HT, avoirs déduits"><MoneyText cents={data.sales.revenue_cents} /></StatTile>
+              <StatTile label="Encours clients" meta="Restant dû des factures émises">
+                <Anchor component={AppLink} href="/sales/" underline="never" c="inherit"><MoneyText cents={data.sales.receivable_cents} /></Anchor></StatTile>
+              <StatTile label="Factures échues" meta={`${data.sales.overdue_count} facture(s) à relancer`}>
+                <Anchor component={AppLink} href="/sales/?overdue=1" underline="never" c="inherit">
+                  <MoneyText cents={data.sales.overdue_cents} c={data.sales.overdue_cents ? "var(--lv-brique)" : undefined} /></Anchor></StatTile>
+            </SimpleGrid>
+          )}
           {fy && <BudgetCard fyId={fy.id} />}
           <ChartCard title="Résultat mensuel">
             <CompositeChart h={300} data={data.monthly} dataKey="month" valueFormatter={euros} withLegend

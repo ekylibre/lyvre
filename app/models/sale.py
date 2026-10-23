@@ -70,6 +70,8 @@ class Sale(db.Model):
                             order_by="SaleLine.position")
     emails = db.relationship("SaleEmail", back_populates="sale", cascade="all, delete-orphan",
                              order_by="SaleEmail.sent_at.desc()")
+    payments = db.relationship("SalePayment", back_populates="sale", cascade="all, delete-orphan",
+                               order_by="SalePayment.paid_on")
 
     @property
     def client(self) -> dict:
@@ -118,6 +120,35 @@ class SaleCounter(db.Model):
     last_number = db.Column(db.Integer, nullable=False, default=0)
 
 
+PAYMENT_METHODS = {"transfer": "Virement", "check": "Chèque", "cash": "Espèces", "card": "Carte", "other": "Autre"}
+
+
+class SalePayment(db.Model):
+    """Encaissement d'une facture (lot S2) : transaction bancaire rapprochée (`origin = bank`) ou
+    saisie (`manual` : chèque, espèces…), écriture banque ou caisse / 411 ; plusieurs factures d'un
+    même client peuvent partager une transaction et son écriture. `vat_released_cents` : TVA virée
+    de 44574 à 44571 (TVA à l'encaissement)."""
+    __tablename__ = "sale_payments"
+
+    id = db.Column(db.Integer, primary_key=True)
+    sale_id = db.Column(db.Integer, db.ForeignKey("sales.id", ondelete="CASCADE"), nullable=False, index=True)
+    amount_cents = db.Column(db.Integer, nullable=False)
+    paid_on = db.Column(db.Date, nullable=False)
+    origin = db.Column(db.String(8), nullable=False, default="bank")    # bank | manual
+    method = db.Column(db.String(12))
+    bank_transaction_id = db.Column(db.Integer, db.ForeignKey("bank_transactions.id", ondelete="SET NULL"), index=True)
+    bank_account_id = db.Column(db.Integer, db.ForeignKey("bank_accounts.id", ondelete="SET NULL"))
+    journal_entry_id = db.Column(db.Integer, db.ForeignKey("journal_entries.id", ondelete="SET NULL"))
+    vat_released_cents = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+    qonto_marked = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    sale = db.relationship("Sale", back_populates="payments")
+    bank_transaction = db.relationship("BankTransaction")
+    bank_account = db.relationship("BankAccount")
+    journal_entry = db.relationship("JournalEntry")
+
+
 class SaleEmail(db.Model):
     __tablename__ = "sale_emails"
 
@@ -153,4 +184,6 @@ class BillingSettings(db.Model):
     logo_path = db.Column(db.String(300))
     send_subject = db.Column(db.String(255))
     send_body = db.Column(db.Text)
+    reminder_subject = db.Column(db.String(255))
+    reminder_body = db.Column(db.Text)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

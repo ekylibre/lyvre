@@ -9,9 +9,9 @@ from flask import jsonify, request, send_file
 
 from app.access import instance_admin_required
 from app.extensions import db
-from app.models import Account, Entity, Sale
-from app.models.sale import OPERATION_TYPES, STATUS_LABELS
-from app.services import billing, catalog, projects, sale_documents, sale_entry, sale_issue
+from app.models import Account, BankAccount, BankTransaction, Entity, Sale, SalePayment
+from app.models.sale import OPERATION_TYPES, PAYMENT_METHODS, STATUS_LABELS
+from app.services import billing, catalog, projects, sale_documents, sale_entry, sale_issue, sale_settlement
 from app.services.sale_entry import SaleError
 from app.utils.list_filters import apply_month_filter, month_options_for_fy, parse_month
 
@@ -50,6 +50,8 @@ def sale_row(s: Sale) -> dict:
             "client": {"id": s.entity_id, "name": s.entity.name}, "issue_date": _iso(s.issue_date),
             "due_date": _iso(s.due_date), "untaxed_cents": s.untaxed_cents, "tax_cents": s.tax_cents,
             "total_cents": s.total_cents, "paid_cents": s.paid_cents, "sent_at": _iso(s.sent_at),
+            "due_cents": sale_settlement.due_cents(s), "reminder_count": s.reminder_count,
+            "last_reminder_at": _iso(s.last_reminder_at),
             "overdue": s.kind == "invoice" and s.status in ("issued", "partially_paid") and bool(s.due_date)
             and s.due_date < date.today()}
 
@@ -81,7 +83,14 @@ def sale_detail(s: Sale) -> dict:
             "issue_problems": sale_issue.issue_problems(s) if s.status == "draft" else [],
             "recipients": sale_issue.recipients_of(s), "emails": [
                 {"sent_at": _iso(e.sent_at), "recipients": e.recipients, "subject": e.subject, "status": e.status,
-                 "error": e.error} for e in s.emails],
+                 "error": e.error, "purpose": e.purpose} for e in s.emails],
+            "payments": [{"id": p.id, "amount_cents": p.amount_cents, "paid_on": _iso(p.paid_on), "origin": p.origin,
+                          "method": PAYMENT_METHODS.get(p.method or "", ""), "vat_released_cents": p.vat_released_cents,
+                          "account": p.bank_account.label if p.bank_account else None,
+                          "transaction": {"id": p.bank_transaction_id, "label": p.bank_transaction.label}
+                          if p.bank_transaction else None,
+                          "journal_entry": {"id": p.journal_entry_id, "reference": p.journal_entry.reference}
+                          if p.journal_entry else None} for p in s.payments],
             "pdf_url": f"/api/v1/sales/{s.id}/pdf"}
 
 
@@ -273,3 +282,120 @@ def billing_logo_upload():
 def billing_logo_delete():
     billing.delete_logo()
     return jsonify(item=billing.payload(), notices=[notice("Logo retiré.")])
+
+
+# ------------------------------------------------------------------ encaissements
+
+def _txn(t: BankTransaction, sale: Sale) -> dict:
+    return {"id": t.id, "date": _iso(t.transaction_date), "label": t.label or t.counterparty or "",
+            "amount_cents": t.amount_cents, "account": t.bank_account.label, "same_client": t.entity_id == sale.entity_id,
+            "exact": t.amount_cents == sale_settlement.due_cents(sale), "rule": t.journal_line_id is not None}
+
+
+@bp.route("/sales/<int:sale_id>/payment-options")
+def sales_payment_options(sale_id):
+    """Restant dû, transactions bancaires candidates, comptes de banque et caisses (saisie)."""
+    sale = get_or_404(Sale, sale_id, "Pièce introuvable.")
+    return jsonify(due_cents=sale_settlement.due_cents(sale),
+                   candidates=[_txn(t, sale) for t in sale_settlement.candidates(sale)],
+                   accounts=[{"value": str(b.id), "label": b.label, "kind": b.kind}
+                             for b in BankAccount.query.order_by(BankAccount.kind, BankAccount.label)],
+                   methods=[{"value": k, "label": v} for k, v in PAYMENT_METHODS.items()])
+
+
+@bp.route("/sales/match", methods=["POST"])
+def sales_match():
+    """`{bank_transaction_id, allocations: [{sale_id, amount_cents}]}` : la transaction encaisse les
+    factures (un seul client, somme = montant de la transaction)."""
+    data = json_body()
+    if not isinstance(data.get("bank_transaction_id"), int):
+        raise invalid("Choisissez la transaction bancaire.", "bank_transaction_id")
+    txn = get_or_404(BankTransaction, data["bank_transaction_id"], "Transaction introuvable.")
+    rows = data.get("allocations")
+    if not isinstance(rows, list) or not rows:
+        raise invalid("Choisissez les factures encaissées.", "allocations")
+    allocations = []
+    for row in rows:
+        sale = db.session.get(Sale, row.get("sale_id")) if isinstance(row.get("sale_id"), int) else None
+        amount = row.get("amount_cents")
+        if sale is None or not isinstance(amount, int):
+            raise invalid("Encaissement invalide.", "allocations")
+        allocations.append((sale, amount))
+    with _errors():
+        sale_settlement.match(txn, allocations)
+    return jsonify(items=[sale_detail(sale) for sale, _ in allocations],
+                   notices=[notice(f"Encaissement rapproché ({len(allocations)} facture(s)).")])
+
+
+@bp.route("/sales/<int:sale_id>/payments", methods=["POST"])
+def sales_manual_payment(sale_id):
+    """`{amount, paid_on, bank_account_id, method}` : encaissement saisi (chèque, espèces…)."""
+    sale = get_or_404(Sale, sale_id, "Pièce introuvable.")
+    data = json_body()
+    ba = db.session.get(BankAccount, int(data["bank_account_id"])) if str(data.get("bank_account_id") or "").isdigit() else None
+    if ba is None:
+        raise invalid("Choisissez le compte encaissé.", "bank_account_id")
+    method = data.get("method") if data.get("method") in PAYMENT_METHODS else "other"
+    with _errors():
+        amount = sale_entry.parse_decimal(data.get("amount"), "Montant", "amount", minimum=0)
+        paid_on = sale_entry.parse_date(data.get("paid_on"), "Date", "paid_on") or date.today()
+        if amount is None:
+            raise SaleError("Montant obligatoire.", "amount")
+        sale_settlement.record_manual(sale, int(amount * 100), paid_on, ba, method)
+    return jsonify(item=sale_detail(sale), notices=[notice("Encaissement enregistré et comptabilisé.")])
+
+
+@bp.route("/sale-payments/<int:payment_id>", methods=["DELETE"])
+def sale_payments_delete(payment_id):
+    payment = get_or_404(SalePayment, payment_id, "Encaissement introuvable.")
+    sale = payment.sale
+    with _errors():
+        sale_settlement.unlink(payment)
+    db.session.refresh(sale)
+    return jsonify(item=sale_detail(sale), notices=[notice("Encaissement défait : son écriture est supprimée.")])
+
+
+@bp.route("/sales/auto-match", methods=["POST"])
+def sales_auto_match():
+    result = sale_settlement.auto_match()
+    notices = [notice(f"{result['matched']} facture(s) encaissée(s) automatiquement.",
+                      "success" if result["matched"] else "info")]
+    notices += [notice(e, "warning") for e in result["errors"][:10]]
+    return jsonify(result=result, notices=notices)
+
+
+# ------------------------------------------------------------------ relances
+
+@bp.route("/sales/remind", methods=["POST"])
+def sales_remind_many():
+    """`{ids}` : relance par email des factures choisies (non soldées), message de relance par défaut."""
+    require_integration("smtp")
+    ids = json_body().get("ids")
+    if not isinstance(ids, list) or not ids or not all(isinstance(i, int) for i in ids):
+        raise invalid("Choisissez les factures à relancer.", "ids")
+    sales = Sale.query.filter(Sale.id.in_(ids), Sale.kind == "invoice").order_by(Sale.number).all()
+    with _errors():
+        result = sale_issue.send(sales, purpose="reminder")
+    notices = [notice(f"{result['sent']} relance(s) envoyée(s).", "success" if result["sent"] else "info")]
+    notices += [notice(e, "warning") for e in result["errors"][:10]]
+    return jsonify(result=result, notices=notices)
+
+
+@bp.route("/sales/<int:sale_id>/remind", methods=["POST"])
+def sales_remind_one(sale_id):
+    """`{to, cc, subject, body}` : relance d'une facture, message modifiable."""
+    sale = get_or_404(Sale, sale_id, "Pièce introuvable.")
+    require_integration("smtp")
+    data = json_body()
+    with _errors():
+        if sale.kind != "invoice" or not sale_settlement.due_cents(sale):
+            raise SaleError("Rien à relancer : facture soldée, annulée ou brouillon.", status=409)
+        to = sale_issue.validate_emails(data.get("to"), "to")
+        cc = sale_issue.validate_emails(data.get("cc"), "cc")
+        if not to:
+            raise SaleError("Indiquez au moins un destinataire.", "to")
+        result = sale_issue.send([sale], to=to, cc=cc, subject=(data.get("subject") or "").strip() or None,
+                                 body=(data.get("body") or "").strip() or None, purpose="reminder")
+    if result["errors"]:
+        raise ApiError("send_failed", "Relance impossible : " + " ; ".join(result["errors"]), status=502)
+    return jsonify(item=sale_detail(sale), notices=[notice(f"Relance de la facture {sale.number} envoyée.")])

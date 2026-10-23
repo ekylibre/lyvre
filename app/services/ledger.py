@@ -383,6 +383,9 @@ def delete_entries(entry_ids, allow_managed=False):
         for model in (Purchase, PurchasePayment, AssociateExpense):
             model.query.filter(model.journal_entry_id == entry.id).update(
                 {"journal_entry_id": None}, synchronize_session="fetch")
+        # Encaissement d'une facture de vente : il disparaît avec son écriture.
+        from app.services.sale_settlement import forget_entry_payments
+        forget_entry_payments(entry.id)
         results.append({"entry_id": entry_id, "status": "ok", "reference": entry.reference})
         db.session.delete(entry)
     try:
