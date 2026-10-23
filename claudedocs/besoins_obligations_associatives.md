@@ -245,7 +245,7 @@ l'exécution.
 **US-D1 — Tenir une comptabilité simplifiée.** Une petite association saisit recettes et
 dépenses par catégorie, importe son relevé et édite son compte de résultat simplifié.
 - [x] Aucun terme débit / crédit dans ce mode ; états recettes / dépenses et trésorerie N / N-1.
-- [ ] Passage en partie double possible sans ressaisie.
+- [x] Passage en partie double possible sans ressaisie.
 
 **US-C2 — Anticiper la trésorerie.** Le trésorier voit le solde prévisionnel mois par mois sur
 12 mois (banques et caisse).

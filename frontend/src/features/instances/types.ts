@@ -2,7 +2,7 @@
 export const INSTANCES_KEY = ["instances"];
 
 export interface Instance {
-  id: number; slug: string; label: string; database: string; chart: string; chart_label: string; is_active: boolean;
+  id: number; slug: string; label: string; database: string; chart: string; chart_label: string; bookkeeping?: "double" | "simple"; is_active: boolean;
   created_at: string | null; sqlite: boolean;
 }
 

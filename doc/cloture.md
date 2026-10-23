@@ -63,6 +63,11 @@ Le contrôle officiel du FEC se fait avec l'outil « Test Compta Demat » de la 
    comptes 10x (réserves), 11x (report à nouveau) ou 455x (comptes courants des associés d'une
    SCI). L'écriture est passée en OD à la date de la décision ; l'affectation peut être annulée.
 
+**Après une comptabilité simplifiée.** Une association qui passe en partie double (Administration ›
+Instances) garde ses opérations, déjà en partie double. Pour la première clôture en partie double,
+les à-nouveaux reprennent les soldes cumulés des comptes de banque et de caisse depuis l'origine,
+et les résultats des exercices tenus en simplifié passent en report à nouveau (110 / 119).
+
 Les écritures produites par l'assistant (inventaire, fonds dédiés, à-nouveaux, extournes,
 affectation) ne se modifient pas depuis l'écran des écritures : on les reprend dans l'assistant.
 

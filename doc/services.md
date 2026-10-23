@@ -1087,6 +1087,7 @@ action est tracée dans `closing_events`. Erreurs métier : `ClosingError(messag
 | `set_step(fy, step, state, note)` | Étapes 1 à 5 : fait, ignoré (motif), à faire |
 | `close_provisional` · `close_final` · `reopen` | Étape 6 : numérotation (`fec.validate`), FEC figé (`fec.freeze`), réouverture motivée |
 | `opening_lines` · `generate_opening(fy, create_next)` | Étape 7 : à-nouveaux (journal AN, classes 1 à 5, résultat en 120 / 129 ou sous-compte, à défaut 12) et extournes (`reverses_entry_id`) au 1er jour de l'exercice suivant |
+| `cumulative_opening` · `_cumulative` | Lot D.5 : premier exercice clôturé en partie double après des exercices sans à-nouveaux (comptabilité simplifiée) — soldes de bilan cumulés depuis l'origine, résultats antérieurs en report à nouveau (110 / 119, à défaut 11) |
 | `allocate` · `cancel_allocation` · `result_to_allocate` | Étape 8 : décision (organe, date dans N+1) et répartition sur 10x / 11x / 455x |
 
 ## dedicated_funds.py — Fonds dédiés (étape 3)

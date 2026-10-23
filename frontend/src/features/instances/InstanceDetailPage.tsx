@@ -33,6 +33,9 @@ export default function InstanceDetailPage() {
   const remove = useAction((filename: string) => api.delete<Detail & { notices: Notice[] }>(
     `/api/v1/instances/${id}/backups/${encodeURIComponent(filename)}`));
   const restoring = pathname.replace(/\/$/, "").endsWith("/restore");
+  const switchMode = useAction((bookkeeping: "double" | "simple") =>
+    api.patch<{ item: Instance; notices: Notice[] }>(`/api/v1/instances/${id}`, { label: data?.item.label, bookkeeping }),
+    { invalidate: [key, ["session"]] });
 
   if (error) return <Alert color="brique" mt="md">{(error as Error).message}</Alert>;
   if (!data) return <Center h={300}><Loader /></Center>;
@@ -64,6 +67,25 @@ export default function InstanceDetailPage() {
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} mb="lg">
         <Info label="Base de données"><Text size="sm" className="lv-num" style={{ wordBreak: "break-all" }}>{inst.database}</Text></Info>
         <Info label="Plan comptable">{inst.chart_label}</Info>
+        {inst.chart === "asso" && (
+          <Info label="Tenue de la comptabilité">
+            <Group gap="xs" justify="space-between">
+              <Text>{inst.bookkeeping === "simple" ? "Simplifiée (recettes et dépenses)" : "Partie double"}</Text>
+              <Button size="compact-sm" variant="default" loading={switchMode.isPending} onClick={() => confirmAction(
+                inst.bookkeeping === "simple" ? {
+                  title: "Passer en partie double ?", confirmLabel: "Passer en partie double", danger: false,
+                  message: "Les opérations déjà saisies sont des écritures en partie double : rien n'est ressaisi. Écritures, "
+                    + "plan comptable, états complets, assistant de clôture et FEC deviennent disponibles ; la première clôture "
+                    + "reprend les soldes cumulés et les résultats antérieurs en report à nouveau.",
+                  onConfirm: () => switchMode.mutate("double"),
+                } : {
+                  title: "Revenir en comptabilité simplifiée ?", confirmLabel: "Revenir au simple",
+                  message: "Refusé si des écritures ne se lisent pas en recettes et dépenses (tiers, immobilisations, capitaux…).",
+                  onConfirm: () => switchMode.mutate("simple"),
+                })}>{inst.bookkeeping === "simple" ? "Passer en partie double" : "Revenir au simple"}</Button>
+            </Group>
+          </Info>
+        )}
         <Info label="Statut"><StatusBadge tone={inst.is_active ? "ok" : "neutral"}>{inst.is_active ? "Active" : "Désactivée"}</StatusBadge></Info>
         <Info label="Créée le"><span className="lv-num">{formatDateTime(inst.created_at)}</span></Info>
       </SimpleGrid>

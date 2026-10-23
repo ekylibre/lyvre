@@ -87,7 +87,7 @@ Pages de la SPA (méta-base seule, sans instance choisie) : `/instances/` (`/new
 | GET | `/api/v1/instances` | Instances (slug, libellé, base masquée, plan comptable, statut, SQLite ou non) ; `meta.charts` |
 | POST | `/api/v1/instances` | Création (paramètres ci-dessous) → 201 ; 422 `fields` (slug invalide ou pris, libellé, URL en mode manuel) |
 | GET | `/api/v1/instances/<id>` | Instance et sauvegardes (`filename`, taille, date, pré-restauration, `database_only` pour les anciens `.db`, `download_url`) |
-| PATCH | `/api/v1/instances/<id>` | `label`, `is_active` ; vide le cache d'engine de l'instance |
+| PATCH | `/api/v1/instances/<id>` | `label`, `is_active`, `bookkeeping` (lot D.5 : simple → double sans reprise ; double → simple refusé, 409, dès qu'une écriture a une ligne hors classes 5, 6, 7) ; vide le cache d'engine de l'instance |
 | POST | `/api/v1/instances/<id>/backups` | Sauvegarde `.zip` (base + pièces jointes) → 201 ; 409 hors SQLite |
 | DELETE | `/api/v1/instances/<id>/backups/<filename>` | Supprime une sauvegarde (404 si nom invalide ou absent) |
 | POST | `/api/v1/instances/<id>/restore` | Multipart `backup_file` + **`confirm` = slug de l'instance** (sinon 422) ; sauvegarde de sécurité `pre-restore-…` créée avant |

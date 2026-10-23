@@ -1,11 +1,11 @@
 # Workflow — Obligations associatives (lots A → C → B → D)
 
-> Statut (2026-10-24) : **lots A, B et C réalisés** (main local, non poussé) ; **prochaine
-> étape : lot D, phase D.1** (`/sc:implement phase D.1`). En attente côté utilisateur : relecture des reçus face aux Cerfa officiels
+> Statut (2026-10-24) : **lots A, B, C et D réalisés** (main local, non poussé) ; plan
+> terminé côté logiciel. En attente côté utilisateur : relecture des reçus face aux Cerfa officiels
 > (point ouvert 2, US-B1), passage du FEC de test dans
 > « Test Compta Demat » (US-A1), relecture de l'affectation SCI 455x par l'expert-comptable, accord
 > pour migrer les vraies bases (elles sont à `9c41b7e2d5a8` : migrations tenant jusqu'à
-> `d3f7b9c1e504` (9 migrations), plus `seed_meta.py` pour la table méta `instance_memberships`). Travail parallèle : cadrage de la base documentaire et de
+> `f6b1d4e8a207` (11 migrations), plus `seed_meta.py` pour la méta-base : `instance_memberships`, colonne `instances.bookkeeping`). Travail parallèle : cadrage de la base documentaire et de
 > l'assistant dans [`doc/base_documentaire/`](../doc/base_documentaire/README.md) (autre session).
 >
 > Plan initial du 2026-10-22. Sources : [`besoins_obligations_associatives.md`](besoins_obligations_associatives.md)
@@ -269,6 +269,12 @@ pytest 806, E2E 25.
 de trésorerie cumulée, verrouillage simple / déverrouillage admin), écran « États », colonne
 Verrouillage des exercices en mode simple, `/close` refusé en mode simple ; correctif : deux
 catégories par défaut ne partagent plus un compte. US-D1 (états) cochée. pytest 810, E2E 25.
+
+**D.5 fait (2026-10-25) — lot D terminé** : changement de mode par l'administrateur global
+(`PATCH /instances/<id>` `bookkeeping` ; simple → double sans reprise, retour refusé si une écriture
+a une ligne hors classes 5 / 6 / 7), à-nouveaux de la première clôture en double calculés en cumulé
+avec les résultats antérieurs en report à nouveau, bouton sur la fiche d'instance ; E2E « saisie
+simple puis bascule ». **US-D1 cochée.** pytest 813, Vitest 78, E2E 25.
 
 ## 7. Estimation indicative
 

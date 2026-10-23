@@ -1,5 +1,5 @@
-// Comptabilité simplifiée (lots D.2 à D.4) : menus sans partie double, recette saisie par
-// catégorie, transaction du relevé catégorisée, états simplifiés.
+// Comptabilité simplifiée (lot D) : menus sans partie double, recette saisie par catégorie,
+// transaction du relevé catégorisée, états simplifiés, puis passage en partie double sans ressaisie.
 import { expect, test } from "@playwright/test";
 import { login } from "./helpers";
 
@@ -38,4 +38,15 @@ test("comptabilité simplifiée : menus, recette saisie, relevé catégorisé", 
   await expect(page.getByRole("row", { name: /Excédent/ })).toContainText("5,00");
   await page.getByRole("tab", { name: "Situation de trésorerie" }).click();
   await expect(page.getByRole("row", { name: /Banque simple/ })).toContainText("5,00");  // 30,00 encaissés − 25,00 payés
+
+  // Passage en partie double, sans ressaisie : les opérations sont des écritures.
+  await page.goto("/instances/");
+  await page.getByRole("link", { name: "simple-e2e" }).click();
+  await page.getByRole("button", { name: "Passer en partie double" }).click();
+  await page.getByRole("dialog", { name: "Passer en partie double ?" }).getByRole("button", { name: "Passer en partie double" }).click();
+  await expect(page.getByText("Partie double", { exact: true })).toBeVisible();
+  await page.goto("/entries/");
+  await expect(page.getByRole("navigation").getByText("Écritures")).toBeVisible();
+  await expect(page.getByText("Cotisation Martin")).toBeVisible();
+  await expect(page.getByText("CB PAPETERIE")).toBeVisible();
 });

@@ -3,6 +3,7 @@ sauvegardes `.zip` (création, suppression), restauration. Le téléchargement d
 reste une route Flask (`instances.download_backup`). L'URL d'une base n'est jamais renvoyée
 avec son mot de passe."""
 from flask import jsonify, request, url_for
+from sqlalchemy import text
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import ArgumentError
 
@@ -15,7 +16,7 @@ from app.services.instance_provisioning import (
     CHARTS, DEFAULT_CHART, ProvisioningError, build_sqlite_url, database_file_for_url, provision_sqlite_database,
     validate_slug,
 )
-from app.tenant import clear_engine_cache
+from app.tenant import clear_engine_cache, get_tenant_engine
 
 from . import ApiError, bp, get_or_404, invalid, json_body, notice
 
@@ -113,9 +114,30 @@ def instances_update(instance_id):
     inst.label = label
     if "is_active" in data:
         inst.is_active = bool(data["is_active"])
+    if "bookkeeping" in data and data["bookkeeping"] != inst.bookkeeping:
+        _change_bookkeeping(inst, data["bookkeeping"])
     db.session.commit()
     clear_engine_cache(inst.id)
     return jsonify(item=_instance(inst), notices=[notice(f"Instance « {label} » mise à jour.")])
+
+
+def _change_bookkeeping(inst, mode):
+    """Passage simple → partie double toujours possible, sans reprise (les opérations simples sont
+    déjà des écritures en partie double). L'inverse est refusé dès qu'une écriture ne se lit pas en
+    recettes / dépenses : une ligne hors classes 5 (trésorerie), 6 et 7."""
+    if mode not in ("double", "simple"):
+        raise invalid("Mode de tenue inconnu.", "bookkeeping")
+    if mode == "simple":
+        if inst.chart != "asso":
+            raise invalid("La comptabilité simplifiée est réservée au plan des associations.", "bookkeeping")
+        with get_tenant_engine(inst).connect() as conn:
+            count = conn.execute(text(
+                "SELECT COUNT(DISTINCT l.entry_id) FROM journal_lines l JOIN accounts a ON a.id = l.account_id "
+                "WHERE substr(a.code, 1, 1) NOT IN ('5', '6', '7')")).scalar()
+        if count:
+            raise ApiError("conflict", f"Retour en comptabilité simplifiée impossible : {count} écriture(s) de partie "
+                           "double (tiers, immobilisations, capitaux…) ne se lisent pas en recettes et dépenses.", 409)
+    inst.bookkeeping = mode
 
 
 def _sqlite(inst):

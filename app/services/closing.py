@@ -394,12 +394,58 @@ def _result_account(surplus: bool):
     raise ClosingError(f"Compte {RESULT_ACCOUNTS[surplus][0]} absent du plan comptable.", 422)
 
 
+def _cumulative(fy, prefixes, until, before=False) -> dict[str, int]:
+    """Solde (débit − crédit) par compte, toutes années confondues, hors à-nouveaux, jusqu'à `until`
+    (inclus, ou exclu si `before`)."""
+    rows = (db.session.query(Account.code, func.sum(JournalLine.debit_cents - JournalLine.credit_cents))
+            .join(JournalLine, JournalLine.account_id == Account.id)
+            .join(JournalEntry, JournalEntry.id == JournalLine.entry_id)
+            .filter(JournalEntry.source != SOURCE_OPENING,
+                    JournalEntry.entry_date < until if before else JournalEntry.entry_date <= until,
+                    db.or_(*[Account.code.like(f"{p}%") for p in prefixes]))
+            .group_by(Account.code).all())
+    return {code: int(total or 0) for code, total in rows}
+
+
+def cumulative_opening(fy) -> bool:
+    """Premier exercice clôturé en partie double après des exercices sans à-nouveaux (comptabilité
+    simplifiée, D.5) : les soldes se calculent en cumulé depuis l'origine."""
+    has_opening = JournalEntry.query.filter_by(fiscal_year_id=fy.id, source=SOURCE_OPENING).first() is not None
+    has_prior = JournalEntry.query.filter(JournalEntry.entry_date < fy.start_date).first() is not None
+    return has_prior and not has_opening
+
+
+def _retained_account(positive: bool):
+    """Report à nouveau : 110 (créditeur) / 119 (débiteur), ou sous-compte, à défaut 11."""
+    precise = "110" if positive else "119"
+    usable = Account.query.filter(Account.is_header.is_(False))
+    account = (usable.filter(Account.code == precise).first()
+               or usable.filter(Account.code.like(f"{precise}%")).order_by(Account.code).first()
+               or usable.filter(Account.code == "11").first())
+    if account is None:
+        raise ClosingError(f"Compte {precise} (report à nouveau) absent du plan comptable.", 422)
+    return account
+
+
 def opening_lines(fy) -> list[dict]:
-    """Lignes des à-nouveaux : soldes des comptes de bilan, résultat en 120 / 129 (ou 12)."""
-    balances = {code: v for code, v in _balances(fy, BALANCE_SHEET_CLASSES).items() if v}
+    """Lignes des à-nouveaux : soldes des comptes de bilan, résultat en 120 / 129 (ou 12).
+    Après des exercices sans à-nouveaux (comptabilité simplifiée), soldes cumulés depuis l'origine
+    et résultats antérieurs en report à nouveau (110 / 119)."""
+    cumulative = cumulative_opening(fy)
+    if cumulative:
+        balances = {code: v for code, v in _cumulative(fy, BALANCE_SHEET_CLASSES, fy.end_date).items() if v}
+    else:
+        balances = {code: v for code, v in _balances(fy, BALANCE_SHEET_CLASSES).items() if v}
     accounts = {a.code: a for a in Account.query.filter(Account.code.in_(balances))} if balances else {}
     lines = [{"account_id": accounts[code].id, "account_code": code, "label": accounts[code].label,
               "debit_cents": max(v, 0), "credit_cents": max(-v, 0)} for code, v in sorted(balances.items())]
+    if cumulative:
+        earlier = _cumulative(fy, ("6", "7"), fy.start_date, before=True)
+        retained = -sum(earlier.values())  # produits (créditeurs) − charges (débitrices)
+        if retained:
+            account = _retained_account(retained > 0)
+            lines.append({"account_id": account.id, "account_code": account.code, "label": account.label,
+                          "debit_cents": max(-retained, 0), "credit_cents": max(retained, 0)})
     amount = result(fy)["result_cents"]
     if amount:
         account = _result_account(amount > 0)
