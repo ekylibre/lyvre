@@ -158,6 +158,7 @@ def form_from_extraction(ext: invoice_reader.Extraction) -> EntryForm:
     total, untaxed = ext.value("total"), ext.value("untaxed")
     discount = ext.value("discount") or 0
     if total:
+        catalog.ensure_default_purchase_product()
         lines = proposed_lines(entity, total, untaxed, ext.taxes, discount)
         form.rows = line_rows(lines)
         if discount:
@@ -301,6 +302,7 @@ def create(clean, rows, token=None) -> tuple[Purchase, dict]:
     with db.session.no_autoflush:
         _apply(p, clean)
         p.lines = _lines(p, rows)
+        catalog.remember_supplier_product(p.entity, p.lines)
     db.session.flush()
     if token:
         attachments.store(p, token)

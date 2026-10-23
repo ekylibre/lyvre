@@ -30,6 +30,10 @@ beforeEach(() => {
       }
       return json(201, { item: { id: 9, url: "/purchases/9" }, notices: [{ level: "success", message: "Facture enregistrée." }] });
     }
+    if (url === "/api/v1/products" && method === "POST") {
+      return json(201, { item: { id: 12, name: body.name, purchase_account: { code: body.purchase_account_code }, vat_rate: body.vat_rate },
+        notices: [{ level: "success", message: "Produit créé." }] });
+    }
     return json(404, { error: { code: "not_found", message: "?" } });
   }) as typeof fetch);
 });
@@ -68,5 +72,20 @@ describe("saisie d'une facture d'achat", () => {
     const last = calls.filter((c) => c.method === "POST").at(-1)!.body;
     expect(last).toMatchObject({ invoice_number: "F-1", issue_date: "2026-09-02", total: "12,00", confirm_duplicate: true,
       send_to_qonto: false, rows: [{ untaxed: "10", vat_rate: "20", vat: "" }] });
+  });
+
+  it("crée un produit depuis la ligne avec le compte et le taux saisis", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PurchaseFormPage />, { route: "/purchases/new?manual=1" });
+    await user.type(await screen.findByLabelText("Compte (ligne 1)", { selector: "input" }), "6061");
+    await user.type(screen.getByLabelText("Taux de TVA (ligne 1)"), "20");
+    await user.type(screen.getByLabelText("Produit (ligne 1)", { selector: "input" }), "Electricité");
+    await user.click(await screen.findByRole("option", { name: "+ Créer « Electricité »" }));
+    expect((await screen.findByLabelText(/^Libellé/, { selector: "[role=dialog] input" }) as HTMLInputElement).value).toBe("Electricité");
+    await user.click(screen.getByRole("button", { name: "Créer le produit" }));
+    await waitFor(() => expect(calls.find((c) => c.url === "/api/v1/products")?.body).toEqual(
+      { name: "Electricité", kind: "purchase", purchase_account_code: "6061", vat_rate: "20" }));
+    await waitFor(() => expect((screen.getByLabelText("Produit (ligne 1)", { selector: "input" }) as HTMLInputElement).value).toBe("Electricité"));
+    expect((screen.getByLabelText("Libellé (ligne 1)") as HTMLInputElement).value).toBe("Electricité");
   });
 });

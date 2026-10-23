@@ -20,7 +20,8 @@ règlements (voir [Imports › Synchronisation Qonto](imports.md#synchronisation
    ne se supprime pas : archivez-le. « Achats divers » (6068 en association, 628 en SCI) est créé
    automatiquement et sert à défaut.
 3. **Fournisseurs** — Tiers › Entités : sur la fiche, choisissez le **produit par défaut** ; il est
-   repris sur les lignes de chaque nouvelle facture. L'identifiant Qonto, le n° de TVA, le SIRET,
+   repris sur les lignes de chaque nouvelle facture. Sans produit par défaut, le premier produit
+   précis (autre qu'« Achats divers ») choisi sur une de ses factures le devient. L'identifiant Qonto, le n° de TVA, le SIRET,
    l'IBAN puis le nom servent, dans cet ordre, à reconnaître le fournisseur d'une facture.
 4. **Date de début** (administrateur) — sur la page Factures d'achat, avant la première
    synchronisation ; défaut : début de l'exercice ouvert. La reculer plus tard relit tout depuis
@@ -43,7 +44,9 @@ et celles à compléter.
 
 Qonto ne donne pas de lignes de facture : l'application en crée **une par taux de TVA** (ou une seule
 si Qonto n'a pas de ventilation), avec le produit par défaut du fournisseur. Sur la fiche d'une
-facture, modifiez le produit (il préremplit compte et taux), le compte, le libellé, le HT et le taux ;
+facture, modifiez le produit (il préremplit compte et taux ; tapez un nom absent du catalogue puis
+« + Créer « … » » pour le créer sur place, avec le compte et le taux de la ligne), le compte, le
+libellé, le HT et le taux ;
 la TVA laissée vide est calculée. Le total doit égaler le TTC de Qonto. Une fois enregistrées, les
 lignes ne sont plus touchées par la synchronisation, et la facture est comptabilisée dès qu'elle est
 complète.

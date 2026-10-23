@@ -5,9 +5,10 @@ fournisseurs à valider. Les pièces restent servies par Flask (`purchases.attac
 (montants « 39,99 ») : ils passent par purchase_entry.validate_header."""
 from flask import current_app, jsonify, request, url_for
 
-from app.access import instance_admin_required
+from app.access import current_role, instance_admin_required
 from app.extensions import db
 from app.models import Account, Entity, Project, Purchase, PurchasePayment
+from app.models.instance_membership import ROLE_ACCOUNTANT
 from app.models.purchase import PURCHASE_SOURCES
 from app.services import (
     attachments, catalog, counterparties, external_config, projects, purchase_entry, purchase_posting,
@@ -337,6 +338,8 @@ def purchases_send_to_qonto(purchase_id):
 
 @bp.route("/purchases/form-options")
 def purchases_form_options():
+    if current_role() != ROLE_ACCOUNTANT:  # lecture seule : rien n'est créé
+        catalog.ensure_default_purchase_product()  # la ligne proposée par défaut figure dans la liste
     return jsonify(entities=[{"value": str(e.id), "label": e.name} for e in Entity.query.order_by(Entity.name)],
                    products=_products(), charge_accounts=_charge_accounts(), qonto=_qonto(),
                    projects=projects.options())

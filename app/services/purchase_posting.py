@@ -365,5 +365,6 @@ def save_lines(p: Purchase, rows) -> dict:
         raise LedgerError("Facture comptabilisée : annulez la comptabilisation pour modifier ses lignes.")
     p.lines = build_lines(rows)
     p.lines_edited = True
+    catalog.remember_supplier_product(p.entity, p.lines)
     db.session.commit()
     return post_ready([p])

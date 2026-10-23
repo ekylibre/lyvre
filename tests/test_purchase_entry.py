@@ -6,8 +6,8 @@ import pytest
 from werkzeug.datastructures import FileStorage, MultiDict
 
 from app.extensions import db
-from app.models import Account, BankAccount, Entity, FiscalYear, Journal, Purchase
-from app.services import attachments, invoice_reader, organization, purchase_entry
+from app.models import Account, BankAccount, Entity, FiscalYear, Journal, Product, Purchase
+from app.services import attachments, catalog, invoice_reader, organization, purchase_entry, purchase_posting
 from app.services.ledger import LedgerError
 from test_invoice_reader import FREE, TICKET, _pdf
 
@@ -95,6 +95,37 @@ def test_read_staged_uses_supplier_memory_and_own_identity(books, tmp_path):
     assert (ext.value("total"), ext.value("untaxed"), ext.value("tax")) == (3999, 3333, 666)
     assert ext.fields["untaxed"].check and ext.value("siret") is None
     assert ext.value("invoice_number") == "1500000046"
+
+
+def test_default_product_saved_for_proposed_line(books):
+    form = purchase_entry.form_from_extraction(invoice_reader.parse_text(FREE))
+    product = Product.query.filter_by(name="Achats divers").one()  # enregistré, plus seulement en session
+    assert form.rows[0]["product_id"] == str(product.id)
+    assert catalog.ensure_default_purchase_product() == product and Product.query.count() == 1
+
+
+def test_chosen_product_becomes_supplier_default(books):
+    account = Account.query.filter_by(code="6061").one()
+    power = Product(name="Electricité", kind="purchase", purchase_account_id=account.id, vat_rate_bp=2000)
+    db.session.add(power)
+    db.session.commit()
+    generic = catalog.ensure_default_purchase_product()
+    # « Achats divers » ne devient pas le produit du fournisseur ; le premier produit précis, si.
+    rows = [dict(free_rows()[0], product_id=str(generic.id)), dict(free_rows()[0], product_id=str(power.id))]
+    clean, _ = purchase_entry.validate_header(header(new_name="EDF", supplier_name="EDF"))
+    p, _ = purchase_entry.create(clean, rows[:1])
+    assert p.entity.default_product_id is None
+    if p.journal_entry_id:
+        purchase_posting.unpost(p)
+    purchase_posting.save_lines(p, rows)
+    assert p.entity.default_product_id == power.id
+    # Déjà renseigné : inchangé par une autre facture.
+    other = Product(name="Gaz", kind="purchase", purchase_account_id=account.id)
+    db.session.add(other)
+    db.session.commit()
+    catalog.remember_supplier_product(p.entity, [type("L", (), {"product_id": other.id})()])
+    assert p.entity.default_product_id == power.id
+    assert catalog.product_for(p.entity) == power
 
 
 # ------------------------------------------------------------------ validation, doublons

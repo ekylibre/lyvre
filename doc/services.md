@@ -972,6 +972,8 @@ Résumé : `created`, `updated`, `unchanged`, `reversed`, `reversed_reconciled`,
 | `parse_rate_bp(value)` / `format_rate(bp)` | « 5,5 » → 550 points de base ; 550 → « 5,5 % » |
 | `default_purchase_product()` | « Achats divers », créé à la demande sur le premier compte présent : 6068, 628, 606 |
 | `product_for(entity)` | Produit par défaut (actif) du fournisseur, sinon « Achats divers » |
+| `ensure_default_purchase_product()` | « Achats divers » enregistré (commit) : appelé par les options de saisie et le préremplissage, pour que la ligne proposée désigne un produit de la liste |
+| `remember_supplier_product(entity, lines)` | Premier produit précis des lignes (hors « Achats divers ») → produit par défaut du fournisseur qui n'en a pas (sans commit ; `purchase_entry.create`, `purchase_posting.save_lines`) |
 | `purchase_products()`, `usage_count(product)` | Produits d'achat actifs ; lignes + fiches qui utilisent un produit |
 | `validate_product_data(form, product_id=None)` | Champs d'un produit ; `CatalogError` (compte 6… / 7… selon le sens, taux, unicité) |
 

@@ -64,6 +64,26 @@ def default_purchase_product() -> Product:
     return product
 
 
+def ensure_default_purchase_product() -> Product:
+    """« Achats divers » enregistré : la ligne proposée par défaut désigne un produit de la liste."""
+    product = default_purchase_product()
+    if product.id is None:
+        db.session.commit()
+    return product
+
+
+def remember_supplier_product(entity: Entity | None, lines) -> None:
+    """Le produit choisi sur une facture devient le produit par défaut du fournisseur qui n'en a
+    pas encore (hors « Achats divers ») ; les factures suivantes le proposent. Sans commit."""
+    if entity is None or entity.default_product_id is not None:
+        return
+    generic = Product.query.filter_by(name=DEFAULT_PURCHASE_PRODUCT).first()
+    chosen = next((line.product_id for line in lines if line.product_id
+                   and (generic is None or line.product_id != generic.id)), None)
+    if chosen is not None:
+        entity.default_product_id = chosen
+
+
 def product_for(entity: Entity | None) -> Product:
     """Produit des lignes d'achat d'un fournisseur : son produit par défaut s'il est actif."""
     if entity is not None and entity.default_product is not None and entity.default_product.active:

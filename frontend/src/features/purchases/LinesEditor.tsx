@@ -4,6 +4,7 @@ import { ActionIcon, Autocomplete, Button, Select, Table, Text, TextInput } from
 import { Plus, X } from "lucide-react";
 import { MoneyText } from "../../components/Money";
 import { EMPTY_LINE, lineTotal, linesTotal, updateLine } from "./lines";
+import { ProductSelect } from "./ProductSelect";
 import type { LineRow, Option, ProductOption } from "./types";
 
 export function LinesEditor({ rows, onChange, products, accounts, projects = [], expected, expectedLabel = "TTC" }: {
@@ -11,8 +12,8 @@ export function LinesEditor({ rows, onChange, products, accounts, projects = [],
   /** TTC attendu en centimes (null : inconnu). */
   expected: number | null; expectedLabel?: string;
 }) {
-  const set = (index: number, field: keyof LineRow, value: string) =>
-    onChange(rows.map((row, i) => (i === index ? updateLine(row, field, value, products) : row)));
+  const set = (index: number, field: keyof LineRow, value: string, created?: ProductOption) =>
+    onChange(rows.map((row, i) => (i === index ? updateLine(row, field, value, created ? [created, ...products] : products) : row)));
   const total = linesTotal(rows);
   const accountData = accounts.map((a) => ({ value: a.value, label: a.label }));
   const amount = (index: number, field: "untaxed" | "vat_rate" | "vat", label: string, width: number, placeholder?: string) => (
@@ -33,8 +34,9 @@ export function LinesEditor({ rows, onChange, products, accounts, projects = [],
           <Table.Tbody>
             {rows.map((row, index) => (
               <Table.Tr key={index}>
-                <Table.Td><Select aria-label={`Produit (ligne ${index + 1})`} data={products} value={row.product_id || null} clearable searchable
-                  placeholder="—" w={180} onChange={(v) => set(index, "product_id", v ?? "")} /></Table.Td>
+                <Table.Td><ProductSelect label={`Produit (ligne ${index + 1})`} value={row.product_id} products={products}
+                  accounts={accountData} account={row.account_code} rate={row.vat_rate}
+                  onChange={(id, created) => set(index, "product_id", id, created)} /></Table.Td>
                 <Table.Td><Autocomplete aria-label={`Compte (ligne ${index + 1})`} data={accountData.map((a) => a.value)} value={row.account_code}
                   w={110} classNames={{ input: "lv-num" }} onChange={(v) => set(index, "account_code", v)}
                   renderOption={({ option }) => <Text size="sm">{accountData.find((a) => a.value === option.value)?.label}</Text>} /></Table.Td>
