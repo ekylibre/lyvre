@@ -33,6 +33,7 @@ from .integration_state import IntegrationState
 from .ignored_counterparty import IgnoredCounterparty
 from .product import Product
 from .purchase import Purchase, PurchaseLine, PurchasePayment
+from .subscription import Subscription, SubscriptionPeriod
 from .sale import (
     BillingSettings, Lease, Recurrence, RentReceipt, Sale, SaleCounter, SaleEmail, SaleLine, SaleOccurrence, SalePayment,
 )
@@ -82,6 +83,8 @@ __all__ = [
     "IgnoredCounterparty",
     "Product",
     "Purchase",
+    "Subscription",
+    "SubscriptionPeriod",
     "Sale",
     "SaleLine",
     "SaleCounter",

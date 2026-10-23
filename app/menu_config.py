@@ -130,11 +130,14 @@ MENUS = [
     # -------------------------------------------------------------------- Achats
     {
         "key": "purchases",
-        "label": "Factures d'achat",
+        "label": "Achats",
         "charts": _ALL,
         "bookkeeping": _DOUBLE,   # comptabilité d'engagement (401)
-        "endpoint": "purchases.index",
-        "active": ["purchases"],
+        "active": ["purchases", "subscriptions"],
+        "items": [
+            {"key": "purchases_list", "label": "Factures d'achat", "endpoint": "purchases.index", "charts": _ALL},
+            {"key": "subscriptions", "label": "Abonnements", "endpoint": "subscriptions.index", "charts": _ALL},
+        ],
     },
     # -------------------------------------------------------------------- Ventes
     {

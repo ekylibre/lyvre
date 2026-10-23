@@ -554,6 +554,10 @@ Structure, onglet Facturation (`/configuration/organization?tab=billing`). API :
 | POST | `/api/v1/leases/<id>/deposit` | `{paid_on, bank_account_id}` : dépôt de garantie encaissé (banque ou caisse / 165) |
 | POST | `/api/v1/sales/<id>/rent-receipt` | Quittance (loyer de la période payé) ou reçu (paiement partiel) ; PDF conservé |
 | GET / POST | `/api/v1/rent-receipts/<id>/pdf`, `/send` | PDF ; envoi au locataire (SMTP) |
+| GET / POST | `/api/v1/subscriptions` | Abonnements d'achat (lot S6) ; GET crée les échéances arrivées et rattache factures et prélèvements, puis renvoie coûts mensuel / annuel, par catégorie, manquantes, préavis |
+| GET / PATCH / DELETE | `/api/v1/subscriptions/<id>` | Fiche et échéances, modification (les échéances non rattachées sont recalculées), suppression |
+| GET | `/api/v1/subscription-periods/<id>/candidates` | Factures du fournisseur et débits proches de l'échéance |
+| POST | `/api/v1/subscription-periods/<id>/link`, `/skip` | Rattachement à la main `{purchase_id?, bank_transaction_id?}` ; échéance ignorée ou rétablie `{skipped}` |
 | POST | `/api/v1/sales/sync` | Synchronisation des ventes Qonto (tâche de fond, lecture seule côté Qonto) : clients et produits rattachés ou importés, devis et factures créés dans Qonto importés (factures comptabilisées), statuts, PDF ; périmètre Ventes requis |
 | POST | `/api/v1/sales/<id>/to-invoice` | Brouillon de facture reprenant le devis (lignes, textes, « Devis D-… » en référence) ; le devis devient « facturé » (il redevient accepté si ce brouillon est supprimé) |
 

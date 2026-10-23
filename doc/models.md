@@ -919,6 +919,12 @@ charges, jour d'échéance, dépôt de garantie et son écriture, comptes des lo
 récurrence), **`rent_receipts`** (quittance ou reçu : période, loyer, charges, montant payé, PDF,
 envoi) ; `sales.recurrence_id`, `sales.lease_id`.
 
+Lot S6 (migration `a8c0e2f4b6d9`) : **`subscriptions`** (fournisseur, désignation, catégorie,
+produit du catalogue, montant TTC attendu fixe ou estimé, périodicité, jour d'échéance, compte
+prélevé, début, fin, reconduction, préavis, notes) et **`subscription_periods`** (échéance
+attendue, unique par abonnement et date : facture d'achat et prélèvement rattachés ; statut
+`expected`, `invoiced`, `paid`, `missing`, `skipped`). Aucune écriture.
+
 Devis (lot S3, sans migration) : `sales.kind = quote`, statuts `draft`, `issued`, `accepted`, `refused`,
 `invoiced` (« expiré » se lit : émis, `validity_date` passée) ; une facture issue d'un devis porte
 `quote_id`.
