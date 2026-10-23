@@ -11,6 +11,7 @@ import { useCan } from "../../api/session";
 import { AppLink, useGoTo } from "../../app/navigation";
 import { confirmAction } from "../../components/ConfirmButton";
 import { FormModal } from "../../components/FormModal";
+import { MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
 import { AssociateForm } from "./AssociateForm";
 import { BalanceCell } from "./AssociatesPage";
@@ -18,6 +19,10 @@ import { MovementLines } from "./RegisterPage";
 import { ASSOCIATES_KEY, NATURES, REGISTER_KEY, type Associate, type AssociatesMeta, type Movement } from "./types";
 import { formatDate } from "../../lib/format";
 
+interface Statement {
+  opening_cents: number; closing_cents: number;
+  lines: { date: string; entry_id: number; reference: string; label: string; origin: string; amount_cents: number; balance_cents: number }[];
+}
 interface Detail { item: Associate; meta: { can_delete: boolean; account_locked: boolean } }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -35,6 +40,8 @@ export default function AssociateDetailPage() {
     queryFn: () => api.get<{ meta: AssociatesMeta }>("/api/v1/associates") });
   const movements = useQuery({ queryKey: [...REGISTER_KEY, "associate", id],
     queryFn: () => api.get<{ items: Movement[] }>(`/api/v1/share-movements?associate_id=${id}`) });
+  const statement = useQuery({ queryKey: [...ASSOCIATES_KEY, "statement", id],
+    queryFn: () => api.get<Statement>(`/api/v1/associates/${id}/statement`) });
   const remove = useAction(() => api.delete<{ notices: Notice[] }>(`/api/v1/associates/${id}`),
     { invalidate: [ASSOCIATES_KEY] });
   if (!data) return <Center h={300}><Loader /></Center>;
@@ -83,6 +90,27 @@ export default function AssociateDetailPage() {
               </Table.Tbody>
             </Table>
           )}
+        </Paper>
+        <Paper p="md" withBorder>
+          <Text fw={600} mb="xs">Relevé du compte courant</Text>
+          {!statement.data?.lines.length ? <Text size="sm" c="dimmed">Aucune écriture sur le compte courant.</Text> : (
+            <Table>
+              <Table.Thead><Table.Tr><Table.Th>Date</Table.Th><Table.Th>Origine</Table.Th><Table.Th>Libellé</Table.Th>
+                <Table.Th ta="right">Mouvement</Table.Th><Table.Th ta="right">Solde</Table.Th></Table.Tr></Table.Thead>
+              <Table.Tbody>
+                {statement.data.lines.map((l, i) => (
+                  <Table.Tr key={i}>
+                    <Table.Td w={100}>{formatDate(l.date)}</Table.Td>
+                    <Table.Td w={140}><Text size="sm">{l.origin}</Text></Table.Td>
+                    <Table.Td><AppLink href={`/entries/${l.entry_id}`}>{l.reference}</AppLink> <Text span size="sm">{l.label}</Text></Table.Td>
+                    <Table.Td ta="right"><MoneyText cents={l.amount_cents} plus size="sm" /></Table.Td>
+                    <Table.Td ta="right"><MoneyText cents={l.balance_cents} size="sm" anomaly={l.balance_cents < 0} /></Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          )}
+          <Text size="xs" c="dimmed" mt={4}>Montant positif : la société doit à l'associé (apport, facture réglée, note de frais).</Text>
         </Paper>
         <Paper p="md" withBorder>
           <Text fw={600} mb="xs">Mouvements de parts</Text>

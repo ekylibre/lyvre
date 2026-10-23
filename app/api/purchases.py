@@ -7,11 +7,12 @@ from flask import current_app, jsonify, request, url_for
 
 from app.access import current_role, instance_admin_required
 from app.extensions import db
-from app.models import Account, Entity, Project, Purchase, PurchasePayment
+from app.models import Account, Associate, Entity, Project, Purchase, PurchasePayment
 from app.models.instance_membership import ROLE_ACCOUNTANT
 from app.models.purchase import PURCHASE_SOURCES
 from app.services import (
-    attachments, catalog, counterparties, external_config, projects, purchase_entry, purchase_posting,
+    associate_operations, associates, attachments, catalog, counterparties, external_config, projects,
+    purchase_entry, purchase_posting,
     purchase_settlement, purchase_sync,
 )
 from app.services.attachments import AttachmentError
@@ -179,6 +180,17 @@ def purchases_post_ready():
 
 def _payment(pay: PurchasePayment) -> dict:
     t = pay.bank_transaction
+    if pay.origin == "associate":
+        entry = pay.journal_entry
+        return {
+            "id": pay.id, "origin": "associate", "status": "settled" if entry else "other_entry",
+            "status_label": "Réglée" if entry else "Écriture supprimée", "qonto_transaction_id": None,
+            "transaction": None,
+            "associate": {"id": pay.associate_id, "name": pay.associate.name},
+            "date": entry.entry_date.isoformat() if entry else None, "amount_cents": pay.purchase.total_cents,
+            "entry": ({"reference": entry.reference, "url": url_for("entries.detail", entry_id=entry.id)}
+                      if entry else None),
+        }
     if t is None:
         status, label = "to_import", "À importer"
     elif pay.journal_entry:
@@ -198,6 +210,15 @@ def _payment(pay: PurchasePayment) -> dict:
         "entry": ({"reference": pay.journal_entry.reference,
                    "url": url_for("entries.detail", entry_id=pay.journal_entry.id)} if pay.journal_entry else None),
     }
+
+
+def _associate_payment(p: Purchase) -> dict | None:
+    """Règlement par un associé possible ? (module « Associés » actif seulement)."""
+    if not associates.enabled():
+        return None
+    return {"blocker": associate_operations.payment_blocker(p),
+            "associates": [{"value": str(a.id), "label": a.name}
+                           for a in Associate.query.join(Entity).order_by(Entity.name)]}
 
 
 def purchase_detail(p: Purchase) -> dict:
@@ -229,6 +250,7 @@ def purchase_detail(p: Purchase) -> dict:
                         for t in (purchase_settlement.match_candidates(p) if awaiting else [])],
         "match_window": [window[0].isoformat(), window[1].isoformat()] if window else None,
         "can_send": purchase_entry.can_send_to_qonto(p),
+        "associate_payment": _associate_payment(p),
         "meta": {"products": _products(), "charge_accounts": _charge_accounts(), "qonto": _qonto(),
                  "projects": projects.options([l.project_id for l in p.lines if l.project_id])},
     }
@@ -306,6 +328,12 @@ def purchases_unlink_payment(purchase_id, payment_id):
     payment = PurchasePayment.query.filter_by(id=payment_id, purchase_id=purchase_id).first()
     if payment is None:
         raise ApiError("not_found", "Règlement introuvable.", status=404)
+    if payment.origin == "associate":
+        try:
+            associate_operations.unpay_purchase(payment)
+        except associate_operations.OperationError as exc:
+            raise ApiError("conflict", str(exc), status=409) from None
+        return jsonify(notices=[notice("Règlement par l'associé défait : son écriture est supprimée.")])
     try:
         purchase_settlement.unlink(payment)
     except LedgerError as exc:
@@ -422,9 +450,31 @@ def purchases_create():
         db.session.rollback()
         raise invalid(str(exc)) from None
     notices = _posted_notices(p, outcome, "enregistré")
+    paid_by = data.get("paid_by_associate")
+    if isinstance(paid_by, dict) and paid_by.get("associate_id") and associates.enabled():
+        # Réglée par un associé dès la saisie : seulement si la facture a pu être comptabilisée.
+        try:
+            associate_operations.pay_purchase(p, paid_by.get("associate_id"), paid_by.get("paid_on"))
+            notices.append(notice("Réglée par le compte courant de l'associé."))
+        except associate_operations.OperationError as exc:
+            notices.append(notice(f"Règlement par l'associé non passé : {exc}", "warning"))
     if data.get("send_to_qonto") and token and purchase_entry.qonto_upload_available():
         notices.append(_upload_notice(p, purchase_entry.send_to_qonto(p)))
     return jsonify(item={"id": p.id, "url": url_for("purchases.detail", purchase_id=p.id)}, notices=notices), 201
+
+
+@bp.route("/purchases/<int:purchase_id>/associate-payment", methods=["POST"])
+def purchases_pay_by_associate(purchase_id):
+    """Facture réglée par le compte courant d'un associé (module « Associés »)."""
+    if not associates.enabled():
+        raise ApiError("feature_disabled", "Module Associés désactivé pour cette instance.", status=404)
+    p = get_or_404(Purchase, purchase_id, "Facture introuvable.")
+    data = json_body()
+    try:
+        associate_operations.pay_purchase(p, data.get("associate_id"), data.get("paid_on"))
+    except associate_operations.OperationError as exc:
+        raise invalid(str(exc), exc.field) from None
+    return jsonify(notices=[notice("Facture réglée par le compte courant de l'associé.")])
 
 
 @bp.route("/purchases/<int:purchase_id>/header")

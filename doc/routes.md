@@ -103,6 +103,23 @@ Registre des parts : pages `/share-movements/` (`new`, `<id>/edit`), menu Associ
 | DELETE | `/api/v1/share-movements/<id>` | 409 si un mouvement postérieur s'appuie dessus ; administrateur |
 | GET | `/api/v1/share-movements/<id>/attachment` | Pièce du mouvement (`parts/AAAA/MM/`) |
 
+Opérations des comptes courants (lot A3) :
+
+| Méthode | Route | Description |
+|---|---|---|
+| GET | `/api/v1/associates/<id>/statement?start=&end=` | Relevé du compte courant : lignes (origine, montant créditeur positif, solde progressif) |
+| GET | `/api/v1/associates/balances-by-year` | Solde de chaque compte courant à la fin de chaque exercice (graphique) |
+| POST | `/api/v1/purchases/<id>/associate-payment` | `{associate_id, paid_on}` : facture réglée par l'associé (journal AS, 401 / 455) ; trésorier ; le détail d'une facture porte `associate_payment` (`blocker`, associés) et le règlement (`origin = "associate"`) ; `DELETE /purchases/<id>/payments/<pid>` le défait |
+| POST | `/api/v1/purchases` | `paid_by_associate: {associate_id, paid_on}` facultatif : réglée par l'associé après l'enregistrement si elle est comptabilisée (sinon avertissement) |
+| GET | `/api/v1/entries/form?bt_id=&associate_id=` | Écriture préremplie depuis une transaction : apport 512 / 455, remboursement 455 / 512 |
+| GET / POST | `/api/v1/associate-expenses` | Notes de frais (JSON ou multipart `payload` + `attachment`) : écriture AS charge (+ 44566) / 455 ; trésorier |
+| DELETE | `/api/v1/associate-expenses/<id>` | Supprime la note et son écriture (exercice ouvert) |
+| GET | `/api/v1/associate-expenses/<id>/attachment` | Justificatif (`frais/AAAA/MM/`) |
+
+Pages `/associate-expenses/` (menu Associés › Notes de frais, partie double) ; bouton « Réglée par un
+associé » sur la fiche d'une facture d'achat, option « Payée par un associé » à la saisie, action
+« Compte courant d'associé » au rapprochement.
+
 ## Accès à l'instance (`/configuration/access/`) — administrateur de l'instance
 
 Page de la SPA `/configuration/access/`. API (instance courante, rôle `admin` ou administrateur global ; sinon 403) :

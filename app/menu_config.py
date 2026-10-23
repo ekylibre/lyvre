@@ -140,11 +140,13 @@ MENUS = [
         "label": "Associés",
         "charts": _ALL,
         "feature": "associates",  # option de l'instance (Instance.has_associates)
-        "active": ["associates", "share_movements"],
+        "active": ["associates", "share_movements", "associate_expenses"],
         "items": [
             {"key": "associates_list", "label": "Associés", "endpoint": "associates.index", "charts": _ALL},
             {"key": "share_movements", "label": "Registre des parts", "endpoint": "share_movements.index",
              "charts": _ALL},
+            {"key": "associate_expenses", "label": "Notes de frais", "endpoint": "associate_expenses.index",
+             "charts": _ALL, "bookkeeping": _DOUBLE},
         ],
     },
     # ---------------------------------------------------------------------- Tiers

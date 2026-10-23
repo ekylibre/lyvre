@@ -20,6 +20,8 @@ import { EMPTY_LINE, cents } from "./lines";
 import { LinesEditor } from "./LinesEditor";
 import { PURCHASES_KEY, type FormOptions, type LineRow, type Option } from "./types";
 import { writeOnly } from "../../components/ReadOnlyPage";
+import { useCurrentSession } from "../../api/session";
+import { ASSOCIATES_KEY, type Associate } from "../associates/types";
 
 type Values = Record<string, string>;
 interface Preview { url: string; mime: string }
@@ -62,6 +64,13 @@ function PurchaseFormPage() {
   const [duplicates, setDuplicates] = useState<Duplicate[]>([]);
   const [confirmDuplicate, setConfirmDuplicate] = useState(false);
   const [sendToQonto, setSendToQonto] = useState(false); // dépôt dans Qonto : choix explicite
+  // Module « Associés » : facture payée par un associé (compte courant), passée après l'enregistrement.
+  const session = useCurrentSession();
+  const withAssociates = !editId && !!session.instance?.has_associates;
+  const associateList = useQuery({ queryKey: [...ASSOCIATES_KEY, "/api/v1/associates"], enabled: withAssociates,
+    queryFn: () => api.get<{ items: Associate[] }>("/api/v1/associates") });
+  const [paidBy, setPaidBy] = useState<string | null>(null);
+  const [paidOn, setPaidOn] = useState(() => new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -131,7 +140,8 @@ function PurchaseFormPage() {
   const submit = async () => {
     setSaving(true); setErrors([]);
     const body = { ...v, is_credit_note: v.is_credit_note === "1", token, rows: form.rows, confirm_duplicate: confirmDuplicate,
-      send_to_qonto: qontoUpload && token ? sendToQonto : false };
+      send_to_qonto: qontoUpload && token ? sendToQonto : false,
+      ...(withAssociates && paidBy ? { paid_by_associate: { associate_id: Number(paidBy), paid_on: paidOn } } : {}) };
     try {
       const result = editId
         ? await api.patch<{ notices: Notice[]; item?: undefined }>(`/api/v1/purchases/${editId}`, body)
@@ -221,6 +231,15 @@ function PurchaseFormPage() {
             <Text size="xs" c="dimmed" mt={4}>Produit du catalogue : compte et taux préremplis. Une remise obtenue est une ligne négative (609).
               Le total des lignes doit égaler le TTC pour que la facture soit comptabilisée.</Text>
           </Fieldset>
+        )}
+        {withAssociates && (associateList.data?.items.length ?? 0) > 0 && (
+          <Group align="flex-end">
+            <Select label="Payée par un associé" placeholder="Non" clearable w={260} value={paidBy} onChange={setPaidBy}
+              data={(associateList.data?.items ?? []).map((a) => ({ value: String(a.id), label: a.name }))}
+              description="Portée au crédit de son compte courant." />
+            {paidBy && <TextInput label="Date du paiement" type="date" w={180} value={paidOn}
+              onChange={(e) => setPaidOn(e.currentTarget.value)} />}
+          </Group>
         )}
         {qontoUpload && (
           <Checkbox label="Envoyer à Qonto" checked={!!token && sendToQonto} disabled={!token} onChange={(e) => setSendToQonto(e.currentTarget.checked)}

@@ -232,11 +232,21 @@ def entries_form():
         fy = _default_fiscal_year(bt.transaction_date)
         bq = next((j for j in journals if j.code == "BQ"), journals[0] if journals else None)
         amount, inflow = abs(bt.amount_cents), bt.amount_cents >= 0
+        lines = [{"account": _account_json(bt.bank_account.account), "label": bt.label or "",
+                  "debit_cents": amount if inflow else 0, "credit_cents": 0 if inflow else amount}]
+        associate_id = request.args.get("associate_id", type=int)
+        if associate_id:
+            # Apport ou remboursement du compte courant d'un associé : contrepartie 455 préremplie.
+            from app.models import Associate
+            from app.services.associate_operations import bank_entry_lines
+            associate = db.session.get(Associate, associate_id)
+            if associate is None:
+                raise ApiError("not_found", "Associé introuvable.", 404)
+            lines = [{**line, "account": _account_json(line["account"])} for line in bank_entry_lines(bt, associate)]
         return jsonify(mode="create", options=options, initial={
             "fiscal_year_id": fy.id if fy else None, "journal_id": bq.id if bq else None,
             "entry_date": bt.transaction_date.isoformat(), "description": bt.label or "",
-            "lines": [{"account": _account_json(bt.bank_account.account), "label": bt.label or "",
-                       "debit_cents": amount if inflow else 0, "credit_cents": 0 if inflow else amount}]},
+            "lines": lines},
             bank_transaction={"id": bt.id, "date": bt.transaction_date.isoformat(), "label": bt.label or "",
                               "amount_cents": bt.amount_cents,
                               "return_url": url_for("reconciliation.index", bank_account_id=bt.bank_account_id)})

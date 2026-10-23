@@ -1,7 +1,7 @@
 from datetime import date
 from app.extensions import db
 from app.models import (
-    Account, BankTransaction, FiscalYear, Journal, JournalEntry, JournalLine, Purchase,
+    Account, AssociateExpense, BankTransaction, FiscalYear, Journal, JournalEntry, JournalLine, Purchase,
     PurchasePayment,
 )
 from app.models.journal_entry import MANAGED_SOURCES
@@ -377,7 +377,7 @@ def delete_entries(entry_ids, allow_managed=False):
                 {"journal_line_id": None, "reconciled": False}, synchronize_session="fetch")
         # Facture d'achat ou règlement adossé à l'écriture : redeviennent à comptabiliser
         # (SQLite n'applique pas les ON DELETE SET NULL).
-        for model in (Purchase, PurchasePayment):
+        for model in (Purchase, PurchasePayment, AssociateExpense):
             model.query.filter(model.journal_entry_id == entry.id).update(
                 {"journal_entry_id": None}, synchronize_session="fetch")
         results.append({"entry_id": entry_id, "status": "ok", "reference": entry.reference})

@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useSearchParams } from "react-router";
 import {
-  Alert, Anchor, Button, Center, Checkbox, Drawer, Grid, Group, Kbd, List, Loader, Paper, Select,
+  Alert, Anchor, Button, Center, Checkbox, Drawer, Grid, Group, Kbd, List, Loader, Menu, Paper, Select,
   Stack, Table, Text, Title, VisuallyHidden,
 } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
@@ -21,6 +21,8 @@ import { AppLink } from "../../app/navigation";
 import { EntryEditor, type EntryFormData } from "../entries/EntryEditor";
 import { activeAfterRemoval, attachmentBadge, bestSuggestion, plural, rangeIds, REVERSED_MESSAGE } from "./logic";
 import { writeOnly } from "../../components/ReadOnlyPage";
+import { useCurrentSession } from "../../api/session";
+import { ASSOCIATES_KEY, type Associate } from "../associates/types";
 
 const UNDO_VISIBLE_MS = 10_000;
 const PREFETCH_NEXT = 3;
@@ -39,12 +41,13 @@ function isTyping(target: EventTarget | null) {
 }
 
 /** Panneau « Créer l'écriture » : formulaire préparé par le serveur depuis la transaction. */
-function EntryPanel({ bt, onClose, onSaved }: {
-  bt: BankTransaction; onClose: () => void; onSaved: (reconciled: boolean, reference: string) => void;
+function EntryPanel({ bt, associateId, onClose, onSaved }: {
+  bt: BankTransaction; associateId?: number | null; onClose: () => void; onSaved: (reconciled: boolean, reference: string) => void;
 }) {
+  // Avec un associé : apport ou remboursement de son compte courant (contrepartie 455 préremplie).
   const { data, error } = useQuery({
-    queryKey: ["entries", "form", "bt", bt.id], gcTime: 0, retry: false,
-    queryFn: () => api.get<EntryFormData>(`/api/v1/entries/form?bt_id=${bt.id}`),
+    queryKey: ["entries", "form", "bt", bt.id, associateId ?? null], gcTime: 0, retry: false,
+    queryFn: () => api.get<EntryFormData>(`/api/v1/entries/form?bt_id=${bt.id}${associateId ? `&associate_id=${associateId}` : ""}`),
   });
   return (
     <Drawer opened onClose={onClose} position="right" size="min(56rem, 100vw)" title="Créer l'écriture">
@@ -80,6 +83,10 @@ function ReconcilePage() {
   const [busy, setBusy] = useState(false);
   const [undo, setUndo] = useState<{ message: string; request: UndoRequest } | null>(null);
   const [panelFor, setPanelFor] = useState<BankTransaction | null>(null);
+  const [panelAssociate, setPanelAssociate] = useState<number | null>(null);
+  const session = useCurrentSession();
+  const associates = useQuery({ queryKey: [...ASSOCIATES_KEY, "/api/v1/associates"], enabled: !!session.instance?.has_associates,
+    queryFn: () => api.get<{ items: Associate[] }>("/api/v1/associates") });
   const tableRef = useRef<HTMLDivElement>(null);
   const undoTimer = useRef<number | undefined>(undefined);
   const pending = useRef(new Set<number>());
@@ -285,7 +292,7 @@ function ReconcilePage() {
     else if (/^[1-9]$/.test(key)) { e.preventDefault(); reconcileActive(Number(key)); }
     else if (key.toLowerCase() === "n" && active) {
       e.preventDefault();
-      if (active.is_reversed) notify("ardoise", REVERSED_MESSAGE); else setPanelFor(active);
+      if (active.is_reversed) notify("ardoise", REVERSED_MESSAGE); else { setPanelAssociate(null); setPanelFor(active); }
     } else if (key.toLowerCase() === "r") { e.preventDefault(); void applyRules(); }
     else if (key === "Escape") setSelected(new Set());
   }
@@ -406,7 +413,20 @@ function ReconcilePage() {
                 </Group>
               ))}
               {active && !active.is_reversed && (
-                <Button variant="default" mt="xs" w="fit-content" onClick={() => setPanelFor(active)}>Créer l'écriture (N)</Button>
+                <Group gap="xs" mt="xs">
+                  <Button variant="default" w="fit-content" onClick={() => { setPanelAssociate(null); setPanelFor(active); }}>Créer l'écriture (N)</Button>
+                  {(associates.data?.items.length ?? 0) > 0 && (
+                    <Menu position="bottom-start">
+                      <Menu.Target><Button variant="default">Compte courant d'associé</Button></Menu.Target>
+                      <Menu.Dropdown>
+                        <Menu.Label>{active.amount_cents >= 0 ? "Apport de" : "Remboursement à"}</Menu.Label>
+                        {associates.data?.items.map((a) => (
+                          <Menu.Item key={a.id} onClick={() => { setPanelAssociate(a.id); setPanelFor(active); }}>{a.name}</Menu.Item>
+                        ))}
+                      </Menu.Dropdown>
+                    </Menu>
+                  )}
+                </Group>
               )}
             </Stack>
           </Paper>
@@ -424,7 +444,7 @@ function ReconcilePage() {
             Toutes les transactions du compte</Anchor>}
         </Grid.Col>
       </Grid>
-      {panelFor && <EntryPanel bt={panelFor} onClose={() => { setPanelFor(null); tableRef.current?.focus(); }} onSaved={onEntrySaved} />}
+      {panelFor && <EntryPanel bt={panelFor} associateId={panelAssociate} onClose={() => { setPanelFor(null); tableRef.current?.focus(); }} onSaved={onEntrySaved} />}
     </div>
   );
 }

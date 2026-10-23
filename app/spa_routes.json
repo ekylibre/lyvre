@@ -28,6 +28,8 @@
     {"rule": "/associates/", "endpoint": "associates.index"},
     {"rule": "/associates/new", "endpoint": "associates.new"},
     {"rule": "/associates/<int:associate_id>", "endpoint": "associates.detail"},
+    {"rule": "/associate-expenses/", "endpoint": "associate_expenses.index"},
+    {"rule": "/associate-expenses/new", "endpoint": "associate_expenses.new"},
     {"rule": "/share-movements/", "endpoint": "share_movements.index"},
     {"rule": "/share-movements/new", "endpoint": "share_movements.new"},
     {"rule": "/share-movements/<int:movement_id>/edit", "endpoint": "share_movements.edit"},

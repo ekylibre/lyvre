@@ -48,8 +48,10 @@ export interface ProductOption extends Option { account: string; rate: string }
 export interface FormOptions { products: ProductOption[]; charge_accounts: Option[]; qonto: QontoState; projects?: Option[] }
 
 export interface Payment {
-  id: number; origin: "qonto" | "match" | "manual"; status: "to_import" | "settled" | "reversed" | "other_entry" | "pending";
+  id: number; origin: "qonto" | "match" | "manual" | "associate"; status: "to_import" | "settled" | "reversed" | "other_entry" | "pending";
   status_label: string; qonto_transaction_id: string | null;
+  /** Règlement par le compte courant d'un associé (module « Associés »). */
+  associate?: { id: number; name: string }; date?: string | null; amount_cents?: number;
   transaction: { id: number; date: string; label: string; amount_cents: number; bank_account: string; bank_account_id: number } | null;
   entry: { reference: string; url: string } | null;
 }
@@ -71,6 +73,8 @@ export interface PurchaseDetail {
   suggestions: { id: number; date: string; bank_account: string; label: string; amount_cents: number; rule: boolean }[];
   match_window: [string, string] | null;
   can_send: boolean;
+  /** Module « Associés » actif : règlement par un associé possible si `blocker` est nul. */
+  associate_payment: { blocker: string | null; associates: Option[] } | null;
   meta: FormOptions;
 }
 

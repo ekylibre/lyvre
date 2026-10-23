@@ -8,7 +8,7 @@ from flask import jsonify, request
 
 from app.access import instance_admin_required
 from app.models import Associate, Entity
-from app.services import associates
+from app.services import associate_operations, associates
 from app.services.associates import AssociateError
 
 from . import ApiError, bp, get_or_404, invalid, json_body, notice
@@ -81,6 +81,27 @@ def associates_detail(associate_id):
         "can_delete": not associates.delete_blockers(associate),
         "account_locked": associates.has_entries(associate.account),
     })
+
+
+@bp.route("/associates/<int:associate_id>/statement")
+def associates_statement(associate_id):
+    """Relevé du compte courant (`start`, `end` facultatifs, AAAA-MM-JJ)."""
+    _require_enabled()
+    associate = get_or_404(Associate, associate_id, "Associé introuvable.")
+    bounds = []
+    for key in ("start", "end"):
+        raw = request.args.get(key)
+        try:
+            bounds.append(date.fromisoformat(raw) if raw else None)
+        except ValueError:
+            raise invalid("Date invalide (AAAA-MM-JJ).", key) from None
+    return jsonify(associate_operations.statement(associate, *bounds))
+
+
+@bp.route("/associates/balances-by-year")
+def associates_balances_by_year():
+    _require_enabled()
+    return jsonify(associate_operations.balances_by_fiscal_year())
 
 
 @bp.route("/associates/<int:associate_id>", methods=["PATCH"])

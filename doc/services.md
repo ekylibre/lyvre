@@ -1276,3 +1276,18 @@ dernier mouvement qui le porte, capital, solde créditeur des 101…, avertissem
 
 `attachments.store(target, token, folder="achats", day=None)` et `path_of(target)` servent tout
 enregistrement portant les colonnes `attachment_*`.
+
+## associate_operations.py — Opérations des comptes courants (module « Associés », lot A3)
+
+Journal **AS « Associés »** (créé à la première écriture), `source = "ASSOCIATE"`. Rien n'est écrit dans Qonto.
+
+| Fonction | Rôle |
+|---|---|
+| `payment_blocker(p)` / `pay_purchase(p, associate_id, paid_on)` | Facture comptabilisée, sans règlement, pas un avoir : écriture 401 du fournisseur / 455 de l'associé, `PurchasePayment(origin="associate")`, `source_ref = PURCHASE_PAYMENT:<id>` |
+| `unpay_purchase(payment)` | Supprime paiement et écriture (exercice ouvert) |
+| `create_expense(data, token)` / `delete_expense` | Note de frais : charge (6…) et TVA (`vat_account`) / 455, justificatif `frais/AAAA/MM/`, `source_ref = EXPENSE:<id>` |
+| `bank_entry_lines(bt, associate)` | Lignes préremplies d'un apport (512 / 455) ou d'un remboursement (455 / 512) |
+| `statement(associate, start, end)` | Relevé : solde d'ouverture, lignes avec origine (facture réglée, note de frais, banque, affectation…), solde progressif |
+| `balances_by_fiscal_year()` | Soldes à la fin de chaque exercice par associé |
+
+`ledger.delete_entries` détache aussi les notes de frais de l'écriture supprimée.

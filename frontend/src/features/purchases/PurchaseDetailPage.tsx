@@ -10,12 +10,14 @@ import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
 import { useCan } from "../../api/session";
 import { ConfirmButton } from "../../components/ConfirmButton";
+import { FormModal } from "../../components/FormModal";
 import { MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
 import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink, useGoTo } from "../../app/navigation";
+import { AssociatePaymentForm } from "../associates/AssociatePaymentForm";
 import { AttachmentPreview } from "./AttachmentPreview";
 import { LinesEditor } from "./LinesEditor";
 import { EMPTY_LINE } from "./lines";
@@ -44,6 +46,7 @@ export default function PurchaseDetailPage() {
   const saveLines = useAction((r: LineRow[]) => api.put<{ notices: Notice[] }>(`/api/v1/purchases/${id}/lines`, { rows: r }), opts);
   const sendToQonto = useAction(() => api.post<{ notices: Notice[] }>(`/api/v1/purchases/${id}/qonto`), opts);
   const link = useAction((tid: number) => api.post<{ notices: Notice[] }>(`/api/v1/purchases/${id}/payments`, { bank_transaction_id: tid }), opts);
+  const [payingByAssociate, setPayingByAssociate] = useState(false);
   const unlink = useAction((pid: number) => api.delete<{ notices: Notice[] }>(`/api/v1/purchases/${id}/payments/${pid}`), opts);
   const remove = useAction(() => api.delete<{ notices: Notice[] }>(`/api/v1/purchases/${id}`));
 
@@ -142,7 +145,12 @@ export default function PurchaseDetailPage() {
 
       {data.awaiting_payment && (
         <Stack gap={4} mb="lg">
-          <Title order={3}>Règlement</Title>
+          <Group justify="space-between">
+            <Title order={3}>Règlement</Title>
+            {data.associate_payment && !data.associate_payment.blocker && (
+              <Can><Button size="compact-sm" variant="default" onClick={() => setPayingByAssociate(true)}>Réglée par un associé</Button></Can>
+            )}
+          </Group>
           {data.suggestions.length ? (
             <>
               <Text size="sm" c="dimmed">Transactions bancaires de même montant autour de la date de la facture :</Text>
@@ -174,7 +182,12 @@ export default function PurchaseDetailPage() {
             <Table.Thead><Table.Tr><Table.Th>Date</Table.Th><Table.Th>Compte bancaire</Table.Th><Table.Th>Libellé</Table.Th><Table.Th ta="right">Montant</Table.Th><Table.Th>État</Table.Th><Table.Th /></Table.Tr></Table.Thead>
             <Table.Tbody>{data.payments.map((pay) => (
               <Table.Tr key={pay.id}>
-                {pay.transaction ? <>
+                {pay.origin === "associate" ? <>
+                  <Table.Td className="lv-num">{formatDate(pay.date ?? null)}</Table.Td>
+                  <Table.Td><Anchor component={AppLink} href={`/associates/${pay.associate?.id}`} size="sm">Compte courant — {pay.associate?.name}</Anchor></Table.Td>
+                  <Table.Td><Text size="sm">Réglée par l'associé</Text></Table.Td>
+                  <Table.Td ta="right"><MoneyText cents={-(pay.amount_cents ?? 0)} /></Table.Td>
+                </> : pay.transaction ? <>
                   <Table.Td className="lv-num">{formatDate(pay.transaction.date)}</Table.Td>
                   <Table.Td><Anchor component={AppLink} href={`/bank-accounts/${pay.transaction.bank_account_id}/transactions`} size="sm">{pay.transaction.bank_account}</Anchor></Table.Td>
                   <Table.Td><Text size="sm">{pay.transaction.label}</Text></Table.Td>
@@ -190,7 +203,7 @@ export default function PurchaseDetailPage() {
                 </Table.Td>
                 <Table.Td ta="right">{pay.origin !== "qonto" && (
                   <Group gap={6} justify="flex-end" wrap="nowrap">
-                    <Text size="xs" c="dimmed">{pay.origin === "match" ? "auto" : "choisi"}</Text>
+                    <Text size="xs" c="dimmed">{pay.origin === "match" ? "auto" : pay.origin === "associate" ? "associé" : "choisi"}</Text>
                     <Can><ConfirmButton size="compact-sm" variant="subtle" title="Défaire ce règlement ?" message="Son écriture sera supprimée."
                       confirmLabel="Défaire" onConfirm={() => unlink.mutate(pay.id)}>Défaire</ConfirmButton></Can>
                   </Group>
@@ -227,6 +240,12 @@ export default function PurchaseDetailPage() {
           </Table.Tr></Table.Tfoot>
         </Table>
       )}
+      <FormModal opened={payingByAssociate && !!data.associate_payment} onClose={() => setPayingByAssociate(false)}
+        title="Réglée par un associé">
+        {data.associate_payment && <AssociatePaymentForm purchaseId={p.id} totalCents={p.total_cents}
+          associates={data.associate_payment.associates} invalidate={[PURCHASES_KEY, ["associates"]]}
+          onDone={() => setPayingByAssociate(false)} />}
+      </FormModal>
     </>
   );
 }

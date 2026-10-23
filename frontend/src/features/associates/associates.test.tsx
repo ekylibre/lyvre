@@ -5,7 +5,10 @@ import { notifications } from "@mantine/notifications";
 import { Route, Routes } from "react-router";
 import { renderWithProviders, TEST_SESSION } from "../../test/render";
 import AssociateDetailPage from "./AssociateDetailPage";
+import { AssociatePaymentForm } from "./AssociatePaymentForm";
 import AssociatesPage from "./AssociatesPage";
+import { chartRows } from "./BalancesChart";
+import ExpensesPage from "./ExpensesPage";
 import { balanceLabel } from "./types";
 
 type Call = { method: string; url: string; body: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -27,6 +30,16 @@ beforeEach(() => {
     const method = init.method ?? "GET";
     const body = init.body ? JSON.parse(init.body as string) : undefined;
     calls.push({ method, url, body });
+    if (url === "/api/v1/associates/3/statement") {
+      return json(200, { opening_cents: 0, closing_cents: -1500, lines: [{ date: "2026-05-02", entry_id: 9, reference: "AS-1",
+        label: "Remboursement", origin: "Banque", amount_cents: -1500, balance_cents: -1500 }] });
+    }
+    if (url === "/api/v1/associate-expenses" && method === "POST") return json(201, { item: {}, notices: [] });
+    if (url.startsWith("/api/v1/associate-expenses")) {
+      return json(200, { items: [], meta: { associates: [{ value: "3", label: "Parent" }],
+        charge_accounts: [{ value: "6068", label: "6068 — Autres achats" }] } });
+    }
+    if (url === "/api/v1/purchases/7/associate-payment") return json(200, { notices: [] });
     if (url.startsWith("/api/v1/associates/3")) {
       return json(200, { item: { ...PARENT, balance_cents: -1500 }, meta: { can_delete: false, account_locked: true } });
     }
@@ -74,5 +87,45 @@ describe("associés", () => {
     expect(screen.queryByRole("button", { name: "Retirer" })).toBeNull(); // historique : pas de suppression
     await user.click(screen.getByRole("button", { name: "Modifier" }));
     expect((await screen.findByLabelText("Compte courant") as HTMLInputElement).disabled).toBe(true);
+  });
+
+  it("fiche : relevé du compte courant", async () => {
+    renderWithProviders(
+      <Routes><Route path="/associates/:associate_id" element={<AssociateDetailPage />} /></Routes>,
+      { route: "/associates/3" });
+    expect(await screen.findByText("AS-1")).toBeTruthy();
+    expect(screen.getByText("Banque")).toBeTruthy();
+  });
+
+  it("graphique : une ligne par exercice, en euros", () => {
+    expect(chartRows({ years: ["2025", "2026"], series: [{ name: "Lola", values: [0, 7059] }] }))
+      .toEqual([{ exercice: "2025", Lola: 0 }, { exercice: "2026", Lola: 70.59 }]);
+  });
+
+  it("facture réglée par un associé", async () => {
+    const user = userEvent.setup();
+    const onDone = vi.fn();
+    renderWithProviders(<AssociatePaymentForm purchaseId={7} totalCents={7059} associates={[{ value: "3", label: "Parent" }]}
+      invalidate={[["purchases"]]} onDone={onDone} />);
+    expect(screen.getByText(/70,59/)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Enregistrer le règlement" }));
+    await waitFor(() => expect(onDone).toHaveBeenCalled());
+    expect(calls.find((c) => c.url === "/api/v1/purchases/7/associate-payment")?.body)
+      .toMatchObject({ associate_id: "3" });
+  });
+
+  it("note de frais saisie par le trésorier", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ExpensesPage />, { route: "/associate-expenses/new" });
+    await user.type(await screen.findByLabelText(/^Libellé/), "Ampoules");
+    // Un seul associé : il est présélectionné.
+    expect((screen.getByRole("combobox", { name: "Associé" }) as HTMLInputElement).value).toBe("Parent");
+    await user.click(screen.getByRole("combobox", { name: "Compte de charge" }));
+    await user.click(await screen.findByRole("option", { name: "6068 — Autres achats" }));
+    await user.type(screen.getByLabelText(/^HT/), "10");
+    await user.type(screen.getByLabelText(/^Taux de TVA/), "20");
+    await user.click(screen.getByRole("button", { name: "Enregistrer la note de frais" }));
+    await waitFor(() => expect(calls.find((c) => c.url === "/api/v1/associate-expenses" && c.method === "POST")?.body)
+      .toMatchObject({ associate_id: "3", label: "Ampoules", account_code: "6068", untaxed: "10", vat_rate: "20" }));
   });
 });

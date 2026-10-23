@@ -1,6 +1,6 @@
 // Associés : parts détenues par nature (pleine propriété, usufruit, nue-propriété) et % du
 // capital à une date, solde du compte courant (sous-compte 455). Création par l'administrateur.
-import { Button, Center, Group, Loader, Text, TextInput } from "@mantine/core";
+import { Button, Center, Group, Loader, Paper, SegmentedControl, Text, TextInput } from "@mantine/core";
 import { useList } from "../../api/resources";
 import { useCan } from "../../api/session";
 import { AppLink } from "../../app/navigation";
@@ -13,6 +13,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AssociateForm } from "./AssociateForm";
+import { BalancesChart } from "./BalancesChart";
 import { ASSOCIATES_KEY, balanceLabel, NATURES, type Associate, type AssociatesMeta } from "./types";
 
 const percent = (value: number) => `${value.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} %`;
@@ -29,7 +30,7 @@ export function BalanceCell({ cents }: { cents: number }) {
 export default function AssociatesPage() {
   const can = useCan();
   const modal = useRouteModal("/associates/");
-  const [params, setParams] = useUrlParams({ at: "" });
+  const [params, setParams] = useUrlParams({ at: "", view: "" });
   const url = `/api/v1/associates${params.at ? `?at=${params.at}` : ""}`;
   const { data, isFetching } = useList<Associate, AssociatesMeta>(ASSOCIATES_KEY, url);
   const meta = data?.meta;
@@ -56,7 +57,11 @@ export default function AssociatesPage() {
       <PageHeader title="Associés" description="Parts détenues et comptes courants des associés."
         actions={can.instanceAdmin && <Button onClick={modal.openNew}>Nouvel associé</Button>} />
       <FilterBar>
-        <TextInput type="date" label="Situation au" value={params.at} onChange={(e) => setParams({ at: e.currentTarget.value })} />
+        <SegmentedControl data={[{ value: "", label: "Liste" }, { value: "chart", label: "Comptes courants par exercice" }]}
+          value={params.view} onChange={(view) => setParams({ view })} />
+        {params.view !== "chart" && (
+          <TextInput type="date" label="Situation au" value={params.at} onChange={(e) => setParams({ at: e.currentTarget.value })} />
+        )}
         {meta && (
           <Text size="sm" c="dimmed">
             {meta.total_parts.toLocaleString("fr-FR")} parts au {formatDate(meta.at)} · comptes courants :{" "}
@@ -64,9 +69,11 @@ export default function AssociatesPage() {
           </Text>
         )}
       </FilterBar>
-      <DataGrid id="associates" records={data?.items} columns={columns} fetching={isFetching}
-        defaultSort={{ column: "name", direction: "asc" }}
-        emptyText="Aucun associé. Ajoutez les associés de la société : chacun reçoit un compte courant 4551…" />
+      {params.view === "chart" ? <Paper p="md" withBorder><BalancesChart /></Paper> : (
+        <DataGrid id="associates" records={data?.items} columns={columns} fetching={isFetching}
+          defaultSort={{ column: "name", direction: "asc" }}
+          emptyText="Aucun associé. Ajoutez les associés de la société : chacun reçoit un compte courant 4551…" />
+      )}
       <FormModal opened={modal.mode === "new" && can.instanceAdmin} onClose={modal.close} title="Nouvel associé">
         {meta ? <AssociateForm associate={null} meta={meta} onDone={modal.close} /> : <Center h={120}><Loader /></Center>}
       </FormModal>
