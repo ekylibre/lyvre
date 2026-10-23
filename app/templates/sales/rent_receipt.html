@@ -1,0 +1,52 @@
+{#- Quittance de loyer (loyer de la période entièrement payé) ou reçu de paiement (partiel),
+    loi du 6 juillet 1989 art. 21 : distingue loyer et charges ; remise gratuite au locataire. -#}
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>{{ "Quittance de loyer" if row.kind == "quittance" else "Reçu" }}</title>
+<style>
+  @page { size: A4; margin: 18mm; }
+  body { font-family: "DejaVu Sans", sans-serif; font-size: 10pt; color: #111; line-height: 1.45; }
+  h1 { font-size: 16pt; text-align: center; margin: 4mm 0 8mm; letter-spacing: 0.5pt; }
+  .parties { display: flex; justify-content: space-between; margin-bottom: 8mm; }
+  .parties div { width: 46%; }
+  .label { font-size: 8pt; color: #555; text-transform: uppercase; }
+  table { width: 100%; border-collapse: collapse; margin: 6mm 0; }
+  td { border-bottom: 0.2mm solid #bbb; padding: 2mm; }
+  .num { text-align: right; white-space: nowrap; }
+  .total td { font-weight: bold; border-top: 0.4mm solid #222; }
+  .sign { margin-top: 12mm; margin-left: auto; width: 80mm; }
+</style>
+</head>
+<body>
+<h1>{{ "QUITTANCE DE LOYER" if row.kind == "quittance" else "REÇU DE PAIEMENT" }}</h1>
+<div class="parties">
+  <div><div class="label">Bailleur</div><b>{{ org.name }}</b><br>{{ org.address_line1 or "" }}<br>{{ org.postal_code or "" }} {{ org.city or "" }}</div>
+  <div><div class="label">Locataire</div><b>{{ tenant.name }}</b><br>
+    {{ lease.address_line1 or tenant.address_line1 or "" }}{% if lease.address_line2 %}<br>{{ lease.address_line2 }}{% endif %}<br>
+    {{ lease.postal_code or tenant.postal_code or "" }} {{ lease.city or tenant.city or "" }}</div>
+</div>
+<p><b>Lot loué :</b> {{ lease.unit_label }}{% if lease.address_line1 %}, {{ lease.address_line1 }} {{ lease.postal_code or "" }} {{ lease.city or "" }}{% endif %}</p>
+<p><b>Période :</b> du {{ date(row.period_start) }} au {{ date(row.period_end) }} — avis d'échéance {{ sale.number }}</p>
+
+<table>
+  <tr><td>Loyer</td><td class="num">{{ money(row.rent_cents) }}</td></tr>
+  <tr><td>Provisions sur charges</td><td class="num">{{ money(row.charges_cents) }}</td></tr>
+  <tr class="total"><td>Total de la période</td><td class="num">{{ money(row.rent_cents + row.charges_cents) }}</td></tr>
+  <tr><td>Montant reçu{% if row.paid_on %} (dernier paiement le {{ date(row.paid_on) }}){% endif %}</td><td class="num">{{ money(row.paid_cents) }}</td></tr>
+</table>
+
+{% if row.kind == "quittance" %}
+<p>Je soussigné(e), bailleur, déclare avoir reçu de {{ tenant.name }} la somme de {{ money(row.paid_cents) }}
+({{ words }}) au titre du loyer et des charges de la période du {{ date(row.period_start) }} au {{ date(row.period_end) }},
+et lui en donne quittance, sous réserve de tous mes droits.</p>
+{% else %}
+<p>Je soussigné(e), bailleur, déclare avoir reçu de {{ tenant.name }} la somme de {{ money(row.paid_cents) }}
+({{ words }}) à valoir sur le loyer et les charges de la période du {{ date(row.period_start) }} au {{ date(row.period_end) }}.
+Ce reçu ne vaut pas quittance : il reste {{ money(row.rent_cents + row.charges_cents - row.paid_cents) }} à régler.</p>
+{% endif %}
+
+<div class="sign">Fait le {{ date(today) }}<br>{{ org.signatory_name or org.name }}{% if org.signatory_title %}, {{ org.signatory_title }}{% endif %}</div>
+</body>
+</html>

@@ -36,7 +36,8 @@ function detail(fields: Partial<SaleDetail> = {}): SaleDetail {
     vat_rows: [{ rate: 2000, base: 50000, tax: 10000 }], journal_entry: { id: 3, reference: "VE-0001" }, invoice: null,
     credit_notes: [], remaining_credit_cents: 60000, issue_problems: [], recipients: ["compta@client.example"], emails: [],
     pdf_url: "/api/v1/sales/7/pdf", due_cents: 60000, reminder_count: 0, last_reminder_at: null, payments: [],
-    validity_date: null, quote: null, invoices: [], qonto_emit: false, qonto_status: null, qonto_error: null, ...fields,
+    validity_date: null, quote: null, invoices: [], qonto_emit: false, qonto_status: null, qonto_error: null,
+    lease: null, recurrence_id: null, rent_receipts: [], ...fields,
   };
 }
 

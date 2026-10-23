@@ -33,7 +33,9 @@ from .integration_state import IntegrationState
 from .ignored_counterparty import IgnoredCounterparty
 from .product import Product
 from .purchase import Purchase, PurchaseLine, PurchasePayment
-from .sale import BillingSettings, Sale, SaleCounter, SaleEmail, SaleLine, SalePayment
+from .sale import (
+    BillingSettings, Lease, Recurrence, RentReceipt, Sale, SaleCounter, SaleEmail, SaleLine, SaleOccurrence, SalePayment,
+)
 from .sync_cursor import SyncCursor
 from .rule import Rule
 from .email_template import EmailTemplate
@@ -85,6 +87,10 @@ __all__ = [
     "SaleCounter",
     "SaleEmail",
     "SalePayment",
+    "Recurrence",
+    "SaleOccurrence",
+    "Lease",
+    "RentReceipt",
     "BillingSettings",
     "PurchaseLine",
     "PurchasePayment",

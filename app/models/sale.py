@@ -55,6 +55,8 @@ class Sale(db.Model):
     quote_id = db.Column(db.Integer, db.ForeignKey("sales.id", ondelete="SET NULL"))
     invoice_id = db.Column(db.Integer, db.ForeignKey("sales.id", ondelete="RESTRICT"))
     credit_reason = db.Column(db.Text)
+    recurrence_id = db.Column(db.Integer, db.ForeignKey("recurrences.id", ondelete="SET NULL"))
+    lease_id = db.Column(db.Integer, db.ForeignKey("leases.id", ondelete="SET NULL"))
     journal_entry_id = db.Column(db.Integer, db.ForeignKey("journal_entries.id", ondelete="SET NULL"))
     pdf_path = db.Column(db.String(300))
     qonto_id = db.Column(db.String(36), unique=True)
@@ -193,3 +195,92 @@ class BillingSettings(db.Model):
     reminder_subject = db.Column(db.String(255))
     reminder_body = db.Column(db.Text)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+FREQUENCIES = {"monthly": "Mensuelle", "quarterly": "Trimestrielle", "yearly": "Annuelle"}
+
+
+class Recurrence(db.Model):
+    """Facture récurrente (lot S5) : modèle (`Sale`, `kind = template`) et échéancier. Les échéances
+    dues sont préparées en brouillon (`sale_occurrences` : une seule fois par période)."""
+    __tablename__ = "recurrences"
+
+    id = db.Column(db.Integer, primary_key=True)
+    template_id = db.Column(db.Integer, db.ForeignKey("sales.id", ondelete="CASCADE"), nullable=False)
+    label = db.Column(db.String(200), nullable=False)
+    frequency = db.Column(db.String(10), nullable=False, default="monthly")
+    due_day = db.Column(db.Integer, nullable=False, default=1)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date)
+    in_advance = db.Column(db.Boolean, nullable=False, default=True, server_default=db.true())
+    next_date = db.Column(db.Date, nullable=False)
+    qonto_emit = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
+    active = db.Column(db.Boolean, nullable=False, default=True, server_default=db.true())
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    template = db.relationship("Sale", foreign_keys=[template_id], cascade="all, delete-orphan", single_parent=True)
+
+
+class SaleOccurrence(db.Model):
+    __tablename__ = "sale_occurrences"
+    __table_args__ = (db.UniqueConstraint("recurrence_id", "period_start", name="uq_sale_occurrences_period"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    recurrence_id = db.Column(db.Integer, db.ForeignKey("recurrences.id", ondelete="CASCADE"), nullable=False)
+    period_start = db.Column(db.Date, nullable=False)
+    sale_id = db.Column(db.Integer, db.ForeignKey("sales.id", ondelete="SET NULL"))
+
+
+class Lease(db.Model):
+    """Bail simple (lot S5) : locataire, lot, loyer hors charges, provisions sur charges, échéance,
+    dépôt de garantie ; porte la facture récurrente de loyer (avis d'échéance) et les quittances."""
+    __tablename__ = "leases"
+
+    id = db.Column(db.Integer, primary_key=True)
+    entity_id = db.Column(db.Integer, db.ForeignKey("entities.id", ondelete="RESTRICT"), nullable=False)
+    unit_label = db.Column(db.String(200), nullable=False)
+    address_line1 = db.Column(db.String(200))
+    address_line2 = db.Column(db.String(200))
+    postal_code = db.Column(db.String(10))
+    city = db.Column(db.String(100))
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date)
+    rent_cents = db.Column(db.Integer, nullable=False)
+    charges_cents = db.Column(db.Integer, nullable=False, default=0)
+    due_day = db.Column(db.Integer, nullable=False, default=1)
+    deposit_cents = db.Column(db.Integer, nullable=False, default=0)
+    deposit_entry_id = db.Column(db.Integer, db.ForeignKey("journal_entries.id", ondelete="SET NULL"))
+    rent_account_id = db.Column(db.Integer, db.ForeignKey("accounts.id", ondelete="SET NULL"))
+    charges_account_id = db.Column(db.Integer, db.ForeignKey("accounts.id", ondelete="SET NULL"))
+    recurrence_id = db.Column(db.Integer, db.ForeignKey("recurrences.id", ondelete="SET NULL"))
+    notes = db.Column(db.Text)
+    active = db.Column(db.Boolean, nullable=False, default=True, server_default=db.true())
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    entity = db.relationship("Entity")
+    recurrence = db.relationship("Recurrence")
+    rent_account = db.relationship("Account", foreign_keys=[rent_account_id])
+    charges_account = db.relationship("Account", foreign_keys=[charges_account_id])
+    deposit_entry = db.relationship("JournalEntry")
+
+
+class RentReceipt(db.Model):
+    """Quittance (loyer de la période entièrement payé) ou reçu (paiement partiel)."""
+    __tablename__ = "rent_receipts"
+
+    id = db.Column(db.Integer, primary_key=True)
+    lease_id = db.Column(db.Integer, db.ForeignKey("leases.id", ondelete="CASCADE"), nullable=False)
+    sale_id = db.Column(db.Integer, db.ForeignKey("sales.id", ondelete="CASCADE"), nullable=False)
+    kind = db.Column(db.String(10), nullable=False)          # quittance | recu
+    period_start = db.Column(db.Date)
+    period_end = db.Column(db.Date)
+    rent_cents = db.Column(db.Integer, nullable=False)
+    charges_cents = db.Column(db.Integer, nullable=False)
+    paid_cents = db.Column(db.Integer, nullable=False)
+    paid_on = db.Column(db.Date)
+    pdf_path = db.Column(db.String(300))
+    sent_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    lease = db.relationship("Lease")
+    sale = db.relationship("Sale")

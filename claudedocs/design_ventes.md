@@ -1,6 +1,6 @@
 # Conception — Ventes (devis, factures, avoirs, encaissements, loyers), abonnements d'achat, Qonto
 
-> Statut : conception (`/sc:design`, 23/10/2026) ; lots S0 (essai Factur-X), S1 (factures et avoirs), S2 (encaissements, relances), S3 (devis) et S4 (Qonto) réalisés le 23/10/2026.
+> Statut : conception (`/sc:design`, 23/10/2026) ; lots S0 (essai Factur-X), S1 (factures et avoirs), S2 (encaissements, relances), S3 (devis), S4 (Qonto) et S5 (récurrences, baux, quittances) réalisés le 24/10/2026.
 > Besoins : `claudedocs/besoins_ventes.md` (décisions V1–V17, questions Q12–Q14).
 
 ## 1. Choix structurants

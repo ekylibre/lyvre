@@ -9,7 +9,7 @@ from flask import jsonify, request, send_file
 
 from app.access import instance_admin_required
 from app.extensions import db
-from app.models import Account, BankAccount, BankTransaction, Entity, Sale, SalePayment
+from app.models import Account, BankAccount, BankTransaction, Entity, Lease, RentReceipt, Sale, SalePayment
 from app.models.sale import OPERATION_TYPES, PAYMENT_METHODS, QUOTE_STATUS_LABELS, STATUS_LABELS
 from app.services import (
     billing, catalog, external_config, projects, qonto_sales, sale_documents, sale_entry, sale_issue, sale_settlement,
@@ -106,7 +106,13 @@ def sale_detail(s: Sale) -> dict:
                           if p.bank_transaction else None,
                           "journal_entry": {"id": p.journal_entry_id, "reference": p.journal_entry.reference}
                           if p.journal_entry else None} for p in s.payments],
-            "pdf_url": f"/api/v1/sales/{s.id}/pdf"}
+            "pdf_url": f"/api/v1/sales/{s.id}/pdf",
+            "lease": {"id": s.lease_id, "unit_label": db.session.get(Lease, s.lease_id).unit_label}
+            if s.lease_id and db.session.get(Lease, s.lease_id) else None,
+            "recurrence_id": s.recurrence_id,
+            "rent_receipts": [{"id": r.id, "kind": r.kind, "label": "Quittance" if r.kind == "quittance" else "Reçu",
+                               "paid_cents": r.paid_cents, "sent_at": _iso(r.sent_at), "pdf_url": f"/api/v1/rent-receipts/{r.id}/pdf"}
+                              for r in RentReceipt.query.filter_by(sale_id=s.id).order_by(RentReceipt.id)]}
 
 
 # ------------------------------------------------------------------ liste

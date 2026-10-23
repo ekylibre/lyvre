@@ -169,7 +169,7 @@ def register_api(app):
 from . import (  # noqa: E402,F401
     access, activity_report, associate_expenses, associates, bank_accounts, budgets, cash, cash_forecast, chart, entities, entries, fiscal_years,
     impact, imports,
-    instances, integrations, journals, lookups, members, notifications, odoo, organization, payouts,
+    instances, integrations, journals, leases, lookups, members, notifications, odoo, organization, payouts,
     products, projects, purchases, receipts, reconciliation, reports, rules, sales, search, session, share_movements,
     simple_categories,
     simple_operations, simple_reports,

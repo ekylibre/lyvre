@@ -80,6 +80,8 @@ export default function SaleDetailPage() {
   const quoteStatus = useAction((status: string) => api.post<{ item: SaleDetail; notices: Notice[] }>(`/api/v1/sales/${id}/quote-status`, { status }),
     { invalidate: [SALES_KEY] });
   const toInvoice = useAction(() => api.post<{ item: SaleDetail; notices: Notice[] }>(`/api/v1/sales/${id}/to-invoice`), { invalidate: [SALES_KEY] });
+  const rentReceipt = useAction(() => api.post<{ item: { pdf_url: string }; notices: Notice[] }>(`/api/v1/sales/${id}/rent-receipt`),
+    { invalidate: [SALES_KEY] });
   const unpay = useAction((paymentId: number) => api.delete<{ item: SaleDetail; notices: Notice[] }>(`/api/v1/sale-payments/${paymentId}`));
 
   if (error) return <Alert color="brique" mt="md">{(error as Error).message}</Alert>;
@@ -96,6 +98,7 @@ export default function SaleDetailPage() {
           {s.overdue && <StatusBadge tone="gap">échue</StatusBadge>}
           <Anchor component={AppLink} href={`/entities/${s.client.id}`} size="sm">{s.client.name}</Anchor>
           {s.invoice && <span>sur la facture <Anchor component={AppLink} href={`/sales/${s.invoice.id}`} size="sm">{s.invoice.number}</Anchor></span>}
+          {s.lease && <span>bail <Anchor component={AppLink} href={`/leases/${s.lease.id}`} size="sm">{s.lease.unit_label}</Anchor></span>}
           {s.quote && <span>du devis <Anchor component={AppLink} href={`/sales/${s.quote.id}`} size="sm">{s.quote.number}</Anchor></span>}
           {quote && s.validity_date && <span>valable jusqu'au {formatDate(s.validity_date)}</span>}
           {(s.qonto_emit || s.source === "qonto") && <StatusBadge tone="info">{s.source === "qonto" ? "Créée dans Qonto" : "Qonto"}</StatusBadge>}
@@ -113,6 +116,9 @@ export default function SaleDetailPage() {
               onConfirm={() => issue.mutate(undefined, { onSuccess: (r) => refresh(r.item) })}>Émettre</ConfirmButton>}
             {s.kind === "invoice" && s.due_cents > 0 && <Button onClick={() => setModal("pay")}>Encaisser</Button>}
             {!draft && <Button variant="default" onClick={smtp.guard(() => setModal("send"))}>Envoyer</Button>}
+            {s.lease && s.paid_cents > 0 && <Button variant="default" loading={rentReceipt.isPending}
+              onClick={() => rentReceipt.mutate(undefined, { onSuccess: (r) => { window.open(r.item.pdf_url, "_blank"); void client.invalidateQueries({ queryKey: key }); } })}>
+              {s.status === "paid" ? "Quittance" : "Reçu"}</Button>}
             {s.kind === "invoice" && s.overdue && s.due_cents > 0 &&
               <Button variant="default" onClick={smtp.guard(() => setModal("remind"))}>Relancer</Button>}
             {!draft && s.kind === "invoice" && s.status !== "canceled" && s.remaining_credit_cents > 0 &&
@@ -199,6 +205,8 @@ export default function SaleDetailPage() {
             <Text size="sm">Encaissé <MoneyText cents={s.paid_cents} size="sm" /> · restant dû <MoneyText cents={s.due_cents} size="sm" fw={600} />
               {s.reminder_count > 0 && <Text span size="sm" c="dimmed"> · {s.reminder_count} relance(s), la dernière le {formatDate(s.last_reminder_at)}</Text>}</Text>
           </Group>
+          {s.rent_receipts.length > 0 && <Group gap="xs" mb="xs">{s.rent_receipts.map((r) =>
+            <Anchor key={r.id} href={r.pdf_url} target="_blank" size="sm">{r.label} (<MoneyText cents={r.paid_cents} size="sm" />)</Anchor>)}</Group>}
           {s.payments.length === 0 ? <Text size="sm" c="dimmed">Aucun encaissement.</Text> : (
             <Table>
               <Table.Tbody>

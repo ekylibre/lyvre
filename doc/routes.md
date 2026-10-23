@@ -545,6 +545,15 @@ Structure, onglet Facturation (`/configuration/organization?tab=billing`). API :
 | POST | `/api/v1/sales/<id>/remind` | Relance d'une facture, message modifiable `{to, cc, subject, body}` |
 | POST | `/api/v1/sales` avec `kind: "quote"` | Brouillon de devis (`validity_date`, 30 jours par défaut) ; émission : numéro `D-AAAA-NNNN`, PDF (« Bon pour accord »), sans écriture ; `GET /api/v1/sales?kind=quote` (statuts : envoyé, accepté, refusé, expiré, facturé) |
 | POST | `/api/v1/sales/<id>/quote-status` | `{status: accepted \| refused \| issued}` : réponse du client à un devis émis non facturé |
+| GET / POST | `/api/v1/recurrences` | Factures récurrentes `{label, entity_id, frequency, due_day, start_date, end_date, in_advance, qonto_emit, active, lines}` (`{periode}` dans une désignation = période facturée) |
+| GET / PATCH / DELETE | `/api/v1/recurrences/<id>` | Fiche, modification (lignes d'un loyer : par le bail), suppression (les factures restent) |
+| GET | `/api/v1/sales/due` | Prépare les échéances arrivées en brouillon (une fois par période), liste les brouillons récurrents |
+| POST | `/api/v1/sales/issue-batch` | `{ids, send}` : émission en lot, envoi par email si `send` |
+| GET / POST | `/api/v1/leases` | Baux `{entity_id, unit_label, adresse, start_date, end_date, rent, charges, deposit, due_day, rent_account_code, charges_account_code, in_advance, qonto_emit}` ; crée la récurrence du loyer |
+| GET / PATCH | `/api/v1/leases/<id>` | Fiche (avis d'échéance, quittances), modification |
+| POST | `/api/v1/leases/<id>/deposit` | `{paid_on, bank_account_id}` : dépôt de garantie encaissé (banque ou caisse / 165) |
+| POST | `/api/v1/sales/<id>/rent-receipt` | Quittance (loyer de la période payé) ou reçu (paiement partiel) ; PDF conservé |
+| GET / POST | `/api/v1/rent-receipts/<id>/pdf`, `/send` | PDF ; envoi au locataire (SMTP) |
 | POST | `/api/v1/sales/sync` | Synchronisation des ventes Qonto (tâche de fond, lecture seule côté Qonto) : clients et produits rattachés ou importés, devis et factures créés dans Qonto importés (factures comptabilisées), statuts, PDF ; périmètre Ventes requis |
 | POST | `/api/v1/sales/<id>/to-invoice` | Brouillon de facture reprenant le devis (lignes, textes, « Devis D-… » en référence) ; le devis devient « facturé » (il redevient accepté si ce brouillon est supprimé) |
 

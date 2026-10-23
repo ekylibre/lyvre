@@ -51,6 +51,8 @@ export interface SaleDetail extends Omit<SaleRow, "client"> {
     purpose: "send" | "reminder" }[];
   payments: SalePayment[];
   pdf_url: string;
+  lease: { id: number; unit_label: string } | null; recurrence_id: number | null;
+  rent_receipts: { id: number; kind: "quittance" | "recu"; label: string; paid_cents: number; sent_at: string | null; pdf_url: string }[];
 }
 
 export interface SaleProductOption extends Option {
@@ -114,3 +116,31 @@ export function fromProduct(row: SaleLineRow, product: SaleProductOption | undef
     unit_price: product.price || row.unit_price, vat_rate: product.rate || row.vat_rate,
     account_code: product.account || row.account_code || fallbackAccount, unit: product.unit || row.unit, nature: product.nature };
 }
+
+// ------------------------------------------------------------------ lot S5
+
+export interface Recurrence {
+  id: number; label: string; frequency: "monthly" | "quarterly" | "yearly"; frequency_label: string; due_day: number;
+  start_date: string; end_date: string | null; in_advance: boolean; next_date: string; qonto_emit: boolean; active: boolean;
+  client: { id: number; name: string }; total_cents: number; lease: { id: number; unit_label: string } | null; invoices: number;
+  // détail
+  operation_type?: string; terms?: string; header?: string; footer?: string; purchase_order?: string;
+  lines?: (SaleLineRow & { id: number })[];
+}
+
+export interface RentReceipt {
+  id: number; kind: "quittance" | "recu"; label: string; period_start: string | null; period_end: string | null;
+  paid_cents: number; sale: { id: number; number: string | null }; sent_at: string | null; pdf_url: string;
+}
+
+export interface Lease {
+  id: number; unit_label: string; tenant: { id: number; name: string }; address_line1: string; address_line2: string;
+  postal_code: string; city: string; start_date: string; end_date: string | null; rent_cents: number; charges_cents: number;
+  due_day: number; deposit_cents: number; active: boolean; deposit_entry: { id: number; reference: string } | null;
+  rent_account_code: string; charges_account_code: string; next_date: string | null; frequency: string; in_advance: boolean;
+  qonto_emit: boolean; notes: string;
+  invoices?: (SaleRow & { service_start: string | null; service_end: string | null })[]; receipts?: RentReceipt[];
+}
+
+export const RECURRENCES_KEY = ["recurrences"];
+export const LEASES_KEY = ["leases"];
