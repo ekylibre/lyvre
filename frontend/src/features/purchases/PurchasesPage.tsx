@@ -1,12 +1,13 @@
 // Achats › Factures d'achat : factures reçues dans Qonto ou saisies ; filtres, synchronisation
-// Qonto en arrière-plan, comptabilisation des factures prêtes, suppression.
+// Qonto en arrière-plan, comptabilisation des factures prêtes, suppression. Intégration Qonto
+// désactivée : ni synchronisation, ni statut Qonto (les factures déjà importées restent listées).
 import { useState } from "react";
 import { ActionIcon, Alert, Anchor, Badge, Button, Checkbox, Group, Paper, Select, Text, TextInput, Tooltip } from "@mantine/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 import { api } from "../../api/client";
 import { useAction, useList, type Notice } from "../../api/resources";
-import { useCan } from "../../api/session";
+import { useCan, useIntegration } from "../../api/session";
 import { confirmAction } from "../../components/ConfirmButton";
 import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { FilterBar, SearchInput, useUrlParams } from "../../components/FilterBar";
@@ -58,13 +59,14 @@ function SyncFrom({ value }: { value: string }) {
 export default function PurchasesPage() {
   const client = useQueryClient();
   const can = useCan();
+  const qonto = useIntegration("qonto");
   const [params, setParams] = useUrlParams(FILTERS);
   const query = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
   const { data, isFetching } = useList<Purchase, PurchasesMeta>(PURCHASES_KEY, `/api/v1/purchases${query ? `?${query}` : ""}`);
   const meta = data?.meta;
   const counters = meta?.counters;
   const [job, setJob] = useState<Job | null>(null);
-  const shown = job ?? meta?.sync.job ?? null;
+  const shown = qonto ? job ?? meta?.sync.job ?? null : null;
   const sync = useAction<void, { job: Job; notices?: Notice[] }>(() => api.post("/api/v1/purchases/sync"));
   const postReady = useAction(() => api.post<{ notices: Notice[] }>("/api/v1/purchases/post-ready"), { invalidate: [PURCHASES_KEY] });
   const remove = useAction((id: number) => api.delete<{ notices: Notice[] }>(`/api/v1/purchases/${id}`), { invalidate: [PURCHASES_KEY] });
@@ -77,7 +79,7 @@ export default function PurchasesPage() {
         <Anchor component={AppLink} href={`/purchases/${p.id}`} size="sm" className="lv-num">{p.invoice_number || "sans numéro"}</Anchor>
         {p.is_credit_note && <Badge size="xs" variant="light" color="gray">Avoir</Badge>}
         {p.source === "manual" && <Badge size="xs" variant="outline" color="gray" title={p.has_attachment ? "Saisie dans l'application — pièce jointe" : "Saisie dans l'application"}>saisie</Badge>}
-        {p.qonto_upload_status === "failed" && <Badge size="xs" color="brique" title={p.qonto_upload_error ?? undefined}>envoi Qonto en échec</Badge>}
+        {qonto && p.qonto_upload_status === "failed" && <Badge size="xs" color="brique" title={p.qonto_upload_error ?? undefined}>envoi Qonto en échec</Badge>}
         {p.is_einvoice && <Badge size="xs" variant="outline" color="gray" title="Facture électronique">e-facture</Badge>}
       </Group>
     ) },
@@ -90,10 +92,10 @@ export default function PurchasesPage() {
         <span><StatusBadge tone={STATE_TONES[p.state.code]}>{p.state.label}</StatusBadge></span>
       </Tooltip>
     ) },
-    { accessor: "qonto_status", title: "Statut Qonto", render: (p) => (
+    ...(qonto ? [{ accessor: "qonto_status", title: "Statut Qonto", render: (p: Purchase) => (
       <Group gap={6} wrap="nowrap"><Text size="sm">{p.qonto_status_label ?? "—"}</Text>
         {p.review_reason && <Tooltip label={p.review_reason} multiline w={320}><span><StatusBadge tone="gap">à revoir</StatusBadge></span></Tooltip>}</Group>
-    ) },
+    ) }] : []),
     { accessor: "due_date", title: "Échéance", render: (p) => <span className="lv-num">{formatDate(p.due_date)}</span> },
     { accessor: "actions", title: "", hideable: false, textAlign: "right", render: (p) => (
       <ActionIcon variant="subtle" color="red" aria-label={`Supprimer ${p.is_credit_note ? "l'avoir" : "la facture"} ${p.invoice_number || "sans numéro"}`}
@@ -105,14 +107,15 @@ export default function PurchasesPage() {
 
   return (
     <>
-      <PageHeader title="Factures d'achat" description="Factures fournisseurs reçues dans Qonto ou saisies dans l'application."
+      <PageHeader title="Factures d'achat"
+        description={qonto ? "Factures fournisseurs reçues dans Qonto ou saisies dans l'application." : "Factures fournisseurs saisies dans l'application."}
         actions={<>
           <Can><Button component={AppLink} href="/purchases/new">Nouvelle facture</Button>
-          <Button variant="default" loading={sync.isPending} disabled={!meta?.qonto.available || shown?.status === "running"}
-            onClick={() => sync.mutate(undefined, { onSuccess: (r) => setJob(r.job) })}>Synchroniser les factures Qonto</Button></Can>
+          {qonto && <Button variant="default" loading={sync.isPending} disabled={!meta?.qonto.available || shown?.status === "running"}
+            onClick={() => sync.mutate(undefined, { onSuccess: (r) => setJob(r.job) })}>Synchroniser les factures Qonto</Button>}</Can>
         </>} />
       <IntegrationNotice name="qonto" state={meta?.qonto} consequence="synchronisation impossible" />
-      {meta && (
+      {meta && qonto && (
         <Paper p="sm" mb="sm">
           <Group justify="space-between" gap="sm">
             <Text size="sm">Qonto : factures à partir du {formatDate(meta.sync.from)} · dernière synchronisation :{" "}
@@ -129,14 +132,14 @@ export default function PurchasesPage() {
           {" "}: la charge serait comptée deux fois, à remplacer par un règlement fournisseur.
         </Alert>
       )}
-      {!!(counters && (counters.to_complete || counters.to_review || counters.supplier_proposals || counters.ready)) && (
+      {!!(counters && (counters.to_complete || (qonto && counters.to_review) || counters.supplier_proposals || counters.ready)) && (
         <Alert color="paille" mb="sm">
           <Group justify="space-between" gap="sm">
             <Group gap="md">
               {counters.to_complete > 0 && <Text size="sm"><Anchor component="button" size="sm" onClick={() => setParams({ state: "to_complete" })}>{counters.to_complete} facture(s) à compléter</Anchor>
                 {counters.without_supplier > 0 && <> (dont <Anchor component="button" size="sm" onClick={() => setParams({ no_supplier: "1" })}>{counters.without_supplier} sans fournisseur rattaché</Anchor>)</>}.</Text>}
               {counters.supplier_proposals > 0 && <Anchor component={AppLink} href="/purchases/suppliers" size="sm" fw={600}>{counters.supplier_proposals} fournisseur(s) à valider</Anchor>}
-              {counters.to_review > 0 && <Text size="sm" c="var(--lv-brique)">{counters.to_review} facture(s) comptabilisée(s) modifiée(s) dans Qonto, à revoir.</Text>}
+              {qonto && counters.to_review > 0 && <Text size="sm" c="var(--lv-brique)">{counters.to_review} facture(s) comptabilisée(s) modifiée(s) dans Qonto, à revoir.</Text>}
             </Group>
             <Can>{counters.ready > 0 && <Button size="compact-md" variant="default" loading={postReady.isPending} onClick={() => postReady.mutate()}>
               Comptabiliser les factures prêtes ({counters.ready})</Button>}</Can>
@@ -146,7 +149,7 @@ export default function PurchasesPage() {
       <FilterBar>
         <SearchInput value={params.q} onChange={(q) => setParams({ q })} placeholder="Numéro, fournisseur…" />
         <Select label="État" placeholder="Tous" clearable data={meta?.states ?? []} value={params.state || null} onChange={(state) => setParams({ state: state ?? "" })} w={150} />
-        <Select label="Statut Qonto" placeholder="Tous" clearable data={meta?.statuses ?? []} value={params.status || null} onChange={(status) => setParams({ status: status ?? "" })} w={160} />
+        {qonto && <Select label="Statut Qonto" placeholder="Tous" clearable data={meta?.statuses ?? []} value={params.status || null} onChange={(status) => setParams({ status: status ?? "" })} w={160} />}
         <Select label="Origine" placeholder="Toutes" clearable data={[{ value: "qonto", label: "Qonto" }, { value: "manual", label: "Saisies" }]}
           value={params.source || null} onChange={(source) => setParams({ source: source ?? "" })} w={120} />
         <Select label="Fournisseur" placeholder="Tous" clearable searchable data={meta?.suppliers ?? []} value={params.entity_id || null}

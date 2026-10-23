@@ -20,7 +20,9 @@ export type InstanceRole = "admin" | "treasurer" | "accountant";
 export interface Session {
   user: { id: number; email: string; full_name: string | null; is_admin: boolean; must_change_password: boolean } | null;
   instance: { id: number; slug: string; label: string; chart: string; bookkeeping?: "double" | "simple";
-    has_associates?: boolean } | null;
+    has_associates?: boolean;
+    /** Intégrations activées ; `proposed` : recommandées à proposer (administrateur de l'instance). */
+    integrations?: { enabled: string[]; proposed: string[] } } | null;
   instances: { id: number; label: string }[];
   /** Rôle sur l'instance courante ; `permissions` en découle (le serveur reste seul juge). */
   role?: InstanceRole | null;
@@ -75,6 +77,12 @@ export function useCan(): { write: boolean; instanceAdmin: boolean; role: Instan
     instanceAdmin: session.permissions?.instance_admin ?? false,
     role: session.role ?? null,
   };
+}
+
+/** Intégration activée pour l'instance : sinon, rien de ce qui n'existe que par elle ne s'affiche
+ * (boutons, colonnes, bandeaux). Les données déjà importées restent visibles. */
+export function useIntegration(slug: string): boolean {
+  return useCurrentSession().instance?.integrations?.enabled.includes(slug) ?? false;
 }
 
 /** Mode de tenue de l'instance courante : partie double, ou comptabilité simplifiée (lot D). */

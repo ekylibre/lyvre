@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router";
 import { Alert, Anchor, Button, Text } from "@mantine/core";
 import { api } from "../../api/client";
 import { useAction, useList, type Notice } from "../../api/resources";
+import { useIntegration } from "../../api/session";
 import { confirmAction } from "../../components/ConfirmButton";
 import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { IntegrationNotice } from "../../components/IntegrationNotice";
@@ -32,6 +33,7 @@ export default function RemindersPage() {
   const send = useAction(() => api.post<{ notices: Notice[] }>("/api/v1/members/reminders",
     { ...filters, ids: selected.map((m) => m.id) }), { invalidate: [MEMBERS_KEY] });
   const smtp = data?.meta?.integrations.smtp;
+  const helloasso = useIntegration("helloasso");
 
   return (
     <>
@@ -48,7 +50,7 @@ export default function RemindersPage() {
       <IntegrationNotice name="smtp" state={smtp} consequence="envoi des relances impossible" />
       {data?.meta?.helloasso_url ? (
         <Text size="sm" c="dimmed" mb="sm">Lien de renouvellement : <Anchor href={data.meta.helloasso_url} target="_blank" rel="noreferrer">{data.meta.helloasso_url}</Anchor></Text>
-      ) : <Alert color="paille" variant="light" mb="sm">Aucun lien HelloAsso : renseignez l'organisation dans l'intégration HelloAsso.</Alert>}
+      ) : helloasso && <Alert color="paille" variant="light" mb="sm">Aucun lien HelloAsso : renseignez l'organisation dans l'intégration HelloAsso.</Alert>}
       <DataGrid id="reminders" records={data?.items} columns={COLUMNS} fetching={isFetching}
         selection={{ selected, onChange: setSelected }} emptyText="Aucun adhérent à relancer." />
     </>

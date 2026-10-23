@@ -8,6 +8,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
+import { useIntegration } from "../../api/session";
 import { FormDrawer } from "../../components/FormModal";
 import { MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
@@ -73,6 +74,8 @@ const right = (node: ReactNode) => <Text ta="right" inherit component="div">{nod
 export default function EntityDetailPage() {
   const id = Number(useParams().entity_id);
   const [editing, setEditing] = useState(false);
+  const odoo = useIntegration("odoo");
+  const helloasso = useIntegration("helloasso");
   const { data, isPending } = useQuery({
     queryKey: [...TIERS_KEY, id], queryFn: () => api.get<Detail>(`/api/v1/tiers/${id}`),
   });
@@ -98,7 +101,7 @@ export default function EntityDetailPage() {
         title={<Group gap="sm">{e.name}{e.is_member && <StatusBadge tone="ok">Adhérent</StatusBadge>}{e.is_benevole && <StatusBadge tone="info">Bénévole</StatusBadge>}</Group>}
         description={identity}
         actions={<>
-          {e.is_member && (
+          {e.is_member && odoo && (
             <Can><Button variant="default" loading={odooNote.isPending} disabled={!data.meta.integrations.odoo.available}
               title="Écrire la date anniversaire et le statut d'adhésion dans « Notes interne » d'Odoo"
               onClick={() => odooNote.mutate(undefined)}>Mettre à jour la fiche Odoo</Button></Can>
@@ -178,7 +181,8 @@ export default function EntityDetailPage() {
         </Section>
       )}
 
-      {e.is_member && (
+      {/* HelloAsso désactivée : section seulement s'il reste des commandes importées. */}
+      {e.is_member && (helloasso || data.helloasso.orders.length > 0) && (
         <Section title="HelloAsso">
           {data.helloasso.orders.length ? (
             <SimpleTable head={["Date", "Formulaire", "Type", right("Montant"), "Payeur"]}

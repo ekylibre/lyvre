@@ -5,7 +5,7 @@ import { Alert, Anchor, Button, Group, SegmentedControl, Select, Stack, Text, Te
 import { useForm } from "@mantine/form";
 import { api } from "../../api/client";
 import { useAction, useList, type Notice } from "../../api/resources";
-import { useCan } from "../../api/session";
+import { useCan, useIntegration } from "../../api/session";
 import { applyApiError, FormBody } from "../../components/ApiForm";
 import { confirmAction } from "../../components/ConfirmButton";
 import { DataGrid, type GridColumn } from "../../components/DataGrid";
@@ -63,6 +63,7 @@ function BankAccountForm({ bankAccount, meta, onDone }: { bankAccount: BankAccou
 export default function BankAccountsPage() {
   const modal = useRouteModal("/bank-accounts/", "ba_id");
   const can = useCan();
+  const qonto = useIntegration("qonto");
   const { data, isFetching } = useList<BankAccount, Meta>(BANK_ACCOUNTS_KEY, "/api/v1/bank-accounts");
   const editing = modal.mode === "edit" ? data?.items.find((b) => b.id === modal.id) ?? null : null;
   const remove = useAction((b: BankAccount) => api.delete<{ notices: Notice[] }>(`/api/v1/bank-accounts/${b.id}`),
@@ -101,7 +102,7 @@ export default function BankAccountsPage() {
     <>
       <PageHeader title="Comptes bancaires et caisses" description="Chaque compte bancaire est lié à un compte 512, chaque caisse à un compte 53 du plan comptable."
         actions={<>
-          {can.instanceAdmin && <Button variant="default" component={AppLink} href="/bank-accounts/qonto">Comptes Qonto</Button>}
+          {can.instanceAdmin && qonto && <Button variant="default" component={AppLink} href="/bank-accounts/qonto">Comptes Qonto</Button>}
           <Can><Button onClick={modal.openNew}>Créer un compte</Button></Can>
         </>} />
       <DataGrid id="bank-accounts" records={data?.items} columns={columns} fetching={isFetching}

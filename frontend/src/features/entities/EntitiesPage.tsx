@@ -3,6 +3,7 @@ import { Anchor, Button, Group, Text } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { useAction, useList, type Notice } from "../../api/resources";
+import { useIntegration } from "../../api/session";
 import { confirmAction } from "../../components/ConfirmButton";
 import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { FilterBar, SearchInput, useUrlParams } from "../../components/FilterBar";
@@ -37,6 +38,7 @@ export default function EntitiesPage() {
   });
   const editing = modal.mode === "edit" ? listed ?? detail?.item ?? null : null;
   const sync = useHelloAssoSync();
+  const helloasso = useIntegration("helloasso");
   const remove = useAction((e: Entity) => api.delete<{ notices: Notice[] }>(`/api/v1/tiers/${e.id}`),
     { invalidate: [TIERS_KEY] });
 
@@ -72,8 +74,8 @@ export default function EntitiesPage() {
       <PageHeader title="Entités" description="Fournisseurs, clients, organismes et autres tiers. Les adhérents ont leur propre écran."
         actions={<>
           <Button variant="default" component={AppLink} href="/entities/members">Voir les adhérents</Button>
-          <Can><Button variant="default" loading={sync.isPending} disabled={!meta?.integrations.helloasso.available}
-            onClick={() => sync.mutate(undefined)}>Synchroniser HelloAsso</Button></Can>
+          {helloasso && <Can><Button variant="default" loading={sync.isPending} disabled={!meta?.integrations.helloasso.available}
+            onClick={() => sync.mutate(undefined)}>Synchroniser HelloAsso</Button></Can>}
           <Can><Button onClick={modal.openNew}>Créer un tiers</Button></Can>
         </>} />
       <IntegrationNotice name="helloasso" state={meta?.integrations.helloasso}

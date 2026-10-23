@@ -5,7 +5,7 @@ import { Sparkline } from "@mantine/charts";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
-import { useCan } from "../../api/session";
+import { useCan, useIntegration } from "../../api/session";
 import { useUrlParams } from "../../components/FilterBar";
 import { PageHeader } from "../../components/PageHeader";
 import { Can } from "../../components/Can";
@@ -55,6 +55,9 @@ export default function ImpactPage() {
   const syncYear = useAction(() => api.post<{ notices: Notice[] }>("/api/v1/impact/sync", { scope: "year", year: data?.current.year }), opts);
   const ga4 = data?.meta.ga4.available ?? false;
   const facebook = data?.meta.facebook.available ?? false;
+  // Intégrations désactivées : pas de bouton de synchronisation (la saisie manuelle reste).
+  const ga4On = useIntegration("ga4");
+  const facebookOn = useIntegration("facebook");
   return (
     <>
       <PageHeader title="Visibilité & Impact" description={data?.period.label}
@@ -65,16 +68,16 @@ export default function ImpactPage() {
           {data && <Button variant="default" component="a" href={data.meta.export_url}>Exporter (XLSX)</Button>}
         </>} />
       <PeriodFilter view={data} onChange={change} />
-      <Can><Group gap="xs" mb="md">
+      {(ga4On || facebookOn) && <Can><Group gap="xs" mb="md">
         <Tooltip label="GA4 et Facebook indisponibles" disabled={ga4 || facebook}>
           <Button size="compact-md" variant="default" disabled={!ga4 && !facebook} loading={syncMonth.isPending}
             onClick={() => syncMonth.mutate()}>Synchroniser le mois</Button>
         </Tooltip>
-        <Tooltip label="GA4 indisponible" disabled={ga4}>
+        {ga4On && <Tooltip label="GA4 indisponible" disabled={ga4}>
           <Button size="compact-md" disabled={!ga4} loading={syncYear.isPending}
             onClick={() => syncYear.mutate()}>Synchroniser l'année {data?.current.year} (GA4)</Button>
-        </Tooltip>
-      </Group></Can>
+        </Tooltip>}
+      </Group></Can>}
       <Group gap="md" mb="md">
         {data?.sources.map((s) => (
           <Group key={s.source} gap={6}>

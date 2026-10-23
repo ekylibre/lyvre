@@ -8,7 +8,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
-import { useCan } from "../../api/session";
+import { useCan, useIntegration } from "../../api/session";
 import { ConfirmButton } from "../../components/ConfirmButton";
 import { FormModal } from "../../components/FormModal";
 import { MoneyText } from "../../components/Money";
@@ -31,6 +31,7 @@ const amount = (cents: number | null) => (cents === null ? "—" : <MoneyText ce
 
 export default function PurchaseDetailPage() {
   const can = useCan();
+  const qontoEnabled = useIntegration("qonto");
   const id = Number(useParams().purchase_id);
   const goTo = useGoTo();
   const key = [...PURCHASES_KEY, id];
@@ -55,6 +56,7 @@ export default function PurchaseDetailPage() {
   const p = data.item;
   const editable = p.state.code !== "posted";
   const fromQonto = p.source === "qonto";
+  const qonto = qontoEnabled; // désactivée : ni envoi à Qonto, ni « à revoir » (données Qonto conservées)
   const name = `${p.is_credit_note ? "l'avoir" : "la facture"} ${p.invoice_number || "sans numéro"}`;
 
   return (
@@ -80,7 +82,7 @@ export default function PurchaseDetailPage() {
           <Button variant="default" component={AppLink} href="/purchases/">Retour</Button>
         </>} />
 
-      {p.review_reason && <Alert color="brique" mb="sm" title="À revoir.">{p.review_reason} Annulez la comptabilisation pour reprendre les données de Qonto.</Alert>}
+      {qonto && p.review_reason && <Alert color="brique" mb="sm" title="À revoir.">{p.review_reason} Annulez la comptabilisation pour reprendre les données de Qonto.</Alert>}
       {p.state.reasons.length > 0 && (
         <Alert color="paille" mb="sm" title="À compléter avant comptabilisation :">
           <List size="sm">{p.state.reasons.map((r) => <List.Item key={r}>{r}</List.Item>)}</List>
@@ -102,7 +104,7 @@ export default function PurchaseDetailPage() {
                   <Row label={`Fournisseur (${fromQonto ? "Qonto" : "facture"})`}>
                     <Text size="sm" className="lv-num">{[p.supplier_vat, p.supplier_siret, p.supplier_iban].filter(Boolean).join(" ")}</Text></Row>
                 )}
-                {p.source === "manual" && (p.qonto_upload_status || (data.meta.qonto.upload && data.can_send)) && (
+                {qonto && p.source === "manual" && (p.qonto_upload_status || (data.meta.qonto.upload && data.can_send)) && (
                   <Row label="Qonto">
                     <Group gap="sm">
                       {p.qonto_upload_status === "sent" ? <StatusBadge tone="ok">Déposée dans Qonto</StatusBadge>

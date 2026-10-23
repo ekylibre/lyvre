@@ -8,7 +8,7 @@ import { DateInput } from "@mantine/dates";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
-import { useCan } from "../../api/session";
+import { useCan, useIntegration } from "../../api/session";
 import { confirmAction } from "../../components/ConfirmButton";
 import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { FilterBar, useUrlParams } from "../../components/FilterBar";
@@ -56,8 +56,11 @@ function QontoResult({ r, baId }: { r: Record<string, number | string[] | undefi
   );
 }
 
+/** Compte rattaché à Qonto : synchronisation et paramètres ; rien si l'intégration est désactivée
+ * (le badge « Qonto » du compte et les transactions importées restent). */
 function QontoCard({ detail, onSynced }: { detail: Detail; onSynced: () => void }) {
   const can = useCan();
+  const enabled = useIntegration("qonto");
   const ba = detail.item;
   const [job, setJob] = useState<Job | null>(detail.qonto_job);
   const [syncFrom, setSyncFrom] = useState<string | null>(ba.qonto?.sync_from ?? null);
@@ -65,7 +68,7 @@ function QontoCard({ detail, onSynced }: { detail: Detail; onSynced: () => void 
   const settings = useAction(() => api.patch<{ notices: Notice[] }>(`/api/v1/bank-accounts/${ba.id}/qonto`, { sync_from: syncFrom }),
     { invalidate: [BANK_ACCOUNTS_KEY] });
   const unlink = useAction(() => api.delete<{ notices: Notice[] }>(`/api/v1/bank-accounts/${ba.id}/qonto`), { invalidate: [BANK_ACCOUNTS_KEY] });
-  if (!ba.qonto) return null;
+  if (!ba.qonto || !enabled) return null;
   return (
     <Paper p="md" mb="md">
       <Group justify="space-between" align="flex-start">

@@ -6,6 +6,7 @@ import { Alert, Anchor, Center, Group, Loader, Paper, Select, SimpleGrid, Stack,
 import { AreaChart, BarChart, CompositeChart } from "@mantine/charts";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/client";
+import { useIntegration } from "../../api/session";
 import { useUrlParams } from "../../components/FilterBar";
 import { MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
@@ -85,6 +86,9 @@ export default function DashboardPage() {
   });
   const fy = data?.meta.fiscal_year;
   const stats = data?.stats;
+  // Tuiles et séries qui ne viennent que d'une intégration : masquées si elle est désactivée.
+  const odoo = useIntegration("odoo");
+  const stancer = useIntegration("stancer");
   return (
     <>
       <PageHeader title="Tableau de bord" description={fy ? `Exercice ${fy.label}` : undefined}
@@ -96,12 +100,12 @@ export default function DashboardPage() {
         <Stack gap="lg">
           <ForecastAlert />
           <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
-            <StatTile label="Ventes de l'exercice" meta="Caisse et factures Odoo"><MoneyText cents={stats.total_sales_cents} /></StatTile>
+            {odoo && <StatTile label="Ventes de l'exercice" meta="Caisse et factures Odoo"><MoneyText cents={stats.total_sales_cents} /></StatTile>}
             <StatTile label="Adhésions" meta="Adhérents de l'exercice">{stats.new_members}</StatTile>
             <StatTile label="Résultat courant" meta="Exploitation et financier">
               <MoneyText cents={stats.resultat_courant_cents} c={stats.resultat_courant_cents >= 0 ? "var(--lv-lichen)" : "var(--lv-brique)"} />
             </StatTile>
-            <StatTile label="Versements Stancer" meta="Reçus sur l'exercice"><MoneyText cents={stats.total_payouts_cents} /></StatTile>
+            {stancer && <StatTile label="Versements Stancer" meta="Reçus sur l'exercice"><MoneyText cents={stats.total_payouts_cents} /></StatTile>}
           </SimpleGrid>
           {fy && <BudgetCard fyId={fy.id} />}
           <ChartCard title="Résultat mensuel">
@@ -117,8 +121,8 @@ export default function DashboardPage() {
               <BarChart h={260} data={data.monthly} dataKey="month" valueFormatter={euros} withLegend
                 series={[
                   { name: "ventes", label: "Ventes (70x)", color: "lichen.7" },
-                  { name: "pos", label: "Caisse", color: "ardoise.5" },
-                  { name: "factures", label: "Factures Odoo", color: "paille.6" },
+                  ...(odoo ? [{ name: "pos", label: "Caisse", color: "ardoise.5" },
+                    { name: "factures", label: "Factures Odoo", color: "paille.6" }] : []),
                 ]} />
             </ChartCard>
             <ChartCard title="Solde bancaire (fin de mois)">

@@ -5,6 +5,7 @@ import { DateInput } from "@mantine/dates";
 import { ChevronDown } from "lucide-react";
 import { api } from "../../api/client";
 import { useAction, useList, type Notice } from "../../api/resources";
+import { useIntegration } from "../../api/session";
 import { DataGrid, type GridColumn, type SortState } from "../../components/DataGrid";
 import { FilterBar, SearchInput, useUrlParams } from "../../components/FilterBar";
 import { IntegrationNotice } from "../../components/IntegrationNotice";
@@ -29,6 +30,8 @@ export default function MembersPage() {
   const { data, isFetching } = useList<Member, Meta>(MEMBERS_KEY, `/api/v1/members${filterQuery(params)}`);
   const meta = data?.meta;
   const sync = useHelloAssoSync();
+  const helloasso = useIntegration("helloasso");
+  const odoo = useIntegration("odoo");
   const benevole = useAction((value: boolean) => api.post<{ notices: Notice[] }>("/api/v1/members/benevole",
     { ids: selected.map((m) => m.id), value }), { invalidate: [MEMBERS_KEY] });
   const odooNotes = useAction(() => api.post<{ notices: Notice[] }>("/api/v1/members/odoo-notes",
@@ -70,8 +73,8 @@ export default function MembersPage() {
           <Can><Button variant="default" component={AppLink}
             href={`/entities/members/reminders${filterQuery({ q: params.q, date_from: params.date_from, date_to: params.date_to })}`}
             disabled={!meta?.integrations.smtp.available}>Relancer les échus</Button></Can>
-          <Can><Button loading={sync.isPending} disabled={!meta?.integrations.helloasso.available}
-            onClick={() => sync.mutate(undefined)}>Synchroniser HelloAsso</Button></Can>
+          {helloasso && <Can><Button loading={sync.isPending} disabled={!meta?.integrations.helloasso.available}
+            onClick={() => sync.mutate(undefined)}>Synchroniser HelloAsso</Button></Can>}
         </>} />
       <IntegrationNotice name="helloasso" state={meta?.integrations.helloasso} consequence="synchronisation des adhérents impossible" />
       <IntegrationNotice name="smtp" state={meta?.integrations.smtp} consequence="relance par email impossible" />
@@ -91,10 +94,10 @@ export default function MembersPage() {
               onClick={() => benevole.mutate(true, { onSuccess: () => setSelected([]) })}>Marquer bénévole</Button>
             <Button size="compact-sm" variant="default" loading={benevole.isPending && !benevole.variables}
               onClick={() => benevole.mutate(false, { onSuccess: () => setSelected([]) })}>Retirer bénévole</Button>
-            <Button size="compact-sm" variant="default" loading={odooNotes.isPending}
+            {odoo && <Button size="compact-sm" variant="default" loading={odooNotes.isPending}
               disabled={!meta?.integrations.odoo.available}
               title="Écrire la date anniversaire et le statut d'adhésion dans « Notes interne » d'Odoo"
-              onClick={() => odooNotes.mutate(undefined)}>Mettre à jour les fiches Odoo</Button>
+              onClick={() => odooNotes.mutate(undefined)}>Mettre à jour les fiches Odoo</Button>}
           </>,
         }}
         emptyText={filtered ? "Aucun adhérent ne correspond aux critères."
