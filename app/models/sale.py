@@ -12,6 +12,12 @@ STATUS_LABELS = {
     "draft": "Brouillon", "issued": "Émise", "partially_paid": "Payée en partie", "paid": "Payée",
     "canceled": "Annulée",
 }
+# Devis (lot S3) : émis, accepté, refusé, facturé ; « expiré » se lit (émis, date de validité passée).
+QUOTE_STATUS_LABELS = {
+    "draft": "Brouillon", "issued": "Envoyé", "accepted": "Accepté", "refused": "Refusé", "expired": "Expiré",
+    "invoiced": "Facturé",
+}
+QUOTE_VALIDITY_DAYS = 30
 OPERATION_TYPES = {"goods": "Livraison de biens", "services": "Prestation de services", "both": "Biens et services"}
 # Mode de TVA figé à l'émission : non assujetti (art. 293 B), exigible à l'encaissement, d'après les débits.
 VAT_MODES = ("none", "receipts", "debits")

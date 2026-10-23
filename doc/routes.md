@@ -542,6 +542,9 @@ Structure, onglet Facturation (`/configuration/organization?tab=billing`). API :
 | POST | `/api/v1/sales/auto-match` | Encaisse les factures au crédit candidat unique (aussi après un import OFX et une synchronisation Qonto) |
 | POST | `/api/v1/sales/remind` | Relance des factures choisies non soldées `{ids}` (message de relance) |
 | POST | `/api/v1/sales/<id>/remind` | Relance d'une facture, message modifiable `{to, cc, subject, body}` |
+| POST | `/api/v1/sales` avec `kind: "quote"` | Brouillon de devis (`validity_date`, 30 jours par défaut) ; émission : numéro `D-AAAA-NNNN`, PDF (« Bon pour accord »), sans écriture ; `GET /api/v1/sales?kind=quote` (statuts : envoyé, accepté, refusé, expiré, facturé) |
+| POST | `/api/v1/sales/<id>/quote-status` | `{status: accepted \| refused \| issued}` : réponse du client à un devis émis non facturé |
+| POST | `/api/v1/sales/<id>/to-invoice` | Brouillon de facture reprenant le devis (lignes, textes, « Devis D-… » en référence) ; le devis devient « facturé » (il redevient accepté si ce brouillon est supprimé) |
 
 `PATCH /api/v1/fiscal-years/<id>` accepte aussi `vat_on_receipts`. `GET /api/v1/dashboard` renvoie `sales`
 (CA facturé HT de l'exercice, encours clients, échues).

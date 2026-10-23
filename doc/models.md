@@ -905,3 +905,7 @@ les factures d'un même client payées par une transaction), `vat_released_cents
 à 44571), `qonto_marked` (lot S4). `sales.paid_cents` et le statut (`partially_paid`, `paid`) en
 découlent ; supprimer l'écriture (Écritures ou « Défaire ») supprime l'encaissement.
 `billing_settings` gagne `reminder_subject`, `reminder_body`.
+
+Devis (lot S3, sans migration) : `sales.kind = quote`, statuts `draft`, `issued`, `accepted`, `refused`,
+`invoiced` (« expiré » se lit : émis, `validity_date` passée) ; une facture issue d'un devis porte
+`quote_id`.

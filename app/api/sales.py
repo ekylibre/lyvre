@@ -10,14 +10,14 @@ from flask import jsonify, request, send_file
 from app.access import instance_admin_required
 from app.extensions import db
 from app.models import Account, BankAccount, BankTransaction, Entity, Sale, SalePayment
-from app.models.sale import OPERATION_TYPES, PAYMENT_METHODS, STATUS_LABELS
+from app.models.sale import OPERATION_TYPES, PAYMENT_METHODS, QUOTE_STATUS_LABELS, STATUS_LABELS
 from app.services import billing, catalog, projects, sale_documents, sale_entry, sale_issue, sale_settlement
 from app.services.sale_entry import SaleError
 from app.utils.list_filters import apply_month_filter, month_options_for_fy, parse_month
 
 from . import ApiError, bp, get_or_404, invalid, json_body, notice, require_integration
 
-KIND_LABELS = {"invoice": "Facture", "credit_note": "Avoir"}
+KIND_LABELS = {"invoice": "Facture", "credit_note": "Avoir", "quote": "Devis"}
 UNIT_OPTIONS = ["unité", "heure", "jour", "mois", "forfait", "kg", "m²"]
 
 
@@ -44,9 +44,17 @@ def _qty(milli):
     return sale_documents._qty(milli)
 
 
+def _status(s: Sale) -> tuple[str, str]:
+    if s.kind == "quote":
+        status = sale_issue.quote_status(s)
+        return status, QUOTE_STATUS_LABELS.get(status, status)
+    return s.status, STATUS_LABELS.get(s.status, s.status)
+
+
 def sale_row(s: Sale) -> dict:
-    return {"id": s.id, "kind": s.kind, "kind_label": KIND_LABELS.get(s.kind, s.kind), "status": s.status,
-            "status_label": STATUS_LABELS.get(s.status, s.status), "number": s.number, "source": s.source,
+    status, label = _status(s)
+    return {"id": s.id, "kind": s.kind, "kind_label": KIND_LABELS.get(s.kind, s.kind), "status": status,
+            "status_label": label, "number": s.number, "source": s.source, "validity_date": _iso(s.validity_date),
             "client": {"id": s.entity_id, "name": s.entity.name}, "issue_date": _iso(s.issue_date),
             "due_date": _iso(s.due_date), "untaxed_cents": s.untaxed_cents, "tax_cents": s.tax_cents,
             "total_cents": s.total_cents, "paid_cents": s.paid_cents, "sent_at": _iso(s.sent_at),
@@ -77,6 +85,10 @@ def sale_detail(s: Sale) -> dict:
             "journal_entry": {"id": s.journal_entry_id, "reference": s.journal_entry.reference}
             if s.journal_entry_id and s.journal_entry else None,
             "invoice": {"id": s.invoice.id, "number": s.invoice.number} if s.kind == "credit_note" and s.invoice else None,
+            "quote": ({"id": s.quote_id, "number": db.session.get(Sale, s.quote_id).number}
+                      if s.quote_id and db.session.get(Sale, s.quote_id) else None),
+            "invoices": [{"id": i.id, "number": i.number, "status": i.status, "total_cents": i.total_cents}
+                         for i in sale_issue.quote_invoices(s)] if s.kind == "quote" else [],
             "credit_notes": [{"id": c.id, "number": c.number, "status": c.status, "total_cents": c.total_cents}
                              for c in credit_notes],
             "remaining_credit_cents": s.total_cents - sale_issue.credited_cents(s) if s.kind == "invoice" else 0,
@@ -100,11 +112,15 @@ def sale_detail(s: Sale) -> dict:
 def sales_list():
     args = request.args
     kind = args.get("kind") if args.get("kind") in KIND_LABELS else None
-    query = Sale.query.filter(Sale.kind.in_(tuple(KIND_LABELS)))
-    if kind:
-        query = query.filter(Sale.kind == kind)
-    if args.get("status") in STATUS_LABELS:
-        query = query.filter(Sale.status == args["status"])
+    # Sans type : factures et avoirs ; les devis ont leur onglet (`kind=quote`).
+    query = Sale.query.filter(Sale.kind == kind) if kind else Sale.query.filter(Sale.kind.in_(("invoice", "credit_note")))
+    status = args.get("status")
+    if kind == "quote" and status == "expired":
+        query = query.filter(Sale.status == "issued", Sale.validity_date < date.today())
+    elif kind == "quote" and status == "issued":
+        query = query.filter(Sale.status == "issued", db.or_(Sale.validity_date.is_(None), Sale.validity_date >= date.today()))
+    elif status in (QUOTE_STATUS_LABELS if kind == "quote" else STATUS_LABELS):
+        query = query.filter(Sale.status == status)
     if args.get("entity_id", "").isdigit():
         query = query.filter(Sale.entity_id == int(args["entity_id"]))
     if args.get("overdue") == "1":
@@ -116,9 +132,9 @@ def sales_list():
             db.or_(Sale.number.ilike(f"%{q}%"), Entity.name.ilike(f"%{q}%")))
     query = apply_month_filter(query, Sale.issue_date, parse_month(args.get("month")))
     rows = query.order_by(Sale.status == "draft", Sale.issue_date.desc(), Sale.id.desc()).limit(500).all()
-    issued = [s for s in rows if s.status != "draft"]
+    issued = [s for s in rows if s.status != "draft" and s.kind != "quote"]
     return jsonify(items=[sale_row(s) for s in rows], meta={
-        "statuses": [{"value": k, "label": v} for k, v in STATUS_LABELS.items()],
+        "statuses": [{"value": k, "label": v} for k, v in (QUOTE_STATUS_LABELS if kind == "quote" else STATUS_LABELS).items()],
         "clients": [{"value": str(e.id), "label": e.name} for e in
                     Entity.query.join(Sale, Sale.entity_id == Entity.id).distinct().order_by(Entity.name)],
         "totals": {"untaxed_cents": sum(s.untaxed_cents * (-1 if s.kind == "credit_note" else 1) for s in issued),
@@ -157,9 +173,13 @@ def sales_form_options():
 
 @bp.route("/sales", methods=["POST"])
 def sales_create():
+    """Brouillon de facture, ou de devis avec `kind: "quote"`."""
+    data = json_body()
+    kind = "quote" if data.get("kind") == "quote" else "invoice"
     with _errors():
-        sale = sale_entry.create(json_body(), kind="invoice")
-    return jsonify(item=sale_detail(sale), notices=[notice("Brouillon de facture enregistré.")]), 201
+        sale = sale_entry.create(data, kind=kind)
+    return jsonify(item=sale_detail(sale), notices=[notice(
+        "Brouillon de devis enregistré." if kind == "quote" else "Brouillon de facture enregistré.")]), 201
 
 
 @bp.route("/sales/<int:sale_id>")
@@ -190,8 +210,10 @@ def sales_issue(sale_id):
     sale = get_or_404(Sale, sale_id, "Pièce introuvable.")
     with _errors():
         sale_issue.issue(sale)
-    label = KIND_LABELS.get(sale.kind, "Pièce")
-    return jsonify(item=sale_detail(sale), notices=[notice(f"{label} {sale.number} émis{'e' if sale.kind == 'invoice' else ''} et comptabilisé{'e' if sale.kind == 'invoice' else ''}.")])
+    messages = {"invoice": f"Facture {sale.number} émise et comptabilisée.",
+                "credit_note": f"Avoir {sale.number} émis et comptabilisé.",
+                "quote": f"Devis {sale.number} émis."}
+    return jsonify(item=sale_detail(sale), notices=[notice(messages[sale.kind])])
 
 
 @bp.route("/sales/<int:sale_id>/credit-note", methods=["POST"])
@@ -399,3 +421,24 @@ def sales_remind_one(sale_id):
     if result["errors"]:
         raise ApiError("send_failed", "Relance impossible : " + " ; ".join(result["errors"]), status=502)
     return jsonify(item=sale_detail(sale), notices=[notice(f"Relance de la facture {sale.number} envoyée.")])
+
+
+# ------------------------------------------------------------------ devis
+
+@bp.route("/sales/<int:sale_id>/quote-status", methods=["POST"])
+def sales_quote_status(sale_id):
+    """`{status: accepted | refused | issued}` : réponse du client à un devis émis."""
+    quote = get_or_404(Sale, sale_id, "Pièce introuvable.")
+    with _errors():
+        sale_issue.set_quote_status(quote, json_body().get("status"))
+    return jsonify(item=sale_detail(quote), notices=[notice(f"Devis {quote.number} : {QUOTE_STATUS_LABELS[quote.status].lower()}.")])
+
+
+@bp.route("/sales/<int:sale_id>/to-invoice", methods=["POST"])
+def sales_to_invoice(sale_id):
+    """Brouillon de facture reprenant le devis."""
+    quote = get_or_404(Sale, sale_id, "Pièce introuvable.")
+    with _errors():
+        invoice = sale_issue.to_invoice(quote)
+    return jsonify(item=sale_detail(invoice), notices=[notice(
+        f"Brouillon de facture créé depuis le devis {quote.number} : vérifiez-le puis émettez-le.")]), 201

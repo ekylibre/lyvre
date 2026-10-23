@@ -5,12 +5,13 @@ import type { Option } from "../purchases/types";
 export const SALES_KEY = ["sales"];
 export const BILLING_KEY = ["billing-settings"];
 
-export type SaleKind = "invoice" | "credit_note";
-export type SaleStatus = "draft" | "issued" | "partially_paid" | "paid" | "canceled";
+export type SaleKind = "invoice" | "credit_note" | "quote";
+export type SaleStatus = "draft" | "issued" | "partially_paid" | "paid" | "canceled" | "accepted" | "refused" | "expired" | "invoiced";
 
 export interface SaleRow {
   id: number; kind: SaleKind; kind_label: string; status: SaleStatus; status_label: string; number: string | null;
   source: "app" | "qonto"; client: { id: number; name: string }; issue_date: string | null; due_date: string | null;
+  validity_date: string | null;
   untaxed_cents: number; tax_cents: number; total_cents: number; paid_cents: number; sent_at: string | null; overdue: boolean;
   due_cents: number; reminder_count: number; last_reminder_at: string | null;
 }
@@ -40,6 +41,8 @@ export interface SaleDetail extends Omit<SaleRow, "client"> {
   lines: (SaleLineRow & { id: number; untaxed_cents: number; vat_cents: number; total_cents: number })[];
   vat_rows: { rate: number; base: number; tax: number }[];
   journal_entry: { id: number; reference: string } | null; invoice: { id: number; number: string } | null;
+  quote: { id: number; number: string | null } | null;
+  invoices: { id: number; number: string | null; status: SaleStatus; total_cents: number }[];
   credit_notes: { id: number; number: string | null; status: SaleStatus; total_cents: number }[];
   remaining_credit_cents: number; issue_problems: string[]; recipients: string[];
   emails: { sent_at: string; recipients: string; subject: string | null; status: "sent" | "failed"; error: string | null;
@@ -60,7 +63,10 @@ export interface SaleFormOptions {
 
 export const STATUS_TONES: Record<SaleStatus, Tone> = {
   draft: "todo", issued: "info", partially_paid: "info", paid: "ok", canceled: "neutral",
+  accepted: "ok", refused: "neutral", expired: "gap", invoiced: "ok",
 };
+
+export const KIND_TITLES: Record<SaleKind, string> = { invoice: "Facture", credit_note: "Avoir", quote: "Devis" };
 
 export const VAT_MODE_LABELS: Record<string, string> = {
   none: "Non assujetti : TVA non applicable (art. 293 B du CGI)",

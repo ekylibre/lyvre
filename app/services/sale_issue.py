@@ -4,7 +4,7 @@ facture émise ; envoi manuel par email (SMTP), PDF joint."""
 from __future__ import annotations
 
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import func, update
 
@@ -50,10 +50,12 @@ def issue_problems(sale: Sale) -> list[str]:
     problems = []
     if sale.status != "draft":
         return ["Pièce déjà émise."]
-    if sale.kind not in ("invoice", "credit_note"):
+    if sale.kind not in ("invoice", "credit_note", "quote"):
         return ["Type de pièce non émissible."]
     fy = fiscal_year_for(sale.issue_date)
-    if fy is None:
+    if sale.kind == "quote":
+        pass  # un devis n'est pas comptabilisé
+    elif fy is None:
         problems.append(f"Aucun exercice ne couvre le {sale.issue_date:%d/%m/%Y}.")
     elif fy.closed:
         problems.append(f"L'exercice « {fy.label} » est clôturé.")
@@ -97,7 +99,8 @@ def issue(sale: Sale) -> Sale:
         sale.series_year = sale.issue_date.year
         sale.client_snapshot = json_snapshot(sale.entity)
         sale.status, sale.issued_at = "issued", datetime.utcnow()
-        sale_posting.post(sale, fiscal_year_for(sale.issue_date))
+        if sale.kind != "quote":  # un devis n'a pas d'écriture
+            sale_posting.post(sale, fiscal_year_for(sale.issue_date))
         sale_documents.store_pdf(sale)
         written = sale_documents.pdf_file(sale)
         # credited_cents compte déjà cet avoir (émis ci-dessus, vidé dans la session par la requête).
@@ -120,6 +123,53 @@ def issue(sale: Sale) -> Sale:
 def _discard(path) -> None:
     if path is not None:
         path.unlink(missing_ok=True)
+
+
+# ------------------------------------------------------------------ devis
+
+def quote_status(quote: Sale) -> str:
+    """Statut affiché d'un devis : « expiré » s'il est émis et sa validité passée."""
+    if quote.status == "issued" and quote.validity_date and quote.validity_date < date.today():
+        return "expired"
+    return quote.status
+
+
+def set_quote_status(quote: Sale, status: str) -> Sale:
+    """Accepté ou refusé (ou retour à « envoyé ») pour un devis émis non facturé."""
+    if quote.kind != "quote" or quote.status in ("draft", "invoiced"):
+        raise SaleError("Seul un devis émis et non facturé change de statut.", status=409)
+    if status not in ("issued", "accepted", "refused"):
+        raise SaleError("Statut de devis inconnu.", "status")
+    quote.status = status
+    db.session.commit()
+    return quote
+
+
+def to_invoice(quote: Sale) -> Sale:
+    """Brouillon de facture reprenant le devis (client, lignes, textes) ; le devis est accepté puis
+    « facturé ». Un devis facturé peut donner d'autres factures (solde, complément)."""
+    if quote.kind != "quote" or quote.status not in ("issued", "accepted", "invoiced"):
+        raise SaleError("Seul un devis émis (ou accepté) se transforme en facture.", status=409)
+    invoice = Sale(kind="invoice", status="draft", source="app", entity=quote.entity, quote_id=quote.id,
+                   issue_date=date.today(), operation_type=quote.operation_type,
+                   service_start=quote.service_start, service_end=quote.service_end,
+                   purchase_order=quote.purchase_order or (f"Devis {quote.number}" if quote.number else None),
+                   terms=quote.terms, header=quote.header, footer=quote.footer)
+    invoice.due_date = date.today() + timedelta(days=billing.get().payment_terms_days or 0)
+    invoice.vat_mode = vat_mode_for(invoice.issue_date)
+    invoice.lines = [SaleLine(position=i, product_id=l.product_id, label=l.label, description=l.description,
+                              quantity_milli=l.quantity_milli, unit=l.unit, unit_price_cents=l.unit_price_cents,
+                              discount_bp=l.discount_bp, vat_rate_bp=l.vat_rate_bp, account_id=l.account_id,
+                              project_id=l.project_id, nature=l.nature) for i, l in enumerate(quote.lines)]
+    compute(invoice)
+    quote.status = "invoiced"
+    db.session.add(invoice)
+    db.session.commit()
+    return invoice
+
+
+def quote_invoices(quote: Sale) -> list[Sale]:
+    return Sale.query.filter_by(kind="invoice", quote_id=quote.id).order_by(Sale.id).all()
 
 
 def credit_note(invoice: Sale, reason: str, line_ids=None) -> Sale:

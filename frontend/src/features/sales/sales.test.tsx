@@ -34,7 +34,8 @@ function detail(fields: Partial<SaleDetail> = {}): SaleDetail {
       untaxed_cents: 50000, vat_cents: 10000, total_cents: 60000 }],
     vat_rows: [{ rate: 2000, base: 50000, tax: 10000 }], journal_entry: { id: 3, reference: "VE-0001" }, invoice: null,
     credit_notes: [], remaining_credit_cents: 60000, issue_problems: [], recipients: ["compta@client.example"], emails: [],
-    pdf_url: "/api/v1/sales/7/pdf", due_cents: 60000, reminder_count: 0, last_reminder_at: null, payments: [], ...fields,
+    pdf_url: "/api/v1/sales/7/pdf", due_cents: 60000, reminder_count: 0, last_reminder_at: null, payments: [],
+    validity_date: null, quote: null, invoices: [], ...fields,
   };
 }
 
@@ -54,6 +55,8 @@ beforeEach(() => {
       candidates: [{ id: 31, date: "2026-10-25", label: "VIR CLIENT SARL", amount_cents: 60000, account: "Compte courant", same_client: true, exact: true, rule: false }],
       accounts: [{ value: "1", label: "Compte courant", kind: "bank" }], methods: [{ value: "check", label: "Chèque" }] });
     if (url === "/api/v1/sales/match") return json(200, { items: [detail({ status: "paid", due_cents: 0 })], notices: [] });
+    if (url === "/api/v1/sales/7/to-invoice") return json(201, { item: detail({ id: 12, status: "draft", number: null }), notices: [] });
+    if (url === "/api/v1/sales/7/quote-status") return json(200, { item: detail({ kind: "quote", status: "accepted", number: "D-2026-0001" }), notices: [] });
     if (url === "/api/v1/sales/7/credit-note") return json(201, { item: detail({ id: 9, kind: "credit_note", status: "draft", number: null }), notices: [] });
     return json(404, { error: { code: "not_found", message: "?" } });
   }) as typeof fetch);
@@ -128,5 +131,18 @@ describe("fiche d'une facture", () => {
     current = detail({ overdue: true });
     page();
     expect(await screen.findByRole("button", { name: "Relancer" })).toBeTruthy();
+  });
+
+  it("devis émis : accepter, puis transformer en facture", async () => {
+    const user = userEvent.setup();
+    current = detail({ kind: "quote", number: "D-2026-0001", status: "issued", status_label: "Envoyé", due_date: null,
+      validity_date: "2026-11-22", journal_entry: null });
+    page();
+    expect(await screen.findByText("Devis D-2026-0001")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Encaisser" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Accepté" }));
+    await waitFor(() => expect(calls.find((c) => c.url.endsWith("/quote-status"))?.body).toEqual({ status: "accepted" }));
+    await user.click(screen.getByRole("button", { name: "Transformer en facture" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.url.endsWith("/to-invoice"))).toBe(true));
   });
 });

@@ -15,7 +15,7 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from app.extensions import db
 from app.models import Account, Entity, FiscalYear, Product, Project, Sale, SaleLine
-from app.models.sale import OPERATION_TYPES
+from app.models.sale import OPERATION_TYPES, QUOTE_VALIDITY_DAYS
 from app.services import catalog
 
 DEFAULT_SALE_ACCOUNTS = ("706", "7060", "70600000", "708", "7088")
@@ -122,6 +122,7 @@ class Header:
     entity: Entity
     issue_date: date
     due_date: date | None
+    validity_date: date | None
     service_start: date | None
     service_end: date | None
     operation_type: str
@@ -155,6 +156,9 @@ def parse_header(data: dict) -> Header:
     due = parse_date(data.get("due_date"), "Échéance", "due_date")
     if due is not None and due < issue:
         raise SaleError("L'échéance précède la date de la facture.", "due_date")
+    validity = parse_date(data.get("validity_date"), "Validité", "validity_date")
+    if validity is not None and validity < issue:
+        raise SaleError("La date de validité précède la date du devis.", "validity_date")
     start = parse_date(data.get("service_start"), "Début de prestation", "service_start")
     end = parse_date(data.get("service_end"), "Fin de prestation", "service_end")
     if start and end and end < start:
@@ -167,7 +171,8 @@ def parse_header(data: dict) -> Header:
         value = str(data.get(key) or "").strip()
         return (value[:size] if size else value) or None
 
-    return Header(entity=_client(data), issue_date=issue, due_date=due, service_start=start, service_end=end,
+    return Header(entity=_client(data), issue_date=issue, due_date=due, validity_date=validity,
+                  service_start=start, service_end=end,
                   operation_type=operation, purchase_order=text("purchase_order", 100), terms=text("terms"),
                   header=text("header"), footer=text("footer"))
 
@@ -230,6 +235,9 @@ def _apply(sale: Sale, header: Header, lines: list[SaleLine], settings) -> None:
     sale.issue_date = header.issue_date
     sale.due_date = header.due_date or (header.issue_date + timedelta(days=settings.payment_terms_days or 0)
                                         if sale.kind == "invoice" else None)
+    if sale.kind == "quote":
+        sale.due_date = None
+        sale.validity_date = header.validity_date or header.issue_date + timedelta(days=QUOTE_VALIDITY_DAYS)
     sale.service_start, sale.service_end = header.service_start, header.service_end
     sale.operation_type, sale.purchase_order = header.operation_type, header.purchase_order
     sale.terms, sale.header, sale.footer = header.terms, header.header, header.footer
@@ -265,8 +273,14 @@ def update(sale: Sale, data: dict) -> Sale:
 
 def delete(sale: Sale) -> None:
     if sale.status != "draft":
+        if sale.kind == "quote":
+            raise SaleError("Devis émis : il ne se supprime pas (marquez-le refusé).", status=409)
         raise SaleError("Pièce émise : elle ne se supprime pas (passez un avoir).", status=409)
+    quote = db.session.get(Sale, sale.quote_id) if sale.quote_id else None
     db.session.delete(sale)
+    db.session.flush()
+    if quote is not None and quote.status == "invoiced" and not Sale.query.filter_by(kind="invoice", quote_id=quote.id).count():
+        quote.status = "accepted"  # brouillon de facture abandonné : le devis redevient accepté
     db.session.commit()
 
 

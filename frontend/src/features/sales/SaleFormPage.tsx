@@ -1,8 +1,9 @@
-// Ventes › Nouvelle facture (/sales/new) et modification d'un brouillon (/sales/<id>/edit) : client
+// Ventes › Nouvelle facture (/sales/new), nouveau devis (/sales/new?kind=quote) et modification d'un
+// brouillon (/sales/<id>/edit) : client
 // (ou nouveau client), dates, nature de l'opération, lignes du catalogue, conditions. Un brouillon
 // n'a ni numéro ni écriture ; l'émission se fait depuis sa fiche.
 import { useEffect, useState } from "react";
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 import { Alert, Button, Center, Fieldset, Group, Loader, Select, SimpleGrid, Stack, Text, TextInput, Textarea } from "@mantine/core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../../api/client";
@@ -11,17 +12,18 @@ import { PageHeader } from "../../components/PageHeader";
 import { writeOnly } from "../../components/ReadOnlyPage";
 import { AppLink, useGoTo } from "../../app/navigation";
 import { SaleLinesEditor } from "./SaleLinesEditor";
-import { EMPTY_SALE_LINE, SALES_KEY, VAT_MODE_LABELS, type SaleDetail, type SaleFormOptions, type SaleLineRow } from "./types";
+import { EMPTY_SALE_LINE, KIND_TITLES, SALES_KEY, VAT_MODE_LABELS, type SaleDetail, type SaleFormOptions, type SaleLineRow } from "./types";
 
 const NEW_CLIENT = "__new__";
-type Header = { entity_id: string; new_client_name: string; issue_date: string; due_date: string; service_start: string;
+type Header = { entity_id: string; new_client_name: string; issue_date: string; due_date: string; validity_date: string; service_start: string;
   service_end: string; operation_type: string; purchase_order: string; header: string; terms: string; footer: string };
 const today = () => new Date().toISOString().slice(0, 10);
-const EMPTY: Header = { entity_id: "", new_client_name: "", issue_date: today(), due_date: "", service_start: "", service_end: "",
+const EMPTY: Header = { entity_id: "", new_client_name: "", issue_date: today(), due_date: "", validity_date: "", service_start: "", service_end: "",
   operation_type: "services", purchase_order: "", header: "", terms: "", footer: "" };
 
 function SaleFormPage() {
   const editId = Number(useParams().sale_id) || null;
+  const [search] = useSearchParams();
   const client = useQueryClient();
   const goTo = useGoTo();
   const options = useQuery({ queryKey: [...SALES_KEY, "form-options"],
@@ -37,7 +39,7 @@ function SaleFormPage() {
     const item = existing.data?.item;
     if (item) {
       setHeader({ entity_id: String(item.client.id), new_client_name: "", issue_date: item.issue_date ?? today(),
-        due_date: item.due_date ?? "", service_start: item.service_start ?? "", service_end: item.service_end ?? "",
+        due_date: item.due_date ?? "", validity_date: item.validity_date ?? "", service_start: item.service_start ?? "", service_end: item.service_end ?? "",
         operation_type: item.operation_type, purchase_order: item.purchase_order, header: item.header, terms: item.terms,
         footer: item.footer });
       setRows(item.lines.map(({ id: _id, untaxed_cents: _u, vat_cents: _v, total_cents: _t, ...row }) => row));
@@ -56,10 +58,12 @@ function SaleFormPage() {
   const set = (patch: Partial<Header>) => setHeader((h) => ({ ...h, ...patch }));
   const exempt = (item?.vat_mode ?? o.vat_mode) === "none";
   const isCredit = item?.kind === "credit_note";
+  const kind = item?.kind ?? (search.get("kind") === "quote" ? "quote" : "invoice");
+  const isQuote = kind === "quote";
 
   const submit = async () => {
     setSaving(true); setError(null);
-    const body = { ...header, entity_id: header.entity_id === NEW_CLIENT ? "" : header.entity_id, lines: rows };
+    const body = { ...header, kind, entity_id: header.entity_id === NEW_CLIENT ? "" : header.entity_id, lines: rows };
     try {
       const result = editId
         ? await api.patch<{ item: SaleDetail; notices: Notice[] }>(`/api/v1/sales/${editId}`, body)
@@ -79,9 +83,9 @@ function SaleFormPage() {
   );
   return (
     <>
-      <PageHeader title={editId ? `${isCredit ? "Avoir" : "Facture"} brouillon` : "Nouvelle facture"}
+      <PageHeader title={editId ? `${KIND_TITLES[kind]} brouillon` : isQuote ? "Nouveau devis" : "Nouvelle facture"}
         description={VAT_MODE_LABELS[item?.vat_mode ?? o.vat_mode]}
-        actions={<Button variant="default" component={AppLink} href={editId ? `/sales/${editId}` : "/sales/"}>Annuler</Button>} />
+        actions={<Button variant="default" component={AppLink} href={editId ? `/sales/${editId}` : isQuote ? "/sales/?kind=quote" : "/sales/"}>Annuler</Button>} />
       <form onSubmit={(e) => { e.preventDefault(); void submit(); }}>
         <Stack maw={1200}>
           {error && <Alert color="brique" role="alert">{error}</Alert>}
@@ -99,7 +103,8 @@ function SaleFormPage() {
               </SimpleGrid>
               <SimpleGrid cols={{ base: 2, md: 5 }}>
                 {date("issue_date", "Date", { required: true })}
-                {!isCredit && date("due_date", "Échéance", { description: `Vide : ${o.payment_terms_days} jours` })}
+                {!isCredit && !isQuote && date("due_date", "Échéance", { description: `Vide : ${o.payment_terms_days} jours` })}
+                {isQuote && date("validity_date", "Valable jusqu'au", { description: "Vide : 30 jours" })}
                 {date("service_start", "Début de prestation")}
                 {date("service_end", "Fin de prestation")}
                 <TextInput label="Référence client" value={header.purchase_order} onChange={(e) => set({ purchase_order: e.currentTarget.value })} />
@@ -119,7 +124,7 @@ function SaleFormPage() {
           </Fieldset>
           <Group>
             <Button type="submit" loading={saving}>Enregistrer le brouillon</Button>
-            <Text size="sm" c="dimmed">Le numéro et l'écriture comptable sont attribués à l'émission.</Text>
+            <Text size="sm" c="dimmed">{isQuote ? "Le numéro du devis est attribué à l'émission." : "Le numéro et l'écriture comptable sont attribués à l'émission."}</Text>
           </Group>
         </Stack>
       </form>

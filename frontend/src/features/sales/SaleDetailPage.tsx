@@ -21,7 +21,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate, formatDateTime } from "../../lib/format";
 import { AppLink, useGoTo } from "../../app/navigation";
 import { PaymentForm } from "./PaymentForm";
-import { SALES_KEY, STATUS_TONES, VAT_MODE_LABELS, type SaleDetail } from "./types";
+import { KIND_TITLES, SALES_KEY, STATUS_TONES, VAT_MODE_LABELS, type SaleDetail } from "./types";
 
 const rate = (bp: number) => `${(bp / 100).toLocaleString("fr-FR")} %`;
 
@@ -77,13 +77,17 @@ export default function SaleDetailPage() {
   const refresh = (item: SaleDetail) => { client.setQueryData(key, { item }); void client.invalidateQueries({ queryKey: SALES_KEY }); };
   const issue = useAction(() => api.post<{ item: SaleDetail; notices: Notice[] }>(`/api/v1/sales/${id}/issue`));
   const remove = useAction(() => api.delete<{ notices: Notice[] }>(`/api/v1/sales/${id}`), { invalidate: [SALES_KEY] });
+  const quoteStatus = useAction((status: string) => api.post<{ item: SaleDetail; notices: Notice[] }>(`/api/v1/sales/${id}/quote-status`, { status }),
+    { invalidate: [SALES_KEY] });
+  const toInvoice = useAction(() => api.post<{ item: SaleDetail; notices: Notice[] }>(`/api/v1/sales/${id}/to-invoice`), { invalidate: [SALES_KEY] });
   const unpay = useAction((paymentId: number) => api.delete<{ item: SaleDetail; notices: Notice[] }>(`/api/v1/sale-payments/${paymentId}`));
 
   if (error) return <Alert color="brique" mt="md">{(error as Error).message}</Alert>;
   if (!data) return <Center h={300}><Loader /></Center>;
   const s = data.item;
   const draft = s.status === "draft";
-  const title = `${s.kind === "credit_note" ? "Avoir" : "Facture"} ${s.number ?? "brouillon"}`;
+  const quote = s.kind === "quote";
+  const title = `${KIND_TITLES[s.kind]} ${s.number ?? "brouillon"}`;
   return (
     <>
       <PageHeader title={title}
@@ -92,15 +96,18 @@ export default function SaleDetailPage() {
           {s.overdue && <StatusBadge tone="gap">échue</StatusBadge>}
           <Anchor component={AppLink} href={`/entities/${s.client.id}`} size="sm">{s.client.name}</Anchor>
           {s.invoice && <span>sur la facture <Anchor component={AppLink} href={`/sales/${s.invoice.id}`} size="sm">{s.invoice.number}</Anchor></span>}
+          {s.quote && <span>du devis <Anchor component={AppLink} href={`/sales/${s.quote.id}`} size="sm">{s.quote.number}</Anchor></span>}
+          {quote && s.validity_date && <span>valable jusqu'au {formatDate(s.validity_date)}</span>}
         </Group>}
         actions={<>
           <Can>
             {draft && <Button variant="default" component={AppLink} href={`/sales/${id}/edit`}>Modifier</Button>}
             {draft && <ConfirmButton title={`Supprimer ce brouillon ?`} confirmLabel="Supprimer" loading={remove.isPending}
-              onConfirm={() => remove.mutate(undefined, { onSuccess: () => goTo("/sales/") })}>Supprimer</ConfirmButton>}
+              onConfirm={() => remove.mutate(undefined, { onSuccess: () => goTo(quote ? "/sales/?kind=quote" : "/sales/") })}>Supprimer</ConfirmButton>}
             {draft && <ConfirmButton danger={false} disabled={s.issue_problems.length > 0} loading={issue.isPending}
-              title={`Émettre ${s.kind === "credit_note" ? "l'avoir" : "la facture"} ?`} confirmLabel="Émettre"
-              message="Un numéro définitif est attribué, l'écriture comptable est passée et le PDF Factur-X est produit. La pièce ne pourra plus être modifiée ni supprimée (on la corrige par un avoir)."
+              title={`Émettre ${s.kind === "credit_note" ? "l'avoir" : quote ? "le devis" : "la facture"} ?`} confirmLabel="Émettre"
+              message={quote ? "Un numéro définitif est attribué et le PDF est produit. Le devis ne pourra plus être modifié."
+                : "Un numéro définitif est attribué, l'écriture comptable est passée et le PDF Factur-X est produit. La pièce ne pourra plus être modifiée ni supprimée (on la corrige par un avoir)."}
               onConfirm={() => issue.mutate(undefined, { onSuccess: (r) => refresh(r.item) })}>Émettre</ConfirmButton>}
             {s.kind === "invoice" && s.due_cents > 0 && <Button onClick={() => setModal("pay")}>Encaisser</Button>}
             {!draft && <Button variant="default" onClick={smtp.guard(() => setModal("send"))}>Envoyer</Button>}
@@ -108,9 +115,16 @@ export default function SaleDetailPage() {
               <Button variant="default" onClick={smtp.guard(() => setModal("remind"))}>Relancer</Button>}
             {!draft && s.kind === "invoice" && s.status !== "canceled" && s.remaining_credit_cents > 0 &&
               <Button variant="default" onClick={() => setModal("credit")}>Avoir</Button>}
+            {quote && ["issued", "expired", "refused"].includes(s.status) &&
+              <Button variant="default" loading={quoteStatus.isPending} onClick={() => quoteStatus.mutate("accepted", { onSuccess: (r) => refresh(r.item) })}>Accepté</Button>}
+            {quote && ["issued", "expired", "accepted"].includes(s.status) &&
+              <Button variant="default" loading={quoteStatus.isPending} onClick={() => quoteStatus.mutate("refused", { onSuccess: (r) => refresh(r.item) })}>Refusé</Button>}
+            {quote && ["issued", "expired", "accepted", "invoiced"].includes(s.status) &&
+              <Button loading={toInvoice.isPending} onClick={() => toInvoice.mutate(undefined, { onSuccess: (r) => goTo(`/sales/${r.item.id}`) })}>
+                {s.status === "invoiced" ? "Nouvelle facture" : "Transformer en facture"}</Button>}
           </Can>
           <Button variant="default" component="a" href={s.pdf_url} target="_blank">{draft ? "Aperçu PDF" : "PDF"}</Button>
-          <Button variant="default" component={AppLink} href="/sales/">Ventes</Button>
+          <Button variant="default" component={AppLink} href={quote ? "/sales/?kind=quote" : "/sales/"}>{quote ? "Devis" : "Ventes"}</Button>
         </>} />
 
       {draft && s.issue_problems.length > 0 && (
@@ -199,6 +213,14 @@ export default function SaleDetailPage() {
               </Table.Tbody>
             </Table>
           )}
+        </Paper>
+      )}
+
+      {quote && s.invoices.length > 0 && (
+        <Paper p="md" mb="md">
+          <Title order={3} mb="xs">Factures du devis</Title>
+          {s.invoices.map((i) => <Group key={i.id} gap="xs"><Anchor component={AppLink} href={`/sales/${i.id}`}>{i.number ?? "brouillon"}</Anchor>
+            <StatusBadge tone={STATUS_TONES[i.status]}>{i.status === "draft" ? "Brouillon" : "Émise"}</StatusBadge><MoneyText cents={i.total_cents} size="sm" /></Group>)}
         </Paper>
       )}
 
