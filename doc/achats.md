@@ -160,6 +160,9 @@ compterait la charge deux fois. Le bandeau rouge de la liste mène à `/purchase
 fournisseur, rapprochés. Un rapprochement saisi à la main n'est jamais remplacé : il est seulement
 listé pour vérification.
 
+**Facture payée par un associé** (sociétés avec le module Associés) : bouton **Réglée par un associé**
+sur la fiche, ou option **Payée par un associé** à la saisie ; voir [Associés](associes.md#facture-payée-par-un-associé).
+
 ## Limites
 
 - **Lecture** : 3 premières pages ; OCR seulement si Tesseract (français) est installé (inclus dans

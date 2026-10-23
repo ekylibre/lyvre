@@ -20,6 +20,7 @@ Application web de comptabilité pour associations loi 1901 (plan comptable des 
 | [États financiers](reports.md) | Balance, grand livre, Bilan, Compte de résultat (asso / SCI) |
 | [Saisie et rapprochement](saisie_rapprochement.md) | Écrans au clavier : saisie d'écriture, espace de rapprochement, raccourcis |
 | [Factures d'achat](achats.md) | Factures fournisseurs Qonto ou saisies (lecture Factur-X / PDF / OCR, pièce jointe) : catalogue, TVA de l'exercice, comptabilisation en engagement, règlements Qonto ou OFX |
+| [Associés](associes.md) | Sociétés (SCI, entreprises) : registre des parts (pleine propriété, usufruit, nue-propriété), comptes courants d'associés (factures payées par un associé, notes de frais, apports), intérêts et affectation du résultat à la clôture, import CSV |
 
 ## Fonctionnalités
 
@@ -31,6 +32,7 @@ Application web de comptabilité pour associations loi 1901 (plan comptable des 
 - **Import bancaire** — Fichiers OFX/QFX (banques françaises), déduplication automatique par FITID
 - **Factures d'achat Qonto** — Synchronisation des factures fournisseurs, lignes issues d'un **catalogue** produits / services, comptabilisation automatique en engagement (journal AC, compte 401NNN par fournisseur, TVA selon l'exercice), règlements 401 / banque rapprochés à partir des paiements Qonto, remplacement en lot des écritures de règle antérieures
 - **Saisie des factures d'achat** — Dépôt du PDF, du scan ou de la photo, lecture (Factur-X, texte, OCR Tesseract) et formulaire prérempli, fournisseur reconnu (TVA, SIRET, IBAN, nom), doublons signalés, pièce rangée par instance, envoi facultatif à Qonto, règlement automatique depuis l'import OFX ; sauvegardes `.zip` (base + pièces)
+- **Associés (sociétés)** — Registre des parts daté (souscription, cession, donation avec réserve d'usufruit, réunion), situation et capital à toute date, comptes courants 4551… (facture payée par un associé, notes de frais, apports et remboursements au rapprochement), relevé et graphique par exercice, intérêts et répartition du résultat à la clôture, import CSV (reprise Ekylibre)
 - **Import Odoo** — CSV de lignes de facturation, table de staging avant comptabilisation
 - **Comptabilité simplifiée** (associations) — Mode de tenue choisi par instance : recettes et dépenses par catégorie sans débit ni crédit (écritures en partie double générées), relevé importé catégorisé et rapproché, règles par catégorie ; écrans de partie double masqués
 - **Caisse** — Compte de trésorerie en espèces (53x) à côté des comptes bancaires : mouvements saisis, solde courant, dépôt en banque par le compte 581 (ni recette ni dépense), contrôle de clôture des virements internes

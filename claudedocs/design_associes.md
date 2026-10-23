@@ -1,7 +1,8 @@
 # Conception — module « Associés »
 
 > Entrée : `claudedocs/besoins_associes.md` (F1–F9, US1–US9, décisions Q1–Q10 du 23/10/2026).
-> Statut : conception (`/sc:design`), à valider avant `/sc:implement`. Pas de code.
+> Statut : **réalisé** (lots A1 à A6, 23/10/2026) ; guide utilisateur `doc/associes.md`. D1 révisé en A1
+> (option dans la base méta).
 
 ## 1. Principes
 
