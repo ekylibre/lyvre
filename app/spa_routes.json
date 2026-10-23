@@ -4,6 +4,7 @@
     {"rule": "/login", "endpoint": "auth.login", "public": true},
     {"rule": "/about", "endpoint": "about.index", "public": true},
     {"rule": "/select-instance", "endpoint": "auth.select_instance"},
+    {"rule": "/password", "endpoint": "auth.change_password"},
     {"rule": "/journals/", "endpoint": "journals.index"},
     {"rule": "/journals/new", "endpoint": "journals.new"},
     {"rule": "/fiscal-years/", "endpoint": "fiscal_years.index"},

@@ -21,6 +21,7 @@ function pages(endpoints: string[], load: () => Promise<PageModule>): Record<str
 export const PAGES: Record<string, () => Promise<PageModule>> = {
   "auth.login": () => import("../features/auth/LoginPage"),
   "auth.select_instance": () => import("../features/auth/SelectInstancePage"),
+  "auth.change_password": () => import("../features/auth/ChangePasswordPage"),
   ...pages(["journals.index", "journals.new"], () => import("../features/journals/JournalsPage")),
   ...pages(["fiscal_years.index", "fiscal_years.new"], () => import("../features/fiscal-years/FiscalYearsPage")),
   "fiscal_years.closing": () => import("../features/fiscal-years/ClosingPage"),
@@ -95,7 +96,7 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
 };
 
 /** Pages sans la mise en page de l'application (en-tête, menus). */
-export const BARE_PAGES = new Set(["auth.login", "auth.select_instance", "about.index"]);
+export const BARE_PAGES = new Set(["auth.login", "auth.select_instance", "auth.change_password", "about.index"]);
 
 /** Règle Flask → chemin react-router (« /purchases/<int:purchase_id> » → « /purchases/:purchase_id »). */
 export function toRouterPath(rule: string): string {

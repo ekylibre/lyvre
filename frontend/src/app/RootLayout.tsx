@@ -28,7 +28,8 @@ function SessionGate({ children }: { children: ReactNode }) {
   const { data: session, isPending } = useSession();
   const location = useLocation();
   const next = encodeURIComponent(location.pathname + location.search);
-  const missing = !session?.user ? "/login" : !session.instance ? "/select-instance" : null;
+  const missing = !session?.user ? "/login" : session.user.must_change_password ? "/password"
+    : !session.instance ? "/select-instance" : null;
   useEffect(() => {
     if (!isPending && missing) window.location.replace(`${missing}?next=${next}`);
   }, [isPending, missing, next]);

@@ -30,6 +30,15 @@ _TENANT_FREE_ENDPOINTS = {
     "api.logout",
     "api.select_instance",
     "api.update_preferences",
+    "api.change_password",
+    "auth.change_password",
+}
+
+# Seules routes ouvertes à un compte dont le mot de passe est à changer (F5.4) : la session,
+# le changement de mot de passe et la déconnexion.
+PASSWORD_CHANGE_ALLOWED = {
+    "api.session_info", "api.login", "api.logout", "api.change_password",
+    "auth.login", "auth.logout", "auth.change_password", "about.index", "static",
 }
 
 
@@ -120,6 +129,12 @@ def register_tenant_hooks(app):
             if is_api_request():
                 return error_response("unauthenticated", "Compte désactivé.", 401)
             return redirect(url_for("auth.login"))
+
+        if current_user.must_change_password and request.endpoint not in PASSWORD_CHANGE_ALLOWED:
+            if is_api_request():
+                return error_response("password_change_required",
+                                      "Choisissez un nouveau mot de passe pour continuer.", 403)
+            return redirect(url_for("auth.change_password", next=_relative_next()))
 
         if _is_tenant_free_endpoint():
             return None

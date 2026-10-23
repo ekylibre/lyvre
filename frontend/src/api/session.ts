@@ -18,7 +18,7 @@ export interface Preferences {
 export type InstanceRole = "admin" | "treasurer" | "accountant";
 
 export interface Session {
-  user: { id: number; email: string; full_name: string | null; is_admin: boolean } | null;
+  user: { id: number; email: string; full_name: string | null; is_admin: boolean; must_change_password: boolean } | null;
   instance: { id: number; slug: string; label: string; chart: string; bookkeeping?: "double" | "simple" } | null;
   instances: { id: number; label: string }[];
   /** Rôle sur l'instance courante ; `permissions` en découle (le serveur reste seul juge). */

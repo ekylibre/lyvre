@@ -36,13 +36,16 @@ function currentPath(): string {
   return window.location.pathname + window.location.search;
 }
 
-/** Redirections de session : 401 → connexion, 409 no_instance → choix de l'instance. */
+/** Redirections de session : 401 → connexion, 409 no_instance → choix de l'instance,
+ * 403 password_change_required → choix du mot de passe. */
 function redirectFor(error: ApiError): void {
   const next = encodeURIComponent(currentPath());
   if (error.status === 401 && window.location.pathname !== "/login") {
     window.location.assign(`/login?next=${next}`);
   } else if (error.code === "no_instance" && window.location.pathname !== "/select-instance") {
     window.location.assign(`/select-instance?next=${next}`);
+  } else if (error.code === "password_change_required" && window.location.pathname !== "/password") {
+    window.location.assign(`/password?next=${next}`);
   }
 }
 

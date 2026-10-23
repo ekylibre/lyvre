@@ -23,7 +23,7 @@ PUBLIC_ENDPOINTS = {"api.login", "api.logout"}
 
 # Écritures permises en lecture seule (expert-comptable) : session et préférences personnelles.
 READ_ONLY_ALLOWED = {"api.login", "api.logout", "api.select_instance", "api.update_preferences",
-                     "api.notifications_mark_read"}
+                     "api.notifications_mark_read", "api.change_password"}
 WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
 _HTTP_CODES = {

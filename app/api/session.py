@@ -16,6 +16,7 @@ from app.access import accessible_instances, permissions, role_for
 from app.extensions import db
 from app.menu_config import build_nav
 from app.models import Instance, SyncJob, User
+from app.services.instance_access import MIN_PASSWORD
 
 from . import ApiError, bp, json_body
 
@@ -65,7 +66,8 @@ def session_payload() -> dict:
     role = role_for(current_user, inst) if inst else None
     return {
         "user": {"id": current_user.id, "email": current_user.email,
-                 "full_name": current_user.full_name, "is_admin": is_admin},
+                 "full_name": current_user.full_name, "is_admin": is_admin,
+                 "must_change_password": bool(current_user.must_change_password)},
         "instance": ({"id": inst.id, "slug": inst.slug, "label": inst.label, "chart": inst.chart,
                       "bookkeeping": inst.bookkeeping} if inst else None),
         "instances": [{"id": i.id, "label": i.label} for i in accessible_instances(current_user)],
@@ -110,6 +112,28 @@ def logout():
     flask_session.pop("instance_id", None)
     logout_user()
     return jsonify(session_payload())
+
+
+@bp.route("/me/password", methods=["POST"])
+@login_required
+def change_password():
+    """`{current_password, new_password}` : le compte choisit son mot de passe (obligatoire après un
+    mot de passe initial ou fixé par un administrateur, cf. `users.must_change_password`)."""
+    data = json_body()
+    current, new = str(data.get("current_password") or ""), str(data.get("new_password") or "")
+    if not current_user.check_password(current):
+        raise ApiError("validation_error", "Mot de passe actuel incorrect.", status=422,
+                       fields={"current_password": "Mot de passe actuel incorrect."})
+    if len(new) < MIN_PASSWORD:
+        message = f"{MIN_PASSWORD} caractères au moins."
+        raise ApiError("validation_error", message, status=422, fields={"new_password": message})
+    if new == current:
+        message = "Choisissez un mot de passe différent de l'actuel."
+        raise ApiError("validation_error", message, status=422, fields={"new_password": message})
+    current_user.set_password(new)
+    current_user.must_change_password = False
+    db.session.commit()
+    return jsonify({**session_payload(), "notices": [{"level": "success", "message": "Mot de passe modifié."}]})
 
 
 @bp.route("/session/instance", methods=["POST"])

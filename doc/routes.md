@@ -35,9 +35,12 @@ pied du menu latéral.
 |---------|-----|-------------|
 | GET | `/login` | Page de la SPA (connexion) ; `?next=` suivi seulement s'il désigne une page de l'application |
 | GET | `/select-instance` | Page de la SPA (choix de l'instance) ; connexion exigée |
+| GET | `/password` | Page de la SPA (choix du mot de passe) ; connexion exigée ; imposée tant que `must_change_password` (menu utilisateur sinon) |
 | GET | `/logout` | Détruit la session (login + instance), redirige vers `/login` (lien direct ; la SPA utilise `POST /api/v1/session/logout`) |
 
 Connexion, déconnexion et choix d'instance passent par l'API (`/api/v1/session/*`, ci-dessous). La session ne liste que les instances accessibles à l'utilisateur et renvoie son `role` et ses `permissions` sur l'instance courante.
+
+**Mot de passe à changer** (`users.must_change_password`, compte créé avec un mot de passe initial ou mot de passe fixé par un administrateur) : le hook tenant (`app/tenant.py`, `PASSWORD_CHANGE_ALLOWED`) refuse tout le reste — API 403 `password_change_required`, pages et exports redirigés vers `/password?next=` — sauf la session, la connexion et la déconnexion, `/password` et `POST /api/v1/me/password`, `/about`. La SPA y envoie aussi après la connexion.
 
 ## Pages de la SPA
 
@@ -687,15 +690,16 @@ un refus métier est un 409 `conflict`.
 ```
 
 Codes : `bad_request` / `csrf_error` (400), `unauthenticated` (401, jamais de redirection),
-`forbidden` (403), `not_found` (404), `method_not_allowed` (405), `conflict` / `no_instance` (409),
+`forbidden` (403), `not_found` (404), `method_not_allowed` (405), `password_change_required` (403), `conflict` / `no_instance` (409),
 `validation_error` (422), `server_error` (500).
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/api/v1/session` | Utilisateur, instance courante, instances actives, menus (`nav`, URL résolues selon le plan et les droits), liens d'administration, préférences, jeton CSRF |
+| GET | `/api/v1/session` | Utilisateur (dont `must_change_password`), instance courante, instances actives, menus (`nav`, URL résolues selon le plan et les droits), liens d'administration, préférences, jeton CSRF |
 | POST | `/api/v1/session/login` | `{email, password}` → session (comme ci-dessus) ; 422 si identifiants faux ou compte désactivé ; une seule instance active : choisie d'office |
 | POST | `/api/v1/session/logout` | Déconnexion (instance oubliée) |
 | POST | `/api/v1/session/instance` | `{instance_id}` → session ; 422 si l'instance est inconnue ou désactivée |
+| POST | `/api/v1/me/password` | `{current_password, new_password}` (8 caractères au moins, différent de l'actuel ; 422 sur le champ fautif) → session ; lève `must_change_password` ; permis à l'expert-comptable |
 | PATCH | `/api/v1/me/preferences` | Fusion profonde dans `users.preferences` (`null` supprime une clé) ; `color_scheme` ∈ `light`/`dark`/`auto` ; 413 au-delà de 16 Ko |
 | GET | `/api/v1/jobs/<id>` | État d'une tâche longue (`sync_jobs`) : statut, progression, résultat |
 | GET | `/api/v1/notifications` | Notifications de l'utilisateur dans l'instance (les siennes et celles de toute l'instance), plus récentes d'abord : `level`, `title`, `message`, `url`, `job_id`, `read` ; `?unread=1`, `?limit=` (20, 100 au plus) ; `meta.unread` |

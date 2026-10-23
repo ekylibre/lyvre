@@ -9,7 +9,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { spotlight } from "@mantine/spotlight";
-import { ArrowLeftRight, ChevronDown, Eye, LogOut, Moon, Search, Sun } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, Eye, KeyRound, LogOut, Moon, Search, Sun } from "lucide-react";
 import symbolInverse from "../../assets/lyvre-symbole-inverse.svg";
 import {
   useCan, useCurrentSession, useLogout, usePreferences, useSelectInstance, type NavMenu,
@@ -140,6 +140,9 @@ function UserMenu() {
       <Menu.Dropdown>
         <Menu.Item component={AppLink} href="/select-instance" leftSection={<ArrowLeftRight size={16} />}>
           Changer d'instance
+        </Menu.Item>
+        <Menu.Item component={AppLink} href="/password" leftSection={<KeyRound size={16} />}>
+          Changer mon mot de passe
         </Menu.Item>
         {session.admin_links.length > 0 && <Menu.Divider />}
         {session.admin_links.map((link) => (

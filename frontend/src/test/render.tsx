@@ -9,7 +9,7 @@ import { SESSION_KEY, type Session } from "../api/session";
 import { theme } from "../app/theme";
 
 export const TEST_SESSION: Session = {
-  user: { id: 1, email: "tresorier@example.org", full_name: null, is_admin: false },
+  user: { id: 1, email: "tresorier@example.org", full_name: null, is_admin: false, must_change_password: false },
   instance: { id: 1, slug: "test", label: "Test", chart: "asso" },
   instances: [{ id: 1, label: "Test" }],
   nav: [],

@@ -8,8 +8,10 @@ import { useLogin, useSession, type Session } from "../../api/session";
 import { useGoTo } from "../../app/navigation";
 import { AuthCard } from "./AuthCard";
 
-/** Après connexion : choisir l'instance s'il n'y en a pas, sinon la page demandée. */
+/** Après connexion : choisir son mot de passe s'il est à changer, puis l'instance s'il n'y en a
+ * pas, sinon la page demandée. */
 export function afterLogin(session: Session, next: string): string {
+  if (session.user?.must_change_password) return `/password?next=${encodeURIComponent(next)}`;
   if (!session.instance) return `/select-instance?next=${encodeURIComponent(next)}`;
   return next;
 }

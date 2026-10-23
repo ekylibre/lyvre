@@ -23,4 +23,9 @@ describe("LoginPage", () => {
     expect(afterLogin(TEST_SESSION, "/entries/")).toBe("/entries/");
     expect(afterLogin(ANONYMOUS, "/entries/")).toBe("/select-instance?next=%2Fentries%2F");
   });
+
+  it("impose le choix du mot de passe avant tout", () => {
+    const flagged = { ...TEST_SESSION, user: { ...TEST_SESSION.user!, must_change_password: true } };
+    expect(afterLogin(flagged, "/entries/")).toBe("/password?next=%2Fentries%2F");
+  });
 });
