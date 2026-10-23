@@ -17,6 +17,9 @@ class Instance(db.Model):
     # Mode de tenue (lot D, D19) : "double" (partie double) ou "simple" (recettes et dépenses,
     # associations seulement) ; pilote menus et fonctions comme le plan comptable.
     bookkeeping = db.Column(db.String(10), nullable=False, default="double", server_default="double")
+    # Module « Associés » (sociétés) : activé par l'administrateur de l'instance, d'office pour une
+    # instance créée au plan SCI ; pilote le menu (lu sans ouvrir la base de l'instance).
+    has_associates = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 

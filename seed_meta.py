@@ -47,6 +47,10 @@ def _ensure_instance_bookkeeping_column() -> None:
     _ensure_column("instances", "bookkeeping", "VARCHAR(10) NOT NULL DEFAULT 'double'")
 
 
+def _ensure_instance_has_associates_column() -> None:
+    _ensure_column("instances", "has_associates", "BOOLEAN NOT NULL DEFAULT 0")
+
+
 def _ensure_user_preferences_column() -> None:
     _ensure_column("users", "preferences", "TEXT NOT NULL DEFAULT '{}'")
 
@@ -98,6 +102,7 @@ def main() -> int:
         db.create_all(bind_key=["meta"])
         _ensure_instance_chart_column()
         _ensure_instance_bookkeeping_column()
+        _ensure_instance_has_associates_column()
         _ensure_user_preferences_column()
         _ensure_user_must_change_password_column()
 

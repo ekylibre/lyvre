@@ -2,12 +2,12 @@
 // signataire), utilisée par le FEC, les reçus fiscaux et les états. Modifiable par
 // l'administrateur de l'instance, lisible par tous.
 import { useEffect, useState } from "react";
-import { Alert, Button, Center, Fieldset, Group, Loader, SimpleGrid, Stack, TextInput, Textarea } from "@mantine/core";
+import { Alert, Button, Center, Checkbox, Fieldset, Group, Loader, SimpleGrid, Stack, TextInput, Textarea } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
-import { useCan } from "../../api/session";
+import { SESSION_KEY, useCan } from "../../api/session";
 import { applyApiError } from "../../components/ApiForm";
 import { PageHeader } from "../../components/PageHeader";
 
@@ -15,11 +15,13 @@ export interface Organization {
   name: string; siren: string | null; rna: string | null; address_line1: string | null; address_line2: string | null;
   postal_code: string | null; city: string | null; country: string; purpose: string | null;
   signatory_name: string | null; signatory_title: string | null; fec_ready: boolean;
+  /** Module « Associés » : option de l'instance et taux d'intérêt des comptes courants par défaut. */
+  has_associates: boolean; associate_interest_rate: string;
 }
 export const ORGANIZATION_KEY = ["organization"];
 const FIELDS = ["name", "siren", "rna", "address_line1", "address_line2", "postal_code", "city", "country", "purpose",
   "signatory_name", "signatory_title"] as const;
-type Values = Record<(typeof FIELDS)[number], string>;
+type Values = Record<(typeof FIELDS)[number] | "associate_interest_rate", string> & { has_associates: boolean };
 
 export default function OrganizationPage() {
   const can = useCan();
@@ -27,9 +29,11 @@ export default function OrganizationPage() {
   const { data } = useQuery({ queryKey: ORGANIZATION_KEY,
     queryFn: () => api.get<{ item: Organization }>("/api/v1/organization") });
   const [error, setError] = useState<string | null>(null);
-  const form = useForm<Values>({ initialValues: Object.fromEntries(FIELDS.map((f) => [f, ""])) as Values });
+  const form = useForm<Values>({ initialValues: { ...Object.fromEntries(FIELDS.map((f) => [f, ""])),
+    has_associates: false, associate_interest_rate: "" } as Values });
   useEffect(() => {
-    if (data) form.setValues(Object.fromEntries(FIELDS.map((f) => [f, data.item[f] ?? ""])) as Values);
+    if (data) form.setValues({ ...Object.fromEntries(FIELDS.map((f) => [f, data.item[f] ?? ""])),
+      has_associates: data.item.has_associates, associate_interest_rate: data.item.associate_interest_rate } as Values);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
   const save = useAction((values: Values) => api.put<{ item: Organization; notices: Notice[] }>("/api/v1/organization", values),
@@ -46,7 +50,10 @@ export default function OrganizationPage() {
       <form onSubmit={form.onSubmit((values) => {
         setError(null);
         save.mutate(values, {
-          onSuccess: (body) => client.setQueryData(ORGANIZATION_KEY, { item: body.item }),
+          onSuccess: (body) => {
+            client.setQueryData(ORGANIZATION_KEY, { item: body.item });
+            void client.invalidateQueries({ queryKey: SESSION_KEY }); // menu « Associés »
+          },
           onError: (e) => setError(applyApiError(form, e)),
         });
       })}>
@@ -78,6 +85,17 @@ export default function OrganizationPage() {
               {field("signatory_name", "Nom")}
               {field("signatory_title", "Qualité", { placeholder: "Président, trésorier…" })}
             </SimpleGrid>
+          </Fieldset>
+          <Fieldset legend="Associés (sociétés)">
+            <Stack>
+              <Checkbox label="Société avec associés" disabled={readOnly}
+                description="Active le menu Associés : parts sociales, comptes courants d'associés. Pour une SCI ou une entreprise, pas pour une association."
+                {...form.getInputProps("has_associates", { type: "checkbox" })} />
+              {form.values.has_associates && (
+                <TextInput label="Taux d'intérêt des comptes courants (%)" w={300} readOnly={readOnly} inputMode="decimal"
+                  description="Par défaut pour tous les associés ; 0 : pas d'intérêts." {...form.getInputProps("associate_interest_rate")} />
+              )}
+            </Stack>
           </Fieldset>
           {!readOnly && <Group><Button type="submit" loading={save.isPending}>Enregistrer</Button></Group>}
         </Stack>

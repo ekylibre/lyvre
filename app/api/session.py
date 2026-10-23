@@ -69,10 +69,12 @@ def session_payload() -> dict:
                  "full_name": current_user.full_name, "is_admin": is_admin,
                  "must_change_password": bool(current_user.must_change_password)},
         "instance": ({"id": inst.id, "slug": inst.slug, "label": inst.label, "chart": inst.chart,
-                      "bookkeeping": inst.bookkeeping} if inst else None),
+                      "bookkeeping": inst.bookkeeping, "has_associates": bool(inst.has_associates)}
+                     if inst else None),
         "instances": [{"id": i.id, "label": i.label} for i in accessible_instances(current_user)],
         "role": role, "permissions": permissions(role),
-        "nav": _resolve_nav(build_nav(chart=inst.chart, is_admin=role == "admin", bookkeeping=inst.bookkeeping))
+        "nav": _resolve_nav(build_nav(chart=inst.chart, is_admin=role == "admin", bookkeeping=inst.bookkeeping,
+                                      features={"associates"} if inst.has_associates else ()))
         if inst else [],
         # Menu de l'utilisateur (en-tête) : administration réservée aux admins.
         "admin_links": ([{"label": "Utilisateurs", "url": url_for("users.index")},

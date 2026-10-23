@@ -134,6 +134,15 @@ MENUS = [
         "endpoint": "purchases.index",
         "active": ["purchases"],
     },
+    # ------------------------------------------------------------------- Associés
+    {
+        "key": "associates",
+        "label": "Associés",
+        "charts": _ALL,
+        "feature": "associates",  # option de l'instance (Instance.has_associates)
+        "endpoint": "associates.index",
+        "active": ["associates"],
+    },
     # ---------------------------------------------------------------------- Tiers
     {
         "key": "tiers",
@@ -200,9 +209,13 @@ MENUS = [
 ]
 
 
-def _visible(entry: dict, chart: str, is_admin: bool, bookkeeping: str = "double") -> bool:
-    """Une entrée est visible si le plan comptable et le mode de tenue correspondent et, le cas
-    échéant, si l'utilisateur est administrateur."""
+def _visible(entry: dict, chart: str, is_admin: bool, bookkeeping: str = "double",
+             features: frozenset = frozenset()) -> bool:
+    """Une entrée est visible si le plan comptable et le mode de tenue correspondent, si
+    l'option qu'elle demande (`feature`) est active et, le cas échéant, si l'utilisateur est
+    administrateur."""
+    if entry.get("feature") and entry["feature"] not in features:
+        return False
     if chart not in entry.get("charts", ALL_CHARTS):
         return False
     if bookkeeping not in entry.get("bookkeeping", BOOKKEEPING_MODES):
@@ -212,12 +225,13 @@ def _visible(entry: dict, chart: str, is_admin: bool, bookkeeping: str = "double
     return True
 
 
-def _clean_items(items: list[dict], chart: str, is_admin: bool, bookkeeping: str = "double") -> list[dict]:
+def _clean_items(items: list[dict], chart: str, is_admin: bool, bookkeeping: str = "double",
+                 features: frozenset = frozenset()) -> list[dict]:
     """Filtre les sous-menus par plan comptable / droits, puis nettoie les
     séparateurs orphelins (en tête, en fin, ou consécutifs)."""
     kept: list[dict] = []
     for item in items:
-        if not _visible(item, chart, is_admin, bookkeeping):
+        if not _visible(item, chart, is_admin, bookkeeping, features):
             continue
         if item.get("divider"):
             # pas de séparateur en tête ni deux séparateurs de suite
@@ -230,19 +244,22 @@ def _clean_items(items: list[dict], chart: str, is_admin: bool, bookkeeping: str
     return kept
 
 
-def build_nav(chart: str | None = None, is_admin: bool = False, bookkeeping: str | None = None) -> list[dict]:
-    """Retourne l'arborescence des menus visibles pour ``chart`` et le mode de tenue.
+def build_nav(chart: str | None = None, is_admin: bool = False, bookkeeping: str | None = None,
+              features=()) -> list[dict]:
+    """Retourne l'arborescence des menus visibles pour ``chart``, le mode de tenue et les options
+    actives de l'instance (``features`` : {"associates"}…).
 
     Les menus déroulants sans aucun sous-menu visible sont masqués.
     """
     chart = (chart or DEFAULT_CHART).strip().lower()
     bookkeeping = bookkeeping if bookkeeping in BOOKKEEPING_MODES else "double"
+    features = frozenset(features)
     nav: list[dict] = []
     for menu in MENUS:
-        if not _visible(menu, chart, is_admin, bookkeeping):
+        if not _visible(menu, chart, is_admin, bookkeeping, features):
             continue
         if "items" in menu:
-            items = _clean_items(menu["items"], chart, is_admin, bookkeeping)
+            items = _clean_items(menu["items"], chart, is_admin, bookkeeping, features)
             if not items:
                 continue  # dropdown vide → masqué
             nav.append({**menu, "items": items})

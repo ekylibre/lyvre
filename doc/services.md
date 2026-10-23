@@ -1249,3 +1249,15 @@ cumulés début / fin de chaque compte bancaire et caisse, via `cash.ledger_bala
 locked)` (statut `closed` sans assistant ni FEC ; déverrouillage refusé si un FEC a été figé).
 Les catégories par défaut ne partagent jamais un compte (`simple_categories.ensure_defaults`).
 
+
+## associates.py — Associés (module « Associés », lot A1)
+
+| Fonction | Rôle |
+|---|---|
+| `enabled()` | Option `has_associates` de l'instance courante (base méta) |
+| `next_account_code()` | Premier sous-compte libre de 4551001 à 4551999 |
+| `create(data)` / `update(associate, data)` | Tiers existant ou créé (homonyme repris), compte 455 créé au besoin (type `TIERS`, parent 455), taux 0 à 20 % ; le compte ne change plus dès qu'il a des écritures ; `AssociateError(message, field)` sans rien laisser en session |
+| `delete_blockers(associate)` / `delete(associate)` | Refus si registre, écritures ou règlements |
+| `holdings(at)` / `capital_parts(held)` | Parts par associé et nature à la date ; parts du capital = PP + NP |
+| `balance(account_id, at)` | Solde du compte courant, créditeur positif |
+| `listing(at)` | Lignes de la liste et totaux |

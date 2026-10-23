@@ -141,12 +141,13 @@ besoin de ligne. Voir [multi_tenant.md](multi_tenant.md#accès-par-instance-et-r
 | `label` | String(200) NOT NULL | Nom affiché (ex : « Seconde Nature ») |
 | `database_url` | String(500) NOT NULL | URL SQLAlchemy de la base tenant (SQLite relatif au dossier `instance/`, ou Postgres) |
 | `chart` | String(20) NOT NULL default=`asso` | Plan comptable de l'instance : `asso` (associations) ou `sci` (SCI). Choisi à la création, non modifiable ensuite ; pilote le référentiel chargé, les menus et la présentation du Bilan / Compte de résultat |
+| `has_associates` | Boolean NOT NULL default=False | Module « Associés » (sociétés) : menu et API `/associates`. Coché d'office à la création d'une instance au plan `sci` ; modifiable par l'administrateur de l'instance (Configuration › Structure) |
 | `is_active` | Boolean default=True | Faux = retirée du sélecteur d'instance ; sortie de session forcée si elle était choisie |
 | `created_at` | DateTime default=utcnow | |
 
 `slug`, `database_url` et `chart` sont **immuables** en UI après création (édition `label` + `is_active` uniquement). Cette contrainte évite les fuites du cache d'engines (`app/tenant.py:_ENGINE_CACHE`).
 
-La méta-base n'étant pas gérée par Alembic, `seed_meta.py` ajoute les colonnes `instances.chart` (valeur `asso`) `users.preferences` (valeur `{}`) et `users.must_change_password` (valeur 0) aux bases existantes (`ALTER TABLE` idempotent, à chaque démarrage du conteneur).
+La méta-base n'étant pas gérée par Alembic, `seed_meta.py` ajoute les colonnes `instances.chart` (valeur `asso`), `instances.has_associates` (valeur 0), `users.preferences` (valeur `{}`) et `users.must_change_password` (valeur 0) aux bases existantes (`ALTER TABLE` idempotent, à chaque démarrage du conteneur).
 
 ---
 
@@ -856,3 +857,25 @@ Schéma simplifié :
 - `GET /v5/organizations/{slug}/orders?withDetails=true` (items + payments embarqués, pagination `pageIndex`/`totalPages`)
 
 Les montants HelloAsso sont **déjà en centimes entiers** dans l'API.
+
+---
+
+## Associate, ShareMovement, ShareMovementLine, AssociateExpense — Module « Associés »
+
+Sociétés (SCI, entreprises) dont l'instance a `has_associates` (claudedocs/design_associes.md).
+
+**`associates`** : un associé = une entité (`entity_id`, unique) et son compte courant (`account_id`,
+unique, sous-compte 455 : 4551001… proposé). `interest_rate_bp` (null : taux de la structure,
+`organization.associate_interest_rate_bp`, 0 par défaut), `notes`. Le solde du compte courant se
+lit dans le grand livre (créditeur positif : la société doit à l'associé).
+
+**`share_movements`** / **`share_movement_lines`** : registre des parts, hors comptabilité.
+Mouvement daté (`kind` : `opening`, `subscription`, `transfer`, `donation`, `succession`, `reunion`,
+`reduction` ; `nominal_cents`, `price_cents`, pièce jointe) ; lignes (associé, `nature` :
+`full` / `usufruct` / `bare`, `parts` **signé**). La situation à une date est la somme des lignes
+jusqu'à cette date ; parts du capital = pleine propriété + nue-propriété.
+
+**`associate_expenses`** : note de frais d'un associé (charge, TVA, pièce, écriture).
+
+**`purchase_payments.associate_id`** : règlement d'une facture par le compte courant d'un associé
+(`origin = "associate"`, au plus un par facture).

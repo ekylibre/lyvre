@@ -20,4 +20,6 @@ class Organization(db.Model):
     signatory_name = db.Column(db.String(200))
     signatory_title = db.Column(db.String(100))
     signature_path = db.Column(db.String(300))     # lot B (reçus)
+    # Module « Associés » : taux d'intérêt des comptes courants par défaut (l'option est sur l'instance).
+    associate_interest_rate_bp = db.Column(db.Integer, nullable=False, default=0, server_default="0")
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

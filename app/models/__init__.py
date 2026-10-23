@@ -44,8 +44,13 @@ from .eco_declaration import EcoDeclaration
 from .report_content import ReportContent
 from .report_asset import ReportAsset
 from .report_archive import ReportArchive
+from .associate import Associate, AssociateExpense, ShareMovement, ShareMovementLine
 
 __all__ = [
+    "Associate",
+    "AssociateExpense",
+    "ShareMovement",
+    "ShareMovementLine",
     "User",
     "Instance",
     "FiscalYear",

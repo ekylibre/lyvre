@@ -77,7 +77,20 @@ Page de la SPA `/configuration/organization` (modifiable par l'administrateur de
 | Méthode | URL | Description |
 |---------|-----|-------------|
 | GET | `/api/v1/organization` | Identité de la structure (créée au besoin avec le nom de l'instance) ; `fec_ready` = SIREN renseigné |
-| PUT | `/api/v1/organization` | `name`, `siren` (9 chiffres, clé de Luhn), `rna` (`W` + 9 chiffres), adresse, `purpose`, signataire ; 422 `fields` ; administrateur de l'instance |
+| PUT | `/api/v1/organization` | `name`, `siren` (9 chiffres, clé de Luhn), `rna` (`W` + 9 chiffres), adresse, `purpose`, signataire ; `has_associates` (option de l'instance, base méta) et `associate_interest_rate` (0 à 20 %) ; désactiver le module avec des comptes courants non soldés renvoie un avertissement ; 422 `fields` ; administrateur de l'instance |
+
+## Associés (`/associates/`)
+
+Pages de la SPA `/associates/`, `/associates/new`, `/associates/<id>` ; menu « Associés » si
+l'instance a l'option `has_associates`. API (404 `feature_disabled` sans l'option) :
+
+| Méthode | Route | Description |
+|---|---|---|
+| GET | `/api/v1/associates?at=AAAA-MM-JJ` | Associés : compte courant, solde (créditeur positif), parts et % du capital par nature à la date ; `meta` : total des parts, total des comptes courants, prochain compte 4551…, tiers proposables |
+| POST | `/api/v1/associates` | `{entity_id \| new_name, account_code?, interest_rate?, notes?}` ; compte 455 créé au besoin ; administrateur |
+| GET | `/api/v1/associates/<id>` | Fiche ; `meta.can_delete`, `meta.account_locked` (compte avec écritures) |
+| PATCH | `/api/v1/associates/<id>` | Compte (tant qu'il n'a pas d'écriture), taux, notes ; administrateur |
+| DELETE | `/api/v1/associates/<id>` | Retire l'associé (tiers et compte conservés) ; 409 s'il a un historique ; administrateur |
 
 ## Accès à l'instance (`/configuration/access/`) — administrateur de l'instance
 

@@ -5,8 +5,9 @@
 
 ## 1. Principes
 
-- **Tout dans la base de l'instance** (tables tenant, migration Alembic) : registre, réglages,
-  notes de frais. Rien dans la base méta : le module suit l'instance dans ses sauvegardes.
+- **Tout dans la base de l'instance** (tables tenant, migration Alembic) : registre, taux,
+  notes de frais ; seule l'option d'activation est dans la base méta (D1). Une instance importée
+  depuis une sauvegarde reprend ses données, mais l'option est à recocher.
 - **Le compte courant est un sous-compte 455**, pas une nouvelle trésorerie. Son solde se lit
   dans le grand livre (`ledger.account_balance`) : pas de solde stocké, pas de double vérité.
 - **Le registre des parts est hors comptabilité** (Q1) : des lignes datées, la situation se
@@ -21,8 +22,8 @@
 
 | # | Décision | Raison |
 |---|---|---|
-| D1 | Option dans `organization.has_associates` (tenant). Le menu est filtré par une **fonctionnalité** passée à `build_nav` | Modifiable par l'administrateur de l'instance (Q9) ; suit la sauvegarde ; indépendante du plan (R4) |
-| D2 | `organization.get()` coche l'option à la création de la ligne si `Instance.chart == "sci"` (F1.2) ; pour une instance existante, c'est l'administrateur qui l'active | La migration tenant ne connaît pas le plan |
+| D1 | Option dans **`instances.has_associates` (base méta)**, comme `chart` et `bookkeeping` ; modifiée par l'administrateur de l'instance depuis Configuration › Structure (`PUT /organization`). Le menu est filtré par une **fonctionnalité** passée à `build_nav`. Le taux d'intérêt par défaut reste dans `organization` (base de l'instance) | *Révisé en A1* : la session (`/api/v1/session`) ne lit que la base méta, le menu ne peut pas lire une option de la base de l'instance |
+| D2 | La création d'une instance au plan `sci` coche l'option (F1.2) ; pour une instance existante, c'est l'administrateur qui l'active | |
 | D3 | Un associé = une ligne `associates` liée à **une entité** (tiers) et à **un compte** 455 | Identité et coordonnées restent sur l'entité ; un tiers ne peut pas être deux associés |
 | D4 | Sous-compte proposé : premier libre de `4551001` à `4551999`, créé (type `TIERS` comme 455, parent 455, libellé « Compte courant — Nom ») ; un 455 existant peut être choisi (Q5, reprise) | Convention retenue |
 | D5 | Registre = `share_movements` (en-tête : date, type, pièce) + `share_movement_lines` (associé, nature, **variation signée** de parts) | Un modèle unique couvre souscription, cession, donation avec démembrement, réunion, réduction et reprise |

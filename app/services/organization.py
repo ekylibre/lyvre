@@ -75,6 +75,12 @@ def validate(data: dict) -> tuple[dict, dict]:
         errors["postal_code"] = "Code postal français : 5 chiffres."
     if "country" in clean and not clean["country"]:
         clean["country"] = "France"
+    if "associate_interest_rate" in data:
+        from app.services.associates import AssociateError, parse_rate
+        try:
+            clean["associate_interest_rate_bp"] = parse_rate(data.get("associate_interest_rate")) or 0
+        except AssociateError as exc:
+            errors["associate_interest_rate"] = str(exc)
     return clean, errors
 
 

@@ -132,17 +132,24 @@ class PurchasePayment(db.Model):
     journal_entry_id = db.Column(
         db.Integer, db.ForeignKey("journal_entries.id", ondelete="SET NULL"), nullable=True
     )
+    # Règlement par le compte courant d'un associé (origin = "associate").
+    associate_id = db.Column(db.Integer, db.ForeignKey("associates.id", ondelete="RESTRICT"),
+                             nullable=True, index=True)
 
     __table_args__ = (
         db.UniqueConstraint("purchase_id", "qonto_transaction_id",
                             name="uq_purchase_payment_transaction"),
         db.UniqueConstraint("purchase_id", "bank_transaction_id",
                             name="uq_purchase_payment_bank_transaction"),
+        db.Index("uq_purchase_payments_associate", "purchase_id", unique=True,
+                 sqlite_where=db.text("origin = 'associate'"),
+                 postgresql_where=db.text("origin = 'associate'")),
     )
 
     purchase = db.relationship("Purchase", back_populates="payments")
     bank_transaction = db.relationship("BankTransaction")
     journal_entry = db.relationship("JournalEntry")
+    associate = db.relationship("Associate")
 
     def __repr__(self):
         return f"<PurchasePayment {self.purchase_id} {self.qonto_transaction_id}>"
