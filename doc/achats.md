@@ -6,9 +6,10 @@ paiements Qonto. Qonto reste maître de ces factures : l'application ne les modi
 Les autres factures se **saisissent** dans l'application à partir de leur fichier (voir
 [Saisir une facture](#saisir-une-facture)).
 
-Menu **Factures d'achat** (`/purchases/`). Prérequis : intégration Qonto configurée
-(Configuration › Intégrations › Qonto) et compte Qonto rattaché à un compte bancaire pour les
-règlements (voir [Imports › Synchronisation Qonto](imports.md#synchronisation-qonto)).
+Menu **Factures d'achat** (`/purchases/`). Pour les factures Qonto : intégration Qonto activée et
+configurée (Configuration › Intégrations › Qonto) et compte Qonto rattaché à un compte bancaire pour
+les règlements (voir [Imports › Synchronisation Qonto](imports.md#synchronisation-qonto)). Sans
+Qonto, l'écran ne montre que les factures saisies, sans élément Qonto (voir [Intégrations](integrations.md)).
 
 ## Mise en place
 

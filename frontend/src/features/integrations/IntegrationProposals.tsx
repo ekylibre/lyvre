@@ -7,6 +7,7 @@ import { useAction, type Notice } from "../../api/resources";
 import { SESSION_KEY, useCurrentSession } from "../../api/session";
 import { AppLink } from "../../app/navigation";
 import { INTEGRATION_PITCHES, integrationLabel } from "./catalog";
+import { IntegrationLogo } from "./IntegrationLogo";
 
 export function IntegrationProposals() {
   const proposed = useCurrentSession().instance?.integrations?.proposed ?? [];
@@ -16,7 +17,7 @@ export function IntegrationProposals() {
   return (
     <Stack gap="sm" mb="lg">
       {proposed.map((slug) => (
-        <Alert key={slug} color="lichen" variant="light" title={`Activez ${integrationLabel(slug)}`}>
+        <Alert key={slug} color="lichen" variant="light" icon={<IntegrationLogo slug={slug} size={32} />} title={`Activez ${integrationLabel(slug)}`}>
           <Group justify="space-between" gap="sm">
             <Text size="sm">{INTEGRATION_PITCHES[slug] ?? "Intégration recommandée pour votre structure."}</Text>
             <Group gap="xs">

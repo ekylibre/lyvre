@@ -75,7 +75,7 @@ Le `.env` est injecté dans le conteneur via `env_file:` dans `docker-compose.ym
 | `APP_PORT` | Port hôte → conteneur (défaut `5000`). Utile si 5000 est pris : `APP_PORT=8000 docker compose up -d`. |
 | `APP_UID` / `APP_GID` | UID/GID au sein du conteneur (défaut `1000:1000`). À builder avec `--build-arg APP_UID=$(id -u)` pour matcher un hôte différent. |
 
-Les credentials externes (`STANCER_*`, `ODOO_*`, `HELLOASSO_*`, `QONTO_*`) restent pris en charge via `.env` comme **repli global** — à éviter pour Qonto, dont les identifiants désignent une organisation précise. Pour les surcharger par instance, utiliser **Configuration › Intégrations** dans l'UI ; on peut aussi y **désactiver** une intégration configurée par `.env` (l'interrupteur prime). La table `integration_states` est créée par `flask db upgrade` (lancé par l'entrypoint) : **toute base tenant doit être migrée** (voir [multi_tenant.md](multi_tenant.md)).
+Les credentials externes (`STANCER_*`, `ODOO_*`, `HELLOASSO_*`, `QONTO_*`, `MAIL_*`) **ne sont pas lus en production** (`FLASK_ENV=production`) : chaque instance saisit ses réglages et active ses intégrations dans **Configuration › Intégrations**. Avant de passer une instance existante sur cette version, lancer `scripts/integrations_report.py` dans le conteneur et saisir les réglages signalés (voir [integrations.md](integrations.md)). La table `integration_states` est créée par `flask db upgrade` (lancé par l'entrypoint) : **toute base tenant doit être migrée** (voir [multi_tenant.md](multi_tenant.md)).
 
 ---
 

@@ -186,3 +186,27 @@ def test_no_notification_for_a_disabled_integration(admin):
     assert notifications.notify_job(job) is None and Notification.query.count() == 0
     _structure("sci", ["qonto"])
     assert notifications.notify_job(job) is not None
+
+
+# ------------------------------------------------------------- script de constat
+
+def test_report_script_lists_keys_never_values(app, instance, monkeypatch):
+    import importlib.util
+    from pathlib import Path
+
+    spec = importlib.util.spec_from_file_location(
+        "integrations_report", Path(__file__).resolve().parent.parent / "scripts" / "integrations_report.py")
+    report = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(report)
+    external_config.set_many("qonto", QONTO)
+    for name in ("ODOO_URL", "ODOO_DB", "ODOO_USERNAME"):  # .env chargé par un autre test (run.py)
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("ODOO_API_KEY", "odoo-secret-value")
+    instance.integrations = None
+    db.session.commit()
+    lines = report._report(instance)
+    text = "\n".join(lines)
+    assert "interrupteurs non initialisés" in lines[0]
+    assert "Qonto : activée" in text and "Odoo : désactivée ; fournies par le .env, absentes de la base : api_key" in text
+    assert "qonto-secret" not in text and "odoo-secret-value" not in text
+    assert instance.integrations is None  # lecture seule

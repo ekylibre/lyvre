@@ -4,6 +4,7 @@ import { useList } from "../../api/resources";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { AppLink } from "../../app/navigation";
+import { IntegrationLogo } from "./IntegrationLogo";
 import { INTEGRATIONS_KEY, STATUS_TONES, checkSummary, sortIntegrations, type Integration } from "./types";
 
 export default function IntegrationsPage() {
@@ -17,7 +18,7 @@ export default function IntegrationsPage() {
           <Card key={v.slug} component={AppLink} href={`/configuration/integrations/${v.slug}`} padding="md"
             style={{ textDecoration: "none", color: "inherit" }} aria-label={`${v.label} : ${v.status_label}`}>
             <Group justify="space-between" align="flex-start">
-              <Text fw={700} size="lg">{v.label}</Text>
+              <Group gap="sm" wrap="nowrap"><IntegrationLogo slug={v.slug} /><Text fw={700} size="lg">{v.label}</Text></Group>
               <Group gap={6}>
                 {v.recommended && !v.enabled && <StatusBadge tone="info">Recommandée</StatusBadge>}
                 <StatusBadge tone={STATUS_TONES[v.status]}>{v.status_label}</StatusBadge>

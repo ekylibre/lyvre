@@ -206,7 +206,7 @@ Depuis mai 2026, les credentials Stancer / Odoo / HelloAsso ne vivent plus dans 
 
 Qonto suit la même règle : ses identifiants identifient **une** organisation, ils doivent donc être saisis dans l'instance concernée, pas dans le `.env` (repli commun à toutes les instances).
 
-L'UI **Configuration › Intégrations** (admin uniquement) permet de saisir / vider ces valeurs, d'**activer ou désactiver** chaque intégration (table `integration_states`, l'interrupteur prime aussi sur le `.env`) et de **tester** son fonctionnement. Une valeur vide en DB réactive le repli sur le `.env` global, ce qui rend la migration progressive (aucun big-bang).
+L'UI **Configuration › Intégrations** (admin uniquement) permet de saisir / vider ces valeurs, d'**activer ou désactiver** chaque intégration et de **tester** son fonctionnement. L'interrupteur est enregistré sur l'instance dans la méta-base (`instances.integrations`) ; une intégration est désactivée par défaut et n'existe que pour certaines structures (HelloAsso, GA4, Facebook : associations). Le `.env` n'est un repli qu'en développement (`INTEGRATIONS_ENV_FALLBACK`) : en production, seuls les réglages de l'instance comptent. Voir [integrations.md](integrations.md), dont la mise en place sur une instance existante (`scripts/integrations_report.py`).
 
 Voir [models.md](models.md#externalconnection--credentials-services-externes-tenant) pour le schéma et [routes.md](routes.md#intégrations-configurationintegrations--admin-uniquement) pour les endpoints.
 

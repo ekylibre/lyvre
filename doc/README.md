@@ -20,12 +20,14 @@ Application web de comptabilité pour associations loi 1901 (plan comptable des 
 | [États financiers](reports.md) | Balance, grand livre, Bilan, Compte de résultat (asso / SCI) |
 | [Saisie et rapprochement](saisie_rapprochement.md) | Écrans au clavier : saisie d'écriture, espace de rapprochement, raccourcis |
 | [Factures d'achat](achats.md) | Factures fournisseurs Qonto ou saisies (lecture Factur-X / PDF / OCR, pièce jointe) : catalogue, TVA de l'exercice, comptabilisation en engagement, règlements Qonto ou OFX |
+| [Intégrations](integrations.md) | Qonto, SMTP, Stancer, Odoo, HelloAsso, Google Analytics, Facebook : proposées selon la structure, désactivées par défaut, silencieuses quand elles sont désactivées, message quand une action en a besoin |
 | [Associés](associes.md) | Sociétés (SCI, entreprises) : registre des parts (pleine propriété, usufruit, nue-propriété), comptes courants d'associés (factures payées par un associé, notes de frais, apports), intérêts et affectation du résultat à la clôture, import CSV |
 
 ## Fonctionnalités
 
 - **Plan comptable** — choisi à la création de l'instance : **association** (783 comptes du PCA) ou **SCI** (576 comptes, dont les sous-comptes des lignes de la déclaration 2072) ; arborescence hiérarchique, recherche instantanée
-- **Menus par plan comptable** — navigation déclarée dans `app/menu_config.py` ; les menus propres aux associations (adhérents, bénévolat, Stancer, Odoo, indicateurs) sont masqués pour une SCI
+- **Menus par plan comptable** — navigation déclarée dans `app/menu_config.py` ; les menus propres aux associations (adhérents, bénévolat, indicateurs) sont masqués pour une SCI ; Versements Stancer et Odoo suivent l'activation de l'intégration
+- **Intégrations** — Proposées selon la structure (HelloAsso, Google Analytics et Facebook pour les associations), désactivées par défaut, recommandées proposées (page Intégrations, tableau de bord, création d'instance), logos ; une intégration désactivée ne montre ni alerte ni bouton, une action qui en a besoin le dit
 - **Interface** — Application d'une seule page (React + Mantine, charte Lyvre claire / sombre) aux mêmes adresses que les anciennes pages : tableaux triables aux colonnes masquables (mémorisées dans le compte), filtres dans l'URL, fenêtres de saisie, palette de recherche **Ctrl+K**, messages en notifications ; lisible sur mobile
 - **Notifications** — Cloche dans l'en-tête : fin des synchronisations en arrière-plan (Qonto, factures d'achat, Stancer) avec résumé, erreurs et lien vers l'écran, même si l'on a quitté la page ; message à l'arrivée
 - **Saisie comptable** — Écritures en partie double dans un formulaire **entièrement au clavier** (autocomplétion des comptes, écart en direct, ligne d'équilibre préremplie, enregistrer et enchaîner), validation serveur par champ, génération automatique des références

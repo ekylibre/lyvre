@@ -12,6 +12,7 @@ import { SESSION_KEY } from "../../api/session";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { AppLink } from "../../app/navigation";
+import { IntegrationLogo } from "./IntegrationLogo";
 import { INTEGRATIONS_KEY, STATUS_TONES, checkSummary, localDateTime, type Field, type IntegrationDetail } from "./types";
 
 const SYNC_LABELS: Record<string, string> = { done: "Terminée", failed: "En échec", running: "En cours" };
@@ -54,7 +55,7 @@ export default function IntegrationDetailPage() {
   const s = v.last_sync;
   return (
     <>
-      <PageHeader title={v.label} description={v.description}
+      <PageHeader title={v.label} description={v.description} icon={<IntegrationLogo slug={v.slug} size={48} />}
         actions={<><StatusBadge tone={STATUS_TONES[v.status]}>{v.status_label}</StatusBadge>
           <Button variant="default" component={AppLink} href="/configuration/integrations/">Intégrations</Button></>} />
       {v.recommended && !v.enabled && (

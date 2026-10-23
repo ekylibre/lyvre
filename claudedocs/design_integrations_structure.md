@@ -1,6 +1,6 @@
 # Conception — intégrations selon le type de structure
 
-> Statut : conception validée le 23/10/2026 (§ 10) ; lots I1 à I4 réalisés le 23/10/2026.
+> Statut : **réalisé** (lots I1 à I5, 23/10/2026). Guide utilisateur : `doc/integrations.md`.
 > Besoins : `claudedocs/besoins_integrations_structure.md` (F0–F6, décisions D1–D11).
 
 ## 1. Choix structurants

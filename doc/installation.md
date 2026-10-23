@@ -77,7 +77,7 @@ Variables disponibles :
 
 Tant que les 4 variables `ODOO_*` ne sont pas définies (et qu'aucune valeur n'est saisie dans l'UI), ou si l'intégration est désactivée, les boutons de synchronisation POS et factures clients restent désactivés. Idem pour les 3 variables `HELLOASSO_*` et `STANCER_SECRET_KEY`.
 
-> **Depuis mai 2026** : les credentials Stancer / Odoo / HelloAsso peuvent aussi être saisis depuis l'UI (**Configuration › Intégrations**, admin uniquement). Les variables ci-dessus servent alors de **repli global** quand la table `external_connections` (per-instance) est vide. Le même écran permet de désactiver une intégration (même configurée par `.env`) et de tester son fonctionnement. Voir [multi_tenant.md](multi_tenant.md) et [models.md](models.md#externalconnection--credentials-services-externes-tenant).
+> **Depuis octobre 2026** : les réglages des intégrations se saisissent par instance (**Configuration › Intégrations**, admin uniquement), où chaque intégration est aussi activée (désactivée par défaut) et testée. Les variables ci-dessus ne servent de **repli qu'en développement** (`INTEGRATIONS_ENV_FALLBACK`, vrai par défaut en développement, toujours faux en production). Voir [integrations.md](integrations.md). Voir [multi_tenant.md](multi_tenant.md) et [models.md](models.md#externalconnection--credentials-services-externes-tenant).
 
 ### 4. Initialiser la base tenant (1ère association)
 

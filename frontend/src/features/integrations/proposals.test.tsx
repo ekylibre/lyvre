@@ -59,6 +59,8 @@ describe("page Intégrations", () => {
   it("badge « Recommandée » et invitation à activer", async () => {
     renderWithProviders(<IntegrationsPage />, { session: ADMIN });
     expect(await screen.findByText("Recommandée")).toBeTruthy();
+    expect(screen.getByAltText("Qonto")).toBeTruthy(); // logo à gauche du nom
+    expect(screen.getByRole("img", { name: "SMTP (emails)" })).toBeTruthy(); // pas de marque : enveloppe
     expect(screen.getByText("Activer et configurer →")).toBeTruthy();
     const cards = screen.getAllByRole("link").map((a) => a.getAttribute("href"));
     expect(cards).toEqual(["/configuration/integrations/odoo", "/configuration/integrations/qonto", "/configuration/integrations/smtp"]);

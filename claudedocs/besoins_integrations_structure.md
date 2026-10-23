@@ -1,6 +1,6 @@
 # Besoins — intégrations selon le type de structure
 
-> Statut : expression de besoins (`/sc:brainstorm`, 23/10/2026). Pas de conception ni de code.
+> Statut : **réalisé** (23/10/2026) — conception : `design_integrations_structure.md`.
 > Étape suivante : `/sc:design`. Décisions du 23/10/2026 au § 3 (questions du § 8 tranchées le même jour).
 
 ## 1. Objectif
