@@ -7,7 +7,7 @@ from datetime import date
 from flask import jsonify, request
 
 from app.access import instance_admin_required
-from app.models import Associate, Entity
+from app.models import Associate, Entity, FiscalYear
 from app.services import associate_operations, associates
 from app.services.associates import AssociateError
 
@@ -127,3 +127,36 @@ def associates_delete(associate_id):
     except AssociateError as exc:
         raise ApiError("conflict", str(exc), status=409) from None
     return jsonify(notices=[notice(f"{name} retiré des associés (l'entité et son compte sont conservés).")])
+
+
+# ------------------------------------------------------------------ clôture (lot A4)
+
+@bp.route("/fiscal-years/<int:fy_id>/associate-interest")
+def associates_interest_preview(fy_id):
+    """Intérêts des comptes courants de l'exercice : aperçu et écritures déjà passées."""
+    _require_enabled()
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    return jsonify(associate_operations.interest_preview(fy))
+
+
+@bp.route("/fiscal-years/<int:fy_id>/associate-interest", methods=["POST"])
+@instance_admin_required
+def associates_interest_post(fy_id):
+    """Passe ou remplace les écritures d'intérêts (6615 / 455) au dernier jour de l'exercice."""
+    _require_enabled()
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    try:
+        entries = associate_operations.post_interest(fy)
+    except associate_operations.OperationError as exc:
+        raise ApiError("conflict", str(exc), status=409) from None
+    message = (f"{len(entries)} écriture(s) d'intérêts passée(s) au {fy.end_date:%d/%m/%Y}." if entries
+               else "Aucun intérêt à passer (taux nul ou comptes courants non créditeurs).")
+    return jsonify({**associate_operations.interest_preview(fy), "notices": [notice(message)]})
+
+
+@bp.route("/fiscal-years/<int:fy_id>/allocation-proposal")
+def associates_allocation_proposal(fy_id):
+    """Répartition proposée du résultat entre les associés (pleine propriété + usufruit)."""
+    _require_enabled()
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    return jsonify(associates.allocation_proposal(fy))

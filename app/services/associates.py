@@ -214,3 +214,30 @@ def listing(at: date | None = None) -> dict:
     rows = [summary(a, held, total, at) for a in associates]
     accounts_total = sum(r["balance_cents"] for r in rows)
     return {"items": rows, "total_parts": total, "balances_total_cents": accounts_total}
+
+
+# ------------------------------------------------------------------ affectation du résultat
+
+def allocation_proposal(fy) -> dict:
+    """Répartition du résultat à affecter entre les associés, au prorata de leurs parts en pleine
+    propriété et en usufruit à la date de clôture (les nus-propriétaires n'y ont pas droit) ;
+    centimes répartis au plus fort reste. À valider par la décision des associés (modifiable)."""
+    from app.services import closing
+
+    amount = closing.result_to_allocate(fy)
+    held = holdings(fy.end_date)
+    eligible = {a: h["full"] + h["usufruct"] for a, h in held.items() if h["full"] + h["usufruct"] > 0}
+    total_parts = sum(eligible.values())
+    target = abs(amount)
+    lines = []
+    if target and total_parts:
+        by_id = {a.id: a for a in Associate.query.filter(Associate.id.in_(list(eligible))).all()}
+        shares = {a: target * parts // total_parts for a, parts in eligible.items()}
+        rest = target - sum(shares.values())
+        remainders = sorted(eligible, key=lambda a: (-(target * eligible[a] % total_parts), by_id[a].name))
+        for a in remainders[:rest]:
+            shares[a] += 1
+        lines = [{"associate_id": a, "name": by_id[a].name, "account_code": by_id[a].account.code,
+                  "parts": eligible[a], "amount_cents": shares[a]}
+                 for a in sorted(eligible, key=lambda a: by_id[a].name)]
+    return {"result_cents": amount, "total_parts": total_parts, "lines": lines}

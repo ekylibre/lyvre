@@ -13,7 +13,7 @@ de pièce (`PURCHASE_PAYMENT:<id>`, `EXPENSE:<id>`).
 """
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 
 from app.extensions import db
@@ -290,3 +290,105 @@ def balances_by_fiscal_year() -> dict:
         "series": [{"name": a.name, "values": [balance(a.account_id, fy.end_date) for fy in years]}
                    for a in sorted(associates_, key=lambda a: a.name)],
     }
+
+
+# ------------------------------------------------------------------ intérêts (clôture)
+
+INTEREST_ACCOUNT = ("6615", "Intérêts des comptes courants et des dépôts créditeurs")
+DAYS_PER_YEAR = 365  # exact / 365
+
+
+def interest_account() -> Account:
+    """Compte 6615, créé s'il manque (absent du plan SCI) ; sans commit."""
+    account = Account.query.filter_by(code=INTEREST_ACCOUNT[0], is_header=False).first()
+    if account is None:
+        parent = next((a for code in ("661", "66") if (a := Account.query.filter_by(code=code).first())), None)
+        account = Account(code=INTEREST_ACCOUNT[0], label=INTEREST_ACCOUNT[1], account_type="EXPENSE", parent=parent)
+        db.session.add(account)
+        db.session.flush()
+    return account
+
+
+def rate_of(associate: Associate) -> int:
+    """Taux annuel (points de base) : celui de l'associé, sinon celui de la structure."""
+    from app.services import organization
+
+    if associate.interest_rate_bp is not None:
+        return associate.interest_rate_bp
+    return organization.get().associate_interest_rate_bp or 0
+
+
+def _interest_ref(fy: FiscalYear, associate_id=None) -> str:
+    return f"INTEREST:{fy.id}:" + ("" if associate_id is None else str(associate_id))
+
+
+def interest_entries(fy: FiscalYear) -> list[JournalEntry]:
+    return (JournalEntry.query.filter(JournalEntry.source == SOURCE,
+                                      JournalEntry.source_ref.like(_interest_ref(fy) + "%"))
+            .order_by(JournalEntry.id).all())
+
+
+def _daily_credit_sum(associate: Associate, fy: FiscalYear) -> int:
+    """Σ des soldes créditeurs de fin de journée (centimes × jours), hors intérêts de l'exercice."""
+    excluded = {e.id for e in interest_entries(fy)}
+    rows = db.session.query(JournalEntry.id, JournalEntry.entry_date, JournalLine.credit_cents - JournalLine.debit_cents) \
+        .join(JournalLine).filter(JournalLine.account_id == associate.account_id,
+                                  JournalEntry.entry_date <= fy.end_date).all()
+    balance = sum(amount for entry_id, day, amount in rows if day < fy.start_date and entry_id not in excluded)
+    by_day: dict[date, int] = {}
+    for entry_id, day, amount in rows:
+        if day >= fy.start_date and entry_id not in excluded:
+            by_day[day] = by_day.get(day, 0) + amount
+    total, day = 0, fy.start_date
+    while day <= fy.end_date:
+        balance += by_day.get(day, 0)
+        total += max(balance, 0)
+        day += timedelta(days=1)
+    return total
+
+
+def interest_preview(fy: FiscalYear) -> dict:
+    """Intérêts par associé sur l'exercice : taux, solde créditeur moyen, intérêts (arrondis au centime)."""
+    days = (fy.end_date - fy.start_date).days + 1
+    rows = []
+    for associate in sorted(Associate.query.all(), key=lambda a: a.name):
+        rate = rate_of(associate)
+        cents_days = _daily_credit_sum(associate, fy)
+        interest = round(cents_days * rate / 10000 / DAYS_PER_YEAR) if rate else 0
+        rows.append({"associate_id": associate.id, "name": associate.name, "account_code": associate.account.code,
+                     "rate": catalog.format_rate(rate).replace(" %", "") if rate else "0",
+                     "average_balance_cents": round(cents_days / days), "interest_cents": interest})
+    posted = interest_entries(fy)
+    return {"rows": rows, "total_cents": sum(r["interest_cents"] for r in rows),
+            "entries": [{"id": e.id, "reference": e.reference,
+                         "amount_cents": sum(l.credit_cents for l in e.lines if l.account.code.startswith("455"))}
+                        for e in posted]}
+
+
+def post_interest(fy: FiscalYear) -> list[JournalEntry]:
+    """Passe (ou remplace) les intérêts de l'exercice : une écriture AS par associé au dernier jour,
+    6615 au débit, 455 de l'associé au crédit. Exercice ouvert seulement ; taux nul : rien."""
+    if fy.closed:
+        raise OperationError(f"L'exercice « {fy.label} » est clôturé.")
+    old = [e.id for e in interest_entries(fy)]
+    if old:
+        results = delete_entries(old)
+        failed = [r for r in results if r["status"] != "ok"]
+        if failed:
+            raise OperationError(failed[0].get("message") or "Écritures d'intérêts non supprimées.")
+    rows = [r for r in interest_preview(fy)["rows"] if r["interest_cents"] > 0]
+    entries = []
+    try:
+        account = interest_account() if rows else None
+        for row in rows:
+            associate = db.session.get(Associate, row["associate_id"])
+            label = f"Intérêts du compte courant {fy.label} — {associate.name} ({row['rate']} %)"[:255]
+            entries.append(post_entry(fy.id, journal().id, fy.end_date, label, [
+                {"account_id": account.id, "label": label, "debit_cents": row["interest_cents"], "credit_cents": 0},
+                {"account_id": associate.account_id, "label": label, "debit_cents": 0, "credit_cents": row["interest_cents"]},
+            ], source=SOURCE, source_ref=_interest_ref(fy, associate.id), commit=False))
+        db.session.commit()
+    except LedgerError as exc:
+        db.session.rollback()
+        raise OperationError(str(exc)) from None
+    return entries

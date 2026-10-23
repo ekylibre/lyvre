@@ -1290,4 +1290,10 @@ Journal **AS « Associés »** (créé à la première écriture), `source = "AS
 | `statement(associate, start, end)` | Relevé : solde d'ouverture, lignes avec origine (facture réglée, note de frais, banque, affectation…), solde progressif |
 | `balances_by_fiscal_year()` | Soldes à la fin de chaque exercice par associé |
 
+| `interest_preview(fy)` / `post_interest(fy)` | Intérêts (lot A4) : Σ des soldes créditeurs de fin de journée × taux / 365, hors intérêts déjà passés sur l'exercice ; taux de l'associé, sinon `organization.associate_interest_rate_bp` ; écriture AS par associé au dernier jour (6615, créé sous 661 / 66 s'il manque, / 455), `source_ref = INTEREST:<fy>:<associé>`, remplacée si on relance ; exercice ouvert |
+
 `ledger.delete_entries` détache aussi les notes de frais de l'écriture supprimée.
+
+`associates.allocation_proposal(fy)` (lot A4) : résultat à affecter (`closing.result_to_allocate`) réparti au prorata
+des parts en pleine propriété et en usufruit à la date de clôture (nus-propriétaires exclus), centimes au plus fort
+reste départagés par le nom ; l'affectation reste enregistrée par `closing.allocate`.

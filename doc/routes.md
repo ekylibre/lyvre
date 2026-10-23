@@ -115,6 +115,12 @@ Opérations des comptes courants (lot A3) :
 | GET / POST | `/api/v1/associate-expenses` | Notes de frais (JSON ou multipart `payload` + `attachment`) : écriture AS charge (+ 44566) / 455 ; trésorier |
 | DELETE | `/api/v1/associate-expenses/<id>` | Supprime la note et son écriture (exercice ouvert) |
 | GET | `/api/v1/associate-expenses/<id>/attachment` | Justificatif (`frais/AAAA/MM/`) |
+| GET | `/api/v1/fiscal-years/<id>/associate-interest` | Intérêts des comptes courants de l'exercice (taux, solde créditeur moyen, intérêts ; écritures passées) |
+| POST | `/api/v1/fiscal-years/<id>/associate-interest` | Passe ou remplace les écritures d'intérêts (AS, 6615 / 455, dernier jour) ; exercice ouvert ; administrateur |
+| GET | `/api/v1/fiscal-years/<id>/allocation-proposal` | Répartition proposée du résultat à affecter entre les associés (pleine propriété + usufruit à la clôture, plus fort reste) |
+
+Clôture : panneau « Intérêts des comptes courants » à l'étape Écritures d'inventaire ; bouton « Répartir entre les
+associés » à l'étape Affectation du résultat (lignes modifiables avant l'enregistrement).
 
 Pages `/associate-expenses/` (menu Associés › Notes de frais, partie double) ; bouton « Réglée par un
 associé » sur la fiche d'une facture d'achat, option « Payée par un associé » à la saisie, action

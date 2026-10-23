@@ -13,7 +13,9 @@ import { DateInput } from "@mantine/dates";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
-import { useCan } from "../../api/session";
+import { useCan, useCurrentSession } from "../../api/session";
+import { notifications } from "@mantine/notifications";
+import { InterestPanel } from "../associates/InterestPanel";
 import { AccountSelect } from "../../components/AccountSelect";
 import { confirmAction } from "../../components/ConfirmButton";
 import { FormModal } from "../../components/FormModal";
@@ -203,6 +205,7 @@ function Inventory({ view }: { view: ClosingView }) {
   const fyId = view.fiscal_year.id;
   const editable = can.write && view.fiscal_year.status === "open";
   const remove = useClosingAction(fyId, (entryId: number) => api.delete(`/api/v1/fiscal-years/${fyId}/inventory/${entryId}`));
+  const withAssociates = !!useCurrentSession().instance?.has_associates;
   return (
     <Stack>
       {view.inventory.length ? (
@@ -227,6 +230,7 @@ function Inventory({ view }: { view: ClosingView }) {
         </Table>
       ) : <Text size="sm" c="dimmed">Aucune écriture d'inventaire.</Text>}
       {editable && <InventoryForm view={view} />}
+      {withAssociates && <InterestPanel fyId={fyId} open={view.fiscal_year.status === "open"} />}
     </Stack>
   );
 }
@@ -559,6 +563,19 @@ function AllocationForm({ view }: { view: ClosingView }) {
   }));
   const update = (i: number, patch: Partial<(typeof lines)[number]>) =>
     setLines(lines.map((l, j) => (j === i ? { ...l, ...patch } : l)));
+  // Module « Associés » : répartition proposée au prorata des parts (pleine propriété + usufruit).
+  const withAssociates = !!useCurrentSession().instance?.has_associates;
+  const [proposing, setProposing] = useState(false);
+  const propose = async () => {
+    setProposing(true);
+    try {
+      const body = await api.get<{ lines: { account_code: string; amount_cents: number }[] }>(`/api/v1/fiscal-years/${fyId}/allocation-proposal`);
+      if (body.lines.length) setLines(body.lines.map((l) => ({ account: l.account_code, amount: l.amount_cents })));
+      if (!body.lines.length) notifications.show({ color: "paille", message: "Aucune part en pleine propriété ou en usufruit à la clôture : rien à répartir." });
+    } finally {
+      setProposing(false);
+    }
+  };
   return (
     <Paper withBorder p="sm">
       <SimpleGrid cols={{ base: 1, sm: 2 }}>
@@ -579,9 +596,13 @@ function AllocationForm({ view }: { view: ClosingView }) {
             </Group>
           ))}
           <Group justify="space-between">
-            <Button variant="subtle" size="compact-sm" onClick={() => setLines([...lines, { account: null, amount: target - total > 0 ? target - total : null }])}>
-              Ajouter une ligne
-            </Button>
+            <Group gap="xs">
+              <Button variant="subtle" size="compact-sm" onClick={() => setLines([...lines, { account: null, amount: target - total > 0 ? target - total : null }])}>
+                Ajouter une ligne
+              </Button>
+              {withAssociates && <Button variant="default" size="compact-sm" loading={proposing} onClick={() => void propose()}>
+                Répartir entre les associés</Button>}
+            </Group>
             <Text size="sm" c={total === target ? undefined : "var(--lv-brique)"}>
               Réparti : <MoneyText cents={total} /> / <MoneyText cents={target} />
             </Text>
