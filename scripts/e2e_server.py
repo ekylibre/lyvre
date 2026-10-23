@@ -90,6 +90,51 @@ def _seed_books(engine):
                               "VALUES (:e, :a, 'Prestation', :d, :c)"), {"e": old_entry, "a": account, "d": debit, "c": credit})
 
 
+# Image PNG 1 × 1 (signature des reçus de la base jetable).
+PNG = bytes.fromhex("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489"
+                    "0000000d49444154789c63f80f00000101000518d84e0000000049454e44ae426082")
+
+
+def _seed_donations(engine, slug):
+    """Association prête à émettre des reçus : structure, signature, paramètres activés, un don de
+    50,00 € d'une donatrice avec adresse (parcours « émettre et télécharger un reçu »)."""
+    year = date.today().year
+    with engine.begin() as conn:
+        conn.execute(text("INSERT INTO fiscal_years (label, start_date, end_date, closed, vat_liable) "
+                          "VALUES (:l, :s, :e, 0, 0)"), {"l": str(year), "s": f"{year}-01-01", "e": f"{year}-12-31"})
+        conn.execute(text("INSERT INTO journals (code, label) VALUES ('BQ', 'Banque')"))
+        for code, label, kind in (("512000", "Banque", "ASSET"), ("7541", "Dons manuels", "REVENUE")):
+            conn.execute(text("INSERT INTO accounts (code, label, account_type, is_header) VALUES (:c, :l, :t, 0)"),
+                         {"c": code, "l": label, "t": kind})
+        conn.execute(text(
+            "INSERT INTO organization (name, rna, address_line1, postal_code, city, country, purpose, signatory_name, "
+            "signatory_title, signature_path) VALUES ('Asso Dons E2E', 'W123456789', '1 rue des Lilas', '35000', "
+            "'Rennes', 'France', 'Jardinage partagé', 'Camille Martin', 'Présidente', 'recus/signature.png')"))
+        conn.execute(text(
+            "INSERT INTO receipt_settings (enabled, eligibility, cgi_articles_json, donation_prefixes_json, default_mode, "
+            "acknowledged_at) VALUES (1, 'general_interest', '[\"200\"]', '[\"7541\"]', 'annual', CURRENT_TIMESTAMP)"))
+        conn.execute(text(
+            "INSERT INTO entities (name, entity_type, is_member, is_benevole, person_kind, address_line1, postal_code, city) "
+            "VALUES ('Donatrice E2E', 'AUTRE', 0, 0, 'individual', '3 rue des Dons', '75001', 'Paris')"))
+        donor = conn.execute(text("SELECT id FROM entities WHERE name = 'Donatrice E2E'")).scalar()
+        fy = conn.execute(text("SELECT id FROM fiscal_years")).scalar()
+        bq = conn.execute(text("SELECT id FROM journals")).scalar()
+        ids = {code: conn.execute(text("SELECT id FROM accounts WHERE code = :c"), {"c": code}).scalar()
+               for code in ("512000", "7541")}
+        conn.execute(text("INSERT INTO journal_entries (fiscal_year_id, journal_id, entry_date, reference, description, "
+                          "is_balanced, source) VALUES (:f, :j, :d, 'BQ-DON-1', 'Don', 1, 'MANUAL')"),
+                     {"f": fy, "j": bq, "d": f"{year}-01-15"})
+        entry = conn.execute(text("SELECT id FROM journal_entries")).scalar()
+        for account, debit, credit, entity in ((ids["512000"], 5000, 0, None), (ids["7541"], 0, 5000, donor)):
+            conn.execute(text("INSERT INTO journal_lines (entry_id, account_id, label, debit_cents, credit_cents, entity_id) "
+                              "VALUES (:e, :a, 'Don', :d, :c, :t)"),
+                         {"e": entry, "a": account, "d": debit, "c": credit, "t": entity})
+    folder = os.path.join(TMPDIR, "uploads", slug, "recus")
+    os.makedirs(folder, exist_ok=True)
+    with open(os.path.join(folder, "signature.png"), "wb") as fh:
+        fh.write(PNG)
+
+
 def seed(app):
     with app.app_context():
         db.create_all()
@@ -102,6 +147,8 @@ def seed(app):
             db.metadata.create_all(engine)  # tables tenant (la méta-base a ses propres métadonnées)
             if spec.get("books"):
                 _seed_books(engine)
+            if spec.get("donations"):
+                _seed_donations(engine, spec["slug"])
             engine.dispose()
             db.session.add(Instance(slug=spec["slug"], label=spec["label"], chart=spec["chart"],
                                     database_url=url))

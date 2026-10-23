@@ -108,3 +108,22 @@ def receipts_signature():
     if path is None:
         abort(404)
     return send_file(path, max_age=0)
+
+
+@bp.route("/receipts/<int:receipt_id>.pdf")
+@login_required
+def receipt_pdf(receipt_id):
+    """PDF figé à l'émission (empreinte vérifiée)."""
+    import hashlib
+
+    from flask import send_file
+
+    from app.models import DonationReceipt
+    from app.services import receipts
+    receipt = db.session.get(DonationReceipt, receipt_id) or abort(404)
+    path = receipts.receipt_file(receipt)
+    if path is None:
+        abort(404)
+    if hashlib.sha256(path.read_bytes()).hexdigest() != receipt.pdf_sha256:
+        abort(409)
+    return send_file(path, mimetype="application/pdf", download_name=f"recu-{receipt.number}.pdf", max_age=0)

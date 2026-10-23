@@ -1,10 +1,10 @@
 # Workflow — Obligations associatives (lots A → C → B → D)
 
-> Statut (2026-10-24) : **lots A et C réalisés, B.1 fait** (main local, non poussé) ; **prochaine
-> étape : B.2** (`/sc:implement phase B.2`). En attente côté utilisateur : passage du FEC de test dans
+> Statut (2026-10-24) : **lots A et C réalisés, B.1 et B.2 faits** (main local, non poussé) ;
+> **prochaine étape : B.3** (`/sc:implement phase B.3`). En attente côté utilisateur : passage du FEC de test dans
 > « Test Compta Demat » (US-A1), relecture de l'affectation SCI 455x par l'expert-comptable, accord
-> pour migrer les vraies bases (elles sont à `9c41b7e2d5a8` : 8 migrations tenant jusqu'à
-> `c1e5a7b9d402`, plus `seed_meta.py` pour la table méta `instance_memberships`). Travail parallèle : cadrage de la base documentaire et de
+> pour migrer les vraies bases (elles sont à `9c41b7e2d5a8` : migrations tenant jusqu'à
+> `d3f7b9c1e504` (9 migrations), plus `seed_meta.py` pour la table méta `instance_memberships`). Travail parallèle : cadrage de la base documentaire et de
 > l'assistant dans [`doc/base_documentaire/`](../doc/base_documentaire/README.md) (autre session).
 >
 > Plan initial du 2026-10-22. Sources : [`besoins_obligations_associatives.md`](besoins_obligations_associatives.md)
@@ -221,6 +221,15 @@ déclaration de responsabilité, signature), API `/api/v1/receipts/settings[/sig
 d'instance ; 404 en SCI), écran Configuration › Reçus fiscaux, adresse et nature dans la fiche du
 tiers. Copies 5001 recréées depuis les vraies bases (lecture seule) après le redémarrage, migrées
 (8 migrations) ; page vérifiée sur la copie SN. pytest 783, Vitest 78, E2E 22.
+
+**B.2 fait (2026-10-24)** : tables `receipt_counters`, `donation_receipts`, `donation_receipt_items`,
+`in_kind_donations`, `journal_lines.entity_id` (migration `d3f7b9c1e504`) ; candidats par donateur
+(résolution banque / compte de tiers / choix), dons en nature, émission annuelle ou par don,
+numérotation réservée dans la transaction (pas de trou en cas d'échec, testé), PDF figé (SHA-256,
+contrôlé au téléchargement) ; écran Dons › Reçus fiscaux ; instance E2E « Asso Dons E2E ».
+**Point ouvert 2** : modèles retenus Cerfa n° 11580*05 (2041-RD, particuliers) et n° 16216*01
+(2041-MEC-SD, entreprises ; mise en page libre admise par le BOFiP si les mentions y sont) — à
+relire face aux formulaires officiels. pytest 790, Vitest 78, E2E 23.
 
 ## 6. Lot D — Comptabilité simplifiée et caisse
 

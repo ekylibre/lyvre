@@ -1,4 +1,5 @@
-"""Reçus fiscaux (lot B) — phase B.1 : paramètres de l'instance et image de signature.
+"""Reçus fiscaux (lot B) — B.1 : paramètres de l'instance et signature ; B.2 : candidats, émission,
+PDF.
 
 - L'outil **n'évalue pas l'éligibilité** : l'administrateur déclare la situation de la structure
   (intérêt général, utilité publique, autre cas du CGI, rescrit éventuel) et **reconnaît sa
@@ -8,15 +9,24 @@
 - La signature (PNG ou JPEG, 500 Ko au plus) est rangée avec les pièces de l'instance (donc dans
   les sauvegardes) ; son chemin est sur `organization.signature_path`.
 """
+import hashlib
 import json
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
+from sqlalchemy import update
+
 from app.extensions import db
-from app.models import Account, ReceiptSettings
-from app.models.receipt import CGI_ARTICLES, DEFAULT_DONATION_PREFIXES, ELIGIBILITY
+from app.models import (
+    Account, BankTransaction, DonationReceipt, DonationReceiptItem, Entity, InKindDonation, JournalEntry, JournalLine,
+    ReceiptCounter, ReceiptSettings,
+)
+from app.models.receipt import (
+    CGI_ARTICLES, DEFAULT_DONATION_PREFIXES, ELIGIBILITY, FORMS, NATURES, PAYMENT_METHODS,
+)
 from app.services import organization
 from app.services.attachments import instance_dir
+from app.utils.money import euros, euros_in_words
 
 SIGNATURE_MAX = 500 * 1024
 SIGNATURE_TYPES = {b"\x89PNG\r\n\x1a\n": ".png", b"\xff\xd8\xff": ".jpg"}
@@ -65,7 +75,7 @@ def readiness(settings=None) -> list[dict]:
         ("address", "Adresse de la structure", bool(org.address_line1 and org.postal_code and org.city), structure),
         ("purpose", "Objet de la structure", bool(org.purpose), structure),
         ("signatory", "Nom et qualité du signataire", bool(org.signatory_name and org.signatory_title), structure),
-        ("signature", "Image de la signature", bool(org.signature_path and _signature_file(org.signature_path)), None),
+        ("signature", "Image de la signature", bool(org.signature_path and _instance_file(org.signature_path)), None),
         ("eligibility", "Éligibilité déclarée", bool(settings.eligibility), None),
         ("articles", "Article(s) du CGI", bool(articles(settings)), None),
         ("accounts", "Comptes de dons présents dans le plan", bool(donation_accounts(prefixes(settings))), "/accounts/"),
@@ -135,14 +145,15 @@ def save(data: dict, user_id=None) -> ReceiptSettings:
 # ------------------------------------------------------------------ signature
 
 
-def _signature_file(relative: str) -> Path | None:
+def _instance_file(relative: str) -> Path | None:
+    """Fichier rangé avec les pièces de l'instance (signature, PDF des reçus), s'il existe."""
     path = (instance_dir() / relative).resolve()
     return path if path.is_relative_to(instance_dir().resolve()) and path.is_file() else None
 
 
 def signature_file() -> Path | None:
     org = organization.get()
-    return _signature_file(org.signature_path) if org.signature_path else None
+    return _instance_file(org.signature_path) if org.signature_path else None
 
 
 def save_signature(file_storage) -> None:
@@ -174,3 +185,281 @@ def delete_signature() -> None:
     if settings.enabled:
         settings.enabled = False  # plus de signature : plus d'émission possible
     db.session.commit()
+
+
+# ------------------------------------------------------------------ B.2 : candidats, émission, PDF
+
+PAYMENT_BY_PREFIX = (("53", "cash"), ("511", "check"), ("512", "transfer"), ("517", "transfer"))
+
+
+def _year_bounds(year: int):
+    return date(year, 1, 1), date(year, 12, 31)
+
+
+def issued_line_ids() -> set[int]:
+    rows = (db.session.query(DonationReceiptItem.journal_line_id)
+            .join(DonationReceipt, DonationReceipt.id == DonationReceiptItem.receipt_id)
+            .filter(DonationReceipt.status == "issued", DonationReceiptItem.journal_line_id.isnot(None)))
+    return {line_id for (line_id,) in rows}
+
+
+def issued_in_kind_ids() -> set[int]:
+    rows = (db.session.query(DonationReceiptItem.in_kind_id)
+            .join(DonationReceipt, DonationReceipt.id == DonationReceiptItem.receipt_id)
+            .filter(DonationReceipt.status == "issued", DonationReceiptItem.in_kind_id.isnot(None)))
+    return {item_id for (item_id,) in rows}
+
+
+def donation_lines(year: int) -> list[JournalLine]:
+    codes = prefixes(get())
+    if not codes:
+        return []
+    start, end = _year_bounds(year)
+    return (JournalLine.query.join(JournalEntry, JournalEntry.id == JournalLine.entry_id)
+            .join(Account, Account.id == JournalLine.account_id)
+            .filter(JournalEntry.entry_date.between(start, end),
+                    db.or_(*[Account.code.like(f"{c}%") for c in codes]),
+                    JournalLine.credit_cents > JournalLine.debit_cents)
+            .order_by(JournalEntry.entry_date, JournalLine.id).all())
+
+
+def resolve_donors(lines) -> dict[int, int | None]:
+    """Donateur de chaque ligne : choisi sur la ligne, sinon tiers de la transaction bancaire
+    rapprochée avec l'écriture, sinon tiers dont le compte figure dans l'écriture."""
+    entry_ids = {line.entry_id for line in lines}
+    by_bank = dict(db.session.query(JournalLine.entry_id, BankTransaction.entity_id)
+                   .join(BankTransaction, BankTransaction.journal_line_id == JournalLine.id)
+                   .filter(JournalLine.entry_id.in_(entry_ids or {0}), BankTransaction.entity_id.isnot(None)).all())
+    by_code = {e.account_code: e.id for e in Entity.query.filter(Entity.account_code.isnot(None))}
+    by_account = {}
+    if by_code:
+        for entry_id, code in (db.session.query(JournalLine.entry_id, Account.code)
+                               .join(Account, Account.id == JournalLine.account_id)
+                               .filter(JournalLine.entry_id.in_(entry_ids or {0}), Account.code.in_(list(by_code)))):
+            by_account.setdefault(entry_id, by_code[code])
+    return {line.id: line.entity_id or by_bank.get(line.entry_id) or by_account.get(line.entry_id) for line in lines}
+
+
+def payment_method(line: JournalLine) -> str:
+    for other in line.entry.lines:
+        for prefix, method in PAYMENT_BY_PREFIX:
+            if other.id != line.id and other.account.code.startswith(prefix):
+                return method
+    return "none"
+
+
+def donor_problems(entity: Entity) -> list[str]:
+    """Mentions du donateur manquantes pour son reçu."""
+    problems = []
+    if entity.person_kind not in ("individual", "company"):
+        problems.append("nature (particulier ou entreprise)")
+    if not (entity.address_line1 and entity.postal_code and entity.city):
+        problems.append("adresse")
+    if entity.person_kind == "company" and not entity.siret:
+        problems.append("SIRET (SIREN de l'entreprise)")
+    return problems
+
+
+def candidates(year: int) -> dict:
+    """Dons de l'année civile non encore repris sur un reçu émis, par donateur ; lignes sans donateur."""
+    lines = [l for l in donation_lines(year) if l.id not in issued_line_ids()]
+    donors = resolve_donors(lines)
+    groups: dict[int, dict] = {}
+    unassigned = []
+    for line in lines:
+        item = {"kind": "line", "id": line.id, "date": line.entry.entry_date.isoformat(), "reference": line.entry.reference,
+                "entry_url": f"/entries/{line.entry_id}", "label": line.label or line.entry.description or "",
+                "account": line.account.code, "amount_cents": line.credit_cents - line.debit_cents,
+                "payment_method": payment_method(line)}
+        entity_id = donors[line.id]
+        if entity_id is None:
+            unassigned.append(item)
+            continue
+        groups.setdefault(entity_id, {"items": []})["items"].append(item)
+    start, end = _year_bounds(year)
+    done = issued_in_kind_ids()
+    for gift in InKindDonation.query.filter(InKindDonation.date.between(start, end)).order_by(InKindDonation.date):
+        if gift.id in done:
+            continue
+        groups.setdefault(gift.entity_id, {"items": []})["items"].append({
+            "kind": "in_kind", "id": gift.id, "date": gift.date.isoformat(), "reference": None, "entry_url": None,
+            "label": gift.description, "account": None, "amount_cents": gift.valuation_cents, "payment_method": "none"})
+    out = []
+    for entity_id, group in groups.items():
+        entity = db.session.get(Entity, entity_id)
+        out.append({"entity_id": entity_id, "name": entity.name, "person_kind": entity.person_kind,
+                    "email": entity.email, "problems": donor_problems(entity), "items": group["items"],
+                    "total_cents": sum(i["amount_cents"] for i in group["items"])})
+    out.sort(key=lambda g: g["name"].lower())
+    return {"year": year, "donors": out, "unassigned": unassigned,
+            "total_cents": sum(g["total_cents"] for g in out)}
+
+
+def assign_donor(line_id: int, entity_id) -> JournalLine:
+    line = db.session.get(JournalLine, line_id)
+    codes = prefixes(get())
+    if line is None or not any(line.account.code.startswith(c) for c in codes):
+        raise ReceiptError("Ligne de don introuvable.", status=404)
+    if line.id in issued_line_ids():
+        raise ReceiptError("Don déjà repris sur un reçu émis.", status=409)
+    entity = db.session.get(Entity, int(entity_id)) if entity_id not in (None, "") else None
+    if entity_id not in (None, "") and entity is None:
+        raise ReceiptError("Tiers inconnu.", "entity_id")
+    line.entity_id = entity.id if entity else None
+    db.session.commit()
+    return line
+
+
+# --- dons en nature
+
+
+def save_in_kind(data: dict) -> InKindDonation:
+    entity = db.session.get(Entity, data.get("entity_id")) if isinstance(data.get("entity_id"), int) else None
+    if entity is None:
+        raise ReceiptError("Donateur obligatoire.", "entity_id")
+    try:
+        when = date.fromisoformat(str(data.get("date") or ""))
+    except ValueError:
+        raise ReceiptError("Date invalide.", "date") from None
+    description = (data.get("description") or "").strip()[:300]
+    if not description:
+        raise ReceiptError("Description du don obligatoire.", "description")
+    value = data.get("valuation_cents")
+    if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+        raise ReceiptError("Valorisation positive attendue.", "valuation_cents")
+    gift = InKindDonation(entity_id=entity.id, date=when, description=description, valuation_cents=value,
+                          valuation_method=(data.get("valuation_method") or "").strip()[:300] or None)
+    db.session.add(gift)
+    db.session.commit()
+    return gift
+
+
+def delete_in_kind(gift_id: int) -> None:
+    gift = db.session.get(InKindDonation, gift_id)
+    if gift is None:
+        raise ReceiptError("Don en nature introuvable.", status=404)
+    if gift.id in issued_in_kind_ids():
+        raise ReceiptError("Don repris sur un reçu émis : annulez d'abord le reçu.", status=409)
+    db.session.delete(gift)
+    db.session.commit()
+
+
+# --- émission
+
+
+def _next_number(year: int) -> str:
+    """Numéro suivant, réservé dans la transaction en cours (verrou d'écriture sur le compteur) :
+    annulée avec elle si l'émission échoue, donc sans trou."""
+    updated = db.session.execute(
+        update(ReceiptCounter).where(ReceiptCounter.year == year).values(last_number=ReceiptCounter.last_number + 1))
+    if updated.rowcount == 0:
+        db.session.add(ReceiptCounter(year=year, last_number=1))
+        db.session.flush()
+    number = db.session.query(ReceiptCounter.last_number).filter(ReceiptCounter.year == year).scalar()
+    return f"{year}-{number:05d}"
+
+
+def _donor_snapshot(entity: Entity) -> dict:
+    return {"name": entity.name, "address_line1": entity.address_line1, "address_line2": entity.address_line2,
+            "postal_code": entity.postal_code, "city": entity.city, "country": entity.country or "France",
+            "siren": (entity.siret or "")[:9] or None, "email": entity.email}
+
+
+def issue(year: int, entity_ids, mode=None, user_id=None) -> tuple[list[DonationReceipt], list[dict]]:
+    """Émet les reçus de l'année pour les donateurs choisis (tous si `entity_ids` est vide) :
+    un reçu annuel récapitulatif par donateur, ou un reçu par don (`mode='single'`).
+    Renvoie (reçus émis, refus par donateur)."""
+    settings = get()
+    if not settings.enabled:
+        raise ReceiptError("Reçus fiscaux non activés (Configuration › Reçus fiscaux).", status=409)
+    missing = [r["label"] for r in readiness(settings) if not r["ok"]]
+    if missing:
+        raise ReceiptError("Mentions manquantes : " + " ; ".join(missing) + ".", status=409)
+    if year > date.today().year:
+        raise ReceiptError("Année à venir.", "year")
+    mode = mode or settings.default_mode
+    if mode not in ("annual", "single"):
+        raise ReceiptError("Mode d'émission inconnu.", "mode")
+    pool = candidates(year)
+    wanted = set(entity_ids or [])
+    issued, refused = [], []
+    for group in pool["donors"]:
+        if wanted and group["entity_id"] not in wanted:
+            continue
+        if group["problems"]:
+            refused.append({"entity_id": group["entity_id"], "name": group["name"],
+                            "reason": "À compléter dans la fiche du tiers : " + ", ".join(group["problems"]) + "."})
+            continue
+        batches = [group["items"]] if mode == "annual" else [[item] for item in group["items"]]
+        for items in batches:
+            try:
+                issued.append(_issue_one(year, group["entity_id"], items, mode, user_id))
+            except Exception as exc:  # noqa: BLE001 — un refus n'arrête pas le lot
+                db.session.rollback()
+                refused.append({"entity_id": group["entity_id"], "name": group["name"], "reason": f"Émission impossible : {exc}"})
+    return issued, refused
+
+
+def _issue_one(year, entity_id, items, mode, user_id) -> DonationReceipt:
+    entity = db.session.get(Entity, entity_id)
+    receipt = DonationReceipt(number=_next_number(year), year=year, entity_id=entity.id, person_kind=entity.person_kind,
+                              mode=mode, total_cents=sum(i["amount_cents"] for i in items), status="issued",
+                              donor_json=json.dumps(_donor_snapshot(entity), ensure_ascii=False),
+                              issued_at=datetime.utcnow(), issued_by_user_id=user_id)
+    for item in items:
+        receipt.items.append(DonationReceiptItem(
+            journal_line_id=item["id"] if item["kind"] == "line" else None,
+            in_kind_id=item["id"] if item["kind"] == "in_kind" else None,
+            date=date.fromisoformat(item["date"]), amount_cents=item["amount_cents"],
+            nature="in_kind" if item["kind"] == "in_kind" else "cash", form="manual",
+            payment_method=item["payment_method"]))
+    db.session.add(receipt)
+    db.session.flush()
+    pdf = render_pdf(receipt)
+    folder = instance_dir() / "recus" / str(year)
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / f"{receipt.number}.pdf").write_bytes(pdf)
+    receipt.pdf_path = f"recus/{year}/{receipt.number}.pdf"
+    receipt.pdf_sha256 = hashlib.sha256(pdf).hexdigest()
+    db.session.commit()
+    return receipt
+
+
+def receipt_file(receipt: DonationReceipt) -> Path | None:
+    return _instance_file(receipt.pdf_path) if receipt.pdf_path else None
+
+
+def receipt_payload(receipt: DonationReceipt) -> dict:
+    donor = json.loads(receipt.donor_json)
+    return {"id": receipt.id, "number": receipt.number, "year": receipt.year, "entity_id": receipt.entity_id,
+            "donor": donor["name"], "person_kind": receipt.person_kind, "mode": receipt.mode,
+            "total_cents": receipt.total_cents, "status": receipt.status, "items": len(receipt.items),
+            "issued_at": receipt.issued_at.isoformat() + "Z", "sent_at": receipt.sent_at.isoformat() + "Z" if receipt.sent_at else None,
+            "pdf_url": f"/receipts/{receipt.id}.pdf", "email": donor.get("email")}
+
+
+# --- PDF
+
+
+def render_pdf(receipt: DonationReceipt) -> bytes:
+    from flask import render_template
+    from weasyprint import HTML
+
+    settings, org = get(), organization.get()
+    signature = _instance_file(org.signature_path) if org.signature_path else None
+    items = [{"date": i.date, "amount_cents": i.amount_cents, "nature": NATURES[i.nature], "form": FORMS[i.form],
+              "payment": PAYMENT_METHODS[i.payment_method],
+              "description": (db.session.get(InKindDonation, i.in_kind_id).description if i.in_kind_id else None)}
+             for i in receipt.items]
+    html = render_template(
+        "receipts/receipt.html", receipt=receipt, donor=json.loads(receipt.donor_json), org=org, items=items,
+        # Particuliers : articles 200 / 978 ; entreprises : 238 bis.
+        settings=settings, eligibility=ELIGIBILITY.get(settings.eligibility, ""),
+        articles=[a for a in articles(settings) if (a == "238bis") == (receipt.person_kind == "company")],
+        amount=euros(receipt.total_cents), amount_words=euros_in_words(receipt.total_cents),
+        forms={i["form"] for i in items}, natures={i["nature"] for i in items},
+        payments={i["payment"] for i in items if i["payment"]},
+        signature_src=signature.as_uri() if signature else None,
+        cerfa="16216*01" if receipt.person_kind == "company" else "11580*05",
+        issued_on=date.today())  # date locale du jour d'émission (issued_at est en UTC)
+    return HTML(string=html).write_pdf()

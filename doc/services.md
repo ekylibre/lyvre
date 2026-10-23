@@ -1151,3 +1151,14 @@ sans déclaration de responsabilité ; changer l'éligibilité efface la déclar
 avec les pièces de l'instance ; la retirer désactive les reçus). L'outil n'évalue pas l'éligibilité.
 Erreurs : `ReceiptError(message, field, status)`.
 
+**B.2 — émission.** `donation_lines(year)` (lignes au crédit des comptes de dons de l'année civile),
+`resolve_donors(lines)` (donateur choisi sur la ligne, sinon tiers de la transaction bancaire
+rapprochée, sinon tiers dont le compte figure dans l'écriture), `candidates(year)` (par donateur,
+hors dons déjà sur un reçu émis ; `donor_problems` : nature, adresse, SIRET d'une entreprise),
+`issue(year, entity_ids, mode, user_id)` (un reçu par donateur ou par don ; numéro réservé par
+`_next_number` dans la même transaction que le reçu et son PDF : un échec n'en consomme pas),
+`render_pdf` (gabarit `templates/receipts/receipt.html`, mentions des Cerfa n° 11580*05 —
+particuliers, articles 200 / 978 — et n° 16216*01 / 2041-MEC-SD — entreprises, article 238 bis ;
+montant en lettres par `app/utils/money.euros_in_words`), `assign_donor`, `save_in_kind` /
+`delete_in_kind`, `receipt_file` / `receipt_payload`.
+

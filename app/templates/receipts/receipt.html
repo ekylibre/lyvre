@@ -1,0 +1,110 @@
+{#- Reçu fiscal (weasyprint). Mentions des modèles CERFA n° 11580*05 (dons des particuliers,
+    art. 200 et 978 du CGI) et n° 16216*01 / 2041-MEC-SD (dons des entreprises, art. 238 bis) :
+    la mise en page peut différer du formulaire tant que toutes les mentions y figurent. -#}
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Reçu {{ receipt.number }}</title>
+<style>
+  @page { size: A4; margin: 16mm 16mm 18mm; @bottom-center { content: "Reçu n° {{ receipt.number }} — page " counter(page) " / " counter(pages); font-size: 8pt; color: #555; } }
+  body { font-family: "DejaVu Sans", sans-serif; font-size: 9.5pt; color: #111; line-height: 1.35; }
+  h1 { font-size: 13pt; margin: 0 0 2mm; }
+  .cerfa { float: right; text-align: right; font-size: 8pt; color: #333; }
+  .number { font-size: 11pt; font-weight: bold; margin: 2mm 0 4mm; }
+  section { border: 0.4mm solid #222; padding: 3mm 4mm; margin-bottom: 3.5mm; page-break-inside: avoid; }
+  section h2 { font-size: 10pt; margin: -3mm -4mm 2.5mm; padding: 1.5mm 4mm; background: #e9ece6; border-bottom: 0.3mm solid #222; }
+  .box { font-family: "DejaVu Sans", sans-serif; display: inline-block; width: 3.2mm; height: 3.2mm; border: 0.3mm solid #222; text-align: center; line-height: 3.2mm; font-size: 8pt; margin-right: 1.5mm; vertical-align: -0.5mm; }
+  .options { display: flex; flex-wrap: wrap; gap: 1mm 6mm; margin-top: 1.2mm; }
+  .options .title { width: 34mm; }
+  .options span.opt { white-space: nowrap; }
+  table { width: 100%; border-collapse: collapse; margin-top: 2mm; font-size: 8.5pt; }
+  th, td { border-bottom: 0.2mm solid #999; padding: 1mm 1.5mm; text-align: left; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  .amount { font-size: 12pt; font-weight: bold; }
+  .muted { color: #444; font-size: 8.5pt; }
+  .signature { margin-top: 3mm; display: flex; justify-content: space-between; align-items: flex-end; }
+  .signature img { max-height: 22mm; max-width: 60mm; }
+</style>
+</head>
+<body>
+{% set company = receipt.person_kind == "company" %}
+<div class="cerfa">Cerfa n° {{ cerfa }}<br>{{ "2041-MEC-SD" if company else "2041-RD" }}</div>
+{% if company %}
+<h1>Reçu des dons et versements effectués par les entreprises<br><small>au titre de l'article 238 bis du code général des impôts</small></h1>
+{% else %}
+<h1>Reçu au titre des dons à certains organismes d'intérêt général<br><small>Articles 200, 238 bis et 978 du code général des impôts</small></h1>
+{% endif %}
+<div class="number">Numéro d'ordre du reçu : {{ receipt.number }}{% if receipt.mode == "annual" %} — reçu récapitulatif des dons de l'année {{ receipt.year }}{% endif %}</div>
+
+<section>
+  <h2>Bénéficiaire des versements</h2>
+  <div><strong>{{ org.name }}</strong>{% if org.siren %} — SIREN {{ org.siren }}{% endif %}{% if org.rna %} — RNA {{ org.rna }}{% endif %}</div>
+  <div>{{ org.address_line1 }}{% if org.address_line2 %}, {{ org.address_line2 }}{% endif %}, {{ org.postal_code }} {{ org.city }}{% if org.country and org.country != "France" %}, {{ org.country }}{% endif %}</div>
+  <div class="muted">Objet : {{ org.purpose }}</div>
+  <div style="margin-top:2mm"><span class="box">X</span>{{ eligibility }}{% if settings.eligibility == "other" and settings.eligibility_detail %} : {{ settings.eligibility_detail }}{% endif %}</div>
+  {% if settings.rescrit_ref %}<div class="muted">Rescrit fiscal : {{ settings.rescrit_ref }}</div>{% endif %}
+</section>
+
+<section>
+  <h2>{{ "Entreprise donatrice" if company else "Donateur" }}</h2>
+  <div><strong>{{ donor.name }}</strong>{% if company and donor.siren %} — SIREN {{ donor.siren }}{% endif %}</div>
+  <div>{{ donor.address_line1 }}{% if donor.address_line2 %}, {{ donor.address_line2 }}{% endif %}, {{ donor.postal_code }} {{ donor.city }}{% if donor.country and donor.country != "France" %}, {{ donor.country }}{% endif %}</div>
+</section>
+
+<section>
+  <h2>Versements</h2>
+  <div>Le bénéficiaire reconnaît avoir reçu au titre des dons et versements ouvrant droit à réduction d'impôt la somme de :</div>
+  <div class="amount">{{ amount }}</div>
+  <div>Somme en toutes lettres : {{ amount_words }}</div>
+  {% if items|length == 1 %}
+  <div>Date du versement ou du don : {{ items[0].date.strftime("%d/%m/%Y") }}</div>
+  {% else %}
+  <table>
+    <thead><tr><th>Date</th><th>Nature</th><th>Mode de versement</th><th class="num">Montant</th></tr></thead>
+    <tbody>
+    {% for item in items %}
+      <tr><td>{{ item.date.strftime("%d/%m/%Y") }}</td><td>{{ item.nature }}{% if item.description %} : {{ item.description }}{% endif %}</td>
+          <td>{{ item.payment or "—" }}</td><td class="num">{{ "{:,.2f} €".format(item.amount_cents / 100).replace(",", " ").replace(".", ",") }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Réduction d'impôt</h2>
+  <div>Le bénéficiaire certifie sur l'honneur que les dons et versements qu'il reçoit ouvrent droit à la réduction d'impôt prévue à l'article :</div>
+  <div class="options">
+    {% for code, label in (("200", "200 du CGI"), ("238bis", "238 bis du CGI"), ("978", "978 du CGI")) %}
+      {% if not company or code == "238bis" %}<span class="opt"><span class="box">{{ "X" if code in articles else "" }}</span>{{ label }}</span>{% endif %}
+    {% endfor %}
+  </div>
+</section>
+
+<section>
+  <h2>Forme, nature et mode de versement</h2>
+  <div class="options"><span class="title">Forme du don</span>
+    {% for code, label in (("authentic", "Acte authentique"), ("private_deed", "Acte sous seing privé"), ("manual", "Déclaration de don manuel"), ("other", "Autres")) %}
+      <span class="opt"><span class="box">{{ "X" if label in forms else "" }}</span>{{ label }}</span>
+    {% endfor %}
+  </div>
+  <div class="options"><span class="title">Nature du don</span>
+    {% for label in ("Numéraire", "Titres de sociétés cotés", "Autres (don en nature)") %}
+      <span class="opt"><span class="box">{{ "X" if label in natures else "" }}</span>{{ label }}</span>
+    {% endfor %}
+  </div>
+  <div class="options"><span class="title">Mode de versement</span>
+    {% for label in ("Remise d'espèces", "Chèque", "Virement, prélèvement, carte bancaire") %}
+      <span class="opt"><span class="box">{{ "X" if label in payments else "" }}</span>{{ label }}</span>
+    {% endfor %}
+  </div>
+  {% for item in items if item.description %}{% if loop.first %}<div class="muted" style="margin-top:2mm">Dons en nature : description et valorisation sous la responsabilité du bénéficiaire.</div>{% endif %}{% endfor %}
+</section>
+
+<div class="signature">
+  <div>Fait à {{ org.city }}, le {{ issued_on.strftime("%d/%m/%Y") }}<br>{{ org.signatory_name }}, {{ org.signatory_title }}</div>
+  <div>{% if signature_src %}<img src="{{ signature_src }}" alt="Signature">{% endif %}</div>
+</div>
+</body>
+</html>

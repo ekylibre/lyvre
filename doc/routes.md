@@ -279,6 +279,17 @@ déclaration et activation. Lecture pour tous, modification par l'administrateur
 | POST · DELETE | `/api/v1/receipts/settings/signature` | Image PNG / JPEG ≤ 500 Ko (`signature`, multipart) rangée dans `uploads/<slug>/recus/` ; la retirer désactive les reçus |
 | GET | `/receipts/signature` (route Flask) | Image de la signature (aperçu) |
 
+**Émission (B.2)** — page `/receipts/` (Dons › Reçus fiscaux : à émettre, reçus émis, dons en nature) :
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/api/v1/receipts?year=` | Reçus émis de l'année civile (numéro, donateur figé, montant, statut, `pdf_url`) ; `meta.enabled` |
+| GET | `/api/v1/receipts/candidates?year=` | Dons non encore repris sur un reçu émis, par donateur (`problems` : nature, adresse, SIRET d'une entreprise) ; `unassigned` (lignes sans donateur) ; tiers proposés |
+| POST | `/api/v1/receipts/issue` | `{year, entity_ids?, mode? (annual\|single)}` : un reçu annuel par donateur ou un par don ; numéro `AAAA-NNNNN` réservé dans la transaction (pas de trou si l'émission échoue) ; PDF figé (SHA-256) ; `refused` par donateur |
+| PUT | `/api/v1/receipts/lines/<line_id>/donor` | `{entity_id}` : donateur d'une ligne de don (409 si déjà sur un reçu émis) |
+| GET · POST · DELETE | `/api/v1/receipts/in-kind[/<id>]` | Dons en nature `{entity_id, date, description, valuation_cents, valuation_method}` (suppression refusée s'il figure sur un reçu émis) |
+| GET | `/receipts/<id>.pdf` (route Flask) | PDF figé à l'émission ; 409 si son empreinte ne correspond plus |
+
 ---
 
 ## Budget (`/budget/`)

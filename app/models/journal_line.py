@@ -12,6 +12,9 @@ class JournalLine(db.Model):
     debit_cents = db.Column(db.Integer, default=0, nullable=False)
     credit_cents = db.Column(db.Integer, default=0, nullable=False)
     project_id = db.Column(db.Integer, db.ForeignKey("projects.id", ondelete="SET NULL"), index=True)
+    # Donateur d'une ligne de don choisi explicitement (reçus fiscaux, lot B.2) ; à défaut, le tiers
+    # de la transaction bancaire rapprochée ou du compte de tiers de l'écriture.
+    entity_id = db.Column(db.Integer, db.ForeignKey("entities.id", ondelete="SET NULL"))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     entry = db.relationship("JournalEntry", back_populates="lines")

@@ -321,6 +321,19 @@ lui-même est calculé à la demande (`services/cash_forecast.py`), sans stockag
 responsabilité), `updated_at`. Signataire et signature : table `organization`
 (`signatory_name`, `signatory_title`, `signature_path`).
 
+## Reçus émis (lot B.2, migration `d3f7b9c1e504`)
+
+- `receipt_counters(year PK, last_number)` : numérotation continue par année civile.
+- `donation_receipts` : `number` unique `AAAA-NNNNN`, `year`, `entity_id`, `person_kind`, `mode`
+  (`annual` / `single`), `total_cents`, `donor_json` (nom, adresse, SIREN figés à l'émission),
+  `status` (`issued` / `cancelled`), `cancel_reason`, `replaced_by_id`, `pdf_path` · `pdf_sha256`,
+  `issued_at` · `issued_by_user_id`, `sent_at` · `sent_to`. Jamais supprimé.
+- `donation_receipt_items` : `receipt_id` CASCADE, `journal_line_id` ou `in_kind_id`, `date`,
+  `amount_cents`, `nature` (`cash` / `securities` / `in_kind`), `form` (`manual`, `private_deed`,
+  `authentic`, `other`), `payment_method` (`cash`, `check`, `transfer`, `none`). Une ligne de don ne
+  figure que sur un seul reçu émis (contrôle applicatif : un reçu annulé la libère).
+- `in_kind_donations` : `entity_id`, `date`, `description`, `valuation_cents`, `valuation_method`.
+
 ## DedicatedFund / DedicatedFundMovement — Fonds dédiés
 
 `dedicated_funds(label, kind subsidy|contribution|public_generosity, resource_account_id NULL,
@@ -352,6 +365,7 @@ entry_id SET NULL)` : dotation ou utilisation d'un exercice, avec son écriture
 | `debit_cents` | Integer default=0 | Montant débit **en centimes** |
 | `credit_cents` | Integer default=0 | Montant crédit **en centimes** |
 | `project_id` | Integer FK→projects SET NULL, indexé | Projet / activité (lot C.1) ; une ligne ventilée devient plusieurs lignes de même compte |
+| `entity_id` | Integer FK→entities SET NULL | Donateur d'une ligne de don choisi explicitement (reçus fiscaux, lot B.2) |
 | `created_at` | DateTime | |
 
 > Les montants sont stockés en centimes entiers pour éviter les erreurs d'arrondi flottant. Ex : 1 234,56 € → `123456`.

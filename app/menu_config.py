@@ -93,6 +93,16 @@ MENUS = [
             {"key": "payouts", "label": "Versements Stancer", "endpoint": "payouts.index", "charts": _ASSO},
         ],
     },
+    # ---------------------------------------------------------------------- Dons
+    {
+        "key": "donations",
+        "label": "Dons",
+        "charts": _ASSO,
+        "active": ["receipts"],
+        "items": [
+            {"key": "receipts", "label": "Reçus fiscaux", "endpoint": "receipts.index", "charts": _ASSO},
+        ],
+    },
     # -------------------------------------------------------------------- Achats
     {
         "key": "purchases",
