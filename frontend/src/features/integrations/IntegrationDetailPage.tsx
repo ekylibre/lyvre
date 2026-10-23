@@ -47,6 +47,8 @@ export default function IntegrationDetailPage() {
   const save = useAction(() => api.put<IntegrationDetail & { notices: Notice[] }>(`/api/v1/integrations/${service}`, { values, clear }));
   const toggle = useAction((enabled: boolean) => api.post<IntegrationDetail & { notices: Notice[] }>(`/api/v1/integrations/${service}/enabled`, { enabled }));
   const check = useAction(() => api.post<IntegrationDetail & { notices: Notice[] }>(`/api/v1/integrations/${service}/check`));
+  const saveScopes = useAction((scopes: string[]) => api.post<IntegrationDetail & { notices: Notice[] }>(`/api/v1/integrations/${service}/scopes`, { scopes }));
+  const [scopes, setScopes] = useState<string[] | null>(null);
 
   if (error) return <Alert color="brique" mt="md">{(error as Error).message}</Alert>;
   if (!data) return <Center h={300}><Loader /></Center>;
@@ -120,6 +122,20 @@ export default function IntegrationDetailPage() {
               </Tooltip>
             </Group>
           </Paper>
+          {!!v.scopes?.length && (
+            <Paper p="md" mb="md">
+              <Title order={3} mb="sm">Périmètre</Title>
+              <Checkbox.Group value={scopes ?? v.scopes.filter((x) => x.checked).map((x) => x.value)} onChange={setScopes}
+                description="Seules les parties cochées sont utilisées (synchronisation, envois, boutons) ; les autres n'apparaissent pas.">
+                <Stack gap={6} mt={6}>{v.scopes.map((x) => <Checkbox key={x.value} value={x.value} label={x.label} />)}</Stack>
+              </Checkbox.Group>
+              <Group justify="flex-end" mt="sm">
+                <Button size="compact-md" variant="default" disabled={scopes === null} loading={saveScopes.isPending}
+                  onClick={() => scopes && saveScopes.mutate(scopes, { onSuccess: (body) => { toggled(body); setScopes(null); } })}>
+                  Enregistrer le périmètre</Button>
+              </Group>
+            </Paper>
+          )}
           <Paper p="md">
             <Title order={3} mb="sm">Dernière synchronisation</Title>
             {!v.sync_tracked ? <Text size="sm" c="dimmed">Non suivie pour cette intégration.</Text>

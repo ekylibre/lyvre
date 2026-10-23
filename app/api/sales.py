@@ -11,7 +11,9 @@ from app.access import instance_admin_required
 from app.extensions import db
 from app.models import Account, BankAccount, BankTransaction, Entity, Sale, SalePayment
 from app.models.sale import OPERATION_TYPES, PAYMENT_METHODS, QUOTE_STATUS_LABELS, STATUS_LABELS
-from app.services import billing, catalog, projects, sale_documents, sale_entry, sale_issue, sale_settlement
+from app.services import (
+    billing, catalog, external_config, projects, qonto_sales, sale_documents, sale_entry, sale_issue, sale_settlement,
+)
 from app.services.sale_entry import SaleError
 from app.utils.list_filters import apply_month_filter, month_options_for_fy, parse_month
 
@@ -55,6 +57,7 @@ def sale_row(s: Sale) -> dict:
     status, label = _status(s)
     return {"id": s.id, "kind": s.kind, "kind_label": KIND_LABELS.get(s.kind, s.kind), "status": status,
             "status_label": label, "number": s.number, "source": s.source, "validity_date": _iso(s.validity_date),
+            "qonto_emit": s.qonto_emit, "qonto_status": s.qonto_status, "qonto_error": s.qonto_error,
             "client": {"id": s.entity_id, "name": s.entity.name}, "issue_date": _iso(s.issue_date),
             "due_date": _iso(s.due_date), "untaxed_cents": s.untaxed_cents, "tax_cents": s.tax_cents,
             "total_cents": s.total_cents, "paid_cents": s.paid_cents, "sent_at": _iso(s.sent_at),
@@ -140,7 +143,21 @@ def sales_list():
         "totals": {"untaxed_cents": sum(s.untaxed_cents * (-1 if s.kind == "credit_note" else 1) for s in issued),
                    "total_cents": sum(s.total_cents * (-1 if s.kind == "credit_note" else 1) for s in issued)},
         "drafts": sum(1 for s in rows if s.status == "draft"), "months": month_options_for_fy(),
+        "qonto": {**external_config.state("qonto", "sales"), "job": _job(qonto_sales.latest_job())},
         "smtp": _smtp_state()})
+
+
+def _job(job):
+    from .session import job_payload
+    return job_payload(job) if job else None
+
+
+def _require_channel(sales) -> None:
+    """Pièces émises par Qonto : envoyées par Qonto (périmètre Ventes) ; les autres par SMTP."""
+    if any(s.qonto_id for s in sales):
+        require_integration("qonto", "sales")
+    if any(not s.qonto_id for s in sales):
+        require_integration("smtp")
 
 
 def _smtp_state():
@@ -166,6 +183,7 @@ def sales_form_options():
         projects=projects.options(), units=UNIT_OPTIONS,
         operation_types=[{"value": k, "label": v} for k, v in OPERATION_TYPES.items()],
         vat_mode=sale_entry.vat_mode_for(date.today()), vat_liable=bool(fy and fy.vat_liable),
+        qonto=external_config.scope_available("qonto", "sales"),
         payment_terms_days=settings.payment_terms_days)
 
 
@@ -234,6 +252,16 @@ def sales_pdf(sale_id):
     sale = get_or_404(Sale, sale_id, "Pièce introuvable.")
     path = sale_documents.pdf_file(sale)
     download = request.args.get("download") == "1"
+    if path is None and sale.qonto_id and qonto_sales.available():
+        from app.services.qonto_client import QontoError
+        try:  # PDF Qonto produit en différé : récupéré à la première demande
+            if qonto_sales.fetch_pdf(sale):
+                db.session.commit()
+                path = sale_documents.pdf_file(sale)
+        except QontoError:
+            db.session.rollback()
+        if path is None:
+            raise ApiError("conflict", "PDF pas encore disponible chez Qonto : réessayez dans un instant.", status=409)
     if path is not None:
         return send_file(path, mimetype="application/pdf", as_attachment=download,
                          download_name=sale_documents.filename(sale))
@@ -247,7 +275,7 @@ def sales_pdf(sale_id):
 def sales_send_one(sale_id):
     """`{to: [...], cc: [...], subject, body}` : envoi d'une pièce émise, message modifiable."""
     sale = get_or_404(Sale, sale_id, "Pièce introuvable.")
-    require_integration("smtp")
+    _require_channel([sale])
     data = json_body()
     with _errors():
         to = sale_issue.validate_emails(data.get("to"), "to")
@@ -264,11 +292,11 @@ def sales_send_one(sale_id):
 @bp.route("/sales/send", methods=["POST"])
 def sales_send_many():
     """`{ids}` : envoi des pièces émises choisies à l'adresse de leur client, message par défaut."""
-    require_integration("smtp")
     ids = json_body().get("ids")
     if not isinstance(ids, list) or not ids or not all(isinstance(i, int) for i in ids):
         raise invalid("Choisissez les pièces à envoyer.", "ids")
     sales = Sale.query.filter(Sale.id.in_(ids)).order_by(Sale.number).all()
+    _require_channel(sales)
     with _errors():
         result = sale_issue.send(sales)
     notices = [notice(f"{result['sent']} pièce(s) envoyée(s).", "success" if result["sent"] else "info")]
@@ -344,9 +372,10 @@ def sales_match():
             raise invalid("Encaissement invalide.", "allocations")
         allocations.append((sale, amount))
     with _errors():
-        sale_settlement.match(txn, allocations)
+        entry = sale_settlement.match(txn, allocations)
     return jsonify(items=[sale_detail(sale) for sale, _ in allocations],
-                   notices=[notice(f"Encaissement rapproché ({len(allocations)} facture(s)).")])
+                   notices=[notice(f"Encaissement rapproché ({len(allocations)} facture(s))."),
+                            *(notice(w, "warning") for w in getattr(entry, "qonto_warnings", []))])
 
 
 @bp.route("/sales/<int:sale_id>/payments", methods=["POST"])
@@ -363,8 +392,9 @@ def sales_manual_payment(sale_id):
         paid_on = sale_entry.parse_date(data.get("paid_on"), "Date", "paid_on") or date.today()
         if amount is None:
             raise SaleError("Montant obligatoire.", "amount")
-        sale_settlement.record_manual(sale, int(amount * 100), paid_on, ba, method)
-    return jsonify(item=sale_detail(sale), notices=[notice("Encaissement enregistré et comptabilisé.")])
+        entry = sale_settlement.record_manual(sale, int(amount * 100), paid_on, ba, method)
+    return jsonify(item=sale_detail(sale), notices=[notice("Encaissement enregistré et comptabilisé."),
+                                                    *(notice(w, "warning") for w in getattr(entry, "qonto_warnings", []))])
 
 
 @bp.route("/sale-payments/<int:payment_id>", methods=["DELETE"])
@@ -391,11 +421,11 @@ def sales_auto_match():
 @bp.route("/sales/remind", methods=["POST"])
 def sales_remind_many():
     """`{ids}` : relance par email des factures choisies (non soldées), message de relance par défaut."""
-    require_integration("smtp")
     ids = json_body().get("ids")
     if not isinstance(ids, list) or not ids or not all(isinstance(i, int) for i in ids):
         raise invalid("Choisissez les factures à relancer.", "ids")
     sales = Sale.query.filter(Sale.id.in_(ids), Sale.kind == "invoice").order_by(Sale.number).all()
+    _require_channel(sales)
     with _errors():
         result = sale_issue.send(sales, purpose="reminder")
     notices = [notice(f"{result['sent']} relance(s) envoyée(s).", "success" if result["sent"] else "info")]
@@ -407,7 +437,7 @@ def sales_remind_many():
 def sales_remind_one(sale_id):
     """`{to, cc, subject, body}` : relance d'une facture, message modifiable."""
     sale = get_or_404(Sale, sale_id, "Pièce introuvable.")
-    require_integration("smtp")
+    _require_channel([sale])
     data = json_body()
     with _errors():
         if sale.kind != "invoice" or not sale_settlement.due_cents(sale):
@@ -442,3 +472,14 @@ def sales_to_invoice(sale_id):
         invoice = sale_issue.to_invoice(quote)
     return jsonify(item=sale_detail(invoice), notices=[notice(
         f"Brouillon de facture créé depuis le devis {quote.number} : vérifiez-le puis émettez-le.")]), 201
+
+
+# ------------------------------------------------------------------ Qonto (lot S4)
+
+@bp.route("/sales/sync", methods=["POST"])
+def sales_qonto_sync():
+    """Synchronisation des ventes Qonto en arrière-plan (lecture seule côté Qonto)."""
+    require_integration("qonto", "sales")
+    from flask import current_app
+    from .session import job_payload
+    return jsonify(job=job_payload(qonto_sales.start_sync(current_app._get_current_object())))

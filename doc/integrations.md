@@ -40,6 +40,14 @@ Les intégrations recommandées sont proposées :
 Les réglages sont ceux **de l'instance**. Le fichier `.env` ne sert de repli qu'en développement
 (`INTEGRATIONS_ENV_FALLBACK`) ; un service commun à toutes les instances n'est pas une intégration.
 
+## Périmètre (Qonto)
+
+La fiche de Qonto a trois cases : **Relevés de compte** (synchronisation des transactions),
+**Achats** (factures fournisseurs, dépôt de pièces) et **Ventes** (émission des factures, avoirs et
+devis par Qonto, synchronisation des ventes). Par défaut : relevés et achats. Une partie décochée se
+comporte comme une intégration désactivée : ni bouton, ni bandeau, et une action qui en a besoin le
+dit.
+
 ## Intégration désactivée
 
 Rien de ce qui n'existe que par elle ne s'affiche : ni bandeau d'alerte, ni notification, ni bouton

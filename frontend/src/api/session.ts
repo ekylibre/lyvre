@@ -22,7 +22,7 @@ export interface Session {
   instance: { id: number; slug: string; label: string; chart: string; bookkeeping?: "double" | "simple";
     has_associates?: boolean;
     /** Intégrations activées ; `proposed` : recommandées à proposer (administrateur de l'instance). */
-    integrations?: { enabled: string[]; proposed: string[] } } | null;
+    integrations?: { enabled: string[]; proposed: string[]; scopes?: Record<string, string[]> } } | null;
   instances: { id: number; label: string }[];
   /** Rôle sur l'instance courante ; `permissions` en découle (le serveur reste seul juge). */
   role?: InstanceRole | null;
@@ -81,8 +81,11 @@ export function useCan(): { write: boolean; instanceAdmin: boolean; role: Instan
 
 /** Intégration activée pour l'instance : sinon, rien de ce qui n'existe que par elle ne s'affiche
  * (boutons, colonnes, bandeaux). Les données déjà importées restent visibles. */
-export function useIntegration(slug: string): boolean {
-  return useCurrentSession().instance?.integrations?.enabled.includes(slug) ?? false;
+export function useIntegration(slug: string, scope?: string): boolean {
+  const integrations = useCurrentSession().instance?.integrations;
+  if (!integrations?.enabled.includes(slug)) return false;
+  // Partie du périmètre (Qonto : transactions, purchases, sales) ; inconnue : périmètre par défaut.
+  return !scope || (integrations.scopes?.[slug] ?? ["transactions", "purchases"]).includes(scope);
 }
 
 /** Mode de tenue de l'instance courante : partie double, ou comptabilité simplifiée (lot D). */

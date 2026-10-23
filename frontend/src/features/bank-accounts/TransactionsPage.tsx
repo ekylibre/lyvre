@@ -60,7 +60,7 @@ function QontoResult({ r, baId }: { r: Record<string, number | string[] | undefi
  * (le badge « Qonto » du compte et les transactions importées restent). */
 function QontoCard({ detail, onSynced }: { detail: Detail; onSynced: () => void }) {
   const can = useCan();
-  const enabled = useIntegration("qonto");
+  const enabled = useIntegration("qonto", "transactions");
   const ba = detail.item;
   const [job, setJob] = useState<Job | null>(detail.qonto_job);
   const [syncFrom, setSyncFrom] = useState<string | null>(ba.qonto?.sync_from ?? null);

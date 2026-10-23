@@ -47,7 +47,7 @@ def bank_accounts_list():
     accounts = BankAccount.query.order_by(BankAccount.label).all()
     return jsonify(items=[bank_account_payload(ba) for ba in accounts], meta={
         "gl_accounts": _options(), "cash_accounts": _options("53"),
-        "qonto": external_config.state("qonto"),
+        "qonto": external_config.state("qonto", "transactions"),
     })
 
 
@@ -102,7 +102,7 @@ def bank_accounts_detail(ba_id):
                        "url": url_for("entries.detail", entry_id=t.journal_line.entry_id)}
                       if t.journal_line else None)} for t in reversed_reconciled],
         meta={"gl_accounts": _options(), "months": month_options_for_fy(),
-              "qonto": external_config.state("qonto")},
+              "qonto": external_config.state("qonto", "transactions")},
     )
 
 
@@ -132,7 +132,7 @@ def bank_accounts_delete(ba_id):
 def _qonto_accounts():
     """(comptes Qonto de l'API, message d'erreur) — aucun appel si l'intégration est indisponible.
     Lecture seule (GET des comptes de l'organisation)."""
-    if not external_config.is_available("qonto"):
+    if not external_config.scope_available("qonto", "transactions"):
         return [], external_config.unavailable_message("qonto")
     from app.services import integrations, qonto_client
 
@@ -225,7 +225,7 @@ def qonto_sync_start(ba_id):
     ba = get_or_404(BankAccount, ba_id, "Compte bancaire introuvable.")
     if not ba.qonto_account_id:
         raise ApiError("conflict", "Ce compte bancaire n'est pas rattaché à Qonto.", status=409)
-    require_integration("qonto")
+    require_integration("qonto", "transactions")
     job = qonto_sync.start_sync(current_app._get_current_object(), ba.id)
     return jsonify(job=job_payload(job))
 

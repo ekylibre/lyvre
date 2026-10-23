@@ -97,7 +97,11 @@ def _view(v) -> dict:
 def _detail(service) -> dict:
     v = integrations.detail(service)
     s = v.last_sync
-    return {"item": {**_view(v), "sync_tracked": v.sync_tracked, "last_sync": ({
+    scope_labels = external_config.SCOPES.get(service, {})
+    return {"item": {**_view(v), "sync_tracked": v.sync_tracked,
+                     "scopes": [{"value": key, "label": label, "checked": key in external_config.scopes(service)}
+                                for key, label in scope_labels.items()],
+                     "last_sync": ({
         "status": s.status, "started_at": _iso(s.started_at), "finished_at": _iso(s.finished_at),
         "message": s.message, "imported": s.imported, "errors": list(s.errors),
         "url": url_for(s.endpoint), "link_label": SYNC_LINK_LABELS.get(s.endpoint, "Voir"),
@@ -179,3 +183,22 @@ def integrations_dismiss(service):
     _service(service)
     external_config.dismiss(service)
     return jsonify(notices=[notice(f"{external_config.SERVICE_LABELS[service]} ne sera plus proposée.", "info")])
+
+
+@bp.route("/integrations/<service>/scopes", methods=["POST"])
+@instance_admin_required
+def integrations_scopes(service):
+    """`{scopes: [...]}` : périmètre de l'intégration (Qonto : transactions, purchases, sales)."""
+    _service(service)
+    values = json_body().get("scopes")
+    if service not in external_config.SCOPES:
+        raise ApiError("not_found", "Cette intégration n'a pas de périmètre.", status=404)
+    if not isinstance(values, list):
+        raise invalid("Liste attendue.", "scopes")
+    try:
+        external_config.set_scopes(service, values)
+    except ValueError as exc:
+        raise invalid(str(exc), "scopes") from None
+    labels = [external_config.SCOPES[service][v] for v in sorted(values)]
+    return jsonify(**_detail(service), notices=[notice(
+        f"Périmètre {external_config.SERVICE_LABELS[service]} : {', '.join(labels) or 'aucun'}.")])

@@ -48,7 +48,8 @@ def test_login_selects_single_instance_and_returns_session(app):
     body = _login(client, email=" tresorier@example.org ").get_json()
     assert body["user"]["email"] == "Tresorier@Example.org" and body["user"]["is_admin"] is False
     assert body["instance"] == {"id": inst.id, "slug": "test", "label": "Test", "chart": "sci", "bookkeeping": "double",
-                                "has_associates": False, "integrations": {"enabled": [], "proposed": []}}
+                                "has_associates": False, "integrations": {"enabled": [], "proposed": [],
+                                                                  "scopes": {"qonto": ["purchases", "transactions"]}}}
     assert body["instances"] == [{"id": inst.id, "label": "Test"}]
     labels = [m["label"] for m in body["nav"]]
     assert "Tableau de bord" in labels and "Tiers" in labels

@@ -35,8 +35,22 @@ class Instance(db.Model):
             value = {}
         return value if isinstance(value, dict) else {}
 
-    def _set_integrations(self, enabled, dismissed) -> None:
-        self.integrations = json.dumps({"enabled": sorted(enabled), "dismissed": sorted(dismissed)})
+    def _set_integrations(self, enabled, dismissed, scopes=None) -> None:
+        value = {"enabled": sorted(enabled), "dismissed": sorted(dismissed)}
+        scopes = self._integrations().get("scopes") if scopes is None else scopes
+        if scopes:
+            value["scopes"] = {service: sorted(items) for service, items in scopes.items()}
+        self.integrations = json.dumps(value)
+
+    def integration_scopes(self, service: str) -> set[str] | None:
+        """Périmètre enregistré d'une intégration (Qonto : relevés, achats, ventes) ; None : défaut."""
+        scopes = (self._integrations().get("scopes") or {}).get(service)
+        return None if scopes is None else set(scopes)
+
+    def set_integration_scopes(self, service: str, scopes) -> None:
+        current = dict(self._integrations().get("scopes") or {})
+        current[service] = sorted(set(scopes))
+        self._set_integrations(self.enabled_integrations(), self.dismissed_integrations(), current)
 
     def enabled_integrations(self) -> set[str]:
         return set(self._integrations().get("enabled") or [])

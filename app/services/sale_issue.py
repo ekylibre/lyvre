@@ -60,7 +60,8 @@ def issue_problems(sale: Sale) -> list[str]:
     elif fy.closed:
         problems.append(f"L'exercice « {fy.label} » est clôturé.")
     vat_mode = vat_mode_for(sale.issue_date)
-    problems += [f"Mention manquante : {r['label']}." for r in billing.readiness(vat_liable=vat_mode != "none") if not r["ok"]]
+    if not sale.qonto_emit:  # pièce Qonto : mentions et numéro portés par Qonto
+        problems += [f"Mention manquante : {r['label']}." for r in billing.readiness(vat_liable=vat_mode != "none") if not r["ok"]]
     client = client_snapshot(sale.entity)
     if not (client["address_line1"] and client["postal_code"] and client["city"]):
         problems.append(f"Adresse du client « {sale.entity.name} » incomplète (fiche du tiers).")
@@ -86,13 +87,16 @@ def issue_problems(sale: Sale) -> list[str]:
 
 
 def issue(sale: Sale) -> Sale:
-    """Émet un brouillon : numéro, client figé, écriture VE, PDF Factur-X ; un seul commit."""
+    """Émet un brouillon : numéro, client figé, écriture VE, PDF Factur-X ; un seul commit.
+    Case « Émettre avec Qonto » : la pièce est créée (et finalisée) dans Qonto, qui donne le numéro."""
     sale.vat_mode = vat_mode_for(sale.issue_date)
     compute(sale)
     problems = issue_problems(sale)
     if problems:
         db.session.rollback()
         raise SaleError(" ".join(problems), status=409)
+    if sale.qonto_emit:
+        return _issue_with_qonto(sale)
     written = None
     try:
         sale.number, sale.series_seq = next_number(sale.kind, sale.issue_date.year)
@@ -117,6 +121,64 @@ def issue(sale: Sale) -> Sale:
         db.session.rollback()
         _discard(written)
         raise
+    return sale
+
+
+def _issue_with_qonto(sale: Sale) -> Sale:
+    from app.services import qonto_sales
+    from app.services.qonto_client import QontoError
+
+    try:
+        obj = qonto_sales.emit(sale)
+    except QontoError as exc:
+        db.session.rollback()
+        raise SaleError(f"Qonto a refusé la pièce : {exc}", status=409) from None
+    try:
+        record_external(sale, obj["number"], obj)
+    except Exception as exc:
+        # Pièce finalisée dans Qonto mais non comptabilisée : on garde son identifiant (elle sera
+        # reprise à la synchronisation) et on le dit.
+        db.session.rollback()
+        sale = db.session.get(Sale, sale.id)
+        qonto_sales.apply(sale, obj)
+        sale.qonto_error = f"Émise dans Qonto (n° {obj['number']}) mais non comptabilisée : {exc}"
+        db.session.commit()
+        raise SaleError(sale.qonto_error, status=409) from None
+    return sale
+
+
+def record_external(sale: Sale, number: str, obj: dict | None = None) -> Sale:
+    """Pièce numérotée par Qonto (émise depuis l'application ou importée) : client figé, écriture VE
+    (sauf devis), PDF Qonto s'il est prêt ; commit."""
+    from app.services import qonto_sales
+
+    if Sale.query.filter(Sale.kind == sale.kind, Sale.number == number, Sale.id != sale.id).first():
+        raise SaleError(f"Le numéro {number} existe déjà.", status=409)
+    sale.number, sale.series_year, sale.series_seq = number, None, None
+    sale.client_snapshot = json_snapshot(sale.entity)
+    sale.status, sale.issued_at, sale.qonto_error = "issued", datetime.utcnow(), None
+    if obj:
+        qonto_sales.apply(sale, obj)
+        if sale.kind == "quote" and obj.get("status") in qonto_sales.QUOTE_STATUSES:
+            sale.status = qonto_sales.QUOTE_STATUSES[obj["status"]]
+    if sale.kind != "quote":
+        fy = fiscal_year_for(sale.issue_date)
+        if fy is None or fy.closed:
+            raise SaleError(f"Aucun exercice ouvert ne couvre le {sale.issue_date:%d/%m/%Y}.", status=409)
+        try:
+            sale_posting.post(sale, fy)
+        except LedgerError as exc:
+            raise SaleError(str(exc), status=409) from None
+    if sale.kind == "credit_note" and credited_cents(sale.invoice) >= sale.invoice.total_cents:
+        sale.invoice.status = "canceled"
+    elif sale.kind == "credit_note":
+        sale_settlement.refresh_status(sale.invoice)
+    db.session.commit()
+    try:
+        if qonto_sales.fetch_pdf(sale):
+            db.session.commit()
+    except Exception:  # noqa: BLE001 — PDF produit en différé par Qonto : récupéré plus tard
+        db.session.rollback()
     return sale
 
 
@@ -183,6 +245,7 @@ def credit_note(invoice: Sale, reason: str, line_ids=None) -> Sale:
     if not chosen:
         raise SaleError("Choisissez les lignes à créditer.", "line_ids")
     note = Sale(kind="credit_note", status="draft", source="app", entity=invoice.entity, invoice_id=invoice.id,
+                qonto_emit=invoice.qonto_id is not None,  # avoir d'une facture Qonto : émis par Qonto
                 issue_date=max(date.today(), invoice.issue_date), operation_type=invoice.operation_type,
                 credit_reason=reason[:500], vat_mode=invoice.vat_mode)
     note.lines = [SaleLine(position=i, product_id=l.product_id, label=l.label, description=l.description,
@@ -239,7 +302,7 @@ def send(sales, to=None, cc=None, subject=None, body=None, purpose="send") -> di
 
     if len(sales) > MAX_BATCH:
         raise SaleError(f"{MAX_BATCH} pièces au plus par envoi.", status=422)
-    settings = smtp_settings()
+    settings = smtp_settings() if any(not s.qonto_id for s in sales) else None
     sent, skipped, errors = 0, 0, []
     server = None
     try:
@@ -252,6 +315,30 @@ def send(sales, to=None, cc=None, subject=None, body=None, purpose="send") -> di
                 errors.append(f"{sale.number} : rien à relancer (soldée ou annulée).")
                 continue
             recipients = list(to) if to else recipients_of(sale)
+            if sale.qonto_id:  # pièce émise par Qonto : envoyée par Qonto (son PDF Factur-X)
+                if not recipients:
+                    skipped += 1
+                    errors.append(f"{sale.number} : aucune adresse email.")
+                    continue
+                default_subject, default_body = message_for(sale, purpose)
+                text_subject = (subject or default_subject)[:255]
+                log = SaleEmail(sale=sale, purpose=purpose, channel="qonto", subject=text_subject,
+                                recipients=", ".join(recipients + list(cc or [])))
+                try:
+                    from app.services import qonto_sales
+                    qonto_sales.send(sale, recipients + list(cc or []), text_subject, body or default_body)
+                    log.status = "sent"
+                    if purpose == "reminder":
+                        sale.reminder_count, sale.last_reminder_at = (sale.reminder_count or 0) + 1, datetime.utcnow()
+                    else:
+                        sale.sent_at = datetime.utcnow()
+                    sent += 1
+                except Exception as exc:  # noqa: BLE001 — échec isolé par pièce
+                    log.status, log.error = "failed", str(exc)[:500]
+                    errors.append(f"{sale.number} : {exc}")
+                db.session.add(log)
+                db.session.commit()
+                continue
             path = sale_documents.pdf_file(sale)
             if not recipients or path is None:
                 skipped += 1

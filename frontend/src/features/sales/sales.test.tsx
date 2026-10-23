@@ -20,6 +20,7 @@ const OPTIONS = {
   products: [{ value: "9", label: "Audit", account: "706", rate: "20", price: "500,00", unit: "jour", description: "Audit annuel", nature: "services" }],
   sale_accounts: [{ value: "706", label: "706 — Prestations" }], default_account: "706", projects: [], units: ["heure", "jour"],
   operation_types: [{ value: "services", label: "Prestation de services" }], vat_mode: "receipts", vat_liable: true, payment_terms_days: 30,
+  qonto: true,
 };
 
 function detail(fields: Partial<SaleDetail> = {}): SaleDetail {
@@ -35,7 +36,7 @@ function detail(fields: Partial<SaleDetail> = {}): SaleDetail {
     vat_rows: [{ rate: 2000, base: 50000, tax: 10000 }], journal_entry: { id: 3, reference: "VE-0001" }, invoice: null,
     credit_notes: [], remaining_credit_cents: 60000, issue_problems: [], recipients: ["compta@client.example"], emails: [],
     pdf_url: "/api/v1/sales/7/pdf", due_cents: 60000, reminder_count: 0, last_reminder_at: null, payments: [],
-    validity_date: null, quote: null, invoices: [], ...fields,
+    validity_date: null, quote: null, invoices: [], qonto_emit: false, qonto_status: null, qonto_error: null, ...fields,
   };
 }
 
@@ -83,9 +84,12 @@ describe("saisie d'une facture", () => {
     expect((screen.getByLabelText("Désignation (ligne 1)") as HTMLInputElement).value).toBe("Audit");
     expect((screen.getByLabelText("Prix unitaire HT (ligne 1)") as HTMLInputElement).value).toBe("500,00");
     expect(within(screen.getByLabelText("Totaux estimés")).getByText(/600,00/)).toBeTruthy();
+    const qonto = screen.getByRole("checkbox", { name: /Émettre avec Qonto/ }) as HTMLInputElement;
+    expect(qonto.checked).toBe(false);  // décochée par défaut
+    await user.click(qonto);
     await user.click(screen.getByRole("button", { name: "Enregistrer le brouillon" }));
     await waitFor(() => expect(calls.find((c) => c.method === "POST")?.body).toMatchObject({
-      entity_id: "4", lines: [{ product_id: "9", label: "Audit", unit_price: "500,00", vat_rate: "20", account_code: "706", unit: "jour" }] }));
+      entity_id: "4", qonto_emit: true, lines: [{ product_id: "9", label: "Audit", unit_price: "500,00", vat_rate: "20", account_code: "706", unit: "jour" }] }));
   });
 });
 

@@ -3,12 +3,16 @@
 // rapprochement automatique des encaissements (crédit unique du montant restant dû).
 import { useState } from "react";
 import { Anchor, Badge, Button, Checkbox, Group, SegmentedControl, Select, Text } from "@mantine/core";
+import { useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { useAction, useList, type Notice } from "../../api/resources";
+import { useIntegration } from "../../api/session";
 import { Can } from "../../components/Can";
 import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { FilterBar, SearchInput, useUrlParams } from "../../components/FilterBar";
 import { useIntegrationGuard } from "../../components/IntegrationRequired";
+import { IntegrationNotice } from "../../components/IntegrationNotice";
+import { JobStatus, type Job } from "../../components/JobStatus";
 import { MoneyText } from "../../components/Money";
 import { MonthSelect, type MonthOption } from "../../components/MonthSelect";
 import { PageHeader } from "../../components/PageHeader";
@@ -19,7 +23,8 @@ import type { Option } from "../purchases/types";
 import { SALES_KEY, STATUS_TONES, type SaleRow } from "./types";
 
 const FILTERS = { q: "", kind: "", status: "", entity_id: "", month: "", overdue: "" };
-interface Meta { statuses: Option[]; clients: Option[]; months: MonthOption[]; totals: { untaxed_cents: number; total_cents: number }; drafts: number }
+interface Meta { statuses: Option[]; clients: Option[]; months: MonthOption[];
+  qonto?: { enabled: boolean; available: boolean; message: string | null; job: Job | null }; totals: { untaxed_cents: number; total_cents: number }; drafts: number }
 
 export default function SalesPage() {
   const [params, setParams] = useUrlParams(FILTERS);
@@ -29,6 +34,11 @@ export default function SalesPage() {
   const smtp = useIntegrationGuard("smtp", "L'envoi par email");
   const send = useAction((ids: number[]) => api.post<{ notices: Notice[] }>("/api/v1/sales/send", { ids }), { invalidate: [SALES_KEY] });
   const remind = useAction((ids: number[]) => api.post<{ notices: Notice[] }>("/api/v1/sales/remind", { ids }), { invalidate: [SALES_KEY] });
+  const qontoSales = useIntegration("qonto", "sales");
+  const client = useQueryClient();
+  const [job, setJob] = useState<Job | null>(null);
+  const shownJob = qontoSales ? job ?? data?.meta?.qonto?.job ?? null : null;
+  const sync = useAction<void, { job: Job; notices?: Notice[] }>(() => api.post("/api/v1/sales/sync"));
   const autoMatch = useAction(() => api.post<{ notices: Notice[] }>("/api/v1/sales/auto-match"), { invalidate: [SALES_KEY] });
   const meta = data?.meta;
   const sendable = selected.filter((s) => s.status !== "draft");
@@ -50,6 +60,8 @@ export default function SalesPage() {
       <Group gap={6} wrap="nowrap">
         <Anchor component={AppLink} href={`/sales/${s.id}`} size="sm" className="lv-num">{s.number ?? "brouillon"}</Anchor>
         {s.kind === "credit_note" && <Badge size="xs" variant="light" color="gray">Avoir</Badge>}
+        {qontoSales && (s.qonto_emit || s.source === "qonto") && <Badge size="xs" variant="outline" color="gray">Qonto</Badge>}
+        {qontoSales && s.qonto_error && <Badge size="xs" color="brique" title={s.qonto_error}>Qonto : à revoir</Badge>}
       </Group>
     ) },
     { accessor: "client", title: "Client", render: (s) => <Anchor component={AppLink} href={`/entities/${s.client.id}`} size="sm">{s.client.name}</Anchor> },
@@ -68,10 +80,14 @@ export default function SalesPage() {
       <PageHeader title="Ventes" description={quotes ? "Devis : numérotés à l'émission, acceptés ou refusés, transformés en facture."
         : "Factures et avoirs émis par l'application : numérotés, comptabilisés au journal des ventes, PDF Factur-X."}
         actions={<Can>
+          {qontoSales && <Button variant="default" loading={sync.isPending} disabled={!meta?.qonto?.available || shownJob?.status === "running"}
+            onClick={() => sync.mutate(undefined, { onSuccess: (r) => setJob(r.job) })}>Synchroniser Qonto</Button>}
           <Button variant="default" loading={autoMatch.isPending} onClick={() => autoMatch.mutate()}
             title="Encaisse les factures dont un crédit bancaire unique a le montant exact du restant dû">Rapprocher les encaissements</Button>
           <Button variant={quotes ? "filled" : "default"} component={AppLink} href="/sales/new?kind=quote">Nouveau devis</Button>
           {!quotes && <Button component={AppLink} href="/sales/new">Nouvelle facture</Button>}</Can>} />
+      <IntegrationNotice name="qonto" state={meta?.qonto} consequence="synchronisation des ventes impossible" />
+      {shownJob && <JobStatus key={shownJob.id} job={shownJob} onDone={() => void client.invalidateQueries({ queryKey: SALES_KEY })} />}
       <FilterBar>
         <SegmentedControl value={params.kind} onChange={(kind) => setParams({ kind, status: "", overdue: "" })}
           data={[{ value: "", label: "Factures et avoirs" }, { value: "invoice", label: "Factures" }, { value: "credit_note", label: "Avoirs" },

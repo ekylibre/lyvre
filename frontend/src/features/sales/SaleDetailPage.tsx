@@ -98,6 +98,8 @@ export default function SaleDetailPage() {
           {s.invoice && <span>sur la facture <Anchor component={AppLink} href={`/sales/${s.invoice.id}`} size="sm">{s.invoice.number}</Anchor></span>}
           {s.quote && <span>du devis <Anchor component={AppLink} href={`/sales/${s.quote.id}`} size="sm">{s.quote.number}</Anchor></span>}
           {quote && s.validity_date && <span>valable jusqu'au {formatDate(s.validity_date)}</span>}
+          {(s.qonto_emit || s.source === "qonto") && <StatusBadge tone="info">{s.source === "qonto" ? "Créée dans Qonto" : "Qonto"}</StatusBadge>}
+          {s.qonto_status && <span>Qonto : {s.qonto_status}</span>}
         </Group>}
         actions={<>
           <Can>
@@ -132,6 +134,8 @@ export default function SaleDetailPage() {
           <List size="sm">{s.issue_problems.map((p) => <List.Item key={p}>{p}</List.Item>)}</List>
         </Alert>
       )}
+      {s.qonto_error && <Alert color="brique" mb="md" title="Qonto">{s.qonto_error}</Alert>}
+      {draft && s.qonto_emit && <Alert color="ardoise" mb="md">À l'émission, la pièce est créée dans Qonto, qui lui donne son numéro et son PDF.</Alert>}
       {s.credit_reason && <Alert color="ardoise" mb="md">Motif de l'avoir : {s.credit_reason}</Alert>}
 
       <Grid mb="md">

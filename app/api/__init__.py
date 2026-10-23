@@ -86,14 +86,16 @@ def invalid(message, field=None):
     return ApiError("validation_error", message, status=422, fields={field: message} if field else None)
 
 
-def require_integration(service):
-    """Action qui a besoin d'une intégration : 409 `integration_required` si elle est désactivée
-    (l'écran propose de l'activer), 409 `conflict` si elle est activée mais non configurée."""
+def require_integration(service, scope=None):
+    """Action qui a besoin d'une intégration (ou d'une partie de son périmètre : `scope`) : 409
+    `integration_required` si elle est désactivée ou la partie décochée (l'écran propose de
+    l'activer), 409 `conflict` si elle est activée mais non configurée."""
     from app.services import external_config
 
-    if not external_config.is_enabled(service):
-        raise ApiError("integration_required", external_config.required_message(service), status=409,
-                       extra={"service": service})
+    enabled = external_config.scope_enabled(service, scope) if scope else external_config.is_enabled(service)
+    if not enabled:
+        raise ApiError("integration_required", external_config.required_message(service, scope), status=409,
+                       extra={"service": service, **({"scope": scope} if scope else {})})
     if not external_config.is_configured(service):
         raise ApiError("conflict", external_config.unavailable_message(service), status=409)
 

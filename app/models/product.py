@@ -32,6 +32,7 @@ class Product(db.Model):
     unit = db.Column(db.String(20))
     sale_price_cents = db.Column(db.Integer)
     nature = db.Column(db.String(8), nullable=False, default="services", server_default="services")
+    qonto_product_id = db.Column(db.String(36))  # produit Qonto (ventes, lot S4)
     active = db.Column(db.Boolean, nullable=False, default=True, server_default=db.true())
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 

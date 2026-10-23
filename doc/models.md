@@ -906,6 +906,11 @@ les factures d'un même client payées par une transaction), `vat_released_cents
 découlent ; supprimer l'écriture (Écritures ou « Défaire ») supprime l'encaissement.
 `billing_settings` gagne `reminder_subject`, `reminder_body`.
 
+Lot S4 (migration `e5f7a9b1c3d6`) : `entities.qonto_client_id`, `products.qonto_product_id` ; une pièce
+émise par Qonto a `qonto_emit`, `qonto_id`, le numéro Qonto (`series_*` vides), `qonto_status`,
+`qonto_attachment_id` (PDF récupéré en différé), `qonto_error` ; une pièce créée dans Qonto a
+`source = qonto`.
+
 Devis (lot S3, sans migration) : `sales.kind = quote`, statuts `draft`, `issued`, `accepted`, `refused`,
 `invoiced` (« expiré » se lit : émis, `validity_date` passée) ; une facture issue d'un devis porte
 `quote_id`.

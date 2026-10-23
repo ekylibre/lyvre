@@ -86,7 +86,7 @@ def _products():
 
 
 def _qonto():
-    return {**external_config.state("qonto"), "upload": purchase_entry.qonto_upload_available()}
+    return {**external_config.state("qonto", "purchases"), "upload": purchase_entry.qonto_upload_available()}
 
 
 # ------------------------------------------------------------------ liste
@@ -149,7 +149,7 @@ def purchases_list():
 
 @bp.route("/purchases/sync", methods=["POST"])
 def purchases_sync():
-    require_integration("qonto")
+    require_integration("qonto", "purchases")
     return jsonify(job=job_payload(purchase_sync.start_sync(current_app._get_current_object())))
 
 
@@ -349,7 +349,7 @@ def _upload_notice(p, sent):
 def purchases_send_to_qonto(purchase_id):
     """Dépose la pièce dans Qonto (écriture côté Qonto, sur action explicite seulement)."""
     p = get_or_404(Purchase, purchase_id, "Facture introuvable.")
-    require_integration("qonto")
+    require_integration("qonto", "purchases")
     if not purchase_entry.can_send_to_qonto(p):
         raise ApiError("conflict", "Cette facture ne peut pas être envoyée à Qonto (pièce absente ou déjà envoyée).",
                        status=409)

@@ -91,7 +91,7 @@ def test_existing_instance_initialized_from_its_settings(admin):
     db.session.commit()
 
     session = admin.get("/api/v1/session").get_json()
-    assert session["instance"]["integrations"] == {"enabled": ["qonto"], "proposed": []}
+    assert session["instance"]["integrations"]["enabled"] == ["qonto"] and session["instance"]["integrations"]["proposed"] == []
     assert json.loads(_instance().integrations) == {"enabled": ["qonto"], "dismissed": []}
 
 
@@ -110,7 +110,8 @@ def test_session_enabled_proposed_and_menus(app, login_as):
     treasurer = login_as()
     _structure("sci", ["odoo"])
     body = treasurer.get("/api/v1/session").get_json()
-    assert body["instance"]["integrations"] == {"enabled": ["odoo"], "proposed": []}  # pas admin
+    integrations = body["instance"]["integrations"]
+    assert (integrations["enabled"], integrations["proposed"]) == (["odoo"], [])  # pas admin
     keys = [m["key"] for m in body["nav"]]
     assert "odoo" in keys
     banque = next(m for m in body["nav"] if m["key"] == "banque")

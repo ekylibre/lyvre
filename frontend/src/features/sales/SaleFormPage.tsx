@@ -4,7 +4,7 @@
 // n'a ni numéro ni écriture ; l'émission se fait depuis sa fiche.
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
-import { Alert, Button, Center, Fieldset, Group, Loader, Select, SimpleGrid, Stack, Text, TextInput, Textarea } from "@mantine/core";
+import { Alert, Button, Center, Checkbox, Fieldset, Group, Loader, Select, SimpleGrid, Stack, Text, TextInput, Textarea } from "@mantine/core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../../api/client";
 import { showNotices, type Notice } from "../../api/resources";
@@ -33,6 +33,7 @@ function SaleFormPage() {
   const [header, setHeader] = useState<Header>(EMPTY);
   const [rows, setRows] = useState<SaleLineRow[]>([EMPTY_SALE_LINE]);
   const [error, setError] = useState<string | null>(null);
+  const [qontoEmit, setQontoEmit] = useState(false); // émission par Qonto : choix explicite (décochée par défaut)
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -42,6 +43,7 @@ function SaleFormPage() {
         due_date: item.due_date ?? "", validity_date: item.validity_date ?? "", service_start: item.service_start ?? "", service_end: item.service_end ?? "",
         operation_type: item.operation_type, purchase_order: item.purchase_order, header: item.header, terms: item.terms,
         footer: item.footer });
+      setQontoEmit(item.qonto_emit);
       setRows(item.lines.map(({ id: _id, untaxed_cents: _u, vat_cents: _v, total_cents: _t, ...row }) => row));
     }
   }, [existing.data]);
@@ -63,7 +65,7 @@ function SaleFormPage() {
 
   const submit = async () => {
     setSaving(true); setError(null);
-    const body = { ...header, kind, entity_id: header.entity_id === NEW_CLIENT ? "" : header.entity_id, lines: rows };
+    const body = { ...header, kind, qonto_emit: qontoEmit, entity_id: header.entity_id === NEW_CLIENT ? "" : header.entity_id, lines: rows };
     try {
       const result = editId
         ? await api.patch<{ item: SaleDetail; notices: Notice[] }>(`/api/v1/sales/${editId}`, body)
@@ -122,6 +124,11 @@ function SaleFormPage() {
               <Textarea label="Pied de facture" autosize minRows={2} value={header.footer} onChange={(e) => set({ footer: e.currentTarget.value })} />
             </SimpleGrid>
           </Fieldset>
+          {o.qonto && !isCredit && (
+            <Checkbox label="Émettre avec Qonto" checked={qontoEmit} onChange={(e) => setQontoEmit(e.currentTarget.checked)}
+              description={isQuote ? "Le devis est créé dans Qonto, qui le numérote et produit son PDF."
+                : "La facture est créée et finalisée dans Qonto, qui la numérote et produit son PDF Factur-X ; elle est comptabilisée ici avec le numéro Qonto."} />
+          )}
           <Group>
             <Button type="submit" loading={saving}>Enregistrer le brouillon</Button>
             <Text size="sm" c="dimmed">{isQuote ? "Le numéro du devis est attribué à l'émission." : "Le numéro et l'écriture comptable sont attribués à l'émission."}</Text>

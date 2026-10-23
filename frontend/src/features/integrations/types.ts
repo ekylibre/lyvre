@@ -26,6 +26,8 @@ export interface Field {
 export interface IntegrationDetail {
   item: Integration & {
     sync_tracked: boolean;
+    /** Périmètre (Qonto : relevés de compte, achats, ventes) ; vide si l'intégration n'en a pas. */
+    scopes?: { value: string; label: string; checked: boolean }[];
     last_sync: { status: string; started_at: string | null; finished_at: string | null; message: string | null;
       imported: number | null; errors: string[]; url: string; link_label: string } | null;
   };

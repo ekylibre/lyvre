@@ -177,6 +177,7 @@ Pages de la SPA : `/configuration/integrations/`, `/configuration/integrations/<
 | GET | `/api/v1/integrations/<service>` | Fiche : statut, dernier test, dernière synchronisation suivie, champs (`label`, `input`, `help`, `required`, `secret`, `source` db/env/none, `value` — **toujours vide pour un secret** —, `env_value` pour un non-secret). 404 si service inconnu |
 | PUT | `/api/v1/integrations/<service>` | `{values, clear}` : secret vide = valeur conservée, clé dans `clear` = effacée ; non-secret vide = ligne supprimée (repli `.env`). Si l'intégration est activée et complète, **lance son test** |
 | POST | `/api/v1/integrations/<service>/enabled` | `{enabled}` : interrupteur de l'instance (base méta) ; prime sur les réglages |
+| POST | `/api/v1/integrations/<service>/scopes` | `{scopes}` : périmètre de l'intégration (Qonto : `transactions`, `purchases`, `sales` ; défaut : relevés et achats) ; une partie décochée est traitée comme une intégration désactivée (409 `integration_required` avec `scope`) |
 | POST | `/api/v1/integrations/<service>/dismiss` | « Ne plus proposer » une intégration recommandée (encart du tableau de bord) |
 | POST | `/api/v1/integrations/<service>/check` | Test de fonctionnement (« Tester maintenant ») ; 409 si désactivée ou incomplète |
 | GET | `/configuration/external-connections/` | Ancienne adresse : redirection 301 vers la page de la SPA |
@@ -544,6 +545,7 @@ Structure, onglet Facturation (`/configuration/organization?tab=billing`). API :
 | POST | `/api/v1/sales/<id>/remind` | Relance d'une facture, message modifiable `{to, cc, subject, body}` |
 | POST | `/api/v1/sales` avec `kind: "quote"` | Brouillon de devis (`validity_date`, 30 jours par défaut) ; émission : numéro `D-AAAA-NNNN`, PDF (« Bon pour accord »), sans écriture ; `GET /api/v1/sales?kind=quote` (statuts : envoyé, accepté, refusé, expiré, facturé) |
 | POST | `/api/v1/sales/<id>/quote-status` | `{status: accepted \| refused \| issued}` : réponse du client à un devis émis non facturé |
+| POST | `/api/v1/sales/sync` | Synchronisation des ventes Qonto (tâche de fond, lecture seule côté Qonto) : clients et produits rattachés ou importés, devis et factures créés dans Qonto importés (factures comptabilisées), statuts, PDF ; périmètre Ventes requis |
 | POST | `/api/v1/sales/<id>/to-invoice` | Brouillon de facture reprenant le devis (lignes, textes, « Devis D-… » en référence) ; le devis devient « facturé » (il redevient accepté si ce brouillon est supprimé) |
 
 `PATCH /api/v1/fiscal-years/<id>` accepte aussi `vat_on_receipts`. `GET /api/v1/dashboard` renvoie `sales`

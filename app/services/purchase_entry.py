@@ -342,7 +342,7 @@ def header_values(p: Purchase) -> dict:
 
 def qonto_upload_available() -> bool:
     """L'instance utilise Qonto : intégration activée et configurée."""
-    return external_config.is_available("qonto")
+    return external_config.scope_available("qonto", "purchases")
 
 
 def can_send_to_qonto(p: Purchase) -> bool:

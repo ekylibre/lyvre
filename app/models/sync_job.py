@@ -7,6 +7,7 @@ SYNC_KIND_PAYOUT_PAYMENTS = "payout_payments"
 SYNC_KIND_METRICS = "metrics"
 SYNC_KIND_QONTO = "qonto_transactions"
 SYNC_KIND_QONTO_INVOICES = "qonto_supplier_invoices"
+SYNC_KIND_QONTO_SALES = "qonto_sales"
 SYNC_KIND_RECEIPTS_ISSUE = "donation_receipts"
 SYNC_KIND_RECEIPTS_SEND = "donation_receipts_send"
 

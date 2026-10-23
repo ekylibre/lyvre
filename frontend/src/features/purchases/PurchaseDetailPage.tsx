@@ -31,7 +31,7 @@ const amount = (cents: number | null) => (cents === null ? "—" : <MoneyText ce
 
 export default function PurchaseDetailPage() {
   const can = useCan();
-  const qontoEnabled = useIntegration("qonto");
+  const qontoEnabled = useIntegration("qonto", "purchases");
   const id = Number(useParams().purchase_id);
   const goTo = useGoTo();
   const key = [...PURCHASES_KEY, id];

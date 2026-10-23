@@ -814,6 +814,7 @@ intégrations par structure (`SERVICE_CHARTS`) ; voir aussi
 | Fonction | Rôle |
 |----------|------|
 | `get(service, key)` / `get_all(service)` / `source(service, key)` | Valeur effective (base, puis `.env` en développement) et son origine (`db`, `env`, `none`) |
+| `scopes(service)` / `scope_enabled(service, scope)` / `scope_available` / `set_scopes` | Périmètre d'une intégration (`SCOPES`, `DEFAULT_SCOPES`) enregistré dans `instances.integrations.scopes` |
 | `applies(service, chart=None)` / `applicable(chart=None)` / `recommended(chart=None)` | Intégrations de la structure (instance courante par défaut) ; recommandées (`RECOMMENDED`) |
 | `set_many(service, values)` | Upsert ; valeur vide = ligne supprimée |
 | `is_configured(service)` | Clés obligatoires renseignées (`SERVICE_REQUIRED_KEYS`) |
@@ -1327,4 +1328,5 @@ mouvements de reprise, écritures AN datées de la reprise contre le compte de c
 | `billing` | Réglages de facturation, mentions requises (`readiness`), logo |
 | `einvoice` | XML CII EN 16931 (bibliothèque `factur-x`, contrôle XSD) et insertion dans le PDF/A-3 |
 | `sale_issue` (S3, devis) | `quote_status` (expiré : émis et validité passée), `set_quote_status`, `to_invoice`, `quote_invoices` ; un devis s'émet (numéro, PDF simple) sans exercice ni écriture |
+| `qonto_sales` (S4) | Périmètre « Ventes » de Qonto : `ensure_client` (recherche SIREN, TVA, email, nom, sinon création), `items` (libellé ≤ 40 caractères, suite en description, remise incluse au prix), `emit` (facture : brouillon puis finalisation, brouillon supprimé si la finalisation échoue ; avoir ; devis), `fetch_pdf`, `mark_paid` / `unmark_paid`, `send`, `sync` (lecture seule) ; client Qonto sans reprise automatique des écritures |
 | `sale_settlement` (S2) | Restant dû, statut payé, TVA à virer au prorata (`vat_release`), candidats (crédits libres, écriture de règle 7… / 411 remplaçable), `match` (transaction → factures d'un client), `record_manual`, `auto_match` (candidat unique et exclusif), `unlink`, `forget_entry_payments` (appelé par `ledger.delete_entries`), `receivables_summary` (tableau de bord) ; les règles de catégorisation ignorent les transactions qui encaissent une facture |

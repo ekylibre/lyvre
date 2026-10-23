@@ -59,7 +59,7 @@ function SyncFrom({ value }: { value: string }) {
 export default function PurchasesPage() {
   const client = useQueryClient();
   const can = useCan();
-  const qonto = useIntegration("qonto");
+  const qonto = useIntegration("qonto", "purchases");
   const [params, setParams] = useUrlParams(FILTERS);
   const query = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
   const { data, isFetching } = useList<Purchase, PurchasesMeta>(PURCHASES_KEY, `/api/v1/purchases${query ? `?${query}` : ""}`);

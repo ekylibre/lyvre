@@ -61,6 +61,12 @@ SERVICE_CHARTS: dict[str, set[str]] = {
     "facebook":  {"asso"},
 }
 
+# Périmètre d'une intégration (cases de sa fiche) ; défaut quand rien n'est enregistré.
+SCOPES: dict[str, dict[str, str]] = {
+    "qonto": {"transactions": "Relevés de compte", "purchases": "Achats", "sales": "Ventes"},
+}
+DEFAULT_SCOPES: dict[str, set[str]] = {"qonto": {"transactions", "purchases"}}
+
 # Intégrations dont l'activation est proposée, par structure.
 RECOMMENDED: dict[str, list[str]] = {
     "sci":  ["qonto"],
@@ -272,6 +278,29 @@ def set_enabled(service: str, enabled: bool) -> None:
     db.session.commit()
 
 
+def scopes(service: str, inst=None) -> set[str]:
+    """Périmètre de l'intégration pour l'instance (défaut si rien n'est enregistré)."""
+    inst = inst if inst is not None else current_instance()
+    saved = inst.integration_scopes(service) if inst is not None else None
+    return saved if saved is not None else set(DEFAULT_SCOPES.get(service, set()))
+
+
+def scope_enabled(service: str, scope: str) -> bool:
+    """Intégration activée et partie cochée (ex. Qonto › Ventes)."""
+    return is_enabled(service) and scope in scopes(service)
+
+
+def set_scopes(service: str, values) -> None:
+    allowed = SCOPES.get(service)
+    if not allowed:
+        raise ValueError(f"No scopes for service: {service}")
+    unknown = set(values) - set(allowed)
+    if unknown:
+        raise ValueError(f"Unknown scopes: {sorted(unknown)}")
+    _instance_or_fail().set_integration_scopes(service, values)
+    db.session.commit()
+
+
 def dismiss(service: str) -> None:
     """« Ne plus proposer » : l'intégration recommandée sort de l'encart du tableau de bord."""
     inst = _instance_or_fail()
@@ -308,6 +337,10 @@ def ensure_initialized(inst) -> None:
     db.session.commit()
 
 
+def scope_available(service: str, scope: str) -> bool:
+    return scope_enabled(service, scope) and is_configured(service)
+
+
 def is_available(service: str) -> bool:
     """True if the integration can be used: switched on and fully configured."""
     return is_enabled(service) and is_configured(service)
@@ -322,16 +355,20 @@ def unavailable_reason(service: str) -> str | None:
     return None
 
 
-def state(service: str) -> dict:
+def state(service: str, scope: str | None = None) -> dict:
     """État d'une intégration pour les écrans : activée (sinon rien ne s'affiche), disponible
-    (activée et configurée), message si elle est activée mais indisponible."""
-    enabled = is_enabled(service)
+    (activée et configurée), message si elle est activée mais indisponible. `scope` : partie du
+    périmètre (Qonto › Achats…) ; décochée, l'intégration est vue comme désactivée."""
+    enabled = scope_enabled(service, scope) if scope else is_enabled(service)
     return {"enabled": enabled, "available": is_available(service),
             "message": unavailable_message(service) if enabled else None}
 
 
-def required_message(service: str) -> str:
-    """Action courante qui a besoin d'une intégration désactivée."""
+def required_message(service: str, scope: str | None = None) -> str:
+    """Action courante qui a besoin d'une intégration désactivée (ou d'une partie décochée)."""
+    if scope and is_enabled(service):
+        return (f"Cette action nécessite la partie « {SCOPES[service][scope]} » de l'intégration "
+                f"{SERVICE_LABELS[service]}, non cochée (Configuration › Intégrations).")
     return f"Cette action nécessite l'intégration {SERVICE_LABELS[service]}, désactivée."
 
 

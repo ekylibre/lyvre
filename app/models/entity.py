@@ -43,6 +43,7 @@ class Entity(db.Model):
     # Ventes : compte client 411NNN (créé à la première facture) ; emails en copie des envois.
     customer_account_code = db.Column(db.String(20))
     billing_emails = db.Column(db.Text)
+    qonto_client_id = db.Column(db.String(36), index=True)  # client Qonto (ventes, lot S4)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     transactions = db.relationship("BankTransaction", back_populates="entity", lazy="dynamic")

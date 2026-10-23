@@ -229,6 +229,7 @@ def match(txn: BankTransaction, allocations: list[tuple[Sale, int]]) -> JournalE
     except Exception:
         db.session.rollback()
         raise
+    entry.qonto_warnings = qonto_mark_paid([sale for sale, _ in allocations], txn.transaction_date)
     return entry
 
 
@@ -247,7 +248,29 @@ def record_manual(sale: Sale, amount: int, paid_on: date, ba: BankAccount, metho
     except Exception:
         db.session.rollback()
         raise
+    entry.qonto_warnings = qonto_mark_paid([sale], paid_on)
     return entry
+
+
+def qonto_mark_paid(sales, paid_on: date) -> list[str]:
+    """Factures Qonto soldées : marquées payées dans Qonto (V11). Un échec n'annule pas
+    l'encaissement : il est signalé (à refaire dans Qonto)."""
+    from app.services import qonto_sales
+    from app.services.qonto_client import QontoError
+
+    warnings = []
+    for sale in sales:
+        if not sale.qonto_id or sale.status != "paid" or sale.qonto_status == "paid":
+            continue
+        try:
+            qonto_sales.mark_paid(sale, paid_on)
+            for payment in sale.payments:
+                payment.qonto_marked = True
+            db.session.commit()
+        except (QontoError, SaleError) as exc:
+            db.session.rollback()
+            warnings.append(f"Facture {sale.number} encaissée mais non marquée payée dans Qonto : {exc}")
+    return warnings
 
 
 def auto_match() -> dict:
@@ -284,9 +307,18 @@ def unlink(payment: SalePayment) -> None:
         refresh_status(sale)
         db.session.commit()
         return
+    sales = [p.sale for p in SalePayment.query.filter_by(journal_entry_id=payment.journal_entry_id)]
     (outcome,) = delete_entries([payment.journal_entry_id])
     if outcome["status"] != "ok":
         raise SaleError(outcome["message"], status=409)
+    from app.services import qonto_sales
+    from app.services.qonto_client import QontoError
+    for sale in sales:  # facture Qonto marquée payée : elle redevient à payer dans Qonto
+        try:
+            qonto_sales.unmark_paid(sale)
+            db.session.commit()
+        except QontoError:
+            db.session.rollback()
 
 
 def forget_entry_payments(entry_id: int) -> None:

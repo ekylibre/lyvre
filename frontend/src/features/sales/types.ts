@@ -14,6 +14,8 @@ export interface SaleRow {
   validity_date: string | null;
   untaxed_cents: number; tax_cents: number; total_cents: number; paid_cents: number; sent_at: string | null; overdue: boolean;
   due_cents: number; reminder_count: number; last_reminder_at: string | null;
+  /** Émise (ou à émettre) par Qonto ; statut et erreur Qonto. */
+  qonto_emit: boolean; qonto_status: string | null; qonto_error: string | null;
 }
 
 export interface SalePayment {
@@ -58,7 +60,7 @@ export interface SaleProductOption extends Option {
 export interface SaleFormOptions {
   clients: Option[]; products: SaleProductOption[]; sale_accounts: Option[]; default_account: string;
   projects: Option[]; units: string[]; operation_types: Option[]; vat_mode: "none" | "receipts" | "debits";
-  vat_liable: boolean; payment_terms_days: number;
+  vat_liable: boolean; payment_terms_days: number; qonto: boolean;
 }
 
 export const STATUS_TONES: Record<SaleStatus, Tone> = {

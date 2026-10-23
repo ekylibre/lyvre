@@ -16,6 +16,7 @@ from app.models import Notification, SyncJob
 from app.services import external_config
 from app.models.sync_job import (
     SYNC_KIND_METRICS, SYNC_KIND_PAYOUT_PAYMENTS, SYNC_KIND_PAYOUTS, SYNC_KIND_QONTO, SYNC_KIND_QONTO_INVOICES,
+    SYNC_KIND_QONTO_SALES,
     SYNC_KIND_RECEIPTS_ISSUE, SYNC_KIND_RECEIPTS_SEND, SYNC_STATUS_FAILED,
 )
 
@@ -29,6 +30,7 @@ JOB_LABELS = {
     SYNC_KIND_PAYOUT_PAYMENTS: "Synchronisation des paiements d'un versement Stancer",
     SYNC_KIND_QONTO: "Synchronisation des transactions Qonto",
     SYNC_KIND_QONTO_INVOICES: "Synchronisation des factures d'achat Qonto",
+    SYNC_KIND_QONTO_SALES: "Synchronisation des ventes Qonto",
     SYNC_KIND_METRICS: "Synchronisation des indicateurs",
     SYNC_KIND_RECEIPTS_ISSUE: "Émission des reçus fiscaux",
     SYNC_KIND_RECEIPTS_SEND: "Expédition des reçus fiscaux par email",
@@ -41,6 +43,7 @@ JOB_INTEGRATIONS = {
     SYNC_KIND_PAYOUT_PAYMENTS: ("stancer",),
     SYNC_KIND_QONTO: ("qonto",),
     SYNC_KIND_QONTO_INVOICES: ("qonto",),
+    SYNC_KIND_QONTO_SALES: ("qonto",),
     SYNC_KIND_METRICS: ("ga4", "facebook"),
     SYNC_KIND_RECEIPTS_SEND: ("smtp",),
 }
@@ -52,7 +55,7 @@ def _url(job: SyncJob) -> str | None:
         return f"/bank-accounts/{job.bank_account_id}/transactions" if job.bank_account_id else "/bank-accounts/"
     if job.kind == SYNC_KIND_PAYOUT_PAYMENTS and job.payout_id:
         return f"/payouts/{job.payout_id}"
-    return {SYNC_KIND_PAYOUTS: "/payouts/", SYNC_KIND_QONTO_INVOICES: "/purchases/",
+    return {SYNC_KIND_PAYOUTS: "/payouts/", SYNC_KIND_QONTO_INVOICES: "/purchases/", SYNC_KIND_QONTO_SALES: "/sales/",
             SYNC_KIND_METRICS: "/impact/", SYNC_KIND_RECEIPTS_ISSUE: "/receipts/?tab=issued",
             SYNC_KIND_RECEIPTS_SEND: "/receipts/?tab=issued"}.get(job.kind)
 
@@ -86,6 +89,11 @@ def summary(kind: str, result: dict) -> str:
         if n("to_review"):
             parts.append(f"{n('to_review')} à revoir")
         return ", ".join(parts) + "."
+    if kind == SYNC_KIND_QONTO_SALES:
+        return (f"Factures : {n('invoices_created')} importée(s), {n('invoices_updated')} mise(s) à jour ; "
+                f"devis : {n('quotes_created')} importé(s), {n('quotes_updated')} mis à jour ; "
+                f"{n('clients_linked')} client(s) rattaché(s), {n('products_created')} produit(s) importé(s), "
+                f"{n('pdfs')} PDF récupéré(s).")
     if kind in (SYNC_KIND_PAYOUTS, SYNC_KIND_PAYOUT_PAYMENTS):
         text = f"{n('imported')} importé(s), {n('updated')} mis à jour sur {n('total')}."
         if "payments_total" in result:

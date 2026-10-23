@@ -179,6 +179,86 @@ class QontoClient:
         return invoices[0]
 
 
+    # ------------------------------------------------------------- ventes (lot S4)
+    # Écritures : jamais rejouées automatiquement (pas de clé d'idempotence sur ces routes).
+
+    def _post(self, path, payload=None) -> dict:
+        return self._request("post", path, json=payload) if payload is not None else self._request("post", path)
+
+    def _list(self, path, key, *, page=1, per_page=100, params=None) -> tuple[list[dict], dict]:
+        payload = self._get(path, params={"page": page, "per_page": per_page, **(params or {})})
+        return payload.get(key) or [], payload.get("meta") or {}
+
+    def iter_pages(self, path, key, params=None) -> Iterator[list[dict]]:
+        """Pages successives d'une liste paginée (`meta.next_page`)."""
+        page = 1
+        while page:
+            items, meta = self._list(path, key, page=page, params=params)
+            yield items
+            page = meta.get("next_page")
+
+    def find_clients(self, **filters) -> list[dict]:
+        """Clients filtrés (filtres exacts : tax_identification_number, vat_number, email, name)."""
+        params = {f"filter[{k}]": v for k, v in filters.items() if v}
+        return self._list("/clients", "clients", params=params)[0]
+
+    def create_client(self, payload: dict) -> dict:
+        return self._post("/clients", payload).get("client") or {}
+
+    def create_product(self, payload: dict) -> dict:
+        return self._post("/products", payload).get("product") or {}
+
+    def create_client_invoice(self, payload: dict) -> dict:
+        return self._post("/client_invoices", payload).get("client_invoice") or {}
+
+    def get_client_invoice(self, invoice_id: str) -> dict:
+        return self._get(f"/client_invoices/{invoice_id}").get("client_invoice") or {}
+
+    def finalize_client_invoice(self, invoice_id: str) -> dict:
+        return self._post(f"/client_invoices/{invoice_id}/finalize").get("client_invoice") or {}
+
+    def delete_client_invoice(self, invoice_id: str) -> None:
+        """Supprime un brouillon (Qonto ne supprime ni une facture finalisée ni ses pièces)."""
+        self._delete(f"/client_invoices/{invoice_id}")
+
+    def mark_client_invoice_paid(self, invoice_id: str, paid_at: str) -> dict:
+        return self._post(f"/client_invoices/{invoice_id}/mark_as_paid", {"paid_at": paid_at}).get("client_invoice") or {}
+
+    def unmark_client_invoice_paid(self, invoice_id: str) -> dict:
+        return self._post(f"/client_invoices/{invoice_id}/unmark_as_paid").get("client_invoice") or {}
+
+    def send_client_invoice(self, invoice_id: str, payload: dict) -> None:
+        self._post(f"/client_invoices/{invoice_id}/send", payload)
+
+    def create_credit_note(self, payload: dict) -> dict:
+        return self._post("/credit_notes", payload).get("credit_note") or {}
+
+    def create_quote(self, payload: dict) -> dict:
+        return self._post("/quotes", payload).get("quote") or {}
+
+    def send_quote(self, quote_id: str, payload: dict) -> None:
+        self._post(f"/quotes/{quote_id}/send", payload)
+
+    def attachment(self, attachment_id: str) -> dict:
+        """Pièce jointe : `url` de téléchargement valable 30 minutes."""
+        return self._get(f"/attachments/{attachment_id}").get("attachment") or {}
+
+    def download(self, url: str) -> bytes:
+        """Fichier d'une URL signée de pièce jointe (sans l'en-tête d'authentification Qonto)."""
+        resp = requests.get(url, timeout=self.timeout)
+        if resp.status_code >= 400:
+            raise QontoError(f"Téléchargement de la pièce Qonto impossible (HTTP {resp.status_code}).", response=resp)
+        return resp.content
+
+    def _delete(self, path) -> None:
+        resp = self._session.delete(f"{self.base_url}{path}", timeout=self.timeout)
+        if resp.status_code in (401, 403):
+            raise QontoAuthError(f"Qonto a refusé les identifiants (HTTP {resp.status_code}).", response=resp)
+        if resp.status_code >= 400:
+            detail = _error_detail(resp)
+            raise QontoError(f"Qonto a répondu HTTP {resp.status_code}" + (f" : {detail}" if detail else "."), response=resp)
+
+
 def _error_detail(resp) -> str:
     try:
         errors = resp.json().get("errors") or []

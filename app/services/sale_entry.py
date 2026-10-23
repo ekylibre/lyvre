@@ -246,10 +246,17 @@ def _apply(sale: Sale, header: Header, lines: list[SaleLine], settings) -> None:
     compute(sale)
 
 
+def _qonto_emit(data: dict, kind: str) -> bool:
+    """Case « Émettre avec Qonto » : retenue seulement si le périmètre Ventes de Qonto est actif."""
+    from app.services import external_config
+
+    return bool(data.get("qonto_emit")) and kind in ("invoice", "quote") and external_config.scope_available("qonto", "sales")
+
+
 def create(data: dict, kind: str = "invoice") -> Sale:
     from app.services import billing
 
-    sale = Sale(kind=kind, status="draft", source="app")
+    sale = Sale(kind=kind, status="draft", source="app", qonto_emit=_qonto_emit(data, kind))
     _apply(sale, parse_header(data), parse_lines(data.get("lines")), billing.get())
     db.session.add(sale)
     db.session.commit()
@@ -264,6 +271,8 @@ def update(sale: Sale, data: dict) -> Sale:
     header, lines = parse_header(data), parse_lines(data.get("lines"))
     if sale.kind == "credit_note":
         header.entity = sale.entity  # l'avoir reste au client de sa facture
+    elif "qonto_emit" in data:
+        sale.qonto_emit = _qonto_emit(data, sale.kind)
     sale.lines.clear()
     db.session.flush()
     _apply(sale, header, lines, billing.get())

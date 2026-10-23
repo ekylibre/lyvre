@@ -63,7 +63,7 @@ function BankAccountForm({ bankAccount, meta, onDone }: { bankAccount: BankAccou
 export default function BankAccountsPage() {
   const modal = useRouteModal("/bank-accounts/", "ba_id");
   const can = useCan();
-  const qonto = useIntegration("qonto");
+  const qonto = useIntegration("qonto", "transactions");
   const { data, isFetching } = useList<BankAccount, Meta>(BANK_ACCOUNTS_KEY, "/api/v1/bank-accounts");
   const editing = modal.mode === "edit" ? data?.items.find((b) => b.id === modal.id) ?? null : null;
   const remove = useAction((b: BankAccount) => api.delete<{ notices: Notice[] }>(`/api/v1/bank-accounts/${b.id}`),
