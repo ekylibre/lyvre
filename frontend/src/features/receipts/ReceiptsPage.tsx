@@ -20,6 +20,7 @@ import { JobStatus, type Job } from "../../components/JobStatus";
 import { MoneyInput, MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
+import { useIntegrationGuard } from "../../components/IntegrationRequired";
 import { formatDate, formatDateTime } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
 
@@ -184,6 +185,7 @@ function Issued({ year, receipts, onJob }: { year: number; receipts: Receipt[] |
   const [cancelling, setCancelling] = useState<Receipt | null>(null);
   const send = useAction((body: { ids?: number[]; year?: number }) =>
     api.post<{ job?: Job; notices?: Notice[] }>("/api/v1/receipts/send", body));
+  const smtp = useIntegrationGuard("smtp", "L'envoi des reçus par email");
   const start = (body: { ids?: number[]; year?: number }) => send.mutate(body, { onSuccess: (r) => { if (r.job) onJob(r.job); } });
   if (!receipts) return <Center h={200}><Loader /></Center>;
   const unsent = receipts.filter((r) => r.status === "issued" && !r.sent_at && r.email).length;
@@ -192,9 +194,9 @@ function Issued({ year, receipts, onJob }: { year: number; receipts: Receipt[] |
       {can.write && unsent > 0 && (
         <Group justify="flex-end">
           <Button variant="default" leftSection={<Mail size={16} />} loading={send.isPending}
-            onClick={() => confirmAction({ title: `Envoyer ${unsent} reçu(s) par email ?`, confirmLabel: "Envoyer", danger: false,
+            onClick={smtp.guard(() => confirmAction({ title: `Envoyer ${unsent} reçu(s) par email ?`, confirmLabel: "Envoyer", danger: false,
               message: "Chaque donateur reçoit son reçu en pièce jointe, à l'adresse email de sa fiche.",
-              onConfirm: () => start({ year }) })}>Envoyer les reçus non envoyés ({unsent})</Button>
+              onConfirm: () => start({ year }) }))}>Envoyer les reçus non envoyés ({unsent})</Button>
         </Group>
       )}
       <Paper p={0} style={{ overflowX: "auto" }}>
@@ -216,7 +218,7 @@ function Issued({ year, receipts, onJob }: { year: number; receipts: Receipt[] |
                 <Table.Td><Text size="xs" c="dimmed">{r.sent_at ? `${formatDate(r.sent_at)} · ${r.sent_to}` : r.email ? "Non envoyé" : "Sans email"}</Text></Table.Td>
                 <Table.Td ta="right" style={{ whiteSpace: "nowrap" }}>
                   <Button variant="subtle" size="compact-sm" component="a" href={r.pdf_url} target="_blank" leftSection={<FileText size={14} />}>PDF</Button>
-                  {can.write && r.status === "issued" && r.email && <Button variant="subtle" size="compact-sm" onClick={() => start({ ids: [r.id] })}>
+                  {can.write && r.status === "issued" && r.email && <Button variant="subtle" size="compact-sm" onClick={smtp.guard(() => start({ ids: [r.id] }))}>
                     {r.sent_at ? "Renvoyer" : "Envoyer"}</Button>}
                   {can.write && r.status === "issued" && <Button variant="subtle" size="compact-sm" color="brique" onClick={() => setCancelling(r)}>Annuler…</Button>}
                 </Table.Td>

@@ -10,6 +10,7 @@ import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { IntegrationNotice } from "../../components/IntegrationNotice";
 import { PageHeader } from "../../components/PageHeader";
 import { Can } from "../../components/Can";
+import { useIntegrationGuard } from "../../components/IntegrationRequired";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
 import { filterQuery, MEMBERS_KEY, type Integrations, type Member } from "./types";
@@ -34,6 +35,7 @@ export default function RemindersPage() {
     { ...filters, ids: selected.map((m) => m.id) }), { invalidate: [MEMBERS_KEY] });
   const smtp = data?.meta?.integrations.smtp;
   const helloasso = useIntegration("helloasso");
+  const smtpGuard = useIntegrationGuard("smtp", "L'envoi des relances par email");
 
   return (
     <>
@@ -41,11 +43,11 @@ export default function RemindersPage() {
         description="Adhérents dont l'adhésion est échue et dont l'email est connu."
         actions={<>
           <Can><Button variant="default" component={AppLink} href="/entities/members/reminder-template">Modifier le message</Button></Can>
-          <Can><Button disabled={!selected.length || !smtp?.available} loading={send.isPending}
-            onClick={() => confirmAction({
+          <Can><Button disabled={!selected.length || (smtpGuard.enabled && !smtp?.available)} loading={send.isPending}
+            onClick={smtpGuard.guard(() => confirmAction({
               title: `Envoyer ${selected.length} email(s) de relance ?`, danger: false, confirmLabel: "Envoyer",
               message: "Chaque adhérent coché reçoit le message de relance.", onConfirm: () => send.mutate(undefined),
-            })}>Envoyer la relance</Button></Can>
+            }))}>Envoyer la relance</Button></Can>
         </>} />
       <IntegrationNotice name="smtp" state={smtp} consequence="envoi des relances impossible" />
       {data?.meta?.helloasso_url ? (

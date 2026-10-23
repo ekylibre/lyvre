@@ -12,6 +12,7 @@ import { IntegrationNotice } from "../../components/IntegrationNotice";
 import { PageHeader } from "../../components/PageHeader";
 import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
+import { useIntegrationGuard } from "../../components/IntegrationRequired";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
 import { useHelloAssoSync } from "../entities/EntitiesPage";
@@ -32,6 +33,7 @@ export default function MembersPage() {
   const sync = useHelloAssoSync();
   const helloasso = useIntegration("helloasso");
   const odoo = useIntegration("odoo");
+  const smtp = useIntegrationGuard("smtp", "La relance par email");
   const benevole = useAction((value: boolean) => api.post<{ notices: Notice[] }>("/api/v1/members/benevole",
     { ids: selected.map((m) => m.id), value }), { invalidate: [MEMBERS_KEY] });
   const odooNotes = useAction(() => api.post<{ notices: Notice[] }>("/api/v1/members/odoo-notes",
@@ -70,9 +72,11 @@ export default function MembersPage() {
               <Menu.Item component="a" href={meta?.export_urls.xlsx}>Excel (XLSX)</Menu.Item>
             </Menu.Dropdown>
           </Menu>
-          <Can><Button variant="default" component={AppLink}
-            href={`/entities/members/reminders${filterQuery({ q: params.q, date_from: params.date_from, date_to: params.date_to })}`}
-            disabled={!meta?.integrations.smtp.available}>Relancer les échus</Button></Can>
+          <Can>{smtp.enabled
+            ? <Button variant="default" component={AppLink}
+              href={`/entities/members/reminders${filterQuery({ q: params.q, date_from: params.date_from, date_to: params.date_to })}`}
+              disabled={!meta?.integrations.smtp.available}>Relancer les échus</Button>
+            : <Button variant="default" onClick={smtp.guard(() => undefined)}>Relancer les échus</Button>}</Can>
           {helloasso && <Can><Button loading={sync.isPending} disabled={!meta?.integrations.helloasso.available}
             onClick={() => sync.mutate(undefined)}>Synchroniser HelloAsso</Button></Can>}
         </>} />

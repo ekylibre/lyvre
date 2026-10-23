@@ -19,6 +19,7 @@ import { ModalsProvider } from "@mantine/modals";
 import { Notifications, notifications } from "@mantine/notifications";
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ApiError } from "../api/client";
+import { openIntegrationRequired } from "../components/IntegrationRequired";
 import { theme } from "./theme";
 
 // Saisie clavier des DateInput (« 15/06/2026 ») : analyse selon valueFormat.
@@ -27,6 +28,11 @@ dayjs.extend(customParseFormat);
 function notifyError(error: unknown) {
   // 401 / 409 « pas d'instance » : redirection en cours (api/client.ts).
   if (error instanceof ApiError && (error.status === 401 || error.code === "no_instance")) return;
+  // Intégration désactivée : fenêtre qui propose de l'activer plutôt qu'une erreur.
+  if (error instanceof ApiError && error.code === "integration_required" && typeof error.details.service === "string") {
+    openIntegrationRequired(error.details.service, error.message);
+    return;
+  }
   const message = error instanceof Error ? error.message : "Erreur inattendue.";
   notifications.show({ color: "red", title: "Erreur", message, autoClose: false });
 }
