@@ -716,10 +716,15 @@ def read_facturx(pdf) -> Extraction | None:
         return None
     for name in names:
         if name.lower() in FACTURX_NAMES:
-            info = pdf.embfile_info(name)
-            if (info.get("size") or 0) > MAX_XML_SIZE:
+            # Pas d'embfile_info : PyMuPDF y décode la somme MD5 binaire en texte et échoue sur
+            # certains PDF (ceux de la bibliothèque factur-x notamment). Taille contrôlée après lecture.
+            try:
+                content = pdf.embfile_get(name)
+            except Exception:  # noqa: BLE001 — pièce jointe illisible
                 continue
-            ext = parse_facturx(pdf.embfile_get(name))
+            if len(content) > MAX_XML_SIZE:
+                continue
+            ext = parse_facturx(content)
             if ext is not None:
                 return ext
     return None

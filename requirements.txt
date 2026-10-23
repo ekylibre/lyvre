@@ -8,6 +8,8 @@ ofxtools==0.9.*
 pyyaml==6.0.*
 requests==2.*
 weasyprint==69.*
+# Factur-X des factures de vente (XML CII EN 16931, insertion dans le PDF/A-3), Akretion, BSD.
+factur-x==7.*
 odfpy==1.4.*
 stancer==1.*
 pandas==2.2.*
