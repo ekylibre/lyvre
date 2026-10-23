@@ -19,7 +19,7 @@ import { AppLink, useGoTo } from "../../app/navigation";
 import { AttachmentPreview } from "./AttachmentPreview";
 import { LinesEditor } from "./LinesEditor";
 import { EMPTY_LINE } from "./lines";
-import { PAYMENT_TONES, PURCHASES_KEY, STATE_TONES, purchaseTitle, type LineRow, type PurchaseDetail } from "./types";
+import { deleteMessage, PAYMENT_TONES, PURCHASES_KEY, STATE_TONES, purchaseTitle, type LineRow, type PurchaseDetail } from "./types";
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return <Table.Tr><Table.Th w="28%" fw={500} c="dimmed">{label}</Table.Th><Table.Td>{children}</Table.Td></Table.Tr>;
@@ -72,7 +72,7 @@ export default function PurchaseDetailPage() {
         actions={<>
           <Can>{p.source === "manual" && editable && <Button variant="default" component={AppLink} href={`/purchases/${id}/edit`}>Modifier l'en-tête</Button>}
           <ConfirmButton title={`Supprimer ${name} ?`} confirmLabel="Supprimer" loading={remove.isPending}
-            message={[p.journal_entry_id && "Son écriture d'achat sera supprimée aussi.", p.in_qonto && "Elle reste dans Qonto."].filter(Boolean).join(" ") || undefined}
+            message={deleteMessage(p)}
             onConfirm={() => remove.mutate(undefined, { onSuccess: () => goTo("/purchases/") })}>Supprimer</ConfirmButton></Can>
           <Button variant="default" component={AppLink} href="/purchases/">Retour</Button>
         </>} />

@@ -19,6 +19,15 @@ export interface Purchase {
   state: PurchaseState; journal_entry_id: number | null;
 }
 
+/** Confirmation de suppression : écriture supprimée aussi ; facture présente dans Qonto (reçue de Qonto ou
+ * déposée depuis la saisie), que la synchronisation réimporte si elle y est modifiée. */
+export function deleteMessage(p: Pick<Purchase, "journal_entry_id" | "in_qonto" | "source">): string | undefined {
+  const qonto = p.source === "manual" ? "Elle a été déposée dans Qonto et y reste" : "Elle reste dans Qonto";
+  return [p.journal_entry_id && "Son écriture d'achat sera supprimée aussi.",
+    p.in_qonto && `${qonto} : supprimez-la aussi dans Qonto si vous ne voulez pas la voir revenir : la synchronisation la réimporte dès qu'elle y est modifiée.`]
+    .filter(Boolean).join(" ") || undefined;
+}
+
 export interface QontoState extends IntegrationState { upload: boolean }
 
 export interface PurchasesMeta {

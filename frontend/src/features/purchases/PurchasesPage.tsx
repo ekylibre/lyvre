@@ -19,7 +19,7 @@ import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
-import { PURCHASES_KEY, STATE_TONES, type Purchase, type PurchasesMeta } from "./types";
+import { deleteMessage, PURCHASES_KEY, STATE_TONES, type Purchase, type PurchasesMeta } from "./types";
 
 const FILTERS = { q: "", state: "", status: "", source: "", entity_id: "", month: "", unpaid: "", no_supplier: "", hidden: "", sort: "desc" };
 
@@ -39,11 +39,6 @@ export function syncResult(r: Record<string, unknown>) {
       {errors.slice(0, 5).map((e) => <Text key={e} size="sm" c="var(--lv-brique)">{e}</Text>)}
     </>
   );
-}
-
-function deleteMessage(p: Purchase) {
-  return [p.journal_entry_id && "Son écriture d'achat sera supprimée aussi.", p.in_qonto && "Elle reste dans Qonto."]
-    .filter(Boolean).join(" ") || undefined;
 }
 
 function SyncFrom({ value }: { value: string }) {

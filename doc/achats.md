@@ -98,9 +98,9 @@ enregistré avant **Enregistrer la facture**. **Saisir sans fichier** ouvre un f
 - **Doublon** : même fournisseur et même n° (ou, sans n°, même date et même TTC) → avertissement ;
   cochez « Ce n'est pas un doublon » pour enregistrer quand même.
 
-**Envoyer à Qonto** (instances où l'intégration Qonto est disponible, case cochée par défaut, fichier
-obligatoire) : la pièce est déposée dans Qonto à l'enregistrement. Décochez-la pour une facture payée
-par un autre compte. En cas d'échec, la facture reste enregistrée, marquée « envoi en échec » (motif
+**Envoyer à Qonto** (instances où l'intégration Qonto est disponible, case décochée par défaut,
+fichier obligatoire) : cochée, la pièce est déposée dans Qonto à l'enregistrement. Laissez-la décochée
+pour une facture payée par un autre compte. En cas d'échec, la facture reste enregistrée, marquée « envoi en échec » (motif
 sur la fiche, badge dans la liste) : **Renvoyer à Qonto** recommence sans risque de doublon (même clé
 d'idempotence). Quand Qonto renvoie la facture à la synchronisation, elle n'est pas recréée et **la
 saisie l'emporte** : fournisseur, n°, dates, montants et lignes sont gardés ; Qonto complète les champs
@@ -123,7 +123,9 @@ pièce jointe. La suppression est **refusée**, avec un message, si la facture :
 - a son écriture dans un **exercice clôturé**.
 
 Une facture venue de Qonto (ou envoyée à Qonto) n'est supprimée que dans l'application : elle reste
-dans Qonto et revient à la synchronisation si elle y est modifiée.
+dans Qonto et revient à la synchronisation si elle y est modifiée (ou si la date de début de
+synchronisation est avancée). Supprimez-la aussi dans Qonto si vous ne voulez plus la voir revenir ; la
+confirmation de suppression le rappelle. Une facture saisie mais jamais envoyée n'a pas ce message.
 
 ## Règlements
 

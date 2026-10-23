@@ -61,7 +61,7 @@ function PurchaseFormPage() {
   const [errors, setErrors] = useState<string[]>([]);
   const [duplicates, setDuplicates] = useState<Duplicate[]>([]);
   const [confirmDuplicate, setConfirmDuplicate] = useState(false);
-  const [sendToQonto, setSendToQonto] = useState(true);
+  const [sendToQonto, setSendToQonto] = useState(false); // dépôt dans Qonto : choix explicite
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -224,7 +224,7 @@ function PurchaseFormPage() {
         )}
         {qontoUpload && (
           <Checkbox label="Envoyer à Qonto" checked={!!token && sendToQonto} disabled={!token} onChange={(e) => setSendToQonto(e.currentTarget.checked)}
-            description={token ? "La pièce est déposée dans Qonto à l'enregistrement. Décochez pour une facture payée par un autre compte." : "Envoi impossible sans fichier."} />
+            description={token ? "Cochez pour déposer la pièce dans Qonto (factures fournisseurs) à l'enregistrement." : "Envoi impossible sans fichier."} />
         )}
         <Group><Button type="submit" loading={saving}>{editId ? "Enregistrer" : "Enregistrer la facture"}</Button></Group>
       </Stack>
