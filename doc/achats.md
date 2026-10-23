@@ -164,6 +164,24 @@ listé pour vérification.
 **Facture payée par un associé** (sociétés avec le module Associés) : bouton **Réglée par un associé**
 sur la fiche, ou option **Payée par un associé** à la saisie ; voir [Associés](associes.md#facture-payée-par-un-associé).
 
+## Abonnements
+
+Achats › **Abonnements** : contrats récurrents (internet, téléphone, assurance, banque, énergie,
+logiciel…). Un abonnement : fournisseur, désignation, catégorie, montant TTC attendu (**fixe** ou
+**estimé**), périodicité (mensuelle, trimestrielle, annuelle), jour d'échéance, compte prélevé,
+début, fin, date de **reconduction** (tacite, chaque année) et **préavis** de résiliation, produit du
+catalogue.
+
+- À chaque échéance, une **échéance attendue** est créée (une seule fois). Elle se rattache seule à
+  la **facture d'achat** du fournisseur la plus proche (même montant, ou ±30 % si le montant est
+  estimé) et au **prélèvement** du même montant (même tiers, ou libellé citant le fournisseur).
+- États : Attendue, Facture reçue, Payée, **Manquante** (rien 10 jours après l'échéance), Ignorée.
+  Une échéance se rattache à la main (facture ou prélèvement proposés) ou s'ignore.
+- Suivi : coût **mensuel** et **annuel**, total par catégorie, échéances manquantes, date limite de
+  résiliation signalée **45 jours** avant.
+- Aucune écriture propre : la facture réelle se comptabilise comme toute facture d'achat. Les frais
+  prélevés sans facture continuent de passer par les règles de catégorisation.
+
 ## Limites
 
 - **Lecture** : 3 premières pages ; OCR seulement si Tesseract (français) est installé (inclus dans

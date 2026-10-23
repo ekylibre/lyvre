@@ -96,6 +96,35 @@ PNG = bytes.fromhex("89504e470d0a1a0a0000000d49484452000000010000000108060000001
                     "0000000d49444154789c63f80f00000101000518d84e0000000049454e44ae426082")
 
 
+def _seed_sales(engine):
+    """Société prête à facturer (module Ventes) : structure avec SIREN et adresse, exercice non
+    assujetti à la TVA, comptes 411 / 706 / 708 / 512, un client avec adresse, un fournisseur, un
+    compte bancaire et un crédit de 1 200,00 € du client (encaissement de la facture)."""
+    today = date.today()
+    with engine.begin() as conn:
+        conn.execute(text("INSERT INTO fiscal_years (label, start_date, end_date, closed, vat_liable, vat_on_receipts) "
+                          "VALUES (:l, :s, :e, 0, 0, 1)"),
+                     {"l": str(today.year), "s": f"{today.year - 1}-07-01", "e": f"{today.year}-12-31"})
+        conn.execute(text("INSERT INTO journals (code, label) VALUES ('BQ', 'Banque')"))
+        for code, label, kind, header in (("411", "Clients", "TIERS", 1), ("706", "Loyers et prestations", "REVENUE", 0),
+                                          ("708", "Charges refacturées", "REVENUE", 0), ("512000", "Banque", "ASSET", 0)):
+            conn.execute(text("INSERT INTO accounts (code, label, account_type, is_header) VALUES (:c, :l, :t, :h)"),
+                         {"c": code, "l": label, "t": kind, "h": header})
+        conn.execute(text(
+            "INSERT INTO organization (name, siren, address_line1, postal_code, city, country, signatory_name) "
+            "VALUES ('SCI Ventes E2E', '123456782', '1 allée des Chênes', '75001', 'Paris', 'France', 'Gérant E2E')"))
+        conn.execute(text(
+            "INSERT INTO entities (name, entity_type, is_member, is_benevole, person_kind, address_line1, postal_code, city, email) "
+            "VALUES ('Client Ventes E2E', 'CLIENT', 0, 0, 'company', '2 avenue X', '69001', 'Lyon', 'client@example.org')"))
+        conn.execute(text("INSERT INTO entities (name, entity_type, is_member, is_benevole) VALUES ('Orange E2E', 'FOURNISSEUR', 0, 0)"))
+        bank = conn.execute(text("SELECT id FROM accounts WHERE code = '512000'")).scalar()
+        conn.execute(text("INSERT INTO bank_accounts (label, account_id, kind) VALUES ('Banque Ventes', :a, 'bank')"), {"a": bank})
+        ba = conn.execute(text("SELECT id FROM bank_accounts")).scalar()
+        conn.execute(text("INSERT INTO bank_transactions (bank_account_id, fitid, transaction_date, amount_cents, label, "
+                          "reconciled, source, is_reversed) VALUES (:b, 'VE-1', :d, 120000, 'VIR CLIENT VENTES E2E', 0, 'ofx', 0)"),
+                     {"b": ba, "d": today.isoformat()})
+
+
 def _seed_donations(engine, slug):
     """Association prête à émettre des reçus : structure, signature, paramètres activés, un don de
     50,00 € d'une donatrice avec adresse (parcours « émettre et télécharger un reçu »)."""
@@ -172,6 +201,8 @@ def seed(app):
                 _seed_donations(engine, spec["slug"])
             if spec.get("simple"):
                 _seed_simple(engine)
+            if spec.get("sales"):
+                _seed_sales(engine)
             engine.dispose()
             # Intégrations activées (`integrations` du fichier) ; les autres sont désactivées.
             db.session.add(Instance(slug=spec["slug"], label=spec["label"], chart=spec["chart"],

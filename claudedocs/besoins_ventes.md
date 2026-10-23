@@ -1,6 +1,6 @@
 # Besoins — module Ventes (devis, factures, avoirs, encaissements, loyers), abonnements d'achat et intégration Qonto
 
-> Statut : expression de besoins (`/sc:brainstorm`, 23/10/2026). Pas de conception ni de code.
+> Statut : **réalisé** (24/10/2026) — conception : `design_ventes.md`, guide : `doc/ventes.md`.
 > Décisions du 23/10/2026 au § 3 (questions du § 9 tranchées le même jour). Étape suivante : `/sc:design`.
 
 ## 1. Objectif

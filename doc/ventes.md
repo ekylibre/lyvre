@@ -1,0 +1,121 @@
+# Ventes
+
+Devis, factures et avoirs émis par l'application, encaissements, relances, factures récurrentes,
+baux et quittances — avec ou sans Qonto. Menu **Ventes** : Factures, avoirs et devis ; À émettre ;
+Factures récurrentes ; Baux et quittances. (Les abonnements d'achat sont dans
+[Factures d'achat](achats.md#abonnements).)
+
+## Avant la première facture
+
+Configuration › Structure :
+
+- onglet **Identité** : dénomination, SIREN, adresse (obligatoires sur une facture) ;
+- onglet **Facturation** : forme juridique, capital, RCS, n° de TVA intracommunautaire (obligatoire
+  si l'exercice est soumis à la TVA), IBAN / BIC, délai de paiement (30 jours par défaut), pénalités
+  de retard, indemnité de 40 € (clients professionnels), escompte, logo, pied de page, messages
+  d'envoi et de relance.
+
+Exercices : **TVA** soumis ou non ; pour les prestations de services, TVA exigible **à
+l'encaissement** (par défaut) ou **d'après les débits** (bouton « Option TVA sur les débits »).
+Non soumis : les factures portent « TVA non applicable, art. 293 B du CGI ».
+
+Catalogue (Compta › Catalogue) : un produit de vente porte son compte (7…), sa TVA, son prix HT,
+son unité, sa description et sa nature (biens ou services).
+
+## Facture
+
+1. **Ventes › Nouvelle facture** : client (ou nouveau client, à compléter ensuite sur sa fiche —
+   l'adresse est obligatoire), date, échéance (vide : délai par défaut), période de prestation,
+   référence client, nature de l'opération ; lignes du catalogue ou libres (quantité, unité, prix
+   HT, remise, TVA, compte de vente — 706 par défaut). Totaux estimés pendant la saisie.
+2. Le **brouillon** se modifie, se supprime, a un **aperçu PDF** ; la fiche liste ce qui manque
+   avant l'émission (mentions, adresse du client, exercice…).
+3. **Émettre** : numéro définitif `F-AAAA-NNNN` (continu, par année), écriture au journal **VE**
+   (411NNN du client / 7… / TVA), **PDF Factur-X** conservé. La facture ne se modifie ni ne se
+   supprime plus ; son écriture non plus (écran Écritures).
+4. **Envoyer** : email au client (destinataires, copie, objet et message modifiables), PDF joint —
+   par l'intégration SMTP (ou par Qonto pour une facture Qonto). Aussi par sélection dans la liste.
+
+**Avoir** : depuis une facture émise, toutes ou certaines lignes, avec un motif ; brouillon
+modifiable puis émis `AV-AAAA-NNNN` (écriture inverse). Quand les avoirs atteignent le montant de
+la facture, elle est **annulée**.
+
+## Comptabilisation
+
+| Opération | Écriture |
+|---|---|
+| Facture | 411NNN débit TTC ; 7… crédit HT ; 44571 (biens, ou TVA sur les débits) / 44574 (services, TVA à l'encaissement) crédit TVA |
+| Avoir | Inverse |
+| Encaissement | Banque (BQ) ou caisse (CA) débit ; 411NNN crédit ; TVA encaissée virée de 44574 à 44571 au prorata |
+
+Le compte client 411NNN est créé à la première facture et noté sur la fiche du tiers ; 44571 et
+44574 sont créés sous 4457 s'ils manquent.
+
+## Encaissements et relances
+
+- **Encaisser** (fiche d'une facture) :
+  - **Transaction bancaire** : crédits proposés autour de la facture (montant exact et même client
+    d'abord) ; une écriture de règle de catégorisation est remplacée ;
+  - **Chèque, espèces…** : montant, date, banque ou caisse.
+- **Rapprocher les encaissements** (liste) : une facture dont le restant dû est égal à un seul
+  crédit bancaire, candidat d'elle seule, est encaissée — aussi après chaque import OFX et
+  synchronisation Qonto.
+- La facture passe **Payée en partie** puis **Payée** ; « Défaire » supprime l'encaissement et son
+  écriture.
+- **Relancer** : facture échue non soldée, depuis sa fiche ou une sélection (filtre « Échues ») ;
+  message de relance (restant dû, échéance) et PDF joint ; nombre et date des relances suivis.
+
+Tableau de bord : facturé de l'exercice (HT, avoirs déduits), encours clients, factures échues.
+
+## Devis
+
+**Nouveau devis** (onglet Devis) : comme une facture, avec une date de validité (30 jours par
+défaut). Émis `D-AAAA-NNNN`, PDF avec « Bon pour accord » ; pas d'écriture. **Accepté** ou
+**Refusé** ; « Expiré » quand la validité est passée. **Transformer en facture** : brouillon de
+facture reprenant le devis (« Devis D-… » en référence) ; le devis devient **Facturé** (de nouveau
+Accepté si ce brouillon est supprimé).
+
+## Factures récurrentes
+
+Ventes › Factures récurrentes : client, lignes, **périodicité** (mensuelle, trimestrielle,
+annuelle), **jour d'échéance** (1 à 28), début, fin, terme **à échoir** ou **échu**.
+`{periode}` dans une désignation devient la période (« octobre 2026 », « T4 2026 », « 2026 »).
+
+**À émettre** : à l'ouverture, chaque échéance arrivée est préparée en brouillon — jamais deux fois
+— datée du jour et payable à l'échéance. On les vérifie, puis **Émettre** (ou **Émettre et
+envoyer**) en lot.
+
+## Baux et quittances
+
+**Nouveau bail** : locataire (tiers), lot et adresse, date d'effet, fin, **loyer hors charges**,
+**provisions sur charges**, jour d'échéance, dépôt de garantie, comptes des loyers et des charges
+(706 / 708 par défaut — à valider avec l'expert-comptable). Le bail crée sa facture récurrente :
+les avis d'échéance arrivent dans « À émettre ».
+
+- **Dépôt de garantie** : « Encaisser le dépôt » — banque ou caisse au débit, **165** au crédit.
+- **Quittance** : sur un avis d'échéance **payé**, bouton « Quittance » — loyer et charges
+  distingués, période, montant reçu ; paiement partiel : **reçu** (ne vaut pas quittance). PDF
+  conservé sur la fiche du bail, **Envoyer** au locataire.
+
+Hors périmètre : révision du loyer (IRL), régularisation annuelle des charges.
+
+## Avec Qonto
+
+Configuration › Intégrations › Qonto : cocher **Ventes** dans le périmètre. Une case **Émettre avec
+Qonto** (décochée par défaut) apparaît sur la facture, le devis, la facture récurrente et le bail :
+
+- la pièce est créée dans Qonto (client cherché par SIREN, TVA, email ou nom, sinon créé), puis
+  finalisée : **Qonto donne le numéro** et produit le PDF Factur-X, récupéré dès qu'il est prêt ;
+  l'écriture est passée ici avec ce numéro (la série de l'application n'avance pas) ;
+- l'avoir d'une facture Qonto est émis par Qonto ; l'envoi passe par Qonto ;
+- un encaissement qui solde une facture Qonto la **marque payée dans Qonto** ;
+- **Synchroniser Qonto** (liste) lit Qonto : clients et produits, devis et factures créés dans
+  Qonto (factures comptabilisées), statuts, PDF.
+
+Qonto limite le libellé d'une ligne à 40 caractères (la suite passe en description) ; une remise
+est incluse dans le prix unitaire.
+
+## Droits
+
+Administrateur et trésorier saisissent, émettent, encaissent, envoient ; l'expert-comptable
+consulte. Réglages de facturation et périmètre Qonto : administrateur de l'instance.
