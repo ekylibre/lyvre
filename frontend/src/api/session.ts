@@ -19,7 +19,7 @@ export type InstanceRole = "admin" | "treasurer" | "accountant";
 
 export interface Session {
   user: { id: number; email: string; full_name: string | null; is_admin: boolean } | null;
-  instance: { id: number; slug: string; label: string; chart: string } | null;
+  instance: { id: number; slug: string; label: string; chart: string; bookkeeping?: "double" | "simple" } | null;
   instances: { id: number; label: string }[];
   /** Rôle sur l'instance courante ; `permissions` en découle (le serveur reste seul juge). */
   role?: InstanceRole | null;
@@ -74,6 +74,11 @@ export function useCan(): { write: boolean; instanceAdmin: boolean; role: Instan
     instanceAdmin: session.permissions?.instance_admin ?? false,
     role: session.role ?? null,
   };
+}
+
+/** Mode de tenue de l'instance courante : partie double, ou comptabilité simplifiée (lot D). */
+export function useBookkeeping(): "double" | "simple" {
+  return useCurrentSession().instance?.bookkeeping ?? "double";
 }
 
 export function useLogin() {

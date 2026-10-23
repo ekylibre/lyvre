@@ -254,6 +254,11 @@ E2E 23 (émission, PDF, annulation-réémission, état annuel).
 API `/bank-accounts/<id>/cash[/deposit]`, écran de caisse, liste « Comptes et caisses » avec solde,
 caisses exclues du rapprochement / OFX / Qonto, contrôle de clôture 58x. pytest 798, E2E 24.
 
+**D.2 fait (2026-10-25)** : `instances.bookkeeping` (méta, `seed_meta.py`), choix à la création
+(asso seulement), filtre de menus `bookkeeping` (partie double masquée en mode simple),
+`simple_categories` (migration `f6b1d4e8a207`) pré-remplies depuis le plan, écran Configuration ›
+Catégories. pytest 802.
+
 ## 7. Estimation indicative
 
 | Lot | Phases | Charge |

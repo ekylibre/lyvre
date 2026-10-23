@@ -1,0 +1,17 @@
+from app.extensions import db
+
+
+class SimpleCategory(db.Model):
+    """Catégorie de recette ou de dépense de la comptabilité simplifiée (lot D, D21) : libellé
+    sans vocabulaire comptable, rattaché à un compte du plan associatif (l'écriture générée l'utilise)."""
+    __tablename__ = "simple_categories"
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(30), unique=True, nullable=False)
+    label = db.Column(db.String(120), nullable=False)
+    kind = db.Column(db.String(8), nullable=False)          # income | expense
+    account_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), nullable=False)
+    position = db.Column(db.Integer, nullable=False, default=0)
+    active = db.Column(db.Boolean, nullable=False, default=True)
+
+    account = db.relationship("Account")

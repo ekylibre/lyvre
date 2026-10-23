@@ -13,6 +13,7 @@
     {"rule": "/accounts/<int:account_id>/edit", "endpoint": "accounts.edit"},
     {"rule": "/treasury/forecast", "endpoint": "cash_forecast.index"},
     {"rule": "/configuration/receipts", "endpoint": "receipts.settings"},
+    {"rule": "/configuration/categories", "endpoint": "simple_categories.index"},
     {"rule": "/receipts/", "endpoint": "receipts.index"},
     {"rule": "/budget/", "endpoint": "budgets.index"},
     {"rule": "/budget/tracking", "endpoint": "budgets.tracking"},

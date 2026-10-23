@@ -35,6 +35,7 @@ def masked_url(url: str) -> str:
 def _instance(inst: Instance) -> dict:
     return {"id": inst.id, "slug": inst.slug, "label": inst.label, "database": masked_url(inst.database_url),
             "chart": inst.chart, "chart_label": CHARTS.get(inst.chart, inst.chart), "is_active": inst.is_active,
+            "bookkeeping": inst.bookkeeping,
             "created_at": _iso(inst.created_at), "sqlite": instance_backup.is_sqlite_instance(inst)}
 
 
@@ -73,6 +74,11 @@ def instances_create():
     if db.session.query(Instance).filter(Instance.slug == slug).first():
         raise invalid(f"L'instance « {slug} » existe déjà.", "slug")
     chart = data.get("chart") if data.get("chart") in CHARTS else DEFAULT_CHART
+    bookkeeping = data.get("bookkeeping") or "double"
+    if bookkeeping not in ("double", "simple"):
+        raise invalid("Mode de tenue inconnu.", "bookkeeping")
+    if bookkeeping == "simple" and chart != "asso":
+        raise invalid("La comptabilité simplifiée est réservée au plan des associations.", "bookkeeping")
     if data.get("provisioning_mode", "auto") == "auto":
         database_url = build_sqlite_url(slug)
         try:
@@ -83,7 +89,8 @@ def instances_create():
         database_url = str(data.get("database_url") or "").strip()
         if not database_url:
             raise invalid("URL de base de données obligatoire en mode manuel.", "database_url")
-    inst = Instance(slug=slug, label=label, database_url=database_url, chart=chart, is_active=True)
+    inst = Instance(slug=slug, label=label, database_url=database_url, chart=chart, bookkeeping=bookkeeping,
+                    is_active=True)
     db.session.add(inst)
     db.session.commit()
     return jsonify(item=_instance(inst), notices=[notice(f"Instance « {label} » créée.")]), 201

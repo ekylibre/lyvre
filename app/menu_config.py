@@ -47,6 +47,11 @@ _ALL = list(ALL_CHARTS)
 _ASSO = ["asso"]
 
 
+BOOKKEEPING_MODES = ("double", "simple")
+_DOUBLE = ["double"]   # écrans de partie double (débit / crédit), masqués en comptabilité simplifiée
+_SIMPLE = ["simple"]   # écrans de la comptabilité simplifiée
+
+
 MENUS = [
     # -------------------------------------------------------------- Tableau de bord
     {
@@ -63,20 +68,20 @@ MENUS = [
         "charts": _ALL,
         "active": ["accounts", "journals", "fiscal_years", "products", "entries", "reports", "projects", "budgets", "budget_tracking"],
         "items": [
-            {"key": "entries", "label": "Écritures", "endpoint": "entries.index", "charts": _ALL},
+            {"key": "entries", "label": "Écritures", "endpoint": "entries.index", "charts": _ALL, "bookkeeping": _DOUBLE},
             {"divider": True, "charts": _ALL},
-            {"key": "balance", "label": "Balance", "endpoint": "reports.balance", "charts": _ALL},
-            {"key": "grand_livre", "label": "Grand livre", "endpoint": "reports.grand_livre", "charts": _ALL},
-            {"key": "bilan", "label": "Bilan", "endpoint": "reports.bilan", "charts": _ALL},
-            {"key": "compte_resultat", "label": "Compte de résultat", "endpoint": "reports.compte_resultat", "charts": _ALL},
+            {"key": "balance", "label": "Balance", "endpoint": "reports.balance", "charts": _ALL, "bookkeeping": _DOUBLE},
+            {"key": "grand_livre", "label": "Grand livre", "endpoint": "reports.grand_livre", "charts": _ALL, "bookkeeping": _DOUBLE},
+            {"key": "bilan", "label": "Bilan", "endpoint": "reports.bilan", "charts": _ALL, "bookkeeping": _DOUBLE},
+            {"key": "compte_resultat", "label": "Compte de résultat", "endpoint": "reports.compte_resultat", "charts": _ALL, "bookkeeping": _DOUBLE},
             {"key": "projects", "label": "Projets", "endpoint": "projects.index", "charts": _ALL},
             {"key": "budgets", "label": "Budget", "endpoint": "budgets.index", "charts": _ALL},
             {"key": "budget_tracking", "label": "Suivi budgétaire", "endpoint": "budgets.tracking", "charts": _ALL},
             {"divider": True, "charts": _ALL},
-            {"key": "accounts", "label": "Plan comptable", "endpoint": "accounts.index", "charts": _ALL},
-            {"key": "journals", "label": "Journaux", "endpoint": "journals.index", "charts": _ALL},
+            {"key": "accounts", "label": "Plan comptable", "endpoint": "accounts.index", "charts": _ALL, "bookkeeping": _DOUBLE},
+            {"key": "journals", "label": "Journaux", "endpoint": "journals.index", "charts": _ALL, "bookkeeping": _DOUBLE},
             {"key": "fiscal_years", "label": "Exercices", "endpoint": "fiscal_years.index", "charts": _ALL},
-            {"key": "products", "label": "Catalogue", "endpoint": "products.index", "charts": _ALL},
+            {"key": "products", "label": "Catalogue", "endpoint": "products.index", "charts": _ALL, "bookkeeping": _DOUBLE},
         ],
     },
     # --------------------------------------------------------------------- Banque
@@ -87,7 +92,7 @@ MENUS = [
         "active": ["imports.ofx", "bank_accounts", "reconciliation", "payouts", "cash_forecast"],
         "items": [
             {"key": "bank_accounts", "label": "Comptes et caisses", "endpoint": "bank_accounts.index", "charts": _ALL},
-            {"key": "reconciliation", "label": "Rapprochement", "endpoint": "reconciliation.index", "charts": _ALL},
+            {"key": "reconciliation", "label": "Rapprochement", "endpoint": "reconciliation.index", "charts": _ALL, "bookkeeping": _DOUBLE},
             {"key": "cash_forecast", "label": "Prévisionnel", "endpoint": "cash_forecast.index", "charts": _ALL},
             {"divider": True, "charts": _ALL},
             {"key": "payouts", "label": "Versements Stancer", "endpoint": "payouts.index", "charts": _ASSO},
@@ -108,6 +113,7 @@ MENUS = [
         "key": "purchases",
         "label": "Factures d'achat",
         "charts": _ALL,
+        "bookkeeping": _DOUBLE,   # comptabilité d'engagement (401)
         "endpoint": "purchases.index",
         "active": ["purchases"],
     },
@@ -164,10 +170,12 @@ MENUS = [
         "label": "Configuration",
         "charts": _ALL,
         "admin_only": True,
-        "active": ["organization", "integrations", "access", "receipts_settings"],
+        "active": ["organization", "integrations", "access", "receipts_settings", "simple_categories"],
         "items": [
             {"key": "organization", "label": "Structure", "endpoint": "organization.index", "charts": _ALL},
             {"key": "receipts_settings", "label": "Reçus fiscaux", "endpoint": "receipts.settings", "charts": _ASSO},
+            {"key": "simple_categories", "label": "Catégories", "endpoint": "simple_categories.index", "charts": _ASSO,
+             "bookkeeping": _SIMPLE},
             {"key": "integrations", "label": "Intégrations", "endpoint": "integrations.index", "charts": _ALL},
             {"key": "access", "label": "Accès", "endpoint": "access.index", "charts": _ALL},
         ],
@@ -175,22 +183,24 @@ MENUS = [
 ]
 
 
-def _visible(entry: dict, chart: str, is_admin: bool) -> bool:
-    """Une entrée est visible si le plan comptable correspond et, le cas
+def _visible(entry: dict, chart: str, is_admin: bool, bookkeeping: str = "double") -> bool:
+    """Une entrée est visible si le plan comptable et le mode de tenue correspondent et, le cas
     échéant, si l'utilisateur est administrateur."""
     if chart not in entry.get("charts", ALL_CHARTS):
+        return False
+    if bookkeeping not in entry.get("bookkeeping", BOOKKEEPING_MODES):
         return False
     if entry.get("admin_only") and not is_admin:
         return False
     return True
 
 
-def _clean_items(items: list[dict], chart: str, is_admin: bool) -> list[dict]:
+def _clean_items(items: list[dict], chart: str, is_admin: bool, bookkeeping: str = "double") -> list[dict]:
     """Filtre les sous-menus par plan comptable / droits, puis nettoie les
     séparateurs orphelins (en tête, en fin, ou consécutifs)."""
     kept: list[dict] = []
     for item in items:
-        if not _visible(item, chart, is_admin):
+        if not _visible(item, chart, is_admin, bookkeeping):
             continue
         if item.get("divider"):
             # pas de séparateur en tête ni deux séparateurs de suite
@@ -203,18 +213,19 @@ def _clean_items(items: list[dict], chart: str, is_admin: bool) -> list[dict]:
     return kept
 
 
-def build_nav(chart: str | None = None, is_admin: bool = False) -> list[dict]:
-    """Retourne l'arborescence des menus visibles pour ``chart``.
+def build_nav(chart: str | None = None, is_admin: bool = False, bookkeeping: str | None = None) -> list[dict]:
+    """Retourne l'arborescence des menus visibles pour ``chart`` et le mode de tenue.
 
     Les menus déroulants sans aucun sous-menu visible sont masqués.
     """
     chart = (chart or DEFAULT_CHART).strip().lower()
+    bookkeeping = bookkeeping if bookkeeping in BOOKKEEPING_MODES else "double"
     nav: list[dict] = []
     for menu in MENUS:
-        if not _visible(menu, chart, is_admin):
+        if not _visible(menu, chart, is_admin, bookkeeping):
             continue
         if "items" in menu:
-            items = _clean_items(menu["items"], chart, is_admin)
+            items = _clean_items(menu["items"], chart, is_admin, bookkeeping)
             if not items:
                 continue  # dropdown vide → masqué
             nav.append({**menu, "items": items})

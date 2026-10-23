@@ -43,6 +43,10 @@ def _ensure_instance_chart_column() -> None:
     _ensure_column("instances", "chart", "VARCHAR(20) NOT NULL DEFAULT 'asso'")
 
 
+def _ensure_instance_bookkeeping_column() -> None:
+    _ensure_column("instances", "bookkeeping", "VARCHAR(10) NOT NULL DEFAULT 'double'")
+
+
 def _ensure_user_preferences_column() -> None:
     _ensure_column("users", "preferences", "TEXT NOT NULL DEFAULT '{}'")
 
@@ -89,6 +93,7 @@ def main() -> int:
         memberships_existed = "instance_memberships" in inspect(db.engines["meta"]).get_table_names()
         db.create_all(bind_key=["meta"])
         _ensure_instance_chart_column()
+        _ensure_instance_bookkeeping_column()
         _ensure_user_preferences_column()
 
         admin_email = (os.environ.get("ADMIN_EMAIL") or DEFAULT_ADMIN_EMAIL).strip().lower()

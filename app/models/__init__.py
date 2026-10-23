@@ -20,6 +20,7 @@ from .dedicated_fund import DedicatedFund, DedicatedFundMovement
 from .project import Project
 from .budget import BudgetLine
 from .cash_forecast import CashForecastItem
+from .simple_category import SimpleCategory
 from .receipt import DonationReceipt, DonationReceiptItem, InKindDonation, ReceiptCounter, ReceiptSettings
 from .order import Order
 from .order_line import OrderLine

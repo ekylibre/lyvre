@@ -17,7 +17,8 @@ interface Meta { charts: { value: string; label: string }[]; default_chart: stri
 
 function CreateForm({ meta, onDone }: { meta: Meta | undefined; onDone: () => void }) {
   const [error, setError] = useState<string | null>(null);
-  const form = useForm({ initialValues: { slug: "", label: "", provisioning_mode: "auto", chart: meta?.default_chart ?? "asso", database_url: "" } });
+  const form = useForm({ initialValues: { slug: "", label: "", provisioning_mode: "auto", chart: meta?.default_chart ?? "asso",
+    bookkeeping: "double", database_url: "" } });
   const save = useAction((values: typeof form.values) => api.post<{ notices: Notice[] }>("/api/v1/instances", values),
     { invalidate: [INSTANCES_KEY], silent: true });
   const auto = form.values.provisioning_mode === "auto";
@@ -36,8 +37,15 @@ function CreateForm({ meta, onDone }: { meta: Meta | undefined; onDone: () => vo
             : "URL d'une base déjà initialisée (PostgreSQL, ou SQLite relative au dossier instance/)."}</Text>
         </Stack>
         {auto
-          ? <Select label="Plan comptable" data={meta?.charts ?? []} allowDeselect={false} description="Pilote aussi les menus affichés."
-            {...form.getInputProps("chart")} />
+          ? <>
+            <Select label="Plan comptable" data={meta?.charts ?? []} allowDeselect={false} description="Pilote aussi les menus affichés."
+              {...form.getInputProps("chart")} onChange={(v) => { form.setFieldValue("chart", v ?? "asso"); if (v !== "asso") form.setFieldValue("bookkeeping", "double"); }} />
+            {form.values.chart === "asso" && (
+              <Select label="Tenue de la comptabilité" allowDeselect={false} {...form.getInputProps("bookkeeping")}
+                description="Simplifiée : recettes et dépenses par catégorie, sans débit ni crédit (passage en partie double possible ensuite)."
+                data={[{ value: "double", label: "Partie double" }, { value: "simple", label: "Comptabilité simplifiée" }]} />
+            )}
+          </>
           : <TextInput label="URL de base de données" required placeholder="postgresql://utilisateur:motdepasse@hôte/base"
             classNames={{ input: "lv-num" }} autoComplete="off" {...form.getInputProps("database_url")} />}
       </FormBody>

@@ -309,6 +309,22 @@ déclaration et activation. Lecture pour tous, modification par l'administrateur
 
 ---
 
+## Comptabilité simplifiée — catégories (`/configuration/categories`)
+
+Mode de tenue de l'instance (`instances.bookkeeping`, `double` / `simple`, choisi à la création ;
+simple réservé au plan associatif) : en mode simple, les menus de partie double (écritures,
+journaux, plan comptable, balance, grand livre, bilan, compte de résultat, rapprochement, catalogue,
+factures d'achat) sont masqués (`menu_config`, clé `bookkeeping`). La session porte
+`instance.bookkeeping`. Page Configuration › Catégories (mode simple). API :
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/api/v1/simple-categories` | Catégories (créées depuis le plan au premier accès), `usage`, comptes 6 / 7 proposés |
+| POST · PUT | `/api/v1/simple-categories[/<id>]` | `{label, kind (income\|expense), account_id, active}` ; recette sur un compte 7, dépense sur un compte 6 |
+| POST | `/api/v1/simple-categories/<id>/move` | `{direction: up\|down}` |
+
+---
+
 ## Budget (`/budget/`)
 
 Pages de la SPA : `/budget/tracking?fiscal_year_id=&project_id=&as_of=` (Compta › Suivi budgétaire :

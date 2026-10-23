@@ -1176,3 +1176,9 @@ dons sous un nouveau numéro, `replaced_by_id`) ; `annual_summary(year)`.
 négative ou d'une contrepartie de trésorerie), `deposit(ba, data)` (dépôt en banque par 581, deux
 écritures), `transfer_account()`. Le contrôle de clôture signale un compte 58x non soldé.
 
+## simple_categories.py — Catégories (lot D.2)
+
+`ensure_defaults()` (catégories par défaut, compte le plus précis présent dans le plan ; omises si
+aucun compte), `listing`, `payload`, `usage_counts`, `save` (recette sur un compte 7, dépense sur
+un compte 6), `move`. Erreurs : `CategoryError(message, field, status)`.
+

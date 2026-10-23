@@ -334,6 +334,14 @@ responsabilité), `updated_at`. Signataire et signature : table `organization`
   figure que sur un seul reçu émis (contrôle applicatif : un reçu annulé la libère).
 - `in_kind_donations` : `entity_id`, `date`, `description`, `valuation_cents`, `valuation_method`.
 
+## SimpleCategory — Catégorie de la comptabilité simplifiée
+
+**Table :** `simple_categories` (lot D.2, migration `f6b1d4e8a207`) : `code` unique, `label`, `kind`
+(`income` / `expense`), `account_id` (compte 7 ou 6 du plan), `position`, `active`. Pré-remplie au
+premier accès (cotisations 756, dons 7541, subventions 74, ventes 706…, achats 606…, locations 613,
+salaires 64…). Le mode de tenue est dans la méta-base : `instances.bookkeeping` (`double` /
+`simple`, colonne ajoutée par `seed_meta.py`).
+
 ## DedicatedFund / DedicatedFundMovement — Fonds dédiés
 
 `dedicated_funds(label, kind subsidy|contribution|public_generosity, resource_account_id NULL,
