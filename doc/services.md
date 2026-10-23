@@ -1261,3 +1261,18 @@ Les catégories par défaut ne partagent jamais un compte (`simple_categories.en
 | `holdings(at)` / `capital_parts(held)` | Parts par associé et nature à la date ; parts du capital = PP + NP |
 | `balance(account_id, at)` | Solde du compte courant, créditeur positif |
 | `listing(at)` | Lignes de la liste et totaux |
+
+## share_register.py — Registre des parts (module « Associés », lot A2)
+
+Hors comptabilité. `parse(data)` (erreurs `lines.<i>.<champ>`), `validate(clean, exclude_id)` :
+reprise / souscription : parts reçues ; réduction : parts cédées ; ces trois types portent la
+valeur nominale ; cession / succession : cédé = reçu par nature ; donation / réunion : capital
+(PP + NP) inchangé ; tous : NP et usufruit varient d'autant ; aucune situation négative à la date
+du mouvement ni après (le mouvement saisi passe après ceux de la même date). `create`, `update`,
+`delete` (refus si un mouvement postérieur s'appuie dessus ; pièce via `attachments.store(…,
+folder="parts")`). `situation_after` (prévisualisation), `capital(at, held)` (parts, nominal du
+dernier mouvement qui le porte, capital, solde créditeur des 101…, avertissements), `payload`,
+`movements(associate_id, until)`.
+
+`attachments.store(target, token, folder="achats", day=None)` et `path_of(target)` servent tout
+enregistrement portant les colonnes `attachment_*`.

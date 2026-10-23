@@ -92,6 +92,17 @@ l'instance a l'option `has_associates`. API (404 `feature_disabled` sans l'optio
 | PATCH | `/api/v1/associates/<id>` | Compte (tant qu'il n'a pas d'écriture), taux, notes ; administrateur |
 | DELETE | `/api/v1/associates/<id>` | Retire l'associé (tiers et compte conservés) ; 409 s'il a un historique ; administrateur |
 
+Registre des parts : pages `/share-movements/` (`new`, `<id>/edit`), menu Associés › Registre des parts.
+
+| Méthode | Route | Description |
+|---|---|---|
+| GET | `/api/v1/share-movements?at=&associate_id=` | Mouvements (jusqu'à la date ; d'un associé) ; `meta` : capital à la date (parts, nominal, capital, solde des 101, avertissements), situation par associé, types, natures, associés |
+| POST | `/api/v1/share-movements/preview` | Situation juste après le mouvement saisi (rien n'est enregistré) ; 422 s'il est refusé ; administrateur |
+| POST | `/api/v1/share-movements` | `{movement_date, kind, nominal, price, description, lines: [{associate_id, nature, parts signé}]}` en JSON, ou multipart (`payload` + `attachment`) ; erreurs `lines.<i>.<champ>` ; administrateur |
+| PATCH / POST | `/api/v1/share-movements/<id>` | Modification (POST : multipart avec nouvelle pièce) ; administrateur |
+| DELETE | `/api/v1/share-movements/<id>` | 409 si un mouvement postérieur s'appuie dessus ; administrateur |
+| GET | `/api/v1/share-movements/<id>/attachment` | Pièce du mouvement (`parts/AAAA/MM/`) |
+
 ## Accès à l'instance (`/configuration/access/`) — administrateur de l'instance
 
 Page de la SPA `/configuration/access/`. API (instance courante, rôle `admin` ou administrateur global ; sinon 403) :

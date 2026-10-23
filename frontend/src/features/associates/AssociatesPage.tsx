@@ -1,6 +1,6 @@
 // Associés : parts détenues par nature (pleine propriété, usufruit, nue-propriété) et % du
 // capital à une date, solde du compte courant (sous-compte 455). Création par l'administrateur.
-import { Button, Group, Text, TextInput } from "@mantine/core";
+import { Button, Center, Group, Loader, Text, TextInput } from "@mantine/core";
 import { useList } from "../../api/resources";
 import { useCan } from "../../api/session";
 import { AppLink } from "../../app/navigation";
@@ -68,7 +68,7 @@ export default function AssociatesPage() {
         defaultSort={{ column: "name", direction: "asc" }}
         emptyText="Aucun associé. Ajoutez les associés de la société : chacun reçoit un compte courant 4551…" />
       <FormModal opened={modal.mode === "new" && can.instanceAdmin} onClose={modal.close} title="Nouvel associé">
-        <AssociateForm key={meta ? "ready" : "loading"} associate={null} meta={meta} onDone={modal.close} />
+        {meta ? <AssociateForm associate={null} meta={meta} onDone={modal.close} /> : <Center h={120}><Loader /></Center>}
       </FormModal>
     </>
   );

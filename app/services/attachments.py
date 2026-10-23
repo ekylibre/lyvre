@@ -1,6 +1,8 @@
-"""Pièces des factures d'achat saisies, rangées dans le dossier de l'instance.
+"""Pièces des factures d'achat saisies (et des autres enregistrements qui portent des colonnes
+`attachment_*` : mouvements de parts, notes de frais), rangées dans le dossier de l'instance.
 
-`instance/uploads/<slug>/achats/AAAA/MM/<id>-<nom assaini>` (date de facture). Un
+`instance/uploads/<slug>/achats/AAAA/MM/<id>-<nom assaini>` (date de facture ; autre dossier
+selon l'enregistrement, ex. `parts/`). Un
 fichier déposé attend d'abord dans `…/<slug>/tmp/<jeton>` le temps de la lecture et
 de la vérification du formulaire ; il est déplacé à l'enregistrement de la facture.
 Les chemins sont toujours construits ici et vérifiés dans le dossier de l'instance :
@@ -18,7 +20,6 @@ from pathlib import Path
 from flask import current_app
 from werkzeug.utils import secure_filename
 
-from app.models import Purchase
 from app.tenant import current_instance
 
 MAX_SIZE = 10 * 1024 * 1024
@@ -105,11 +106,12 @@ def staged(token: str) -> tuple[Path, dict]:
     return _within(path, folder), json.loads(meta_path.read_text(encoding="utf-8"))
 
 
-def store(purchase: Purchase, token: str) -> None:
-    """Range la pièce en attente avec la facture (qui doit avoir un id) ; sans commit."""
+def store(purchase, token: str, folder: str = "achats", day=None) -> None:
+    """Range la pièce en attente avec l'enregistrement (qui doit avoir un id) ; sans commit.
+    `day` : date qui range la pièce (par défaut la date de la facture)."""
     source, meta = staged(token)
-    day = purchase.issue_date
-    sub = Path("achats", f"{day.year:04d}", f"{day.month:02d}") if day else Path("achats", "sans-date")
+    day = day if day is not None else getattr(purchase, "issue_date", None)
+    sub = Path(folder, f"{day.year:04d}", f"{day.month:02d}") if day else Path(folder, "sans-date")
     relative = sub / f"{purchase.id}-{safe_name(meta['name'], meta['ext'])}"
     target = _within(instance_dir() / relative, instance_dir())
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -124,7 +126,7 @@ def store(purchase: Purchase, token: str) -> None:
     purchase.attachment_size = meta["size"]
 
 
-def path_of(purchase: Purchase) -> Path | None:
+def path_of(purchase) -> Path | None:
     """Fichier de la pièce, vérifié dans le dossier de l'instance ; None s'il n'y en a pas."""
     if not purchase.attachment_path:
         return None

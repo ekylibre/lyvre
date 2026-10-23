@@ -30,3 +30,38 @@ export function balanceLabel(cents: number): string {
   if (cents < 0) return "dû par l'associé";
   return "soldé";
 }
+
+// ------------------------------------------------------------------ registre des parts
+
+export const REGISTER_KEY = [...ASSOCIATES_KEY, "register"];
+
+export type MovementKind = "opening" | "subscription" | "transfer" | "donation" | "succession" | "reunion" | "reduction";
+/** Types qui changent le capital et portent la valeur nominale d'une part. */
+export const CAPITAL_KINDS: MovementKind[] = ["opening", "subscription", "reduction"];
+
+export const KIND_HELP: Record<MovementKind, string> = {
+  opening: "Situation reprise à une date (bilan d'ouverture) : parts reçues par chaque associé, valeur nominale.",
+  subscription: "Constitution ou augmentation de capital : parts reçues, valeur nominale.",
+  transfer: "Cession : autant de parts cédées que reçues, nature par nature.",
+  donation: "Donation : le capital ne change pas. Avec réserve d'usufruit, le donateur cède N parts en pleine propriété et reçoit N parts en usufruit ; les donataires reçoivent la nue-propriété (N parts au total).",
+  succession: "Succession : autant de parts cédées que reçues, nature par nature.",
+  reunion: "Réunion de l'usufruit et de la nue-propriété (décès de l'usufruitier, fin d'usufruit) : l'usufruitier cède N parts en usufruit, le nu-propriétaire cède N parts en nue-propriété et reçoit N parts en pleine propriété.",
+  reduction: "Réduction de capital : parts cédées (annulées), valeur nominale.",
+};
+
+export interface MovementLine { associate_id: number; associate: string; nature: Nature; nature_label: string; parts: number }
+
+export interface Movement {
+  id: number; movement_date: string; kind: MovementKind; kind_label: string;
+  nominal_cents: number | null; price_cents: number | null; description: string | null;
+  attachment: { name: string; url: string } | null; lines: MovementLine[];
+}
+
+export interface Capital {
+  parts: number; nominal_cents: number | null; capital_cents: number | null; ledger_cents: number; warnings: string[];
+}
+
+export interface RegisterMeta {
+  at: string; capital: Capital; situation: Associate[];
+  kinds: Option[]; natures: Option[]; associates: Option[];
+}

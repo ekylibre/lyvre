@@ -140,8 +140,12 @@ MENUS = [
         "label": "Associés",
         "charts": _ALL,
         "feature": "associates",  # option de l'instance (Instance.has_associates)
-        "endpoint": "associates.index",
-        "active": ["associates"],
+        "active": ["associates", "share_movements"],
+        "items": [
+            {"key": "associates_list", "label": "Associés", "endpoint": "associates.index", "charts": _ALL},
+            {"key": "share_movements", "label": "Registre des parts", "endpoint": "share_movements.index",
+             "charts": _ALL},
+        ],
     },
     # ---------------------------------------------------------------------- Tiers
     {

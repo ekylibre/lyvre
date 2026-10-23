@@ -14,7 +14,9 @@ import { FormModal } from "../../components/FormModal";
 import { PageHeader } from "../../components/PageHeader";
 import { AssociateForm } from "./AssociateForm";
 import { BalanceCell } from "./AssociatesPage";
-import { ASSOCIATES_KEY, NATURES, type Associate, type AssociatesMeta } from "./types";
+import { MovementLines } from "./RegisterPage";
+import { ASSOCIATES_KEY, NATURES, REGISTER_KEY, type Associate, type AssociatesMeta, type Movement } from "./types";
+import { formatDate } from "../../lib/format";
 
 interface Detail { item: Associate; meta: { can_delete: boolean; account_locked: boolean } }
 
@@ -31,6 +33,8 @@ export default function AssociateDetailPage() {
     queryFn: () => api.get<Detail>(`/api/v1/associates/${id}`) });
   const list = useQuery({ queryKey: [...ASSOCIATES_KEY, "/api/v1/associates"], enabled: editing,
     queryFn: () => api.get<{ meta: AssociatesMeta }>("/api/v1/associates") });
+  const movements = useQuery({ queryKey: [...REGISTER_KEY, "associate", id],
+    queryFn: () => api.get<{ items: Movement[] }>(`/api/v1/share-movements?associate_id=${id}`) });
   const remove = useAction(() => api.delete<{ notices: Notice[] }>(`/api/v1/associates/${id}`),
     { invalidate: [ASSOCIATES_KEY] });
   if (!data) return <Center h={300}><Loader /></Center>;
@@ -75,6 +79,22 @@ export default function AssociateDetailPage() {
                     <Table.Td ta="right" className="lv-num">{a.parts[n.value].toLocaleString("fr-FR")}</Table.Td>
                     <Table.Td ta="right" className="lv-num">
                       {a.percent[n.value].toLocaleString("fr-FR", { maximumFractionDigits: 2 })} %</Table.Td></Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          )}
+        </Paper>
+        <Paper p="md" withBorder>
+          <Text fw={600} mb="xs">Mouvements de parts</Text>
+          {!movements.data?.items.length ? <Text size="sm" c="dimmed">Aucun mouvement au registre.</Text> : (
+            <Table>
+              <Table.Tbody>
+                {movements.data.items.map((m) => (
+                  <Table.Tr key={m.id}>
+                    <Table.Td w={110}>{formatDate(m.movement_date)}</Table.Td>
+                    <Table.Td w={170}>{m.kind_label}</Table.Td>
+                    <Table.Td><MovementLines movement={m} /></Table.Td>
+                  </Table.Tr>
                 ))}
               </Table.Tbody>
             </Table>
