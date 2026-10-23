@@ -2,6 +2,7 @@
 import shutil
 from datetime import date
 
+import numpy as np
 import pymupdf
 import pytest
 
@@ -133,6 +134,103 @@ def test_ocr_text_digit_confusion_fixed():
     assert all(f.check for f in ext.fields.values())
 
 
+# ------------------------------------------------------------------ cohérence, vocabulaire, identifiants
+
+def test_absurd_amounts_flagged():
+    # Ancienne lecture d'un tableau en colonnes : HT 0, TVA = TTC passait « HT + TVA = TTC ».
+    ext = reader.parse_text("Total HT 0,00 €\nTotal TVA 85,49 €\nTotal TTC 85,49 €")
+    assert ext.fields["total"].check and any("vraisemblables" in w for w in ext.warnings)
+
+
+def test_coherent_triple_beats_items_header():
+    # L'en-tête « Total HT » du tableau d'articles précède le vrai total HT.
+    ext = reader.parse_text("Désignation   Total HT\nTotal HT : 69,00\nDéplacement   69,00\n"
+                            "Total HT   377,70\nMontant TVA   75,54\nTOTAL TTC   453,24\n"
+                            "NET À PAYER   453,24 EUR")
+    assert (ext.value("total"), ext.value("untaxed"), ext.value("tax")) == (45324, 37770, 7554)
+    assert ext.taxes == [(2000, 37770, 7554)] and ext.coherent
+    assert not ext.fields["total"].check
+
+
+def test_total_row_with_three_amounts():
+    ext = reader.parse_text("Réf. Facture : 25 150416 A du 25/02/2025\nTOTAL A PAYER   119,72   6,58   126,30\n"
+                            "Facture Prélevée le : 05/04/2025")
+    assert (ext.value("total"), ext.value("untaxed"), ext.value("tax")) == (12630, 11972, 658)
+    assert ext.taxes == [(550, 11972, 658)]
+    assert ext.value("invoice_number") == "25 150416 A"
+    assert (ext.value("issue_date"), ext.value("due_date")) == (date(2025, 2, 25), date(2025, 4, 5))
+
+
+def test_zero_rate_line_and_labelled_dates():
+    ext = reader.parse_text("Facture n° 10237045906 du 10/10/2025\nMontant Hors TVA   60,16 €\n"
+                            "Montant total à payer (TTC)   70,59 €\nProchaine facture vers le 10/11/2025\n"
+                            "Vous serez prélevé d'un montant de   70,59 €\nà partir du :   27/10/2025\n"
+                            "Venant à échéance le 30/09/2026\nTVA à 0%   8,00 €   0,00 €\n"
+                            "TVA à 20,00%   52,16 €   10,43 €")
+    assert (ext.value("total"), ext.value("untaxed"), ext.value("tax")) == (7059, 6016, 1043)
+    assert ext.taxes == [(0, 800, 0), (2000, 5216, 1043)]
+    assert (ext.value("issue_date"), ext.value("due_date")) == (date(2025, 10, 10), date(2025, 10, 27))
+
+
+def test_english_invoice():
+    ext = reader.parse_text("Invoice number: INV-2026-881\nInvoice date: August 3, 2026\n"
+                            "Due date: 02 September 2026\nSubtotal 85,49\nVAT 20% 17,10\nAmount due 102,59")
+    assert ext.value("invoice_number") == "INV-2026-881"
+    assert (ext.value("issue_date"), ext.value("due_date")) == (date(2026, 8, 3), date(2026, 9, 2))
+    assert (ext.value("total"), ext.value("untaxed"), ext.value("tax")) == (10259, 8549, 1710)
+
+
+def test_tax_free_mention():
+    ext = reader.parse_text("Facture F-2026-010\nTVA non applicable, art. 293 B du CGI\nTotal 875,00 €")
+    assert (ext.value("total"), ext.value("untaxed"), ext.value("tax")) == (87500, 87500, 0)
+
+
+def test_number_is_not_a_date_nor_a_decree():
+    ext = reader.parse_text("N° pièce : 260305768FCLCF01\nDate facture : 18/03/2026\n"
+                            "article 192 du décret n° 2012-1246")
+    assert ext.value("invoice_number") == "260305768FCLCF01"
+
+
+def test_customer_identifiers_ignored():
+    text = ("N° TVA client : FR11123456782\nSIRET : 12345678200028\n"
+            "Référence acheminement : 15201302453425\n"
+            "SAS au capital de 1 649 000 € - SIRET 401 282 553 00049 - N°TVA intra FR 71401282553")
+    ext = reader.parse_text(text, ignore_sirens={"123456782"})
+    assert (ext.value("vat_number"), ext.value("siret")) == ("FR71401282553", "40128255300049")
+    # Sans SIREN de l'organisation : le libellé « client » suffit pour la TVA.
+    assert reader.parse_text(text).value("vat_number") == "FR71401282553"
+
+
+def test_supplier_from_address_block_not_own_name():
+    text = ("FACTURE\nLES CHENES VERTS\n1 Rue des Exemples\n17250 SAINT-PORCHAIRE\n"
+            "COUTANT LOCATION   SCI LES CHENES VERTS\n5 rue du champs fleuri\n17250 BEURLAY\nTotal TTC 204,00 €")
+    ext = reader.parse_text(text, ignore_names=["SCI des Chênes Verts"])
+    assert ext.value("supplier_name") == "Coutant Location" and ext.fields["supplier_name"].check
+    assert reader.same_name("LES CHENES VERTS", "SCI des Chênes Verts")
+    assert not reader.same_name("Coutant Location", "SCI des Chênes Verts")
+
+
+def test_legal_name_before_address():
+    ext = reader.parse_text("HM France Bétons - 4 Place des Saisons, 92400 Courbevoie - SAS au capital de "
+                            "27 159 732 € - RCS Nanterre B 642016166")
+    assert ext.value("supplier_name") == "HM France Bétons"
+
+
+def test_ocr_confusions_in_amounts():
+    ext = reader.parse_text("Sommeà prélever\nL 905,00 €", origin="ocr")
+    assert ext.value("total") == 190500
+
+
+def test_supplier_hints():
+    text = "Facture 2026-77 du 03/10/2026\nCommande n° 2026-0001\nNet à payer 120,00 €"
+    assert reader.parse_text(text).value("untaxed") is None
+    hints = reader.SupplierHints(rates=frozenset({2000}), number_shapes=frozenset({"9999-99"}))
+    ext = reader.parse_text(text, hints=hints)
+    assert (ext.value("untaxed"), ext.value("tax")) == (10000, 2000) and ext.fields["total"].check
+    assert reader.parse_text(text, hints=reader.SupplierHints(tax_free=True)).value("tax") == 0
+    assert reader.number_shape("F-2026-010") == "A-9999-999"
+
+
 # ------------------------------------------------------------------ fichiers
 
 def test_read_text_pdf(tmp_path):
@@ -145,6 +243,47 @@ def test_read_unreadable_file(tmp_path):
     bad.write_bytes(b"%PDF-1.4 tronque")
     ext = reader.read(bad)
     assert ext.source == "none" and ext.fields == {} and ext.warnings
+
+
+def test_read_totals_table_in_columns(tmp_path):
+    # Totaux en colonnes : libellés sur une ligne, montants dessous (facture Scaleway).
+    doc = pymupdf.open()
+    page = doc.new_page()
+    page.insert_text((40, 60), "Facture n° 5418525", fontsize=10)
+    page.insert_text((40, 80), "Date de facturation : 03 August 2026", fontsize=10)
+    for x, label, value in ((200, "Total HT", "85,49 Euros"), (290, "Taux TVA", "20,00 %"),
+                            (370, "Total TVA", "17,10 Euros"), (460, "Total TTC", "102,59 Euros")):
+        page.insert_text((x, 200), label, fontsize=10)
+        page.insert_text((x - 10, 215), value, fontsize=10)
+    page.insert_text((40, 300), "Scaleway SAS, 8 rue de la Ville l'Evêque, 75008 Paris - SAS au capital de "
+                     "141 420 Euros", fontsize=8)
+    doc.save(tmp_path / "cols.pdf")
+    ext = reader.read(tmp_path / "cols.pdf")
+    assert (ext.value("total"), ext.value("untaxed"), ext.value("tax")) == (10259, 8549, 1710)
+    assert ext.taxes == [(2000, 8549, 1710)] and not ext.fields["total"].check
+    assert ext.value("issue_date") == date(2026, 8, 3) and ext.value("supplier_name") == "Scaleway"
+
+
+def test_layout_keeps_stacked_lines_apart(tmp_path):
+    doc = pymupdf.open()
+    page = doc.new_page()
+    page.insert_text((40, 100), "Depuis 2019, nous plantons des arbres", fontsize=6)
+    page.insert_text((40, 107), "pour les forêts en danger.", fontsize=6)
+    page.insert_text((300, 105), "Rem Mt   -40,00", fontsize=12)
+    lines = reader.layout_lines(page)
+    assert "Depuis 2019, nous plantons des arbres" in lines[0]
+    assert lines[1] == "pour les forêts en danger." or "pour les forêts en danger." in lines[1]
+
+
+def test_clean_scan_removes_table_rules():
+    dark = np.zeros((100, 200), dtype=bool)
+    dark[10:90, 50] = True        # filet vertical
+    dark[40, 20:180] = True       # filet horizontal
+    dark[60:68, 100:104] = True   # trait de lettre
+    vertical = reader._dark_runs(dark, 60)
+    horizontal = reader._dark_runs(dark.T, 120).T
+    assert vertical[:, 50].sum() == 80 and horizontal[40].sum() == 160
+    assert not (vertical | horizontal)[60:68, 100:104].any()
 
 
 FACTURX = """<?xml version="1.0" encoding="UTF-8"?>
@@ -253,9 +392,9 @@ def test_read_scanned_invoice(tmp_path, kind):
 def test_ocr_unavailable_warns(tmp_path, monkeypatch):
     path, mime = _scan(tmp_path, "pdf")
 
-    def no_tesseract(page):
+    def no_tesseract(page, *args):
         raise RuntimeError("No tessdata specified and Tesseract is not installed")
 
-    monkeypatch.setattr(reader, "_ocr_page", no_tesseract)
+    monkeypatch.setattr(reader, "_ocr_textpage", no_tesseract)
     ext = reader.read(path, mime)
     assert ext.fields == {} and "OCR indisponible" in ext.warnings[0]

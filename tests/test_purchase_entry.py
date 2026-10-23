@@ -7,9 +7,9 @@ from werkzeug.datastructures import FileStorage, MultiDict
 
 from app.extensions import db
 from app.models import Account, BankAccount, Entity, FiscalYear, Journal, Purchase
-from app.services import attachments, invoice_reader, purchase_entry
+from app.services import attachments, invoice_reader, organization, purchase_entry
 from app.services.ledger import LedgerError
-from test_invoice_reader import FREE, TICKET
+from test_invoice_reader import FREE, TICKET, _pdf
 
 
 @pytest.fixture()
@@ -75,6 +75,26 @@ def test_own_iban_ignored(books):
                                account_id=Account.query.filter_by(code="401").one().id))
     db.session.commit()
     assert purchase_entry.own_ibans() == {"FR7630006000011234567890189"}
+
+
+def test_read_staged_uses_supplier_memory_and_own_identity(books, tmp_path):
+    clean, _ = purchase_entry.validate_header(header())
+    purchase_entry.create(clean, free_rows())
+    org = organization.get()
+    org.name, org.siren = "SCI des Chênes Verts", "123456782"
+    db.session.commit()
+    assert purchase_entry.supplier_hints(Purchase.query.one().entity) == invoice_reader.SupplierHints(
+        rates=frozenset({2000}), tax_free=False, number_shapes=frozenset({"9999999999"}))
+    # Facture suivante sans HT ni TVA lisibles : le taux habituel du fournisseur les déduit.
+    text = ("SCI DES CHENES VERTS\nSIRET 123 456 782 00028\nFacture Freebox n°1500000046 du 02/10/2026\n"
+            "Somme à payer 39,99 EUR\nFree SAS au capital de 3.441.812 EUR - RCS Paris - "
+            "No de TVA intracommunautaire : FR 604 219 388 61")
+    pdf = _pdf(tmp_path / "next.pdf", text)
+    token = attachments.stage(FileStorage(io.BytesIO(pdf.read_bytes()), filename="next.pdf"))
+    ext = purchase_entry.read_staged(token)
+    assert (ext.value("total"), ext.value("untaxed"), ext.value("tax")) == (3999, 3333, 666)
+    assert ext.fields["untaxed"].check and ext.value("siret") is None
+    assert ext.value("invoice_number") == "1500000046"
 
 
 # ------------------------------------------------------------------ validation, doublons

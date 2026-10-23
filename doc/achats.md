@@ -79,7 +79,10 @@ aussitôt comptabilisées et réglées.
 dans la zone de dépôt, ou cliquez-la pour le choisir ; il est lu aussitôt. L'application lit, dans cet ordre, la facture électronique **Factur-X**
 jointe au PDF (valeurs exactes), le texte du PDF, ou l'image par **OCR** (scan, photo : quelques
 secondes, 3 premières pages). Le formulaire s'ouvre prérempli, la pièce affichée à côté ; les champs
-**à vérifier** (lus par OCR, devinés ou incohérents : HT + TVA ≠ TTC) sont encadrés. Rien n'est
+**à vérifier** (lus par OCR, devinés, déduits ou incohérents : HT + TVA ≠ TTC, HT nul, TVA trop
+élevée) sont encadrés. Les montants retenus sont ceux qui se recoupent (HT + TVA = TTC), même quand
+la facture les présente en colonnes. Un fournisseur déjà connu aide la lecture : ses taux de TVA
+habituels et la forme de ses numéros de facture départagent les candidats. Rien n'est
 enregistré avant **Enregistrer la facture**. **Saisir sans fichier** ouvre un formulaire vide.
 
 - **Fournisseur** : reconnu par son n° de TVA, son SIRET, son IBAN ou son nom ; sinon « Créer un
@@ -155,7 +158,9 @@ listé pour vérification.
 
 - **Lecture** : 3 premières pages ; OCR seulement si Tesseract (français) est installé (inclus dans
   l'image Docker, voir [installation](installation.md#prérequis)) ; un logo n'est pas lu (le nom du
-  fournisseur vient alors du site web cité, à vérifier) ; un SIRET mal lu par l'OCR est écarté.
+  fournisseur vient alors de la mention légale, du bloc d'adresse ou du site web cité) ; un SIRET mal
+  lu par l'OCR est écarté ; sur un scan, les petits caractères (mentions légales) sont souvent
+  illisibles et une ligne encadrée peut échapper à l'OCR : les montants restent alors à vérifier.
 - **Règlement hors Qonto** : un seul paiement du montant total (pas de paiement partiel ou en
   plusieurs fois) ; factures en euros seulement.
 - **Pièces** : 10 Mo, PDF / JPEG / PNG ; incluses dans les sauvegardes `.zip` de l'instance

@@ -23,8 +23,8 @@ from datetime import date
 from app.extensions import db
 from app.models import Account, BankAccount, Entity, Purchase, PurchaseLine
 from app.services import (
-    attachments, catalog, external_config, invoice_reader, purchase_posting, purchase_sync,
-    qonto_client,
+    attachments, catalog, external_config, invoice_reader, organization, purchase_posting,
+    purchase_sync, qonto_client,
 )
 from app.services.counterparties import name_key
 from app.services.ledger import LedgerError
@@ -60,9 +60,40 @@ def own_ibans() -> set[str]:
     return {purchase_sync.normalize_iban(b.iban) for b in BankAccount.query if b.iban}
 
 
+HINT_PURCHASES = 10  # factures du fournisseur consultées pour sa mémoire
+
+
+def supplier_hints(entity: Entity) -> invoice_reader.SupplierHints | None:
+    """Mémoire d'un fournisseur d'après ses dernières factures : taux de TVA, absence de TVA,
+    forme des numéros. Aide la lecture d'une nouvelle facture (montants, n° parmi plusieurs)."""
+    purchases = (Purchase.query.filter_by(entity_id=entity.id)
+                 .order_by(Purchase.issue_date.desc(), Purchase.id.desc()).limit(HINT_PURCHASES).all())
+    if not purchases:
+        return None
+    rates = {line.vat_rate_bp for p in purchases for line in p.lines
+             if line.vat_rate_bp and (line.untaxed_cents or 0) > 0}
+    return invoice_reader.SupplierHints(
+        rates=frozenset(rates),
+        tax_free=all(p.tax_cents == 0 for p in purchases),
+        number_shapes=frozenset(invoice_reader.number_shape(p.invoice_number)
+                                for p in purchases if p.invoice_number),
+    )
+
+
+def _hints_for(ext: invoice_reader.Extraction) -> invoice_reader.SupplierHints | None:
+    entity = purchase_sync.find_supplier(None, ext.value("vat_number"), ext.value("siret"),
+                                         ext.value("iban"), ext.value("supplier_name"))
+    return supplier_hints(entity) if entity is not None else None
+
+
 def read_staged(token: str) -> invoice_reader.Extraction:
+    """Lecture de la pièce déposée ; l'organisation (IBAN, SIREN, nom) est écartée des champs du
+    fournisseur, la mémoire du fournisseur reconnu affine la lecture."""
     path, meta = attachments.staged(token)
-    return invoice_reader.read(path, meta["mime"], ignore_ibans=own_ibans())
+    org = organization.get()
+    return invoice_reader.read(path, meta["mime"], ignore_ibans=own_ibans(),
+                               ignore_sirens=[org.siren] if org.siren else (),
+                               ignore_names=[org.name] if org.name else (), hints_for=_hints_for)
 
 
 def discount_account() -> Account | None:

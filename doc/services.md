@@ -1016,17 +1016,43 @@ ses montants, sa date ou sa nature : le changement est noté dans `review_reason
 
 ## invoice_reader.py — Lecture des factures d'achat
 
-`read(path, mime, max_pages=3, ignore_ibans=())` → `Extraction(fields, taxes, source, warnings)` ;
-chaque champ est un `Field(value, origin, check)` (`origin` : `facturx`, `text`, `ocr` ; `check` : à
-vérifier). Ordre : XML CII embarqué (`factur-x.xml`, `zugferd-invoice.xml`, `xrechnung.xml`, ≤ 1 Mo,
-DOCTYPE refusé) qui fait foi ; texte natif des 3 premières pages ; OCR Tesseract `fra` pour une page de
-moins de 30 caractères et pour les images (JPEG, PNG). Tesseract absent : avertissement.
-`parse_text(text, origin)` : nom (forme juridique suivie du capital / RCS, sinon site web, deviné),
-TVA FR (clé contrôlée), SIRET (Luhn), IBAN (mod 97 ; IBAN masqués et ceux de l'organisation ignorés),
-n° de facture, dates (facture, échéance), TTC / HT / TVA et ventilation par taux, avoir, remise après
-le total (`discount`, points fidélité d'un ticket) ; HT + TVA = TTC complète le montant manquant ou
-signale l'incohérence. Champs OCR toujours à vérifier ; champs texte seulement s'ils sont devinés ou
-incohérents.
+`read(path, mime, max_pages=3, ignore_ibans=(), ignore_sirens=(), ignore_names=(), hints_for=None)` →
+`Extraction(fields, taxes, source, warnings, coherent)` ; chaque champ est un `Field(value, origin, check)`
+(`origin` : `facturx`, `text`, `ocr` ; `check` : à vérifier). Ordre : XML CII embarqué (`factur-x.xml`,
+`zugferd-invoice.xml`, `xrechnung.xml`, ≤ 1 Mo, DOCTYPE refusé) qui fait foi ; texte natif des 3 premières
+pages ; OCR Tesseract `fra` pour une page de moins de 30 caractères et pour les images (JPEG, PNG).
+Tesseract absent : avertissement.
+
+- **Mise en page** (`layout_lines`) : le texte est reconstruit ligne visuelle par ligne visuelle à partir
+  des coordonnées des mots (cellules séparées par trois blancs, lignes pivotées en fin de page) ; un
+  libellé de colonne sans valeur à sa droite reçoit la valeur placée dessous (« Total TTC : 102,59 »),
+  pour les tableaux de totaux en colonnes.
+- **Montants** (`_choose_amounts`) : tous les montants qui suivent un libellé (TTC, HT, TVA, en français
+  et en anglais) sont candidats ; le premier trio HT + TVA = TTC avec TVA ≤ 20 % du HT est retenu
+  (`coherent`) ; une ligne « TOTAL 119,72 6,58 126,30 » fournit un trio ; « TVA non applicable /
+  293 B » donne TVA 0. Sinon : ancienne lecture, et montants à vérifier s'ils sont incohérents ou
+  invraisemblables (HT nul, TVA ≥ TTC, TVA > 20 %). Ventilation par taux accordée au trio retenu, ou
+  déduite du taux usuel (20 ; 10 ; 8,5 ; 5,5 ; 2,1 %).
+- **Autres champs** : nom (forme juridique suivie du capital / RCS, sinon bloc d'adresse — nom puis
+  « 5 rue … » —, sinon site web ; deviné hors forme juridique), TVA FR (clé contrôlée), SIRET (Luhn ;
+  libellé « référence », « acheminement », « compteur »… écarté), IBAN (mod 97) ; identifiants
+  précédés de « client » et ceux de l'organisation (`ignore_sirens`, `ignore_ibans`, nom
+  `ignore_names` via `same_name`) écartés ; n° de facture (« Réf. facture », « Facture n° », « N° pièce »,
+  ni date ni montant) ; dates par libellé explicite (« Facture du », « Date d'établissement »,
+  « Date limite », « à régler … au », « prélevée le »…), mois anglais, « venant à échéance » d'un contrat
+  ignoré ; avoir ; remise après le total (`discount`).
+- **OCR** : confusions corrigées (« O » → 0, « L 905,00 » → 1 905,00, « Sommeà ») ; si les montants
+  ne sont pas confirmés, seconde lecture des pages scannées sur une image nettoyée (`_clean_scan` :
+  contraste, bandeaux sombres inversés, filets de tableau effacés) et réunion des deux lectures.
+- **Mémoire du fournisseur** : `hints_for(extraction)` renvoie un `SupplierHints(rates, tax_free,
+  number_shapes)` pour le fournisseur reconnu ; la lecture est refaite avec : trio aux taux habituels
+  d'abord, HT déduit du TTC au taux habituel (à vérifier), TVA 0 pour un fournisseur toujours sans TVA
+  (à vérifier), n° de la même forme que les précédents (`number_shape`).
+
+Champs OCR toujours à vérifier ; champs texte seulement s'ils sont devinés, déduits ou incohérents.
+Mesure : `python scripts/invoice_corpus.py DOSSIER [--scan] [--memory] [-v]` compare la lecture aux
+valeurs attendues d'un corpus (`expected.json` du dossier) et compte les erreurs silencieuses (fausses
+et non signalées).
 
 ## attachments.py — Pièces des factures saisies
 
@@ -1041,7 +1067,8 @@ plus de 24 h (appelé à chaque dépôt).
 
 | Fonction | Rôle |
 |----------|------|
-| `read_staged(token)` | Lit la pièce en attente (`invoice_reader.read`, IBAN des comptes bancaires ignorés) |
+| `read_staged(token)` | Lit la pièce en attente (`invoice_reader.read`) : IBAN des comptes bancaires, SIREN et nom de l'organisation écartés ; mémoire du fournisseur reconnu (`supplier_hints`) |
+| `supplier_hints(entity)` | `SupplierHints` d'après ses 10 dernières factures : taux de TVA des lignes, toutes sans TVA, forme des n° ; None sans facture |
 | `form_from_extraction(ext)` | `EntryForm(values, checks, rows, warnings, source)` : fournisseur reconnu (`find_supplier`) ou « à créer », lignes proposées (produit du fournisseur, une par taux) ; une remise après le total devient une ligne négative 6098 / 609 et le TTC devient le montant payé |
 | `validate_header(form)` | `(clean, errors)` : date et TTC > 0 obligatoires, SIRET à 14 chiffres, fournisseur existant ou nom à créer |
 | `duplicates(entity_id, number, issue_date, total, supplier_name, exclude_id)` | Même fournisseur et même n° (sans n° : même date et TTC) |
