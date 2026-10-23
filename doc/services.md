@@ -1297,3 +1297,14 @@ Journal **AS « Associés »** (créé à la première écriture), `source = "AS
 `associates.allocation_proposal(fy)` (lot A4) : résultat à affecter (`closing.result_to_allocate`) réparti au prorata
 des parts en pleine propriété et en usufruit à la date de clôture (nus-propriétaires exclus), centimes au plus fort
 reste départagés par le nom ; l'affectation reste enregistrée par `closing.allocate`.
+
+## associates_import.py — Import CSV des associés (module « Associés », lot A5)
+
+Une ligne par associé et par nature : `nom ; compte ; nature ; parts ; date ; nominal ; solde ; taux` (UTF-8 ou
+Windows-1252, séparateur `;` ou `,`, en-têtes sans casse ni accents). `analyse(content)` n'écrit rien : associé
+existant repris (même nom), sinon entité de même nom reprise, sinon créée ; compte 455 donné ou prochain 4551… ;
+compte, solde et taux identiques sur toutes les lignes d'un associé ; une reprise (`opening`) par date, avec sa
+valeur nominale et les règles du registre ; solde d'ouverture passé seulement si le compte courant n'a encore aucune
+écriture (sinon « ignoré »). `run(content, counterpart_code)` refait l'analyse et importe tout ou rien : associés,
+mouvements de reprise, écritures AN datées de la reprise contre le compte de contrepartie choisi
+(`source_ref = OPENING:<associé>`).

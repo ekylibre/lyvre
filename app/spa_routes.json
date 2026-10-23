@@ -27,6 +27,7 @@
     {"rule": "/projects/<int:project_id>/edit", "endpoint": "projects.edit"},
     {"rule": "/associates/", "endpoint": "associates.index"},
     {"rule": "/associates/new", "endpoint": "associates.new"},
+    {"rule": "/associates/import", "endpoint": "associates.import_csv"},
     {"rule": "/associates/<int:associate_id>", "endpoint": "associates.detail"},
     {"rule": "/associate-expenses/", "endpoint": "associate_expenses.index"},
     {"rule": "/associate-expenses/new", "endpoint": "associate_expenses.new"},

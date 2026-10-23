@@ -4,11 +4,13 @@ l'instance (claudedocs/design_associes.md §5). Option désactivée : 404 `featu
 """
 from datetime import date
 
-from flask import jsonify, request
+from flask import Response, jsonify, request
+from flask_login import current_user
 
 from app.access import instance_admin_required
-from app.models import Associate, Entity, FiscalYear
-from app.services import associate_operations, associates
+from app.extensions import db
+from app.models import Account, Associate, Entity, FiscalYear
+from app.services import associate_operations, associates, associates_import
 from app.services.associates import AssociateError
 
 from . import ApiError, bp, get_or_404, invalid, json_body, notice
@@ -160,3 +162,48 @@ def associates_allocation_proposal(fy_id):
     _require_enabled()
     fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
     return jsonify(associates.allocation_proposal(fy))
+
+
+# ------------------------------------------------------------------ import CSV (lot A5)
+
+def _import_content() -> bytes:
+    upload = request.files.get("file")
+    if upload is None or not upload.filename:
+        raise invalid("Choisissez un fichier CSV.", "file")
+    return upload.read(associates_import.MAX_SIZE + 1)
+
+
+@bp.route("/associates/import/template")
+def associates_import_template():
+    _require_enabled()
+    return Response("﻿" + associates_import.TEMPLATE, mimetype="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=associes-modele.csv"})
+
+
+@bp.route("/associates/import/preview", methods=["POST"])
+@instance_admin_required
+def associates_import_preview():
+    """Analyse du fichier sans rien écrire : lignes, associés, reprises, erreurs."""
+    _require_enabled()
+    try:
+        result = associates_import.analyse(_import_content())
+    except associates_import.ImportFileError as exc:
+        raise invalid(str(exc), "file") from None
+    counterparts = (Account.query.filter(Account.is_header.is_(False), ~Account.code.like("455%"),
+                                         db.or_(*[Account.code.like(f"{c}%") for c in "12345"]))
+                    .order_by(Account.code).all())
+    return jsonify({**associates_import.public(result), "counterparts":[{"value": a.code, "label": f"{a.code} — {a.label}"} for a in counterparts]})
+
+
+@bp.route("/associates/import", methods=["POST"])
+@instance_admin_required
+def associates_import_run():
+    """Import tout ou rien (les erreurs de l'analyse le refusent)."""
+    _require_enabled()
+    try:
+        done = associates_import.run(_import_content(), request.form.get("counterpart_code"), current_user.id)
+    except associates_import.ImportFileError as exc:
+        raise invalid(str(exc)) from None
+    parts = [f"{done['created']} associé(s) créé(s)", f"{done['reused']} repris", f"{done['movements']} reprise(s) au registre",
+             f"{done['entries']} solde(s) d'ouverture passé(s)"]
+    return jsonify(result=done, notices=[notice("Import terminé : " + ", ".join(parts) + ".")])

@@ -147,6 +147,9 @@ MENUS = [
              "charts": _ALL},
             {"key": "associate_expenses", "label": "Notes de frais", "endpoint": "associate_expenses.index",
              "charts": _ALL, "bookkeeping": _DOUBLE},
+            {"divider": True, "charts": _ALL},
+            {"key": "associates_import", "label": "Importer (CSV)", "endpoint": "associates.import_csv",
+             "charts": _ALL, "admin_only": True},
         ],
     },
     # ---------------------------------------------------------------------- Tiers

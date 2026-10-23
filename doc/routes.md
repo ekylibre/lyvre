@@ -117,7 +117,12 @@ Opérations des comptes courants (lot A3) :
 | GET | `/api/v1/associate-expenses/<id>/attachment` | Justificatif (`frais/AAAA/MM/`) |
 | GET | `/api/v1/fiscal-years/<id>/associate-interest` | Intérêts des comptes courants de l'exercice (taux, solde créditeur moyen, intérêts ; écritures passées) |
 | POST | `/api/v1/fiscal-years/<id>/associate-interest` | Passe ou remplace les écritures d'intérêts (AS, 6615 / 455, dernier jour) ; exercice ouvert ; administrateur |
+| GET | `/api/v1/associates/import/template` | Modèle CSV (`nom;compte;nature;parts;date;nominal;solde;taux`) |
+| POST | `/api/v1/associates/import/preview` | Multipart `file` : analyse sans écriture (lignes et erreurs, associés créés ou repris, reprises au registre, soldes à passer ou ignorés, comptes de contrepartie proposés) ; administrateur |
+| POST | `/api/v1/associates/import` | Multipart `file`, `counterpart_code` (si des soldes sont à passer) : import tout ou rien ; administrateur |
 | GET | `/api/v1/fiscal-years/<id>/allocation-proposal` | Répartition proposée du résultat à affecter entre les associés (pleine propriété + usufruit à la clôture, plus fort reste) |
+
+Page `/associates/import` (menu Associés › Importer (CSV), administrateur) : dépôt, analyse, contrepartie, import.
 
 Clôture : panneau « Intérêts des comptes courants » à l'étape Écritures d'inventaire ; bouton « Répartir entre les
 associés » à l'étape Affectation du résultat (lignes modifiables avant l'enregistrement).
