@@ -15,7 +15,7 @@ from app.extensions import db
 from app.models import Notification, SyncJob
 from app.models.sync_job import (
     SYNC_KIND_METRICS, SYNC_KIND_PAYOUT_PAYMENTS, SYNC_KIND_PAYOUTS, SYNC_KIND_QONTO, SYNC_KIND_QONTO_INVOICES,
-    SYNC_STATUS_FAILED,
+    SYNC_KIND_RECEIPTS_ISSUE, SYNC_KIND_RECEIPTS_SEND, SYNC_STATUS_FAILED,
 )
 
 RETENTION_DAYS = 90
@@ -29,6 +29,8 @@ JOB_LABELS = {
     SYNC_KIND_QONTO: "Synchronisation des transactions Qonto",
     SYNC_KIND_QONTO_INVOICES: "Synchronisation des factures d'achat Qonto",
     SYNC_KIND_METRICS: "Synchronisation des indicateurs",
+    SYNC_KIND_RECEIPTS_ISSUE: "Émission des reçus fiscaux",
+    SYNC_KIND_RECEIPTS_SEND: "Expédition des reçus fiscaux par email",
 }
 
 
@@ -39,7 +41,8 @@ def _url(job: SyncJob) -> str | None:
     if job.kind == SYNC_KIND_PAYOUT_PAYMENTS and job.payout_id:
         return f"/payouts/{job.payout_id}"
     return {SYNC_KIND_PAYOUTS: "/payouts/", SYNC_KIND_QONTO_INVOICES: "/purchases/",
-            SYNC_KIND_METRICS: "/impact/"}.get(job.kind)
+            SYNC_KIND_METRICS: "/impact/", SYNC_KIND_RECEIPTS_ISSUE: "/receipts/?tab=issued",
+            SYNC_KIND_RECEIPTS_SEND: "/receipts/?tab=issued"}.get(job.kind)
 
 
 def _result(job: SyncJob) -> dict:
@@ -77,6 +80,10 @@ def summary(kind: str, result: dict) -> str:
             text += (f" Paiements : {n('payments_imported')} importé(s), {n('payments_updated')} mis à jour"
                      f" sur {n('payments_total')}.")
         return text
+    if kind == SYNC_KIND_RECEIPTS_ISSUE:
+        return f"{n('issued')} reçu(s) émis, {n('refused')} donateur(s) à compléter."
+    if kind == SYNC_KIND_RECEIPTS_SEND:
+        return f"{n('sent')} reçu(s) envoyé(s), {n('skipped')} sans adresse email."
     return "Terminée."
 
 

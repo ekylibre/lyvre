@@ -1,20 +1,22 @@
 // Dons › Reçus fiscaux : par année civile, dons à reprendre par donateur (mentions manquantes
-// signalées), lignes sans donateur à rattacher, émission (annuelle ou par don, numéros définitifs),
-// reçus émis (PDF), dons en nature.
-import { useState } from "react";
+// signalées), lignes sans donateur à rattacher, émission en arrière-plan (annuelle ou par don,
+// numéros définitifs), reçus émis (PDF, envoi par email, annulation et réémission), dons en nature,
+// état annuel (synthèse, rapprochement avec les dons comptabilisés, export tableur).
+import { useCallback, useState } from "react";
 import {
-  Alert, Anchor, Badge, Button, Center, Checkbox, Group, Loader, Paper, SegmentedControl, Select, Stack, Table, Tabs, Text,
-  TextInput,
+  Alert, Anchor, Badge, Button, Center, Checkbox, Group, Loader, Paper, SegmentedControl, Select, SimpleGrid, Stack, Table,
+  Tabs, Text, Textarea, TextInput,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
-import { useQuery } from "@tanstack/react-query";
-import { FileText } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Download, FileText, Mail } from "lucide-react";
 import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
 import { useCan } from "../../api/session";
 import { confirmAction } from "../../components/ConfirmButton";
 import { FilterBar, useUrlParams } from "../../components/FilterBar";
 import { FormModal } from "../../components/FormModal";
+import { JobStatus, type Job } from "../../components/JobStatus";
 import { MoneyInput, MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -27,11 +29,20 @@ interface Donor { entity_id: number; name: string; person_kind: "individual" | "
   problems: string[]; items: Item[]; total_cents: number }
 interface Candidates { year: number; donors: Donor[]; unassigned: Item[]; total_cents: number; entities: { value: string; label: string }[] }
 interface Receipt { id: number; number: string; donor: string; entity_id: number; person_kind: string; mode: string;
-  total_cents: number; status: string; items: number; issued_at: string; sent_at: string | null; pdf_url: string }
+  total_cents: number; status: string; items: number; issued_at: string; sent_at: string | null; pdf_url: string;
+  email: string | null; sent_to: string | null; cancel_reason: string | null; replaced_by: string | null }
+interface Summary {
+  year: number; issued: { count: number; amount_cents: number }; cancelled: { count: number; amount_cents: number };
+  by_kind: Record<"individual" | "company", { count: number; amount_cents: number }>;
+  by_nature: Record<string, { label: string; amount_cents: number }>; sent: number; unsent: number;
+  booked_donations_cents: number; receipted_donations_cents: number; pending_donations_cents: number; export_url: string;
+}
 interface Gift { id: number; entity_id: number; donor: string; date: string; description: string; valuation_cents: number;
   valuation_method: string | null; receipted: boolean }
 
 const KEY = ["receipts"];
+const ISSUE_TITLES = { running: "Émission des reçus en cours…", done: "Émission terminée", failed: "L'émission a échoué" };
+const SEND_TITLES = { running: "Envoi des reçus en cours…", done: "Envoi terminé", failed: "L'envoi a échoué" };
 const KINDS = { individual: "Particulier", company: "Entreprise" } as const;
 
 export default function ReceiptsPage() {
@@ -41,6 +52,9 @@ export default function ReceiptsPage() {
   const issued = useQuery({ queryKey: [...KEY, "issued", year],
     queryFn: () => api.get<{ items: Receipt[]; meta: { year: number; enabled: boolean } }>(`/api/v1/receipts?year=${year}`) });
   const years = Array.from({ length: 6 }, (_v, i) => String(thisYear - i));
+  const client = useQueryClient();
+  const [job, setJob] = useState<{ job: Job; titles: typeof ISSUE_TITLES } | null>(null);
+  const refresh = useCallback(() => { void client.invalidateQueries({ queryKey: KEY }); }, [client]);
   return (
     <>
       <PageHeader title="Reçus fiscaux" description="Reçus des dons de l'année civile : particuliers (Cerfa 11580) et entreprises (Cerfa 16216)." />
@@ -52,28 +66,44 @@ export default function ReceiptsPage() {
         <Alert color="paille" mb="md">Les reçus fiscaux ne sont pas activés :{" "}
           <Anchor component={AppLink} href="/configuration/receipts" size="sm">Configuration › Reçus fiscaux</Anchor>.</Alert>
       )}
+      {job && <JobStatus key={job.job.id} job={job.job} titles={job.titles} onDone={refresh}
+        renderResult={(r) => <JobResult result={r} />} />}
       <Tabs value={params.tab} onChange={(v) => setParams({ ...params, tab: v ?? "pending" })}>
         <Tabs.List mb="md">
           <Tabs.Tab value="pending">À émettre</Tabs.Tab>
           <Tabs.Tab value="issued">Reçus émis{issued.data ? ` (${issued.data.items.length})` : ""}</Tabs.Tab>
           <Tabs.Tab value="in-kind">Dons en nature</Tabs.Tab>
+          <Tabs.Tab value="summary">État annuel</Tabs.Tab>
         </Tabs.List>
-        <Tabs.Panel value="pending"><Pending year={year} enabled={issued.data?.meta.enabled ?? false} /></Tabs.Panel>
-        <Tabs.Panel value="issued"><Issued receipts={issued.data?.items} /></Tabs.Panel>
+        <Tabs.Panel value="pending"><Pending year={year} enabled={issued.data?.meta.enabled ?? false}
+          onJob={(j) => setJob({ job: j, titles: ISSUE_TITLES })} /></Tabs.Panel>
+        <Tabs.Panel value="issued"><Issued year={year} receipts={issued.data?.items} onJob={(j) => setJob({ job: j, titles: SEND_TITLES })} /></Tabs.Panel>
         <Tabs.Panel value="in-kind"><InKind year={year} /></Tabs.Panel>
+        <Tabs.Panel value="summary">{params.tab === "summary" && <AnnualSummary year={year} />}</Tabs.Panel>
       </Tabs>
     </>
   );
 }
 
-function Pending({ year, enabled }: { year: number; enabled: boolean }) {
+function JobResult({ result }: { result: Record<string, unknown> }) {
+  const errors = (result.errors as string[] | undefined) ?? [];
+  const parts = "issued" in result ? [`${result.issued} reçu(s) émis`, `${result.refused} donateur(s) à compléter`]
+    : [`${result.sent} reçu(s) envoyé(s)`, `${result.skipped} sans adresse email`];
+  return (
+    <>
+      <Text size="sm">{parts.join(", ")}.</Text>
+      {errors.length > 0 && <Text size="xs" c="var(--lv-brique)">{errors.slice(0, 5).join(" · ")}{errors.length > 5 ? " …" : ""}</Text>}
+    </>
+  );
+}
+
+function Pending({ year, enabled, onJob }: { year: number; enabled: boolean; onJob: (job: Job) => void }) {
   const can = useCan();
   const { data } = useQuery({ queryKey: [...KEY, "candidates", year],
     queryFn: () => api.get<Candidates>(`/api/v1/receipts/candidates?year=${year}`) });
   const [selected, setSelected] = useState<number[]>([]);
   const [mode, setMode] = useState("annual");
-  const issue = useAction((ids: number[]) => api.post<{ notices: Notice[] }>("/api/v1/receipts/issue",
-    { year, entity_ids: ids, mode }), { invalidate: [KEY] });
+  const issue = useAction((ids: number[]) => api.post<{ job: Job; notices?: Notice[] }>("/api/v1/receipts/issue", { year, entity_ids: ids, mode }));
   const assign = useAction(({ line, entity }: { line: number; entity: string | null }) =>
     api.put<{ notices: Notice[] }>(`/api/v1/receipts/lines/${line}/donor`, { entity_id: entity ? Number(entity) : null }),
     { invalidate: [[...KEY, "candidates", year]] });
@@ -95,7 +125,7 @@ function Pending({ year, enabled }: { year: number; enabled: boolean }) {
             <Button disabled={count === 0} loading={issue.isPending} onClick={() => confirmAction({
               title: `Émettre ${count} reçu(s) ${year} ?`, confirmLabel: "Émettre", danger: false,
               message: "Les numéros sont attribués définitivement et les PDF figés. Un reçu émis ne se supprime pas : il s'annule (motif) et se réémet.",
-              onConfirm: () => issue.mutate(targets, { onSuccess: () => setSelected([]) }),
+              onConfirm: () => issue.mutate(targets, { onSuccess: (body) => { setSelected([]); onJob(body.job); } }),
             })}>{chosen.length ? `Émettre la sélection (${count})` : `Émettre tout (${count})`}</Button>
           </Group>
         )}
@@ -149,31 +179,113 @@ function Pending({ year, enabled }: { year: number; enabled: boolean }) {
   );
 }
 
-function Issued({ receipts }: { receipts: Receipt[] | undefined }) {
+function Issued({ year, receipts, onJob }: { year: number; receipts: Receipt[] | undefined; onJob: (job: Job) => void }) {
+  const can = useCan();
+  const [cancelling, setCancelling] = useState<Receipt | null>(null);
+  const send = useAction((body: { ids?: number[]; year?: number }) =>
+    api.post<{ job?: Job; notices?: Notice[] }>("/api/v1/receipts/send", body));
+  const start = (body: { ids?: number[]; year?: number }) => send.mutate(body, { onSuccess: (r) => { if (r.job) onJob(r.job); } });
   if (!receipts) return <Center h={200}><Loader /></Center>;
+  const unsent = receipts.filter((r) => r.status === "issued" && !r.sent_at && r.email).length;
   return (
-    <Paper p={0} style={{ overflowX: "auto" }}>
-      <Table verticalSpacing={6} miw={680}>
-        <Table.Thead bg="var(--lv-sauge)"><Table.Tr><Table.Th>Numéro</Table.Th><Table.Th>Émis le</Table.Th><Table.Th>Donateur</Table.Th>
-          <Table.Th>Type</Table.Th><Table.Th ta="right">Montant</Table.Th><Table.Th>Statut</Table.Th><Table.Th /></Table.Tr></Table.Thead>
-        <Table.Tbody>
-          {receipts.map((r) => (
-            <Table.Tr key={r.id}>
-              <Table.Td className="lv-num" fw={600}>{r.number}</Table.Td>
-              <Table.Td className="lv-num">{formatDateTime(r.issued_at)}</Table.Td>
-              <Table.Td><Anchor component={AppLink} href={`/entities/${r.entity_id}`} size="sm">{r.donor}</Anchor></Table.Td>
-              <Table.Td><Text size="sm">{r.mode === "annual" ? `Annuel (${r.items} don${r.items > 1 ? "s" : ""})` : "Don unique"} ·{" "}
-                {KINDS[r.person_kind as keyof typeof KINDS]}</Text></Table.Td>
-              <Table.Td ta="right"><MoneyText cents={r.total_cents} size="sm" /></Table.Td>
-              <Table.Td><StatusBadge tone={r.status === "issued" ? "ok" : "neutral"}>{r.status === "issued" ? "Émis" : "Annulé"}</StatusBadge></Table.Td>
-              <Table.Td ta="right"><Button variant="subtle" size="compact-sm" component="a" href={r.pdf_url} target="_blank"
-                leftSection={<FileText size={14} />}>PDF</Button></Table.Td>
-            </Table.Tr>
-          ))}
-        </Table.Tbody>
-      </Table>
-      {receipts.length === 0 && <Text size="sm" c="dimmed" p="md">Aucun reçu émis pour cette année.</Text>}
-    </Paper>
+    <Stack>
+      {can.write && unsent > 0 && (
+        <Group justify="flex-end">
+          <Button variant="default" leftSection={<Mail size={16} />} loading={send.isPending}
+            onClick={() => confirmAction({ title: `Envoyer ${unsent} reçu(s) par email ?`, confirmLabel: "Envoyer", danger: false,
+              message: "Chaque donateur reçoit son reçu en pièce jointe, à l'adresse email de sa fiche.",
+              onConfirm: () => start({ year }) })}>Envoyer les reçus non envoyés ({unsent})</Button>
+        </Group>
+      )}
+      <Paper p={0} style={{ overflowX: "auto" }}>
+        <Table verticalSpacing={6} miw={820}>
+          <Table.Thead bg="var(--lv-sauge)"><Table.Tr><Table.Th>Numéro</Table.Th><Table.Th>Émis le</Table.Th><Table.Th>Donateur</Table.Th>
+            <Table.Th>Type</Table.Th><Table.Th ta="right">Montant</Table.Th><Table.Th>Statut</Table.Th><Table.Th>Envoi</Table.Th><Table.Th /></Table.Tr></Table.Thead>
+          <Table.Tbody>
+            {receipts.map((r) => (
+              <Table.Tr key={r.id} style={{ opacity: r.status === "issued" ? 1 : 0.65 }}>
+                <Table.Td className="lv-num" fw={600}>{r.number}</Table.Td>
+                <Table.Td className="lv-num">{formatDateTime(r.issued_at)}</Table.Td>
+                <Table.Td><Anchor component={AppLink} href={`/entities/${r.entity_id}`} size="sm">{r.donor}</Anchor></Table.Td>
+                <Table.Td><Text size="sm">{r.mode === "annual" ? `Annuel (${r.items} don${r.items > 1 ? "s" : ""})` : "Don unique"} ·{" "}
+                  {KINDS[r.person_kind as keyof typeof KINDS]}</Text></Table.Td>
+                <Table.Td ta="right"><MoneyText cents={r.total_cents} size="sm" /></Table.Td>
+                <Table.Td>{r.status === "issued" ? <StatusBadge tone="ok">Émis</StatusBadge> : (
+                  <Stack gap={0}><StatusBadge tone="neutral">Annulé</StatusBadge>
+                    <Text size="xs" c="dimmed">{r.cancel_reason}{r.replaced_by && ` · remplacé par ${r.replaced_by}`}</Text></Stack>)}</Table.Td>
+                <Table.Td><Text size="xs" c="dimmed">{r.sent_at ? `${formatDate(r.sent_at)} · ${r.sent_to}` : r.email ? "Non envoyé" : "Sans email"}</Text></Table.Td>
+                <Table.Td ta="right" style={{ whiteSpace: "nowrap" }}>
+                  <Button variant="subtle" size="compact-sm" component="a" href={r.pdf_url} target="_blank" leftSection={<FileText size={14} />}>PDF</Button>
+                  {can.write && r.status === "issued" && r.email && <Button variant="subtle" size="compact-sm" onClick={() => start({ ids: [r.id] })}>
+                    {r.sent_at ? "Renvoyer" : "Envoyer"}</Button>}
+                  {can.write && r.status === "issued" && <Button variant="subtle" size="compact-sm" color="brique" onClick={() => setCancelling(r)}>Annuler…</Button>}
+                </Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+        {receipts.length === 0 && <Text size="sm" c="dimmed" p="md">Aucun reçu émis pour cette année.</Text>}
+      </Paper>
+      <FormModal opened={!!cancelling} onClose={() => setCancelling(null)} title={`Annuler le reçu ${cancelling?.number ?? ""}`}>
+        {cancelling && <CancelForm receipt={cancelling} onDone={() => setCancelling(null)} />}
+      </FormModal>
+    </Stack>
+  );
+}
+
+function CancelForm({ receipt, onDone }: { receipt: Receipt; onDone: () => void }) {
+  const [reason, setReason] = useState("");
+  const [reissue, setReissue] = useState(true);
+  const cancel = useAction(() => api.post<{ notices: Notice[] }>(`/api/v1/receipts/${receipt.id}/cancel`, { reason, reissue }),
+    { invalidate: [KEY] });
+  return (
+    <Stack>
+      <Text size="sm">Le reçu reste conservé, marqué « annulé » avec son motif ; son numéro n'est jamais réutilisé.
+        Pensez à prévenir {receipt.donor} que le reçu {receipt.number} n'est plus valable.</Text>
+      <Textarea label="Motif" required autosize minRows={2} value={reason} onChange={(e) => setReason(e.currentTarget.value)} data-autofocus />
+      <Checkbox label="Émettre aussitôt un reçu de remplacement pour les mêmes dons (adresse du donateur à jour)"
+        checked={reissue} onChange={(e) => setReissue(e.currentTarget.checked)} />
+      <Group justify="flex-end">
+        <Button variant="default" onClick={onDone}>Retour</Button>
+        <Button color="brique" loading={cancel.isPending} disabled={reason.trim().length < 5}
+          onClick={() => cancel.mutate(undefined, { onSuccess: onDone })}>{reissue ? "Annuler et réémettre" : "Annuler le reçu"}</Button>
+      </Group>
+    </Stack>
+  );
+}
+
+function AnnualSummary({ year }: { year: number }) {
+  const { data } = useQuery({ queryKey: [...KEY, "summary", year], queryFn: () => api.get<Summary>(`/api/v1/receipts/summary?year=${year}`) });
+  if (!data) return <Center h={200}><Loader /></Center>;
+  const consistent = data.receipted_donations_cents + data.pending_donations_cents === data.booked_donations_cents;
+  return (
+    <Stack>
+      <Group justify="flex-end"><Button variant="default" component="a" href={data.export_url} leftSection={<Download size={16} />}>Exporter (XLSX)</Button></Group>
+      <SimpleGrid cols={{ base: 1, sm: 3 }}>
+        <Paper p="md"><Text size="sm" c="dimmed">Reçus émis</Text>
+          <Text fz={24} fw={500} className="lv-num">{data.issued.count}</Text><MoneyText cents={data.issued.amount_cents} /></Paper>
+        <Paper p="md"><Text size="sm" c="dimmed">Particuliers / entreprises</Text>
+          <Text className="lv-num">{data.by_kind.individual.count} · <MoneyText cents={data.by_kind.individual.amount_cents} /></Text>
+          <Text className="lv-num">{data.by_kind.company.count} · <MoneyText cents={data.by_kind.company.amount_cents} /></Text></Paper>
+        <Paper p="md"><Text size="sm" c="dimmed">Reçus annulés · envoyés</Text>
+          <Text className="lv-num">{data.cancelled.count} annulé(s) · <MoneyText cents={data.cancelled.amount_cents} /></Text>
+          <Text className="lv-num">{data.sent} envoyé(s), {data.unsent} non envoyé(s)</Text></Paper>
+      </SimpleGrid>
+      <Paper p={0}>
+        <Table verticalSpacing={6}>
+          <Table.Tbody>
+            <Table.Tr><Table.Td>Dons comptabilisés en {year} (comptes de dons)</Table.Td><Table.Td ta="right"><MoneyText cents={data.booked_donations_cents} fw={600} /></Table.Td></Table.Tr>
+            <Table.Tr><Table.Td>dont repris sur un reçu émis</Table.Td><Table.Td ta="right"><MoneyText cents={data.receipted_donations_cents} /></Table.Td></Table.Tr>
+            <Table.Tr><Table.Td>dont encore à reprendre (y compris sans donateur)</Table.Td><Table.Td ta="right"><MoneyText cents={data.pending_donations_cents} /></Table.Td></Table.Tr>
+            {Object.entries(data.by_nature).map(([key, n]) => (
+              <Table.Tr key={key}><Table.Td>Reçus émis — {n.label}</Table.Td><Table.Td ta="right"><MoneyText cents={n.amount_cents} /></Table.Td></Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+      </Paper>
+      {!consistent && <Alert color="brique">Écart entre les dons comptabilisés et les reçus : vérifiez les dons rattachés à un reçu puis modifiés.</Alert>}
+      <Text size="xs" c="dimmed">Ces chiffres servent à la déclaration annuelle du montant global des dons et du nombre de reçus délivrés.</Text>
+    </Stack>
   );
 }
 

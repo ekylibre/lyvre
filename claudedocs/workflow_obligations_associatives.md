@@ -1,7 +1,8 @@
 # Workflow — Obligations associatives (lots A → C → B → D)
 
-> Statut (2026-10-24) : **lots A et C réalisés, B.1 et B.2 faits** (main local, non poussé) ;
-> **prochaine étape : B.3** (`/sc:implement phase B.3`). En attente côté utilisateur : passage du FEC de test dans
+> Statut (2026-10-24) : **lots A, B et C réalisés** (main local, non poussé) ; **prochaine
+> étape : lot D, phase D.1** (`/sc:implement phase D.1`). En attente côté utilisateur : relecture des reçus face aux Cerfa officiels
+> (point ouvert 2, US-B1), passage du FEC de test dans
 > « Test Compta Demat » (US-A1), relecture de l'affectation SCI 455x par l'expert-comptable, accord
 > pour migrer les vraies bases (elles sont à `9c41b7e2d5a8` : migrations tenant jusqu'à
 > `d3f7b9c1e504` (9 migrations), plus `seed_meta.py` pour la table méta `instance_memberships`). Travail parallèle : cadrage de la base documentaire et de
@@ -230,6 +231,13 @@ contrôlé au téléchargement) ; écran Dons › Reçus fiscaux ; instance E2E 
 **Point ouvert 2** : modèles retenus Cerfa n° 11580*05 (2041-RD, particuliers) et n° 16216*01
 (2041-MEC-SD, entreprises ; mise en page libre admise par le BOFiP si les mentions y sont) — à
 relire face aux formulaires officiels. pytest 790, Vitest 78, E2E 23.
+
+**B.3 fait (2026-10-24) — lot B terminé côté logiciel** : émission et envoi en arrière-plan (jobs
+`donation_receipts`, `donation_receipts_send`, notifications), envoi par email avec PDF joint (SMTP
+de l'instance), annulation motivée et réémission (`replaced_by_id`), état annuel (rapprochement
+dons comptabilisés = reçus + à reprendre, export XLSX), titres de `JobStatus` paramétrables.
+US-B1 : état annuel coché ; conformité Cerfa à relire. Pas de migration. pytest 795, Vitest 78,
+E2E 23 (émission, PDF, annulation-réémission, état annuel).
 
 ## 6. Lot D — Comptabilité simplifiée et caisse
 

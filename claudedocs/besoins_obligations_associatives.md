@@ -233,7 +233,9 @@ instance.
 particuliers et entreprises.
 - [ ] Activation avec déclaration d'éligibilité ; reçus PDF conformes au modèle CERFA ; numéros
       continus ; envoi par email ; annulation tracée sans renumérotation.
-- [ ] État annuel (nombre, montant) cohérent avec les reçus émis.
+      *Fait côté logiciel (B.1 à B.3) ; reste la relecture des PDF face aux formulaires Cerfa
+      11580*05 et 16216*01 officiels (point ouvert 2).*
+- [x] État annuel (nombre, montant) cohérent avec les reçus émis.
 
 **US-C1 — Suivre le budget.** Le bureau saisit le budget N par poste et par projet et suit
 l'exécution.

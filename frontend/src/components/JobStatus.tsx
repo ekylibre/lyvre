@@ -13,10 +13,14 @@ export interface Job {
   finished_at: string | null;
 }
 
-export function JobStatus({ job, onDone, renderResult }: {
+const SYNC_TITLES = { running: "Synchronisation en cours…", done: "Synchronisation terminée", failed: "La synchronisation a échoué" };
+
+export function JobStatus({ job, onDone, renderResult, titles = SYNC_TITLES }: {
   job: Job;
   onDone?: (job: Job) => void;
   renderResult?: (result: Record<string, unknown>) => ReactNode;
+  /** Titres selon l'état (par défaut ceux d'une synchronisation). */
+  titles?: Record<Job["status"], string>;
 }) {
   const { data } = useQuery({
     queryKey: ["jobs", job.id], initialData: { job },
@@ -37,8 +41,7 @@ export function JobStatus({ job, onDone, renderResult }: {
   }, [current, onDone, client]);
 
   const color = current.status === "running" ? "ardoise" : current.status === "done" ? "lichen" : "brique";
-  const title = current.status === "running" ? "Synchronisation en cours…"
-    : current.status === "done" ? "Synchronisation terminée" : "La synchronisation a échoué";
+  const title = titles[current.status];
   return (
     <Alert color={color} variant="light" role={current.status === "failed" ? "alert" : "status"} title={title} mb="sm">
       {current.status === "running" ? (

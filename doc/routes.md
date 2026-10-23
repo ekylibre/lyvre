@@ -285,7 +285,11 @@ déclaration et activation. Lecture pour tous, modification par l'administrateur
 |---------|-----|-------------|
 | GET | `/api/v1/receipts?year=` | Reçus émis de l'année civile (numéro, donateur figé, montant, statut, `pdf_url`) ; `meta.enabled` |
 | GET | `/api/v1/receipts/candidates?year=` | Dons non encore repris sur un reçu émis, par donateur (`problems` : nature, adresse, SIRET d'une entreprise) ; `unassigned` (lignes sans donateur) ; tiers proposés |
-| POST | `/api/v1/receipts/issue` | `{year, entity_ids?, mode? (annual\|single)}` : un reçu annuel par donateur ou un par don ; numéro `AAAA-NNNNN` réservé dans la transaction (pas de trou si l'émission échoue) ; PDF figé (SHA-256) ; `refused` par donateur |
+| POST | `/api/v1/receipts/issue` | `{year, entity_ids?, mode? (annual\|single)}` : contrôles immédiats puis émission **en arrière-plan** (202, job `donation_receipts`, notification de fin ; résultat `issued`, `refused`, `numbers`, `errors`) ; un reçu annuel par donateur ou un par don ; numéro `AAAA-NNNNN` réservé dans la transaction (pas de trou si l'émission échoue) ; PDF figé (SHA-256) |
+| POST | `/api/v1/receipts/send` | `{ids}` ou `{year}` (reçus émis non envoyés dont le donateur a un email) : envoi par email, PDF joint, en arrière-plan (job `donation_receipts_send`) ; 409 si SMTP non configuré |
+| POST | `/api/v1/receipts/<id>/cancel` | `{reason (≥ 5 caractères), reissue}` : annulation tracée, jamais de suppression ni de renumérotation ; les dons redeviennent à reprendre, ou sont aussitôt réémis sous un nouveau numéro (`replaced_by`) |
+| GET | `/api/v1/receipts/summary?year=` | **État annuel** : reçus émis / annulés (nombre, montant), par type de donateur et nature, envoyés, dons comptabilisés = repris sur un reçu + encore à reprendre ; `export_url` |
+| GET | `/receipts/summary.xlsx?year=` (route Flask) | État annuel en tableur (synthèse et liste des reçus) |
 | PUT | `/api/v1/receipts/lines/<line_id>/donor` | `{entity_id}` : donateur d'une ligne de don (409 si déjà sur un reçu émis) |
 | GET · POST · DELETE | `/api/v1/receipts/in-kind[/<id>]` | Dons en nature `{entity_id, date, description, valuation_cents, valuation_method}` (suppression refusée s'il figure sur un reçu émis) |
 | GET | `/receipts/<id>.pdf` (route Flask) | PDF figé à l'émission ; 409 si son empreinte ne correspond plus |

@@ -127,3 +127,37 @@ def receipt_pdf(receipt_id):
     if hashlib.sha256(path.read_bytes()).hexdigest() != receipt.pdf_sha256:
         abort(409)
     return send_file(path, mimetype="application/pdf", download_name=f"recu-{receipt.number}.pdf", max_age=0)
+
+
+@bp.route("/receipts/summary.xlsx")
+@login_required
+def receipts_summary_xlsx():
+    """État annuel des reçus fiscaux : synthèse et liste des reçus (émis et annulés)."""
+    import json as _json
+
+    from app.models import DonationReceipt
+    from app.services import receipts
+    year = request.args.get("year", type=int) or abort(400)
+    data = receipts.annual_summary(year)
+    wb = Workbook()
+    wb.remove(wb.active)
+    kinds = {"individual": "Particuliers", "company": "Entreprises"}
+    _sheet(wb, f"État {year}", ["Rubrique", "Nombre", "Montant"], [
+        ["Reçus émis", data["issued"]["count"], data["issued"]["amount_cents"] / 100],
+        *[[f"  dont {kinds[k]}", v["count"], v["amount_cents"] / 100] for k, v in data["by_kind"].items()],
+        ["Reçus annulés", data["cancelled"]["count"], data["cancelled"]["amount_cents"] / 100],
+        [],
+        ["Dons comptabilisés de l'année", "", data["booked_donations_cents"] / 100],
+        ["  dont repris sur un reçu émis", "", data["receipted_donations_cents"] / 100],
+        ["  dont encore à reprendre", "", data["pending_donations_cents"] / 100],
+    ], (3,))
+    rows = []
+    for r in DonationReceipt.query.filter_by(year=year).order_by(DonationReceipt.number):
+        donor = _json.loads(r.donor_json)
+        rows.append([r.number, r.issued_at.date().isoformat(), donor["name"], kinds.get(r.person_kind, r.person_kind),
+                     "Annuel" if r.mode == "annual" else "Par don", r.total_cents / 100,
+                     "Émis" if r.status == "issued" else "Annulé", r.cancel_reason or "",
+                     r.sent_at.date().isoformat() if r.sent_at else ""])
+    _sheet(wb, "Reçus", ["Numéro", "Émis le", "Donateur", "Type", "Mode", "Montant", "Statut", "Motif d'annulation",
+                         "Envoyé le"], rows, (6,))
+    return _response(wb, f"recus-fiscaux-{year}.xlsx")

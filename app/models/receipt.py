@@ -77,6 +77,7 @@ class DonationReceipt(db.Model):
     sent_to = db.Column(db.String(200))
 
     entity = db.relationship("Entity")
+    replaced_by = db.relationship("DonationReceipt", remote_side=[id])
     items = db.relationship("DonationReceiptItem", backref="receipt", cascade="all, delete-orphan",
                             order_by="DonationReceiptItem.date")
 

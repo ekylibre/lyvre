@@ -10,7 +10,7 @@ from app.extensions import db
 from app.models import (
     Account, BankAccount, BankTransaction, DonationReceipt, Entity, FiscalYear, InKindDonation, Journal, ReceiptCounter,
 )
-from app.services import organization, receipts
+from app.services import organization, receipts, sync_jobs
 from app.services.ledger import post_entry
 
 YEAR = 2026
@@ -21,6 +21,35 @@ PNG = (b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08
 def _error(resp, status):
     assert resp.status_code == status, resp.get_json()
     return resp.get_json()["error"]
+
+
+class _InlineThread:
+    """Les jobs d'émission s'exécutent au démarrage (tests déterministes)."""
+
+    def __init__(self, target, args=(), daemon=None):
+        self.target, self.args = target, args
+
+    def start(self):
+        self.target(*self.args)
+
+
+@pytest.fixture(autouse=True)
+def _inline_jobs(monkeypatch):
+    monkeypatch.setattr(sync_jobs.threading, "Thread", _InlineThread)
+
+
+def _issue(client, **body):
+    """Lance l'émission (job) ; renvoie (reçus émis par ce job, refus « donateur : motif »)."""
+    resp = client.post("/api/v1/receipts/issue", json={"year": YEAR, **body})
+    assert resp.status_code == 202, resp.get_json()
+    # Le job s'exécute dans son propre contexte (sa propre session) ; la session du test, partagée
+    # par les requêtes du client de test, garde l'objet lu au lancement : on la rafraîchit.
+    db.session.expire_all()
+    job = client.get(f"/api/v1/jobs/{resp.get_json()['job']['id']}").get_json()["job"]
+    assert job["status"] == "done", job
+    numbers = job["result"]["numbers"]
+    listing = client.get(f"/api/v1/receipts?year={body.get('year', YEAR)}").get_json()["items"]
+    return [r for r in listing if r["number"] in numbers], job["result"]["errors"]
 
 
 def _text(pdf: bytes) -> str:
@@ -97,21 +126,20 @@ def test_candidates_by_donor(books, login_as):
 
 def test_issue_annual_numbers_and_pdf(books, login_as, app):
     client = _activate(login_as(role="admin"))
-    body = client.post("/api/v1/receipts/issue", json={"year": YEAR}).get_json()
-    assert [(r["number"], r["donor"], r["total_cents"]) for r in body["items"]] == [
+    items, refused = _issue(client)
+    assert [(r["number"], r["donor"], r["total_cents"]) for r in items] == [
         ("2026-00001", "ACME SAS", 100000), ("2026-00002", "Alice Martin", 7500)]
-    assert body["refused"][0]["name"] == "Bob Sans Adresse" and "adresse" in body["refused"][0]["reason"]
-    pdf = client.get(f"/receipts/{body['items'][1]['id']}.pdf")
+    assert len(refused) == 1 and refused[0].startswith("Bob Sans Adresse") and "adresse" in refused[0]
+    pdf = client.get(f"/receipts/{items[1]['id']}.pdf")
     assert pdf.status_code == 200 and pdf.mimetype == "application/pdf"
     text = _text(pdf.data)
     for mention in ("11580*05", "2026-00002", "Les Amis du Jardin", "RNA W123456789", "Alice Martin", "1 rue A",
                     "75,00 €", "soixante-quinze euros", "200 du CGI", "Déclaration de don manuel", "Camille Martin"):
         assert mention in text, mention
-    company = _text(client.get(f"/receipts/{body['items'][0]['id']}.pdf").data)
+    company = _text(client.get(f"/receipts/{items[0]['id']}.pdf").data)
     assert "16216*01" in company and "SIREN 732829320" in company and "mille euros" in company
     # Déjà reçus : plus rien à émettre pour eux ; liste des reçus de l'année.
-    again = client.post("/api/v1/receipts/issue", json={"year": YEAR, "entity_ids": [books["alice"].id]}).get_json()
-    assert again["items"] == []
+    assert _issue(client, entity_ids=[books["alice"].id]) == ([], [])
     listing = client.get(f"/api/v1/receipts?year={YEAR}").get_json()["items"]
     assert [r["number"] for r in listing] == ["2026-00001", "2026-00002"]
 
@@ -120,9 +148,8 @@ def test_single_mode_and_donor_assignment(books, login_as):
     client = _activate(login_as(role="admin"))
     line_id = client.get(f"/api/v1/receipts/candidates?year={YEAR}").get_json()["unassigned"][0]["id"]
     assert client.put(f"/api/v1/receipts/lines/{line_id}/donor", json={"entity_id": books["alice"].id}).status_code == 200
-    body = client.post("/api/v1/receipts/issue", json={"year": YEAR, "entity_ids": [books["alice"].id],
-                                                       "mode": "single"}).get_json()
-    assert [(r["number"], r["total_cents"]) for r in body["items"]] == [
+    items, _ = _issue(client, entity_ids=[books["alice"].id], mode="single")
+    assert [(r["number"], r["total_cents"]) for r in items] == [
         ("2026-00001", 5000), ("2026-00002", 1500), ("2026-00003", 2500)]
     _error(client.put(f"/api/v1/receipts/lines/{line_id}/donor", json={"entity_id": None}), 409)
 
@@ -136,12 +163,12 @@ def test_no_gap_when_issue_fails(books, login_as, monkeypatch):
             raise RuntimeError("PDF")
         return real(receipt)
     monkeypatch.setattr(receipts, "render_pdf", flaky)
-    body = client.post("/api/v1/receipts/issue", json={"year": YEAR}).get_json()
-    assert [r["number"] for r in body["items"]] == ["2026-00001"]  # Alice : le numéro d'ACME n'est pas consommé
-    assert any(r["name"] == "ACME SAS" for r in body["refused"])
+    items, refused = _issue(client)
+    assert [r["number"] for r in items] == ["2026-00001"]  # Alice : le numéro d'ACME n'est pas consommé
+    assert any(r.startswith("ACME SAS") for r in refused)
     assert ReceiptCounter.query.get(YEAR).last_number == 1 and DonationReceipt.query.count() == 1
     monkeypatch.setattr(receipts, "render_pdf", real)
-    assert client.post("/api/v1/receipts/issue", json={"year": YEAR}).get_json()["items"][0]["number"] == "2026-00002"
+    assert _issue(client)[0][0]["number"] == "2026-00002"
 
 
 def test_issue_guards(books, login_as):
@@ -161,7 +188,7 @@ def test_in_kind_and_pdf_tamper(books, login_as, app):
     assert client.post("/api/v1/receipts/in-kind", json={"entity_id": books["acme"].id, "date": "2026-07-01",
                                                          "description": "Matériel", "valuation_cents": 2000,
                                                          "valuation_method": "Valeur nette comptable"}).status_code == 201
-    issued = client.post("/api/v1/receipts/issue", json={"year": YEAR, "entity_ids": [books["acme"].id]}).get_json()["items"][0]
+    issued = _issue(client, entity_ids=[books["acme"].id])[0][0]
     assert issued["total_cents"] == 102000
     gift = InKindDonation.query.filter_by(description="Matériel").one()
     _error(client.delete(f"/api/v1/receipts/in-kind/{gift.id}"), 409)
@@ -175,3 +202,100 @@ def test_accountant_cannot_issue(books, login_as):
     client = login_as(role="accountant")
     assert client.get(f"/api/v1/receipts/candidates?year={YEAR}").status_code == 200
     _error(client.post("/api/v1/receipts/issue", json={"year": YEAR}), 403)
+
+
+# ------------------------------------------------------------------ lot B.3 : envoi, annulation, état annuel
+
+
+class _FakeSMTP:
+    sent = []
+
+    def send_message(self, message):
+        _FakeSMTP.sent.append(message)
+
+    def quit(self):
+        pass
+
+
+@pytest.fixture()
+def smtp(monkeypatch):
+    from app.services import membership_reminders
+    _FakeSMTP.sent = []
+    monkeypatch.setattr(membership_reminders, "smtp_configured", lambda: True)
+    monkeypatch.setattr(membership_reminders, "smtp_settings", lambda: {"sender": "tresorier@asso.test"})
+    monkeypatch.setattr(membership_reminders, "_open_smtp", lambda settings: _FakeSMTP())
+    return _FakeSMTP
+
+
+def _job(client, resp):
+    assert resp.status_code == 202, resp.get_json()
+    db.session.expire_all()
+    return client.get(f"/api/v1/jobs/{resp.get_json()['job']['id']}").get_json()["job"]
+
+
+def test_send_by_email(books, login_as, smtp):
+    client = _activate(login_as(role="admin"))
+    items, _ = _issue(client)
+    job = _job(client, client.post("/api/v1/receipts/send", json={"year": YEAR}))
+    assert job["result"]["sent"] == 1 and job["result"]["skipped"] == 0  # ACME, sans email, n'est pas visé
+    message = smtp.sent[0]
+    assert message["To"] == "alice@example.org" and "2026-00002" in message["Subject"]
+    attachment = next(message.iter_attachments())
+    assert attachment.get_filename() == "recu-fiscal-2026-00002.pdf" and attachment.get_content().startswith(b"%PDF")
+    alice = next(r for r in client.get(f"/api/v1/receipts?year={YEAR}").get_json()["items"] if r["donor"] == "Alice Martin")
+    assert alice["sent_to"] == "alice@example.org" and alice["sent_at"]
+    # Déjà envoyés : rien à renvoyer pour l'année (sauf demande explicite).
+    assert client.post("/api/v1/receipts/send", json={"year": YEAR}).get_json()["notices"][0]["message"] == "Aucun reçu à envoyer."
+
+
+def test_send_needs_smtp(books, login_as, monkeypatch):
+    from app.services import membership_reminders
+    monkeypatch.setattr(membership_reminders, "smtp_configured", lambda: False)  # jamais de vrai serveur en test
+    client = _activate(login_as(role="admin"))
+    _issue(client)
+    assert "SMTP" in _error(client.post("/api/v1/receipts/send", json={"year": YEAR}), 409)["message"]
+
+
+def test_cancel_and_reissue(books, login_as):
+    client = _activate(login_as(role="admin"))
+    items, _ = _issue(client)
+    alice = next(r for r in items if r["donor"] == "Alice Martin")
+    url = f"/api/v1/receipts/{alice['id']}/cancel"
+    assert "Motif" in _error(client.post(url, json={"reason": "x"}), 422)["message"]
+    # Annulation simple : les dons redeviennent à reprendre ; le numéro n'est pas réutilisé.
+    cancelled = client.post(url, json={"reason": "Montant erroné"}).get_json()["item"]
+    assert cancelled["status"] == "cancelled" and cancelled["cancel_reason"] == "Montant erroné"
+    _error(client.post(url, json={"reason": "Encore une fois"}), 409)
+    pending = client.get(f"/api/v1/receipts/candidates?year={YEAR}").get_json()
+    assert any(d["name"] == "Alice Martin" and d["total_cents"] == 7500 for d in pending["donors"])
+    reissued, _ = _issue(client, entity_ids=[books["alice"].id])
+    assert reissued[0]["number"] == "2026-00003"
+    # Annulation avec réémission immédiate des mêmes dons.
+    body = client.post(f"/api/v1/receipts/{reissued[0]['id']}/cancel", json={"reason": "Adresse corrigée", "reissue": True}).get_json()
+    assert body["item"]["replaced_by"] == "2026-00004" and "remplacé par le reçu 2026-00004" in body["notices"][0]["message"]
+    listing = {r["number"]: r for r in client.get(f"/api/v1/receipts?year={YEAR}").get_json()["items"]}
+    assert [n for n, r in listing.items() if r["status"] == "issued"] == ["2026-00001", "2026-00004"]
+    assert listing["2026-00004"]["total_cents"] == 7500
+
+
+def test_annual_summary(books, login_as):
+    client = _activate(login_as(role="admin"))
+    items, _ = _issue(client)
+    client.post(f"/api/v1/receipts/{items[0]['id']}/cancel", json={"reason": "Erreur de donateur"})
+    data = client.get(f"/api/v1/receipts/summary?year={YEAR}").get_json()
+    assert data["issued"] == {"count": 1, "amount_cents": 7500}
+    assert data["cancelled"] == {"count": 1, "amount_cents": 100000}
+    assert data["by_kind"]["individual"] == {"count": 1, "amount_cents": 7500}
+    # Dons comptabilisés = repris sur un reçu émis + encore à reprendre.
+    assert data["booked_donations_cents"] == 5000 + 2500 + 100000 + 1500
+    assert data["receipted_donations_cents"] + data["pending_donations_cents"] == data["booked_donations_cents"]
+    assert data["numbers"] == ["2026-00001", "2026-00002"]
+    xlsx = client.get(data["export_url"])
+    assert xlsx.status_code == 200 and "recus-fiscaux-2026.xlsx" in xlsx.headers["Content-Disposition"]
+
+
+def test_accountant_cannot_cancel_or_send(books, login_as):
+    client = login_as(role="accountant")
+    assert client.get(f"/api/v1/receipts/summary?year={YEAR}").status_code == 200
+    _error(client.post("/api/v1/receipts/1/cancel", json={"reason": "Pas autorisé"}), 403)
+    _error(client.post("/api/v1/receipts/send", json={"year": YEAR}), 403)

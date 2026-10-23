@@ -365,10 +365,8 @@ def _donor_snapshot(entity: Entity) -> dict:
             "siren": (entity.siret or "")[:9] or None, "email": entity.email}
 
 
-def issue(year: int, entity_ids, mode=None, user_id=None) -> tuple[list[DonationReceipt], list[dict]]:
-    """Émet les reçus de l'année pour les donateurs choisis (tous si `entity_ids` est vide) :
-    un reçu annuel récapitulatif par donateur, ou un reçu par don (`mode='single'`).
-    Renvoie (reçus émis, refus par donateur)."""
+def check_issue(year: int, mode=None) -> str:
+    """Contrôles préalables à une émission (avant de lancer le job) ; renvoie le mode retenu."""
     settings = get()
     if not settings.enabled:
         raise ReceiptError("Reçus fiscaux non activés (Configuration › Reçus fiscaux).", status=409)
@@ -380,12 +378,18 @@ def issue(year: int, entity_ids, mode=None, user_id=None) -> tuple[list[Donation
     mode = mode or settings.default_mode
     if mode not in ("annual", "single"):
         raise ReceiptError("Mode d'émission inconnu.", "mode")
-    pool = candidates(year)
+    return mode
+
+
+def issue(year: int, entity_ids, mode=None, user_id=None, progress=None) -> tuple[list[DonationReceipt], list[dict]]:
+    """Émet les reçus de l'année pour les donateurs choisis (tous si `entity_ids` est vide) :
+    un reçu annuel récapitulatif par donateur, ou un reçu par don (`mode='single'`).
+    Renvoie (reçus émis, refus par donateur). `progress(done, total, message)` : avancement."""
+    mode = check_issue(year, mode)
     wanted = set(entity_ids or [])
+    groups = [g for g in candidates(year)["donors"] if not wanted or g["entity_id"] in wanted]
     issued, refused = [], []
-    for group in pool["donors"]:
-        if wanted and group["entity_id"] not in wanted:
-            continue
+    for index, group in enumerate(groups, start=1):
         if group["problems"]:
             refused.append({"entity_id": group["entity_id"], "name": group["name"],
                             "reason": "À compléter dans la fiche du tiers : " + ", ".join(group["problems"]) + "."})
@@ -397,6 +401,8 @@ def issue(year: int, entity_ids, mode=None, user_id=None) -> tuple[list[Donation
             except Exception as exc:  # noqa: BLE001 — un refus n'arrête pas le lot
                 db.session.rollback()
                 refused.append({"entity_id": group["entity_id"], "name": group["name"], "reason": f"Émission impossible : {exc}"})
+        if progress:
+            progress(index, len(groups), f"{len(issued)} reçu(s) émis")
     return issued, refused
 
 
@@ -435,7 +441,9 @@ def receipt_payload(receipt: DonationReceipt) -> dict:
             "donor": donor["name"], "person_kind": receipt.person_kind, "mode": receipt.mode,
             "total_cents": receipt.total_cents, "status": receipt.status, "items": len(receipt.items),
             "issued_at": receipt.issued_at.isoformat() + "Z", "sent_at": receipt.sent_at.isoformat() + "Z" if receipt.sent_at else None,
-            "pdf_url": f"/receipts/{receipt.id}.pdf", "email": donor.get("email")}
+            "pdf_url": f"/receipts/{receipt.id}.pdf", "email": receipt.entity.email or donor.get("email"),
+            "sent_to": receipt.sent_to, "cancel_reason": receipt.cancel_reason,
+            "replaced_by": receipt.replaced_by.number if receipt.replaced_by_id else None}
 
 
 # --- PDF
@@ -463,3 +471,120 @@ def render_pdf(receipt: DonationReceipt) -> bytes:
         cerfa="16216*01" if receipt.person_kind == "company" else "11580*05",
         issued_on=date.today())  # date locale du jour d'émission (issued_at est en UTC)
     return HTML(string=html).write_pdf()
+
+
+# ------------------------------------------------------------------ B.3 : envoi, annulation, état annuel
+
+EMAIL_SUBJECT = "Votre reçu fiscal n° {number} — {org}"
+EMAIL_BODY = """<p>Bonjour,</p>
+<p>Nous vous remercions pour votre soutien. Vous trouverez ci-joint le reçu fiscal n° <strong>{number}</strong>
+correspondant à vos dons de {year} à {org}, d'un montant de <strong>{amount}</strong>, à conserver pour votre
+déclaration d'impôt.</p>
+<p>Bien cordialement,<br>{signatory}<br>{org}</p>"""
+
+
+def send(receipt_ids, progress=None) -> dict:
+    """Envoie chaque reçu émis à l'adresse email du donateur (PDF joint) ; sans adresse : ignoré.
+    Une erreur sur un reçu n'arrête pas l'envoi des autres."""
+    from app.services.membership_reminders import _build_message, _open_smtp, smtp_configured, smtp_settings
+
+    if not smtp_configured():
+        raise ReceiptError("Envoi impossible : SMTP non configuré (Configuration › Intégrations).", status=409)
+    rows = DonationReceipt.query.filter(DonationReceipt.id.in_(list(receipt_ids) or [0]),
+                                        DonationReceipt.status == "issued").order_by(DonationReceipt.number).all()
+    org = organization.get()
+    settings = smtp_settings()
+    sent = skipped = 0
+    errors = []
+    server = _open_smtp(settings)
+    try:
+        for index, receipt in enumerate(rows, start=1):
+            email = receipt.entity.email or json.loads(receipt.donor_json).get("email")
+            path = receipt_file(receipt)
+            if not email or path is None:
+                skipped += 1
+                continue
+            try:
+                values = {"number": receipt.number, "org": org.name, "year": receipt.year,
+                          "amount": euros(receipt.total_cents), "signatory": org.signatory_name or ""}
+                message = _build_message(settings["sender"], email, EMAIL_SUBJECT.format(**values), EMAIL_BODY.format(**values))
+                message.add_attachment(path.read_bytes(), maintype="application", subtype="pdf",
+                                       filename=f"recu-fiscal-{receipt.number}.pdf")
+                server.send_message(message)
+                receipt.sent_at, receipt.sent_to = datetime.utcnow(), email
+                db.session.commit()
+                sent += 1
+            except Exception as exc:  # noqa: BLE001 — on isole l'échec par reçu
+                db.session.rollback()
+                errors.append(f"{receipt.number} <{email}> : {exc}")
+            if progress:
+                progress(index, len(rows), f"{sent} reçu(s) envoyé(s)")
+    finally:
+        try:
+            server.quit()
+        except Exception:  # noqa: BLE001 — fermeture best-effort
+            pass
+    return {"sent": sent, "skipped": skipped, "errors": errors}
+
+
+def cancel(receipt_id: int, reason, reissue=False, user_id=None) -> tuple[DonationReceipt, DonationReceipt | None]:
+    """Annule un reçu émis (jamais supprimé ni renuméroté) ; ses dons redeviennent disponibles.
+    `reissue` : émet aussitôt un reçu de remplacement pour les mêmes dons (donateur tel qu'il est
+    aujourd'hui), relié par `replaced_by_id`."""
+    receipt = db.session.get(DonationReceipt, receipt_id)
+    if receipt is None:
+        raise ReceiptError("Reçu introuvable.", status=404)
+    if receipt.status != "issued":
+        raise ReceiptError("Reçu déjà annulé.", status=409)
+    reason = (reason or "").strip()
+    if len(reason) < 5:
+        raise ReceiptError("Motif d'annulation obligatoire (5 caractères au moins).", "reason")
+    items = [{"kind": "line" if i.journal_line_id else "in_kind", "id": i.journal_line_id or i.in_kind_id,
+              "date": i.date.isoformat(), "amount_cents": i.amount_cents, "payment_method": i.payment_method}
+             for i in receipt.items if i.journal_line_id or i.in_kind_id]
+    if reissue:
+        check_issue(receipt.year, receipt.mode)
+        problems = donor_problems(receipt.entity)
+        if problems:
+            raise ReceiptError("Réémission impossible, à compléter dans la fiche du tiers : " + ", ".join(problems) + ".",
+                               status=409)
+    receipt.status, receipt.cancel_reason = "cancelled", reason[:1000]
+    db.session.flush()
+    replacement = None
+    if reissue:
+        replacement = _issue_one(receipt.year, receipt.entity_id, items, receipt.mode, user_id)
+        receipt = db.session.get(DonationReceipt, receipt_id)
+        receipt.replaced_by_id = replacement.id
+    db.session.commit()
+    return receipt, replacement
+
+
+def annual_summary(year: int) -> dict:
+    """État annuel : reçus émis et annulés (nombre, montant) par type de donateur et nature, et
+    rapprochement avec les dons comptabilisés de l'année."""
+    rows = DonationReceipt.query.filter_by(year=year).all()
+    issued = [r for r in rows if r.status == "issued"]
+    by_kind = {kind: {"count": sum(1 for r in issued if r.person_kind == kind),
+                      "amount_cents": sum(r.total_cents for r in issued if r.person_kind == kind)}
+               for kind in ("individual", "company")}
+    by_nature = {}
+    for receipt in issued:
+        for item in receipt.items:
+            bucket = by_nature.setdefault(item.nature, {"label": NATURES[item.nature], "amount_cents": 0})
+            bucket["amount_cents"] += item.amount_cents
+    booked = sum(line.credit_cents - line.debit_cents for line in donation_lines(year))
+    receipted_lines = sum(i.amount_cents for r in issued for i in r.items if i.journal_line_id)
+    pending = candidates(year)
+    return {
+        "year": year,
+        "issued": {"count": len(issued), "amount_cents": sum(r.total_cents for r in issued)},
+        "cancelled": {"count": len(rows) - len(issued), "amount_cents": sum(r.total_cents for r in rows if r.status != "issued")},
+        "by_kind": by_kind, "by_nature": by_nature,
+        "sent": sum(1 for r in issued if r.sent_at), "unsent": sum(1 for r in issued if not r.sent_at),
+        "booked_donations_cents": booked, "receipted_donations_cents": receipted_lines,
+        # Dons comptabilisés = déjà sur un reçu + encore à reprendre (lignes ; les dons en nature sont à part).
+        "pending_donations_cents": sum(i["amount_cents"] for d in pending["donors"] for i in d["items"] if i["kind"] == "line")
+        + sum(u["amount_cents"] for u in pending["unassigned"]),
+        "numbers": [r.number for r in sorted(rows, key=lambda r: r.number)],
+    }
+

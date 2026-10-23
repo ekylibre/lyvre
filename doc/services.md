@@ -1162,3 +1162,10 @@ particuliers, articles 200 / 978 — et n° 16216*01 / 2041-MEC-SD — entrepris
 montant en lettres par `app/utils/money.euros_in_words`), `assign_donor`, `save_in_kind` /
 `delete_in_kind`, `receipt_file` / `receipt_payload`.
 
+**B.3 — lot, envoi, annulation, état annuel.** `check_issue(year, mode)` (contrôles avant le job) ;
+`issue(..., progress)` exécuté par le job `donation_receipts` (`sync_jobs`, un seul à la fois par
+instance, notification de fin) ; `send(receipt_ids, progress)` (SMTP de l'instance, PDF joint,
+`sent_at` / `sent_to` ; une erreur n'arrête pas le lot) exécuté par le job `donation_receipts_send` ;
+`cancel(receipt_id, reason, reissue)` (statut `cancelled`, motif, dons libérés ; `reissue` : même
+dons sous un nouveau numéro, `replaced_by_id`) ; `annual_summary(year)`.
+
