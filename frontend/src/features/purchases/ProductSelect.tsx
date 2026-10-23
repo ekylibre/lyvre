@@ -54,12 +54,15 @@ function CreateProductForm({ name, account, rate, accounts, onCreated, onCancel 
   }, { invalidate: [PURCHASES_KEY, ["products"], ["chart-of-accounts"]], silent: true });
   const choices = accountChoices(form.values.purchase_account_code && !accounts.some((a) => a.value === form.values.purchase_account_code)
     ? [...accounts, { value: form.values.purchase_account_code, label: form.values.purchase_account_code }] : accounts, search);
+  const submit = form.onSubmit((values) => create.mutate(values, {
+    onSuccess: ({ item }) => onCreated({ value: String(item.id), label: item.name,
+      account: item.purchase_account?.code ?? "", rate: item.vat_rate }),
+    onError: (e) => setError(applyApiError(form, e)),
+  }));
   return (
-    <form onSubmit={form.onSubmit((values) => create.mutate(values, {
-      onSuccess: ({ item }) => onCreated({ value: String(item.id), label: item.name,
-        account: item.purchase_account?.code ?? "", rate: item.vat_rate }),
-      onError: (e) => setError(applyApiError(form, e)),
-    }))}>
+    // La fenêtre est rendue hors de la facture (portail), mais React fait remonter l'envoi jusqu'au
+    // formulaire de la facture : on l'arrête ici, sinon créer le produit enregistre la facture.
+    <form onSubmit={(e) => { e.stopPropagation(); submit(e); }}>
       <FormBody error={error} submitLabel="Créer le produit" onCancel={onCancel} loading={create.isPending}>
         <TextInput label="Libellé" required data-autofocus {...form.getInputProps("name")} />
         {newAccount ? (

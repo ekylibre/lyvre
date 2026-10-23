@@ -90,6 +90,8 @@ describe("saisie d'une facture d'achat", () => {
       { name: "Electricité", kind: "purchase", purchase_account_code: "6061", vat_rate: "20" }));
     await waitFor(() => expect((screen.getByLabelText("Produit (ligne 1)", { selector: "input" }) as HTMLInputElement).value).toBe("Electricité"));
     expect((screen.getByLabelText("Libellé (ligne 1)") as HTMLInputElement).value).toBe("Electricité");
+    // La fenêtre du produit n'envoie pas le formulaire de la facture (événement remonté par le portail React).
+    expect(calls.filter((c) => c.url === "/api/v1/purchases")).toEqual([]);
   });
 
   it("crée le compte de charge absent du plan avec le produit", async () => {
@@ -104,5 +106,6 @@ describe("saisie d'une facture d'achat", () => {
       { name: "Petit outillage", purchase_account_code: "6063" }));
     expect(calls.find((c) => c.url === "/api/v1/chart-of-accounts")?.body).toEqual(
       { code: "6063", label: "Fournitures d'entretien et de petit équipement", account_type: "EXPENSE" });
+    expect(calls.filter((c) => c.url === "/api/v1/purchases")).toEqual([]);
   });
 });
