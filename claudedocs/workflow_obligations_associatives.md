@@ -1,6 +1,6 @@
 # Workflow — Obligations associatives (lots A → C → B → D)
 
-> Statut (2026-10-24) : **lots A, B, C et D réalisés** (main local, non poussé) ; plan
+> Statut (2026-10-23) : **lots A, B, C et D réalisés** (main local, non poussé) ; plan
 > terminé côté logiciel. En attente côté utilisateur : relecture des reçus face aux Cerfa officiels
 > (point ouvert 2, US-B1), passage du FEC de test dans
 > « Test Compta Demat » (US-A1), relecture de l'affectation SCI 455x par l'expert-comptable, accord
@@ -202,7 +202,7 @@ Banque › Prévisionnel (graphique, tableau, détail d'un mois, saisies), alert
 **US-C2 cochée.** Copie SN 5001 : trésorerie 20 473,74 €, mouvements d'octobre à décembre (factures,
 budget 2026), aucun budget 2027. pytest 776, Vitest 78, E2E 21.
 
-**C.5 fait (2026-10-24) — lot C terminé** : `dedicated_funds.project_id` (migration `b9d4f6a8c310`),
+**C.5 fait (2026-10-23) — lot C terminé** : `dedicated_funds.project_id` (migration `b9d4f6a8c310`),
 proposition de dotation / utilisation d'après les charges du projet dans l'étape 3, choix du projet
 à la création ou ensuite ; montants des messages au format français. Copie SN 5001 : subvention de
 500 € sur « Jardin partagé » (100 € de charges 2026) → dotation proposée 400 €, enregistrée
@@ -216,14 +216,14 @@ proposition de dotation / utilisation d'après les charges du projet dans l'éta
 | **B.2 Émission et PDF** (D16, D18) | Tables `receipt_counters`, `donation_receipts`, `donation_receipt_items`, `in_kind_donations` ; candidats par année (lignes 7541 avec tiers non reçues + dons en nature) ; émission unitaire / annuelle ; gabarits particuliers et entreprises (CERFA en vigueur, point ouvert 2) ; PDF figé | Reçus conformes relus face aux modèles ; numérotation sans trou sous concurrence |
 | **B.3 Lot, envoi, annulation, état annuel** | Job d'émission en lot et d'envoi email (SMTP, notification de fin) ; annulation + réémission ; état annuel (nombre, montant) ; écran **Dons › Reçus** | US-B1 cochée ; E2E « émettre et télécharger un reçu » |
 
-**B.1 fait (2026-10-24)** : colonnes d'adresse et `person_kind` sur `entities`, table
+**B.1 fait (2026-10-23)** : colonnes d'adresse et `person_kind` sur `entities`, table
 `receipt_settings` (migration `c1e5a7b9d402`), service `receipts` (paramètres, mentions requises,
 déclaration de responsabilité, signature), API `/api/v1/receipts/settings[/signature]` (admin
 d'instance ; 404 en SCI), écran Configuration › Reçus fiscaux, adresse et nature dans la fiche du
 tiers. Copies 5001 recréées depuis les vraies bases (lecture seule) après le redémarrage, migrées
 (8 migrations) ; page vérifiée sur la copie SN. pytest 783, Vitest 78, E2E 22.
 
-**B.2 fait (2026-10-24)** : tables `receipt_counters`, `donation_receipts`, `donation_receipt_items`,
+**B.2 fait (2026-10-23)** : tables `receipt_counters`, `donation_receipts`, `donation_receipt_items`,
 `in_kind_donations`, `journal_lines.entity_id` (migration `d3f7b9c1e504`) ; candidats par donateur
 (résolution banque / compte de tiers / choix), dons en nature, émission annuelle ou par don,
 numérotation réservée dans la transaction (pas de trou en cas d'échec, testé), PDF figé (SHA-256,
@@ -232,7 +232,7 @@ contrôlé au téléchargement) ; écran Dons › Reçus fiscaux ; instance E2E 
 (2041-MEC-SD, entreprises ; mise en page libre admise par le BOFiP si les mentions y sont) — à
 relire face aux formulaires officiels. pytest 790, Vitest 78, E2E 23.
 
-**B.3 fait (2026-10-24) — lot B terminé côté logiciel** : émission et envoi en arrière-plan (jobs
+**B.3 fait (2026-10-23) — lot B terminé côté logiciel** : émission et envoi en arrière-plan (jobs
 `donation_receipts`, `donation_receipts_send`, notifications), envoi par email avec PDF joint (SMTP
 de l'instance), annulation motivée et réémission (`replaced_by_id`), état annuel (rapprochement
 dons comptabilisés = reçus + à reprendre, export XLSX), titres de `JobStatus` paramétrables.
@@ -249,28 +249,28 @@ E2E 23 (émission, PDF, annulation-réémission, état annuel).
 | **D.4 États simplifiés** | CdR par catégorie N / N-1 ; situation de trésorerie (cumulée) ; verrouillage d'exercice sans assistant ni FEC | US-D1 (états) cochée |
 | **D.5 Bascule en partie double** | Passage `simple → double` (admin global), inverse refusé si écritures non `SIMPLE` ; première clôture en double : à-nouveaux depuis les soldes cumulés | US-D1 cochée ; E2E « saisie simple puis bascule » |
 
-**D.1 fait (2026-10-25)** : `bank_accounts.kind` (migration `e5a9c3d7f106`), service `cash`
+**D.1 fait (2026-10-23)** : `bank_accounts.kind` (migration `e5a9c3d7f106`), service `cash`
 (mouvements au journal CA, dépôt en banque par 581 en deux écritures, solde cumulé hors à-nouveaux),
 API `/bank-accounts/<id>/cash[/deposit]`, écran de caisse, liste « Comptes et caisses » avec solde,
 caisses exclues du rapprochement / OFX / Qonto, contrôle de clôture 58x. pytest 798, E2E 24.
 
-**D.2 fait (2026-10-25)** : `instances.bookkeeping` (méta, `seed_meta.py`), choix à la création
+**D.2 fait (2026-10-23)** : `instances.bookkeeping` (méta, `seed_meta.py`), choix à la création
 (asso seulement), filtre de menus `bookkeeping` (partie double masquée en mode simple),
 `simple_categories` (migration `f6b1d4e8a207`) pré-remplies depuis le plan, écran Configuration ›
 Catégories. pytest 802.
 
-**D.3 fait (2026-10-25)** : service `simple_operations` (écritures `SIMPLE`, catégorisation d'une
+**D.3 fait (2026-10-23)** : service `simple_operations` (écritures `SIMPLE`, catégorisation d'une
 transaction importée avec rapprochement, modification limitée si rapprochée, liste des recettes et
 dépenses), API `/api/v1/simple/...`, écran « Recettes et dépenses » (opérations, relevé à
 catégoriser), catégorie dans les règles en mode simple ; instance E2E « Asso Simple E2E ».
 pytest 806, E2E 25.
 
-**D.4 fait (2026-10-25)** : `simple_reports` (compte de résultat par catégorie N / N-1, situation
+**D.4 fait (2026-10-23)** : `simple_reports` (compte de résultat par catégorie N / N-1, situation
 de trésorerie cumulée, verrouillage simple / déverrouillage admin), écran « États », colonne
 Verrouillage des exercices en mode simple, `/close` refusé en mode simple ; correctif : deux
 catégories par défaut ne partagent plus un compte. US-D1 (états) cochée. pytest 810, E2E 25.
 
-**D.5 fait (2026-10-25) — lot D terminé** : changement de mode par l'administrateur global
+**D.5 fait (2026-10-23) — lot D terminé** : changement de mode par l'administrateur global
 (`PATCH /instances/<id>` `bookkeeping` ; simple → double sans reprise, retour refusé si une écriture
 a une ligne hors classes 5 / 6 / 7), à-nouveaux de la première clôture en double calculés en cumulé
 avec les résultats antérieurs en report à nouveau, bouton sur la fiche d'instance ; E2E « saisie
