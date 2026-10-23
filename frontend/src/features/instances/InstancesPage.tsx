@@ -1,6 +1,6 @@
 // Administration › Instances : bases comptables (une par structure) ; création, modification.
 import { useState } from "react";
-import { Anchor, Button, Code, SegmentedControl, Select, Stack, Switch, Text, TextInput } from "@mantine/core";
+import { Anchor, Button, Checkbox, Code, Group, SegmentedControl, Select, Stack, Switch, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { api } from "../../api/client";
 import { useAction, useList, type Notice } from "../../api/resources";
@@ -15,14 +15,21 @@ import { MembersEditor } from "../access/MembersEditor";
 import { memberRowErrors, toMembersPayload, type MemberRow, type RoleOption, type UserOption } from "../access/members";
 import { INSTANCES_KEY, type Instance } from "./types";
 
-interface Meta { charts: { value: string; label: string }[]; default_chart: string }
+interface IntegrationOption { value: string; label: string; recommended: boolean }
+interface Meta { charts: { value: string; label: string }[]; default_chart: string;
+  integrations_by_chart?: Record<string, IntegrationOption[]> }
+
+/** Intégrations activées d'office : les recommandées de la structure. */
+const recommendedFor = (meta: Meta | undefined, chart: string) =>
+  (meta?.integrations_by_chart?.[chart] ?? []).filter((i) => i.recommended).map((i) => i.value);
 type UsersMeta = { roles: RoleOption[] };
 
 function CreateForm({ meta, onDone }: { meta: Meta | undefined; onDone: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const { data: users } = useList<UserOption, UsersMeta>(["users"], "/api/v1/users");
   const form = useForm({ initialValues: { slug: "", label: "", provisioning_mode: "auto", chart: meta?.default_chart ?? "asso",
-    bookkeeping: "double", database_url: "", members: [] as MemberRow[] },
+    bookkeeping: "double", database_url: "", members: [] as MemberRow[],
+    integrations: recommendedFor(meta, meta?.default_chart ?? "asso") },
   validate: (values) => memberRowErrors(values.members) });
   const save = useAction((values: typeof form.values) => api.post<{ notices: Notice[] }>("/api/v1/instances",
     { ...values, members: toMembersPayload(values.members) }), { invalidate: [INSTANCES_KEY, ["users"]], silent: true });
@@ -44,7 +51,12 @@ function CreateForm({ meta, onDone }: { meta: Meta | undefined; onDone: () => vo
         {auto
           ? <>
             <Select label="Plan comptable" data={meta?.charts ?? []} allowDeselect={false} description="Pilote aussi les menus affichés."
-              {...form.getInputProps("chart")} onChange={(v) => { form.setFieldValue("chart", v ?? "asso"); if (v !== "asso") form.setFieldValue("bookkeeping", "double"); }} />
+              {...form.getInputProps("chart")} onChange={(v) => {
+                const chart = v ?? "asso";
+                form.setFieldValue("chart", chart);
+                form.setFieldValue("integrations", recommendedFor(meta, chart));
+                if (chart !== "asso") form.setFieldValue("bookkeeping", "double");
+              }} />
             {form.values.chart === "asso" && (
               <Select label="Tenue de la comptabilité" allowDeselect={false} {...form.getInputProps("bookkeeping")}
                 description="Simplifiée : recettes et dépenses par catégorie, sans débit ni crédit (passage en partie double possible ensuite)."
@@ -53,6 +65,16 @@ function CreateForm({ meta, onDone }: { meta: Meta | undefined; onDone: () => vo
           </>
           : <TextInput label="URL de base de données" required placeholder="postgresql://utilisateur:motdepasse@hôte/base"
             classNames={{ input: "lv-num" }} autoComplete="off" {...form.getInputProps("database_url")} />}
+        {!!meta?.integrations_by_chart?.[form.values.chart]?.length && (
+          <Checkbox.Group label="Intégrations activées" {...form.getInputProps("integrations")}
+            description="Les recommandées pour la structure sont cochées ; chacune se configure ensuite dans Configuration › Intégrations.">
+            <Group mt={6} gap="md">
+              {meta.integrations_by_chart[form.values.chart].map((i) => (
+                <Checkbox key={i.value} value={i.value} label={i.recommended ? `${i.label} (recommandée)` : i.label} />
+              ))}
+            </Group>
+          </Checkbox.Group>
+        )}
         <MembersEditor form={form} users={users?.items ?? []} roles={users?.meta?.roles ?? []} />
       </FormBody>
     </form>
@@ -101,7 +123,8 @@ export default function InstancesPage() {
       <DataGrid id="instances" records={data?.items} columns={columns} fetching={isFetching}
         defaultSort={{ column: "label", direction: "asc" }} emptyText="Aucune instance." />
       <FormModal opened={modal.mode === "new"} onClose={modal.close} title="Nouvelle instance" size="lg">
-        <CreateForm meta={data?.meta} onDone={modal.close} />
+        {/* Formulaire monté une fois la méta chargée : ses valeurs initiales en dépendent (plan, intégrations). */}
+        {data?.meta && <CreateForm meta={data.meta} onDone={modal.close} />}
       </FormModal>
       <FormModal opened={!!editing} onClose={modal.close} title={editing ? `Modifier ${editing.label}` : ""}>
         {editing && <EditForm key={editing.id} instance={editing} onDone={modal.close} />}

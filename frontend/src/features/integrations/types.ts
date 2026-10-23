@@ -8,6 +8,14 @@ export interface CheckResult { ok: boolean; message: string; checked_at: string 
 export interface Integration {
   slug: string; label: string; description: string; status: "ok" | "error" | "untested" | "unconfigured" | "disabled";
   status_label: string; enabled: boolean; configured: boolean; check_outdated: boolean; last_check: CheckResult | null;
+  /** Recommandée pour la structure de l'instance (Qonto pour une SCI, HelloAsso pour une association). */
+  recommended?: boolean;
+}
+
+/** Ordre d'affichage : activées, puis recommandées, puis les autres (ordre du serveur sinon). */
+export function sortIntegrations(items: Integration[]): Integration[] {
+  const rank = (v: Integration) => (v.enabled ? 0 : v.recommended ? 1 : 2);
+  return items.map((v, i) => [v, i] as const).sort(([a, i], [b, j]) => rank(a) - rank(b) || i - j).map(([v]) => v);
 }
 
 export interface Field {

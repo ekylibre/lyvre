@@ -15,6 +15,7 @@ import { AppLink } from "../../app/navigation";
 import type { ReportMeta } from "../reports/ReportFrame";
 import { RateBar, useTracking } from "../budget/BudgetTrackingPage";
 import { NegativeAlert, useForecast } from "../cash-forecast/CashForecastPage";
+import { IntegrationProposals } from "../integrations/IntegrationProposals";
 
 interface Month { month: string; produits: number; charges: number; net: number; ventes: number; pos: number; factures: number; solde: number }
 interface Dashboard {
@@ -94,6 +95,7 @@ export default function DashboardPage() {
       <PageHeader title="Tableau de bord" description={fy ? `Exercice ${fy.label}` : undefined}
         actions={<Select aria-label="Exercice" data={data?.meta.fiscal_years ?? []} value={params.fy_id || (fy ? String(fy.id) : null)}
           w={180} allowDeselect={false} onChange={(v) => setParams({ fy_id: v ?? "" })} />} />
+      <IntegrationProposals />
       {isPending ? <Center h={300}><Loader /></Center> : !stats ? (
         <Alert color="paille">Aucun exercice : <Anchor component={AppLink} href="/fiscal-years/new">créer un exercice</Anchor> pour commencer.</Alert>
       ) : (

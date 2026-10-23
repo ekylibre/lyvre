@@ -8,6 +8,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
+import { SESSION_KEY } from "../../api/session";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { AppLink } from "../../app/navigation";
@@ -40,6 +41,8 @@ export default function IntegrationDetailPage() {
   }, [data]);
   // Les actions renvoient la fiche à jour : elle remplace le cache (pas de second appel).
   const refresh = (body: IntegrationDetail) => { client.setQueryData(key, body); void client.invalidateQueries({ queryKey: INTEGRATIONS_KEY, exact: true }); };
+  // Activer ou désactiver change les menus et ce que montrent les écrans (session).
+  const toggled = (body: IntegrationDetail) => { refresh(body); void client.invalidateQueries({ queryKey: SESSION_KEY }); };
   const save = useAction(() => api.put<IntegrationDetail & { notices: Notice[] }>(`/api/v1/integrations/${service}`, { values, clear }));
   const toggle = useAction((enabled: boolean) => api.post<IntegrationDetail & { notices: Notice[] }>(`/api/v1/integrations/${service}/enabled`, { enabled }));
   const check = useAction(() => api.post<IntegrationDetail & { notices: Notice[] }>(`/api/v1/integrations/${service}/check`));
@@ -54,6 +57,14 @@ export default function IntegrationDetailPage() {
       <PageHeader title={v.label} description={v.description}
         actions={<><StatusBadge tone={STATUS_TONES[v.status]}>{v.status_label}</StatusBadge>
           <Button variant="default" component={AppLink} href="/configuration/integrations/">Intégrations</Button></>} />
+      {v.recommended && !v.enabled && (
+        <Alert color="lichen" mb="md" title={`${v.label} est recommandée pour votre structure.`}>
+          <Group justify="space-between">
+            <Text size="sm">Activez-la, puis renseignez sa configuration et testez-la.</Text>
+            <Button size="compact-md" loading={toggle.isPending} onClick={() => toggle.mutate(true, { onSuccess: toggled })}>Activer</Button>
+          </Group>
+        </Alert>
+      )}
       <Grid>
         <Grid.Col span={{ base: 12, lg: 7 }}>
           <Paper p="md">
@@ -92,7 +103,7 @@ export default function IntegrationDetailPage() {
             <Group justify="space-between" mb="sm">
               <Text>Intégration <b>{v.enabled ? "activée" : "désactivée"}</b></Text>
               <Button size="compact-md" variant="default" loading={toggle.isPending}
-                onClick={() => toggle.mutate(!v.enabled, { onSuccess: refresh })}>{v.enabled ? "Désactiver" : "Activer"}</Button>
+                onClick={() => toggle.mutate(!v.enabled, { onSuccess: toggled })}>{v.enabled ? "Désactiver" : "Activer"}</Button>
             </Group>
             {v.last_check ? (
               <>

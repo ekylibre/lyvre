@@ -4,23 +4,27 @@ import { useList } from "../../api/resources";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { AppLink } from "../../app/navigation";
-import { INTEGRATIONS_KEY, STATUS_TONES, checkSummary, type Integration } from "./types";
+import { INTEGRATIONS_KEY, STATUS_TONES, checkSummary, sortIntegrations, type Integration } from "./types";
 
 export default function IntegrationsPage() {
   const { data } = useList<Integration>(INTEGRATIONS_KEY, "/api/v1/integrations");
   return (
     <>
       <PageHeader title="Intégrations"
-        description="Services externes utilisés par cette instance. Ouvrez une intégration pour la configurer, l'activer ou la désactiver et tester son fonctionnement." />
+        description="Services externes proposés pour cette structure, désactivés tant que vous ne les activez pas. Ouvrez une intégration pour l'activer, la configurer et tester son fonctionnement." />
       <SimpleGrid cols={{ base: 1, lg: 2 }}>
-        {data?.items.map((v) => (
+        {data && sortIntegrations(data.items).map((v) => (
           <Card key={v.slug} component={AppLink} href={`/configuration/integrations/${v.slug}`} padding="md"
             style={{ textDecoration: "none", color: "inherit" }} aria-label={`${v.label} : ${v.status_label}`}>
             <Group justify="space-between" align="flex-start">
               <Text fw={700} size="lg">{v.label}</Text>
-              <StatusBadge tone={STATUS_TONES[v.status]}>{v.status_label}</StatusBadge>
+              <Group gap={6}>
+                {v.recommended && !v.enabled && <StatusBadge tone="info">Recommandée</StatusBadge>}
+                <StatusBadge tone={STATUS_TONES[v.status]}>{v.status_label}</StatusBadge>
+              </Group>
             </Group>
             <Text size="sm" c="dimmed" mt={4}>{v.description}</Text>
+            {v.recommended && !v.enabled && <Text size="sm" fw={600} c="var(--lv-lichen)" mt="xs">Activer et configurer →</Text>}
             {v.last_check ? (
               <>
                 <Text size="sm" mt="xs">Dernier test : {checkSummary(v.last_check)}
