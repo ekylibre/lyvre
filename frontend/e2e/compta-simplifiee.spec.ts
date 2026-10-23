@@ -1,5 +1,5 @@
-// Comptabilité simplifiée (lots D.2, D.3) : menus sans partie double, recette saisie par
-// catégorie, transaction du relevé catégorisée.
+// Comptabilité simplifiée (lots D.2 à D.4) : menus sans partie double, recette saisie par
+// catégorie, transaction du relevé catégorisée, états simplifiés.
 import { expect, test } from "@playwright/test";
 import { login } from "./helpers";
 
@@ -31,4 +31,11 @@ test("comptabilité simplifiée : menus, recette saisie, relevé catégorisé", 
   await expect(page.getByText("Tout le relevé est catégorisé.", { exact: false })).toBeVisible();
   await page.getByRole("tab", { name: "Opérations" }).click();
   await expect(page.getByRole("row", { name: /CB PAPETERIE/ })).toContainText("−25,00");
+
+  // États : compte de résultat par catégorie et situation de trésorerie.
+  await page.goto("/simple/reports");
+  await expect(page.getByRole("row", { name: /Cotisations/ })).toContainText("30,00");
+  await expect(page.getByRole("row", { name: /Excédent/ })).toContainText("5,00");
+  await page.getByRole("tab", { name: "Situation de trésorerie" }).click();
+  await expect(page.getByRole("row", { name: /Banque simple/ })).toContainText("5,00");  // 30,00 encaissés − 25,00 payés
 });

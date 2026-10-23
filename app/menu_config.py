@@ -107,6 +107,14 @@ MENUS = [
         "endpoint": "simple_operations.index",
         "active": ["simple_operations"],
     },
+    {
+        "key": "simple_reports",
+        "label": "États",
+        "charts": _ASSO,
+        "bookkeeping": _SIMPLE,
+        "endpoint": "simple_reports.index",
+        "active": ["simple_reports"],
+    },
     # ---------------------------------------------------------------------- Dons
     {
         "key": "donations",

@@ -1191,3 +1191,10 @@ suivre celui de la transaction), `update` (rapprochée : seuls libellé, catégo
 tiers et projet), `delete`, `operations(start, end, …)` (toute ligne 6 / 7 d'une écriture qui
 touche la trésorerie), `to_categorize()`. Erreurs : `OperationError(message, field, status)`.
 
+## simple_reports.py — États simplifiés et verrouillage (lot D.4)
+
+`income_statement(fy)` (par catégorie, N / N-1 ; résultat), `treasury_situation(fy)` (soldes
+cumulés début / fin de chaque compte bancaire et caisse, via `cash.ledger_balance`), `lock(fy,
+locked)` (statut `closed` sans assistant ni FEC ; déverrouillage refusé si un FEC a été figé).
+Les catégories par défaut ne partagent jamais un compte (`simple_categories.ensure_defaults`).
+

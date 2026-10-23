@@ -15,6 +15,7 @@
     {"rule": "/configuration/receipts", "endpoint": "receipts.settings"},
     {"rule": "/configuration/categories", "endpoint": "simple_categories.index"},
     {"rule": "/simple/", "endpoint": "simple_operations.index"},
+    {"rule": "/simple/reports", "endpoint": "simple_reports.index"},
     {"rule": "/receipts/", "endpoint": "receipts.index"},
     {"rule": "/budget/", "endpoint": "budgets.index"},
     {"rule": "/budget/tracking", "endpoint": "budgets.tracking"},

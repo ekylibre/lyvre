@@ -68,6 +68,7 @@ def test_default_categories_and_edit(chart, login_as):
     assert by_code["achats"]["account"]["code"] == "6061"      # sous-compte de 606
     assert by_code["salaires"]["account"]["code"] == "6411"
     assert "assurances" not in by_code                          # pas de 616 dans le plan : omise
+    assert "autres_recettes" not in by_code                     # le seul 75x (756) est déjà aux cotisations
     assert [c["kind"] for c in body["items"]][:4] == ["income"] * 4  # recettes d'abord
     client.get("/api/v1/simple-categories")
     assert SimpleCategory.query.count() == len(by_code)        # pas de doublon au second accès

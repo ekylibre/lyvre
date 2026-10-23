@@ -11,6 +11,7 @@ from app.models import FiscalYear
 from app.models.instance_membership import ROLE_ADMIN
 from app.services import closing, dedicated_funds, fec, projects
 from app.services.ledger import LedgerError
+from app.tenant import current_instance
 
 from . import ApiError, bp, get_or_404, invalid, json_body, notice
 
@@ -55,6 +56,9 @@ def fiscal_years_close(fy_id):
     """`{final: false}` : clôture provisoire (étapes 1 à 5 décidées) ; `{final: true}` : clôture
     définitive (administrateur de l'instance), FEC figé, irréversible."""
     fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    instance = current_instance()
+    if instance is not None and instance.bookkeeping == "simple":
+        raise ApiError("conflict", "Comptabilité simplifiée : verrouillez l'exercice (pas d'assistant ni de FEC).", 409)
     data = request.get_json(silent=True) or {}
     final = bool(data.get("final"))
     if final and current_role() != ROLE_ADMIN:

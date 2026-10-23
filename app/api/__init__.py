@@ -156,7 +156,7 @@ from . import (  # noqa: E402,F401
     impact, imports,
     instances, integrations, journals, lookups, members, notifications, odoo, organization, payouts,
     products, projects, purchases, receipts, reconciliation, reports, rules, search, session, simple_categories,
-    simple_operations,
+    simple_operations, simple_reports,
     task_types, users,
     work_times,
 )

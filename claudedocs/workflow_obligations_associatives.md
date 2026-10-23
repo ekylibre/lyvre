@@ -265,6 +265,11 @@ dépenses), API `/api/v1/simple/...`, écran « Recettes et dépenses » (opéra
 catégoriser), catégorie dans les règles en mode simple ; instance E2E « Asso Simple E2E ».
 pytest 806, E2E 25.
 
+**D.4 fait (2026-10-25)** : `simple_reports` (compte de résultat par catégorie N / N-1, situation
+de trésorerie cumulée, verrouillage simple / déverrouillage admin), écran « États », colonne
+Verrouillage des exercices en mode simple, `/close` refusé en mode simple ; correctif : deux
+catégories par défaut ne partagent plus un compte. US-D1 (états) cochée. pytest 810, E2E 25.
+
 ## 7. Estimation indicative
 
 | Lot | Phases | Charge |

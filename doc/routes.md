@@ -340,6 +340,20 @@ Page de la SPA (menu « Recettes et dépenses », mode simple) : opérations de 
 
 ---
 
+## États de la comptabilité simplifiée (`/simple/reports`)
+
+Page de la SPA (menu « États », mode simple) : compte de résultat par catégorie (N / N-1) et
+situation de trésorerie ; impression. Dans Compta › Exercices, en mode simple, « Verrouiller » /
+« Déverrouiller » remplacent l'assistant de clôture et le FEC. API :
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/api/v1/simple/reports/income-statement?fiscal_year_id=` | Recettes et dépenses par catégorie (comptes sans catégorie sous leur numéro), N et N-1, totaux, résultat |
+| GET | `/api/v1/simple/reports/treasury?fiscal_year_id=` | Soldes début / fin d'exercice de chaque compte bancaire et caisse, cumulés depuis l'origine (hors à-nouveaux), résultat |
+| POST | `/api/v1/fiscal-years/<id>/lock` | `{locked}` : verrouillage simple (mode simple seulement, 409 sinon) ; déverrouiller : administrateur de l'instance, refusé si un FEC a été figé. En mode simple, `/close` est refusé (409) |
+
+---
+
 ## Budget (`/budget/`)
 
 Pages de la SPA : `/budget/tracking?fiscal_year_id=&project_id=&as_of=` (Compta › Suivi budgétaire :

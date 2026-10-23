@@ -39,8 +39,10 @@ class CategoryError(Exception):
         self.message, self.field, self.status = message, field, status
 
 
-def _account_for(codes):
-    usable = Account.query.filter(Account.is_header.is_(False))
+def _account_for(codes, taken=()):
+    """Compte le plus précis présent pour ces codes, hors comptes déjà pris par une catégorie
+    (« Autres recettes » ne doit pas retomber sur le 756 des cotisations)."""
+    usable = Account.query.filter(Account.is_header.is_(False), Account.id.notin_(list(taken) or [0]))
     for code in codes:
         account = (usable.filter(Account.code == code).first()
                    or usable.filter(Account.code.like(f"{code}%")).order_by(Account.code).first())
@@ -52,14 +54,16 @@ def _account_for(codes):
 def ensure_defaults() -> None:
     """Crée les catégories par défaut absentes (une catégorie sans compte du plan est omise)."""
     existing = {c.code for c in SimpleCategory.query}
+    taken = {c.account_id for c in SimpleCategory.query}
     position = db.session.query(db.func.max(SimpleCategory.position)).scalar() or 0
     added = False
     for code, label, kind, accounts in DEFAULTS:
         if code in existing:
             continue
-        account = _account_for(accounts)
+        account = _account_for(accounts, taken)
         if account is None:
             continue
+        taken.add(account.id)
         position += 10
         db.session.add(SimpleCategory(code=code, label=label, kind=kind, account_id=account.id, position=position))
         added = True

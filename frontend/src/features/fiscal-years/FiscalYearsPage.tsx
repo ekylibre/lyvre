@@ -6,10 +6,12 @@ import { useForm } from "@mantine/form";
 import { api } from "../../api/client";
 import { useAction, useList, type Notice } from "../../api/resources";
 import { applyApiError, FormBody } from "../../components/ApiForm";
+import { confirmAction } from "../../components/ConfirmButton";
 import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { FormModal } from "../../components/FormModal";
 import { PageHeader } from "../../components/PageHeader";
 import { Can } from "../../components/Can";
+import { useBookkeeping, useCan } from "../../api/session";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { useRouteModal } from "../../app/useRouteModal";
@@ -70,6 +72,32 @@ export default function FiscalYearsPage() {
   const setVat = useAction((fy: FiscalYear) =>
     api.patch<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}`, { vat_liable: !fy.vat_liable }),
     { invalidate: [FISCAL_YEARS_KEY] });
+  const simple = useBookkeeping() === "simple";
+  const can = useCan();
+  const lock = useAction((fy: FiscalYear) => api.post<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}/lock`,
+    { locked: fy.status === "open" }), { invalidate: [FISCAL_YEARS_KEY] });
+
+  // Comptabilité simplifiée : ni FEC ni assistant de clôture, un verrouillage simple.
+  const closingColumns: GridColumn<FiscalYear>[] = simple ? [
+    { accessor: "closing", title: "Verrouillage", hideable: false,
+      render: (fy) => (fy.status === "open" ? can.write : can.instanceAdmin) ? (
+        <Button variant={fy.status === "open" ? "default" : "subtle"} size="compact-sm" loading={lock.isPending && lock.variables?.id === fy.id}
+          onClick={() => confirmAction({
+            title: fy.status === "open" ? `Verrouiller l'exercice ${fy.label} ?` : `Déverrouiller l'exercice ${fy.label} ?`,
+            confirmLabel: fy.status === "open" ? "Verrouiller" : "Déverrouiller", danger: fy.status !== "open",
+            message: fy.status === "open" ? "Les opérations de l'exercice ne pourront plus être saisies ni modifiées."
+              : "Les opérations redeviennent modifiables.",
+            onConfirm: () => lock.mutate(fy),
+          })}>{fy.status === "open" ? "Verrouiller" : "Déverrouiller"}</Button>) : null },
+  ] : [
+    // Hors colonne « actions » : l'expert-comptable (lecture seule) exporte aussi le FEC.
+    { accessor: "fec", title: "FEC", hideable: false,
+      render: (fy) => fy.status === "open" ? <Text size="sm" c="dimmed">après clôture</Text>
+        : <Button variant="subtle" size="compact-sm" onClick={() => setFecFor(fy)}>FEC</Button> },
+    { accessor: "closing", title: "Clôture", hideable: false,
+      render: (fy) => <Button variant={fy.status === "open" ? "default" : "subtle"} size="compact-sm" component={AppLink}
+        href={`/fiscal-years/${fy.id}/closing`}>{fy.status === "open" ? "Clôturer…" : "Assistant"}</Button> },
+  ];
 
   const columns: GridColumn<FiscalYear>[] = [
     { accessor: "label", title: "Libellé", hideable: false },
@@ -79,13 +107,7 @@ export default function FiscalYearsPage() {
       render: (fy) => <StatusBadge tone={STATUS_TONES[fy.status] ?? "neutral"}>{fy.status_label}</StatusBadge> },
     { accessor: "vat_liable", title: "TVA",
       render: (fy) => <StatusBadge tone={fy.vat_liable ? "info" : "neutral"}>{fy.vat_liable ? "Soumis" : "Non soumis"}</StatusBadge> },
-    // Hors colonne « actions » : l'expert-comptable (lecture seule) exporte aussi le FEC.
-    { accessor: "fec", title: "FEC", hideable: false,
-      render: (fy) => fy.status === "open" ? <Text size="sm" c="dimmed">après clôture</Text>
-        : <Button variant="subtle" size="compact-sm" onClick={() => setFecFor(fy)}>FEC</Button> },
-    { accessor: "closing", title: "Clôture", hideable: false,
-      render: (fy) => <Button variant={fy.status === "open" ? "default" : "subtle"} size="compact-sm" component={AppLink}
-        href={`/fiscal-years/${fy.id}/closing`}>{fy.status === "open" ? "Clôturer…" : "Assistant"}</Button> },
+    ...closingColumns,
     { accessor: "actions", title: "", hideable: false, textAlign: "right",
       render: (fy) => fy.closed ? null : (
         <Group gap="xs" justify="flex-end" wrap="nowrap">
