@@ -30,6 +30,9 @@ beforeEach(() => {
       }
       return json(201, { item: { id: 9, url: "/purchases/9" }, notices: [{ level: "success", message: "Facture enregistrée." }] });
     }
+    if (url === "/api/v1/chart-of-accounts" && method === "POST") {
+      return json(201, { item: { id: 30, code: body.code, label: body.label }, notices: [] });
+    }
     if (url === "/api/v1/products" && method === "POST") {
       return json(201, { item: { id: 12, name: body.name, purchase_account: { code: body.purchase_account_code }, vat_rate: body.vat_rate },
         notices: [{ level: "success", message: "Produit créé." }] });
@@ -87,5 +90,19 @@ describe("saisie d'une facture d'achat", () => {
       { name: "Electricité", kind: "purchase", purchase_account_code: "6061", vat_rate: "20" }));
     await waitFor(() => expect((screen.getByLabelText("Produit (ligne 1)", { selector: "input" }) as HTMLInputElement).value).toBe("Electricité"));
     expect((screen.getByLabelText("Libellé (ligne 1)") as HTMLInputElement).value).toBe("Electricité");
+  });
+
+  it("crée le compte de charge absent du plan avec le produit", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PurchaseFormPage />, { route: "/purchases/new?manual=1" });
+    await user.type(await screen.findByLabelText("Compte (ligne 1)", { selector: "input" }), "6063");
+    await user.type(screen.getByLabelText("Produit (ligne 1)", { selector: "input" }), "Petit outillage");
+    await user.click(await screen.findByRole("option", { name: "+ Créer « Petit outillage »" }));
+    await user.type(await screen.findByLabelText(/^Libellé du compte 6063/), "Fournitures d'entretien et de petit équipement");
+    await user.click(screen.getByRole("button", { name: "Créer le produit" }));
+    await waitFor(() => expect(calls.find((c) => c.url === "/api/v1/products")?.body).toMatchObject(
+      { name: "Petit outillage", purchase_account_code: "6063" }));
+    expect(calls.find((c) => c.url === "/api/v1/chart-of-accounts")?.body).toEqual(
+      { code: "6063", label: "Fournitures d'entretien et de petit équipement", account_type: "EXPENSE" });
   });
 });

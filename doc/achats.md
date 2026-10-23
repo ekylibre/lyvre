@@ -45,7 +45,8 @@ et celles à compléter.
 Qonto ne donne pas de lignes de facture : l'application en crée **une par taux de TVA** (ou une seule
 si Qonto n'a pas de ventilation), avec le produit par défaut du fournisseur. Sur la fiche d'une
 facture, modifiez le produit (il préremplit compte et taux ; tapez un nom absent du catalogue puis
-« + Créer « … » » pour le créer sur place, avec le compte et le taux de la ligne), le compte, le
+« + Créer « … » » pour le créer sur place, avec le compte et le taux de la ligne ; un compte de
+charge absent du plan, ex. 6061, se crée dans la même fenêtre), le compte, le
 libellé, le HT et le taux ;
 la TVA laissée vide est calculée. Le total doit égaler le TTC de Qonto. Une fois enregistrées, les
 lignes ne sont plus touchées par la synchronisation, et la facture est comptabilisée dès qu'elle est
