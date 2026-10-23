@@ -18,6 +18,15 @@ Le dropdown de mois est alimenté par les **12 mois de l'exercice comptable cour
 
 ---
 
+## À propos (`/about`)
+
+Page publique (sans connexion) : présentation de Lyvre, fonctionnalités par domaine, comparaison
+avec les logiciels cités par les comparatifs Pennylane (27/04/2026) et Independant.io (« · » = non
+mentionné par le comparatif), limites actuelles et sources. Liens depuis la page de connexion et le
+pied du menu latéral.
+
+---
+
 ## Authentification et sélection d'instance
 
 | Méthode | URL | Description |

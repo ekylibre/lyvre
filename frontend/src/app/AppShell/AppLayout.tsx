@@ -4,7 +4,7 @@
 import type { ReactNode } from "react";
 import { useLocation } from "react-router";
 import {
-  ActionIcon, AppShell, Badge, Box, Burger, Divider, Group, Image, Kbd, Menu, NavLink, ScrollArea, Text,
+  ActionIcon, Anchor, AppShell, Badge, Box, Burger, Divider, Group, Image, Kbd, Menu, NavLink, ScrollArea, Text,
   Tooltip, UnstyledButton, useComputedColorScheme, useMantineColorScheme,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
@@ -195,7 +195,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <NavMenus menus={session.nav} onNavigate={close} />
         </AppShell.Section>
         <AppShell.Section pt="md" px={8}>
-          <Text className="lv-nav-foot">LOGICIEL LIBRE · AGPL-3.0 · AUTO-HÉBERGÉ</Text>
+          <Anchor href="/about" className="lv-nav-foot" underline="never" c="inherit">À PROPOS · LOGICIEL LIBRE · AGPL-3.0</Anchor>
         </AppShell.Section>
       </AppShell.Navbar>
       <AppShell.Main bg="var(--lv-paper)">

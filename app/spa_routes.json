@@ -2,6 +2,7 @@
   "_comment": "Pages servies par la SPA React (claudedocs/design_front_mantine.md §4.1). rule = règle Flask, endpoint = nom url_for gardé pour les liens Jinja, public = sans connexion. Lu par app/spa.py et frontend/src/app/routes.ts.",
   "routes": [
     {"rule": "/login", "endpoint": "auth.login", "public": true},
+    {"rule": "/about", "endpoint": "about.index", "public": true},
     {"rule": "/select-instance", "endpoint": "auth.select_instance"},
     {"rule": "/journals/", "endpoint": "journals.index"},
     {"rule": "/journals/new", "endpoint": "journals.new"},

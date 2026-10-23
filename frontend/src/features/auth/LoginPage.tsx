@@ -1,7 +1,7 @@
 // Connexion (FM5) : POST /api/v1/session/login, puis instance ou page demandée (`next`).
 import { useEffect } from "react";
 import { useSearchParams } from "react-router";
-import { Alert, Button, PasswordInput, Stack, TextInput } from "@mantine/core";
+import { Alert, Anchor, Button, PasswordInput, Stack, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { safeNext } from "../../api/client";
 import { useLogin, useSession, type Session } from "../../api/session";
@@ -46,6 +46,7 @@ export default function LoginPage() {
           <PasswordInput label="Mot de passe" autoComplete="current-password" required
             key={form.key("password")} {...form.getInputProps("password")} />
           <Button type="submit" loading={login.isPending}>Se connecter</Button>
+          <Anchor href="/about" size="sm" ta="center">Découvrir Lyvre et ses fonctionnalités</Anchor>
         </Stack>
       </form>
     </AuthCard>
