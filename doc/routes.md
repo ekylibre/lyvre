@@ -325,6 +325,21 @@ factures d'achat) sont masqués (`menu_config`, clé `bookkeeping`). La session 
 
 ---
 
+## Recettes et dépenses (`/simple/`, comptabilité simplifiée)
+
+Page de la SPA (menu « Recettes et dépenses », mode simple) : opérations de l'exercice ou du mois
+(filtres sens, catégorie), totaux, saisie et modification en fenêtre sans débit ni crédit, onglet
+« Relevé à catégoriser ». Dans le formulaire des règles, la catégorie remplace le compte. API :
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/api/v1/simple/operations` | `?fiscal_year_id=&month=AAAA-MM&kind=&category_id=&bank_account_id=&project_id=` : lignes 6 / 7 des écritures touchant la trésorerie (catégorie, compte, tiers, projet, rapprochée, modifiable) et totaux ; options de saisie |
+| POST · PUT · DELETE | `/api/v1/simple/operations[/<entry_id>]` | `{date, label, amount_cents, category_id, bank_account_id, entity_id?, project_id?}` : écriture `SIMPLE` à deux lignes (trésorerie / compte de la catégorie) ; rapprochée : date, montant et compte figés, catégorie du même sens |
+| GET | `/api/v1/simple/to-categorize` | Transactions bancaires importées non rapprochées |
+| POST | `/api/v1/simple/to-categorize/<transaction_id>` | `{category_id, label?, entity_id?, project_id?}` : opération créée et rapprochée (encaissement → recette, débit → dépense) |
+
+---
+
 ## Budget (`/budget/`)
 
 Pages de la SPA : `/budget/tracking?fiscal_year_id=&project_id=&as_of=` (Compta › Suivi budgétaire :

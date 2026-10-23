@@ -98,6 +98,15 @@ MENUS = [
             {"key": "payouts", "label": "Versements Stancer", "endpoint": "payouts.index", "charts": _ASSO},
         ],
     },
+    # ------------------------------------------------- Recettes et dépenses (mode simple)
+    {
+        "key": "simple_operations",
+        "label": "Recettes et dépenses",
+        "charts": _ASSO,
+        "bookkeeping": _SIMPLE,
+        "endpoint": "simple_operations.index",
+        "active": ["simple_operations"],
+    },
     # ---------------------------------------------------------------------- Dons
     {
         "key": "donations",

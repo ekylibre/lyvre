@@ -6,7 +6,9 @@ import {
 import { useForm } from "@mantine/form";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { api } from "../../api/client";
-import { useCan } from "../../api/session";
+import { useBookkeeping, useCan } from "../../api/session";
+import { useQuery } from "@tanstack/react-query";
+import { CATEGORIES_KEY, type Category } from "../simple/CategoriesPage";
 import { useAction, useList, type Notice } from "../../api/resources";
 import { applyApiError, FormBody } from "../../components/ApiForm";
 import { confirmAction } from "../../components/ConfirmButton";
@@ -77,6 +79,9 @@ function RegexTester({ pattern }: { pattern: string }) {
 function RuleForm({ rule, entityTypes, projects, onDone }: {
   rule: Rule | null; entityTypes: string[]; projects: Option[]; onDone: () => void;
 }) {
+  const simple = useBookkeeping() === "simple";
+  const categories = useQuery({ queryKey: CATEGORIES_KEY, enabled: simple,
+    queryFn: () => api.get<{ items: Category[] }>("/api/v1/simple-categories") });
   const [error, setError] = useState<string | null>(null);
   const form = useForm({
     initialValues: {
@@ -120,9 +125,17 @@ function RuleForm({ rule, entityTypes, projects, onDone }: {
         </Group>
         <TextInput label="Catégorie" description="Étiquette libre posée sur la transaction."
           placeholder="Salaires, Assurance, Subventions…" {...form.getInputProps("category")} />
-        <TextInput label="Compte de l'écriture" classNames={{ input: "lv-num" }} placeholder="616 ou 707"
-          description="Facultatif : un compte 6 (charge) ou 7 (produit) génère l'écriture."
-          {...form.getInputProps("account_code")} />
+        {simple ? (
+          <Select label="Catégorie de l'opération" clearable searchable placeholder="Aucune (transaction à catégoriser)"
+            description="Facultatif : la transaction devient une recette ou une dépense de cette catégorie."
+            data={(categories.data?.items ?? []).filter((c) => c.active).map((c) => ({ value: c.account.code, label: c.label }))}
+            value={form.values.account_code || null} onChange={(v) => form.setFieldValue("account_code", v ?? "")}
+            error={form.errors.account_code} />
+        ) : (
+          <TextInput label="Compte de l'écriture" classNames={{ input: "lv-num" }} placeholder="616 ou 707"
+            description="Facultatif : un compte 6 (charge) ou 7 (produit) génère l'écriture."
+            {...form.getInputProps("account_code")} />
+        )}
         {projects.length > 0 && (
           <Select label="Projet" data={projects} clearable searchable placeholder="Aucun"
             description="Porté sur la ligne de charge ou de produit de l'écriture générée." {...form.getInputProps("project_id")} />

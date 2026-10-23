@@ -136,6 +136,26 @@ def _seed_donations(engine, slug):
         fh.write(PNG)
 
 
+def _seed_simple(engine):
+    """Association en comptabilité simplifiée : exercice, comptes, un compte bancaire et une
+    transaction importée non rapprochée (parcours « recette saisie, relevé catégorisé »)."""
+    year = date.today().year
+    with engine.begin() as conn:
+        conn.execute(text("INSERT INTO fiscal_years (label, start_date, end_date, closed, vat_liable) "
+                          "VALUES (:l, :s, :e, 0, 0)"), {"l": str(year), "s": f"{year}-01-01", "e": f"{year}-12-31"})
+        for code, label, kind in (("512000", "Banque", "ASSET"), ("756000", "Cotisations", "REVENUE"),
+                                  ("606300", "Petit équipement", "EXPENSE")):
+            conn.execute(text("INSERT INTO accounts (code, label, account_type, is_header) VALUES (:c, :l, :t, 0)"),
+                         {"c": code, "l": label, "t": kind})
+        bank = conn.execute(text("SELECT id FROM accounts WHERE code = '512000'")).scalar()
+        conn.execute(text("INSERT INTO bank_accounts (label, account_id, kind) VALUES ('Banque simple', :a, 'bank')"),
+                     {"a": bank})
+        ba = conn.execute(text("SELECT id FROM bank_accounts")).scalar()
+        conn.execute(text("INSERT INTO bank_transactions (bank_account_id, fitid, transaction_date, amount_cents, label, "
+                          "reconciled, source, is_reversed) VALUES (:b, 'S-1', :d, -2500, 'CB PAPETERIE', 0, 'ofx', 0)"),
+                     {"b": ba, "d": f"{year}-02-10"})
+
+
 def seed(app):
     with app.app_context():
         db.create_all()
@@ -150,9 +170,11 @@ def seed(app):
                 _seed_books(engine)
             if spec.get("donations"):
                 _seed_donations(engine, spec["slug"])
+            if spec.get("simple"):
+                _seed_simple(engine)
             engine.dispose()
             db.session.add(Instance(slug=spec["slug"], label=spec["label"], chart=spec["chart"],
-                                    database_url=url))
+                                    bookkeeping=spec.get("bookkeeping", "double"), database_url=url))
         db.session.commit()
 
 

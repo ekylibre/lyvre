@@ -259,6 +259,12 @@ caisses exclues du rapprochement / OFX / Qonto, contrôle de clôture 58x. pytes
 `simple_categories` (migration `f6b1d4e8a207`) pré-remplies depuis le plan, écran Configuration ›
 Catégories. pytest 802.
 
+**D.3 fait (2026-10-25)** : service `simple_operations` (écritures `SIMPLE`, catégorisation d'une
+transaction importée avec rapprochement, modification limitée si rapprochée, liste des recettes et
+dépenses), API `/api/v1/simple/...`, écran « Recettes et dépenses » (opérations, relevé à
+catégoriser), catégorie dans les règles en mode simple ; instance E2E « Asso Simple E2E ».
+pytest 806, E2E 25.
+
 ## 7. Estimation indicative
 
 | Lot | Phases | Charge |

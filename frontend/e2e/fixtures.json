@@ -5,6 +5,7 @@
   "instances": [
     {"slug": "asso-e2e", "label": "Association E2E", "chart": "asso"},
     {"slug": "sci-e2e", "label": "SCI E2E", "chart": "sci", "books": true},
-    {"slug": "dons-e2e", "label": "Asso Dons E2E", "chart": "asso", "donations": true}
+    {"slug": "dons-e2e", "label": "Asso Dons E2E", "chart": "asso", "donations": true},
+    {"slug": "simple-e2e", "label": "Asso Simple E2E", "chart": "asso", "bookkeeping": "simple", "simple": true}
   ]
 }

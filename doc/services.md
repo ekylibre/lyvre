@@ -1182,3 +1182,12 @@ négative ou d'une contrepartie de trésorerie), `deposit(ba, data)` (dépôt en
 aucun compte), `listing`, `payload`, `usage_counts`, `save` (recette sur un compte 7, dépense sur
 un compte 6), `move`. Erreurs : `CategoryError(message, field, status)`.
 
+## simple_operations.py — Recettes et dépenses (lot D.3)
+
+`create(data)` (écriture `SIMPLE` : trésorerie 512x / 53x contre le compte de la catégorie ; tiers
+et projet sur la ligne de catégorie), `categorize(transaction_id, data)` (opération à la date et au
+montant de la transaction, rapprochée dans la même transaction ; le sens de la catégorie doit
+suivre celui de la transaction), `update` (rapprochée : seuls libellé, catégorie du même sens,
+tiers et projet), `delete`, `operations(start, end, …)` (toute ligne 6 / 7 d'une écriture qui
+touche la trésorerie), `to_categorize()`. Erreurs : `OperationError(message, field, status)`.
+
