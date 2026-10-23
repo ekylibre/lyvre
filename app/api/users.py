@@ -13,7 +13,7 @@ from . import ApiError, bp, get_or_404, invalid, json_body, notice
 
 def user_payload(u: User) -> dict:
     return {"id": u.id, "email": u.email, "full_name": u.full_name, "is_admin": u.is_admin,
-            "is_active": u.is_active,
+            "is_active": u.is_active, "must_change_password": u.must_change_password,
             "last_login_at": u.last_login_at.isoformat() if u.last_login_at else None,
             "is_me": u.id == current_user.id,
             "memberships": [{"instance_id": m.instance_id, "instance": m.instance.label, "role": m.role,
@@ -62,6 +62,8 @@ def _apply(user: User, data: dict, creating: bool) -> None:
     user.full_name = str(data.get("full_name") or "").strip()[:200] or None
     if password:
         user.set_password(password)
+        # Fixé par un administrateur pour quelqu'un d'autre : à changer à la prochaine connexion.
+        user.must_change_password = user.id != current_user.id
     if "memberships" in data:
         _apply_memberships(user, data["memberships"])
 

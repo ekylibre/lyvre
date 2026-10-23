@@ -889,6 +889,27 @@ directement, sans notification.
 
 ---
 
+## instance_access.py — Accès aux instances (méta-base)
+
+Seul porteur des règles d'accès : page Accès (instance courante), fiche instance, création et
+import d'instance (claudedocs/design_acces_instances.md). Erreurs : `AccessError(message, field,
+status)`, avec `field` au format du formulaire (`members.1.password`).
+
+| Fonction | Rôle |
+|----------|------|
+| `parse_grants(items, field="members")` | Valide une liste `[{user_id, role}` ou `{email, full_name?, password, role}]` **sans écrire** : rôle connu, compte existant non administrateur global, email nouveau (sinon « choisissez-le dans la liste »), mot de passe de 8 caractères au moins, pas de doublon → `[Grant]` |
+| `grants_warnings(grants)` | Avertissements non bloquants : aucun administrateur parmi les lignes, comptes désactivés (accès effectif à la réactivation) |
+| `apply_grants(instance, grants, by_user)` | Crée les comptes (`must_change_password`) et les accès ; flush sans commit → `{created, granted}` ; `grants_summary` en donne le texte |
+| `create_user(email, full_name, password)` | Nouveau compte non administrateur, mot de passe initial à changer |
+| `members(instance, me_id)` | Membres, administrateurs globaux compris (`global_admin`, non modifiables) |
+| `add_member(instance, data, by_user)` | `{user_id | email, role, full_name?, password?}` : compte existant ou créé si `password` ; refuse administrateur global et doublon ; commit |
+| `set_role(instance, user_id, role)` · `remove_member(instance, user_id)` | Garde « au moins un administrateur » (hors administrateurs globaux) ; commit |
+
+Le service reçoit l'instance en paramètre (pas `g.current_instance`) : il s'applique aussi à une
+instance désactivée.
+
+---
+
 ## qonto_client.py — Client de l'API Business Qonto
 
 `QontoClient(login, secret_key, staging_token=None, timeout=30, retry=True)` : en-tête

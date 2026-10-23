@@ -58,8 +58,8 @@ Pages de la SPA (liste ; la création / modification s'ouvre dans une fenêtre p
 | Méthode | URL | Description |
 |---------|-----|-------------|
 | GET | `/api/v1/users` | Utilisateurs (`is_me` pour le compte connecté, `memberships` : instance et rôle) ; `meta` : instances, rôles |
-| POST | `/api/v1/users` | `email` (unique, en minuscules), `password` (obligatoire), `full_name`, `is_admin`, `is_active`, `memberships` (`[{instance_id, role}]`, remplace les accès) |
-| PATCH | `/api/v1/users/<id>` | Mêmes champs (`password` vide = inchangé) ; `{"is_active"}` seul = activer / désactiver |
+| POST | `/api/v1/users` | `email` (unique, en minuscules), `password` (obligatoire), `full_name`, `is_admin`, `is_active`, `memberships` (`[{instance_id, role}]`, remplace les accès) ; compte créé avec `must_change_password` |
+| PATCH | `/api/v1/users/<id>` | Mêmes champs (`password` vide = inchangé ; fixé pour un autre compte : `must_change_password`) ; `{"is_active"}` seul = activer / désactiver |
 | DELETE | `/api/v1/users/<id>` | Supprime (refusé sur soi-même, 409) |
 
 Un admin ne peut pas retirer son propre `is_admin`, se désactiver, ni se supprimer. Les autres
@@ -83,7 +83,7 @@ Page de la SPA `/configuration/access/`. API (instance courante, rôle `admin` o
 | Méthode | URL | Description |
 |---------|-----|-------------|
 | GET | `/api/v1/access/members` | Membres de l'instance (administrateurs globaux compris, non modifiables) : rôle, compte actif ; `meta.roles` |
-| POST | `/api/v1/access/members` | `{email, role, full_name?, password?}` : compte existant, sinon créé avec le mot de passe initial (8 caractères au moins, sinon 422) → 201 |
+| POST | `/api/v1/access/members` | `{user_id \| email, role, full_name?, password?}` : compte existant, sinon créé avec le mot de passe initial (8 caractères au moins, sinon 422 ; à changer à la première connexion) → 201 |
 | PATCH | `/api/v1/access/members/<user_id>` | `{role}` ; 409 si l'instance perdait son dernier administrateur |
 | DELETE | `/api/v1/access/members/<user_id>` | Retire l'accès (le compte reste) ; même garde |
 

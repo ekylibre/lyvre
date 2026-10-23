@@ -16,6 +16,8 @@ class User(UserMixin, db.Model):
     full_name = db.Column(db.String(200))
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
+    # Mot de passe initial ou fixé par un administrateur : à changer à la prochaine connexion.
+    must_change_password = db.Column(db.Boolean, default=False, nullable=False, server_default=db.false())
     last_login_at = db.Column(db.DateTime, nullable=True)
     # Préférences d'interface (JSON : thème, colonnes masquées…), cf. app/api/session.py.
     preferences = db.Column(db.Text, nullable=False, default="{}", server_default="{}")
