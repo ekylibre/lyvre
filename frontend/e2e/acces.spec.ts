@@ -21,6 +21,12 @@ test("expert-comptable : accès donné par l'administrateur, lecture seule", asy
   await page.getByLabel("Email").fill(EXPERT.email);
   await page.getByLabel("Mot de passe").fill(EXPERT.password);
   await page.getByRole("button", { name: "Se connecter" }).click();
+  // Mot de passe initial : à changer avant tout.
+  await expect(page.getByRole("heading", { name: "Choisissez votre mot de passe" })).toBeVisible();
+  await page.getByLabel("Mot de passe actuel").fill(EXPERT.password);
+  await page.getByLabel("Nouveau mot de passe").fill("expert-choisi-mdp");
+  await page.getByLabel("Confirmation").fill("expert-choisi-mdp");
+  await page.getByRole("button", { name: "Enregistrer le mot de passe" }).click();
   // Une seule instance accessible : choisie d'office.
   await expect(page.getByRole("banner")).toContainText("SCI E2E");
   await expect(page.getByRole("banner")).toContainText("Lecture seule");

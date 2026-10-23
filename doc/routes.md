@@ -94,7 +94,7 @@ Rôles et lecture seule de l'expert-comptable : voir [multi_tenant.md](multi_ten
 
 ## Instances (`/instances/`) — admin uniquement
 
-Pages de la SPA (méta-base seule, sans instance choisie) : `/instances/` (`/new` et `/<id>/edit` ouvrent la fenêtre de création ou de modification), `/instances/<id>` (`/restore` ouvre la restauration), `/instances/import`. L'URL d'une base est toujours renvoyée **sans son mot de passe** (`postgresql://u:***@hôte/base`). API :
+Pages de la SPA (méta-base seule, sans instance choisie) : `/instances/` (`/new` et `/<id>/edit` ouvrent la fenêtre de création ou de modification), `/instances/<id>` (`/restore` ouvre la restauration ; section **Accès** : membres et rôles, même instance désactivée), `/instances/import`. La création et l'import (création seulement) ont une section **Utilisateurs et rôles** : lignes « compte existant » (liste de `GET /api/v1/users`, sans les administrateurs globaux, comptes désactivés signalés) ou « nouveau compte » (email, nom, mot de passe initial), avertissement sans administrateur. L'URL d'une base est toujours renvoyée **sans son mot de passe** (`postgresql://u:***@hôte/base`). API :
 
 | Méthode | URL | Description |
 |---------|-----|-------------|

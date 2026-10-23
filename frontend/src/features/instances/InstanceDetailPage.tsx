@@ -1,10 +1,11 @@
 // Administration › Instance : informations, sauvegardes .zip (création, téléchargement,
-// suppression) et restauration depuis un fichier (/instances/<id>/restore ouvre la fenêtre).
+// suppression), restauration depuis un fichier (/instances/<id>/restore ouvre la fenêtre) et
+// accès (membres et rôles, même désactivée).
 import { useLocation, useNavigate, useParams } from "react-router";
 import { Alert, Anchor, Badge, Button, Center, Code, Group, Loader, Paper, SimpleGrid, Text, Title } from "@mantine/core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
-import { useAction, type Notice } from "../../api/resources";
+import { useAction, useList, type Notice } from "../../api/resources";
 import { confirmAction } from "../../components/ConfirmButton";
 import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { FormModal } from "../../components/FormModal";
@@ -12,6 +13,8 @@ import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDateTime } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
+import { MembersManager } from "../access/MembersManager";
+import type { UserOption } from "../access/members";
 import { RestoreForm } from "./RestoreForm";
 import { INSTANCES_KEY, megabytes, type Backup, type Instance } from "./types";
 
@@ -27,6 +30,7 @@ export default function InstanceDetailPage() {
   const navigate = useNavigate();
   const client = useQueryClient();
   const key = [...INSTANCES_KEY, id];
+  const { data: users } = useList<UserOption>(["users"], "/api/v1/users");
   const { data, error, isFetching } = useQuery({ queryKey: key, retry: false, queryFn: () => api.get<Detail>(`/api/v1/instances/${id}`) });
   const refresh = (body: Detail) => client.setQueryData(key, body);
   const create = useAction(() => api.post<Detail & { notices: Notice[] }>(`/api/v1/instances/${id}/backups`));
@@ -103,6 +107,16 @@ export default function InstanceDetailPage() {
         <Alert color="ardoise" variant="light">Les sauvegardes ne sont disponibles que pour les instances SQLite. Pour cette instance,
           utilisez les outils de la base (pg_dump / pg_restore) côté serveur.</Alert>
       )}
+      <MembersManager id="instance-members" endpoint={`/api/v1/instances/${inst.id}/members`} queryKey={[...key, "members"]}
+        users={users?.items ?? []} actions={(open) => (
+          <Group justify="space-between" mt="xl" mb="xs">
+            <div>
+              <Title order={3}>Accès</Title>
+              <Text size="sm" c="dimmed">Personnes qui accèdent à cette instance, et leur rôle{inst.is_active ? "" : " (effectif à sa réactivation)"}.</Text>
+            </div>
+            <Button onClick={open}>Donner un accès</Button>
+          </Group>
+        )} />
       <FormModal opened={restoring && inst.sqlite} onClose={() => navigate(`/instances/${inst.id}`)} title={`Restaurer ${inst.label}`} size="lg">
         <RestoreForm instance={inst} onCancel={() => navigate(`/instances/${inst.id}`)}
           onDone={() => { void client.invalidateQueries({ queryKey: INSTANCES_KEY }); navigate(`/instances/${inst.id}`); }} />

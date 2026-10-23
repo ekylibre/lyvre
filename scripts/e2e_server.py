@@ -175,6 +175,10 @@ def seed(app):
             engine.dispose()
             db.session.add(Instance(slug=spec["slug"], label=spec["label"], chart=spec["chart"],
                                     bookkeeping=spec.get("bookkeeping", "double"), database_url=url))
+        for name in FIXTURES.get("spare_databases", []):
+            engine = create_engine(f"sqlite:///{os.path.join(TMPDIR, name + '.db')}")
+            db.metadata.create_all(engine)
+            engine.dispose()
         db.session.commit()
 
 

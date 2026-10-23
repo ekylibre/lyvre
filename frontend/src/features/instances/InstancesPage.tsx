@@ -11,16 +11,21 @@ import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { AppLink } from "../../app/navigation";
 import { useRouteModal } from "../../app/useRouteModal";
+import { MembersEditor } from "../access/MembersEditor";
+import { memberRowErrors, toMembersPayload, type MemberRow, type RoleOption, type UserOption } from "../access/members";
 import { INSTANCES_KEY, type Instance } from "./types";
 
 interface Meta { charts: { value: string; label: string }[]; default_chart: string }
+type UsersMeta = { roles: RoleOption[] };
 
 function CreateForm({ meta, onDone }: { meta: Meta | undefined; onDone: () => void }) {
   const [error, setError] = useState<string | null>(null);
+  const { data: users } = useList<UserOption, UsersMeta>(["users"], "/api/v1/users");
   const form = useForm({ initialValues: { slug: "", label: "", provisioning_mode: "auto", chart: meta?.default_chart ?? "asso",
-    bookkeeping: "double", database_url: "" } });
-  const save = useAction((values: typeof form.values) => api.post<{ notices: Notice[] }>("/api/v1/instances", values),
-    { invalidate: [INSTANCES_KEY], silent: true });
+    bookkeeping: "double", database_url: "", members: [] as MemberRow[] },
+  validate: (values) => memberRowErrors(values.members) });
+  const save = useAction((values: typeof form.values) => api.post<{ notices: Notice[] }>("/api/v1/instances",
+    { ...values, members: toMembersPayload(values.members) }), { invalidate: [INSTANCES_KEY, ["users"]], silent: true });
   const auto = form.values.provisioning_mode === "auto";
   return (
     <form onSubmit={form.onSubmit((values) => save.mutate(values, { onSuccess: onDone, onError: (e) => setError(applyApiError(form, e)) }))}>
@@ -48,6 +53,7 @@ function CreateForm({ meta, onDone }: { meta: Meta | undefined; onDone: () => vo
           </>
           : <TextInput label="URL de base de données" required placeholder="postgresql://utilisateur:motdepasse@hôte/base"
             classNames={{ input: "lv-num" }} autoComplete="off" {...form.getInputProps("database_url")} />}
+        <MembersEditor form={form} users={users?.items ?? []} roles={users?.meta?.roles ?? []} />
       </FormBody>
     </form>
   );
@@ -94,7 +100,7 @@ export default function InstancesPage() {
         </>} />
       <DataGrid id="instances" records={data?.items} columns={columns} fetching={isFetching}
         defaultSort={{ column: "label", direction: "asc" }} emptyText="Aucune instance." />
-      <FormModal opened={modal.mode === "new"} onClose={modal.close} title="Nouvelle instance">
+      <FormModal opened={modal.mode === "new"} onClose={modal.close} title="Nouvelle instance" size="lg">
         <CreateForm meta={data?.meta} onDone={modal.close} />
       </FormModal>
       <FormModal opened={!!editing} onClose={modal.close} title={editing ? `Modifier ${editing.label}` : ""}>

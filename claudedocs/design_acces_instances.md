@@ -1,5 +1,8 @@
 # Design : utilisateurs et rôles dès la création d'une instance
 
+> **État (23/10/2026)** : réalisé — E1 (service, `must_change_password`), E2 (API), E3 (mot de passe
+> imposé), E4 (écrans : `MembersEditor`, `MembersManager`, E2E `acces-creation.spec.ts`).
+
 Ce document répond à `claudedocs/besoins_acces_instances.md` (F1 à F5, US1 à US6). Il s'appuie sur
 ce qui existe déjà : `instance_memberships` et ses trois rôles, `app/access.py`, la page Accès
 (`app/api/access.py`) et la page Utilisateurs (`app/api/users.py`).
