@@ -880,3 +880,20 @@ jusqu'à cette date ; parts du capital = pleine propriété + nue-propriété.
 
 **`purchase_payments.associate_id`** : règlement d'une facture par le compte courant d'un associé
 (`origin = "associate"`, au plus un par facture).
+
+## Sale, SaleLine, SaleCounter, SaleEmail, BillingSettings — Module « Ventes » (lot S1)
+
+Migration `c3d5e7f9a1b4` (claudedocs/design_ventes.md).
+
+| Table | Rôle |
+|---|---|
+| `sales` | Devis, factures, avoirs, modèles (`kind`) ; `status` (`draft`, `issued`, `partially_paid`, `paid`, `canceled`), `number` attribué à l'émission (unique par `kind`), `series_year` / `series_seq`, client figé à l'émission (`client_snapshot`, JSON), dates (émission, échéance, prestation), `operation_type` (`goods`, `services`, `both`), totaux en centimes, `vat_mode` figé à l'émission (`none` = art. 293 B, `receipts`, `debits`), `invoice_id` (avoir → facture), `credit_reason`, `journal_entry_id` (écriture VE), `pdf_path` (PDF Factur-X conservé), champs Qonto (lot S4) |
+| `sale_lines` | Lignes : produit, désignation, description, `quantity_milli`, unité, `unit_price_cents` HT, `discount_bp`, HT, `vat_rate_bp`, TVA (calculée par taux puis répartie), compte de vente 7…, projet, `nature` (exigibilité de la TVA) |
+| `sale_counters` | Dernier numéro par série (`D`, `F`, `AV`) et année civile ; avancé dans la transaction d'émission (pas de trou) |
+| `sale_emails` | Envois par email (destinataires, objet, statut, erreur) |
+| `billing_settings` | Une ligne : forme juridique, capital, RCS, TVA intracommunautaire, IBAN/BIC, délai de paiement, pénalités, indemnité de 40 €, escompte, pied de page, logo, message d'envoi |
+
+Colonnes ajoutées : `entities.customer_account_code` (411NNN), `entities.billing_emails` (copies) ;
+`products.description`, `unit`, `sale_price_cents`, `nature` ; `fiscal_years.vat_on_receipts`
+(TVA des prestations à l'encaissement, sinon d'après les débits ; vrai par défaut).
+Une écriture de source `SALE` n'est ni modifiable ni supprimable (on passe un avoir).

@@ -4,7 +4,7 @@ from app.models import (
     Account, AssociateExpense, BankTransaction, FiscalYear, Journal, JournalEntry, JournalLine, Purchase,
     PurchasePayment,
 )
-from app.models.journal_entry import MANAGED_SOURCES
+from app.models.journal_entry import MANAGED_SOURCES, SALE_LOCKED_MESSAGE, SOURCE_SALE
 from app.services import projects
 
 
@@ -370,6 +370,9 @@ def delete_entries(entry_ids, allow_managed=False):
         if entry.source in MANAGED_SOURCES and not allow_managed:
             results.append({"entry_id": entry_id, "status": "error",
                             "message": "écriture gérée par l'assistant de clôture."})
+            continue
+        if entry.source == SOURCE_SALE:
+            results.append({"entry_id": entry_id, "status": "error", "message": SALE_LOCKED_MESSAGE})
             continue
         line_ids = [l.id for l in entry.lines]
         if line_ids:

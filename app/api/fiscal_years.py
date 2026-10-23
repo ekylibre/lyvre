@@ -19,7 +19,8 @@ from . import ApiError, bp, get_or_404, invalid, json_body, notice
 def fiscal_year_payload(fy: FiscalYear) -> dict:
     return {"id": fy.id, "label": fy.label, "start_date": fy.start_date.isoformat(),
             "end_date": fy.end_date.isoformat(), "closed": fy.closed, "status": fy.status,
-            "status_label": fy.status_label, "vat_liable": fy.vat_liable}
+            "status_label": fy.status_label, "vat_liable": fy.vat_liable,
+            "vat_on_receipts": fy.vat_on_receipts}
 
 
 def _date(data, key, label):
@@ -275,19 +276,27 @@ def fiscal_years_fec_preview(fy_id):
 
 @bp.route("/fiscal-years/<int:fy_id>", methods=["PATCH"])
 def fiscal_years_update(fy_id):
-    """Seul l'assujettissement à la TVA se modifie, sur un exercice ouvert."""
+    """Assujettissement à la TVA et exigibilité de la TVA des prestations (`vat_on_receipts` :
+    à l'encaissement, sinon d'après les débits), sur un exercice ouvert."""
     fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
     data = json_body()
-    if "vat_liable" not in data:
+    if "vat_liable" not in data and "vat_on_receipts" not in data:
         raise invalid("Rien à modifier.")
     if fy.closed:
         raise ApiError("conflict", "Cet exercice est clôturé.", status=409)
-    fy.vat_liable = bool(data["vat_liable"])
+    notices = []
+    if "vat_liable" in data:
+        fy.vat_liable = bool(data["vat_liable"])
+        state = "soumis" if fy.vat_liable else "non soumis"
+        notices.append(notice(f"Exercice « {fy.label} » {state} à la TVA. "
+                              "S'applique aux factures comptabilisées à partir de maintenant."))
+    if "vat_on_receipts" in data:
+        fy.vat_on_receipts = bool(data["vat_on_receipts"])
+        mode = "à l'encaissement" if fy.vat_on_receipts else "d'après les débits"
+        notices.append(notice(f"TVA des prestations de services exigible {mode} (exercice « {fy.label} »). "
+                              "S'applique aux factures de vente émises à partir de maintenant."))
     db.session.commit()
-    state = "soumis" if fy.vat_liable else "non soumis"
-    return jsonify(item=fiscal_year_payload(fy), notices=[notice(
-        f"Exercice « {fy.label} » {state} à la TVA. "
-        "S'applique aux factures comptabilisées à partir de maintenant.")])
+    return jsonify(item=fiscal_year_payload(fy), notices=notices)
 
 
 @bp.route("/fiscal-years/<int:fy_id>/fec/check")

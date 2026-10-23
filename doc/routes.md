@@ -517,6 +517,27 @@ Pages de la SPA : `/imports/odoo` (dépôt du CSV, lots importés), `/imports/od
 
 ---
 
+## Ventes (`/sales/`) — module Ventes, lot S1
+
+Pages : `/sales/` (liste), `/sales/new`, `/sales/<id>`, `/sales/<id>/edit` ; réglages : Configuration ›
+Structure, onglet Facturation (`/configuration/organization?tab=billing`). API :
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/api/v1/sales` | Factures et avoirs (`kind`, `status`, `entity_id`, `month`, `overdue=1`, `q`) ; totaux émis, brouillons |
+| GET | `/api/v1/sales/form-options` | Clients, produits de vente, comptes 7…, projets, unités, mode de TVA du jour, délai de paiement |
+| POST | `/api/v1/sales` | Brouillon de facture `{entity_id \| new_client_name, issue_date, due_date, service_start, service_end, operation_type, purchase_order, header, terms, footer, lines}` ; compte de vente : saisi, sinon du produit, sinon 706 |
+| GET / PATCH / DELETE | `/api/v1/sales/<id>` | Fiche ; modification et suppression d'un brouillon seulement (409 sinon) |
+| POST | `/api/v1/sales/<id>/issue` | Émission : numéro `F-AAAA-NNNN` / `AV-AAAA-NNNN`, écriture VE, PDF Factur-X ; 409 avec les motifs (mentions, adresse du client, exercice, chronologie, montant d'avoir) |
+| POST | `/api/v1/sales/<id>/credit-note` | Brouillon d'avoir `{reason, line_ids?}` sur une facture émise |
+| GET | `/api/v1/sales/<id>/pdf` | PDF émis (conservé) ou aperçu d'un brouillon ; `?download=1` |
+| POST | `/api/v1/sales/<id>/send` | Envoi par email `{to, cc, subject, body}` (SMTP, PDF joint) ; 409 `integration_required` sans SMTP |
+| POST | `/api/v1/sales/send` | Envoi des pièces choisies `{ids}` à l'adresse de leur client (50 au plus) |
+| GET / PUT | `/api/v1/billing-settings` | Réglages de facturation (PUT : administrateur de l'instance) |
+| POST / DELETE | `/api/v1/billing-settings/logo` | Logo PNG ou JPEG (500 Ko) |
+
+`PATCH /api/v1/fiscal-years/<id>` accepte aussi `vat_on_receipts`.
+
 ## Rapprochement bancaire (`/reconciliation/`)
 
 Page de la SPA ([guide](saisie_rapprochement.md)) : `?bank_account_id=`, `?month=YYYY-MM`.

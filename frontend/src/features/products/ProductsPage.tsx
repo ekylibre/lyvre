@@ -1,6 +1,6 @@
 // Compta › Catalogue : produits et services (comptes d'achat / de vente, TVA par défaut).
 import { useState } from "react";
-import { Button, Group, SegmentedControl, Select, Stack, Switch, Text, TextInput } from "@mantine/core";
+import { Button, Group, SegmentedControl, Select, Stack, Switch, Text, TextInput, Textarea } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { api } from "../../api/client";
 import { useAction, useList, type Notice } from "../../api/resources";
@@ -19,6 +19,7 @@ export interface Product {
   id: number; name: string; reference: string | null; kind: "purchase" | "sale" | "both"; active: boolean;
   purchase_account: AccountRef | null; sale_account: AccountRef | null;
   vat_rate_bp: number | null; vat_rate: string; usages: number;
+  sale_price: string; unit: string; description: string; nature: "goods" | "services";
 }
 interface Meta {
   kinds: { value: string; label: string }[];
@@ -43,6 +44,8 @@ function ProductForm({ product, meta, onDone }: { product: Product | null; meta:
       name: product?.name ?? "", reference: product?.reference ?? "", kind: product?.kind ?? "purchase",
       purchase_account_code: product?.purchase_account?.code ?? "",
       sale_account_code: product?.sale_account?.code ?? "", vat_rate: product?.vat_rate ?? "",
+      sale_price: product?.sale_price ?? "", unit: product?.unit ?? "", description: product?.description ?? "",
+      nature: product?.nature ?? "services",
     },
   });
   const save = useAction((values: typeof form.values) => product
@@ -71,6 +74,19 @@ function ProductForm({ product, meta, onDone }: { product: Product | null; meta:
         )}
         <TextInput label="Taux de TVA (%)" description="20, 10, 5,5… ; vide si aucun taux par défaut." w={200}
           inputMode="decimal" {...form.getInputProps("vat_rate")} />
+        {kind !== "purchase" && (
+          <>
+            <Group grow>
+              <TextInput label="Prix de vente HT (€)" inputMode="decimal" classNames={{ input: "lv-num" }} {...form.getInputProps("sale_price")} />
+              <TextInput label="Unité" placeholder="heure, jour, mois…" {...form.getInputProps("unit")} />
+            </Group>
+            <Select label="Nature" allowDeselect={false} data={[{ value: "services", label: "Prestation de services" },
+              { value: "goods", label: "Livraison de biens" }]} description="Détermine l'exigibilité de la TVA collectée."
+              {...form.getInputProps("nature")} />
+            <Textarea label="Description" description="Reprise sous la désignation, sur la facture." autosize minRows={2}
+              {...form.getInputProps("description")} />
+          </>
+        )}
       </FormBody>
     </form>
   );

@@ -19,7 +19,7 @@ import { AppLink } from "../../app/navigation";
 import { FecPanel } from "./FecPanel";
 
 export interface FiscalYear {
-  id: number; label: string; start_date: string; end_date: string; closed: boolean; vat_liable: boolean;
+  id: number; label: string; start_date: string; end_date: string; closed: boolean; vat_liable: boolean; vat_on_receipts?: boolean;
   status: "open" | "provisional" | "closed"; status_label: string;
 }
 
@@ -72,6 +72,9 @@ export default function FiscalYearsPage() {
   const setVat = useAction((fy: FiscalYear) =>
     api.patch<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}`, { vat_liable: !fy.vat_liable }),
     { invalidate: [FISCAL_YEARS_KEY] });
+  const setVatMode = useAction((fy: FiscalYear) =>
+    api.patch<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}`, { vat_on_receipts: !fy.vat_on_receipts }),
+    { invalidate: [FISCAL_YEARS_KEY] });
   const simple = useBookkeeping() === "simple";
   const can = useCan();
   const lock = useAction((fy: FiscalYear) => api.post<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}/lock`,
@@ -106,7 +109,10 @@ export default function FiscalYearsPage() {
     { accessor: "status", title: "Statut",
       render: (fy) => <StatusBadge tone={STATUS_TONES[fy.status] ?? "neutral"}>{fy.status_label}</StatusBadge> },
     { accessor: "vat_liable", title: "TVA",
-      render: (fy) => <StatusBadge tone={fy.vat_liable ? "info" : "neutral"}>{fy.vat_liable ? "Soumis" : "Non soumis"}</StatusBadge> },
+      render: (fy) => <Group gap={6} wrap="nowrap">
+        <StatusBadge tone={fy.vat_liable ? "info" : "neutral"}>{fy.vat_liable ? "Soumis" : "Non soumis"}</StatusBadge>
+        {fy.vat_liable && <Text size="xs" c="dimmed">{fy.vat_on_receipts === false ? "services : sur les débits" : "services : à l'encaissement"}</Text>}
+      </Group> },
     ...closingColumns,
     { accessor: "actions", title: "", hideable: false, textAlign: "right",
       render: (fy) => fy.closed ? null : (
@@ -116,6 +122,11 @@ export default function FiscalYearsPage() {
             onClick={() => setVat.mutate(fy)}>
             {fy.vat_liable ? "Déclarer non soumis" : "Déclarer soumis"}
           </Button>
+          {fy.vat_liable && <Button variant="subtle" size="compact-sm" loading={setVatMode.isPending && setVatMode.variables?.id === fy.id}
+            title="TVA des prestations de services ; s'applique aux factures de vente émises à partir de maintenant"
+            onClick={() => setVatMode.mutate(fy)}>
+            {fy.vat_on_receipts === false ? "TVA à l'encaissement" : "Option TVA sur les débits"}
+          </Button>}
         </Group>
       ) },
   ];

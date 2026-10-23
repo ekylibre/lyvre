@@ -20,6 +20,8 @@ def product_payload(p: Product, usages: int | None = None) -> dict:
         "sale_account": _account_ref(p.sale_account),
         "vat_rate_bp": p.vat_rate_bp,
         "vat_rate": format_rate(p.vat_rate_bp).replace(" %", ""),
+        "sale_price": "" if p.sale_price_cents is None else f"{p.sale_price_cents / 100:.2f}".replace(".", ","),
+        "unit": p.unit or "", "description": p.description or "", "nature": p.nature,
         "usages": usage_count(p) if usages is None else usages,
     }
 
@@ -28,7 +30,7 @@ def _form(data: dict) -> dict:
     """Champs JSON → formulaire attendu par catalog.validate_product_data."""
     return {key: "" if data.get(key) is None else str(data.get(key))
             for key in ("name", "reference", "kind", "purchase_account_code",
-                        "sale_account_code", "vat_rate")}
+                        "sale_account_code", "vat_rate", "sale_price", "unit", "description", "nature")}
 
 
 def _accounts(prefix):

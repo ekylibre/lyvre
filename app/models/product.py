@@ -26,6 +26,12 @@ class Product(db.Model):
     )
     # Taux de TVA en points de base (2000 = 20 %) ; NULL = pas de taux par défaut.
     vat_rate_bp = db.Column(db.Integer)
+    # Ventes : description et unité reprises sur la ligne, prix unitaire HT de vente, nature
+    # (biens / services : exigibilité de la TVA).
+    description = db.Column(db.Text)
+    unit = db.Column(db.String(20))
+    sale_price_cents = db.Column(db.Integer)
+    nature = db.Column(db.String(8), nullable=False, default="services", server_default="services")
     active = db.Column(db.Boolean, nullable=False, default=True, server_default=db.true())
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 

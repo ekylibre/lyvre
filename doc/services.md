@@ -1315,3 +1315,14 @@ valeur nominale et les règles du registre ; solde d'ouverture passé seulement 
 écriture (sinon « ignoré »). `run(content, counterpart_code)` refait l'analyse et importe tout ou rien : associés,
 mouvements de reprise, écritures AN datées de la reprise contre le compte de contrepartie choisi
 (`source_ref = OPENING:<associé>`).
+
+## Ventes — sale_entry, sale_posting, sale_issue, sale_documents, billing, einvoice (lots S0, S1)
+
+| Module | Rôle |
+|---|---|
+| `sale_entry` | Brouillons : client (ou nouveau client), lignes (produit, quantité, prix HT, remise, TVA, compte), `compute` (HT par ligne, TVA par taux répartie sur les lignes), `vat_mode_for(date)` d'après l'exercice |
+| `sale_posting` | Écriture VE : 411NNN du client (créé et noté sur la fiche) au débit TTC ; 7… au crédit HT ; 44571 (biens, ou débits) et 44574 (services à l'encaissement), créés sous 4457 s'ils manquent ; avoir inversé |
+| `sale_issue` | `next_number` sous verrou, `issue_problems`, `issue` (numéro + client figé + écriture + PDF, un commit ; échec → rien), `credit_note`, `send` (SMTP, PDF joint, journal `sale_emails`) |
+| `sale_documents` | Gabarit `templates/sales/document.html` (mentions obligatoires), PDF/A-3 Factur-X pour une pièce émise, PDF simple pour un brouillon ; conservation `ventes/AAAA/<numéro>.pdf` |
+| `billing` | Réglages de facturation, mentions requises (`readiness`), logo |
+| `einvoice` | XML CII EN 16931 (bibliothèque `factur-x`, contrôle XSD) et insertion dans le PDF/A-3 |

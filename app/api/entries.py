@@ -7,6 +7,7 @@ from flask_login import login_required
 
 from app.extensions import db
 from app.models import BankTransaction, FiscalYear, Journal, JournalEntry
+from app.models.journal_entry import SALE_LOCKED_MESSAGE, SOURCE_SALE
 from app.services import projects
 from app.services.ledger import (
     MANAGED_SOURCES, LedgerError, delete_entries, entry_is_reconciled, post_validated_entry, update_entry,
@@ -57,7 +58,7 @@ def serialize_entry(entry):
         "total_debit_cents": entry.total_debit,
         "total_credit_cents": entry.total_credit,
         "reconciled": entry_is_reconciled(entry),
-        "editable": not entry.fiscal_year.closed and entry.source not in MANAGED_SOURCES,
+        "editable": not entry.fiscal_year.closed and entry.source not in (*MANAGED_SOURCES, SOURCE_SALE),
         "managed": entry.source in MANAGED_SOURCES,
         "url": url_for("entries.detail", entry_id=entry.id),
         "lines": [
@@ -127,6 +128,8 @@ def entries_update(entry_id):
     entry = _get_entry(entry_id)
     if entry.source in MANAGED_SOURCES:
         raise ApiError("conflict", MANAGED_MESSAGE, 409)
+    if entry.source == SOURCE_SALE:
+        raise ApiError("conflict", SALE_LOCKED_MESSAGE, 409)
     clean = _validated(json_body())
     try:
         update_entry(entry, clean)

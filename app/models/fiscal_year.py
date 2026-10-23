@@ -33,6 +33,8 @@ class FiscalYear(db.Model):
     allocation_body = db.Column(db.String(100))
     # Assujetti à la TVA : TVA des achats en 44566 ; sinon incluse dans la charge.
     vat_liable = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
+    # Prestations de services : TVA exigible à l'encaissement (vrai, cas général) ou d'après les débits.
+    vat_on_receipts = db.Column(db.Boolean, nullable=False, default=True, server_default=db.true())
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     entries = db.relationship("JournalEntry", back_populates="fiscal_year", lazy="dynamic")

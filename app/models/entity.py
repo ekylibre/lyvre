@@ -40,6 +40,9 @@ class Entity(db.Model):
     city = db.Column(db.String(100))
     country = db.Column(db.String(60))
     person_kind = db.Column(db.String(12))       # individual | company
+    # Ventes : compte client 411NNN (créé à la première facture) ; emails en copie des envois.
+    customer_account_code = db.Column(db.String(20))
+    billing_emails = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     transactions = db.relationship("BankTransaction", back_populates="entity", lazy="dynamic")

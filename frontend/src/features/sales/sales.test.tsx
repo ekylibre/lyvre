@@ -1,0 +1,112 @@
+// Ventes (lot S1) : totaux estimés, saisie d'un brouillon depuis le catalogue, fiche (émission,
+// avoir, envoi sans SMTP).
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { notifications } from "@mantine/notifications";
+import { Route, Routes } from "react-router";
+import { renderWithProviders, TEST_SESSION } from "../../test/render";
+import type { Session } from "../../api/session";
+import SaleDetailPage from "./SaleDetailPage";
+import SaleFormPage from "./SaleFormPage";
+import { estimate, EMPTY_SALE_LINE, type SaleDetail } from "./types";
+
+type Call = { method: string; url: string; body: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
+let calls: Call[];
+const json = (status: number, body: unknown) => Promise.resolve(new Response(JSON.stringify(body), { status }));
+
+const OPTIONS = {
+  clients: [{ value: "4", label: "Client SARL" }],
+  products: [{ value: "9", label: "Audit", account: "706", rate: "20", price: "500,00", unit: "jour", description: "Audit annuel", nature: "services" }],
+  sale_accounts: [{ value: "706", label: "706 — Prestations" }], default_account: "706", projects: [], units: ["heure", "jour"],
+  operation_types: [{ value: "services", label: "Prestation de services" }], vat_mode: "receipts", vat_liable: true, payment_terms_days: 30,
+};
+
+function detail(fields: Partial<SaleDetail> = {}): SaleDetail {
+  return {
+    id: 7, kind: "invoice", kind_label: "Facture", status: "issued", status_label: "Émise", number: "F-2026-0001", source: "app",
+    client: { id: 4, name: "Client SARL", address_line1: "2 avenue X", address_line2: null, postal_code: "69001", city: "Lyon",
+      country: "France", siren: "987654321", vat_number: null, email: "compta@client.example" },
+    issue_date: "2026-10-23", due_date: "2026-11-22", untaxed_cents: 50000, tax_cents: 10000, total_cents: 60000, paid_cents: 0,
+    sent_at: null, overdue: false, service_start: null, service_end: null, operation_type: "services", purchase_order: "",
+    terms: "", header: "", footer: "", vat_mode: "receipts", credit_reason: null,
+    lines: [{ id: 1, ...EMPTY_SALE_LINE, label: "Audit", unit_price: "500,00", vat_rate: "20", account_code: "706",
+      untaxed_cents: 50000, vat_cents: 10000, total_cents: 60000 }],
+    vat_rows: [{ rate: 2000, base: 50000, tax: 10000 }], journal_entry: { id: 3, reference: "VE-0001" }, invoice: null,
+    credit_notes: [], remaining_credit_cents: 60000, issue_problems: [], recipients: ["compta@client.example"], emails: [],
+    pdf_url: "/api/v1/sales/7/pdf", ...fields,
+  };
+}
+
+let current: SaleDetail;
+beforeEach(() => {
+  calls = [];
+  current = detail();
+  vi.spyOn(notifications, "show").mockReturnValue("id");
+  vi.spyOn(globalThis, "fetch").mockImplementation(((input: RequestInfo | URL, init: RequestInit = {}) => {
+    const url = String(input);
+    const method = init.method ?? "GET";
+    calls.push({ method, url, body: init.body ? JSON.parse(init.body as string) : undefined });
+    if (url === "/api/v1/sales/form-options") return json(200, OPTIONS);
+    if (url === "/api/v1/sales" && method === "POST") return json(201, { item: detail({ id: 8, status: "draft", number: null }), notices: [] });
+    if (url === "/api/v1/sales/7" && method === "GET") return json(200, { item: current });
+    if (url === "/api/v1/sales/7/credit-note") return json(201, { item: detail({ id: 9, kind: "credit_note", status: "draft", number: null }), notices: [] });
+    return json(404, { error: { code: "not_found", message: "?" } });
+  }) as typeof fetch);
+});
+afterEach(() => vi.restoreAllMocks());
+
+describe("totaux estimés", () => {
+  it("TVA arrondie par taux, comme le serveur", () => {
+    const rows = [{ ...EMPTY_SALE_LINE, label: "A", quantity: "2,5", unit_price: "80", vat_rate: "20" },
+      { ...EMPTY_SALE_LINE, label: "B", quantity: "3", unit_price: "10,01", discount: "10", vat_rate: "5,5" }];
+    expect(estimate(rows, false)).toEqual({ untaxed: 22703, tax: 4149, total: 26852 });
+    expect(estimate(rows, true)).toEqual({ untaxed: 22703, tax: 0, total: 22703 });
+  });
+});
+
+describe("saisie d'une facture", () => {
+  it("le produit remplit la ligne, puis brouillon enregistré", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Routes><Route path="/sales/new" element={<SaleFormPage />} /></Routes>, { route: "/sales/new" });
+    await user.click(await screen.findByRole("combobox", { name: "Client" }));
+    await user.click(await screen.findByRole("option", { name: "Client SARL" }));
+    await user.click(screen.getByRole("combobox", { name: "Produit (ligne 1)" }));
+    await user.click(await screen.findByRole("option", { name: "Audit" }));
+    expect((screen.getByLabelText("Désignation (ligne 1)") as HTMLInputElement).value).toBe("Audit");
+    expect((screen.getByLabelText("Prix unitaire HT (ligne 1)") as HTMLInputElement).value).toBe("500,00");
+    expect(within(screen.getByLabelText("Totaux estimés")).getByText(/600,00/)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Enregistrer le brouillon" }));
+    await waitFor(() => expect(calls.find((c) => c.method === "POST")?.body).toMatchObject({
+      entity_id: "4", lines: [{ product_id: "9", label: "Audit", unit_price: "500,00", vat_rate: "20", account_code: "706", unit: "jour" }] }));
+  });
+});
+
+describe("fiche d'une facture", () => {
+  const ADMIN: Session = { ...TEST_SESSION, role: "admin", permissions: { write: true, instance_admin: true } };
+  const page = (session = ADMIN) => renderWithProviders(<Routes><Route path="/sales/:sale_id" element={<SaleDetailPage />} /></Routes>,
+    { route: "/sales/7", session });
+
+  it("brouillon incomplet : émission impossible, motifs affichés", async () => {
+    current = detail({ status: "draft", number: null, issue_problems: ["Mention manquante : SIREN (Configuration › Structure)."] });
+    page();
+    expect(await screen.findByText("Mention manquante : SIREN (Configuration › Structure).")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Émettre" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("avoir : motif et lignes", async () => {
+    const user = userEvent.setup();
+    page();
+    await user.click(await screen.findByRole("button", { name: "Avoir" }));
+    await user.type(screen.getByLabelText(/Motif/), "Erreur de facturation");
+    await user.click(screen.getByRole("button", { name: "Créer le brouillon d'avoir" }));
+    await waitFor(() => expect(calls.find((c) => c.url.endsWith("/credit-note"))?.body).toEqual({ reason: "Erreur de facturation", line_ids: [1] }));
+  });
+
+  it("envoi sans SMTP : l'intégration est nécessaire", async () => {
+    const user = userEvent.setup();
+    page({ ...ADMIN, instance: { ...ADMIN.instance!, integrations: { enabled: [], proposed: [] } } });
+    await user.click(await screen.findByRole("button", { name: "Envoyer" }));
+    expect(await screen.findByText("L'envoi par email nécessite l'intégration SMTP (emails), désactivée.")).toBeTruthy();
+  });
+});

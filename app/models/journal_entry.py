@@ -13,6 +13,9 @@ SOURCE_DEDICATED_FUND = "DEDICATED_FUND"  # dotation / utilisation de fonds déd
 CLOSING_SOURCES = (SOURCE_OPENING, SOURCE_REVERSAL, SOURCE_ALLOCATION, SOURCE_CLOSING)
 # Écritures produites par l'assistant de clôture : modifiées ou supprimées seulement par lui.
 MANAGED_SOURCES = (*CLOSING_SOURCES, SOURCE_INVENTORY, SOURCE_DEDICATED_FUND)
+# Écriture d'une facture ou d'un avoir de vente émis : ni modifiée ni supprimée (on passe un avoir).
+SOURCE_SALE = "SALE"
+SALE_LOCKED_MESSAGE = "Écriture d'une facture de vente émise : elle se corrige par un avoir (Ventes)."
 INVENTORY_KINDS = ("accrued_expense", "accrued_income", "prepaid_expense", "deferred_income")
 
 

@@ -91,6 +91,12 @@ def product_for(entity: Entity | None) -> Product:
     return default_purchase_product()
 
 
+def sale_products():
+    """Produits actifs utilisables à la vente, par nom."""
+    return (Product.query.filter(Product.active.is_(True), Product.kind.in_(("sale", "both")))
+            .order_by(Product.name).all())
+
+
 def purchase_products():
     """Produits actifs utilisables à l'achat, par nom."""
     return (Product.query.filter(Product.active.is_(True), Product.kind.in_(("purchase", "both")))
@@ -98,8 +104,11 @@ def purchase_products():
 
 
 def usage_count(product: Product) -> int:
-    """Lignes de facture et fiches fournisseur qui utilisent le produit."""
+    """Lignes de facture (achat et vente) et fiches fournisseur qui utilisent le produit."""
+    from app.models import SaleLine
+
     lines = PurchaseLine.query.filter_by(product_id=product.id).count()
+    lines += SaleLine.query.filter_by(product_id=product.id).count()
     entities = Entity.query.filter_by(default_product_id=product.id).count()
     return lines + entities
 
@@ -143,6 +152,18 @@ def validate_product_data(form, product_id=None) -> dict:
     except ValueError as e:
         raise CatalogError(str(e)) from None
 
+    # Vente : prix unitaire HT, unité, description reprise sur la facture, nature (TVA).
+    price_text = (form.get("sale_price") or "").strip().replace(" ", "").replace(",", ".")
+    try:
+        sale_price = Decimal(price_text) if price_text else None
+    except InvalidOperation:
+        raise CatalogError(f"Prix de vente invalide : « {form.get('sale_price')} ».") from None
+    if sale_price is not None and sale_price < 0:
+        raise CatalogError("Le prix de vente ne peut pas être négatif.")
+    nature = form.get("nature") or "services"
+    if nature not in ("goods", "services"):
+        raise CatalogError(f"Nature inconnue : « {nature} ».")
+
     return {
         "name": name[:200],
         "reference": (form.get("reference") or "").strip()[:50] or None,
@@ -150,4 +171,8 @@ def validate_product_data(form, product_id=None) -> dict:
         "purchase_account_id": purchase_account.id if kind != "sale" else None,
         "sale_account_id": sale_account.id if kind != "purchase" else None,
         "vat_rate_bp": vat_rate_bp,
+        "sale_price_cents": int((sale_price * 100).quantize(Decimal("1"))) if sale_price is not None and kind != "purchase" else None,
+        "unit": (form.get("unit") or "").strip()[:20] or None,
+        "description": (form.get("description") or "").strip() or None,
+        "nature": nature,
     }

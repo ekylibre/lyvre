@@ -136,6 +136,15 @@ MENUS = [
         "endpoint": "purchases.index",
         "active": ["purchases"],
     },
+    # -------------------------------------------------------------------- Ventes
+    {
+        "key": "sales",
+        "label": "Ventes",
+        "charts": _ALL,
+        "bookkeeping": _DOUBLE,   # journal VE, comptes clients 411
+        "endpoint": "sales.index",
+        "active": ["sales"],
+    },
     # ------------------------------------------------------------------- Associés
     {
         "key": "associates",

@@ -1,15 +1,17 @@
 // Configuration › Structure : identité de la structure (raison sociale, SIREN, RNA, adresse, objet,
-// signataire), utilisée par le FEC, les reçus fiscaux et les états. Modifiable par
-// l'administrateur de l'instance, lisible par tous.
+// signataire), utilisée par le FEC, les reçus fiscaux et les états ; onglet Facturation (mentions et
+// réglages des factures de vente). Modifiable par l'administrateur de l'instance, lisible par tous.
 import { useEffect, useState } from "react";
-import { Alert, Button, Center, Checkbox, Fieldset, Group, Loader, SimpleGrid, Stack, TextInput, Textarea } from "@mantine/core";
+import { Alert, Button, Center, Checkbox, Fieldset, Group, Loader, SimpleGrid, Stack, Tabs, TextInput, Textarea } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
 import { SESSION_KEY, useCan } from "../../api/session";
 import { applyApiError } from "../../components/ApiForm";
+import { useUrlParams } from "../../components/FilterBar";
 import { PageHeader } from "../../components/PageHeader";
+import { BillingSettings } from "../sales/BillingSettings";
 
 export interface Organization {
   name: string; siren: string | null; rna: string | null; address_line1: string | null; address_line2: string | null;
@@ -26,6 +28,7 @@ type Values = Record<(typeof FIELDS)[number] | "associate_interest_rate", string
 export default function OrganizationPage() {
   const can = useCan();
   const client = useQueryClient();
+  const [params, setParams] = useUrlParams({ tab: "identity" });
   const { data } = useQuery({ queryKey: ORGANIZATION_KEY,
     queryFn: () => api.get<{ item: Organization }>("/api/v1/organization") });
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +48,14 @@ export default function OrganizationPage() {
   );
   return (
     <>
-      <PageHeader title="Structure" description="Identité de la structure : FEC, reçus fiscaux et états." />
+      <PageHeader title="Structure" description="Identité de la structure : FEC, reçus fiscaux, factures de vente et états." />
+      <Tabs value={params.tab} onChange={(tab) => setParams({ tab: tab === "identity" ? "" : tab ?? "" })} mb="md">
+        <Tabs.List>
+          <Tabs.Tab value="identity">Identité</Tabs.Tab>
+          <Tabs.Tab value="billing">Facturation</Tabs.Tab>
+        </Tabs.List>
+      </Tabs>
+      {params.tab === "billing" ? <BillingSettings /> : <>
       {!data.item.fec_ready && <Alert color="paille" mb="md">Renseignez le SIREN : il nomme le fichier des écritures comptables (FEC).</Alert>}
       <form onSubmit={form.onSubmit((values) => {
         setError(null);
@@ -100,6 +110,7 @@ export default function OrganizationPage() {
           {!readOnly && <Group><Button type="submit" loading={save.isPending}>Enregistrer</Button></Group>}
         </Stack>
       </form>
+      </>}
     </>
   );
 }
