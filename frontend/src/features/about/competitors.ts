@@ -1,4 +1,4 @@
-// Fonctionnalités des autres logiciels, vérifiées sur les sites et centres d'aide des éditeurs le 23/10/2026.
+// Fonctionnalités des autres logiciels (hors logiciels open source : openSourceVendors.ts), vérifiées sur les sites et centres d'aide des éditeurs le 23/10/2026.
 // Une case sans entrée (« unknown ») : rien trouvé chez l'éditeur, ce qui ne veut pas dire absent.
 export type Mark = "yes" | "partial" | "no";
 export interface Evidence { mark: Mark; url: string; why: string }
@@ -112,28 +112,6 @@ export const VENDORS: Vendor[] = [
     mobile_app: { mark: "no", url: "https://centre-aide.pepsup.com/topic/application-mobile", why: "Pas d'application : idée « en analyse » sans date ; interface web responsive seulement." },
     free_software: { mark: "no", url: "https://pepsup.com/tarifs/", why: "Offre SaaS propriétaire sur abonnement, non auto-hébergeable." },
     free_tier: { mark: "no", url: "https://pepsup.com/tarifs/", why: "Pas de formule gratuite, essai gratuit seulement ; dès 10 €/mois (Basic), compta dès 15 €/mois." },
-  } },
-  { name: "Dolibarr", site: "https://www.dolibarr.org", offer: "Dolibarr cœur (GPL v3, auto-hébergé ou SaaS DoliCloud) avec modules Adhérents, Dons, Banques et caisses, Comptabilité ; modules Dolistore indiqués comme tels", criteria: {
-    plan_asso: { mark: "yes", url: "https://raw.githubusercontent.com/Dolibarr/dolibarr/develop/ChangeLog", why: "Plan comptable associatif français 2018 (PCG18-ASSOC) fourni dans le cœur depuis la v12 ; jugé incomplet par des tickets." },
-    double_entry: { mark: "yes", url: "https://wiki.dolibarr.org/index.php/Module_Comptabilit%C3%A9_en_Partie_Double", why: "Module cœur en partie double : grand livre, balance, compte de résultat par groupes ; bilan surtout via module Dolistore gratuit ComptaAsso." },
-    simple_mode: { mark: "yes", url: "https://wiki.dolibarr.org/index.php/Module_Comptabilit%C3%A9_Simplifi%C3%A9e", why: "Module cœur de comptabilité simplifiée : rapports recettes-dépenses à partir des factures et paiements." },
-    bank_import: { mark: "partial", url: "https://www.dolistore.com/product.php?id=2515&l=en", why: "Rapprochement manuel dans le cœur ; import CSV et synchro DSP2 via modules Dolistore payants." },
-    cash: { mark: "yes", url: "https://wiki.dolibarr.org/index.php/Module_Banques_et_Caisses", why: "Comptes de caisse illimités dans le cœur, plus point de vente TakePOS avec contrôle de caisse." },
-    supplier_invoices: { mark: "yes", url: "https://wiki.dolibarr.org/index.php/Module_Fournisseurs_Factures", why: "Factures fournisseurs avec pièces jointes dans le cœur ; OCR seulement via module Dolistore payant." },
-    members: { mark: "yes", url: "https://www.dolibarr.org/presentation-membership-management.php", why: "Adhérents, cotisations, adhésion en ligne publique et relances automatiques de renouvellement." },
-    tax_receipts: { mark: "yes", url: "https://raw.githubusercontent.com/Dolibarr/dolibarr/develop/ChangeLog", why: "Module Dons du cœur avec modèle de reçu Cerfa 11580*04." },
-    budget_projects: { mark: "yes", url: "https://www.dolibarr.org/presentation-projects-tasks.php?lang=fr&l=fr", why: "Projets avec montant de budget et vue des pertes et profits ; suivi budgétaire avancé via Dolistore." },
-    cash_forecast: { mark: "partial", url: "https://www.dolistore.com/product.php?id=2451&l=en", why: "Cœur : simples écritures prévues par compte ; vrai prévisionnel de trésorerie via module Dolistore payant (300 €)." },
-    fec: { mark: "yes", url: "https://wiki.dolibarr.org/index.php/Module_Comptabilit%C3%A9_en_Partie_Double", why: "Export FEC/FEC2 natif, avec option de verrouillage des écritures." },
-    closing: { mark: "partial", url: "https://wiki.dolibarr.org/index.php/Module_Comptabilit%C3%A9_en_Partie_Double", why: "Clôture annuelle avec verrouillage, report du résultat et à-nouveaux ; documentation incomplète, pas d'affectation guidée." },
-    multi_users: { mark: "yes", url: "https://wiki.dolibarr.org/index.php/Module_Utilisateurs", why: "Utilisateurs et groupes avec permissions fines par module, dans le cœur." },
-    multi_entities: { mark: "partial", url: "https://www.dolistore.com/product.php?id=1619&l=en", why: "Multi-société via module Dolistore payant (360 € HT) ; sinon une instance par structure." },
-    sales_invoices: { mark: "yes", url: "https://wiki.dolibarr.org/index.php/Module_Factures_Clients", why: "Factures clients et propositions commerciales (devis) dans le cœur." },
-    cheques_ticketing: { mark: "yes", url: "https://raw.githubusercontent.com/Dolibarr/dolibarr/develop/ChangeLog", why: "Bordereaux de remise de chèques dans le cœur (étendus aux autres modes en v18) ; organisation d'événements avec inscriptions." },
-    website_crm: { mark: "yes", url: "https://wiki.dolibarr.org/index.php/Module_Sites_web", why: "Modules cœur Sites web, Tiers/CRM et Mailing (emailing)." },
-    mobile_app: { mark: "partial", url: "https://www.dolistore.com/fr/outils-externes-et-appli-mobiles/365-DoliDroid-pour-Dolibarr.html", why: "DoliDroid gratuit, Android seulement, simple client de l'interface web ; rien d'officiel sur iOS." },
-    free_software: { mark: "yes", url: "https://www.dolibarr.org", why: "Logiciel libre (GPL v3) téléchargeable et auto-hébergeable." },
-    free_tier: { mark: "yes", url: "https://www.dolibarr.org/downloads.php", why: "Gratuit en auto-hébergement ; hébergement SaaS payant (DoliCloud) et modules Dolistore payants." },
   } },
   { name: "B-Asso", site: "https://www.b-asso.fr", offer: "B-Asso Web (formules Chocolat à Platine) ; B-Asso Free (Windows, gratuit)", criteria: {
     plan_asso: { mark: "partial", url: "https://www.b-association.com/fonctions/comptabilite/presentation-du-module-comptable/", why: "Plan simplifié ou plan officiel des associations, limité aux classes 6 et 7 (catégories)." },

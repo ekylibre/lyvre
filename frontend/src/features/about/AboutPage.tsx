@@ -1,6 +1,7 @@
 // À propos (page publique, sans connexion) : présentation de Lyvre, fonctionnalités par domaine,
 // comparaison avec les logiciels cités par deux comparatifs (Pennylane, Independant.io), vérifiée sur
-// les sites des éditeurs (competitors.ts), limites actuelles et sources.
+// les sites des éditeurs (competitors.ts), comparaison avec les logiciels open source (openSourceVendors.ts),
+// limites actuelles et sources.
 import type { ReactNode } from "react";
 import {
   Anchor, Badge, Box, Button, Container, Group, Image, List, Paper, SimpleGrid, Stack, Table, Text, ThemeIcon, Title, Tooltip,
@@ -14,7 +15,8 @@ import symbol from "../../assets/lyvre-symbole.svg";
 import symbolInverse from "../../assets/lyvre-symbole-inverse.svg";
 import { Wordmark } from "../../app/AppShell/Wordmark";
 import { useSession } from "../../api/session";
-import { CHECKED_ON, type Evidence, type Mark, VENDORS } from "./competitors";
+import { CHECKED_ON, type Evidence, type Mark, type Vendor, VENDORS } from "./competitors";
+import { OSS_VENDORS } from "./openSourceVendors";
 
 interface Domain { icon: ReactNode; title: string; items: string[] }
 
@@ -99,6 +101,18 @@ const ROWS: Row[] = [
   { key: "free_tier", label: "Gratuit", lyvre: "yes" },
 ];
 
+/** Critères ajoutés pour les logiciels open source, documentés chez eux (pas chez les éditeurs du premier tableau). */
+const OSS_ROWS: Row[] = [
+  ...ROWS,
+  { key: "sci", label: "SCI : associés, baux, quittances", lyvre: "yes" },
+  { key: "lettering", label: "Lettrage des comptes de tiers", lyvre: "no" },
+  { key: "entry_lock", label: "Écritures validées intangibles", lyvre: "partial", note: "Lyvre : à la clôture provisoire" },
+  { key: "fixed_assets", label: "Immobilisations, amortissements", lyvre: "no" },
+  { key: "vat_return", label: "Déclaration de TVA préparée", lyvre: "no" },
+  { key: "einvoicing", label: "Facture électronique, plateforme agréée", lyvre: "partial", note: "Lyvre : Factur-X émis et lu, émission par Qonto" },
+  { key: "sepa_online", label: "Prélèvement SEPA, paiement en ligne", lyvre: "no" },
+];
+
 const LIMITS = [
   "Pas d'application mobile native : l'interface s'adapte au téléphone.",
   "Pas de remise de chèques ni de billetterie ; la facture électronique (réforme 2026-2027) passe par Qonto.",
@@ -126,6 +140,38 @@ function EvidenceCell({ evidence }: { evidence?: Evidence }) {
           aria-label={`${MARK_LABEL[evidence.mark]} : ${evidence.why}`}><Glyph mark={evidence.mark} /></Anchor>
       </Tooltip>
     </Table.Td>
+  );
+}
+
+/** Tableau Lyvre / autres logiciels : une ligne par critère, une colonne par logiciel. */
+function ComparisonTable({ rows, vendors }: { rows: Row[]; vendors: Vendor[] }) {
+  return (
+    <Paper p={0} mb="xs" style={{ overflowX: "auto" }}>
+      <Table verticalSpacing={6} miw={900} stickyHeader>
+        <Table.Thead bg="var(--lv-surface)">
+          <Table.Tr>
+            <Table.Th />
+            <Table.Th ta="center" bg="var(--lv-sauge)">Lyvre</Table.Th>
+            {vendors.map((v) => (
+              <Table.Th key={v.name} ta="center">
+                <Tooltip label={v.offer} multiline w={280} withArrow>
+                  <Anchor href={v.site} target="_blank" rel="noreferrer" c="inherit" fw={600} size="sm">{v.name}</Anchor>
+                </Tooltip>
+              </Table.Th>
+            ))}
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {rows.map((row) => (
+            <Table.Tr key={row.key}>
+              <Table.Td><Text size="sm">{row.label}</Text>{row.note && <Text size="xs" c="dimmed">{row.note}</Text>}</Table.Td>
+              <Table.Td ta="center" bg="var(--lv-sauge)" aria-label={MARK_LABEL[row.lyvre]}><Glyph mark={row.lyvre} /></Table.Td>
+              {vendors.map((v) => <EvidenceCell key={v.name} evidence={v.criteria[row.key]} />)}
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
+    </Paper>
   );
 }
 
@@ -167,35 +213,22 @@ export default function AboutPage() {
           éditeurs le {CHECKED_ON}. Survolez une case pour la justification, cliquez pour la page source. Un point « · »
           signifie que rien n'a été trouvé chez l'éditeur, pas que la fonctionnalité est absente ; les offres évoluent.
         </Text>
-        <Paper p={0} mb="xs" style={{ overflowX: "auto" }}>
-          <Table verticalSpacing={6} miw={900} stickyHeader>
-            <Table.Thead bg="var(--lv-surface)">
-              <Table.Tr>
-                <Table.Th />
-                <Table.Th ta="center" bg="var(--lv-sauge)">Lyvre</Table.Th>
-                {VENDORS.map((v) => (
-                  <Table.Th key={v.name} ta="center">
-                    <Tooltip label={v.offer} multiline w={280} withArrow>
-                      <Anchor href={v.site} target="_blank" rel="noreferrer" c="inherit" fw={600} size="sm">{v.name}</Anchor>
-                    </Tooltip>
-                  </Table.Th>
-                ))}
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {ROWS.map((row) => (
-                <Table.Tr key={row.key}>
-                  <Table.Td><Text size="sm">{row.label}</Text>{row.note && <Text size="xs" c="dimmed">{row.note}</Text>}</Table.Td>
-                  <Table.Td ta="center" bg="var(--lv-sauge)" aria-label={MARK_LABEL[row.lyvre]}><Glyph mark={row.lyvre} /></Table.Td>
-                  {VENDORS.map((v) => <EvidenceCell key={v.name} evidence={v.criteria[row.key]} />)}
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </Paper>
+        <ComparisonTable rows={ROWS} vendors={VENDORS} />
         <Text size="xs" c="dimmed" mb={48}>✓ oui · ◐ en partie, option payante ou module tiers · ✕ non · « · » non trouvé. Aussi cités :
           MaCotisation (cotisations, logiciel comptable intégré), Ma Compta Association (catégories, rapport d'AG,
           installation locale), Sage 50 (comptabilité d'engagement, stocks).</Text>
+
+        <Title order={2} mb={4}>Lyvre et les autres logiciels open source</Title>
+        <Text size="sm" c="dimmed" mb="md" maw={820}>
+          Logiciels de gestion dont le code source est publié, examinés le {CHECKED_ON} sur leur documentation et leur
+          code (lu sans être exécuté). Plusieurs sont des ERP ou des outils de facturation plutôt que des logiciels de
+          comptabilité associative : la ligne « Plan comptable associatif » fait la différence. Survolez un nom pour la
+          licence et l'offre, une case pour la justification.
+        </Text>
+        <ComparisonTable rows={OSS_ROWS} vendors={OSS_VENDORS} />
+        <Text size="xs" c="dimmed" mb={48}>✓ oui · ◐ en partie, option payante ou module tiers · ✕ non · « · » non trouvé.
+          Invoice Ninja publie son code sous Elastic License 2.0, qui n'est pas une licence libre ; le dépôt de bureau de
+          Frappe Books est archivé depuis le 02/10/2026.</Text>
 
         <SimpleGrid cols={{ base: 1, md: 2 }} mb={48}>
           <Paper p="md">
@@ -224,6 +257,7 @@ export default function AboutPage() {
           <List.Item><Anchor href="https://lp.independant.io/logiciel-comptabilite/association/" target="_blank" rel="noreferrer" size="xs">
             Independant.io, « Logiciel comptabilité association »</Anchor> — choix des logiciels comparés.</List.Item>
           <List.Item>Sites et centres d'aide des éditeurs, consultés le {CHECKED_ON} : chaque case du tableau renvoie à sa page.</List.Item>
+          <List.Item>Logiciels open source : documentation et dépôts de code publics, consultés le {CHECKED_ON} ; chaque case renvoie à sa page.</List.Item>
         </List>
         <Text size="xs" c="dimmed" ta="center" pb="lg">LOGICIEL LIBRE · AGPL-3.0 · AUTO-HÉBERGÉ</Text>
       </Container>

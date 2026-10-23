@@ -72,3 +72,23 @@ Une instance `asso` voit `pcg2026` et `asso_2018_06`. En cas de conflit, la couc
 
   On en écarte la correspondance des états codée en dur et plusieurs erreurs (775 au lieu de 757, plafond « BCE + 2 », abattement sur les parts de SCI).
 - arrhes/PCG (CC0), source des données de paperasse : PCG 2026 en JSON (comptes obligatoires ou facultatifs, diff annuel) et en Markdown (articles balisés). C'est le socle `pcg2026` et le texte primaire `PCG26`. Il a servi à vérifier les citations du Livre IV.
+- Comparatif des logiciels de gestion open source (23/10/2026) : Invoice Ninja, Diacamma, enDI, Dokos, Frappe Books, Tryton. Synthèse dans [`doc/ref_compta/comparatif_oss_compta.md`](../ref_compta/comparatif_oss_compta.md), rapports par logiciel dans [`doc/ref_compta/comparatif_oss/`](../ref_compta/comparatif_oss/), besoins retenus dans `claudedocs/besoins_comparatif_oss.md`. Aucun ne fournit de plan associatif complet ni de couche SCI : on n'en reprend que des **méthodes** (voir ci-dessous).
+
+## Apports du comparatif open source
+
+Les écarts retenus (besoins `E…`) demandent de la connaissance avant d'être codés. Elle va dans la base, pas dans le code (une règle à un seul endroit) :
+
+| Besoin | Méthode reprise de | Fiche | Règle ou métadonnée | Consommateur |
+|---|---|---|---|---|
+| E2 validation, E3 verrouillage | Tryton (périodes `open → closed → locked`), Diacamma (brouillard → validée, contrepassation) | A-05 Validation et irréversibilité, L-01 Fonctionnement de ce logiciel (statuts brouillard / validée / verrouillée) | `controles.yml` : écritures en brouillard avant clôture, écriture dans une période verrouillée | contrôles de clôture, assistant |
+| E1 lettrage | Diacamma (lettrage inter-exercices), Tryton (écart en perte / profit) | A-11 Stocks, créances, provisions ; D-06 Rapprochement | `comptes.yml` : attribut **`lettrable: true`** (40, 41, 42-45, 467, 468), comptes d'écart par référentiel | lettrage, à-nouveaux détaillés, FEC (`EcritureLet`) |
+| E8 immobilisations | Tryton (`account_asset`), Dokos (composants) | A-10 Immobilisations ; fiche SCI à créer « immeuble par composants » (lacune § 6.3 de l'inventaire) | nouveau fichier **`immobilisations.yml`** : comptes 2x → 28x / 68x, durées usuelles, composants types d'un immeuble ; `schemas.yml` : dotation, cession | registre, dotations de l'assistant de clôture |
+| E9 charges et produits constatés d'avance | Tryton (`account_invoice_defer`), Dokos | A-12 Régularisations de fin d'exercice | `schemas.yml` : 486 / 487 au prorata des jours (le schéma d'inventaire existe déjà, avec extourne) | étape inventaire |
+| E5 reprise FEC | Dokos (import FEC) | A-07 Conservation et FEC | correspondance de comptes à l'import (table, pas de règle) | import |
+| E7 TVA | Tryton (`account_fr` : codes de taxe calqués sur les cases de la CA3) | A-14 TVA, C-09 Fiscalité et TVA des associations | nouvelle famille **`declarations_tva.yml`** : case → formule sur les comptes 445x et les bases, par régime (CA3, CA12) ; même principe d'expressions de préfixes que `etats.yml` | état de TVA |
+| E29 et E30 facture électronique, Chorus Pro | Diacamma et enDI (plateforme agréée, statuts de cycle de vie), Tryton (Chorus Pro) | **fiche à créer** sur la réforme de la facturation électronique (obligations par type de structure, calendrier, assujettis exonérés) — risque `expert`, source officielle à enregistrer dans `sources.yml` | aucune règle comptable | intégration plateforme, assistant |
+| E41 charges récupérables (SCI) | Diacamma Syndic (`RecoverableLoadRatio`, tantièmes) | S-02 Loyers et charges refacturées (exemple existant, à compléter : régularisation annuelle, TEOM) | `comptes.yml` (sci) : attribut **`recuperable: true`** | décompte annuel de charges |
+| E35 adhésions | Diacamma (saisons, types de cotisation) | C-06 Cotisations, dons, mécénat, subventions | `schemas.yml` : cotisation (existe en exemple) | adhésions |
+| E10 analytique multi-axes | Tryton (axes, répartiteurs en %, règles), Dokos | C-03 Fonds dédiés (lien axe projet), C-07 (CER) | `comptes.yml` : attribut `axe` étendu à plusieurs axes, axe obligatoire par compte | contrôles de saisie et de clôture |
+
+Les autres écarts (remises de chèques, notes de frais, SEPA, relances) n'ont pas été retenus le 23/10/2026. La fiche D-05 (580, virements internes) couvrira les remises de chèques (511) s'ils le sont.

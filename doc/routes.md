@@ -24,7 +24,10 @@ Page publique (sans connexion) : présentation de Lyvre, fonctionnalités par do
 avec les logiciels cités par les comparatifs Pennylane (27/04/2026) et Independant.io, vérifiée sur
 les sites et centres d'aide des éditeurs le 23/10/2026 (`features/about/competitors.ts` : par case,
 note, justification en infobulle et lien vers la page source ; « · » = rien trouvé chez l'éditeur),
-limites actuelles et sources. Liens depuis la page de connexion et le
+comparaison avec les logiciels open source (Dolibarr, Diacamma, Dokos, Tryton, enDI, Invoice Ninja,
+Frappe Books ; `features/about/openSourceVendors.ts`, 7 critères en plus : SCI, lettrage, intangibilité,
+immobilisations, TVA, facture électronique, SEPA / paiement en ligne ; détail dans
+`doc/ref_compta/comparatif_oss_compta.md`), limites actuelles et sources. Liens depuis la page de connexion et le
 pied du menu latéral.
 
 ---
