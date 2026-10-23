@@ -1,10 +1,9 @@
 // À propos (page publique, sans connexion) : présentation de Lyvre, fonctionnalités par domaine,
-// comparaison avec les logiciels cités par deux comparatifs (Pennylane, fiche pratique
-// « meilleur logiciel comptabilité association », 27/04/2026 ; Independant.io, « logiciel
-// comptabilité association »), limites actuelles et sources.
+// comparaison avec les logiciels cités par deux comparatifs (Pennylane, Independant.io), vérifiée sur
+// les sites des éditeurs (competitors.ts), limites actuelles et sources.
 import type { ReactNode } from "react";
 import {
-  Anchor, Badge, Box, Button, Container, Group, Image, List, Paper, SimpleGrid, Stack, Table, Text, ThemeIcon, Title,
+  Anchor, Badge, Box, Button, Container, Group, Image, List, Paper, SimpleGrid, Stack, Table, Text, ThemeIcon, Title, Tooltip,
   useComputedColorScheme,
 } from "@mantine/core";
 import {
@@ -15,6 +14,7 @@ import symbol from "../../assets/lyvre-symbole.svg";
 import symbolInverse from "../../assets/lyvre-symbole-inverse.svg";
 import { Wordmark } from "../../app/AppShell/Wordmark";
 import { useSession } from "../../api/session";
+import { CHECKED_ON, type Evidence, type Mark, VENDORS } from "./competitors";
 
 interface Domain { icon: ReactNode; title: string; items: string[] }
 
@@ -65,43 +65,32 @@ const DOMAINS: Domain[] = [
   ] },
 ];
 
-type Mark = "yes" | "partial" | "no" | null;
-interface Row { label: string; marks: Mark[]; note?: string }
+interface Row { key: string; label: string; lyvre: Mark; note?: string }
 
-/** Colonnes : Lyvre puis les logiciels cités par les comparatifs. */
-const PRODUCTS = ["Lyvre", "Pennylane", "AssoConnect", "macompta.fr", "Yapla", "Pep's Up", "Dolibarr", "B-Association", "AlauxSoft"];
-
-// null : non mentionné par les comparatifs (ce qui ne veut pas dire absent du logiciel).
+/** Une ligne par critère ; la colonne Lyvre ici, les autres dans competitors.ts. */
 const ROWS: Row[] = [
-  // Lyvre, Pennylane, AssoConnect, macompta.fr, Yapla, Pep's Up, Dolibarr, B-Association, AlauxSoft
-  { label: "Plan comptable associatif", marks: ["yes", "yes", null, "yes", null, null, null, "yes", "yes"] },
-  { label: "Partie double (bilan, compte de résultat)", marks: ["yes", "yes", "yes", "yes", "no", "no", null, "yes", null] },
-  { label: "Comptabilité simplifiée (trésorerie)", marks: ["yes", null, "yes", null, "yes", "yes", null, null, null] },
-  { label: "Import bancaire, rapprochement", marks: ["yes", "yes", null, null, null, null, null, null, "partial"],
-    note: "AlauxSoft : suivi des comptes bancaires" },
-  { label: "Caisse (espèces)", marks: ["yes", null, null, null, null, null, null, null, "yes"] },
-  { label: "Factures fournisseurs, justificatifs", marks: ["yes", "yes", null, null, null, null, null, null, null] },
-  { label: "Adhésions, cotisations, relances", marks: ["yes", "partial", "yes", null, "yes", null, "yes", "yes", null],
-    note: "Pennylane : suivi des cotisations et dons" },
-  { label: "Reçus fiscaux des dons", marks: ["yes", null, "yes", null, "yes", null, null, null, null] },
-  { label: "Budget, suivi par projet", marks: ["yes", "yes", "yes", null, null, null, "partial", null, null],
-    note: "Dolibarr : gestion de projets" },
-  { label: "Prévisionnel de trésorerie", marks: ["yes", "yes", null, null, null, null, null, null, null] },
-  { label: "Export FEC", marks: ["yes", null, null, null, null, null, null, null, "yes"] },
-  { label: "Clôture guidée, affectation du résultat", marks: ["yes", null, null, null, null, null, null, null, null] },
-  { label: "Fonds dédiés", marks: ["yes", null, null, null, null, null, null, null, null], note: "critère cité par Pennylane" },
-  { label: "Rapport pour l'assemblée générale", marks: ["yes", null, null, null, null, null, null, null, null],
-    note: "cité pour Ma Compta Association" },
-  { label: "Plusieurs utilisateurs, rôles", marks: ["yes", null, null, "yes", null, null, "yes", null, null] },
-  { label: "Plusieurs structures", marks: ["yes", null, null, null, null, null, null, null, "yes"] },
-  { label: "Factures clients, devis", marks: ["partial", "yes", null, null, null, null, "yes", null, null], note: "Lyvre : via Odoo" },
-  { label: "Remise de chèques, billetterie", marks: ["no", null, null, null, null, "yes", null, null, null] },
-  { label: "Site web, CRM, communication", marks: ["no", null, "yes", null, null, null, null, null, null] },
-  { label: "Application mobile", marks: ["partial", "yes", null, null, null, null, null, null, null],
-    note: "Lyvre : interface lisible sur mobile" },
-  { label: "Logiciel libre, auto-hébergeable", marks: ["yes", "no", "no", "no", "no", "no", "yes", null, null] },
-  { label: "Gratuit", marks: ["yes", "no", "partial", "no", "partial", null, "yes", "yes", "partial"],
-    note: "partiel : formule gratuite limitée" },
+  { key: "plan_asso", label: "Plan comptable associatif", lyvre: "yes" },
+  { key: "double_entry", label: "Partie double (bilan, compte de résultat)", lyvre: "yes" },
+  { key: "simple_mode", label: "Comptabilité simplifiée (trésorerie)", lyvre: "yes" },
+  { key: "bank_import", label: "Import bancaire, rapprochement", lyvre: "yes" },
+  { key: "cash", label: "Caisse (espèces)", lyvre: "yes" },
+  { key: "supplier_invoices", label: "Factures fournisseurs, justificatifs", lyvre: "yes" },
+  { key: "members", label: "Adhésions, cotisations, relances", lyvre: "yes" },
+  { key: "tax_receipts", label: "Reçus fiscaux des dons", lyvre: "yes" },
+  { key: "budget_projects", label: "Budget, suivi par projet", lyvre: "yes" },
+  { key: "cash_forecast", label: "Prévisionnel de trésorerie", lyvre: "yes" },
+  { key: "fec", label: "Export FEC", lyvre: "yes" },
+  { key: "closing", label: "Clôture guidée, affectation du résultat", lyvre: "yes" },
+  { key: "dedicated_funds", label: "Fonds dédiés", lyvre: "yes" },
+  { key: "ag_report", label: "Rapport pour l'assemblée générale", lyvre: "yes" },
+  { key: "multi_users", label: "Plusieurs utilisateurs, rôles", lyvre: "yes" },
+  { key: "multi_entities", label: "Plusieurs structures", lyvre: "yes" },
+  { key: "sales_invoices", label: "Factures clients, devis", lyvre: "partial", note: "Lyvre : via Odoo" },
+  { key: "cheques_ticketing", label: "Remise de chèques, billetterie", lyvre: "no" },
+  { key: "website_crm", label: "Site web, CRM, communication", lyvre: "no" },
+  { key: "mobile_app", label: "Application mobile", lyvre: "partial", note: "Lyvre : interface lisible sur mobile" },
+  { key: "free_software", label: "Logiciel libre, auto-hébergeable", lyvre: "yes" },
+  { key: "free_tier", label: "Gratuit", lyvre: "yes" },
 ];
 
 const LIMITS = [
@@ -112,12 +101,26 @@ const LIMITS = [
   "Modèles de reçus fiscaux à faire relire face aux formulaires Cerfa en vigueur avant usage.",
 ];
 
-function MarkCell({ mark, highlight }: { mark: Mark; highlight: boolean }) {
-  const content = mark === "yes" ? <Text c="var(--lv-lichen)" fw={700} aria-label="oui">✓</Text>
-    : mark === "partial" ? <Text c="var(--lv-paille-ink)" fw={600} fz={17} lh={1} aria-label="en partie">◐</Text>
-      : mark === "no" ? <Text c="var(--lv-brique)" aria-label="non">✕</Text>
-        : <Text c="dimmed" size="xs" aria-label="non mentionné">·</Text>;
-  return <Table.Td ta="center" bg={highlight ? "var(--lv-sauge)" : undefined}>{content}</Table.Td>;
+const MARK_LABEL: Record<Mark, string> = { yes: "oui", partial: "en partie", no: "non" };
+
+function Glyph({ mark }: { mark: Mark | null }) {
+  return mark === "yes" ? <Text span c="var(--lv-lichen)" fw={700}>✓</Text>
+    : mark === "partial" ? <Text span c="var(--lv-paille-ink)" fw={600} fz={17} lh={1}>◐</Text>
+      : mark === "no" ? <Text span c="var(--lv-brique)">✕</Text>
+        : <Text span c="dimmed" size="xs">·</Text>;
+}
+
+/** Case d'un concurrent : la justification en infobulle, la page de l'éditeur en lien. */
+function EvidenceCell({ evidence }: { evidence?: Evidence }) {
+  if (!evidence) return <Table.Td ta="center" aria-label="non trouvé chez l'éditeur"><Glyph mark={null} /></Table.Td>;
+  return (
+    <Table.Td ta="center">
+      <Tooltip label={evidence.why} multiline w={280} withArrow events={{ hover: true, focus: true, touch: true }}>
+        <Anchor href={evidence.url} target="_blank" rel="noreferrer" underline="never"
+          aria-label={`${MARK_LABEL[evidence.mark]} : ${evidence.why}`}><Glyph mark={evidence.mark} /></Anchor>
+      </Tooltip>
+    </Table.Td>
+  );
 }
 
 export default function AboutPage() {
@@ -154,29 +157,37 @@ export default function AboutPage() {
 
         <Title order={2} mb={4}>Lyvre et les autres logiciels</Title>
         <Text size="sm" c="dimmed" mb="md" maw={820}>
-          Logiciels et fonctionnalités tels que présentés par deux comparatifs publics. Un point « · » signifie que le
-          comparatif ne mentionne pas la fonctionnalité, pas qu'elle est absente du logiciel ; les offres évoluent :
-          vérifiez auprès de chaque éditeur.
+          Logiciels cités par deux comparatifs publics, fonctionnalités vérifiées sur les sites et centres d'aide des
+          éditeurs le {CHECKED_ON}. Survolez une case pour la justification, cliquez pour la page source. Un point « · »
+          signifie que rien n'a été trouvé chez l'éditeur, pas que la fonctionnalité est absente ; les offres évoluent.
         </Text>
         <Paper p={0} mb="xs" style={{ overflowX: "auto" }}>
           <Table verticalSpacing={6} miw={900} stickyHeader>
             <Table.Thead bg="var(--lv-surface)">
               <Table.Tr>
                 <Table.Th />
-                {PRODUCTS.map((p, i) => <Table.Th key={p} ta="center" bg={i === 0 ? "var(--lv-sauge)" : undefined}>{p}</Table.Th>)}
+                <Table.Th ta="center" bg="var(--lv-sauge)">Lyvre</Table.Th>
+                {VENDORS.map((v) => (
+                  <Table.Th key={v.name} ta="center">
+                    <Tooltip label={v.offer} multiline w={280} withArrow>
+                      <Anchor href={v.site} target="_blank" rel="noreferrer" c="inherit" fw={600} size="sm">{v.name}</Anchor>
+                    </Tooltip>
+                  </Table.Th>
+                ))}
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
               {ROWS.map((row) => (
-                <Table.Tr key={row.label}>
+                <Table.Tr key={row.key}>
                   <Table.Td><Text size="sm">{row.label}</Text>{row.note && <Text size="xs" c="dimmed">{row.note}</Text>}</Table.Td>
-                  {row.marks.map((mark, i) => <MarkCell key={PRODUCTS[i]} mark={mark} highlight={i === 0} />)}
+                  <Table.Td ta="center" bg="var(--lv-sauge)" aria-label={MARK_LABEL[row.lyvre]}><Glyph mark={row.lyvre} /></Table.Td>
+                  {VENDORS.map((v) => <EvidenceCell key={v.name} evidence={v.criteria[row.key]} />)}
                 </Table.Tr>
               ))}
             </Table.Tbody>
           </Table>
         </Paper>
-        <Text size="xs" c="dimmed" mb={48}>✓ oui · ◐ en partie ou formule limitée · ✕ non · « · » non mentionné. Aussi cités :
+        <Text size="xs" c="dimmed" mb={48}>✓ oui · ◐ en partie, option payante ou module tiers · ✕ non · « · » non trouvé. Aussi cités :
           MaCotisation (cotisations, logiciel comptable intégré), Ma Compta Association (catégories, rapport d'AG,
           installation locale), Sage 50 (comptabilité d'engagement, stocks).</Text>
 
@@ -205,7 +216,8 @@ export default function AboutPage() {
             target="_blank" rel="noreferrer" size="xs">Pennylane, « Meilleur logiciel de comptabilité pour association » (27/04/2026)</Anchor>
             {" "}— comparatif publié par un éditeur présent dans la liste.</List.Item>
           <List.Item><Anchor href="https://lp.independant.io/logiciel-comptabilite/association/" target="_blank" rel="noreferrer" size="xs">
-            Independant.io, « Logiciel comptabilité association »</Anchor></List.Item>
+            Independant.io, « Logiciel comptabilité association »</Anchor> — choix des logiciels comparés.</List.Item>
+          <List.Item>Sites et centres d'aide des éditeurs, consultés le {CHECKED_ON} : chaque case du tableau renvoie à sa page.</List.Item>
         </List>
         <Text size="xs" c="dimmed" ta="center" pb="lg">LOGICIEL LIBRE · AGPL-3.0 · AUTO-HÉBERGÉ</Text>
       </Container>
