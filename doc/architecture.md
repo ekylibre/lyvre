@@ -13,6 +13,7 @@ compta-asso/
 ├── .nvmrc                        # Node 22 (développement et build du front uniquement)
 ├── .env                          # Variables d'environnement (gitignorée)
 ├── scripts/e2e_server.py         # Serveur jetable (port 5099) des tests de bout en bout
+├── scripts/readme_screenshots.mjs # Captures du README (doc/images/) sur ce serveur jetable
 │
 ├── frontend/                     # SPA React 19 + Mantine 9 (TypeScript, Vite) → app/static/dist/
 │   ├── vite.config.ts            # base /static/dist/, manifest, serveur de dev :5173

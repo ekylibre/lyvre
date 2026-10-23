@@ -1,6 +1,6 @@
-# Compta Asso — Documentation
+# Lyvre — Documentation
 
-Application web de comptabilité pour associations loi 1901 (plan comptable des associations) et SCI (plan comptable général adapté aux SCI). Le plan comptable est choisi par instance.
+Application web de comptabilité pour associations loi 1901 (plan comptable des associations) et SCI (plan comptable général adapté aux SCI). Le plan comptable est choisi par instance. Présentation, captures et démarrage rapide : [README du projet](../README.md) ; page publique **À propos** (`/about`) dans l'application.
 
 ## Sommaire
 

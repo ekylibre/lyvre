@@ -151,6 +151,9 @@ Tests de l'API de la SPA : `tests/api/`.
 `frontend/e2e/fixtures.json`) et les tests de `frontend/e2e/`. Une seule fois avant :
 `npx --prefix frontend playwright install chromium`.
 
+**Captures du README** : `scripts/readme_screenshots.mjs` refait les images de `doc/images/` sur un
+serveur E2E neuf (données fictives, voir l'en-tête du script). À relancer quand l'interface change.
+
 L'application est accessible sur **http://127.0.0.1:5000**.
 
 Connexion avec **l'email** (`ADMIN_EMAIL`) et **le mot de passe** (`ADMIN_PASSWORD`) renseignés en étape 5. Si une seule instance est active, elle est auto-sélectionnée après login.
