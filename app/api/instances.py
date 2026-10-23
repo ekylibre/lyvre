@@ -2,7 +2,11 @@
 sauvegardes `.zip` (création, suppression), restauration. Le téléchargement d'une sauvegarde
 reste une route Flask (`instances.download_backup`). L'URL d'une base n'est jamais renvoyée
 avec son mot de passe."""
+import json
+import shutil
+
 from flask import jsonify, request, url_for
+from flask_login import current_user
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import ArgumentError
@@ -10,15 +14,18 @@ from sqlalchemy.exc import ArgumentError
 from app.decorators import admin_required
 from app.extensions import db
 from app.models import Instance
-from app.services import instance_backup
+from app.services import instance_access, instance_backup
+from app.services.attachments import uploads_dir_for
+from app.services.instance_access import AccessError
 from app.services.instance_backup import BackupError
 from app.services.instance_provisioning import (
-    CHARTS, DEFAULT_CHART, ProvisioningError, build_sqlite_url, database_file_for_url, provision_sqlite_database,
-    validate_slug,
+    CHARTS, DEFAULT_CHART, ProvisioningError, build_sqlite_url, database_file_for_url, discard_sqlite_database,
+    provision_sqlite_database, validate_slug,
 )
 from app.tenant import clear_engine_cache, get_tenant_engine
 
 from . import ApiError, bp, get_or_404, invalid, json_body, notice
+from .access import access_error, add_member, members_response, remove_member, update_member
 
 
 def _iso(value):
@@ -53,6 +60,45 @@ def _detail(inst: Instance) -> dict:
     return {"item": _instance(inst), "backups": _backups(inst)}
 
 
+def _grants(raw):
+    """Lignes `members` validées sans écrire (création refusée en entier si l'une est fausse)."""
+    try:
+        return instance_access.parse_grants(raw)
+    except AccessError as exc:
+        raise access_error(exc) from None
+
+
+def _form_members():
+    """Champ multipart `members` : JSON de la même forme que pour la création."""
+    raw = (request.form.get("members") or "").strip()
+    if not raw:
+        return []
+    try:
+        return json.loads(raw)
+    except ValueError:
+        raise invalid("Utilisateurs illisibles.", "members") from None
+
+
+def _save_with_grants(inst, grants, cleanup):
+    """Instance et accès en une transaction ; en cas d'échec, `cleanup()` retire les fichiers créés."""
+    try:
+        db.session.add(inst)
+        db.session.flush()
+        counts = instance_access.apply_grants(inst, grants, current_user)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        cleanup()
+        raise
+    return counts
+
+
+def _created_notices(message, counts, grants):
+    summary = instance_access.grants_summary(counts)
+    return [notice(f"{message}{' ; ' + summary if summary else ''}."),
+            *(notice(w, level="warning") for w in instance_access.grants_warnings(grants))]
+
+
 @bp.route("/instances")
 @admin_required
 def instances_list():
@@ -63,7 +109,8 @@ def instances_list():
 @bp.route("/instances", methods=["POST"])
 @admin_required
 def instances_create():
-    """`{slug, label, provisioning_mode: auto|manual, chart, database_url}`."""
+    """`{slug, label, provisioning_mode: auto|manual, chart, database_url, members}` ; `members` :
+    `[{user_id, role} | {email, full_name?, password, role}]`, validés avant le provisioning."""
     data = json_body()
     try:
         slug = validate_slug(str(data.get("slug") or ""))
@@ -80,7 +127,9 @@ def instances_create():
         raise invalid("Mode de tenue inconnu.", "bookkeeping")
     if bookkeeping == "simple" and chart != "asso":
         raise invalid("La comptabilité simplifiée est réservée au plan des associations.", "bookkeeping")
-    if data.get("provisioning_mode", "auto") == "auto":
+    grants = _grants(data.get("members"))
+    auto = data.get("provisioning_mode", "auto") == "auto"
+    if auto:
         database_url = build_sqlite_url(slug)
         try:
             provision_sqlite_database(database_url, chart=chart)
@@ -92,9 +141,8 @@ def instances_create():
             raise invalid("URL de base de données obligatoire en mode manuel.", "database_url")
     inst = Instance(slug=slug, label=label, database_url=database_url, chart=chart, bookkeeping=bookkeeping,
                     is_active=True)
-    db.session.add(inst)
-    db.session.commit()
-    return jsonify(item=_instance(inst), notices=[notice(f"Instance « {label} » créée.")]), 201
+    counts = _save_with_grants(inst, grants, lambda: discard_sqlite_database(database_url) if auto else None)
+    return jsonify(item=_instance(inst), notices=_created_notices(f"Instance « {label} » créée", counts, grants)), 201
 
 
 @bp.route("/instances/<int:instance_id>")
@@ -200,15 +248,20 @@ def instances_restore(instance_id):
 @bp.route("/instances/import", methods=["POST"])
 @admin_required
 def instances_import():
-    """Multipart `backup_file`, `slug` (sinon déduit du nom), `label`, `confirm` (= slug si restauration).
-    Slug connu : restauration de l'instance ; sinon création d'une instance sur ce fichier."""
+    """Multipart `backup_file`, `slug` (sinon déduit du nom), `label`, `confirm` (= slug si restauration),
+    `members` (JSON, création seulement). Slug connu : restauration de l'instance, accès inchangés ;
+    sinon création d'une instance sur ce fichier, avec ses utilisateurs."""
     uploaded = _upload()
     slug = (request.form.get("slug") or "").strip().lower() or (
         instance_backup.extract_slug_from_filename(uploaded.filename) or "")
     if not slug:
         raise invalid("Impossible de déduire le slug depuis le nom du fichier : saisissez-en un.", "slug")
+    members = _form_members()
     existing = db.session.query(Instance).filter(Instance.slug == slug).first()
     if existing is not None:
+        if members:
+            raise invalid("Une restauration ne modifie pas les accès : gérez-les depuis la fiche de l'instance.",
+                          "members")
         _sqlite(existing)
         if (request.form.get("confirm") or "").strip() != existing.slug:
             raise ApiError("confirmation_required", f"L'instance « {existing.label} » existe : le fichier la "
@@ -223,6 +276,7 @@ def instances_import():
     except ProvisioningError as exc:
         raise invalid(str(exc), "slug") from None
     label = (request.form.get("label") or "").strip()[:200] or slug.replace("-", " ").title()
+    grants = _grants(members)
     database_url = build_sqlite_url(slug)
     target = database_file_for_url(database_url)
     if target is None:
@@ -235,6 +289,40 @@ def instances_import():
     except BackupError as exc:
         raise invalid(str(exc), "backup_file") from None
     inst = Instance(slug=slug, label=label, database_url=database_url, is_active=True)
-    db.session.add(inst)
-    db.session.commit()
-    return jsonify(item=_instance(inst), notices=[notice(f"Instance « {label} » créée depuis le fichier (slug : {slug}).")]), 201
+
+    def cleanup():
+        discard_sqlite_database(database_url)
+        shutil.rmtree(uploads_dir_for(slug), ignore_errors=True)
+
+    counts = _save_with_grants(inst, grants, cleanup)
+    return jsonify(item=_instance(inst), notices=_created_notices(
+        f"Instance « {label} » créée depuis le fichier (slug : {slug})", counts, grants)), 201
+
+
+# ------------------------------------------------------------------ accès (fiche instance)
+
+
+@bp.route("/instances/<int:instance_id>/members")
+@admin_required
+def instances_members(instance_id):
+    """Membres d'une instance, active ou non, depuis sa fiche (mêmes règles que la page Accès)."""
+    inst = get_or_404(Instance, instance_id, "Instance introuvable.")
+    return members_response(inst, meta={"roles": instance_access.role_options()})
+
+
+@bp.route("/instances/<int:instance_id>/members", methods=["POST"])
+@admin_required
+def instances_add_member(instance_id):
+    return add_member(get_or_404(Instance, instance_id, "Instance introuvable."))
+
+
+@bp.route("/instances/<int:instance_id>/members/<int:user_id>", methods=["PATCH"])
+@admin_required
+def instances_update_member(instance_id, user_id):
+    return update_member(get_or_404(Instance, instance_id, "Instance introuvable."), user_id)
+
+
+@bp.route("/instances/<int:instance_id>/members/<int:user_id>", methods=["DELETE"])
+@admin_required
+def instances_remove_member(instance_id, user_id):
+    return remove_member(get_or_404(Instance, instance_id, "Instance introuvable."), user_id)

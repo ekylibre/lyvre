@@ -57,6 +57,15 @@ def database_file_for_url(database_url: str) -> Path | None:
     return path
 
 
+def discard_sqlite_database(database_url: str) -> None:
+    """Remove a just-provisioned SQLite file (and its journals) after a failed creation."""
+    path = database_file_for_url(database_url)
+    if path is None:
+        return
+    for candidate in (path, *(path.with_name(path.name + suffix) for suffix in ("-wal", "-shm", "-journal"))):
+        candidate.unlink(missing_ok=True)
+
+
 def _run(cmd: list[str], database_url: str) -> None:
     env = os.environ.copy()
     env["DATABASE_URL"] = database_url

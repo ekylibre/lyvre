@@ -96,13 +96,17 @@ Pages de la SPA (méta-base seule, sans instance choisie) : `/instances/` (`/new
 | Méthode | URL | Description |
 |---------|-----|-------------|
 | GET | `/api/v1/instances` | Instances (slug, libellé, base masquée, plan comptable, statut, SQLite ou non) ; `meta.charts` |
-| POST | `/api/v1/instances` | Création (paramètres ci-dessous) → 201 ; 422 `fields` (slug invalide ou pris, libellé, URL en mode manuel) |
+| POST | `/api/v1/instances` | Création (paramètres ci-dessous) → 201 ; 422 `fields` (slug invalide ou pris, libellé, URL en mode manuel, `members.<i>.<champ>`) ; `notices` : « … créée ; 1 compte créé, 2 accès donnés », avertissements (`warning`) |
 | GET | `/api/v1/instances/<id>` | Instance et sauvegardes (`filename`, taille, date, pré-restauration, `database_only` pour les anciens `.db`, `download_url`) |
 | PATCH | `/api/v1/instances/<id>` | `label`, `is_active`, `bookkeeping` (lot D.5 : simple → double sans reprise ; double → simple refusé, 409, dès qu'une écriture a une ligne hors classes 5, 6, 7) ; vide le cache d'engine de l'instance |
 | POST | `/api/v1/instances/<id>/backups` | Sauvegarde `.zip` (base + pièces jointes) → 201 ; 409 hors SQLite |
 | DELETE | `/api/v1/instances/<id>/backups/<filename>` | Supprime une sauvegarde (404 si nom invalide ou absent) |
 | POST | `/api/v1/instances/<id>/restore` | Multipart `backup_file` + **`confirm` = slug de l'instance** (sinon 422) ; sauvegarde de sécurité `pre-restore-…` créée avant |
-| POST | `/api/v1/instances/import` | Multipart `backup_file`, `slug` (déduit du nom sinon), `label` : slug inconnu → **création** (201) ; slug existant → **restauration**, 409 `confirmation_required` tant que `confirm` ≠ slug |
+| POST | `/api/v1/instances/import` | Multipart `backup_file`, `slug` (déduit du nom sinon), `label`, `members` (JSON, comme à la création) : slug inconnu → **création** (201) avec ses utilisateurs ; slug existant → **restauration**, 409 `confirmation_required` tant que `confirm` ≠ slug ; `members` refusé (422) : une restauration ne touche pas aux accès |
+| GET | `/api/v1/instances/<id>/members` | Membres de l'instance, active ou non (comme `/access/members`) ; `meta.roles` |
+| POST | `/api/v1/instances/<id>/members` | `{user_id \| email, role, full_name?, password?}` → 201 (mêmes règles que la page Accès) |
+| PATCH | `/api/v1/instances/<id>/members/<user_id>` | `{role}` ; 409 si l'instance perdait son dernier administrateur |
+| DELETE | `/api/v1/instances/<id>/members/<user_id>` | Retire l'accès ; même garde |
 
 Fichier servi par Flask : `GET /instances/<id>/backups/<filename>/download`. Le nom de fichier doit correspondre à `(pre-restore-)?<slug>-\d{8}-\d{6}\.(zip|db)` (pas de traversée de chemin).
 
@@ -136,6 +140,7 @@ Les valeurs sont stockées dans `external_connections` de la base **tenant** (do
 | `provisioning_mode` | oui | `auto` (crée le SQLite local + migrations + seed) ou `manual` (URL fournie) |
 | `database_url` | oui en mode manuel | URL SQLAlchemy (SQLite ou Postgres) pointant sur une base **déjà** prête |
 | `chart` | non (défaut `asso`) | Plan comptable : `asso` (associations) ou `sci` (SCI). Mémorisé sur l'instance ; en mode `auto`, détermine le référentiel chargé |
+| `members` | non | `[{user_id, role} \| {email, full_name?, password, role}]` : accès donnés à la création, comptes créés avec mot de passe initial à changer. Toute la liste est validée **avant** le provisioning (une ligne fausse : rien n'est créé) ; un échec ensuite supprime le fichier SQLite créé |
 
 En mode `auto`, le service `instance_provisioning.provision_sqlite_database` exécute :
 
