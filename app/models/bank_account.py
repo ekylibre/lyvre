@@ -8,6 +8,9 @@ class BankAccount(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     label = db.Column(db.String(100), nullable=False)
     iban = db.Column(db.String(34))
+    # Nature (lot D.1) : `bank` (relevés OFX / Qonto, rapprochement) ou `cash` (caisse, compte 53x,
+    # mouvements saisis à la main).
+    kind = db.Column(db.String(8), nullable=False, default="bank", server_default="bank")
     account_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), nullable=False)
     # Lien Qonto : compte Qonto synchronisé, date de début, curseur de la dernière synchro réussie (UTC).
     qonto_account_id = db.Column(db.String(36), unique=True, nullable=True)

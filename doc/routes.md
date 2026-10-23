@@ -229,6 +229,19 @@ sans facture ; mois ; carte Qonto avec synchronisation, date de début, détache
 | GET | `/api/v1/bank-accounts/<id>/counterparties` | Contreparties de débits sans tiers, regroupées |
 | POST | `/api/v1/counterparties` | `action` = `create` (+ `name`) / `link` (+ `entity_id`) / `ignore`, `key`, `label` |
 
+
+**Caisses (lot D.1)** — un compte de nature `cash` (compte 53x, sans IBAN ni relevé) : page
+`/bank-accounts/<id>/cash` (mouvements, solde courant, saisie, dépôt en banque). Les caisses sont
+exclues du rapprochement, de l'import OFX et du rattachement Qonto. API :
+
+| Méthode | URL | Description |
+|---------|-----|-------------|
+| GET | `/api/v1/bank-accounts/<id>/cash` | `?start=&end=` : lignes du compte de caisse (hors à-nouveaux), solde d'ouverture et courant, comptes bancaires de dépôt |
+| POST | `/api/v1/bank-accounts/<id>/cash` | `{date, label, direction (in\|out), amount_cents, account_id, project_id?}` : écriture au journal CA (53x contre le compte choisi) ; refus si la caisse deviendrait négative ou si la contrepartie est un compte de trésorerie |
+| POST | `/api/v1/bank-accounts/<id>/cash/deposit` | `{date, amount_cents, bank_account_id, label?}` : dépôt d'espèces en deux écritures par le compte 581 (CA : 581 / 53x ; BQ : 512 / 581) |
+
+Les listes de comptes portent `kind` et `balance_cents` (solde comptable cumulé hors à-nouveaux) ;
+`meta.cash_accounts` propose les comptes 53x.
 ---
 
 ## Projets (`/projects/`)

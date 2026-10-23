@@ -380,7 +380,8 @@ entry_id SET NULL)` : dotation ou utilisation d'un exercice, avec son écriture
 |---------|------|-------------|
 | `id` | Integer PK | |
 | `label` | String(100) NOT NULL | Ex : `"CIC Compte courant"` |
-| `iban` | String(34) | Ex : `"FR76 3000 6000 0112 3456 7890 189"` |
+| `iban` | String(34) | Ex : `"FR76 3000 6000 0112 3456 7890 189"` (aucun pour une caisse) |
+| `kind` | String(8) default `bank` | `bank` (relevés OFX / Qonto, rapprochement) ou `cash` (caisse, compte 53x, mouvements saisis) — lot D.1, migration `e5a9c3d7f106` |
 | `account_id` | Integer FK→accounts NOT NULL | Compte GL associé (ex : compte `512xxx`) |
 | `qonto_account_id` | String(36) UNIQUE nullable | Compte Qonto rattaché (UUID) ; NULL = pas synchronisé avec Qonto |
 | `qonto_sync_from` | Date nullable | Date de début de la synchronisation Qonto |

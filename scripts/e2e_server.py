@@ -41,7 +41,8 @@ def _seed_books(engine):
             conn.execute(text("INSERT INTO journals (code, label) VALUES (:c, :l)"), {"c": code, "l": label})
         for code, label, kind in (("512000", "Banque", "ASSET"), ("606300", "Petit équipement", "EXPENSE"),
                                   ("401000", "Fournisseurs", "TIERS"), ("706000", "Prestations", "REVENUE"),
-                                  ("110000", "Report à nouveau", "EQUITY"), ("120000", "Excédent", "EQUITY")):
+                                  ("110000", "Report à nouveau", "EQUITY"), ("120000", "Excédent", "EQUITY"),
+                                  ("530000", "Caisse", "ASSET"), ("581000", "Virements internes", "ASSET")):
             conn.execute(text("INSERT INTO accounts (code, label, account_type, is_header) VALUES (:c, :l, :t, 0)"),
                          {"c": code, "l": label, "t": kind})
         # Rapprochement : un compte bancaire, un débit qui a son écriture, un crédit sans écriture.

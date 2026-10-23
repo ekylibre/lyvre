@@ -56,6 +56,7 @@
     {"rule": "/bank-accounts/new", "endpoint": "bank_accounts.new"},
     {"rule": "/bank-accounts/<int:ba_id>/edit", "endpoint": "bank_accounts.edit"},
     {"rule": "/bank-accounts/<int:ba_id>/transactions", "endpoint": "bank_accounts.transactions"},
+    {"rule": "/bank-accounts/<int:ba_id>/cash", "endpoint": "bank_accounts.cash"},
     {"rule": "/bank-accounts/<int:ba_id>/counterparties", "endpoint": "bank_accounts.counterparties_view"},
     {"rule": "/bank-accounts/qonto", "endpoint": "bank_accounts.qonto_accounts"},
     {"rule": "/reconciliation/", "endpoint": "reconciliation.index"},

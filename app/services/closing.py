@@ -152,6 +152,10 @@ def checks(fy) -> list[Check]:
         if balance:
             found.append(Check(f"suspense_{code}", f"Compte d'attente {code} non soldé ({fec.amount(balance)} €)", 1,
                                "anomaly", "/reports/balance"))
+    for code, balance in sorted(_balances(fy, ("58",)).items()):
+        if balance:
+            found.append(Check(f"transfer_{code}", f"Virements internes {code} non soldés ({fec.amount(balance)} €) : "
+                               "dépôt d'espèces ou virement sans sa contrepartie", 1, "anomaly", "/reports/balance"))
     for code, balance in sorted(_balances(fy, ("512", "53")).items()):
         if balance < 0:
             found.append(Check(f"credit_{code}", f"Compte {code} créditeur en fin d'exercice ({fec.amount(balance)} €) :"

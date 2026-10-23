@@ -1,5 +1,5 @@
 export interface BankAccount {
-  id: number; label: string; iban: string | null;
+  id: number; label: string; iban: string | null; kind: "bank" | "cash"; balance_cents?: number;
   account: { id: number; code: string; label: string };
   qonto: { account_id: string; sync_from: string | null; synced_at: string | null } | null;
   transactions?: number; unreconciled?: number;

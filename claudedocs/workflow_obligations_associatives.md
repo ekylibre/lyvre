@@ -249,6 +249,11 @@ E2E 23 (émission, PDF, annulation-réémission, état annuel).
 | **D.4 États simplifiés** | CdR par catégorie N / N-1 ; situation de trésorerie (cumulée) ; verrouillage d'exercice sans assistant ni FEC | US-D1 (états) cochée |
 | **D.5 Bascule en partie double** | Passage `simple → double` (admin global), inverse refusé si écritures non `SIMPLE` ; première clôture en double : à-nouveaux depuis les soldes cumulés | US-D1 cochée ; E2E « saisie simple puis bascule » |
 
+**D.1 fait (2026-10-25)** : `bank_accounts.kind` (migration `e5a9c3d7f106`), service `cash`
+(mouvements au journal CA, dépôt en banque par 581 en deux écritures, solde cumulé hors à-nouveaux),
+API `/bank-accounts/<id>/cash[/deposit]`, écran de caisse, liste « Comptes et caisses » avec solde,
+caisses exclues du rapprochement / OFX / Qonto, contrôle de clôture 58x. pytest 798, E2E 24.
+
 ## 7. Estimation indicative
 
 | Lot | Phases | Charge |

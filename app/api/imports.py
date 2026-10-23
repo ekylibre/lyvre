@@ -15,6 +15,8 @@ def imports_ofx():
     if not bank_account_id:
         raise invalid("Choisissez un compte bancaire.", "bank_account_id")
     ba = get_or_404(BankAccount, bank_account_id, "Compte bancaire introuvable.")
+    if ba.kind != "bank":
+        raise invalid("Une caisse n'a pas de relevé : saisissez ses mouvements dans Banque › Caisse.", "bank_account_id")
     file = request.files.get("ofx_file")
     if not file or not file.filename:
         raise invalid("Choisissez un fichier OFX.", "ofx_file")

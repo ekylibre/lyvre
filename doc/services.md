@@ -1169,3 +1169,10 @@ instance, notification de fin) ; `send(receipt_ids, progress)` (SMTP de l'instan
 `cancel(receipt_id, reason, reissue)` (statut `cancelled`, motif, dons libérés ; `reissue` : même
 dons sous un nouveau numéro, `replaced_by_id`) ; `annual_summary(year)`.
 
+## cash.py — Caisse (lot D.1)
+
+`ledger_balance(account_id, until)` (solde cumulé hors à-nouveaux), `movements(ba, start, end)`,
+`record(ba, data)` (mouvement saisi : écriture au journal CA, source `CASH` ; refus d'une caisse
+négative ou d'une contrepartie de trésorerie), `deposit(ba, data)` (dépôt en banque par 581, deux
+écritures), `transfer_account()`. Le contrôle de clôture signale un compte 58x non soldé.
+

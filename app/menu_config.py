@@ -86,7 +86,7 @@ MENUS = [
         "charts": _ALL,
         "active": ["imports.ofx", "bank_accounts", "reconciliation", "payouts", "cash_forecast"],
         "items": [
-            {"key": "bank_accounts", "label": "Comptes bancaires", "endpoint": "bank_accounts.index", "charts": _ALL},
+            {"key": "bank_accounts", "label": "Comptes et caisses", "endpoint": "bank_accounts.index", "charts": _ALL},
             {"key": "reconciliation", "label": "Rapprochement", "endpoint": "reconciliation.index", "charts": _ALL},
             {"key": "cash_forecast", "label": "Prévisionnel", "endpoint": "cash_forecast.index", "charts": _ALL},
             {"divider": True, "charts": _ALL},

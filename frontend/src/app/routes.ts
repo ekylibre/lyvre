@@ -54,6 +54,7 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
   "reports.compte_resultat": () => import("../features/reports/CompteResultatPage"),
   ...pages(["bank_accounts.index", "bank_accounts.new", "bank_accounts.edit"], () => import("../features/bank-accounts/BankAccountsPage")),
   "bank_accounts.transactions": () => import("../features/bank-accounts/TransactionsPage"),
+  "bank_accounts.cash": () => import("../features/bank-accounts/CashPage"),
   "bank_accounts.counterparties_view": () => import("../features/bank-accounts/CounterpartiesPage"),
   "bank_accounts.qonto_accounts": () => import("../features/bank-accounts/QontoAccountsPage"),
   "reconciliation.index": () => import("../features/reconciliation/ReconcilePage"),

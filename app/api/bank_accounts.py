@@ -8,7 +8,7 @@ from flask import current_app, jsonify, request, url_for
 from app.access import instance_admin_required
 from app.extensions import db
 from app.models import Account, BankAccount, Entity, Journal
-from app.services import counterparties, external_config, qonto_sync
+from app.services import cash, counterparties, external_config, qonto_sync
 from app.utils.list_filters import month_options_for_fy
 
 from . import ApiError, bp, get_or_404, invalid, json_body, notice
@@ -21,7 +21,7 @@ def _iso(value):
 
 def bank_account_payload(ba: BankAccount, stats=True) -> dict:
     payload = {
-        "id": ba.id, "label": ba.label, "iban": ba.iban,
+        "id": ba.id, "label": ba.label, "iban": ba.iban, "kind": ba.kind,
         "account": {"id": ba.account.id, "code": ba.account.code, "label": ba.account.label},
         "qonto": {"account_id": ba.qonto_account_id, "sync_from": _iso(ba.qonto_sync_from),
                   "synced_at": _iso(ba.qonto_synced_at)} if ba.qonto_account_id else None,
@@ -29,23 +29,24 @@ def bank_account_payload(ba: BankAccount, stats=True) -> dict:
     if stats:
         payload["transactions"] = ba.transactions.count()
         payload["unreconciled"] = ba.transactions.filter_by(reconciled=False).count()
+        payload["balance_cents"] = cash.ledger_balance(ba.account_id, date.today())
     return payload
 
 
-def _gl_accounts():
-    return (Account.query.filter(Account.code.like("51%"), Account.is_header.is_(False))
+def _gl_accounts(prefix="51"):
+    return (Account.query.filter(Account.code.like(f"{prefix}%"), Account.is_header.is_(False))
             .order_by(Account.code).all())
 
 
-def _options():
-    return [{"value": str(a.id), "label": f"{a.code} — {a.label}"} for a in _gl_accounts()]
+def _options(prefix="51"):
+    return [{"value": str(a.id), "label": f"{a.code} — {a.label}"} for a in _gl_accounts(prefix)]
 
 
 @bp.route("/bank-accounts")
 def bank_accounts_list():
     accounts = BankAccount.query.order_by(BankAccount.label).all()
     return jsonify(items=[bank_account_payload(ba) for ba in accounts], meta={
-        "gl_accounts": _options(),
+        "gl_accounts": _options(), "cash_accounts": _options("53"),
         "qonto": {"available": external_config.is_available("qonto"),
                   "message": external_config.unavailable_message("qonto")},
     })
@@ -59,13 +60,21 @@ def _apply(ba: BankAccount, data: dict) -> None:
         account_id = int(data.get("account_id"))
     except (TypeError, ValueError):
         account_id = None
+    kind = data.get("kind") or ba.kind or "bank"
+    if kind not in ("bank", "cash"):
+        raise invalid("Nature inconnue (banque ou caisse).", "kind")
+    if ba.id is not None and kind != ba.kind and (ba.transactions.count() or ba.qonto_account_id):
+        raise invalid("Un compte bancaire avec des transactions ou lié à Qonto ne devient pas une caisse.", "kind")
+    prefix, what = ("53", "de caisse (53…)") if kind == "cash" else ("51", "de banque (51…)")
     account = db.session.get(Account, account_id) if account_id else None
-    if account is None or not account.code.startswith("51") or account.is_header:
-        raise invalid("Choisissez un compte de banque (51…).", "account_id")
+    if account is None or not account.code.startswith(prefix) or account.is_header:
+        raise invalid(f"Choisissez un compte {what}.", "account_id")
     iban = str(data.get("iban") or "").strip().upper().replace(" ", "")
     if len(iban) > 34:
         raise invalid("IBAN trop long (34 caractères au plus).", "iban")
-    ba.label, ba.iban, ba.account_id = label[:200], iban or None, account.id
+    if kind == "cash":
+        iban = ""
+    ba.label, ba.iban, ba.account_id, ba.kind = label[:200], iban or None, account.id, kind
 
 
 @bp.route("/bank-accounts", methods=["POST"])
@@ -157,7 +166,8 @@ def qonto_accounts():
         error=error,
         meta={"gl_accounts": _options(), "default_gl_id": default_gl.id if default_gl else None,
               "unlinked": [{"value": str(b.id), "label": b.label} for b in
-                           BankAccount.query.filter(BankAccount.qonto_account_id.is_(None)).order_by(BankAccount.label)],
+                           BankAccount.query.filter(BankAccount.qonto_account_id.is_(None), BankAccount.kind == "bank")
+                           .order_by(BankAccount.label)],
               "default_sync_from": qonto_sync.default_sync_from().isoformat()},
     )
 
@@ -270,6 +280,6 @@ def reconciliation_context():
     bq = Journal.query.filter_by(code="BQ").first()
     return jsonify(
         bank_accounts=[bank_account_payload(ba, stats=False)
-                       for ba in BankAccount.query.order_by(BankAccount.label)],
+                       for ba in BankAccount.query.filter_by(kind="bank").order_by(BankAccount.label)],
         months=month_options_for_fy(), default_journal_id=bq.id if bq else None,
     )
