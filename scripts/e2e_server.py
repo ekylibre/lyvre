@@ -173,8 +173,10 @@ def seed(app):
             if spec.get("simple"):
                 _seed_simple(engine)
             engine.dispose()
+            # Intégrations activées (`integrations` du fichier) ; les autres sont désactivées.
             db.session.add(Instance(slug=spec["slug"], label=spec["label"], chart=spec["chart"],
-                                    bookkeeping=spec.get("bookkeeping", "double"), database_url=url))
+                                    bookkeeping=spec.get("bookkeeping", "double"), database_url=url,
+                                    integrations=json.dumps({"enabled": spec.get("integrations", []), "dismissed": []})))
         for name in FIXTURES.get("spare_databases", []):
             engine = create_engine(f"sqlite:///{os.path.join(TMPDIR, name + '.db')}")
             db.metadata.create_all(engine)

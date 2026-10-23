@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 
 from app.extensions import db
 from app.models import Notification, SyncJob
+from app.services import external_config
 from app.models.sync_job import (
     SYNC_KIND_METRICS, SYNC_KIND_PAYOUT_PAYMENTS, SYNC_KIND_PAYOUTS, SYNC_KIND_QONTO, SYNC_KIND_QONTO_INVOICES,
     SYNC_KIND_RECEIPTS_ISSUE, SYNC_KIND_RECEIPTS_SEND, SYNC_STATUS_FAILED,
@@ -31,6 +32,17 @@ JOB_LABELS = {
     SYNC_KIND_METRICS: "Synchronisation des indicateurs",
     SYNC_KIND_RECEIPTS_ISSUE: "Émission des reçus fiscaux",
     SYNC_KIND_RECEIPTS_SEND: "Expédition des reçus fiscaux par email",
+}
+
+# Intégrations dont dépend un type de job : aucune notification si elles sont toutes désactivées
+# (job lancé juste avant la désactivation). L'historique n'est pas filtré.
+JOB_INTEGRATIONS = {
+    SYNC_KIND_PAYOUTS: ("stancer",),
+    SYNC_KIND_PAYOUT_PAYMENTS: ("stancer",),
+    SYNC_KIND_QONTO: ("qonto",),
+    SYNC_KIND_QONTO_INVOICES: ("qonto",),
+    SYNC_KIND_METRICS: ("ga4", "facebook"),
+    SYNC_KIND_RECEIPTS_SEND: ("smtp",),
 }
 
 
@@ -95,6 +107,9 @@ def _errors(result: dict) -> list[str]:
 def notify_job(job: SyncJob) -> Notification | None:
     """Crée la notification de fin d'un job terminé (aucune si le job tourne encore)."""
     if not job.is_terminal:
+        return None
+    services = JOB_INTEGRATIONS.get(job.kind)
+    if services and not any(external_config.is_enabled(s) for s in services):
         return None
     label = JOB_LABELS.get(job.kind, "Tâche en arrière-plan")
     if job.status == SYNC_STATUS_FAILED:

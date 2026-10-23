@@ -169,18 +169,26 @@ Voir [doc/backups.md](backups.md) pour le workflow utilisateur détaillé.
 
 ## Intégrations (`/configuration/integrations/`) — admin uniquement
 
-Pages de la SPA : `/configuration/integrations/`, `/configuration/integrations/<service>`. Services : `stancer`, `odoo`, `helloasso`, `smtp`, `ga4`, `facebook`, `qonto`. API :
+Pages de la SPA : `/configuration/integrations/`, `/configuration/integrations/<service>`. Services : `stancer`, `odoo`, `smtp`, `qonto` (toutes structures) ; `helloasso`, `ga4`, `facebook` (associations seulement : introuvables, 404, pour une autre structure). API :
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/api/v1/integrations` | Une entrée par intégration : statut (Opérationnelle, En erreur, Non testée, À configurer, Désactivée), dernier test. **Aucun appel réseau.** |
+| GET | `/api/v1/integrations` | Une entrée par intégration de la structure : statut (Opérationnelle, En erreur, Non testée, À configurer, Désactivée), dernier test, `recommended` (Qonto pour une SCI, HelloAsso pour une association). **Aucun appel réseau.** |
 | GET | `/api/v1/integrations/<service>` | Fiche : statut, dernier test, dernière synchronisation suivie, champs (`label`, `input`, `help`, `required`, `secret`, `source` db/env/none, `value` — **toujours vide pour un secret** —, `env_value` pour un non-secret). 404 si service inconnu |
 | PUT | `/api/v1/integrations/<service>` | `{values, clear}` : secret vide = valeur conservée, clé dans `clear` = effacée ; non-secret vide = ligne supprimée (repli `.env`). Si l'intégration est activée et complète, **lance son test** |
-| POST | `/api/v1/integrations/<service>/enabled` | `{enabled}` : l'interrupteur prime sur la base et sur `.env` |
+| POST | `/api/v1/integrations/<service>/enabled` | `{enabled}` : interrupteur de l'instance (base méta) ; prime sur les réglages |
+| POST | `/api/v1/integrations/<service>/dismiss` | « Ne plus proposer » une intégration recommandée (encart du tableau de bord) |
 | POST | `/api/v1/integrations/<service>/check` | Test de fonctionnement (« Tester maintenant ») ; 409 si désactivée ou incomplète |
 | GET | `/configuration/external-connections/` | Ancienne adresse : redirection 301 vers la page de la SPA |
 
-Les actions renvoient la fiche à jour et `notices`. Un test (`tests/test_integrations_api.py::test_no_secret_in_any_api_response`) vérifie qu'aucun secret (base ou `.env`) ni mot de passe d'URL de base n'apparaît dans les réponses.
+Les actions renvoient la fiche à jour et `notices`. Une intégration est **désactivée par défaut** ; le
+repli `.env` ne vaut qu'en développement (`INTEGRATIONS_ENV_FALLBACK`). Une action qui a besoin d'une
+intégration répond 409 `integration_required` (avec `service`) si elle est désactivée, 409 `conflict` si
+elle est activée mais non configurée (`api.require_integration`). Les méta des écrans exposent
+`{enabled, available, message}` (`external_config.state`) : `message` est vide pour une intégration
+désactivée (rien à afficher). Session : `instance.integrations = {enabled, proposed}` (`proposed` pour
+l'administrateur de l'instance) ; menus « Versements Stancer » et « Odoo » si l'intégration est
+activée. Création d'instance : `integrations` (défaut : recommandées), `meta.integrations_by_chart`. Un test (`tests/test_integrations_api.py::test_no_secret_in_any_api_response`) vérifie qu'aucun secret (base ou `.env`) ni mot de passe d'URL de base n'apparaît dans les réponses.
 
 Les valeurs sont stockées dans `external_connections` de la base **tenant** (donc per-instance). Les variables d'environnement `STANCER_*`, `ODOO_*`, `HELLOASSO_*`, `MAIL_*` servent de **repli global** quand la table est vide. Service `smtp` : clés `host`, `port`, `use_tls`, `username`, `password`, `sender` (repli `MAIL_SERVER`/`MAIL_PORT`/`MAIL_USE_TLS`/`MAIL_USERNAME`/`MAIL_PASSWORD`/`MAIL_DEFAULT_SENDER`).
 

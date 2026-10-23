@@ -15,6 +15,7 @@ class Config:
     SQLALCHEMY_BINDS = {"meta": META_DATABASE_URL}
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     WTF_CSRF_ENABLED = True
+    INTEGRATIONS_ENV_FALLBACK = False
     STANCER_SECRET_KEY = os.environ.get("STANCER_SECRET_KEY", "")
     STANCER_MODE = os.environ.get("STANCER_MODE", "live")  # "live" or "test"
     ODOO_URL = os.environ.get("ODOO_URL", "")
@@ -57,8 +58,16 @@ class Config:
     QONTO_STAGING_TOKEN = os.environ.get("QONTO_STAGING_TOKEN", "")
 
 
+def _flag(name: str, default: bool) -> bool:
+    value = os.environ.get(name)
+    return default if value is None else value.strip().lower() in ("1", "true", "yes", "on")
+
+
 class DevelopmentConfig(Config):
     DEBUG = True
+    # Réglages d'intégration repris du .env quand l'instance n'en a pas (développement seulement :
+    # ailleurs, seuls les réglages de l'instance font foi).
+    INTEGRATIONS_ENV_FALLBACK = _flag("INTEGRATIONS_ENV_FALLBACK", True)
 
 
 class ProductionConfig(Config):

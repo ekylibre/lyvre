@@ -16,7 +16,7 @@ from app.services.odoo_invoice_sync import sync_customer_invoices
 from app.services.odoo_pos_sync import sync_pos_orders
 from app.utils.list_filters import apply_date_sort, apply_month_filter, month_options_for_fy, parse_month, parse_sort
 
-from . import ApiError, bp, get_or_404, invalid, notice
+from . import ApiError, bp, get_or_404, invalid, notice, require_integration
 
 LIMIT = 500
 
@@ -26,7 +26,7 @@ def _iso(value):
 
 
 def _odoo():
-    return {"available": external_config.is_available("odoo"), "message": external_config.unavailable_message("odoo")}
+    return external_config.state("odoo")
 
 
 def _options(labels: dict):
@@ -35,9 +35,7 @@ def _options(labels: dict):
 
 def _sync(run, success):
     """Synchronisation Odoo synchrone : avertissement si non configurée, message d'erreur sinon."""
-    message = external_config.unavailable_message("odoo")
-    if message:
-        raise ApiError("conflict", message, status=409)
+    require_integration("odoo")
     try:
         result = run()
     except OdooConfigError as exc:

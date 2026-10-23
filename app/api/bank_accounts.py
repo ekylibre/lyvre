@@ -11,7 +11,7 @@ from app.models import Account, BankAccount, Entity, Journal
 from app.services import cash, counterparties, external_config, qonto_sync
 from app.utils.list_filters import month_options_for_fy
 
-from . import ApiError, bp, get_or_404, invalid, json_body, notice
+from . import ApiError, bp, get_or_404, invalid, json_body, notice, require_integration
 from .session import job_payload
 
 
@@ -47,8 +47,7 @@ def bank_accounts_list():
     accounts = BankAccount.query.order_by(BankAccount.label).all()
     return jsonify(items=[bank_account_payload(ba) for ba in accounts], meta={
         "gl_accounts": _options(), "cash_accounts": _options("53"),
-        "qonto": {"available": external_config.is_available("qonto"),
-                  "message": external_config.unavailable_message("qonto")},
+        "qonto": external_config.state("qonto"),
     })
 
 
@@ -103,8 +102,7 @@ def bank_accounts_detail(ba_id):
                        "url": url_for("entries.detail", entry_id=t.journal_line.entry_id)}
                       if t.journal_line else None)} for t in reversed_reconciled],
         meta={"gl_accounts": _options(), "months": month_options_for_fy(),
-              "qonto": {"available": external_config.is_available("qonto"),
-                        "message": external_config.unavailable_message("qonto")}},
+              "qonto": external_config.state("qonto")},
     )
 
 
@@ -227,9 +225,7 @@ def qonto_sync_start(ba_id):
     ba = get_or_404(BankAccount, ba_id, "Compte bancaire introuvable.")
     if not ba.qonto_account_id:
         raise ApiError("conflict", "Ce compte bancaire n'est pas rattaché à Qonto.", status=409)
-    message = external_config.unavailable_message("qonto")
-    if message:
-        raise ApiError("conflict", message, status=409)
+    require_integration("qonto")
     job = qonto_sync.start_sync(current_app._get_current_object(), ba.id)
     return jsonify(job=job_payload(job))
 

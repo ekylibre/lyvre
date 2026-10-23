@@ -97,6 +97,7 @@ class IntegrationView:
     check_outdated: bool  # configuration modifiée depuis le dernier test
     last_sync: SyncInfo | None = None
     sync_tracked: bool = False
+    recommended: bool = False
 
     @property
     def status_label(self) -> str:
@@ -117,7 +118,7 @@ def _last_check(state: IntegrationState | None) -> CheckResult | None:
 
 
 def _view(service: str, state: IntegrationState | None) -> IntegrationView:
-    enabled = True if state is None else bool(state.enabled)
+    enabled = external_config.is_enabled(service)
     configured = external_config.is_configured(service)
     last_check = _last_check(state)
     outdated = last_check is not None and (
@@ -143,6 +144,7 @@ def _view(service: str, state: IntegrationState | None) -> IntegrationView:
         last_check=last_check,
         check_outdated=outdated,
         sync_tracked=service in _SYNC_SOURCES,
+        recommended=service in external_config.recommended(),
     )
 
 
@@ -155,13 +157,13 @@ def status(service: str) -> str:
 
 
 def overview() -> list[IntegrationView]:
-    """Toutes les intégrations, dans l'ordre de déclaration (page index)."""
+    """Intégrations de la structure, dans l'ordre de déclaration (page index)."""
     states = {s.service: s for s in db.session.query(IntegrationState).all()}
-    return [_view(service, states.get(service)) for service in external_config.SERVICE_KEYS]
+    return [_view(service, states.get(service)) for service in external_config.applicable()]
 
 
 def detail(service: str) -> IntegrationView:
-    if service not in external_config.SERVICE_KEYS:
+    if not external_config.applies(service):
         raise ValueError(f"Unknown service: {service}")
     view = _view(service, _state(service))
     return IntegrationView(**{**view.__dict__, "last_sync": last_sync(service)})

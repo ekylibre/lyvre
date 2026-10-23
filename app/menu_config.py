@@ -94,8 +94,10 @@ MENUS = [
             {"key": "bank_accounts", "label": "Comptes et caisses", "endpoint": "bank_accounts.index", "charts": _ALL},
             {"key": "reconciliation", "label": "Rapprochement", "endpoint": "reconciliation.index", "charts": _ALL, "bookkeeping": _DOUBLE},
             {"key": "cash_forecast", "label": "Prévisionnel", "endpoint": "cash_forecast.index", "charts": _ALL},
-            {"divider": True, "charts": _ALL},
-            {"key": "payouts", "label": "Versements Stancer", "endpoint": "payouts.index", "charts": _ASSO},
+            {"divider": True, "charts": _ALL, "feature": "stancer"},
+            # Intégration Stancer activée (interrupteur de l'instance), quelle que soit la structure.
+            {"key": "payouts", "label": "Versements Stancer", "endpoint": "payouts.index", "charts": _ALL,
+             "feature": "stancer"},
         ],
     },
     # ------------------------------------------------- Recettes et dépenses (mode simple)
@@ -170,7 +172,8 @@ MENUS = [
     {
         "key": "odoo",
         "label": "Odoo",
-        "charts": _ASSO,
+        "charts": _ALL,
+        "feature": "odoo",  # intégration Odoo activée
         "active": ["orders", "customer_invoices"],
         "items": [
             {"key": "orders", "label": "Commandes POS", "endpoint": "orders.index", "charts": _ALL},

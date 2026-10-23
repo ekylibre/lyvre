@@ -11,10 +11,10 @@ from app.models.email_template import (
     DEFAULT_REMINDER_BODY, DEFAULT_REMINDER_SUBJECT, MEMBERSHIP_REMINDER_KEY,
 )
 from app.queries.entities import member_rows
-from app.services import external_config, membership_reminders, odoo_partner_update
+from app.services import membership_reminders, odoo_partner_update
 from app.services.odoo_client import OdooConfigError
 
-from . import ApiError, bp, invalid, json_body, notice
+from . import ApiError, bp, invalid, json_body, notice, require_integration
 from .entities import integrations_state
 
 FILTER_KEYS = ("q", "date_from", "date_to", "sort_by", "sort")
@@ -77,8 +77,7 @@ def members_set_benevole():
 def members_update_odoo_notes():
     """`{"ids": [...], filtres}` : écrit la note d'adhésion des fiches Odoo choisies."""
     data = json_body()
-    if not odoo_partner_update.is_configured():
-        raise ApiError("conflict", external_config.unavailable_message("odoo"), status=409)
+    require_integration("odoo")
     ids = _selected(data)
     chosen = [r for r in member_rows(_filters(data)) if r["entity"] is not None and r["entity"].id in ids]
     if not chosen:
@@ -112,8 +111,7 @@ def members_reminders():
 def members_send_reminders():
     """`{"ids": [...], filtres}` : envoie la relance aux adhérents choisis."""
     data = json_body()
-    if not membership_reminders.smtp_configured():
-        raise ApiError("conflict", external_config.unavailable_message("smtp"), status=409)
+    require_integration("smtp")
     ids = _selected(data)
     targets = membership_reminders.members_to_remind(member_rows(_filters(data)))
     chosen = [t for t in targets if t["entity"] is not None and t["entity"].id in ids]

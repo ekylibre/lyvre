@@ -21,7 +21,7 @@ from app.services.odoo_client import OdooConfigError
 from app.services.purchase_posting import purchase_state
 from app.services.purchase_sync import normalize_iban, normalize_siret, normalize_vat
 
-from . import ApiError, bp, get_or_404, invalid, json_body, notice
+from . import ApiError, bp, get_or_404, invalid, json_body, notice, require_integration
 
 SIRET_MESSAGE = "Le SIRET doit comporter 14 chiffres."
 TYPE_CODES = {code for code, _ in ENTITY_TYPES}
@@ -33,9 +33,7 @@ def _iso(value):
 
 def integrations_state() -> dict:
     """Intégrations dont dépendent les actions des tiers et adhérents (boutons grisés sinon)."""
-    return {name: {"available": external_config.is_available(name),
-                   "message": external_config.unavailable_message(name)}
-            for name in ("helloasso", "odoo", "smtp")}
+    return {name: external_config.state(name) for name in ("helloasso", "odoo", "smtp")}
 
 
 def entity_payload(e: Entity, last_ha=None, last_pos=None, transactions=None) -> dict:
@@ -244,8 +242,7 @@ def tiers_detail(entity_id):
 def tiers_update_odoo_note(entity_id):
     """Écrit la date anniversaire et le statut d'adhésion dans « Notes interne » d'Odoo."""
     entity = get_or_404(Entity, entity_id, "Tiers introuvable.")
-    if not odoo_partner_update.is_configured():
-        raise ApiError("conflict", external_config.unavailable_message("odoo"), status=409)
+    require_integration("odoo")
     last_ha, last_pos = last_membership_dates([entity.id])
     try:
         ok, message = odoo_partner_update.update_single_member(

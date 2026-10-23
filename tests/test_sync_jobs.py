@@ -10,6 +10,7 @@ from app.extensions import db
 from app.models import Instance, Journal, SyncJob
 from app.services import stancer_async, stancer_sync, sync_jobs
 from app.tenant import get_tenant_engine
+from conftest import ALL_INTEGRATIONS
 
 
 class ImmediateThread:
@@ -26,7 +27,8 @@ class ImmediateThread:
 def other_instance(app, tmp_path, monkeypatch):
     """Instance B dont la base n'est PAS la base par défaut, sélectionnée comme dans une requête."""
     monkeypatch.setattr(sync_jobs.threading, "Thread", ImmediateThread)
-    instance = Instance(slug="b", label="B", database_url=f"sqlite:///{tmp_path / 'b.db'}")
+    instance = Instance(slug="b", label="B", database_url=f"sqlite:///{tmp_path / 'b.db'}",
+                        integrations=ALL_INTEGRATIONS)
     db.session.add(instance)
     db.session.commit()
     engine = get_tenant_engine(instance)

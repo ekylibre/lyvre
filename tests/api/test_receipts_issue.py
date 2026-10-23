@@ -249,11 +249,12 @@ def test_send_by_email(books, login_as, smtp):
 
 
 def test_send_needs_smtp(books, login_as, monkeypatch):
-    from app.services import membership_reminders
-    monkeypatch.setattr(membership_reminders, "smtp_configured", lambda: False)  # jamais de vrai serveur en test
+    from app.services import external_config
     client = _activate(login_as(role="admin"))
     _issue(client)
-    assert "SMTP" in _error(client.post("/api/v1/receipts/send", json={"year": YEAR}), 409)["message"]
+    external_config.set_enabled("smtp", False)  # jamais de vrai serveur en test
+    error = _error(client.post("/api/v1/receipts/send", json={"year": YEAR}), 409)
+    assert error["code"] == "integration_required" and error["service"] == "smtp" and "SMTP" in error["message"]
 
 
 def test_cancel_and_reissue(books, login_as):

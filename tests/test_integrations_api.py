@@ -109,7 +109,7 @@ def test_env_fallback_is_not_copied_into_db(client, probes):
 def test_toggle(client, probes):
     resp = client.post(f"{API}/smtp/enabled", json={"enabled": False})
     assert external_config.is_enabled("smtp") is False
-    assert "Intégration SMTP (relance email) désactivée." in messages(resp)
+    assert "Intégration SMTP (emails) désactivée." in messages(resp)
     client.post(f"{API}/smtp/enabled", json={"enabled": True})
     assert external_config.is_enabled("smtp") is True
     assert probes == []

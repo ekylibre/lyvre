@@ -52,6 +52,33 @@ def session(app):
     return db.session
 
 
+ALL_INTEGRATIONS = '{"enabled": ["facebook", "ga4", "helloasso", "odoo", "qonto", "smtp", "stancer"], "dismissed": []}'
+
+
+def _test_instance(**fields):
+    """Instance « test » (base de test), créée une fois par test et sélectionnée dans le contexte
+    d'application comme le fait une requête (`g.current_instance`) : les services qui lisent les
+    interrupteurs d'intégration la trouvent hors requête. Intégrations toutes activées."""
+    from flask import g
+
+    from app.models import Instance
+
+    instance = db.session.query(Instance).filter_by(slug="test").first()
+    if instance is None:
+        instance = Instance(slug="test", label="Test", database_url=os.environ["DATABASE_URL"],
+                            integrations=ALL_INTEGRATIONS, **fields)
+        db.session.add(instance)
+        db.session.commit()
+    g.current_instance = instance
+    return instance
+
+
+@pytest.fixture()
+def instance(app):
+    """Instance de test sélectionnée (intégrations activées), sans utilisateur connecté."""
+    return _test_instance()
+
+
 @pytest.fixture()
 def login_as(app):
     """Client authentifié (utilisateur méta + instance pointant sur la base de test).
@@ -59,13 +86,13 @@ def login_as(app):
     Usage : ``client = login_as(is_admin=True)`` ; ``login_as(role="accountant")`` pour un
     expert-comptable ; ``role=None`` : connecté sans accès à l'instance.
     """
-    from app.models import Instance, InstanceMembership, User
+    from app.models import InstanceMembership, User
 
     def _login(is_admin=False, role="treasurer"):
         user = User(email=f"{'admin' if is_admin else 'user'}@example.org", is_admin=is_admin)
         user.set_password("x")
-        instance = Instance(slug="test", label="Test", database_url=os.environ["DATABASE_URL"])
-        db.session.add_all([user, instance])
+        instance = _test_instance()
+        db.session.add(user)
         db.session.flush()
         if not is_admin and role:
             # Accès à l'instance de test (sans rôle : aucun accès, cf. app/access.py).

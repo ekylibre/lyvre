@@ -9,7 +9,7 @@ from app.utils.list_filters import (
     apply_date_sort, apply_month_filter, month_options_for_fy, parse_month, parse_sort,
 )
 
-from . import ApiError, bp, get_or_404
+from . import bp, get_or_404, require_integration
 from .session import job_payload
 
 
@@ -29,8 +29,7 @@ def payout_payload(p: Payout, statuses=dict(PAYOUT_STATUSES)) -> dict:
 
 
 def _stancer():
-    return {"available": external_config.is_available("stancer"),
-            "message": external_config.unavailable_message("stancer")}
+    return external_config.state("stancer")
 
 
 @bp.route("/payouts")
@@ -60,9 +59,7 @@ def payouts_detail(payout_id):
 
 
 def _require_stancer():
-    message = external_config.unavailable_message("stancer")
-    if message:
-        raise ApiError("conflict", message, status=409)
+    require_integration("stancer")
 
 
 @bp.route("/payouts/sync", methods=["POST"])

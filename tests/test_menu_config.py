@@ -30,9 +30,20 @@ def test_asso_only_menus_hidden_for_sci():
 
 
 def test_asso_keeps_all_menus():
-    asso = {m["key"]: m for m in build_nav("asso", is_admin=True)}
+    asso = {m["key"]: m for m in build_nav("asso", is_admin=True, features={"odoo", "stancer"})}
     assert {"odoo", "indicateurs"} <= asso.keys()
+    assert "payouts" in [i.get("key") for i in asso["banque"]["items"]]
     assert "members" in [i.get("key") for i in asso["tiers"]["items"]]
+
+
+def test_integration_menus_follow_the_switch_not_the_structure():
+    """Odoo et Versements Stancer : affichés si l'intégration est activée, quelle que soit la structure."""
+    for chart in ("asso", "sci"):
+        off = {m["key"]: m for m in build_nav(chart, is_admin=True)}
+        assert "odoo" not in off and "payouts" not in [i.get("key") for i in off["banque"]["items"]]
+        assert not off["banque"]["items"][-1].get("divider")
+        on = {m["key"]: m for m in build_nav(chart, is_admin=True, features={"odoo", "stancer"})}
+        assert "odoo" in on and "payouts" in [i.get("key") for i in on["banque"]["items"]]
 
 
 def test_admin_only_menu_hidden_for_non_admin():

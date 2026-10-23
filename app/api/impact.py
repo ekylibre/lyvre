@@ -28,7 +28,7 @@ def _kpi(k) -> dict:
 
 
 def _integration(name):
-    return {"available": external_config.is_available(name), "message": external_config.unavailable_message(name)}
+    return external_config.state(name)
 
 
 @bp.route("/impact")

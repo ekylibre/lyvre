@@ -159,4 +159,7 @@ def register_tenant_hooks(app):
         g.current_instance = inst
         g.instance_role = role
         g.tenant_engine = get_tenant_engine(inst)
+        if inst.integrations is None:
+            from app.services.external_config import ensure_initialized
+            ensure_initialized(inst)
         return None

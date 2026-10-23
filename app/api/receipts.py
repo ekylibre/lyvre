@@ -14,7 +14,7 @@ from app.models.sync_job import SYNC_KIND_RECEIPTS_ISSUE, SYNC_KIND_RECEIPTS_SEN
 from app.services import receipts, sync_jobs
 from app.tenant import current_chart
 
-from . import ApiError, bp, json_body, notice
+from . import ApiError, bp, json_body, notice, require_integration
 from .session import job_payload
 
 
@@ -134,9 +134,7 @@ def receipts_send():
                if r.entity.email or json.loads(r.donor_json).get("email")]
     if not ids:
         return jsonify(notices=[notice("Aucun reçu à envoyer.", "info")])
-    from app.services.membership_reminders import smtp_configured
-    if not smtp_configured():
-        raise ApiError("conflict", "Envoi impossible : SMTP non configuré (Configuration › Intégrations).", 409)
+    require_integration("smtp")
 
     def work(job_id):
         return receipts.send(ids, sync_jobs.progress_callback(job_id, throttle=1))

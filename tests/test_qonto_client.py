@@ -10,6 +10,9 @@ from app.services.qonto_client import (
     QontoAuthError, QontoClient, QontoConfigError, QontoError, format_datetime,
 )
 
+# Interrupteurs d'intégration : ceux de l'instance de test (conftest), toutes activées.
+pytestmark = pytest.mark.usefixtures("instance")
+
 QONTO = {"login": "seconde-nature-1234", "secret_key": "qonto-secret-abcdef"}
 
 

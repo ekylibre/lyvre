@@ -7,7 +7,7 @@ de la base de l'instance : elles sont déclarées « sans instance » dans app.t
 import json
 from datetime import datetime
 
-from flask import g, jsonify, session as flask_session, url_for
+from flask import current_app, g, jsonify, session as flask_session, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_wtf.csrf import generate_csrf
 from sqlalchemy import func
@@ -16,6 +16,7 @@ from app.access import accessible_instances, permissions, role_for
 from app.extensions import db
 from app.menu_config import build_nav
 from app.models import Instance, SyncJob, User
+from app.services import external_config
 from app.services.instance_access import MIN_PASSWORD
 
 from . import ApiError, bp, json_body
@@ -55,6 +56,40 @@ def preferences_of(user) -> dict:
     return value if isinstance(value, dict) else {}
 
 
+def _initialize_integrations(inst) -> None:
+    """Instance jamais ouverte depuis l'arrivée des interrupteurs en base méta : on l'initialise
+    ici (seule lecture de sa base par la session, une fois) pour que les menus soient justes dès
+    le premier affichage. Un échec laisse l'initialisation à la première requête de l'instance."""
+    from app.tenant import get_tenant_engine
+
+    saved = g.get("current_instance"), g.get("tenant_engine")
+    try:
+        g.current_instance, g.tenant_engine = inst, get_tenant_engine(inst)
+        external_config.ensure_initialized(inst)
+    except Exception as exc:  # noqa: BLE001
+        db.session.rollback()
+        current_app.logger.warning("Integrations of instance %s not initialized: %r", inst.slug, exc)
+    finally:
+        g.current_instance, g.tenant_engine = saved
+
+
+def _enabled_integrations(inst) -> list[str]:
+    """Interrupteurs de l'instance (base méta), limités aux intégrations de sa structure."""
+    return [s for s in external_config.applicable(inst.chart) if s in inst.enabled_integrations()]
+
+
+def _integrations(inst, role) -> dict:
+    """Intégrations activées (masquages, menus) et, pour l'administrateur de l'instance,
+    intégrations recommandées à proposer (tableau de bord)."""
+    return {"enabled": _enabled_integrations(inst),
+            "proposed": external_config.proposals(inst) if permissions(role).get("instance_admin") else []}
+
+
+def _features(inst) -> set[str]:
+    """Options de l'instance qui conditionnent des menus : module Associés, intégrations activées."""
+    return {*(["associates"] if inst.has_associates else []), *_enabled_integrations(inst)}
+
+
 def session_payload() -> dict:
     """Utilisateur, instance, menus, préférences et jeton CSRF (vide si non connecté)."""
     if not current_user.is_authenticated:
@@ -64,17 +99,20 @@ def session_payload() -> dict:
     inst = getattr(g, "current_instance", None) or _current_instance()
     is_admin = bool(current_user.is_admin)
     role = role_for(current_user, inst) if inst else None
+    if inst is not None and inst.integrations is None:
+        _initialize_integrations(inst)
     return {
         "user": {"id": current_user.id, "email": current_user.email,
                  "full_name": current_user.full_name, "is_admin": is_admin,
                  "must_change_password": bool(current_user.must_change_password)},
         "instance": ({"id": inst.id, "slug": inst.slug, "label": inst.label, "chart": inst.chart,
-                      "bookkeeping": inst.bookkeeping, "has_associates": bool(inst.has_associates)}
+                      "bookkeeping": inst.bookkeeping, "has_associates": bool(inst.has_associates),
+                      "integrations": _integrations(inst, role)}
                      if inst else None),
         "instances": [{"id": i.id, "label": i.label} for i in accessible_instances(current_user)],
         "role": role, "permissions": permissions(role),
         "nav": _resolve_nav(build_nav(chart=inst.chart, is_admin=role == "admin", bookkeeping=inst.bookkeeping,
-                                      features={"associates"} if inst.has_associates else ()))
+                                      features=_features(inst)))
         if inst else [],
         # Menu de l'utilisateur (en-tête) : administration réservée aux admins.
         "admin_links": ([{"label": "Utilisateurs", "url": url_for("users.index")},

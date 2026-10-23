@@ -1,6 +1,7 @@
-"""Intégrations (admin) : état de chaque service, fiche (configuration, activation, test de
-connexion, dernière synchronisation). Un secret n'est jamais renvoyé : champ vide = valeur
-enregistrée conservée, `clear` l'efface."""
+"""Intégrations (admin) : état de chaque service de la structure, fiche (configuration,
+activation, test de connexion, dernière synchronisation), « Ne plus proposer » d'une intégration
+recommandée. Un secret n'est jamais renvoyé : champ vide = valeur enregistrée conservée, `clear`
+l'efface. Une intégration d'une autre structure (HelloAsso pour une SCI…) est introuvable."""
 from flask import jsonify, url_for
 
 from app.access import instance_admin_required
@@ -52,7 +53,7 @@ SYNC_LINK_LABELS = {
 
 
 def _service(service):
-    if service not in external_config.SERVICE_KEYS:
+    if not external_config.applies(service):
         raise ApiError("not_found", "Intégration inconnue.", status=404)
     return service
 
@@ -88,7 +89,7 @@ def _view(v) -> dict:
     check = v.last_check
     return {"slug": v.slug, "label": v.label, "description": v.description, "status": v.status,
             "status_label": v.status_label, "enabled": v.enabled, "configured": v.configured,
-            "check_outdated": v.check_outdated,
+            "check_outdated": v.check_outdated, "recommended": v.recommended,
             "last_check": ({"ok": check.ok, "message": check.message, "checked_at": _iso(check.checked_at),
                             "duration_ms": check.duration_ms} if check else None)}
 
@@ -169,3 +170,12 @@ def integrations_check(service):
         raise ApiError("conflict", "Intégration désactivée ou configuration incomplète.", status=409)
     result = integrations.run_check(service)
     return jsonify(**_detail(service), notices=[notice(result.message, "success" if result.ok else "danger")])
+
+
+@bp.route("/integrations/<service>/dismiss", methods=["POST"])
+@instance_admin_required
+def integrations_dismiss(service):
+    """Retire la proposition d'activer l'intégration (encart du tableau de bord)."""
+    _service(service)
+    external_config.dismiss(service)
+    return jsonify(notices=[notice(f"{external_config.SERVICE_LABELS[service]} ne sera plus proposée.", "info")])

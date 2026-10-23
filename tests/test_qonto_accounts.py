@@ -128,8 +128,8 @@ def test_qonto_page_lists_accounts(login_as, gl, fake_qonto):
 
 
 def test_qonto_page_unavailable_makes_no_call(login_as, gl, fake_qonto):
-    external_config.set_enabled("qonto", False)
     client = login_as(is_admin=True)
+    external_config.set_enabled("qonto", False)
     body = client.get("/api/v1/qonto/accounts").get_json()
     assert body["items"] == [] and "désactivée" in body["error"]
     assert fake_qonto["calls"] == 0

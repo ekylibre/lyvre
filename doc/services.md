@@ -806,21 +806,28 @@ Ouvre une connexion `smtplib` unique (`_open_smtp`) selon `smtp_settings()`, env
 
 ## external_config.py — Configuration et activation des intégrations
 
-Lecture par instance (table `external_connections`, repli `.env`) ; voir aussi
+Réglages par instance (table `external_connections` ; repli `.env` en développement seulement,
+`INTEGRATIONS_ENV_FALLBACK`), interrupteur sur l'instance en base méta (`Instance.integrations`),
+intégrations par structure (`SERVICE_CHARTS`) ; voir aussi
 [models.md](models.md#integrationstate--activation-et-dernier-test-dune-intégration-tenant).
 
 | Fonction | Rôle |
 |----------|------|
-| `get(service, key)` / `get_all(service)` / `source(service, key)` | Valeur effective (base puis `.env`) et son origine (`db`, `env`, `none`) |
+| `get(service, key)` / `get_all(service)` / `source(service, key)` | Valeur effective (base, puis `.env` en développement) et son origine (`db`, `env`, `none`) |
+| `applies(service, chart=None)` / `applicable(chart=None)` / `recommended(chart=None)` | Intégrations de la structure (instance courante par défaut) ; recommandées (`RECOMMENDED`) |
 | `set_many(service, values)` | Upsert ; valeur vide = ligne supprimée |
 | `is_configured(service)` | Clés obligatoires renseignées (`SERVICE_REQUIRED_KEYS`) |
-| `is_enabled(service)` / `set_enabled(service, bool)` | Interrupteur (`integration_states`) ; ligne absente = activée |
+| `is_enabled(service)` / `set_enabled(service, bool)` | Interrupteur de l'instance courante (base méta) ; faux pour une intégration d'une autre structure ; hors instance (tests unitaires des clients) : vrai |
+| `dismiss(service)` / `proposals(instance)` | « Ne plus proposer » ; recommandées ni activées ni écartées |
+| `ensure_initialized(instance)` | Première ouverture : active les intégrations de la structure paramétrées en base (jamais d'après le `.env`) et non désactivées par l'ancien interrupteur |
+| `state(service)` | `{enabled, available, message}` pour les méta des écrans |
+| `required_message(service)` | « Cette action nécessite l'intégration … , désactivée. » |
 | `is_available(service)` | Activée **et** configurée : à utiliser avant toute action qui dépend du service |
 | `unavailable_reason(service)` / `unavailable_message(service)` | `"disabled"` / `"unconfigured"` / `None`, et message français associé (bandeaux, flash, exceptions) |
 | `fingerprint(service)` | SHA-256 de la configuration effective (détecte un test périmé) |
 
 Constantes : `SERVICE_KEYS`, `SERVICE_LABELS`, `SERVICE_DESCRIPTIONS`, `SERVICE_REQUIRED_KEYS`,
-`SECRET_KEYS` (jamais réaffichées), `ENV_FALLBACK`.
+`SECRET_KEYS` (jamais réaffichées), `ENV_FALLBACK`, `SERVICE_CHARTS`, `RECOMMENDED`.
 
 Les fabriques des clients (`odoo_client`, `helloasso_client`, `ga4_client`, `facebook_client`,
 `stancer_sync._get_secret_key`) refusent de construire un client pour une intégration désactivée.

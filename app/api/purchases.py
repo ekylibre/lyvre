@@ -21,7 +21,7 @@ from app.services.purchase_posting import STATE_LABELS, purchase_state
 from app.services.purchase_sync import STATUS_LABELS
 from app.utils.list_filters import apply_date_sort, apply_month_filter, month_options_for_fy, parse_month, parse_sort
 
-from . import ApiError, bp, get_or_404, invalid, json_body, notice
+from . import ApiError, bp, get_or_404, invalid, json_body, notice, require_integration
 from .session import job_payload
 
 KEY_FIELDS = ("entity_id", "new_name", "supplier_name", "supplier_vat", "supplier_siret", "supplier_iban",
@@ -86,8 +86,7 @@ def _products():
 
 
 def _qonto():
-    return {"available": external_config.is_available("qonto"), "message": external_config.unavailable_message("qonto"),
-            "upload": purchase_entry.qonto_upload_available()}
+    return {**external_config.state("qonto"), "upload": purchase_entry.qonto_upload_available()}
 
 
 # ------------------------------------------------------------------ liste
@@ -150,9 +149,7 @@ def purchases_list():
 
 @bp.route("/purchases/sync", methods=["POST"])
 def purchases_sync():
-    message = external_config.unavailable_message("qonto")
-    if message:
-        raise ApiError("conflict", message, status=409)
+    require_integration("qonto")
     return jsonify(job=job_payload(purchase_sync.start_sync(current_app._get_current_object())))
 
 
@@ -352,9 +349,7 @@ def _upload_notice(p, sent):
 def purchases_send_to_qonto(purchase_id):
     """Dépose la pièce dans Qonto (écriture côté Qonto, sur action explicite seulement)."""
     p = get_or_404(Purchase, purchase_id, "Facture introuvable.")
-    message = external_config.unavailable_message("qonto")
-    if message:
-        raise ApiError("conflict", message, status=409)
+    require_integration("qonto")
     if not purchase_entry.can_send_to_qonto(p):
         raise ApiError("conflict", "Cette facture ne peut pas être envoyée à Qonto (pièce absente ou déjà envoyée).",
                        status=409)

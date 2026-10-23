@@ -5,6 +5,9 @@ from app.extensions import db
 from app.models import SyncJob
 from app.services import external_config
 
+# Interrupteurs d'intégration : ceux de l'instance de test (conftest), toutes activées.
+pytestmark = pytest.mark.usefixtures("instance")
+
 ODOO = {"url": "https://erp.example.org", "db": "prod", "username": "a@b.fr", "api_key": "k-123456"}
 HELLOASSO = {"client_id": "cid", "client_secret": "secret", "org_slug": "asso"}
 
@@ -29,8 +32,8 @@ def test_unavailable_reason_and_message(app):
     assert "Odoo désactivée" in external_config.unavailable_message("odoo")
 
 
-def test_existing_instance_without_rows_is_unchanged(app):
-    # US5 : aucune ligne integration_states → tout est activé, la config .env suffit.
+def test_enabled_integration_uses_env_fallback_in_development(app):
+    # Intégrations activées (instance de test) : la config .env suffit en développement.
     from app.services import membership_reminders
 
     assert membership_reminders.smtp_configured() is True
@@ -108,10 +111,11 @@ def test_payouts_disabled_notice_and_no_sync(admin):
 
     external_config.set_enabled("stancer", False)
     stancer = admin.get("/api/v1/payouts").get_json()["meta"]["stancer"]
-    assert stancer["available"] is False and "désactivée" in stancer["message"]
+    assert stancer == {"enabled": False, "available": False, "message": None}  # désactivée : rien à afficher
 
     resp = admin.post("/api/v1/payouts/sync")
-    assert resp.status_code == 409 and "Stancer désactivée" in resp.get_json()["error"]["message"]
+    error = resp.get_json()["error"]
+    assert resp.status_code == 409 and error["code"] == "integration_required" and "Stancer, désactivée" in error["message"]
     assert db.session.query(SyncJob).count() == 0
 
 def test_orders_and_invoices_unconfigured_notice(admin):

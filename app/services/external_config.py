@@ -1,8 +1,14 @@
-"""Per-instance credentials for external services.
+"""Per-instance credentials and switches for external services.
 
-Reads from the `external_connections` table (tenant DB) first; falls back
-to the Flask app config (which is populated from .env). This keeps existing
-deployments working while letting admins migrate progressively to the UI.
+Settings come from the `external_connections` table (tenant DB). The Flask
+app config (populated from .env) is a fallback in development only
+(`INTEGRATIONS_ENV_FALLBACK`): elsewhere the instance's own settings are
+authoritative.
+
+The on/off switch lives on the instance in the meta DB
+(`Instance.integrations`), so menus and the session read it without opening
+the tenant DB. An integration exists only for some structures
+(`SERVICE_CHARTS`, from `Instance.chart`); one that does not apply is off.
 """
 
 from __future__ import annotations
@@ -14,6 +20,7 @@ from flask import current_app, g, has_app_context
 
 from app.extensions import db
 from app.models import ExternalConnection, IntegrationState
+from app.tenant import current_instance
 
 
 SERVICE_KEYS: dict[str, list[str]] = {
@@ -30,7 +37,7 @@ SERVICE_LABELS: dict[str, str] = {
     "stancer":   "Stancer",
     "odoo":      "Odoo",
     "helloasso": "HelloAsso",
-    "smtp":      "SMTP (relance email)",
+    "smtp":      "SMTP (emails)",
     "ga4":       "Google Analytics (GA4)",
     "facebook":  "Facebook (Page)",
     "qonto":     "Qonto",
@@ -41,10 +48,23 @@ SERVICE_DESCRIPTIONS: dict[str, str] = {
     "stancer":   "Versements et paiements par carte, rapprochés des relevés bancaires",
     "odoo":      "Commandes, factures clients et mise à jour des partenaires",
     "helloasso": "Adhésions et formulaires des adhérents",
-    "smtp":      "Envoi des emails de relance d'adhésion",
+    "smtp":      "Envoi des relances d'adhésion et des reçus fiscaux par email",
     "ga4":       "Fréquentation du site pour Visibilité & Impact",
     "facebook":  "Abonnés de la Page pour Visibilité & Impact",
     "qonto":     "Comptes, transactions bancaires et factures d'achat",
+}
+
+# Structures (Instance.chart) pour lesquelles l'intégration existe ; absente = toutes.
+SERVICE_CHARTS: dict[str, set[str]] = {
+    "helloasso": {"asso"},
+    "ga4":       {"asso"},
+    "facebook":  {"asso"},
+}
+
+# Intégrations dont l'activation est proposée, par structure.
+RECOMMENDED: dict[str, list[str]] = {
+    "sci":  ["qonto"],
+    "asso": ["helloasso"],
 }
 
 # Secrets : jamais réaffichés dans l'interface ni dans les messages de test.
@@ -129,7 +149,7 @@ def get(service: str, key: str) -> str | None:
     )
     if row is not None and row.value:
         value = row.value
-    else:
+    elif env_fallback():
         env_name = ENV_FALLBACK.get(cache_key)
         if env_name:
             cfg_value = current_app.config.get(env_name)
@@ -145,7 +165,7 @@ def get_all(service: str) -> dict[str, str | None]:
 
 
 def is_configured(service: str) -> bool:
-    """True if every required key for this service has a value (DB or .env)."""
+    """True if every required key for this service has a value (DB, or .env in development)."""
     return all(get(service, k) for k in SERVICE_REQUIRED_KEYS[service])
 
 
@@ -159,9 +179,14 @@ def source(service: str, key: str) -> str:
     if row is not None and row.value:
         return "db"
     env_name = ENV_FALLBACK.get((service, key))
-    if env_name and current_app.config.get(env_name):
+    if env_fallback() and env_name and current_app.config.get(env_name):
         return "env"
     return "none"
+
+
+def env_fallback() -> bool:
+    """Réglages repris du .env (développement seulement)."""
+    return has_app_context() and bool(current_app.config.get("INTEGRATIONS_ENV_FALLBACK"))
 
 
 def set_many(service: str, values: dict[str, str | None]) -> None:
@@ -197,29 +222,90 @@ def _state(service: str) -> IntegrationState | None:
     return db.session.query(IntegrationState).filter_by(service=service).first()
 
 
-def is_enabled(service: str) -> bool:
-    """False only when the integration was switched off; a missing row means enabled.
+def applies(service: str, chart: str | None = None) -> bool:
+    """L'intégration existe pour cette structure (par défaut celle de l'instance courante)."""
+    if service not in SERVICE_KEYS:
+        return False
+    if chart is None:
+        chart = getattr(current_instance(), "chart", None) or "asso"
+    charts = SERVICE_CHARTS.get(service)
+    return charts is None or chart in charts
 
-    The switch takes precedence over both the DB values and the .env fallback.
+
+def applicable(chart: str | None = None) -> list[str]:
+    """Intégrations de la structure, dans l'ordre de déclaration."""
+    return [s for s in SERVICE_KEYS if applies(s, chart)]
+
+
+def recommended(chart: str | None = None) -> list[str]:
+    if chart is None:
+        chart = getattr(current_instance(), "chart", None) or "asso"
+    return [s for s in RECOMMENDED.get(chart, []) if applies(s, chart)]
+
+
+def is_enabled(service: str) -> bool:
+    """Interrupteur de l'instance courante ; une intégration non applicable est éteinte.
+
+    Hors instance (aucune en contexte : tests unitaires des clients d'API), pas d'interrupteur.
+    En production, requêtes et tâches en arrière-plan ont toujours leur instance.
     """
-    cache = _cache()
-    cache_key = (service, "__enabled__")
-    if cache_key not in cache:
-        state = _state(service)
-        cache[cache_key] = True if state is None else bool(state.enabled)
-    return cache[cache_key]
+    inst = current_instance()
+    if inst is None:
+        return service in SERVICE_KEYS
+    return applies(service, inst.chart) and service in inst.enabled_integrations()
+
+
+def _instance_or_fail():
+    inst = current_instance()
+    if inst is None:
+        raise RuntimeError("Aucune instance en contexte.")
+    return inst
 
 
 def set_enabled(service: str, enabled: bool) -> None:
     if service not in SERVICE_KEYS:
         raise ValueError(f"Unknown service: {service}")
-    state = _state(service)
-    if state is None:
-        state = IntegrationState(service=service)
-        db.session.add(state)
-    state.enabled = bool(enabled)
+    inst = _instance_or_fail()
+    if enabled and not applies(service, inst.chart):
+        raise ValueError(f"Service not available for this structure: {service}")
+    inst.set_integration(service, enabled)
     db.session.commit()
-    _cache().pop((service, "__enabled__"), None)
+
+
+def dismiss(service: str) -> None:
+    """« Ne plus proposer » : l'intégration recommandée sort de l'encart du tableau de bord."""
+    inst = _instance_or_fail()
+    inst.dismiss_integration(service)
+    db.session.commit()
+
+
+def proposals(inst) -> list[str]:
+    """Recommandées pour la structure, ni activées ni écartées."""
+    if inst is None or inst.integrations is None:
+        return []
+    done = inst.enabled_integrations() | inst.dismissed_integrations()
+    return [s for s in recommended(inst.chart) if s not in done]
+
+
+def configured_in_db(service: str) -> bool:
+    """Réglages requis enregistrés dans la base de l'instance (jamais le .env)."""
+    rows = {r.key for r in db.session.query(ExternalConnection).filter_by(service=service).all() if r.value}
+    return all(k in rows for k in SERVICE_REQUIRED_KEYS[service])
+
+
+def ensure_initialized(inst) -> None:
+    """Première ouverture d'une instance existante : active les intégrations applicables
+    paramétrées dans sa base et non désactivées (ancien interrupteur de la base de l'instance).
+    Les autres restent désactivées ; une seule fois par instance."""
+    if inst is None or inst.integrations is not None:
+        return
+    enabled = []
+    for service in applicable(inst.chart):
+        state = _state(service)
+        if configured_in_db(service) and (state is None or state.enabled):
+            enabled.append(service)
+    inst._set_integrations(enabled, [])
+    db.session.commit()
 
 
 def is_available(service: str) -> bool:
@@ -234,6 +320,19 @@ def unavailable_reason(service: str) -> str | None:
     if not is_configured(service):
         return "unconfigured"
     return None
+
+
+def state(service: str) -> dict:
+    """État d'une intégration pour les écrans : activée (sinon rien ne s'affiche), disponible
+    (activée et configurée), message si elle est activée mais indisponible."""
+    enabled = is_enabled(service)
+    return {"enabled": enabled, "available": is_available(service),
+            "message": unavailable_message(service) if enabled else None}
+
+
+def required_message(service: str) -> str:
+    """Action courante qui a besoin d'une intégration désactivée."""
+    return f"Cette action nécessite l'intégration {SERVICE_LABELS[service]}, désactivée."
 
 
 def unavailable_message(service: str) -> str | None:

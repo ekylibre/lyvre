@@ -8,6 +8,9 @@ from app.extensions import db
 from app.models import IntegrationState, SyncJob
 from app.services import external_config, integrations
 
+# Interrupteurs d'intégration : ceux de l'instance de test (conftest), toutes activées.
+pytestmark = pytest.mark.usefixtures("instance")
+
 
 def test_every_service_has_a_description():
     assert set(external_config.SERVICE_DESCRIPTIONS) == set(external_config.SERVICE_KEYS)
@@ -18,19 +21,14 @@ def test_secret_keys_belong_to_their_service():
         assert key in external_config.SERVICE_KEYS[service]
 
 
-def test_enabled_by_default_without_row(app):
-    assert db.session.query(IntegrationState).count() == 0
-    for service in external_config.SERVICE_KEYS:
-        assert external_config.is_enabled(service) is True
-
-
 def test_set_enabled_round_trip(app):
     external_config.set_enabled("odoo", False)
     assert external_config.is_enabled("odoo") is False
     assert external_config.is_enabled("stancer") is True
     external_config.set_enabled("odoo", True)
     assert external_config.is_enabled("odoo") is True
-    assert db.session.query(IntegrationState).filter_by(service="odoo").count() == 1
+    # Interrupteur en base méta : la base de l'instance n'est pas touchée.
+    assert db.session.query(IntegrationState).count() == 0
 
 
 def test_set_enabled_unknown_service(app):

@@ -80,7 +80,7 @@ Voir [multi_tenant.md](multi_tenant.md) pour l'architecture du routage par requ�
 |---------|------|-------------|
 | `id` | Integer PK | |
 | `service` | String(30) NOT NULL UNIQUE | slug du service (`stancer`, `odoo`…) |
-| `enabled` | Boolean NOT NULL default `True` | interrupteur ; prime sur la base **et** sur le repli `.env` |
+| `enabled` | Boolean NOT NULL default `True` | ancien interrupteur : lu une seule fois, à l'initialisation de `instances.integrations` (une intégration désactivée ici le reste) ; plus écrit |
 | `checked_at` | DateTime nullable | date du dernier test (UTC) |
 | `check_ok` | Boolean nullable | résultat ; `NULL` = jamais testé |
 | `check_message` | Text nullable | message lisible, secrets masqués |
@@ -141,13 +141,14 @@ besoin de ligne. Voir [multi_tenant.md](multi_tenant.md#accès-par-instance-et-r
 | `label` | String(200) NOT NULL | Nom affiché (ex : « Seconde Nature ») |
 | `database_url` | String(500) NOT NULL | URL SQLAlchemy de la base tenant (SQLite relatif au dossier `instance/`, ou Postgres) |
 | `chart` | String(20) NOT NULL default=`asso` | Plan comptable de l'instance : `asso` (associations) ou `sci` (SCI). Choisi à la création, non modifiable ensuite ; pilote le référentiel chargé, les menus et la présentation du Bilan / Compte de résultat |
+| `integrations` | Text nullable | Intégrations de l'instance (JSON) : `{"enabled": [...], "dismissed": [...]}` — interrupteurs et propositions écartées (« Ne plus proposer »). `NULL` = jamais initialisée : à la première ouverture, activées = intégrations de la structure paramétrées dans sa base (`external_config.ensure_initialized`). Non restaurée avec une sauvegarde |
 | `has_associates` | Boolean NOT NULL default=False | Module « Associés » (sociétés) : menu et API `/associates`. Coché d'office à la création d'une instance au plan `sci` ; modifiable par l'administrateur de l'instance (Configuration › Structure) |
 | `is_active` | Boolean default=True | Faux = retirée du sélecteur d'instance ; sortie de session forcée si elle était choisie |
 | `created_at` | DateTime default=utcnow | |
 
 `slug`, `database_url` et `chart` sont **immuables** en UI après création (édition `label` + `is_active` uniquement). Cette contrainte évite les fuites du cache d'engines (`app/tenant.py:_ENGINE_CACHE`).
 
-La méta-base n'étant pas gérée par Alembic, `seed_meta.py` ajoute les colonnes `instances.chart` (valeur `asso`), `instances.has_associates` (valeur 0), `users.preferences` (valeur `{}`) et `users.must_change_password` (valeur 0) aux bases existantes (`ALTER TABLE` idempotent, à chaque démarrage du conteneur).
+La méta-base n'étant pas gérée par Alembic, `seed_meta.py` ajoute les colonnes `instances.chart` (valeur `asso`), `instances.has_associates` (valeur 0), `instances.integrations` (NULL), `users.preferences` (valeur `{}`) et `users.must_change_password` (valeur 0) aux bases existantes (`ALTER TABLE` idempotent, à chaque démarrage du conteneur).
 
 ---
 

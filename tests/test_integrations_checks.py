@@ -11,6 +11,9 @@ from app.extensions import db
 from app.models import IntegrationState
 from app.services import external_config, integrations
 
+# Interrupteurs d'intégration : ceux de l'instance de test (conftest), toutes activées.
+pytestmark = pytest.mark.usefixtures("instance")
+
 ODOO = {"url": "https://erp.example.org", "db": "prod", "username": "a@b.fr", "api_key": "odoo-secret-key"}
 
 
@@ -56,7 +59,7 @@ def test_run_check_refuses_disabled_without_calling_probe(app, monkeypatch):
     assert result.ok is False
     assert "désactivée" in result.message
     assert calls == []
-    assert db.session.query(IntegrationState).filter_by(service="smtp").one().checked_at is None
+    assert db.session.query(IntegrationState).filter_by(service="smtp").first() is None  # aucun test enregistré
 
 
 def test_run_check_refuses_incomplete_configuration(app, monkeypatch):

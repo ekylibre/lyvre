@@ -190,6 +190,7 @@ def test_reminders_targets_and_sending(client, monkeypatch):
     assert "SMTP" in _error(client.post("/api/v1/members/reminders", json={"ids": [expired.id]}), 409)["message"]
 
     from app.services import membership_reminders
+    external_config.set_enabled("smtp", True)
     monkeypatch.setattr(membership_reminders, "smtp_configured", lambda: True)
     sent = []
     monkeypatch.setattr(membership_reminders, "send_reminders",

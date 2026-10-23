@@ -14,7 +14,7 @@ from sqlalchemy.exc import ArgumentError
 from app.decorators import admin_required
 from app.extensions import db
 from app.models import Instance
-from app.services import instance_access, instance_backup
+from app.services import external_config, instance_access, instance_backup
 from app.services.attachments import uploads_dir_for
 from app.services.instance_access import AccessError
 from app.services.instance_backup import BackupError
@@ -103,13 +103,32 @@ def _created_notices(message, counts, grants):
 @admin_required
 def instances_list():
     return jsonify(items=[_instance(i) for i in db.session.query(Instance).order_by(Instance.label)],
-                   meta={"charts": [{"value": k, "label": v} for k, v in CHARTS.items()], "default_chart": DEFAULT_CHART})
+                   meta={"charts": [{"value": k, "label": v} for k, v in CHARTS.items()], "default_chart": DEFAULT_CHART,
+                         "integrations_by_chart": _integrations_by_chart()})
+
+
+def _integrations_by_chart() -> dict:
+    """Intégrations proposées à la création, par structure ; recommandées cochées par défaut."""
+    return {chart: [{"value": s, "label": external_config.SERVICE_LABELS[s],
+                     "recommended": s in external_config.recommended(chart)}
+                    for s in external_config.applicable(chart)] for chart in CHARTS}
+
+
+def _chosen_integrations(data, chart) -> list[str]:
+    """`integrations` : intégrations à activer (celles d'une autre structure sont ignorées) ;
+    absent : les recommandées de la structure."""
+    chosen = data.get("integrations")
+    if chosen is None:
+        return external_config.recommended(chart)
+    if not isinstance(chosen, list):
+        raise invalid("Liste d'intégrations attendue.", "integrations")
+    return [s for s in external_config.applicable(chart) if s in chosen]
 
 
 @bp.route("/instances", methods=["POST"])
 @admin_required
 def instances_create():
-    """`{slug, label, provisioning_mode: auto|manual, chart, database_url, members}` ; `members` :
+    """`{slug, label, provisioning_mode: auto|manual, chart, database_url, members, integrations}` ; `members` :
     `[{user_id, role} | {email, full_name?, password, role}]`, validés avant le provisioning."""
     data = json_body()
     try:
@@ -128,6 +147,7 @@ def instances_create():
     if bookkeeping == "simple" and chart != "asso":
         raise invalid("La comptabilité simplifiée est réservée au plan des associations.", "bookkeeping")
     grants = _grants(data.get("members"))
+    integrations = _chosen_integrations(data, chart)
     auto = data.get("provisioning_mode", "auto") == "auto"
     if auto:
         database_url = build_sqlite_url(slug)
@@ -141,6 +161,7 @@ def instances_create():
             raise invalid("URL de base de données obligatoire en mode manuel.", "database_url")
     inst = Instance(slug=slug, label=label, database_url=database_url, chart=chart, bookkeeping=bookkeeping,
                     has_associates=chart == "sci",
+                    integrations=json.dumps({"enabled": sorted(integrations), "dismissed": []}),
                     is_active=True)
     counts = _save_with_grants(inst, grants, lambda: discard_sqlite_database(database_url) if auto else None)
     return jsonify(item=_instance(inst), notices=_created_notices(f"Instance « {label} » créée", counts, grants)), 201

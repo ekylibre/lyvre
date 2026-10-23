@@ -323,7 +323,8 @@ def test_sync_route_failure_message_is_masked(admin, ba, monkeypatch):
 def test_sync_route_refused_when_disabled(admin, ba):
     external_config.set_enabled("qonto", False)
     resp = admin.post(f"/api/v1/bank-accounts/{ba.id}/qonto/sync")
-    assert resp.status_code == 409 and "Qonto désactivée" in resp.get_json()["error"]["message"]
+    error = resp.get_json()["error"]
+    assert resp.status_code == 409 and error["code"] == "integration_required" and "Qonto, désactivée" in error["message"]
     assert SyncJob.query.count() == 0
 
 

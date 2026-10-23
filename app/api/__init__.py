@@ -51,20 +51,21 @@ _HTTP_MESSAGES = {
 class ApiError(Exception):
     """Error returned to the client as JSON."""
 
-    def __init__(self, code, message, status=400, fields=None):
+    def __init__(self, code, message, status=400, fields=None, extra=None):
         super().__init__(message)
         self.code = code
         self.message = message
         self.status = status
         self.fields = fields or {}
+        self.extra = extra or {}
 
 
 def is_api_request() -> bool:
     return request.path.startswith(API_PREFIX)
 
 
-def error_response(code, message, status, fields=None):
-    body = {"code": code, "message": message}
+def error_response(code, message, status, fields=None, extra=None):
+    body = {"code": code, "message": message, **(extra or {})}
     if fields:
         body["fields"] = fields
     return jsonify(error=body), status
@@ -83,6 +84,18 @@ def get_or_404(model, object_id, message="Ressource introuvable."):
 def invalid(message, field=None):
     """Erreur de validation 422, rattachée à un champ du formulaire si `field` est donné."""
     return ApiError("validation_error", message, status=422, fields={field: message} if field else None)
+
+
+def require_integration(service):
+    """Action qui a besoin d'une intégration : 409 `integration_required` si elle est désactivée
+    (l'écran propose de l'activer), 409 `conflict` si elle est activée mais non configurée."""
+    from app.services import external_config
+
+    if not external_config.is_enabled(service):
+        raise ApiError("integration_required", external_config.required_message(service), status=409,
+                       extra={"service": service})
+    if not external_config.is_configured(service):
+        raise ApiError("conflict", external_config.unavailable_message(service), status=409)
 
 
 def notice(message, level="success"):
@@ -125,7 +138,7 @@ def register_api(app):
 
     @app.errorhandler(ApiError)
     def _api_error(e):
-        return error_response(e.code, e.message, e.status, e.fields)
+        return error_response(e.code, e.message, e.status, e.fields, e.extra)
 
     # App-level handlers: unmatched /api/... URLs never reach the blueprint.
     @app.errorhandler(CSRFError)
