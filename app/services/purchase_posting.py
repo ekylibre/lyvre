@@ -192,6 +192,9 @@ def post(p: Purchase):
     p.journal_entry = entry
     p.journal_entry_id = entry.id  # l'état « comptabilisée » se lit avant le flush
     p.review_reason = None
+    from app.services import lettering
+    db.session.flush()
+    lettering.sync_purchases([p])  # règlements déjà passés (facture recomptabilisée) : relettrés (F3)
     return entry
 
 

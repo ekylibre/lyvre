@@ -295,6 +295,12 @@ l'enregistrement), `/entries/<id>`, `/entries/<id>/edit` ([guide de saisie](sais
 
 | GET | `/api/v1/fiscal-years/<id>/period-lock` | Date de verrouillage (`locked_until`, `first_open_date`) ; `?until=` : aperçu (`drafts`, `problems`) |
 | POST | `/api/v1/fiscal-years/<id>/period-lock` | `{until}` : verrouille (lot F2), brouillards de la période validés (lot `lock`) ; 422 si la date recule ou sort de l'exercice ; 409 avec `problems` |
+| GET | `/api/v1/lettering/accounts` | Comptes lettrables mouvementés (`open_lines`, `open_balance_cents`), `gap_threshold_cents` (lot F3) |
+| GET | `/api/v1/lettering/accounts/<id>/lines` | `?state=open\|lettered\|all` ; lignes avec leur lettrage, `open_balance_cents` |
+| GET | `/api/v1/lettering/accounts/<id>/proposals` | Propositions (`pair`, `combination`) |
+| POST · DELETE | `/api/v1/lettering[/<id>]` | `{line_ids, gap?, proposal?}` lettrer (409 : comptes différents, non lettrable, déjà lettrée, écart au-delà du seuil) ; délettrer |
+| POST | `/api/v1/lettering/reprise` | Administrateur : lettrage des pièces déjà payées |
+| GET · PUT | `/api/v1/account-roles` | Comptes par défaut `{roles: {role: account_id\|null}, lettering_gap_cents}` (PUT : administrateur) |
 | POST | `/api/v1/fiscal-years/<id>/period-lock/rewind` | Administrateur : `{until \| null, reason}` recule ou retire le verrou |
 
 Toute modification ou suppression d'une écriture validée, par n'importe quelle route, est refusée

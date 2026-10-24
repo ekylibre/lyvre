@@ -13,7 +13,7 @@ TYPE_CODES = {code for code, _ in ACCOUNT_TYPES}
 
 def account_payload(a: Account) -> dict:
     return {"id": a.id, "code": a.code, "label": a.label, "account_type": a.account_type,
-            "is_header": a.is_header, "parent_code": a.parent.code if a.parent else None}
+            "is_header": a.is_header, "parent_code": a.parent.code if a.parent else None, "lettrable": a.lettrable}
 
 
 def _label_and_type(data):
@@ -60,6 +60,9 @@ def chart_create():
 def chart_update(account_id):
     """Libellé et type ; le code d'un compte ne change pas (écritures, règles, produits)."""
     account = get_or_404(Account, account_id, "Compte introuvable.")
-    account.label, account.account_type = _label_and_type(json_body())
+    data = json_body()
+    account.label, account.account_type = _label_and_type(data)
+    if "lettrable" in data:  # lot F3
+        account.lettrable = bool(data["lettrable"]) and not account.is_header
     db.session.commit()
     return jsonify(item=account_payload(account), notices=[notice(f"Compte {account.code} mis à jour.")])

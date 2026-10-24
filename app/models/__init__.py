@@ -7,6 +7,7 @@ from .journal import Journal
 from .journal_entry import JournalEntry
 from .journal_line import JournalLine
 from .validation import EntryEvent, ValidationBatch
+from .lettering import AccountRole, Lettering
 from .bank_account import BankAccount
 from .bank_transaction import BankTransaction
 from .odoo_import import OdooImportLine
@@ -64,6 +65,8 @@ __all__ = [
     "JournalEntry",
     "JournalLine",
     "EntryEvent",
+    "AccountRole",
+    "Lettering",
     "ValidationBatch",
     "BankAccount",
     "BankTransaction",

@@ -1,5 +1,11 @@
 from datetime import datetime
+
+from sqlalchemy import event
+
 from app.extensions import db
+
+# Lot F3 : comptes de tiers lettrables par défaut (TVA 445 exclue) ; modifiable par compte.
+LETTRABLE_PREFIXES = ("40", "41", "42", "43", "441", "45", "467", "468")
 
 ACCOUNT_TYPES = [
     ("ASSET", "Actif"),
@@ -22,6 +28,7 @@ class Account(db.Model):
     account_type = db.Column(db.String(20), nullable=False, default="OTHER")
     is_header = db.Column(db.Boolean, default=False, nullable=False)
     parent_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), nullable=True)
+    lettrable = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     parent = db.relationship("Account", remote_side=[id], backref="children")
@@ -51,3 +58,14 @@ class Account(db.Model):
 
     def __repr__(self):
         return f"<Account {self.code} {self.label}>"
+
+
+def default_lettrable(code: str) -> bool:
+    return any(code.startswith(prefix) for prefix in LETTRABLE_PREFIXES)
+
+
+@event.listens_for(Account, "before_insert")
+def _lettrable_by_prefix(mapper, connection, account):
+    """Un compte de tiers créé (401NNN, 411NNN, 4551…) est lettrable sans réglage."""
+    if not account.lettrable and not account.is_header and default_lettrable(account.code or ""):
+        account.lettrable = True

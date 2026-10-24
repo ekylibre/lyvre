@@ -18,6 +18,8 @@ SOURCE_SALE = "SALE"
 SALE_LOCKED_MESSAGE = "Écriture d'une facture de vente émise : elle se corrige par un avoir (Ventes)."
 # Contrepassation d'une écriture (lot F1) : écriture inverse liée par `reverses_entry_id`.
 SOURCE_CANCELLATION = "CANCELLATION"
+# Écriture d'écart de lettrage (lot F3), créée et retirée avec son lettrage.
+SOURCE_LETTERING = "LETTERING"
 INVENTORY_KINDS = ("accrued_expense", "accrued_income", "prepaid_expense", "deferred_income")
 
 

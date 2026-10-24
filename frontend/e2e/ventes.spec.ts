@@ -28,6 +28,12 @@ test("facture : saisie, émission, PDF, encaissement", async ({ page }) => {
   await dialog.getByRole("button", { name: "Encaisser" }).click();
   await expect(page.getByText("Payée", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("restant dû")).toBeVisible();
+
+  // Lot F3 : facture et encaissement lettrés sans action, sur le compte du client.
+  await page.goto("/lettering/");
+  await page.getByText("Lettrées", { exact: true }).click();
+  await expect(page.getByTitle("Lettré").first()).toBeVisible();
+  await expect(page.getByRole("link", { name: new RegExp(`^VE-${year}-`) })).toBeVisible();
 });
 
 test("bail : avis d'échéance émis, encaissé, quittance", async ({ page }) => {

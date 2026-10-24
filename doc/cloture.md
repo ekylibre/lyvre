@@ -39,6 +39,10 @@ motif** (5 caractères au moins), qui reste visible dans la liste des étapes.
    champs, équilibre, numérotation). Le SIREN doit être renseigné (Configuration › Structure).
    Les contrôles de l'étape 1 indiquent aussi le nombre d'écritures en brouillard (information).
 
+Étape 7 (ouverture de l'exercice suivant) : les comptes lettrables sont repris **ligne par ligne**
+(lignes non lettrées ou d'un lettrage partiel), pour être lettrés dans l'exercice suivant (voir
+[Lettrage](lettrage.md)).
+
 ## Clôture (étape 6)
 
 - **Clôture provisoire** — Possible quand les étapes 1 à 5 sont faites ou ignorées. Les écritures

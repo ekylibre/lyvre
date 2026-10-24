@@ -455,8 +455,15 @@ def opening_lines(fy) -> list[dict]:
     else:
         balances = {code: v for code, v in _balances(fy, BALANCE_SHEET_CLASSES).items() if v}
     accounts = {a.code: a for a in Account.query.filter(Account.code.in_(balances))} if balances else {}
-    lines = [{"account_id": accounts[code].id, "account_code": code, "label": accounts[code].label,
-              "debit_cents": max(v, 0), "credit_cents": max(-v, 0)} for code, v in sorted(balances.items())]
+    detailed = {} if cumulative else _open_lines_by_account(fy)
+    lines = []
+    for code in sorted(set(balances) | set(detailed)):
+        v = balances.get(code, 0)
+        if code in detailed:
+            lines += _detailed_lines(detailed[code], v)
+            continue
+        lines.append({"account_id": accounts[code].id, "account_code": code, "label": accounts[code].label,
+                      "debit_cents": max(v, 0), "credit_cents": max(-v, 0)})
     if cumulative:
         earlier = _cumulative(fy, ("6", "7"), fy.start_date, before=True)
         retained = -sum(earlier.values())  # produits (créditeurs) − charges (débitrices)
@@ -474,6 +481,40 @@ def opening_lines(fy) -> list[dict]:
         raise ClosingError(f"À-nouveaux déséquilibrés de {euros(gap)} : des comptes hors classes 1 à 7 "
                            "(classe 8 ?) ne sont pas soldés.", 422)
     return lines
+
+
+def _open_lines_by_account(fy) -> dict[str, list]:
+    """Lot F3 : lignes non lettrées (ou d'un lettrage partiel) des comptes lettrables de l'exercice."""
+    from app.services.lettering import _open
+    from app.models import Lettering
+    rows = (JournalLine.query.join(JournalEntry, JournalEntry.id == JournalLine.entry_id)
+            .join(Account, Account.id == JournalLine.account_id)
+            .outerjoin(Lettering, Lettering.id == JournalLine.lettering_id)
+            .filter(JournalEntry.fiscal_year_id == fy.id, Account.lettrable.is_(True), _open())
+            .order_by(Account.code, JournalEntry.entry_date, JournalLine.id).all())
+    grouped = {}
+    for line in rows:
+        if line.debit_cents or line.credit_cents:
+            grouped.setdefault(line.account.code, []).append(line)
+    return grouped
+
+
+def _detailed_lines(open_lines, balance) -> list[dict]:
+    """À-nouveaux détaillés d'un compte lettrable : une ligne par ligne ouverte, reliée à elle
+    (`carried_from_line_id`) ; un reste éventuel (lettrage à cheval sur deux exercices) en une ligne."""
+    rows = []
+    for line in open_lines:
+        entry = line.entry
+        text = f"{entry.reference or ''} {entry.entry_date:%d/%m/%Y} — {line.label or entry.description or ''}".strip()
+        rows.append({"account_id": line.account_id, "account_code": line.account.code, "label": text[:300],
+                     "debit_cents": line.debit_cents, "credit_cents": line.credit_cents,
+                     "carried_from_line_id": line.id, "entity_id": line.entity_id})
+    rest = balance - sum(r["debit_cents"] - r["credit_cents"] for r in rows)
+    if rest:
+        account = open_lines[0].account
+        rows.append({"account_id": account.id, "account_code": account.code, "label": f"{account.label} (non détaillé)",
+                     "debit_cents": max(rest, 0), "credit_cents": max(-rest, 0)})
+    return rows
 
 
 def create_next_fiscal_year(fy):
@@ -513,7 +554,8 @@ def generate_opening(fy, user_id=None, create_next=False):
     if lines:
         opening = post_entry(following.id, _journal(OPENING_JOURNAL).id, following.start_date,
                              f"À-nouveaux de l'exercice {fy.label}",
-                             [{k: line[k] for k in ("account_id", "debit_cents", "credit_cents")} for line in lines],
+                             [{k: line[k] for k in ("account_id", "debit_cents", "credit_cents", "label",
+                                                     "carried_from_line_id", "entity_id") if k in line} for line in lines],
                              source=SOURCE_OPENING, commit=False)
     reversals = []
     for entry in inventory_entries(fy):

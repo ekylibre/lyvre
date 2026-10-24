@@ -1155,6 +1155,25 @@ ouverte (`ledger.shifted_date`, exercice suivant si besoin) ; sinon `period_lock
 
 ---
 
+## lettering.py · account_roles.py — Lettrage (lot F3)
+
+| Fonction | Rôle |
+|----------|------|
+| `lettering.letter(lines, origin, gap, document, user_id)` | Lettrage (sans commit) : même compte lettrable, ≥ 2 lignes ; partiel si le solde n'est pas nul ; un lettrage partiel touché y est fusionné ; `gap` : écriture d'écart OD (rôles `lettering_gap_expense` / `_income`, `auto_date`) sous le seuil |
+| `unletter(lettering)` · `release(line_ids)` | Délettrer (écriture d'écart retirée) ; lignes qui disparaissent (`ledger._detach`) |
+| `sync_sales(sales)` · `sync_purchases(purchases)` | Lettrage par document (facture, avoirs, encaissements / règlements, composantes reliées par une même écriture), idempotent ; respecte un lettrage non `document` ; suit `carried_from_line_id` (`final_line`) |
+| `reprise()` | Lettrage initial des pièces déjà payées |
+| `accounts()` · `lines(account_id, state)` · `open_balance(account_id)` · `proposals(account_id)` | Lecture ; propositions bornées (200 lignes, 2 s) |
+| `account_roles.account_for(role)` · `listing()` · `set_role(role, account_id)` | Compte d'un rôle : choix de l'administrateur, sinon premier code du référentiel (`data/account_roles.json`) |
+
+Branchements : `sale_settlement` (encaissement, saisie, annulation), `sale_issue` (avoir),
+`purchase_settlement` (règlement, annulation), `purchase_posting` (comptabilisation),
+`ledger.reverse` (lettrage original / contrepassation), `closing.opening_lines` (à-nouveaux détaillés,
+reste « non détaillé »), `fec.build` (`EcritureLet`, `DateLet`, `CompAuxNum` des comptes client et
+fournisseur des tiers).
+
+---
+
 ## closing.py — Assistant de clôture
 
 Guide utilisateur : [Clôturer un exercice](cloture.md). Seule la décision de l'utilisateur est

@@ -280,6 +280,18 @@ validation ne changent que par `app/services/validation.py` ; aucune écriture (
 clôture) ne se crée, ne change ni ne se supprime à une date ≤ `fiscal_years.locked_until` (lot F2,
 migration `c2e4a6b8d0f1` : `locked_until`, `lock_before_close`). Refus : `LedgerGuardError` (API 409).
 
+## Lettering / AccountRole — Lettrage (lot F3)
+
+Migration `d3f5a7b9c1e3`. `accounts.lettrable` (défaut par préfixe : 40, 41, 42, 43, 441, 45, 467, 468 ;
+posé aussi à la création d'un compte). `letterings` : `account_id`, `code` (A… ; minuscules si
+partiel), `partial`, `balance_cents`, `lettered_on` (`DateLet`), `origin` (`document`, `auto`,
+`manual`, `import`, `reversal`), `document_type` · `document_id` (vente / achat lettrés par document),
+`gap_entry_id` (écriture d'écart, source `LETTERING`), `user_id`, `created_at`.
+`journal_lines.lettering_id` (colonne libre : se change sur une écriture validée ou verrouillée),
+`journal_lines.carried_from_line_id` (ligne d'à-nouveau → ligne d'origine non lettrée).
+`account_roles(role, account_id)` : compte choisi pour un rôle ; défauts par référentiel dans
+`data/account_roles.json`. `organization.lettering_gap_cents` (seuil d'écart, 100).
+
 ## ValidationBatch / EntryEvent — Validation et historique des écritures (lot F1)
 
 `validation_batches` (migration `b1d3f5a7c9e2`) : `fiscal_year_id`, `kind` (`manual`, `until`,

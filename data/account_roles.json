@@ -1,0 +1,7 @@
+{
+  "_comment": "Comptes choisis par Lyvre selon le référentiel (lot F3 et suivants) : premier code existant non regroupement, sinon premier sous-compte. Modifiables par l'administrateur (Configuration › Comptes par défaut). À relire par l'expert-comptable.",
+  "roles": {
+    "lettering_gap_expense": {"label": "Écart de lettrage (charge)", "asso": ["6588", "658"], "sci": ["671", "678"]},
+    "lettering_gap_income": {"label": "Écart de lettrage (produit)", "asso": ["758"], "sci": ["7718", "778"]}
+  }
+}

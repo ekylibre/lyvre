@@ -28,6 +28,8 @@ interface PosOrder {
 interface Detail {
   item: Entity; meta: EntitiesMeta;
   supplier: { account_code: string | null; balance_cents: number | null };
+  /** Lot F3 : solde non lettré des comptes du tiers. */
+  lettering?: { kind: "supplier" | "customer"; account_id: number; account_code: string; open_balance_cents: number }[];
   purchases: { id: number; url: string; issue_date: string | null; invoice_number: string | null;
     is_credit_note: boolean; is_hidden: boolean; total_cents: number; state: string }[];
   pos_orders: PosOrder[];
@@ -121,6 +123,15 @@ export default function EntityDetailPage() {
           )}
         </Paper>
       </SimpleGrid>
+      {!!data.lettering?.length && (
+        <Group gap="lg" mb="md">
+          {data.lettering.map((l) => (
+            <Text key={l.account_id} size="sm">Non lettré {l.kind === "customer" ? "client" : "fournisseur"} ({l.account_code}) :{" "}
+              <MoneyText cents={l.open_balance_cents} />{" · "}
+              <Anchor component={AppLink} href={`/lettering/?account=${l.account_id}`} size="sm">Lettrage</Anchor></Text>
+          ))}
+        </Group>
+      )}
 
       {data.purchases.length > 0 && (
         <Section title={`Factures d'achat (${data.purchases.length})`}>

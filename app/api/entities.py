@@ -178,6 +178,19 @@ def _pos_orders(entity_id):
             for o in orders]
 
 
+def _open_items(entity):
+    """Lot F3 : solde non lettré des comptes du tiers (fournisseur 401…, client 411…)."""
+    from app.models import Account
+    from app.services import lettering
+    rows = []
+    for kind, code in (("supplier", entity.account_code), ("customer", entity.customer_account_code)):
+        account = Account.query.filter_by(code=code).first() if code else None
+        if account is not None and account.lettrable:
+            rows.append({"kind": kind, "account_id": account.id, "account_code": account.code,
+                         "open_balance_cents": lettering.open_balance(account.id)})
+    return rows
+
+
 @bp.route("/tiers/<int:entity_id>")
 def tiers_detail(entity_id):
     """Fiche du tiers : identité et toutes ses pièces rattachées."""
@@ -212,6 +225,7 @@ def tiers_detail(entity_id):
                     "is_credit_note": p.is_credit_note, "is_hidden": p.is_hidden,
                     "total_cents": p.total_cents, "state": purchase_state(p).label} for p in purchases],
         pos_orders=_pos_orders(entity.id),
+        lettering=_open_items(entity),
         customer_invoices=[{
             "id": inv.id, "url": url_for("customer_invoices.detail", invoice_id=inv.id),
             "date": _iso(inv.invoice_date), "name": inv.name or str(inv.odoo_id), "ref": inv.ref,

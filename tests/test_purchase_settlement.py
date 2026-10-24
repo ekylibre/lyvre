@@ -242,3 +242,17 @@ def test_settlements_views(books, login_as):
     assert client.get("/api/v1/purchases/settlements").get_json() == {"replaceable": [], "manual": []}
     detail = client.get(f"/api/v1/purchases/{Purchase.query.one().id}").get_json()
     assert [p["status_label"] for p in detail["payments"]] == ["Réglée"]
+
+
+def test_settlement_letters_supplier_account(books):
+    """Lot F3 : facture d'achat et règlement lettrés sur le 401 du fournisseur, délettrés si défait."""
+    from app.models import Lettering
+    sync_transactions(books, payment())
+    sync_invoices(invoice())
+    item = Lettering.query.one()
+    assert item.origin == "document" and item.document_type == "purchase" and not item.partial
+    assert sorted((l.account.code, l.debit_cents, l.credit_cents) for l in item.lines) == [
+        ("401001", 0, 27177), ("401001", 27177, 0)]
+    settlement = _txn().journal_line.entry
+    delete_entries([settlement.id])
+    assert Lettering.query.count() == 0

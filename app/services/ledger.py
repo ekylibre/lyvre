@@ -216,6 +216,8 @@ def post_entry(fiscal_year_id, journal_id, entry_date, description, lines, sourc
             debit_cents=l.get("debit_cents", 0),
             credit_cents=l.get("credit_cents", 0),
             project_id=l.get("project_id"),
+            entity_id=l.get("entity_id"),
+            carried_from_line_id=l.get("carried_from_line_id"),
         ))
 
     if commit:
@@ -391,6 +393,8 @@ def _detach(entry):
     if line_ids:
         BankTransaction.query.filter(BankTransaction.journal_line_id.in_(line_ids)).update(
             {"journal_line_id": None, "reconciled": False}, synchronize_session="fetch")
+        from app.services import lettering
+        lettering.release(line_ids)  # lot F3 : lettrages des lignes défaits
     # SQLite n'applique pas les ON DELETE SET NULL.
     for model in (Purchase, PurchasePayment, AssociateExpense):
         model.query.filter(model.journal_entry_id == entry.id).update(
@@ -437,6 +441,13 @@ def reverse(entry, on_date=None, reason=None, user_id=None, commit=True):
                                      sorted(reversal.lines, key=lambda l: l.id)):
             inverse.entity_id = original.entity_id
         _detach(entry)
+        # Lot F3 : chaque ligne de tiers lettrée avec sa ligne inverse.
+        from app.services import lettering
+        db.session.flush()
+        for original, inverse in zip(sorted(entry.lines, key=lambda l: l.id),
+                                     sorted(reversal.lines, key=lambda l: l.id)):
+            if original.account.lettrable:
+                lettering.letter([original, inverse], origin="reversal", user_id=user_id)
         from app.models import EntryEvent
         from app.services.ledger_guard import _author
         author, origin = _author()

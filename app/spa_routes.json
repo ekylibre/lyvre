@@ -84,6 +84,8 @@
     {"rule": "/purchases/<int:purchase_id>", "endpoint": "purchases.detail"},
     {"rule": "/purchases/<int:purchase_id>/edit", "endpoint": "purchases.edit"},
     {"rule": "/subscriptions/", "endpoint": "subscriptions.index"},
+    {"rule": "/lettering/", "endpoint": "lettering.index"},
+    {"rule": "/configuration/account-roles", "endpoint": "account_roles.index"},
     {"rule": "/subscriptions/<int:sub_id>", "endpoint": "subscriptions.detail"},
     {"rule": "/sales/", "endpoint": "sales.index"},
     {"rule": "/sales/new", "endpoint": "sales.new"},

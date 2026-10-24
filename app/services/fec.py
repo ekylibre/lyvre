@@ -21,7 +21,7 @@ from datetime import datetime
 from flask import current_app
 
 from app.extensions import db
-from app.models import Account, Entity, FiscalYear, Journal, JournalEntry
+from app.models import Account, Entity, FiscalYear, Journal, JournalEntry, Lettering
 from app.models.fiscal_year import FY_OPEN
 from app.services import attachments, organization
 
@@ -160,6 +160,8 @@ def build(fy: FiscalYear, preview: bool = False) -> FecFile:
     journals = {j.id: j for j in Journal.query.all()}
     accounts = {a.id: a for a in Account.query.all()}
     tiers = {e.account_code: e.name for e in Entity.query.filter(Entity.account_code.isnot(None))}
+    tiers.update({e.customer_account_code: e.name for e in Entity.query.filter(Entity.customer_account_code.isnot(None))})
+    letterings = {l.id: l for l in Lettering.query.all()}
 
     entries = JournalEntry.query.filter_by(fiscal_year_id=fy.id).all()
     entries.sort(key=lambda e: (journals[e.journal_id].code != OPENING_JOURNAL, e.entry_date,
@@ -172,13 +174,13 @@ def build(fy: FiscalYear, preview: bool = False) -> FecFile:
         for line in sorted(entry.lines, key=lambda line: line.id):
             account = accounts[line.account_id]
             aux_num = aux_lib = ""
-            if account.code.startswith(TIERS_PREFIXES) and account.code in tiers:
+            if account.code in tiers:
                 aux_num, aux_lib = account.code, tiers[account.code]
             values = (
                 journal.code, journal.label, number, ymd(entry.entry_date), account.code, account.label,
                 aux_num, aux_lib, entry.reference or number, ymd(entry.entry_date),
                 line.label or entry.description or "", amount(line.debit_cents), amount(line.credit_cents),
-                "", "", ymd(entry.validated_at), "", "",
+                *_lettering_columns(letterings.get(line.lettering_id)), ymd(entry.validated_at), "", "",
             )
             rows.append(SEPARATOR.join(clean_text(v) for v in values))
             total_debit += line.debit_cents
@@ -186,6 +188,13 @@ def build(fy: FiscalYear, preview: bool = False) -> FecFile:
             lines += 1
     content = ("\r\n".join(rows) + "\r\n").encode(ENCODING)
     return FecFile(filename(fy, siren), content, lines, len(entries), total_debit, total_credit, warnings)
+
+
+def _lettering_columns(lettering) -> tuple[str, str]:
+    """`EcritureLet`, `DateLet` (lot F3) : code du lettrage (minuscules : partiel) et sa date."""
+    if lettering is None:
+        return "", ""
+    return lettering.code, ymd(lettering.lettered_on) if lettering.lettered_on else ""
 
 
 def preview(fy: FiscalYear) -> tuple[FecFile | None, list[str], list[str], list[str]]:

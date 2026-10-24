@@ -1,6 +1,6 @@
 // Compta › Plan comptable : recherche, création, modification (libellé et type).
 import { useMemo, useState } from "react";
-import { Button, Select, Text, TextInput } from "@mantine/core";
+import { Checkbox, Button, Select, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { api } from "../../api/client";
 import { useAction, useList, type Notice } from "../../api/resources";
@@ -14,6 +14,8 @@ import { useRouteModal } from "../../app/useRouteModal";
 
 export interface ChartAccount {
   id: number; code: string; label: string; account_type: string; is_header: boolean; parent_code: string | null;
+  /** Lot F3 : compte de tiers lettrable. */
+  lettrable?: boolean;
 }
 interface Meta { types: { value: string; label: string }[] }
 
@@ -34,7 +36,7 @@ function AccountForm({ account, types, onDone }: {
   const form = useForm({
     initialValues: {
       code: account?.code ?? "", label: account?.label ?? "",
-      account_type: account?.account_type ?? "OTHER", parent_code: "",
+      account_type: account?.account_type ?? "OTHER", parent_code: "", lettrable: account?.lettrable ?? false,
     },
   });
   const save = useAction((values: typeof form.values) => account
@@ -52,6 +54,10 @@ function AccountForm({ account, types, onDone }: {
           data-autofocus={!account || undefined} {...form.getInputProps("code")} />
         <TextInput label="Libellé" required data-autofocus={account ? true : undefined} {...form.getInputProps("label")} />
         <Select label="Type" data={types} allowDeselect={false} {...form.getInputProps("account_type")} />
+        {account && !account.is_header && (
+          <Checkbox label="Lettrable" description="Compte de tiers dont les lignes se lettrent (Compta › Lettrage)."
+            {...form.getInputProps("lettrable", { type: "checkbox" })} />
+        )}
         {!account && (
           <TextInput label="Compte parent" description="Code du compte de regroupement, facultatif."
             classNames={{ input: "lv-num" }} {...form.getInputProps("parent_code")} />

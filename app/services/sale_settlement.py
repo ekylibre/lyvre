@@ -114,6 +114,13 @@ def _check_allocations(allocations: list[tuple[Sale, int]]) -> None:
             raise SaleError(f"Le montant dépasse le restant dû de la facture {sale.number}.", "amount")
 
 
+def _letter(sales) -> None:
+    """Lot F3 : facture, avoirs et encaissements relettrés (sans commit)."""
+    from app.services import lettering
+    db.session.flush()
+    lettering.sync_sales(sales)
+
+
 def _post(allocations, when: date, ba: BankAccount, label: str, source: str, source_ref: str,
           auto_date: bool = False) -> JournalEntry:
     fy = fiscal_year_for(when)
@@ -227,6 +234,7 @@ def match(txn: BankTransaction, allocations: list[tuple[Sale, int]]) -> JournalE
             txn.entity_id = allocations[0][0].entity_id
         for sale, _ in allocations:
             refresh_status(sale)
+        _letter([sale for sale, _ in allocations])
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -246,6 +254,7 @@ def record_manual(sale: Sale, amount: int, paid_on: date, ba: BankAccount, metho
         db.session.add(SalePayment(sale=sale, amount_cents=amount, paid_on=paid_on, origin="manual", method=method,
                                    bank_account_id=ba.id, journal_entry_id=entry.id, vat_released_cents=released))
         refresh_status(sale)
+        _letter([sale])
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -313,6 +322,8 @@ def unlink(payment: SalePayment) -> None:
     (outcome,) = delete_entries([payment.journal_entry_id], reverse_validated=True)
     if outcome["status"] not in ("ok", "reversed"):
         raise SaleError(outcome["message"], status=409)
+    _letter(sales)
+    db.session.commit()
     from app.services import qonto_sales
     from app.services.qonto_client import QontoError
     for sale in sales:  # facture Qonto marquée payée : elle redevient à payer dans Qonto

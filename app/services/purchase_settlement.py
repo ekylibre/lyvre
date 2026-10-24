@@ -99,6 +99,13 @@ def _payments_of(txn: BankTransaction) -> list[PurchasePayment]:
     return PurchasePayment.query.filter_by(bank_transaction_id=txn.id).all()
 
 
+def _letter(purchases) -> None:
+    """Lot F3 : facture d'achat et règlements relettrés (sans commit)."""
+    from app.services import lettering
+    db.session.flush()
+    lettering.sync_purchases(purchases)
+
+
 def _settle_one(txn: BankTransaction, payments) -> JournalEntry:
     """Écriture de règlement rapprochée (sans commit) ; LedgerError si impossible."""
     if txn.is_reversed:
@@ -138,6 +145,7 @@ def _settle_one(txn: BankTransaction, payments) -> JournalEntry:
         payment.journal_entry_id = entry.id
     if txn.entity_id is None:
         txn.entity_id = entity.id
+    _letter(purchases)
     return entry
 
 
@@ -339,5 +347,7 @@ def unlink(payment: PurchasePayment) -> None:
         (outcome,) = delete_entries([payment.journal_entry_id], reverse_validated=True)
         if outcome["status"] not in ("ok", "reversed"):
             raise LedgerError(outcome["message"])
+    purchase = payment.purchase
     db.session.delete(payment)
+    _letter([purchase])
     db.session.commit()

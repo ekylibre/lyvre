@@ -112,6 +112,8 @@ def issue(sale: Sale) -> Sale:
             sale.invoice.status = "canceled"  # avoirs = montant de la facture : elle est annulée
         elif sale.kind == "credit_note":
             sale_settlement.refresh_status(sale.invoice)  # le restant dû baisse (payée si soldée)
+        if sale.kind == "credit_note":
+            sale_settlement._letter([sale])  # noqa: SLF001 — avoir lettré avec sa facture (F3)
         db.session.commit()
     except LedgerError as exc:
         db.session.rollback()
@@ -173,6 +175,8 @@ def record_external(sale: Sale, number: str, obj: dict | None = None) -> Sale:
         sale.invoice.status = "canceled"
     elif sale.kind == "credit_note":
         sale_settlement.refresh_status(sale.invoice)
+    if sale.kind == "credit_note":
+        sale_settlement._letter([sale])  # noqa: SLF001
     db.session.commit()
     try:
         if qonto_sales.fetch_pdf(sale):
