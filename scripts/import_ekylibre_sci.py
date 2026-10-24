@@ -67,6 +67,7 @@ def run_import(args, start: date, until: date) -> tuple[str, int]:
     from app.extensions import db
     from app.models import Instance, InstanceMembership
     app = create_app()
+    app.instance_path = str(meta_path.parent)  # pièces dans <dossier de la méta>/uploads/<slug>/
     with app.app_context():
         existing = db.session.query(Instance).filter_by(slug=args.slug).first()
         if (existing is not None or final.exists()) and not args.replace:
@@ -79,11 +80,14 @@ def run_import(args, start: date, until: date) -> tuple[str, int]:
         from app.services.ekylibre import importer
         from app.services.ekylibre.mapping import Chart
         with app.app_context():
-            g.current_instance = SimpleNamespace(slug=args.slug, chart="sci", bookkeeping="double", has_associates=True,
-                                                 integrations=None, id=None)
+            g.current_instance = SimpleNamespace(slug=args.slug, label=args.label, chart="sci", bookkeeping="double",
+                                                 has_associates=True, integrations=None, id=None)
             chart = Chart.from_database()
             mapping = report.plan(data, chart)
-            ctx = importer.run(data, mapping["accounts"], mapping["entities"], chart)
+            from app.services.ekylibre.reader import open_source
+            with open_source(args.source) as source:
+                ctx = importer.run(data, mapping["accounts"], mapping["entities"], chart, source=source,
+                                   attachments_from=args.attachments_from)
             db.session.commit()
             text = report.render(data, mapping, results, str(args.source), dry_run=False, imported=ctx)
             db.session.remove()
@@ -124,6 +128,8 @@ def main(argv=None) -> int:
     parser.add_argument("--slug", default="sci-chenes-verts")
     parser.add_argument("--label", default="SCI Chênes Verts")
     parser.add_argument("--copy-access-from", default="chenes-verts", help="instance dont les accès sont repris")
+    parser.add_argument("--attachments-from", type=int, default=2026,
+                        help="année à partir de laquelle les pièces des achats sont reprises (EK5)")
     parser.add_argument("--replace", action="store_true", help="recrée l'instance si elle existe (sauvegarde gardée)")
     parser.add_argument("--report", help="fichier du rapport Markdown")
     args = parser.parse_args(argv)

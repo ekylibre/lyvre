@@ -12,7 +12,8 @@ from datetime import date
 
 from app.extensions import db
 from app.models import (
-    Account, Associate, Entity, FiscalYear, Journal, JournalEntry, Lettering, ShareMovement, ShareMovementLine,
+    Account, Associate, BankAccount, BankTransaction, Entity, FiscalYear, Journal, JournalEntry, Lettering, Purchase,
+    PurchaseLine, PurchasePayment, Sale, SaleLine, SalePayment, ShareMovement, ShareMovementLine,
 )
 from app.models.journal_entry import SOURCE_OPENING
 from app.services import lettering, validation
@@ -47,6 +48,11 @@ class Context:
     absorbed: set = field(default_factory=set)                        # lignes de TVA d'achat retirées
     stats: Counter = field(default_factory=Counter)
     notes: list = field(default_factory=list)
+    bank_accounts: dict = field(default_factory=dict)                 # id de caisse Ekylibre → compte bancaire
+    transactions: dict = field(default_factory=dict)                  # id de ligne de relevé → transaction
+    purchases: dict = field(default_factory=dict)                     # id d'achat Ekylibre → facture d'achat
+    sales: dict = field(default_factory=dict)                         # id de vente Ekylibre → pièce de vente
+    attachments: list = field(default_factory=list)                   # (n° de facture, fichier, empreinte)
 
 
 # ------------------------------------------------------------------ E1 structure
@@ -271,8 +277,295 @@ def compare_balances(ctx: Context) -> list[str]:
             for code in sorted(set(expected) | set(actual)) if expected[code] != actual[code]]
 
 
-def run(data: EkyData, accounts_plan, entities_plan, chart: Chart) -> Context:
-    """Étapes K2 dans la base courante, sans commit (l'appelant valide ou annule le tout)."""
+# ------------------------------------------------------------------ E4 banque
+
+
+def step_bank(ctx: Context) -> None:
+    data = ctx.data
+    for cash in data.rows["cashes"]:
+        if cash.get("nature") != "bank_account":
+            continue
+        account = ctx.accounts.get(data.account_number(cash["main_account_id"]))
+        if account is None:
+            continue
+        bank = BankAccount(label=cash["name"][:100], iban=(cash.get("iban") or "").replace(" ", "")[:34] or None,
+                           kind="bank", account_id=account.id)
+        db.session.add(bank)
+        db.session.flush()
+        ctx.bank_accounts[cash["id"]] = bank
+        statements = {s["id"] for s in data.rows["bank_statements"] if s["cash_id"] == cash["id"]}
+        for item in data.statement_items():
+            if item["bank_statement_id"] not in statements:
+                continue
+            amount = cents(item["credit"]) - cents(item["debit"])
+            txn = BankTransaction(bank_account_id=bank.id, fitid=f"EKY-{item['id']}", transaction_date=day(item["transfered_on"]),
+                                  amount_cents=amount, label=(item.get("name") or "")[:500], source="ekylibre",
+                                  reconciled=False, is_reversed=False)
+            entity = ctx.entities.get(item.get("entity_id"))
+            if entity is not None:
+                txn.entity_id = entity.id
+            db.session.add(txn)
+            db.session.flush()
+            ctx.transactions[item["id"]] = txn
+            entry = ctx.entries.get(item.get("journal_entry_id"))
+            line = next((l for l in entry.lines if l.account_id == account.id
+                         and l.debit_cents - l.credit_cents == amount and l.bank_transaction is None), None) if entry else None
+            if line is None:
+                ctx.notes.append(f"Ligne de relevé du {item['transfered_on']} « {item.get('name')} » ({amount / 100:.2f} €) "
+                                 "sans écriture rapprochable.")
+                continue
+            txn.journal_line_id, txn.reconciled = line.id, True
+            ctx.stats["bank_reconciled"] += 1
+        ctx.stats["bank_transactions"] += len([t for t in ctx.transactions.values() if t.bank_account_id == bank.id])
+    db.session.flush()
+
+
+# ------------------------------------------------------------------ E5 achats
+
+
+def _associate_for_cash(ctx: Context, cash_id) -> Associate | None:
+    cash = ctx.data.get("cashes", cash_id)
+    account = ctx.accounts.get(ctx.data.account_number(cash.get("main_account_id"))) if cash else None
+    return Associate.query.filter_by(account_id=account.id).first() if account else None
+
+
+def _transaction_of(ctx: Context, eky_entry_id):
+    item = ctx.data.statement_items_by_entry.get(eky_entry_id)
+    return ctx.transactions.get(item["id"]) if item else None
+
+
+def step_purchases(ctx: Context) -> None:
+    data = ctx.data
+    payments_by_affair = defaultdict(list)
+    for payment in data.rows["outgoing_payments"]:
+        if payment.get("affair_id"):
+            payments_by_affair[payment["affair_id"]].append(payment)
+    for row in data.purchases():
+        entry = ctx.entries.get(row.get("journal_entry_id"))
+        entity = ctx.entities.get(row["supplier_id"])
+        total = sum(cents(i["amount"]) for i in data.purchase_items[row["id"]])
+        credit = total < 0
+        purchase = Purchase(source="ekylibre", entity=entity, supplier_name=entity.name if entity else None,
+                            invoice_number=(row.get("reference_number") or row.get("number") or "")[:100] or None,
+                            issue_date=day(row["invoiced_at"]), due_date=day(row.get("payment_at")),
+                            total_cents=abs(total), untaxed_cents=abs(total), tax_cents=0, payable_cents=abs(total),
+                            is_credit_note=credit, lines_edited=True,
+                            journal_entry_id=entry.id if entry else None,
+                            raw_payload=None)
+        for position, item in enumerate(data.purchase_items[row["id"]]):
+            account = ctx.accounts.get(data.account_number(item.get("account_id")))
+            amount = abs(cents(item["amount"]))
+            purchase.lines.append(PurchaseLine(position=position, account_id=account.id if account else None,
+                                               label=(item.get("label") or "")[:300], untaxed_cents=amount, vat_rate_bp=0,
+                                               vat_cents=0, total_cents=amount))
+        db.session.add(purchase)
+        db.session.flush()
+        ctx.purchases[row["id"]] = purchase
+        if entry is None:
+            ctx.notes.append(f"Achat {row.get('number')} sans écriture reprise.")
+        last_paid = None
+        for payment in payments_by_affair.get(row.get("affair_id"), []):
+            pay_entry = ctx.entries.get(payment.get("journal_entry_id"))
+            if pay_entry is None:
+                ctx.notes.append(f"Règlement {payment.get('number')} de l'achat {row.get('number')} hors période ou sans écriture.")
+                continue
+            associate = _associate_for_cash(ctx, payment.get("cash_id"))
+            if associate is not None:
+                link = PurchasePayment(purchase_id=purchase.id, origin="associate", associate_id=associate.id,
+                                       journal_entry_id=pay_entry.id)
+            else:
+                txn = _transaction_of(ctx, payment.get("journal_entry_id"))
+                link = PurchasePayment(purchase_id=purchase.id, origin="match", journal_entry_id=pay_entry.id,
+                                       bank_transaction_id=txn.id if txn else None)
+            if not PurchasePayment.query.filter_by(purchase_id=purchase.id, journal_entry_id=pay_entry.id).first():
+                db.session.add(link)
+                ctx.stats["purchase_payments"] += 1
+            paid = day(payment.get("paid_at") or payment.get("to_bank_at"))
+            last_paid = max(filter(None, (last_paid, paid)), default=None)
+        purchase.payment_date = last_paid
+        ctx.stats["purchases"] += 1
+    affairs = {row.get("affair_id") for row in data.purchases()}
+    for payment in data.outgoing_payments():
+        if payment.get("affair_id") not in affairs:
+            ctx.notes.append(f"Règlement {payment.get('number')} du {payment.get('paid_at', '')[:10]} "
+                             f"({cents(payment['amount']) / 100:.2f} €) sans facture d'achat de la période : écriture reprise seule.")
+    db.session.flush()
+
+
+# ------------------------------------------------------------------ E6 ventes
+
+
+METHODS = {"virement": "transfer", "cheque": "check", "chèque": "check", "especes": "cash", "espèces": "cash"}
+
+
+def step_sales(ctx: Context) -> None:
+    from app.services.sale_settlement import refresh_status
+    data = ctx.data
+    rows = sorted(data.sales(), key=lambda s: (s.get("invoiced_at") or s.get("created_at"), int(s["id"])))
+    for row in rows:
+        entity = ctx.entities.get(row["client_id"])
+        if entity is None:
+            raise ImportFailure(f"Vente {row.get('number')} : client non repris.")
+        kind = "quote" if row.get("state") == "estimate" else "credit_note" if row.get("credit") == "t" else "invoice"
+        draft = row.get("state") == "draft"  # brouillon Ekylibre : brouillon Lyvre, sans numéro ni écriture
+        if draft:
+            ctx.notes.append(f"Vente {row.get('number')} en brouillon dans Ekylibre : reprise en brouillon (sans numéro).")
+        sale = Sale(kind=kind, status="draft" if draft else "issued", source="ekylibre",
+                    number=None if draft else (row.get("number") or "")[:40] or None,
+                    entity_id=entity.id, issue_date=day(row.get("invoiced_at") or row.get("created_at")),
+                    due_date=day(row.get("payment_at")), untaxed_cents=abs(cents(row.get("pretax_amount"))),
+                    total_cents=abs(cents(row.get("amount"))), tax_cents=abs(cents(row.get("amount"))) - abs(cents(row.get("pretax_amount"))),
+                    journal_entry_id=ctx.entries[row["journal_entry_id"]].id if row.get("journal_entry_id") in ctx.entries else None)
+        if kind == "credit_note" and row.get("credited_sale_id") in ctx.sales:
+            sale.invoice_id = ctx.sales[row["credited_sale_id"]].id
+        for position, item in enumerate(data.sale_items[row["id"]]):
+            account = ctx.accounts.get(data.account_number(item.get("account_id")))
+            quantity = abs(float(item.get("quantity") or 1))
+            sale.lines.append(SaleLine(position=position, label=(item.get("label") or "Prestation")[:300],
+                                       quantity_milli=int(round(quantity * 1000)),
+                                       unit_price_cents=abs(cents(item.get("unit_pretax_amount"))),
+                                       untaxed_cents=abs(cents(item.get("pretax_amount"))), vat_cents=abs(cents(item.get("amount"))) - abs(cents(item.get("pretax_amount"))),
+                                       total_cents=abs(cents(item.get("amount"))), account_id=account.id if account else None))
+        db.session.add(sale)
+        db.session.flush()
+        ctx.sales[row["id"]] = sale
+        ctx.stats["sales"] += 1
+    # Encaissements par affaire, répartis sur les factures de l'affaire (plus anciennes d'abord).
+    modes = {m["id"]: METHODS.get((m.get("name") or "").lower(), "transfer") for m in data.rows["incoming_payment_modes"]}
+    by_affair = defaultdict(list)
+    for row in rows:
+        if row.get("affair_id") and row["id"] in ctx.sales and ctx.sales[row["id"]].kind == "invoice":
+            by_affair[row["affair_id"]].append(ctx.sales[row["id"]])
+    for payment in data.incoming_payments():
+        sales = by_affair.get(payment.get("affair_id"), [])
+        entry = ctx.entries.get(payment.get("journal_entry_id"))
+        if not sales or entry is None:
+            ctx.notes.append(f"Encaissement {payment.get('number')} ({cents(payment['amount']) / 100:.2f} €) non rattaché à une facture reprise.")
+            continue
+        txn = _transaction_of(ctx, payment.get("journal_entry_id"))
+        remaining = cents(payment["amount"])
+        for sale in sales:
+            due = sale.total_cents - sum(p.amount_cents for p in SalePayment.query.filter_by(sale_id=sale.id))
+            share = min(remaining, max(due, 0)) if sale is not sales[-1] else remaining
+            if share <= 0:
+                continue
+            db.session.add(SalePayment(sale_id=sale.id, amount_cents=share, paid_on=day(payment["paid_at"] or payment["to_bank_at"]),
+                                       origin="bank" if txn else "manual", method=modes.get(payment.get("mode_id"), "transfer"),
+                                       bank_transaction_id=txn.id if txn else None,
+                                       bank_account_id=txn.bank_account_id if txn else None, journal_entry_id=entry.id))
+            db.session.flush()
+            remaining -= share
+            ctx.stats["sale_payments"] += 1
+            if remaining <= 0:
+                break
+    for sale in ctx.sales.values():
+        if sale.kind == "invoice" and sale.status != "draft":
+            refresh_status(sale)
+    db.session.flush()
+
+
+# ------------------------------------------------------------------ E8 immobilisations
+
+
+def _land_account(ctx: Context) -> Account:
+    for code in ("2111", "211"):
+        account = Account.query.filter_by(code=code).first()
+        if account is not None and not account.is_header:
+            return account
+    parent = Account.query.filter_by(code="211").first()
+    account = Account.query.filter_by(code="211000").first() or Account(code="211000", label="Terrains", account_type="ASSET",
+                                                                        parent=parent)
+    db.session.add(account)
+    db.session.flush()
+    return account
+
+
+LAND_WORDS = ("terre", "terrain", "bois", "foret", "forêt", "pré", "parcelle")
+
+
+def step_assets(ctx: Context) -> None:
+    """Fiches d'immobilisation (EK6) et écriture de reclassement des terrains au premier jour (brouillard)."""
+    from app.services import assets as assets_service
+    data = ctx.data
+    land_total, building = 0, None
+    for row in data.rows["fixed_assets"]:
+        number = data.account_number(row.get("asset_account_id"))
+        account = ctx.accounts.get(number)
+        if account is None:
+            raise ImportFailure(f"Immobilisation {row['name']} : compte {number} non repris.")
+        is_land = any(w in (row["name"] or "").lower() for w in LAND_WORDS)
+        target = _land_account(ctx) if is_land and account.code.startswith("213") else account
+        amount = cents(row["depreciable_amount"])
+        assets_service.save(None, {"label": row["name"], "account_id": target.id, "acquired_on": row["started_on"],
+                                   "in_service_date": row["started_on"], "acquisition_cents": amount,
+                                   "method": "none" if row.get("depreciation_method") == "none" else "linear",
+                                   "duration_months": None if row.get("depreciation_method") == "none" else
+                                   int(round(1200 / float(row.get("depreciation_percentage") or 20))),
+                                   "notes": "Reprise Ekylibre"})
+        ctx.stats["assets"] += 1
+        if target.id != account.id:
+            land_total += amount
+            building = account
+    if land_total:
+        fy = next(fy for fy in ctx.years.values() if fy.start_date == data.start)
+        land = _land_account(ctx)
+        entry = post_entry(fy.id, _journal_od().id, data.start, "Reclassement des terrains (Bois, Terres) en 211 — reprise Ekylibre", [
+                               {"account_id": land.id, "label": "Terrains", "debit_cents": land_total, "credit_cents": 0},
+                               {"account_id": building.id, "label": "Terrains", "debit_cents": 0, "credit_cents": land_total}],
+                           source=SOURCE_EKYLIBRE, source_ref="RECLASSEMENT-TERRAINS", commit=False)
+        ctx.notes.append(f"Reclassement des terrains : {entry.reference}, {land_total / 100:.2f} € de {building.code} "
+                         f"vers {land.code} au {data.start:%d/%m/%Y} (brouillard, à valider avec l'expert-comptable).")
+
+
+def _journal_od() -> Journal:
+    journal = Journal.query.filter_by(code="OD").first()
+    if journal is None:
+        journal = Journal(code="OD", label="Opérations diverses")
+        db.session.add(journal)
+        db.session.flush()
+    return journal
+
+
+# ------------------------------------------------------------------ E9 pièces 2026
+
+
+def step_attachments(ctx: Context, source, year_from: int) -> None:
+    """Pièces des factures d'achat à partir de `year_from` (EK5 : 2026), copiées dans le dossier de l'instance."""
+    import hashlib
+    from pathlib import Path
+
+    from app.services import attachments
+    for eky_id, purchase in ctx.purchases.items():
+        if purchase.issue_date is None or purchase.issue_date.year < year_from:
+            continue
+        documents = ctx.data.documents_of("Purchase", eky_id)
+        for document in documents[:1]:
+            found = source.document_file(document["id"])
+            if found is None:
+                ctx.notes.append(f"Pièce introuvable dans l'archive pour l'achat {purchase.invoice_number}.")
+                continue
+            name, content = found
+            kind = attachments.sniff(content[:16])
+            if kind is None:
+                ctx.notes.append(f"Pièce de l'achat {purchase.invoice_number} : type non accepté ({name}).")
+                continue
+            original = document.get("file_file_name") or f"facture{kind[1]}"
+            relative = Path("achats", f"{purchase.issue_date.year:04d}", f"{purchase.issue_date.month:02d}",
+                            f"{purchase.id}-{attachments.safe_name(original, kind[1])}")
+            target = attachments.instance_dir() / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(content)
+            purchase.attachment_path, purchase.attachment_name = relative.as_posix(), original[:200]
+            purchase.attachment_mime, purchase.attachment_size = kind[0], len(content)
+            ctx.attachments.append((purchase.invoice_number, original, hashlib.sha256(content).hexdigest()[:16]))
+            ctx.stats["attachments"] += 1
+        if len(documents) > 1:
+            ctx.notes.append(f"Achat {purchase.invoice_number} : {len(documents)} pièces, la première seule est reprise.")
+    db.session.flush()
+
+
+def run(data: EkyData, accounts_plan, entities_plan, chart: Chart, source=None, attachments_from: int | None = None) -> Context:
+    """Étapes K2-K3 dans la base courante, sans commit (l'appelant valide ou annule le tout)."""
     ctx = Context(data, chart, accounts_plan, entities_plan)
     step_structure(ctx)
     step_associates(ctx)
@@ -281,4 +574,10 @@ def run(data: EkyData, accounts_plan, entities_plan, chart: Chart) -> Context:
     gaps = compare_balances(ctx)
     if gaps:
         raise ImportFailure("Balance différente d'Ekylibre : " + " ; ".join(gaps[:10]))
+    step_bank(ctx)
+    step_purchases(ctx)
+    step_sales(ctx)
+    step_assets(ctx)
+    if source is not None and attachments_from:
+        step_attachments(ctx, source, attachments_from)
     return ctx

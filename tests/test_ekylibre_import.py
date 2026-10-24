@@ -53,16 +53,36 @@ def build_sql():
             (3, 3, 2, "RG000001", "confirmed", "2025-01-01", "À-nouveaux", None, None),
             (4, 2, 2, "ACHA000001", "draft", "2025-03-10", "Facture EDF", "Purchase", 1),
             (5, 1, 2, "BANQ000002", "draft", "2025-03-20", "PRELEVEMENT EDF", None, None),
-            (6, 1, 3, "BANQ000003", "draft", "2026-07-10", "PRELEVEMENT EDF juillet", None, None)]),
+            (6, 1, 3, "BANQ000003", "draft", "2026-07-10", "PRELEVEMENT EDF juillet", None, None),
+            (7, 6, 2, "VENT000001", "draft", "2025-04-01", "Loyer avril", "Sale", 1),
+            (8, 1, 2, "BANQ000004", "draft", "2025-04-10", "VIR LOCATAIRE", None, None),
+            (9, 1, 1, "BANQ000000", "closed", "2024-01-01", "Apport de l'immeuble", None, None)]),
         copy_block("journal_entry_items", ["id", "entry_id", "account_id", "name", "real_debit", "real_credit",
                                            "letter", "position"], [
             (1, 1, 8, "Apport", "1000.00", "0.00", None, 1), (2, 1, 6, "Apport", "0.00", "1000.00", None, 2),
             (3, 2, 8, "Clôture", "0.00", "1000.00", None, 1), (4, 2, 6, "Clôture", "1000.00", "0.00", None, 2),
             (5, 3, 8, "AN", "1000.00", "0.00", None, 1), (6, 3, 6, "AN", "0.00", "1000.00", None, 2),
+            (14, 3, 4, "AN", "1000.00", "0.00", None, 3), (15, 3, 1, "AN", "0.00", "1000.00", None, 4),
             (7, 4, 9, "Électricité", "100.00", "0.00", None, 1), (8, 4, 10, "TVA", "20.00", "0.00", None, 2),
             (9, 4, 5, "EDF", "0.00", "120.00", "A", 3),
             (10, 5, 5, "EDF", "120.00", "0.00", "A", 1), (11, 5, 8, "EDF", "0.00", "120.00", None, 2),
-            (12, 6, 5, "EDF", "50.00", "0.00", None, 1), (13, 6, 8, "EDF", "0.00", "50.00", None, 2)]),
+            (12, 6, 5, "EDF", "50.00", "0.00", None, 1), (13, 6, 8, "EDF", "0.00", "50.00", None, 2),
+            (16, 7, 12, "Loyer", "500.00", "0.00", "B", 1), (17, 7, 11, "Loyer", "0.00", "500.00", None, 2),
+            (18, 8, 8, "VIR", "500.00", "0.00", None, 1), (19, 8, 12, "VIR", "0.00", "500.00", "B", 2),
+            (20, 9, 4, "Immeuble", "1000.00", "0.00", None, 1), (21, 9, 1, "Capital", "0.00", "1000.00", None, 2)]),
+        copy_block("outgoing_payments", ["id", "number", "amount", "paid_at", "cash_id", "journal_entry_id", "affair_id",
+                                         "payee_id"], [(1, "OP1", "120.00", "2025-03-20", 1, 5, 1, 1)]),
+        copy_block("sales", ["id", "number", "client_id", "state", "credit", "invoiced_at", "created_at", "amount",
+                             "pretax_amount", "journal_entry_id", "affair_id", "payment_at"], [
+            (1, "V001", 4, "invoice", "f", "2025-04-01 00:00:00", "2025-04-01 00:00:00", "500.00", "500.00", 7, 2,
+             "2025-04-30 00:00:00"),
+            (2, "V002", 4, "draft", "f", None, "2026-01-16 00:00:00", "300.00", "300.00", None, 3, None)]),
+        copy_block("sale_items", ["id", "sale_id", "label", "quantity", "unit_pretax_amount", "pretax_amount", "amount",
+                                  "account_id"], [(1, 1, "Loyer avril", "1.0", "500.00", "500.00", "500.00", 11),
+                                                  (2, 2, "Loyer", "1.0", "300.00", "300.00", "300.00", 11)]),
+        copy_block("incoming_payment_modes", ["id", "name", "cash_id"], [(1, "virement", 1)]),
+        copy_block("incoming_payments", ["id", "number", "amount", "paid_at", "mode_id", "journal_entry_id", "affair_id",
+                                         "payer_id"], [(1, "IP1", "500.00", "2025-04-10", 1, 8, 2, 4)]),
         copy_block("purchases", ["id", "supplier_id", "number", "reference_number", "amount", "pretax_amount",
                                  "invoiced_at", "journal_entry_id", "tax_payability", "affair_id"], [
             (1, 1, "A001", "FAC-1", "120.00", "100.00", "2025-03-10 00:00:00", 4, "at_invoicing", 1)]),
@@ -73,7 +93,8 @@ def build_sql():
         copy_block("bank_statement_items", ["id", "bank_statement_id", "name", "debit", "credit", "transfered_on",
                                             "journal_entry_id", "letter"], [
             (1, 1, "Apport", "0.00", "1000.00", "2024-06-01", 1, "A"),
-            (2, 1, "PRELEVEMENT EDF FACTURE 2025-03", "120.00", "0.00", "2025-03-20", 5, "B")]),
+            (2, 1, "PRELEVEMENT EDF FACTURE 2025-03", "120.00", "0.00", "2025-03-20", 5, "B"),
+            (3, 1, "VIR LOCATAIRE SARL LOYER", "0.00", "500.00", "2025-04-10", 8, "C")]),
         copy_block("attachments", ["id", "resource_type", "resource_id", "document_id", "deleted_at"], [
             (1, "Purchase", 1, 7, None)]),
         copy_block("documents", ["id", "name", "file_file_name", "file_content_text"], [
@@ -82,7 +103,8 @@ def build_sql():
                                   "started_on", "associate_account_id"], [
             (1, 2, "60", "10.00", "owner", "2019-01-01", 6), (2, 3, "40", "10.00", "owner", "2019-01-01", 7)]),
         copy_block("fixed_assets", ["id", "name", "depreciable_amount", "depreciation_method", "started_on",
-                                    "asset_account_id", "state"], [(1, "Maison", "1000.00", "none", "2019-01-01", 4, "in_use")]),
+                                    "asset_account_id", "state"], [(1, "Maison", "800.00", "none", "2019-01-01", 4, "in_use"),
+                                                                   (2, "Terres", "200.00", "none", "2019-01-01", 4, "in_use")]),
     ]
     return "-- dump fabriqué pour les tests\n" + "\n".join(blocks)
 
@@ -120,17 +142,17 @@ def test_source_zip_and_folder(archive, tmp_path):
 
 def test_period_filters(archive):
     data = load(archive)
-    assert [e["number"] for e in data.entries()] == ["RG000001", "ACHA000001", "BANQ000002"]
+    assert [e["number"] for e in data.entries()] == ["RG000001", "ACHA000001", "BANQ000002", "VENT000001", "BANQ000004"]
     assert [e["number"] for e in data.entries_after()] == ["BANQ000003"]
-    assert len(data.purchases()) == 1 and len(data.statement_items()) == 1
+    assert len(data.purchases()) == 1 and len(data.statement_items()) == 2 and len(data.sales()) == 2
     assert cents("1234.565") == 123457 and data.documents_of("Purchase", "1")[0]["id"] == "7"
 
 
 def test_checks(archive):
     results = {c.key: c for c in checks.run(load(archive))}
     assert results["balanced"].ok and results["opening"].ok
-    assert results["bank_1"].ok  # 1 000 − 120 = 880 des deux côtés
-    assert "20.00 €" in results["vat"].label and results["associates"].ok is False  # 100 parts × 10 € ≠ capital nul
+    assert results["bank_1"].ok  # 1 000 − 120 + 500 des deux côtés
+    assert "20.00 €" in results["vat"].label and results["associates"].ok  # 100 parts × 10 € = capital
     assert results["after"].details and "BANQ000003" in results["after"].details[0]
 
 
@@ -160,7 +182,7 @@ def test_report_and_dry_run_script(archive, tmp_path):
     spec.loader.exec_module(module)
     out = tmp_path / "rapport.md"
     code = module.main([str(archive), "--dry-run", "--report", str(out)])
-    assert code == 0 and out.read_text(encoding="utf-8").startswith("# Rapport de reprise")  # registre : signalé, non bloquant
+    assert code == 0 and out.read_text(encoding="utf-8").startswith("# Rapport de reprise")
     with pytest.raises(SystemExit):
         module.main([str(archive)])  # import sans --meta-url : refusé
 
@@ -173,7 +195,7 @@ def _mini_chart():
     from app.models import Account
     for code, label, header in (("101", "Capital", True), ("11", "Report", True), ("12", "Résultat", True),
                                 ("213", "Constructions", True), ("401", "Fournisseurs", True), ("411", "Clients", True),
-                                ("445", "État TVA", True), ("455", "Associés", True), ("512", "Banque", True),
+                                ("445", "État TVA", True), ("455", "Associés", True), ("512", "Banque", True), ("211", "Terrains", True),
                                 ("511", "Valeurs à l'encaissement", True), ("6061", "Fournitures", True),
                                 ("60613", "Électricité", False), ("708", "Produits annexes", True)):
         db.session.add(Account(code=code, label=label, account_type="OTHER", is_header=header))
@@ -195,7 +217,7 @@ def test_import_entries_vat_states_lettering_associates(app, archive):
     from app.models import Account, Associate, JournalEntry, Lettering, ShareMovement
     ctx = _import(archive)
     db.session.commit()
-    assert ctx.stats["entries"] == 3 and JournalEntry.query.count() == 3
+    assert ctx.stats["entries"] == 5 and JournalEntry.query.count() == 6  # + reclassement des terrains
     purchase = JournalEntry.query.filter_by(source_ref="ACHA000001").one()
     assert sorted((l.account.code, l.debit_cents, l.credit_cents) for l in purchase.lines) == [
         ("401007", 0, 12000), ("60613", 12000, 0)]  # TVA intégrée à la charge (EK3)
@@ -203,8 +225,8 @@ def test_import_entries_vat_states_lettering_associates(app, archive):
     opening = JournalEntry.query.filter_by(source_ref="RG000001").one()
     assert opening.source == "OPENING" and opening.journal.code == "AN" and opening.is_validated
     assert not purchase.is_validated and purchase.journal.code == "AC"
-    (item,) = Lettering.query.all()
-    assert item.code == "A" and not item.partial and item.account.code == "401007"
+    letters = {l.account.code: l for l in Lettering.query.all()}
+    assert letters["401007"].code == "A" and not letters["401007"].partial and letters["411003"].code == "B"
     assert Associate.query.count() == 2 and ShareMovement.query.one().kind == "opening"
     assert Account.query.filter_by(code="4551001").one().label == "Compte courant — Alice"
     assert Account.query.filter_by(code="51201").one().parent.code == "512"
@@ -220,3 +242,35 @@ def test_import_refuses_unknown_account(app, archive):
     plan["accounts"].pop("60613000")
     with pytest.raises(importer.ImportFailure):
         importer.run(data, plan["accounts"], plan["entities"], chart)
+
+
+def test_import_bank_documents_assets(app, archive, tmp_path, monkeypatch):
+    _mini_chart()
+    from app.extensions import db
+    from app.models import Asset, BankTransaction, JournalEntry, Purchase, Sale, SalePayment
+    from app.services.ekylibre import importer, report
+    from app.services.ekylibre.mapping import Chart
+    monkeypatch.setattr(app, "instance_path", str(tmp_path))
+    data = load(archive)
+    chart = Chart.from_database()
+    plan = report.plan(data, chart)
+    with open_source(archive) as source:
+        ctx = importer.run(data, plan["accounts"], plan["entities"], chart, source=source, attachments_from=2025)
+    db.session.commit()
+    txns = BankTransaction.query.order_by(BankTransaction.transaction_date).all()
+    assert [(t.amount_cents, t.reconciled, t.source) for t in txns] == [(-12000, True, "ekylibre"), (50000, True, "ekylibre")]
+    purchase = Purchase.query.one()
+    assert (purchase.source, purchase.total_cents, purchase.tax_cents, purchase.invoice_number) == ("ekylibre", 12000, 0, "FAC-1")
+    assert [l.total_cents for l in purchase.lines] == [12000] and purchase.journal_entry_id
+    (payment,) = purchase.payments
+    assert payment.origin == "match" and payment.bank_transaction_id == txns[0].id
+    stored = tmp_path / "uploads" / "default" / purchase.attachment_path  # hors requête : dossier « default »
+    assert stored.read_bytes() == b"%PDF-1.4 facture" and purchase.attachment_name == "edf.pdf"
+    invoice = Sale.query.filter_by(number="V001").one()
+    assert invoice.status == "paid" and SalePayment.query.one().bank_transaction_id == txns[1].id
+    assert Sale.query.filter_by(status="draft").one().number is None
+    assets = {a.label: a.account.code for a in Asset.query.all()}
+    assert assets == {"Maison": "2131", "Terres": "211000"}
+    reclass = JournalEntry.query.filter_by(source_ref="RECLASSEMENT-TERRAINS").one()
+    assert sorted((l.account.code, l.debit_cents, l.credit_cents) for l in reclass.lines) == [("211000", 20000, 0), ("2131", 0, 20000)]
+    assert ctx.stats["attachments"] == 1 and not reclass.is_validated

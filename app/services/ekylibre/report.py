@@ -80,7 +80,11 @@ def render(data: EkyData, mapping: dict, results: list[checks_module.Check], sou
                 f"{sum(v for _n, v in imported.vat_corrections) / 100:.2f} €.", ""]
         out += _table(["Écriture", "TVA intégrée"], [(n, f"{v / 100:.2f} €") for n, v in imported.vat_corrections])
         out += ["", "Contrôle : balance Lyvre = balance Ekylibre de la période, corrections de TVA comprises (aucun écart).", ""]
-        out += [f"- {note}" for note in imported.notes]
+        if imported.attachments:
+            out += ["### Pièces reprises", ""]
+            out += _table(["Facture", "Fichier", "SHA-256 (début)"], imported.attachments)
+            out.append("")
+        out += ["### Remarques", ""] + [f"- {note}" for note in imported.notes]
     out += ["", "## Corrections prévues", "",
             "- TVA déductible des achats intégrée à la charge (EK3) : voir le contrôle « TVA ».",
             "- Reclassement des terrains (Bois, Terres) du 2131 au 211 au "
