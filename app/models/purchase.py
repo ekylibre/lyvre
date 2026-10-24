@@ -51,6 +51,9 @@ class Purchase(db.Model):
     qonto_upload_error = db.Column(db.Text)
     # Lignes modifiées par le trésorier : la synchronisation ne les régénère plus.
     lines_edited = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
+    # Lot F4 : période couverte (assurance, abonnement annuel…) : charge constatée d'avance à la clôture.
+    service_start = db.Column(db.Date)
+    service_end = db.Column(db.Date)
     journal_entry_id = db.Column(
         db.Integer, db.ForeignKey("journal_entries.id", ondelete="SET NULL"), nullable=True
     )

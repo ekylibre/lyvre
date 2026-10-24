@@ -292,6 +292,10 @@ partiel), `partial`, `balance_cents`, `lettered_on` (`DateLet`), `origin` (`docu
 `account_roles(role, account_id)` : compte choisi pour un rôle ; défauts par référentiel dans
 `data/account_roles.json`. `organization.lettering_gap_cents` (seuil d'écart, 100).
 
+**Lot F4** (migration `e4a6b8c0d2f4`) : `purchases.service_start` · `service_end` et
+`journal_lines.service_start` · `service_end` (période de service, charges et produits constatés
+d'avance) ; `sales` les avait déjà.
+
 ## ValidationBatch / EntryEvent — Validation et historique des écritures (lot F1)
 
 `validation_batches` (migration `b1d3f5a7c9e2`) : `fiscal_year_id`, `kind` (`manual`, `until`,

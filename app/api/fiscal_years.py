@@ -366,3 +366,28 @@ def fiscal_years_period_lock_rewind(fy_id):
     db.session.commit()
     message = f"Verrou reculé au {until:%d/%m/%Y}." if until else "Exercice déverrouillé."
     return jsonify(item=fiscal_year_payload(fy), notices=[notice(message)])
+
+
+# ------------------------------------------------------------------ charges et produits constatés d'avance (lot F4)
+
+
+@bp.route("/fiscal-years/<int:fy_id>/closing/prepaid")
+def fiscal_years_prepaid(fy_id):
+    """Propositions de charges et produits constatés d'avance (pièces dont la période dépasse la clôture)."""
+    from app.services import prepaid
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    return jsonify(items=prepaid.proposals(fy))
+
+
+@bp.route("/fiscal-years/<int:fy_id>/closing/prepaid", methods=["POST"])
+def fiscal_years_prepaid_post(fy_id):
+    """`{items: [{key, amount_cents}]}` : écritures d'inventaire des propositions retenues."""
+    from app.services import prepaid
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    items = json_body().get("items")
+    if not isinstance(items, list) or not items:
+        raise invalid("Sélectionnez au moins une proposition.", "items")
+    with _closing_errors():
+        entries = prepaid.post(fy, items, current_user.id)
+    return jsonify(items=prepaid.proposals(fy),
+                   notices=[notice(f"{len(entries)} écriture(s) d'inventaire passée(s).")])

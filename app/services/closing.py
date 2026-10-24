@@ -193,7 +193,7 @@ def inventory_entries(fy):
             .order_by(JournalEntry.id).all())
 
 
-def add_inventory(fy, kind, account_code, amount_cents, label, counterpart_code=None, user_id=None):
+def add_inventory(fy, kind, account_code, amount_cents, label, counterpart_code=None, user_id=None, source_ref=None):
     """Écriture d'inventaire datée du dernier jour de l'exercice (extournée à l'ouverture de N+1)."""
     if fy.status != FY_OPEN:
         raise ClosingError("Exercice clôturé : rouvrez-le pour ajouter une écriture d'inventaire.")
@@ -213,7 +213,7 @@ def add_inventory(fy, kind, account_code, amount_cents, label, counterpart_code=
     entry = post_entry(fy.id, _journal().id, fy.end_date, f"{spec['label']} — {text}", [
         {"account_id": debit.id, "label": text, "debit_cents": amount_cents, "credit_cents": 0},
         {"account_id": credit.id, "label": text, "debit_cents": 0, "credit_cents": amount_cents}],
-        source=SOURCE_INVENTORY, commit=False)
+        source=SOURCE_INVENTORY, source_ref=source_ref, commit=False)
     entry.inventory_kind = kind
     log(fy, "inventory", "add", user_id, entry=entry.reference, kind=kind, amount_cents=amount_cents)
     db.session.commit()

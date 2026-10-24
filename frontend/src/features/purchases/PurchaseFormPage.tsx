@@ -206,6 +206,12 @@ function PurchaseFormPage() {
                 <SimpleGrid cols={{ base: 1, md: 4 }} mt="xs">
                   {amount("untaxed", "HT")}{amount("tax", "TVA")}{amount("total", "TTC", true)}
                 </SimpleGrid>
+                <SimpleGrid cols={{ base: 1, md: 4 }} mt="xs">
+                  {field("service_start", "Période du", { type: "date" })}
+                  {field("service_end", "Période au", { type: "date" })}
+                  <Text size="xs" c="dimmed" mt={30} style={{ gridColumn: "span 2" }}>Facultatif : assurance, abonnement annuel… ; une
+                    période qui dépasse la clôture est proposée en charge constatée d'avance.</Text>
+                </SimpleGrid>
               </Fieldset>
             </Stack>
         </Grid.Col>

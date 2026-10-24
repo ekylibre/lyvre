@@ -1174,6 +1174,15 @@ fournisseur des tiers).
 
 ---
 
+## prepaid.py — Charges et produits constatés d'avance (lot F4)
+
+`proposals(fy)` : factures d'achat (période, sinon échéance d'abonnement rattachée), factures de vente,
+lignes 6 / 7 avec période ; montant = arrondi(montant du compte × jours après la clôture / jours de la
+période) (`share`) ; `posted` si une écriture d'inventaire porte déjà la clé (`source_ref`).
+`post(fy, [{key, amount_cents}])` → `closing.add_inventory(..., source_ref=key)`.
+
+---
+
 ## closing.py — Assistant de clôture
 
 Guide utilisateur : [Clôturer un exercice](cloture.md). Seule la décision de l'utilisateur est

@@ -295,6 +295,7 @@ l'enregistrement), `/entries/<id>`, `/entries/<id>/edit` ([guide de saisie](sais
 
 | GET | `/api/v1/fiscal-years/<id>/period-lock` | Date de verrouillage (`locked_until`, `first_open_date`) ; `?until=` : aperçu (`drafts`, `problems`) |
 | POST | `/api/v1/fiscal-years/<id>/period-lock` | `{until}` : verrouille (lot F2), brouillards de la période validés (lot `lock`) ; 422 si la date recule ou sort de l'exercice ; 409 avec `problems` |
+| GET · POST | `/api/v1/fiscal-years/<id>/closing/prepaid` | Propositions de charges / produits constatés d'avance (lot F4) ; POST `{items: [{key, amount_cents?}]}` : écritures d'inventaire (`source_ref` = clé) |
 | GET | `/api/v1/lettering/accounts` | Comptes lettrables mouvementés (`open_lines`, `open_balance_cents`), `gap_threshold_cents` (lot F3) |
 | GET | `/api/v1/lettering/accounts/<id>/lines` | `?state=open\|lettered\|all` ; lignes avec leur lettrage, `open_balance_cents` |
 | GET | `/api/v1/lettering/accounts/<id>/proposals` | Propositions (`pair`, `combination`) |

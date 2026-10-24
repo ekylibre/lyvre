@@ -91,3 +91,27 @@ test("abonnement : échéances passées sans facture signalées", async ({ page 
   await expect(page.getByRole("heading", { name: "Box internet" })).toBeVisible();
   await expect(page.getByText("Manquante").first()).toBeVisible();
 });
+
+test("produit constaté d'avance proposé à la clôture (lot F4)", async ({ page }) => {
+  await login(page, "SCI Ventes E2E", "/sales/");
+  const csrf = (await (await page.request.get("/api/v1/session")).json()).csrf_token;
+  const call = async (method: string, url: string, data?: unknown) => {
+    const resp = await page.request.fetch(url, { method, data, headers: { "X-CSRFToken": csrf } });
+    expect(resp.ok(), await resp.text()).toBeTruthy();
+    return resp.json();
+  };
+  const client = (await call("GET", "/api/v1/sales/form-options")).clients.find((c: { label: string }) => c.label === "Client Ventes E2E").value;
+  const sale = (await call("POST", "/api/v1/sales", { entity_id: client, issue_date: iso(new Date()),
+    service_start: `${year}-12-01`, service_end: `${year + 1}-11-30`,
+    lines: [{ label: "Maintenance annuelle", quantity: "1", unit_price: "3650", vat_rate: "0", account_code: "706" }] })).item;
+  await call("POST", `/api/v1/sales/${sale.id}/issue`);
+  const fy = (await call("GET", "/api/v1/fiscal-years")).items.find((f: { label: string }) => f.label === String(year));
+
+  await page.goto(`/fiscal-years/${fy.id}/closing`);
+  await page.getByRole("button", { name: /2\. Écritures d'inventaire/ }).click();
+  await expect(page.getByText("Propositions de charges et produits constatés d'avance")).toBeVisible();
+  await page.getByLabel(/^Retenir F-/).check();
+  await page.getByRole("button", { name: "Passer les écritures (1)" }).click();
+  await expect(page.getByText("passée", { exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: /Produit constaté d'avance/ }).first()).toBeVisible();
+});

@@ -202,6 +202,8 @@ def validate_header(form) -> tuple[dict, list[str]]:
         "invoice_number": (form.get("invoice_number") or "").strip()[:100] or None,
         "issue_date": _date(form.get("issue_date"), "Date de facture", errors),
         "due_date": _date(form.get("due_date"), "Échéance", errors),
+        "service_start": _date(form.get("service_start"), "Période du", errors),
+        "service_end": _date(form.get("service_end"), "Période au", errors),
         "is_credit_note": bool(form.get("is_credit_note")),
         "total_cents": _cents(form.get("total"), "TTC", errors),
         "untaxed_cents": _cents(form.get("untaxed"), "HT", errors),
@@ -209,6 +211,10 @@ def validate_header(form) -> tuple[dict, list[str]]:
     }
     if (form.get("supplier_siret") or "").strip() and clean["supplier_siret"] is None:
         errors.append("Le SIRET doit comporter 14 chiffres.")
+    if bool(clean["service_start"]) != bool(clean["service_end"]):
+        errors.append("Période : indiquez le début et la fin, ou aucune.")
+    elif clean["service_start"] and clean["service_end"] < clean["service_start"]:
+        errors.append("Période : la fin suit le début.")
     if clean["issue_date"] is None and not any("Date de facture" in e for e in errors):
         errors.append("La date de facture est obligatoire.")
     if clean["total_cents"] is not None and clean["total_cents"] <= 0:
@@ -276,7 +282,7 @@ def _supplier(clean) -> Entity | None:
 
 
 HEADER_FIELDS = ("supplier_vat", "supplier_siret", "supplier_iban", "invoice_number", "issue_date",
-                 "due_date", "is_credit_note", "total_cents", "untaxed_cents", "tax_cents")
+                 "due_date", "service_start", "service_end", "is_credit_note", "total_cents", "untaxed_cents", "tax_cents")
 
 
 def _apply(p: Purchase, clean) -> None:
@@ -333,6 +339,8 @@ def header_values(p: Purchase) -> dict:
         "supplier_iban": p.supplier_iban or "", "invoice_number": p.invoice_number or "",
         "issue_date": p.issue_date.isoformat() if p.issue_date else "",
         "due_date": p.due_date.isoformat() if p.due_date else "",
+        "service_start": p.service_start.isoformat() if p.service_start else "",
+        "service_end": p.service_end.isoformat() if p.service_end else "",
         "is_credit_note": p.is_credit_note, "total": fmt_cents(p.total_cents),
         "untaxed": fmt_cents(p.untaxed_cents), "tax": fmt_cents(p.tax_cents),
     }

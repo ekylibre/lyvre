@@ -39,6 +39,19 @@ motif** (5 caractères au moins), qui reste visible dans la liste des étapes.
    champs, équilibre, numérotation). Le SIREN doit être renseigné (Configuration › Structure).
    Les contrôles de l'étape 1 indiquent aussi le nombre d'écritures en brouillard (information).
 
+**Charges et produits constatés d'avance** (étape 2, lot F4) : l'assistant **propose** les montants
+des pièces dont la période dépasse la clôture, au prorata des jours après le dernier jour de l'exercice
+(exemple : assurance de 1 200 € du 01/07 au 30/06, clôture au 31/12 → 1 200 × 181 / 365 = 595,07 €) :
+
+- factures d'achat comptabilisées avec une **période** (« Période du / au » sur la facture), ou
+  rattachées à une échéance d'**abonnement** (période : de l'échéance à la suivante) → 486 ;
+- factures de vente émises avec une période de prestation → 487 ;
+- lignes d'écriture de classe 6 ou 7 portant une période (saisie par l'API).
+
+On coche, on corrige le montant au besoin, puis « Passer les écritures » : écritures d'inventaire au
+dernier jour, extournées le premier jour de l'exercice suivant. Une proposition passée est marquée
+« passée » et n'est plus reproposée.
+
 Étape 7 (ouverture de l'exercice suivant) : les comptes lettrables sont repris **ligne par ligne**
 (lignes non lettrées ou d'un lettrage partiel), pour être lettrés dans l'exercice suivant (voir
 [Lettrage](lettrage.md)).

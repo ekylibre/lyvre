@@ -19,6 +19,9 @@ class JournalLine(db.Model):
     # inter-exercices).
     lettering_id = db.Column(db.Integer, db.ForeignKey("letterings.id", ondelete="SET NULL"), index=True)
     carried_from_line_id = db.Column(db.Integer, db.ForeignKey("journal_lines.id", ondelete="SET NULL"), index=True)
+    # Lot F4 : période de service d'une charge / d'un produit (charges et produits constatés d'avance).
+    service_start = db.Column(db.Date)
+    service_end = db.Column(db.Date)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     entry = db.relationship("JournalEntry", back_populates="lines")

@@ -93,6 +93,8 @@ def serialize_entry(entry):
              "account_label": l.account.label, "label": l.label or "",
              "debit_cents": l.debit_cents, "credit_cents": l.credit_cents,
              "project_id": l.project_id, "project": l.project.name if l.project else None,
+             "service_start": l.service_start.isoformat() if l.service_start else None,
+             "service_end": l.service_end.isoformat() if l.service_end else None,
              "reconciled": l.bank_transaction is not None}
             for l in entry.lines
         ],

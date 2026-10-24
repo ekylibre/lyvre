@@ -107,7 +107,8 @@ def _seed_sales(engine):
                      {"l": str(today.year), "s": f"{today.year}-01-01", "e": f"{today.year}-12-31"})
         conn.execute(text("INSERT INTO journals (code, label) VALUES ('BQ', 'Banque')"))
         for code, label, kind, header in (("411", "Clients", "TIERS", 1), ("706", "Loyers et prestations", "REVENUE", 0),
-                                          ("708", "Charges refacturées", "REVENUE", 0), ("512000", "Banque", "ASSET", 0)):
+                                          ("708", "Charges refacturées", "REVENUE", 0), ("512000", "Banque", "ASSET", 0),
+                                          ("487", "Produits constatés d'avance", "LIABILITY", 0)):
             conn.execute(text("INSERT INTO accounts (code, label, account_type, is_header) VALUES (:c, :l, :t, :h)"),
                          {"c": code, "l": label, "t": kind, "h": header})
         conn.execute(text(

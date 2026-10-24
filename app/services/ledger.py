@@ -93,6 +93,16 @@ def validate_entry_payload(data):
         except ValueError as exc:
             errors[f"lines[{i}].project_id"] = str(exc)
             project = None
+        # Lot F4 : période de service facultative (charges et produits constatés d'avance).
+        period = []
+        for key in ("service_start", "service_end"):
+            try:
+                period.append(date.fromisoformat(raw[key]) if raw.get(key) else None)
+            except (TypeError, ValueError):
+                errors[f"lines[{i}].{key}"] = "Date invalide (AAAA-MM-JJ)."
+                period.append(None)
+        if bool(period[0]) != bool(period[1]) or (period[0] and period[1] < period[0]):
+            errors[f"lines[{i}].service_end"] = "Période : début et fin, la fin suivant le début."
         lines.append({
             "index": i,
             "account_id": account_id,
@@ -100,6 +110,8 @@ def validate_entry_payload(data):
             "debit_cents": debit or 0,
             "credit_cents": credit or 0,
             "project_id": project.id if project else None,
+            "service_start": period[0],
+            "service_end": period[1],
         })
     clean["lines"] = lines
 
@@ -218,6 +230,8 @@ def post_entry(fiscal_year_id, journal_id, entry_date, description, lines, sourc
             project_id=l.get("project_id"),
             entity_id=l.get("entity_id"),
             carried_from_line_id=l.get("carried_from_line_id"),
+            service_start=l.get("service_start"),
+            service_end=l.get("service_end"),
         ))
 
     if commit:
@@ -300,6 +314,8 @@ def update_entry(entry, clean):
                 debit_cents=l["debit_cents"],
                 credit_cents=l["credit_cents"],
                 project_id=l.get("project_id"),
+                service_start=l.get("service_start"),
+                service_end=l.get("service_end"),
             ))
         db.session.commit()
     except Exception:

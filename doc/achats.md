@@ -164,6 +164,9 @@ listé pour vérification.
 **Facture payée par un associé** (sociétés avec le module Associés) : bouton **Réglée par un associé**
 sur la fiche, ou option **Payée par un associé** à la saisie ; voir [Associés](associes.md#facture-payée-par-un-associé).
 
+**Période couverte** (« Période du / au », facultative) : assurance, abonnement annuel… ; si elle dépasse la
+clôture, l'assistant de clôture propose la charge constatée d'avance (voir [Clôturer un exercice](cloture.md)).
+
 ## Abonnements
 
 Achats › **Abonnements** : contrats récurrents (internet, téléphone, assurance, banque, énergie,
