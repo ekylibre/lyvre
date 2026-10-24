@@ -5,10 +5,98 @@ AGPL, auto-hébergée ; l'édition libre de Docuseal ne permet pas d'envoyer un 
 instance de Lyvre renseigne **son** serveur et **son** jeton dans Configuration › Intégrations ›
 Documenso ; plusieurs instances peuvent viser le même serveur.
 
-Fichiers : `docker/documenso/compose.yml` (Documenso v2.20.0 + PostgreSQL 15), modèle des
-réglages `docker/documenso/env.example`.
+Fichiers (Documenso v2.20.0 + PostgreSQL 15) :
 
-## Mise en place
+- **Dokploy** (serveur seconde-nature-kvm) : `docker/documenso/compose.dokploy.yml`, réglages
+  `docker/documenso/dokploy.env.example` — procédure ci-dessous ;
+- **sans Dokploy** (docker compose seul, derrière un proxy) : `docker/documenso/compose.yml`,
+  `docker/documenso/env.example` — voir « Mise en place sans Dokploy ».
+
+## Déploiement Dokploy (seconde-nature-kvm)
+
+Adresse retenue dans les exemples : `https://signature.seconde-nature.net` (à adapter).
+
+### 1. DNS
+
+Chez le fournisseur DNS de `seconde-nature.net` : enregistrement **A** `signature` → adresse IP
+publique de seconde-nature-kvm (la même que celle de `compta.seconde-nature.net`). Vérifier :
+`dig +short signature.seconde-nature.net`.
+
+### 2. Secrets et certificat (sur un poste, pas dans le dépôt)
+
+```sh
+mkdir -p ~/documenso-secrets && cd ~/documenso-secrets && umask 077
+for v in POSTGRES_PASSWORD NEXTAUTH_SECRET NEXT_PRIVATE_ENCRYPTION_KEY NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY; do
+  echo "$v=$(openssl rand -hex 32)"; done > secrets.env
+P=$(openssl rand -hex 16); echo "NEXT_PRIVATE_SIGNING_PASSPHRASE=$P" >> secrets.env
+openssl req -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes -keyout key.pem -out cert.pem \
+  -subj "/CN=Signature des baux Seconde Nature"
+openssl pkcs12 -export -out cert.p12 -inkey key.pem -in cert.pem -passout pass:$P && rm key.pem
+echo "NEXT_PRIVATE_SIGNING_LOCAL_FILE_CONTENTS=$(base64 -w0 cert.p12)" >> secrets.env
+```
+
+Garder `cert.p12` et `secrets.env` en lieu sûr (gestionnaire de mots de passe) : sans le certificat,
+les PDF déjà signés restent valides mais on ne peut pas en signer de nouveaux avec la même identité.
+
+### 3. Service Compose dans Dokploy
+
+1. Dokploy de seconde-nature-kvm › **Projects** › projet *Seconde Nature* (ou un projet
+   *Signature*) › **Create Service** › **Compose** ; nom `documenso` ; type **Docker Compose**.
+2. Onglet **General** › *Provider* : **Raw** ; coller le contenu de
+   `docker/documenso/compose.dokploy.yml` ; **Save**.
+   (Variante Git : dépôt de Lyvre, *Compose Path* `./docker/documenso/compose.dokploy.yml`, sans
+   *Autodeploy* : Documenso n'a pas à être redéployé à chaque poussée de Lyvre.)
+3. Onglet **Environment** : coller `docker/documenso/dokploy.env.example`, puis remplacer les lignes
+   vides par celles de `secrets.env` et renseigner :
+   - `NEXT_PUBLIC_WEBAPP_URL=https://signature.seconde-nature.net` ;
+   - le **SMTP** (le même que celui qui envoie les e-mails de Seconde Nature, ou un compte dédié) :
+     hôte, port (587 + `NEXT_PRIVATE_SMTP_SECURE=false` en STARTTLS ; 465 + `true` en TLS), identifiant,
+     mot de passe, `NEXT_PRIVATE_SMTP_FROM_ADDRESS` (adresse autorisée par ce SMTP) ;
+   - `NEXT_PUBLIC_DISABLE_SIGNUP=false` pour l'instant.
+
+   **Save**.
+4. Onglet **Domains** › **Add Domain** : *Service* `documenso`, *Host*
+   `signature.seconde-nature.net`, *Path* `/`, *Container Port* `3500`, **HTTPS** activé,
+   *Certificate* **Let's Encrypt** ; **Create**. (**Preview Compose** montre les labels Traefik et le
+   réseau `dokploy-network` que Dokploy ajoute au service.)
+5. **Deploy**. Onglet **Logs** (service `documenso`) : `Telemetry is disabled`, puis le serveur
+   démarré ; ouvrir `https://signature.seconde-nature.net` (certificat Let's Encrypt après quelques
+   secondes).
+
+### 4. Compte, inscriptions fermées, jeton
+
+1. Sur `https://signature.seconde-nature.net` : **Sign up** avec l'adresse de l'administrateur,
+   confirmer l'e-mail (vérifie au passage le SMTP).
+2. Créer l'**équipe** (ex. « Seconde Nature »).
+3. Dokploy › Environment : `NEXT_PUBLIC_DISABLE_SIGNUP=true` › **Save** › **Deploy** (plus personne
+   ne peut créer de compte ; les signataires n'en ont pas besoin).
+4. Documenso › **Paramètres de l'équipe** › **Jetons d'API** › créer un jeton **sans expiration** ;
+   le copier (`api_…`, affiché une seule fois).
+
+### 5. Lyvre
+
+Dans l'instance concernée (ex. SCI Chênes Verts) : Configuration › Intégrations › **Documenso** :
+**Activer**, URL `https://signature.seconde-nature.net`, jeton, **Enregistrer et tester** (« Serveur
+Documenso … accessible, jeton d'API accepté »). Puis, sur un bail validé, un premier envoi à la
+signature **vers vos propres adresses** (gérants et preneur de test) pour contrôler e-mails,
+paraphes et PDF signé avant le premier vrai bail.
+
+> Production de Lyvre : le module de baux (lots L1 à L4) et ses migrations seront déployés avec la
+> migration de production (`compta.seconde-nature.net`) ; le serveur Documenso peut être monté avant.
+
+### 6. Sauvegardes et mises à jour
+
+- **Base** : volume nommé `documenso-database` ; Dokploy › service › **Volume Backups** (vers une
+  destination S3 configurée dans Dokploy), ou à la main :
+  `docker exec <conteneur database> pg_dump -U documenso documenso > documenso.sql`.
+  Les PDF signés et journaux d'audit sont aussi conservés par Lyvre avec chaque bail.
+- **Mise à jour** : changer la version de l'image `documenso/documenso` dans le compose (version
+  publiée depuis au moins deux semaines ; relire `packages/ee/FEATURES` du dépôt Documenso),
+  **Save** › **Deploy**.
+- **Ancien serveur Docuseal** (`docuseal.seconde-nature.net`) : inutile pour Lyvre (son édition libre
+  n'accepte pas de PDF par l'API) ; à arrêter quand vous le souhaitez.
+
+## Mise en place sans Dokploy
 
 1. **Dossier** sur le serveur (par exemple `/opt/documenso`) : y copier `compose.yml` et
    `env.example` → `.env` (`chmod 600 .env`), remplir les secrets (`openssl rand -hex 32` pour
