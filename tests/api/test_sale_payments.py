@@ -210,3 +210,20 @@ def test_dashboard_summary(admin):
     sales = admin.get(f"/api/v1/dashboard?fy_id={fy.id}").get_json()["sales"]
     assert sales == {"revenue_cents": 150000, "receivable_cents": 180000, "overdue_count": 1,
                      "overdue_cents": 120000, "has_sales": True}
+
+
+def test_rule_pair_is_replaced_by_receipt(admin):
+    """Règle en partie double (pièce VE + règlement par 411000) : l'encaissement de la facture retire les deux."""
+    from app.models import Rule
+    from app.services.rules_engine import apply_rules
+    inv = _invoice(admin)
+    txn = _txn(120000, "R2")
+    db.session.add(Rule(position=1, name="Virements", label_contains="VIR", account_code="706"))
+    db.session.commit()
+    apply_rules([txn])
+    assert JournalEntry.query.filter_by(source="RULE", source_ref="RULE:R2").count() == 1
+    resp = admin.post(f"{API}/match", json={"bank_transaction_id": txn.id,
+                                            "allocations": [{"sale_id": inv["id"], "amount_cents": 120000}]})
+    assert resp.status_code == 200, resp.get_json()
+    assert JournalEntry.query.filter(JournalEntry.source_ref.in_(["RULE:R2", "FITID:R2"])).count() == 0
+    assert SalePayment.query.one().journal_entry.source == "SALE_PAYMENT"

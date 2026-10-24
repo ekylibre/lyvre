@@ -9,7 +9,7 @@ from app.models import (
     Journal,
     Rule,
 )
-from app.services import projects
+from app.services import projects, rule_entries
 from app.services.ledger import LedgerError, post_entry
 
 
@@ -76,6 +76,18 @@ def _direction_error(account_code, amount_cents):
         return (f"Compte « {account_code} » (produit) incompatible avec un décaissement "
                 "— règle non appliquée.")
     return None
+
+
+def _counterpart(account_code):
+    counterpart = Account.query.filter_by(code=account_code).first()
+    if counterpart is None:
+        raise LedgerError(f"Compte « {account_code} » introuvable dans le plan comptable.")
+    if counterpart.is_header:
+        raise LedgerError(f"Compte « {account_code} » est un compte d'en-tête, non utilisable.")
+    if not account_code.startswith(("6", "7")):
+        raise LedgerError(f"Compte « {account_code} » : seuls les comptes 6xx (charges) et 7xx (produits) "
+                          "sont supportés par le moteur de règles.")
+    return counterpart
 
 
 def _post_entry_for_transaction(txn, account_code, description, project_id=None):
@@ -146,9 +158,12 @@ def apply_rules(transactions=None, overwrite=False):
     """Apply rules (from the tenant DB) to bank transactions.
 
     Each rule may set `account_code`. When present, the matching transaction
-    triggers the automatic creation of a balanced journal entry (BQ journal,
-    fiscal year derived from the transaction date), and the bank transaction
-    is reconciled against the bank-side journal line.
+    triggers the automatic creation of its entries, and the bank transaction
+    is reconciled against the bank-side journal line : in double-entry
+    bookkeeping, a document entry (6xx or 7xx against a third-party account,
+    the rule's third party or 401000 / 411000) and a lettered settlement
+    (third party / bank) — see `rule_entries` ; in simplified bookkeeping, one
+    entry bank / 6xx or 7xx.
 
     Args:
         transactions: list of BankTransaction, or None to process all
@@ -202,6 +217,7 @@ def apply_rules(transactions=None, overwrite=False):
             skipped += 1
             continue
 
+        entity = None
         if matched_rule.entity_name:
             entity = _get_or_create_entity(
                 matched_rule.entity_name,
@@ -215,13 +231,19 @@ def apply_rules(transactions=None, overwrite=False):
         if matched_rule.account_code and not txn.journal_line_id:
             description = matched_rule.name or matched_rule.category or ""
             try:
-                bank_line = _post_entry_for_transaction(
-                    txn, matched_rule.account_code, description, matched_rule.project_id
-                )
-                txn.journal_line_id = bank_line.id
-                txn.reconciled = True
+                if rule_entries.simple_mode():
+                    bank_line = _post_entry_for_transaction(
+                        txn, matched_rule.account_code, description, matched_rule.project_id
+                    )
+                    txn.journal_line_id = bank_line.id
+                    txn.reconciled = True
+                    created_entry_ids.append(bank_line.entry_id)
+                else:
+                    counterpart = _counterpart(matched_rule.account_code)
+                    document, settlement = rule_entries.post(
+                        txn, counterpart, description, matched_rule.project_id, entity)
+                    created_entry_ids += [document.id, settlement.id]
                 posted += 1
-                created_entry_ids.append(bank_line.entry_id)
             except LedgerError as e:
                 errors.append(f"FITID {txn.fitid}: {e}")
 

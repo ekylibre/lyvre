@@ -252,8 +252,9 @@ def test_rule_entry_marked_as_qonto_import(ba):
     ])
     db.session.commit()
     _sync(ba, FakeClient([tx("t1", 500, operation_type="qonto_fee", label="Qonto")]))
-    entry = JournalEntry.query.one()
+    entry = JournalEntry.query.filter_by(journal_id=Journal.query.filter_by(code="BQ").one().id).one()
     assert (entry.source, entry.source_ref) == ("QONTO_IMPORT", "FITID:t1")
+    assert JournalEntry.query.filter_by(source="RULE").one().source_ref == "RULE:t1"
 
 
 def test_rule_against_transaction_direction_is_refused(ba):

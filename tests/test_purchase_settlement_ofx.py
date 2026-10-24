@@ -134,7 +134,8 @@ def test_qonto_invoices_and_unposted_ignored(books):
     assert ps.auto_match()["matched"] == 0
 
 
-def test_rule_entry_linked_then_to_replace(books):
+def test_old_rule_entry_replaced_on_link(books):
+    """Écriture de règle d'avant (banque / 6… directement) : remplacée elle aussi au lien automatique."""
     t = txn(books, date(2026, 9, 4))
     entry = post_entry(fiscal_year_id=books["fy"].id, journal_id=Journal.query.filter_by(code="BQ").one().id,
                        entry_date=t.transaction_date, description="Règle Free",
@@ -144,11 +145,9 @@ def test_rule_entry_linked_then_to_replace(books):
     reconcile(t.id, next(l.id for l in entry.lines if l.account_id == books["512"].id), commit=False)
     db.session.commit()
     p = invoice(books)
-    assert ps.auto_match() == {"matched": 1, "settled": 0, "errors": []}
-    (row,) = ps.to_replace()
-    assert row.replaceable and row.purchases == [p]
-    assert ps.replace_many([t.id])["counters"]["ok"] == 1
-    assert p.payments[0].journal_entry is not None
+    assert ps.auto_match() == {"matched": 1, "settled": 1, "errors": []}
+    assert db.session.get(type(entry), entry.id) is None and ps.to_replace() == []
+    assert lines(p.payments[0].journal_entry)[1] == ("512", 0, 3999)
 
 
 def test_manually_reconciled_debit_not_offered(books):
@@ -287,8 +286,8 @@ def test_payment_routes_errors_and_rule_warning(books, login_as):
     assert any(s["rule"] for s in client.get(_api(f"/{p.id}")).get_json()["suggestions"])
     resp = client.post(_api(f"/{p.id}/payments"), json={"bank_transaction_id": other.id})
     assert resp.status_code == 422 and "ne peut pas régler la facture" in _notices(resp)
-    assert "remplacez son écriture" in _notices(client.post(_api(f"/{p.id}/payments"),
-                                                            json={"bank_transaction_id": t.id}))
+    assert "écritures de règle remplacées" in _notices(client.post(_api(f"/{p.id}/payments"),
+                                                                   json={"bank_transaction_id": t.id}))
     qonto_payment = PurchasePayment(purchase=invoice(books, number="F-2", supplier="Orange"),
                                     qonto_transaction_id="tx-1")
     db.session.add(qonto_payment)

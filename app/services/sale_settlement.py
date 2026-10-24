@@ -26,7 +26,6 @@ from app.services.sale_entry import SaleError, fiscal_year_for
 from app.services.sale_posting import VAT_COLLECTED, VAT_ON_RECEIPTS, customer_account, vat_account
 
 SOURCE_SALE_PAYMENT = "SALE_PAYMENT"
-RULE_SOURCES = ("QONTO_IMPORT", "OFX_IMPORT")
 MATCH_DAYS_BEFORE = 5
 MATCH_DAYS_AFTER = 90
 OPEN_STATUSES = ("issued", "partially_paid")
@@ -166,11 +165,10 @@ def linked_transaction_ids(transaction_ids) -> set[int]:
 
 
 def is_rule_entry(entry: JournalEntry, txn: BankTransaction) -> bool:
-    """Écriture d'une règle de catégorisation : 2 lignes, banque + produit (7…) ou client (411…)."""
-    if entry.source not in RULE_SOURCES or entry.source_ref != f"FITID:{txn.fitid}":
-        return False
-    codes = [line.account.code for line in entry.lines]
-    return len(codes) == 2 and any(code.startswith(("7", "411")) for code in codes)
+    """Écriture d'une règle de catégorisation : règlement banque / client (pièce de règle à côté), ou
+    forme d'avant banque / produit (7…)."""
+    from app.services import rule_entries
+    return rule_entries.is_rule_entry(entry, txn, ("7", "411"))
 
 
 def _free(txn: BankTransaction) -> bool:
@@ -218,10 +216,8 @@ def match(txn: BankTransaction, allocations: list[tuple[Sale, int]]) -> JournalE
             rule_entry = txn.journal_line.entry
             if rule_entry.fiscal_year.closed:
                 raise SaleError("Exercice clôturé : l'écriture de règle ne peut pas être remplacée.", status=409)
-            txn.journal_line_id, txn.reconciled = None, False
-            from app.services.ledger import remove_entry
-            remove_entry(rule_entry)
-            db.session.flush()
+            from app.services import rule_entries
+            rule_entries.remove(txn, rule_entry)
         entry = _post(allocations, txn.transaction_date, txn.bank_account, txn.label or "",
                       SOURCE_SALE_PAYMENT, f"SALE_PAYMENT:{txn.fitid}", auto_date=True)
         bank_line = next(line for line in entry.lines if line.account_id == txn.bank_account.account_id)

@@ -55,7 +55,8 @@ Le compte client 411NNN est créé à la première facture et noté sur la fiche
 
 - **Encaisser** (fiche d'une facture) :
   - **Transaction bancaire** : crédits proposés autour de la facture (montant exact et même client
-    d'abord) ; une écriture de règle de catégorisation est remplacée ;
+    d'abord) ; les écritures de règle de catégorisation (pièce 411000 / 7… et règlement) sont
+    remplacées ;
   - **Chèque, espèces…** : montant, date, banque ou caisse.
 - **Rapprocher les encaissements** (liste) : une facture dont le restant dû est égal à un seul
   crédit bancaire, candidat d'elle seule, est encaissée — aussi après chaque import OFX et

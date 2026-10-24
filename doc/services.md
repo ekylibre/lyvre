@@ -303,6 +303,35 @@ Parse un fichier OFX et insère les transactions nouvelles en base.
 
 ---
 
+## rule_entries.py — Écritures de règle en partie double
+
+Une transaction catégorisée par une règle passe **toujours par un compte de tiers**, pour pouvoir
+lettrer et attribuer plus tard le vrai tiers :
+
+| Écriture | Journal | Lignes (dépense ; recette à l'inverse) | Source / référence |
+|----------|---------|----------------------------------------|--------------------|
+| Pièce | `AC` (charge) / `VE` (produit) | 6… au débit / tiers au crédit | `RULE` / `RULE:<fitid>` |
+| Règlement | `BQ` | tiers au débit / banque au crédit, rapproché | `OFX_IMPORT` ou `QONTO_IMPORT` / `FITID:<fitid>` |
+
+Le tiers est le compte du tiers de la règle (401NNN / 411NNN) s'il en a un, sinon le **tiers par
+défaut** `401000` « Fournisseurs divers » / `411000` « Clients divers » (créés au besoin, lettrables).
+Les deux lignes de tiers sont lettrées (`origin = "auto"`).
+
+| Fonction | Rôle |
+|----------|------|
+| `post(txn, counterpart, description, project_id, entity)` | Pièce + règlement, rapprochement, lettrage (sans commit) ; `(document, settlement)` |
+| `document_of(txn)` | Pièce de règle de la transaction (hors pièces contrepassées) |
+| `is_rule_entry(entry, txn, prefixes)` | Règlement de règle (tiers / banque) ou écriture de règle d'avant (banque / 6… ou 7…) |
+| `remove(txn, settlement)` | Retire règlement et pièce (supprimés en brouillard, contrepassés si validés ; exercice clôturé refusé) ; transaction libérée |
+| `assign(txn, entity)` | Attribue un vrai tiers : compte du tiers créé au besoin, écritures retirées puis repassées sur ce compte |
+
+**Remplacement automatique** : quand une facture d'achat comptabilisée est liée à la transaction
+(`purchase_settlement.settle`, appelé à la comptabilisation, à la synchronisation Qonto ou au lien
+manuel), ou quand la transaction encaisse une facture de vente (`sale_settlement.match`), les
+écritures de règle sont retirées et remplacées par le règlement du tiers.
+
+---
+
 ## rules_engine.py — Moteur de règles de catégorisation
 
 ### `load_rules() → list[Rule]`
@@ -342,9 +371,13 @@ ignorées : leur écriture est le règlement 401 / banque (`purchase_settlement`
 Si la règle définit un `entity` nommé, l'entité est créée automatiquement en base si elle n'existe pas encore.
 
 Si la règle définit un `account` (code du plan comptable) et que la transaction
-n'est pas déjà liée à une ligne d'écriture, une écriture comptable équilibrée est
-créée (voir `_post_entry_for_transaction` ci-dessous) et la transaction est
-automatiquement rapprochée.
+n'est pas déjà liée à une ligne d'écriture, des écritures sont créées et la transaction est
+automatiquement rapprochée :
+
+- **partie double** (comptabilité d'engagement) : **pièce + règlement lettrés** par un compte de tiers
+  (`rule_entries.post`, voir ci-dessous) ; `created_entry_ids` contient les deux écritures ;
+- **mode simplifié** (trésorerie, `bookkeeping = "simple"`) : une écriture directe banque / 6… ou 7…
+  (`_post_entry_for_transaction` ci-dessous).
 
 **Retourne :**
 ```python
@@ -359,9 +392,10 @@ automatiquement rapprochée.
 
 ---
 
-### Génération automatique d'écritures (`_post_entry_for_transaction`)
+### Génération automatique d'écritures en mode simplifié (`_post_entry_for_transaction`)
 
-Helper interne, appelé par `apply_rules` lorsqu'une règle définit `account`.
+Helper interne, appelé par `apply_rules` lorsqu'une règle définit `account` et que l'instance tient
+une comptabilité simplifiée (en partie double : `rule_entries`).
 
 **Convention de sens :**
 
@@ -1097,8 +1131,8 @@ plus de 24 h (appelé à chaque dépôt).
 | `link_transactions(txns)` | Résout les liens en attente pour des transactions nouvellement importées |
 | `linked_transaction_ids(ids)` | Transactions liées à une facture (exclues des règles) |
 | `settle(purchases, transactions)` | Pour chaque transaction liée à des factures comptabilisées, non rapprochée : écriture BQ 401NNN / banque + rapprochement, atomiques ; fournisseurs différents ou transaction annulée → erreur |
-| `to_replace()` | Transactions liées rapprochées d'une autre écriture : `replaceable` si écriture de règle (2 lignes, 6… + banque, `FITID:`), sinon rapprochement manuel signalé |
-| `replace_many(ids)` | Supprime l'écriture de règle et passe le règlement, une transaction SQL par élément ; `{results, counters}` |
+| `to_replace()` | Transactions liées rapprochées d'une autre écriture et pas encore remplacées : `replaceable` si écriture de règle (`rule_entries.is_rule_entry`), sinon rapprochement manuel signalé |
+| `replace_many(ids)` | Retire les écritures de règle (`rule_entries.remove`) et passe le règlement, une transaction SQL par élément ; `{results, counters}` (rattrapage : le remplacement est normalement fait par `settle`) |
 | `match_candidates(p)` | Facture saisie : transactions de comptes **hors Qonto**, montant = −TTC (+TTC pour un avoir), date ∈ [date − 5 j ; échéance (ou date) + 60 j], ni annulées, ni déjà liées, ni rapprochées autrement que par une écriture de règle ; même tiers d'abord, puis date la plus proche (`match_window(p)`) |
 | `auto_match(purchases=None)` | Factures saisies comptabilisées sans paiement : lien `origin = match` si le candidat est **unique** et n'est candidat d'aucune autre facture en attente, puis `settle` ; `{matched, settled, errors}`. Appelé par `post_ready` (factures saisies) et après un import OFX |
 | `link_manual(p, bank_transaction_id)` | Lien choisi parmi les candidats (`origin = manual`) puis `settle` |

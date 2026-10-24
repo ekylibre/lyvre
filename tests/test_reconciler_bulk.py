@@ -156,9 +156,10 @@ def test_apply_rules_returns_created_entries(base):
     db.session.commit()
     bt = txn(base, -2500)
     result = apply_rules([bt])
-    assert result["posted"] == 1 and len(result["created_entry_ids"]) == 1
-    created = db.session.get(JournalEntry, result["created_entry_ids"][0])
-    assert created is not None and db.session.get(BankTransaction, bt.id).reconciled is True
+    assert result["posted"] == 1 and len(result["created_entry_ids"]) == 2  # pièce + règlement
+    document, settlement = (db.session.get(JournalEntry, i) for i in result["created_entry_ids"])
+    assert (document.source, settlement.source_ref) == ("RULE", f"FITID:{bt.fitid}")
+    assert db.session.get(BankTransaction, bt.id).reconciled is True
 
 
 def test_entry_delete_view_unlinks_reconciliation(app, base):

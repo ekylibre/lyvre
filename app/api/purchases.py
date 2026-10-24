@@ -320,10 +320,11 @@ def purchases_link_payment(purchase_id):
         raise invalid(str(exc)) from None
     notices = [notice(e, "danger") for e in outcome["errors"]]
     if outcome["settled"]:
-        notices.insert(0, notice("Règlement passé et rapproché."))
+        notices.insert(0, notice("Règlement passé et rapproché" + (", écritures de règle remplacées."
+                                                                   if outcome["replaced"] else ".")))
     elif not outcome["errors"]:
-        notices.insert(0, notice("Paiement rattaché : la transaction est déjà passée par une règle, remplacez son "
-                                 "écriture (Règlements à remplacer).", "warning"))
+        notices.insert(0, notice("Paiement rattaché : la transaction est déjà rapprochée d'une autre écriture, "
+                                 "à reprendre à la main (Règlements à remplacer).", "warning"))
     return jsonify(notices=notices)
 
 

@@ -860,6 +860,7 @@ Codes : `bad_request` / `csrf_error` (400), `unauthenticated` (401, jamais de re
 | POST | `/api/v1/reconciliations/delete` | `{"bank_transaction_ids": [...]}` : défait des rapprochements |
 | POST | `/api/v1/reconciliations/auto` | `{bank_account_id, bank_transaction_ids?, dry_run?}` : paires sans ambiguïté (même date, même montant) |
 | POST | `/api/v1/bank-transactions/apply-rules` | `{"ids": [...]}` : applique les règles à la sélection |
+| POST | `/api/v1/bank-transactions/<id>/entity` | `{"entity_id"}` : attribue un vrai tiers à une transaction passée par une règle (pièce et règlement repassés sur son compte) ; liste des transactions : `rule_tiers` |
 
 Les écritures groupées renvoient `{"results": [...], "counters": {...}, "undo": {...}}` : `results`
 donne le statut de chaque élément (`ok` / `error` + `message`) et `undo` la requête qui annule la

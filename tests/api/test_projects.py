@@ -153,6 +153,6 @@ def test_rule_sets_project(books, login_as):
     db.session.add(txn)
     db.session.commit()
     rules_engine.apply_rules([txn])
-    entry = JournalEntry.query.one()
-    assert {l.account.code: l.project_id for l in entry.lines} == {"512": None, "6061": ids["Jardin"]}
+    entry = JournalEntry.query.filter_by(source="RULE").one()
+    assert {l.account.code: l.project_id for l in entry.lines} == {"401000": None, "6061": ids["Jardin"]}
     assert Rule.query.one().project_id == ids["Jardin"]

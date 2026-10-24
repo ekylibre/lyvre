@@ -9,15 +9,16 @@ from flask_login import login_required
 from sqlalchemy.orm import joinedload
 
 from app.extensions import db
-from app.models import BankAccount, BankTransaction, JournalLine, PurchasePayment
-from app.services.ledger import delete_entries
+from app.models import BankAccount, BankTransaction, Entity, JournalEntry, JournalLine, PurchasePayment
+from app.services import rule_entries
+from app.services.ledger import LedgerError, delete_entries, reversed_entry_ids
 from app.services.reconciler import (
     auto_reconcile, reconcile_many, suggest_matches_scored, unreconcile_many,
 )
 from app.services.rules_engine import apply_rules
 from app.utils.list_filters import apply_date_sort, apply_month_filter, parse_month, parse_sort
 
-from . import ApiError, bp, json_body
+from . import ApiError, bp, get_or_404, invalid, json_body, notice
 
 
 def _bank_account(bank_account_id):
@@ -55,7 +56,18 @@ def attachment_status(bt):
     return "ok"
 
 
-def serialize_transaction(bt, invoices=None):
+def _rule_fitids(transactions) -> set[str]:
+    """FITID des transactions passées par une règle en partie double (pièce de règle présente)."""
+    refs = [f"RULE:{bt.fitid}" for bt in transactions if bt.reconciled]
+    if not refs:
+        return set()
+    rows = db.session.query(JournalEntry.source_ref).filter(
+        JournalEntry.source == rule_entries.SOURCE_RULE, JournalEntry.source_ref.in_(refs),
+        JournalEntry.id.notin_(reversed_entry_ids()))
+    return {ref.removeprefix("RULE:") for (ref,) in rows}
+
+
+def serialize_transaction(bt, invoices=None, rule_fitids=()):
     line = bt.journal_line
     return {
         "id": bt.id,
@@ -80,6 +92,8 @@ def serialize_transaction(bt, invoices=None):
             if line else None
         ),
         "new_entry_url": url_for("entries.new", bt_id=bt.id),
+        # Passée par une règle (tiers par défaut ou tiers de la règle) : un vrai tiers peut être attribué.
+        "rule_tiers": bt.fitid in rule_fitids,
     }
 
 
@@ -118,8 +132,29 @@ def bank_transactions(bank_account_id):
         for payment in PurchasePayment.query.filter(
                 PurchasePayment.bank_transaction_id.in_([bt.id for bt in rows])):
             invoices.setdefault(payment.bank_transaction_id, []).append(payment.purchase)
-    return jsonify(transactions=[serialize_transaction(bt, invoices.get(bt.id)) for bt in rows],
+    rule_fitids = _rule_fitids(rows)
+    return jsonify(transactions=[serialize_transaction(bt, invoices.get(bt.id), rule_fitids) for bt in rows],
                    counters=counters(ba.id))
+
+
+@bp.route("/bank-transactions/<int:bt_id>/entity", methods=["POST"])
+@login_required
+def bank_transaction_assign_entity(bt_id):
+    """Attribue un vrai tiers à une transaction passée par une règle : pièce et règlement repassés sur
+    le compte du tiers (supprimés en brouillard, contrepassés si validés)."""
+    bt = get_or_404(BankTransaction, bt_id, "Transaction bancaire introuvable.")
+    entity_id = json_body().get("entity_id")
+    entity = db.session.get(Entity, entity_id) if isinstance(entity_id, int) else None
+    if entity is None:
+        raise invalid("Tiers introuvable.", "entity_id")
+    try:
+        rule_entries.assign(bt, entity)
+        db.session.commit()
+    except LedgerError as exc:
+        db.session.rollback()
+        raise invalid(str(exc)) from None
+    return jsonify(item=serialize_transaction(bt, rule_fitids=_rule_fitids([bt])),
+                   notices=[notice(f"Transaction attribuée à {entity.name} : écritures repassées sur son compte.")])
 
 
 @bp.route("/bank-transactions/<int:bt_id>/suggestions")

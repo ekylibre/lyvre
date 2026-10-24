@@ -151,13 +151,26 @@ le règlement 401 / banque est passé et rapproché automatiquement, à la compt
 ou à l'import du relevé OFX qui le contient (message après l'import). **Plusieurs** : la fiche les
 propose, même fournisseur en premier — **Régler avec cette transaction**. Un règlement hors Qonto se
 **défait** depuis la fiche (écriture supprimée, transaction de nouveau à rapprocher). Un débit déjà
-passé par une règle peut être choisi : il rejoint les règlements à remplacer ci-dessous.
+passé par une règle peut être choisi : ses écritures de règle sont remplacées (ci-dessous).
+
+### Transactions déjà passées par une règle
+
+En partie double, une règle de catégorisation passe une dépense par un compte de tiers : une pièce
+au journal des achats (charge / **401000 « Fournisseurs divers »**, ou le compte du tiers de la règle)
+et un règlement 401000 / banque, lettrés entre eux. Quand la facture arrive et est **comptabilisée**
+avec la transaction qui la paie, ces deux écritures sont **remplacées automatiquement** par le
+règlement du fournisseur (supprimées en brouillard, contrepassées si validées) : la charge n'est
+jamais comptée deux fois.
+
+Sans facture, le vrai tiers peut être attribué depuis **Banque › Transactions** : bouton
+**Attribuer** (colonne Tiers) des transactions passées par une règle ; les deux écritures sont
+repassées sur le compte du tiers (créé au besoin).
 
 ### Règlements à remplacer
 
-Une transaction passée en charge par une règle (6xx / banque) **avant** l'arrivée de sa facture
-compterait la charge deux fois. Le bandeau rouge de la liste mène à `/purchases/settlements` :
-**Remplacer la sélection** supprime ces écritures de règle et passe à la place les règlements
+Le bandeau rouge de la liste mène à `/purchases/settlements` : transactions liées à une facture
+mais encore rapprochées d'une autre écriture (remplacement automatique impossible, par exemple
+exercice clôturé). **Remplacer la sélection** retire les écritures de règle et passe les règlements
 fournisseur, rapprochés. Un rapprochement saisi à la main n'est jamais remplacé : il est seulement
 listé pour vérification.
 

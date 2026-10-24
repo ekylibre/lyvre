@@ -138,11 +138,11 @@ def test_apply_rules_to_selection_and_undo(client, base):
     assert data["summary"] == {"matched": 1, "posted": 1, "skipped": 1, "total": 2}
     assert data["counters"]["unreconciled"] == 2
     entry_ids = data["undo"]["body"]["entry_ids"]
-    assert len(entry_ids) == 1
+    assert len(entry_ids) == 2  # pièce de règle + règlement
 
     undone = replay(client, data["undo"]).get_json()
-    assert undone["results"][0]["status"] == "ok"
-    assert db.session.get(JournalEntry, entry_ids[0]) is None
+    assert all(r["status"] == "ok" for r in undone["results"])
+    assert all(db.session.get(JournalEntry, i) is None for i in entry_ids)
     bt = db.session.get(BankTransaction, base["bts"][0].id)
     assert bt.reconciled is False and bt.category == "Énergie"  # catégorie conservée
 

@@ -27,11 +27,10 @@ from app.extensions import db
 from app.models import (
     BankAccount, BankTransaction, Journal, JournalEntry, Purchase, PurchasePayment,
 )
-from app.services.ledger import LedgerError, delete_entries, post_entry, remove_entry
+from app.services import rule_entries
+from app.services.ledger import LedgerError, delete_entries, post_entry
 from app.services.purchase_posting import fiscal_year_for, supplier_account
 from app.services.reconciler import REVERSED_MESSAGE, reconcile
-
-RULE_SOURCES = ("QONTO_IMPORT", "OFX_IMPORT")
 
 
 def _transaction_ids(p: Purchase) -> list[str]:
@@ -157,6 +156,14 @@ def _settleable(txn: BankTransaction, payments) -> bool:
             and all(p.purchase.journal_entry_id is not None for p in payments))
 
 
+def _rule_replaceable(txn: BankTransaction, payments) -> bool:
+    """Factures toutes comptabilisées, pas encore réglées, transaction rapprochée d'une écriture de règle."""
+    return (bool(payments) and txn.reconciled and txn.journal_line is not None and not txn.is_reversed
+            and all(p.journal_entry_id is None for p in payments)
+            and all(p.purchase.journal_entry_id is not None for p in payments)
+            and is_rule_entry(txn.journal_line.entry, txn))
+
+
 def settle(purchases=(), transactions=()) -> dict:
     """Passe les règlements possibles (une transaction SQL par transaction bancaire)."""
     candidates = {t.id: t for t in transactions}
@@ -164,15 +171,21 @@ def settle(purchases=(), transactions=()) -> dict:
         for payment in p.payments:
             if payment.bank_transaction is not None:
                 candidates[payment.bank_transaction.id] = payment.bank_transaction
-    result = {"settled": 0, "errors": []}
+    result = {"settled": 0, "replaced": 0, "errors": []}
     for txn in candidates.values():
         payments = _payments_of(txn)
-        if not _settleable(txn, payments):
+        # Transaction déjà passée par une règle : à la comptabilisation de la facture, ses écritures de
+        # règle sont remplacées par le règlement du fournisseur (sinon la charge compterait deux fois).
+        replace = _rule_replaceable(txn, payments)
+        if not replace and not _settleable(txn, payments):
             continue
         try:
+            if replace:
+                rule_entries.remove(txn, txn.journal_line.entry)
             _settle_one(txn, payments)
             db.session.commit()
             result["settled"] += 1
+            result["replaced"] += replace
         except LedgerError as exc:
             db.session.rollback()
             result["errors"].append(f"Règlement {txn.label or txn.fitid} : {exc}")
@@ -190,11 +203,9 @@ class Replacement:
 
 
 def is_rule_entry(entry: JournalEntry, txn: BankTransaction) -> bool:
-    """Écriture générée par une règle : 2 lignes, banque + compte 6xx, référence FITID."""
-    if entry.source not in RULE_SOURCES or entry.source_ref != f"FITID:{txn.fitid}":
-        return False
-    codes = sorted(line.account.code for line in entry.lines)
-    return len(codes) == 2 and any(code.startswith("6") for code in codes)
+    """Écriture générée par une règle : règlement tiers / banque (pièce de règle à côté), ou forme
+    d'avant banque / 6xx ; référence FITID."""
+    return rule_entries.is_rule_entry(entry, txn, ("6", "401"))
 
 
 def to_replace() -> list[Replacement]:
@@ -231,10 +242,7 @@ def replace_many(transaction_ids) -> dict:
         try:
             if entry.fiscal_year.closed:
                 raise LedgerError("Exercice clôturé : l'écriture de règle ne peut pas être supprimée.")
-            txn.journal_line_id = None
-            txn.reconciled = False
-            remove_entry(entry)
-            db.session.flush()
+            rule_entries.remove(txn, entry)
             new_entry = _settle_one(txn, _payments_of(txn))
             db.session.commit()
             results.append({"id": txn_id, "status": "ok", "removed": entry.reference,

@@ -1,6 +1,6 @@
 // Banque › Transactions d'un compte : filtres (à rapprocher, justificatif manquant, débit sans
 // facture, mois), synchronisation et paramètres Qonto, alertes (annulées encore rapprochées,
-// contreparties à valider).
+// contreparties à valider), attribution d'un vrai tiers aux transactions passées par une règle.
 import { useState } from "react";
 import { useParams } from "react-router";
 import { Alert, Anchor, Button, Center, Group, List, Loader, Paper, SegmentedControl, Stack, Text } from "@mantine/core";
@@ -18,6 +18,8 @@ import { MoneyText } from "../../components/Money";
 import { MonthSelect, type MonthOption } from "../../components/MonthSelect";
 import { PageHeader } from "../../components/PageHeader";
 import { Can } from "../../components/Can";
+import { EntitySelect } from "../../components/EntitySelect";
+import { FormModal } from "../../components/FormModal";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import type { BankTransaction } from "../../lib/types";
@@ -28,6 +30,8 @@ import { BANK_ACCOUNTS_KEY, type BankAccount } from "./types";
 type Transaction = BankTransaction & {
   raw_type: string | null; note: string | null; entity_id: number | null;
   invoices: { id: number; label: string; url: string }[];
+  /** Passée par une règle (pièce + règlement par un compte de tiers) : un vrai tiers peut être attribué. */
+  rule_tiers: boolean;
 };
 interface Detail {
   item: BankAccount; qonto_job: Job | null; proposal_count: number;
@@ -96,11 +100,36 @@ function QontoCard({ detail, onSynced }: { detail: Detail; onSynced: () => void 
   );
 }
 
+/** Attribue un vrai tiers à une transaction passée par une règle : ses deux écritures sont repassées sur
+ * le compte du tiers (supprimées en brouillard, contrepassées si validées). */
+function AssignEntityModal({ txn, onClose }: { txn: Transaction | null; onClose: () => void }) {
+  const [entityId, setEntityId] = useState("");
+  const assign = useAction((id: number) => api.post<{ notices: Notice[] }>(`/api/v1/bank-transactions/${id}/entity`,
+    { entity_id: Number(entityId) }), { invalidate: [BANK_ACCOUNTS_KEY] });
+  const close = () => { setEntityId(""); onClose(); };
+  return (
+    <FormModal opened={txn !== null} onClose={close} title="Attribuer à un tiers">
+      {txn && <Stack>
+        <Text size="sm">{formatDate(txn.date)} — {txn.label || "(sans libellé)"} — <MoneyText cents={txn.amount_cents} /></Text>
+        <Text size="sm" c="dimmed">La pièce et le règlement passés par la règle sont repassés sur le compte du tiers
+          (créé au besoin) ; validées, les écritures d'origine sont contrepassées.</Text>
+        <EntitySelect label="Tiers" value={entityId} onChange={(id) => setEntityId(id)} initialLabel={txn.entity} data-autofocus />
+        <Group justify="flex-end">
+          <Button variant="default" onClick={close}>Annuler</Button>
+          <Button disabled={!entityId} loading={assign.isPending}
+            onClick={() => assign.mutate(txn.id, { onSuccess: close })}>Attribuer</Button>
+        </Group>
+      </Stack>}
+    </FormModal>
+  );
+}
+
 export default function TransactionsPage() {
   const baId = Number(useParams().ba_id);
   const client = useQueryClient();
   const can = useCan();
   const [params, setParams] = useUrlParams({ filter: "all", month: "", sort: "desc" });
+  const [assigning, setAssigning] = useState<Transaction | null>(null);
   const { data: detail } = useQuery({ queryKey: [...BANK_ACCOUNTS_KEY, baId],
     queryFn: () => api.get<Detail>(`/api/v1/bank-accounts/${baId}`) });
   const query = new URLSearchParams({
@@ -131,8 +160,15 @@ export default function TransactionsPage() {
     } },
     { accessor: "raw_type", title: "Type", render: (t) => <Text size="sm" c="dimmed">{t.raw_type ?? "—"}</Text> },
     { accessor: "amount_cents", title: "Montant", textAlign: "right", render: (t) => <MoneyText cents={t.amount_cents} plus /> },
-    { accessor: "entity", title: "Tiers", render: (t) => t.entity && t.entity_id
-      ? <Anchor component={AppLink} href={`/entities/${t.entity_id}`} size="sm">{t.entity}</Anchor> : <Text c="dimmed">—</Text> },
+    { accessor: "entity", title: "Tiers", render: (t) => (
+      <Group gap={6} wrap="nowrap">
+        {t.entity && t.entity_id
+          ? <Anchor component={AppLink} href={`/entities/${t.entity_id}`} size="sm">{t.entity}</Anchor>
+          : <Text size="sm" c="dimmed">{t.rule_tiers ? "Tiers par défaut" : "—"}</Text>}
+        {t.rule_tiers && <Can><Button size="compact-xs" variant="subtle" onClick={() => setAssigning(t)}>
+          {t.entity ? "Changer" : "Attribuer"}</Button></Can>}
+      </Group>
+    ) },
     { accessor: "category", title: "Catégorie", render: (t) => t.category ?? <Text c="dimmed">—</Text> },
     { accessor: "reconciled", title: "Statut", render: (t) => t.reconciled ? <StatusBadge tone="ok">Rapprochée</StatusBadge> : <StatusBadge tone="todo">À rapprocher</StatusBadge> },
     { accessor: "entry", title: "Écriture", render: (t) => t.entry
@@ -174,6 +210,7 @@ export default function TransactionsPage() {
       <DataGrid id="bank-transactions" records={data?.transactions} columns={columns} fetching={isFetching} perPage={100}
         sort={{ column: "date", direction: params.sort === "asc" ? "asc" : "desc" }} onSortChange={(s) => setParams({ sort: s.direction })}
         emptyText="Aucune transaction pour ces critères." />
+      <AssignEntityModal txn={assigning} onClose={() => setAssigning(null)} />
     </>
   );
 }

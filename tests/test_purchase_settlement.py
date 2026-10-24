@@ -192,16 +192,17 @@ def test_rule_entry_replaced_by_settlement(books):
     db.session.add(Rule(position=1, name="Maintenance", label_contains="DUPRE", account_code="613"))
     db.session.commit()
     sync_transactions(books, payment())
-    rule_entry = _txn().journal_line.entry
-    assert entry_lines(rule_entry) == [("512", 0, 27177), ("613", 27177, 0)]
+    rule_entry = _txn().journal_line.entry  # règlement par le tiers par défaut, pièce de règle à côté
+    assert entry_lines(rule_entry) == [("401000", 27177, 0), ("512", 0, 27177)]
+    document = JournalEntry.query.filter_by(source="RULE").one()
+    assert entry_lines(document) == [("401000", 0, 27177), ("613", 27177, 0)]
+    tiers = [l for e in (rule_entry, document) for l in e.lines if l.account.code == "401000"]
+    assert tiers[0].lettering_id and tiers[0].lettering_id == tiers[1].lettering_id
 
-    sync_invoices(invoice())  # facture comptabilisée, transaction déjà rapprochée par la règle
-    (row,) = purchase_settlement.to_replace()
-    assert row.replaceable and row.entry.id == rule_entry.id
-
-    outcome = purchase_settlement.replace_many([row.transaction.id])
-    assert outcome["counters"] == {"ok": 1, "error": 0}
-    assert db.session.get(JournalEntry, rule_entry.id) is None
+    # Facture comptabilisée : les deux écritures de règle sont remplacées par le règlement du fournisseur.
+    result = sync_invoices(invoice())
+    assert result["settled"] == 1
+    assert db.session.get(JournalEntry, rule_entry.id) is None and db.session.get(JournalEntry, document.id) is None
     assert entry_lines(_txn().journal_line.entry) == [("401001", 27177, 0), ("512", 0, 27177)]
     assert purchase_settlement.to_replace() == []
 
@@ -229,7 +230,11 @@ def test_settlements_views(books, login_as):
     db.session.add(Rule(position=1, name="Maintenance", label_contains="DUPRE", account_code="613"))
     db.session.commit()
     sync_transactions(books, payment())
-    sync_invoices(invoice())
+    sync_invoices(invoice(matched_transactions=[]))  # pas de lien : la règle reste en place
+    rule_entry = _txn().journal_line.entry
+    p = Purchase.query.one()
+    p.payments.append(PurchasePayment(bank_transaction=_txn(), origin="manual"))  # lien sans règlement passé
+    db.session.commit()
     client = login_as()
     assert client.get("/api/v1/purchases").get_json()["meta"]["counters"]["to_replace"] == 1
     body = client.get("/api/v1/purchases/settlements").get_json()
@@ -240,6 +245,8 @@ def test_settlements_views(books, login_as):
     resp = client.post("/api/v1/purchases/settlements/replace", json={"transaction_ids": [_txn().id]})
     assert "1 écriture(s) de règle remplacée(s)" in resp.get_json()["notices"][0]["message"]
     assert client.get("/api/v1/purchases/settlements").get_json() == {"replaceable": [], "manual": []}
+    assert db.session.get(JournalEntry, rule_entry.id) is None
+    assert JournalEntry.query.filter_by(source="RULE").count() == 0
     detail = client.get(f"/api/v1/purchases/{Purchase.query.one().id}").get_json()
     assert [p["status_label"] for p in detail["payments"]] == ["Réglée"]
 

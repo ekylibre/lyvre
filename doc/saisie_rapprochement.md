@@ -111,6 +111,21 @@ transmis à l'expert-comptable.
 - **Barre d'actions** sur la sélection : rapprocher les suggestions `★`, appliquer les règles,
   rapprochement automatique.
 
+### Règles de catégorisation et comptes de tiers
+
+En **partie double**, une règle ne passe jamais la charge ou le produit directement contre la banque :
+elle passe une **pièce** (journal AC : charge / tiers ; journal VE : tiers / produit) et un
+**règlement** tiers / banque rapproché de la transaction, lettrés entre eux. Le tiers est celui de la
+règle s'il a un compte, sinon le tiers par défaut **401000 « Fournisseurs divers »** ou
+**411000 « Clients divers »**. Ensuite :
+
+- la **facture** qui arrive (achat comptabilisé lié à la transaction, ou facture de vente encaissée
+  par elle) **remplace automatiquement** les deux écritures par le règlement du vrai tiers ;
+- sans facture, **Banque › Transactions › Attribuer** (colonne Tiers) repasse les deux écritures
+  sur le compte du tiers choisi (créé au besoin) ; validées, elles sont contrepassées.
+
+En comptabilité **simplifiée** (trésorerie), la règle passe une seule écriture banque / 6… ou 7….
+
 ### Raccourcis
 
 | Touche | Action |
