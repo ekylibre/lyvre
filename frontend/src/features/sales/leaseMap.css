@@ -1,5 +1,10 @@
 /* Carte des biens loués (lot L3). */
-.lease-map { height: 560px; border-radius: var(--mantine-radius-md); overflow: hidden; }
+/* Contexte d'empilement propre : les z-index internes de Leaflet (couches 400, boutons 1000) restent
+   dans la carte ; les fenêtres de l'application (z-index 200) passent au-dessus. */
+.lease-map {
+  height: 560px; border-radius: var(--mantine-radius-md); overflow: hidden;
+  position: relative; z-index: 0; isolation: isolate;
+}
 .lease-map .lease-letter {
   background: transparent; border: none; box-shadow: none; color: #fff; font-weight: 800; font-size: 18px;
   text-shadow: 0 0 3px #14195a, 0 0 3px #14195a, 0 0 6px #14195a;

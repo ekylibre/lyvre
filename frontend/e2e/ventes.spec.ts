@@ -148,6 +148,7 @@ test("bail : bien choisi sur la carte (lot L3)", async ({ page }) => {
   await page.route("**/api/v1/geo/parcel?lat=**", (r) => r.fulfill({ json: { item: { idu: "17387000AH0248", ref: "AH 248", area_m2: 5619,
     buildings: 2, buildings_area_m2: 155, commune: "ST PORCHAIRE" } } }));
 
+  await page.setViewportSize({ width: 1920, height: 1080 });  // grand écran : la fenêtre chevauche la carte
   await login(page, "SCI Ventes E2E", "/leases/new");
   await page.getByRole("combobox", { name: "Locataire (preneur)" }).click();
   await page.getByRole("option", { name: "Client Ventes E2E" }).click();
@@ -164,7 +165,20 @@ test("bail : bien choisi sur la carte (lot L3)", async ({ page }) => {
   await expect(dialog.getByLabel(/^Références cadastrales/)).toHaveValue("AH 248");
   await expect(dialog.getByLabel(/^Surface louée/)).toHaveValue("5619");
   await expect(dialog.getByLabel(/^Dont surface bâtie/)).toHaveValue("155");
-  await dialog.getByLabel(/^Désignation/).fill("Potager");
+  // La fenêtre passe au-dessus de la carte : les couches de Leaflet laissent passer les clics
+  // (pointer-events: none) même quand elles la recouvrent ; on les rend « cliquables » le temps de
+  // demander au navigateur l'élément affiché au centre du champ.
+  const label = dialog.getByLabel(/^Désignation/);
+  const field = (await label.boundingBox())!;
+  const onTop = await page.evaluate(({ x, y }) => {
+    const panes = [...document.querySelectorAll<HTMLElement>(".leaflet-container, .leaflet-container *")];
+    panes.forEach((el) => el.style.setProperty("pointer-events", "auto", "important"));
+    const hit = document.elementFromPoint(x, y);
+    panes.forEach((el) => el.style.removeProperty("pointer-events"));
+    return hit?.closest("[role=dialog]") ? "fenêtre" : hit?.closest(".leaflet-container") ? "carte" : String(hit?.tagName);
+  }, { x: field.x + field.width / 2, y: field.y + field.height / 2 });
+  expect(onTop).toBe("fenêtre");
+  await label.fill("Potager");
   await dialog.getByRole("button", { name: "Ajouter" }).click();
   await expect(page.getByRole("cell", { name: "Potager", exact: true })).toBeVisible();
   await expect(page.locator("[data-testid=lease-map] .lease-letter")).toHaveText("A");
