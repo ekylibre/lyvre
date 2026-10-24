@@ -595,6 +595,9 @@ Structure, onglet Facturation (`/configuration/organization?tab=billing`). API :
 | GET | `/api/v1/geo/organization` | Centre de la carte : adresse de la structure géocodée (IGN), sinon la France |
 | GET | `/api/v1/geo/parcels?bbox=o,s,e,n` · `/api/v1/geo/buildings?bbox=` | Parcelles (IGN Parcellaire Express : `idu`, `ref`, `insee`, `area_m2`) / bâtiments (BD TOPO) de l'emprise (≤ 0,03°) ; 503 si le service ne répond pas |
 | GET | `/api/v1/geo/parcel?lat=&lon=` · `?ref=<idu>` | Fiche Lexicon de la parcelle au point (surface, bâtiments, emprise) / parcelle par identifiant (contour IGN) |
+| POST / DELETE | `/api/v1/leases/<id>/signature` | Envoyer à la signature (Docuseal ; intégration requise ; 409 si bail non validé, sans gérant ou e-mail manquant, déjà envoyé ; 502 si Docuseal refuse) / annuler l'envoi en cours |
+| POST | `/api/v1/leases/<id>/signature/refresh` | Relire le statut ; signé : PDF signé et journal d'audit rangés |
+| GET | `/api/v1/lease-signatures/<id>/<sent\|signed\|audit>.pdf` | PDF envoyé, signé, journal d'audit |
 | POST | `/api/v1/leases/<id>/activate` | Étape 3 `{frequency, due_day, in_advance, vat_rate, charges, rent_account_code, charges_account_code, qonto_emit}` : brouillon → validé (récurrence, une ligne par ligne de bail) ; bail validé : facturation enregistrée |
 | POST | `/api/v1/leases/<id>/deposit` | `{paid_on, bank_account_id}` : dépôt de garantie encaissé (banque ou caisse / 165) |
 | POST | `/api/v1/sales/<id>/rent-receipt` | Quittance (loyer de la période payé) ou reçu (paiement partiel) ; PDF conservé |

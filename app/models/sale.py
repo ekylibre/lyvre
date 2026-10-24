@@ -321,6 +321,52 @@ class LeaseTemplate(db.Model):
     updated_by_id = db.Column(db.Integer)  # utilisateur (base méta), sans clé étrangère
 
 
+class LeaseSignature(db.Model):
+    """Envoi d'un bail à la signature électronique (lot L4, Docuseal) : PDF envoyé, statut, PDF
+    signé et journal d'audit rangés à la fin."""
+    __tablename__ = "lease_signatures"
+
+    id = db.Column(db.Integer, primary_key=True)
+    lease_id = db.Column(db.Integer, db.ForeignKey("leases.id", ondelete="CASCADE"), nullable=False, index=True)
+    provider = db.Column(db.String(20), nullable=False, default="docuseal")
+    submission_id = db.Column(db.String(64))
+    status = db.Column(db.String(12), nullable=False, default="sent")  # sent | completed | declined | expired | cancelled
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    completed_at = db.Column(db.DateTime)
+    checked_at = db.Column(db.DateTime)
+    sent_pdf_path = db.Column(db.String(300))
+    signed_pdf_path = db.Column(db.String(300))
+    audit_pdf_path = db.Column(db.String(300))
+    error = db.Column(db.Text)
+    created_by_id = db.Column(db.Integer)  # utilisateur (base méta), sans clé étrangère
+
+    lease = db.relationship("Lease", backref=db.backref("signatures", order_by="LeaseSignature.id",
+                                                        cascade="all, delete-orphan"))
+    signers = db.relationship("LeaseSigner", order_by="LeaseSigner.position", cascade="all, delete-orphan",
+                              back_populates="signature")
+
+
+class LeaseSigner(db.Model):
+    """Signataire d'un envoi : gérants (côté bailleur) puis preneur, dans cet ordre."""
+    __tablename__ = "lease_signers"
+
+    id = db.Column(db.Integer, primary_key=True)
+    signature_id = db.Column(db.Integer, db.ForeignKey("lease_signatures.id", ondelete="CASCADE"), nullable=False,
+                             index=True)
+    position = db.Column(db.Integer, nullable=False, default=0)
+    role = db.Column(db.String(60), nullable=False)
+    name = db.Column(db.String(200), nullable=False)
+    email = db.Column(db.String(200), nullable=False)
+    associate_id = db.Column(db.Integer)
+    entity_id = db.Column(db.Integer)
+    submitter_id = db.Column(db.String(64))
+    status = db.Column(db.String(12), nullable=False, default="awaiting")  # awaiting | sent | opened | completed | declined
+    signed_at = db.Column(db.DateTime)
+    declined_at = db.Column(db.DateTime)
+
+    signature = db.relationship("LeaseSignature", back_populates="signers")
+
+
 class RentReceipt(db.Model):
     """Quittance (loyer de la période entièrement payé) ou reçu (paiement partiel)."""
     __tablename__ = "rent_receipts"

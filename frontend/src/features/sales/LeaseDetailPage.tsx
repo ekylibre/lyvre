@@ -55,6 +55,64 @@ function DocumentForm({ lease, onDone }: { lease: Lease; onDone: (item?: Lease) 
   );
 }
 
+const SIGNER_TONES: Record<string, "ok" | "todo" | "gap" | "neutral" | "info"> = {
+  completed: "ok", declined: "gap", sent: "info", opened: "info", awaiting: "neutral" };
+
+/** Signature électronique (lot L4) : signataires prévus, envoi, suivi, PDF signé. */
+function SignaturePanel({ lease, onChange }: { lease: Lease; onChange: (item: Lease) => void }) {
+  const docuseal = useIntegrationGuard("docuseal", "L'envoi à la signature");
+  const send = useAction(() => api.post<{ item: Lease; notices: Notice[] }>(`/api/v1/leases/${lease.id}/signature`));
+  const refresh = useAction(() => api.post<{ item: Lease; notices: Notice[] }>(`/api/v1/leases/${lease.id}/signature/refresh`));
+  const cancel = useAction(() => api.delete<{ item: Lease; notices: Notice[] }>(`/api/v1/leases/${lease.id}/signature`));
+  const sig = lease.signature;
+  const sending = !sig || sig.status === "declined" || sig.status === "expired";
+  if (lease.status !== "active" || !lease.kind) return null;
+  return (
+    <Paper p="md" mb="md">
+      <Group justify="space-between" align="flex-start" mb="xs">
+        <div>
+          <Title order={3} mb={4}>Signature</Title>
+          {sig ? <Group gap={8}><StatusBadge tone={sig.status === "completed" ? "ok" : sig.status === "sent" ? "info" : "gap"}>{sig.status_label}</StatusBadge>
+            <Text size="sm" c="dimmed">envoyé le {formatDate(sig.sent_at)}{sig.completed_at ? `, signé le ${formatDate(sig.completed_at)}` : ""}</Text></Group>
+            : <Text size="sm" c="dimmed">Signature électronique avec Docuseal : les gérants signent, puis le preneur.</Text>}
+        </div>
+        <Group gap="xs">
+          {sig?.files.signed && <Button component="a" href={sig.files.signed} target="_blank">PDF signé</Button>}
+          {sig?.files.audit && <Button variant="default" component="a" href={sig.files.audit} target="_blank">Journal d'audit</Button>}
+          {sig?.files.sent && !sig.files.signed && <Button variant="default" component="a" href={sig.files.sent} target="_blank">PDF envoyé</Button>}
+          <Can>
+            {sig?.status === "sent" && <>
+              <Button variant="default" loading={refresh.isPending} onClick={docuseal.guard(() => refresh.mutate(undefined, { onSuccess: (r) => onChange(r.item) }))}>Actualiser</Button>
+              <Button variant="subtle" color="brique" onClick={docuseal.guard(() => confirmAction({
+                title: "Annuler l'envoi à la signature ?", confirmLabel: "Annuler l'envoi",
+                message: "L'envoi est archivé chez Docuseal (les invitations ne sont plus valables) ; le bail redevient modifiable.",
+                onConfirm: () => cancel.mutate(undefined, { onSuccess: (r) => onChange(r.item) }) }))}>Annuler l'envoi</Button>
+            </>}
+            {sending && <Button disabled={!!lease.signature_problems?.length} loading={send.isPending}
+              onClick={docuseal.guard(() => confirmAction({
+                title: "Envoyer le bail à la signature ?", danger: false, confirmLabel: "Envoyer",
+                message: `Docuseal envoie une invitation par e-mail à ${(lease.signers_planned ?? []).map((s) => `${s.name} (${s.email})`).join(", puis ")}. Le bail ne sera plus modifiable, sauf en annulant l'envoi.`,
+                onConfirm: () => send.mutate(undefined, { onSuccess: (r) => onChange(r.item) }) }))}>
+              {sig ? "Renvoyer à la signature" : "Envoyer à la signature"}</Button>}
+          </Can>
+        </Group>
+      </Group>
+      {sig?.error && <Alert color="brique" variant="light" mb="xs">{sig.error}</Alert>}
+      {sending && !!lease.signature_problems?.length && (
+        <Alert color="paille" variant="light" mb="xs" title="Envoi impossible">{lease.signature_problems.join(" ")}</Alert>
+      )}
+      <Table>
+        <Table.Tbody>{(sig?.signers ?? (lease.signers_planned ?? []).map((s) => ({ ...s, status: "", status_label: "", signed_at: null, declined_at: null }))).map((s) => (
+          <Table.Tr key={s.role}>
+            <Table.Td fw={600}>{s.role}</Table.Td><Table.Td>{s.name}</Table.Td><Table.Td>{s.email || "—"}</Table.Td>
+            <Table.Td>{s.status && <StatusBadge tone={SIGNER_TONES[s.status] ?? "neutral"}>{s.status_label}</StatusBadge>}
+              {s.signed_at && <Text span size="xs" c="dimmed"> le {formatDate(s.signed_at)}</Text>}</Table.Td>
+          </Table.Tr>))}</Table.Tbody>
+      </Table>
+    </Paper>
+  );
+}
+
 export default function LeaseDetailPage() {
   const id = Number(useParams().lease_id);
   const client = useQueryClient();
@@ -79,7 +137,7 @@ export default function LeaseDetailPage() {
         actions={<>
           <Can>
             {l.status === "active" && l.deposit_cents > 0 && !l.deposit_entry && <Button variant="default" onClick={() => setModal("deposit")}>Encaisser le dépôt</Button>}
-            <Button variant="default" component={AppLink} href={`/leases/${l.id}/edit`}>Modifier</Button>
+            {!l.locked && <Button variant="default" component={AppLink} href={`/leases/${l.id}/edit`}>Modifier</Button>}
           </Can>
           <Button variant="default" component={AppLink} href="/leases/">Baux</Button>
         </>} />
@@ -131,8 +189,8 @@ export default function LeaseDetailPage() {
           {l.kind && <Group gap="xs">
             <Button variant="default" component="a" href={l.document.preview_url} target="_blank">Aperçu (PDF)</Button>
             <Can>
-              <Button variant="default" onClick={() => setModal("document")}>Retoucher</Button>
-              {l.document.frozen && <Button variant="subtle" onClick={() => confirmAction({
+              {!l.locked && <Button variant="default" onClick={() => setModal("document")}>Retoucher</Button>}
+              {l.document.frozen && !l.locked && <Button variant="subtle" onClick={() => confirmAction({
                 title: "Régénérer le texte depuis le modèle ?", confirmLabel: "Régénérer",
                 message: "Le texte est rédigé à nouveau avec le modèle et les données actuelles du bail ; les retouches sont perdues.",
                 onConfirm: () => regenerate.mutate(undefined, { onSuccess: (r) => refresh(r.item) }) })}>Régénérer</Button>}
@@ -140,6 +198,7 @@ export default function LeaseDetailPage() {
           </Group>}
         </Group>
       </Paper>
+      <SignaturePanel lease={l} onChange={(item) => refresh(item)} />
       <Grid>
         <Grid.Col span={{ base: 12, lg: 7 }}><Paper p="md">
           <Title order={3} mb="xs">Avis d'échéance</Title>

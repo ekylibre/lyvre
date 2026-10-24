@@ -12,7 +12,7 @@ export const TEST_SESSION: Session = {
   user: { id: 1, email: "tresorier@example.org", full_name: null, is_admin: false, must_change_password: false },
   // Intégrations toutes activées (comme l'instance de test du serveur) : un test les retire au besoin.
   instance: { id: 1, slug: "test", label: "Test", chart: "asso",
-    integrations: { enabled: ["facebook", "ga4", "helloasso", "odoo", "qonto", "smtp", "stancer"], proposed: [] } },
+    integrations: { enabled: ["docuseal", "facebook", "ga4", "helloasso", "odoo", "qonto", "smtp", "stancer"], proposed: [] } },
   instances: [{ id: 1, label: "Test" }],
   nav: [],
   admin_links: [],

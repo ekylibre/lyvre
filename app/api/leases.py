@@ -8,10 +8,12 @@ from flask import jsonify, request, send_file
 from flask_login import current_user
 
 from app.extensions import db
-from app.models import Account, BankAccount, Lease, LeaseItem, Recurrence, RentReceipt, Sale
+from app.models import Account, BankAccount, Lease, LeaseItem, LeaseSignature, Recurrence, RentReceipt, Sale
 from app.models.sale import FREQUENCIES
 from app.access import instance_admin_required
-from app.services import external_config, geodata, lease_documents, leases, organization, recurrence, sale_entry
+from app.services import (
+    external_config, geodata, lease_documents, lease_signatures, leases, organization, recurrence, sale_entry,
+)
 from app.services.lease_documents import LeaseDocumentError
 from app.services.sale_entry import SaleError
 
@@ -154,12 +156,30 @@ def lease_payload(lease: Lease, detail: bool = False) -> dict:
                         "preview_url": f"/api/v1/leases/{lease.id}/preview.pdf"}}
     if detail:
         row["items"] = [item_payload(i) for i in lease.items]
+        row["signature"] = signature_payload(lease_signatures.current(lease))
+        planned, problems = lease_signatures.planned(lease)
+        row["signers_planned"] = [{"role": s["role"], "name": s["name"], "email": s["email"]} for s in planned]
+        row["signature_problems"] = problems
+        row["locked"] = bool(row["signature"] and row["signature"]["status"] in ("sent", "completed"))
         sales = Sale.query.filter_by(lease_id=lease.id).order_by(Sale.issue_date.desc(), Sale.id.desc()).all()
         row["invoices"] = [{**sale_row(s), "service_start": _iso(s.service_start), "service_end": _iso(s.service_end)}
                            for s in sales]
         row["receipts"] = [receipt_payload(r) for r in
                            RentReceipt.query.filter_by(lease_id=lease.id).order_by(RentReceipt.id.desc())]
     return row
+
+
+def signature_payload(sig: LeaseSignature | None) -> dict | None:
+    if sig is None:
+        return None
+    files = {kind: f"/api/v1/lease-signatures/{sig.id}/{kind}.pdf" for kind in ("sent", "signed", "audit")
+             if lease_signatures.file_path(sig, kind) is not None}
+    return {"id": sig.id, "status": sig.status, "status_label": lease_signatures.STATUS_LABELS[sig.status],
+            "sent_at": _iso(sig.sent_at), "completed_at": _iso(sig.completed_at), "checked_at": _iso(sig.checked_at),
+            "error": sig.error, "files": files,
+            "signers": [{"role": s.role, "name": s.name, "email": s.email, "status": s.status,
+                         "status_label": lease_signatures.SIGNER_LABELS.get(s.status, s.status),
+                         "signed_at": _iso(s.signed_at), "declined_at": _iso(s.declined_at)} for s in sig.signers]}
 
 
 def receipt_payload(r: RentReceipt) -> dict:
@@ -197,7 +217,10 @@ def leases_create():
 
 @bp.route("/leases/<int:lease_id>")
 def leases_detail(lease_id):
-    return jsonify(item=lease_payload(get_or_404(Lease, lease_id, "Bail introuvable."), True))
+    lease = get_or_404(Lease, lease_id, "Bail introuvable.")
+    if external_config.is_enabled("docuseal") and external_config.is_configured("docuseal"):
+        lease_signatures.refresh_if_due(lease)  # statut de signature relu au plus une fois par minute
+    return jsonify(item=lease_payload(lease, True))
 
 
 @bp.route("/leases/<int:lease_id>", methods=["PATCH"])
@@ -467,3 +490,52 @@ def geo_parcel():
     if found is None:
         raise ApiError("not_found", "Aucune parcelle cadastrale à cet endroit.", status=404)
     return jsonify(item=found)
+
+
+# ------------------------------------------------------------------ signature (lot L4)
+
+def _signature(lease: Lease) -> LeaseSignature:
+    sig = lease_signatures.current(lease)
+    if sig is None:
+        raise ApiError("not_found", "Ce bail n'a pas été envoyé à la signature.", status=404)
+    return sig
+
+
+@bp.route("/leases/<int:lease_id>/signature", methods=["POST"])
+def leases_signature_send(lease_id):
+    lease = get_or_404(Lease, lease_id, "Bail introuvable.")
+    require_integration("docuseal")
+    with _errors():
+        sig = lease_signatures.send(lease, current_user.get_id())
+    names = ", ".join(s.name for s in sig.signers)
+    return jsonify(item=lease_payload(lease, True), notices=[notice(
+        f"Bail envoyé à la signature : {names} reçoivent l'invitation, dans cet ordre.")])
+
+
+@bp.route("/leases/<int:lease_id>/signature/refresh", methods=["POST"])
+def leases_signature_refresh(lease_id):
+    lease = get_or_404(Lease, lease_id, "Bail introuvable.")
+    require_integration("docuseal")
+    with _errors():
+        sig = lease_signatures.refresh(_signature(lease))
+    return jsonify(item=lease_payload(lease, True), notices=[notice(f"Statut : {lease_signatures.STATUS_LABELS[sig.status]}.",
+                                                                   "success" if sig.status != "declined" else "warning")])
+
+
+@bp.route("/leases/<int:lease_id>/signature", methods=["DELETE"])
+def leases_signature_cancel(lease_id):
+    lease = get_or_404(Lease, lease_id, "Bail introuvable.")
+    require_integration("docuseal")
+    with _errors():
+        lease_signatures.cancel(_signature(lease))
+    return jsonify(item=lease_payload(lease, True), notices=[notice("Envoi annulé : le bail est de nouveau modifiable.")])
+
+
+@bp.route("/lease-signatures/<int:signature_id>/<kind>.pdf")
+def lease_signature_file(signature_id, kind):
+    sig = get_or_404(LeaseSignature, signature_id, "Envoi introuvable.")
+    path = lease_signatures.file_path(sig, kind) if kind in ("sent", "signed", "audit") else None
+    if path is None:
+        raise ApiError("not_found", "Document introuvable.", status=404)
+    names = {"sent": "bail-envoye", "signed": "bail-signe", "audit": "journal-audit"}
+    return send_file(path, mimetype="application/pdf", download_name=f"{names[kind]}-{sig.lease_id}.pdf")

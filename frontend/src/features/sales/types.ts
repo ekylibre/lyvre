@@ -143,7 +143,16 @@ export interface Lease {
   index_reference_period: string; index_reference_value: string; revision_months: string;
   next_revision_date: string | null; revise_deposit: boolean; items?: LeaseItem[];
   document: { generated_at: string | null; edited: boolean; frozen: boolean; preview_url: string };
+  signature?: LeaseSignature | null; signers_planned?: { role: string; name: string; email: string }[];
+  signature_problems?: string[]; locked?: boolean;
   invoices?: (SaleRow & { service_start: string | null; service_end: string | null })[]; receipts?: RentReceipt[];
+}
+
+export interface LeaseSignature {
+  id: number; status: "sent" | "completed" | "declined" | "expired" | "cancelled"; status_label: string;
+  sent_at: string; completed_at: string | null; checked_at: string | null; error: string | null;
+  files: Partial<Record<"sent" | "signed" | "audit", string>>;
+  signers: { role: string; name: string; email: string; status: string; status_label: string; signed_at: string | null; declined_at: string | null }[];
 }
 
 export interface LeaseItem {

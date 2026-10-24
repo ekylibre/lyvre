@@ -114,6 +114,15 @@ def _apply_terms(lease: Lease, data: dict) -> None:
         lease.revision_months = 12
 
 
+def check_editable(lease: Lease) -> None:
+    """Un bail envoyé à la signature (ou signé) ne change plus dans ses termes (BF17)."""
+    signature = next((s for s in reversed(lease.signatures) if s.status != "cancelled"), None)
+    if signature is not None and signature.status in ("sent", "completed"):
+        message = ("Bail signé : il ne se modifie plus." if signature.status == "completed"
+                   else "Bail envoyé à la signature : annulez l'envoi pour le modifier.")
+        raise SaleError(message, status=409)
+
+
 def create_draft(data: dict) -> Lease:
     """Étape 1 de l'assistant : bail en brouillon, sans loyer ni facture récurrente (commit)."""
     lease = Lease(status="draft", due_day=1, rent_cents=0, charges_cents=0, deposit_cents=0)
@@ -130,6 +139,8 @@ def create_draft(data: dict) -> Lease:
 def update(lease: Lease, data: dict) -> Lease:
     """Termes du bail ; bail validé : sa facture récurrente suit (libellés, dates, état)."""
     try:
+        if set(data) - {"active"}:
+            check_editable(lease)
         if "active" in data:
             lease.active = bool(data.get("active"))
         _apply_terms(lease, data)
@@ -219,6 +230,7 @@ def _geometry(value) -> dict | None:
 
 def save_item(lease: Lease, data: dict, item: LeaseItem | None = None) -> LeaseItem:
     """Ajoute ou modifie une ligne (commit) ; bail validé : facture récurrente mise à jour."""
+    check_editable(lease)
     try:
         if item is None:
             item = LeaseItem(position=max((i.position for i in lease.items), default=-1) + 1)
@@ -278,6 +290,7 @@ def save_item(lease: Lease, data: dict, item: LeaseItem | None = None) -> LeaseI
 
 def delete_item(item: LeaseItem) -> None:
     lease = item.lease
+    check_editable(lease)
     try:
         lease.items.remove(item)
         if lease.status == "active":
@@ -377,6 +390,7 @@ def _sync_recurrence(lease: Lease, data: dict | None = None) -> None:
 def activate(lease: Lease, data: dict) -> Lease:
     """Étape 3 « Valider » : facturation et facture récurrente ; brouillon → bail validé (commit). Sur
     un bail déjà validé : enregistre la facturation."""
+    check_editable(lease)
     try:
         if not lease.items:
             raise SaleError("Ajoutez au moins un bien loué.", "items")

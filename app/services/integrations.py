@@ -298,6 +298,12 @@ def _probe_qonto() -> str:
     return f"Organisation « {name} » accessible{sandbox}, {len(accounts)} compte(s)."
 
 
+def _probe_docuseal() -> str:
+    from app.services import docuseal
+    docuseal.Client.from_config(timeout=CHECK_TIMEOUT).probe()
+    return f"Serveur Docuseal {docuseal.base_url()} accessible, clé d'API acceptée."
+
+
 PROBES: dict[str, Callable[[], str]] = {
     "stancer": _probe_stancer,
     "odoo": _probe_odoo,
@@ -306,6 +312,7 @@ PROBES: dict[str, Callable[[], str]] = {
     "ga4": _probe_ga4,
     "facebook": _probe_facebook,
     "qonto": _probe_qonto,
+    "docuseal": _probe_docuseal,
 }
 
 

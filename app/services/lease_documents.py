@@ -299,12 +299,15 @@ def _managers() -> list[str]:
 
 
 def _signatures(org, managers: list[str], tenant: str) -> Markup:
-    landlord = "".join(f"<div class='signer'>{escape(name)}</div>" for name in managers) or \
-        f"<div class='signer'>{escape(org.signatory_name or '')}</div>"
+    """Bloc des signatures : une case par gérant (`sign-l1`, `sign-l2`…) et pour le preneur
+    (`sign-t`) ; à l'envoi, chaque case reçoit la balise du champ de signature Docuseal."""
+    landlord = "".join(f"<div class='signer'>{escape(name)}<div class='sign-box sign-l{n}'></div></div>"
+                       for n, name in enumerate(managers, start=1)) or \
+        f"<div class='signer'>{escape(org.signatory_name or '')}<div class='sign-box sign-l1'></div></div>"
     return Markup(
         "<table class='signatures'><tr>"
         f"<td><b>Le Bailleur</b><br>{escape(org.name)}{landlord}</td>"
-        f"<td><b>Le Preneur</b><br>{escape(tenant)}<div class='signer'></div></td>"
+        f"<td><b>Le Preneur</b><br><div class='signer'>{escape(tenant)}<div class='sign-box sign-t'></div></div></td>"
         "</tr></table>")
 
 
@@ -383,11 +386,13 @@ def _kind(lease: Lease) -> str:
 
 def generate(lease: Lease) -> None:
     """(Re)génère le texte du bail depuis le modèle de son type et le fige (sans commit)."""
+    leases.check_editable(lease)
     lease.document_html = render_body(template_for(_kind(lease)).body_html, lease)
     lease.document_generated_at, lease.document_edited = datetime.utcnow(), False
 
 
 def save_document(lease: Lease, body_html: str) -> None:
+    leases.check_editable(lease)
     body = sanitize(body_html)
     if not body:
         raise LeaseDocumentError("Le texte du bail est vide.", "document_html")
@@ -417,10 +422,14 @@ def _url_fetcher(lease: Lease):
     return fetch
 
 
-def render_pdf(lease: Lease, body_html: str | None = None) -> bytes:
-    """PDF du bail : texte figé (ou rendu à la volée), ou `body_html` (aperçu d'un modèle)."""
+def render_pdf(lease: Lease, body_html: str | None = None, signers: list[dict] | None = None) -> bytes:
+    """PDF du bail : texte figé (ou rendu à la volée), ou `body_html` (aperçu d'un modèle) ; avec
+    `signers`, les cases de signature reçoivent les balises Docuseal (envoi à la signature)."""
     from weasyprint import HTML
     body = render_body(body_html, lease) if body_html is not None else current_html(lease)
+    if signers:
+        from app.services.lease_signatures import with_tags
+        body = with_tags(body, signers)
     page = render_template("leases/document.html", body=Markup(body), lease=lease, org=organization.get(),
                            title=leases.KINDS.get(lease.kind, "Bail"))
     return HTML(string=page, url_fetcher=_url_fetcher(lease), base_url=str(current_app.root_path)).write_pdf()

@@ -19,6 +19,8 @@ FIELD_META = {
     ("qonto", "secret_key"):    ("Clé secrète", "password", "Clé API générée dans Qonto"),
     ("qonto", "staging_token"): ("Jeton bac à sable (optionnel)", "password",
                                  "Renseigné = bac à sable Qonto ; vide = production"),
+    ("docuseal", "url"):        ("URL du serveur", "text", "https://docuseal.exemple.org (serveur auto-hébergé ou docuseal.com)"),
+    ("docuseal", "api_key"):    ("Clé d'API", "password", "Docuseal › Paramètres › API"),
     "secret_key":       ("Clé secrète", "password", "Format sk_xxx, stest_xxx ou sprod_xxx"),
     "mode":             ("Mode", "text", "live ou test"),
     "url":              ("URL", "text", "https://erp.example.org"),

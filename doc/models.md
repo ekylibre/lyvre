@@ -980,7 +980,10 @@ charges, récurrence ; lot L1 : `status` brouillon / validé, `kind`, `premises_
 `letter`, `label`, `nature` bâtiment / sol / forfait, `area_m2`, `built_m2`, `billing_unit` m² / ha /
 forfait, `unit_price_cents` annuel, `annual_cents`, `cadastral_refs`, `geometry`, `source`,
 `partial`), **`lease_templates`** (lot L2 : `kind` unique, `title`, `body_html`, `version`, `reviewed`,
-`updated_by_id`), **`rent_receipts`** (quittance ou reçu : période, loyer, charges, montant payé, PDF,
+`updated_by_id`), **`lease_signatures`** (lot L4 : `submission_id`, `status` sent / completed /
+declined / expired / cancelled, dates, PDF envoyé, signé et journal d'audit, `error`) et
+**`lease_signers`** (`role`, `name`, `email`, associé ou tiers, `submitter_id`, `status`,
+`signed_at`, `declined_at`), **`rent_receipts`** (quittance ou reçu : période, loyer, charges, montant payé, PDF,
 envoi) ; `sales.recurrence_id`, `sales.lease_id`. Lot L1 aussi : `associates.is_manager` (gérant,
 signataire des baux), `organization.legal_form` et `rcs_city`.
 
