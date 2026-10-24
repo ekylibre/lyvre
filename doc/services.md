@@ -1183,6 +1183,18 @@ période) (`share`) ; `posted` si une écriture d'inventaire porte déjà la cl�
 
 ---
 
+## assets.py — Immobilisations (lot F5)
+
+`days360` (Ekylibre), `plan_bounds`, `periods` (exercices existants, sinon années de même début),
+`schedule(asset, until)` (dotations passées + plan recalculé : linéaire sur les jours restants,
+dégressif avec bascule), `accumulated`, `enabled()`, `depreciation_account` (28 + suite du code),
+`save`, `from_purchase_line`, `put_in_service`, `depreciation_rows(fy)`, `post_depreciation(fy)` /
+`cancel_depreciation(fy)` (une écriture OD au dernier jour), `dispose(asset, on, kind, price, sale_id)`,
+`payload`, `annex(fy)`. Comptes par rôle : `depreciation_expense`, `disposal_book_value`,
+`disposal_proceeds`, `disposal_receivable`, `assets_in_progress`.
+
+---
+
 ## closing.py — Assistant de clôture
 
 Guide utilisateur : [Clôturer un exercice](cloture.md). Seule la décision de l'utilisateur est

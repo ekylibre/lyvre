@@ -20,6 +20,7 @@ Application web de comptabilité pour associations loi 1901 (plan comptable des 
 | [États financiers](reports.md) | Balance, grand livre, Bilan, Compte de résultat (asso / SCI) |
 | [Saisie et rapprochement](saisie_rapprochement.md) | Écrans au clavier : saisie d'écriture, espace de rapprochement, raccourcis |
 | [Factures d'achat](achats.md) | Factures fournisseurs Qonto ou saisies (lecture Factur-X / PDF / OCR, pièce jointe) : catalogue, TVA de l'exercice, comptabilisation en engagement, règlements Qonto ou OFX |
+| [Immobilisations](immobilisations.md) | Registre, composants, plans linéaire / dégressif (année de 360 jours, méthodes d'Ekylibre), dotations à la clôture, mise en service, cession et rebut, annexe |
 | [Lettrage](lettrage.md) | Comptes de tiers : lettrage automatique des factures et règlements, à la main au clavier, partiel, écart, propositions, à-nouveaux détaillés, FEC |
 | [Ventes](ventes.md) | Devis, factures et avoirs (numérotation continue, PDF Factur-X, journal VE), encaissements et relances, factures récurrentes, baux et quittances, avec ou sans Qonto ; abonnements d'achat dans [Factures d'achat](achats.md#abonnements) |
 | [Intégrations](integrations.md) | Qonto, SMTP, Stancer, Odoo, HelloAsso, Google Analytics, Facebook : proposées selon la structure, désactivées par défaut, silencieuses quand elles sont désactivées, message quand une action en a besoin |

@@ -27,6 +27,7 @@ import type { Account } from "../../lib/types";
 import { AppLink } from "../../app/navigation";
 import { FecPanel } from "./FecPanel";
 import { PrepaidPanel } from "./PrepaidPanel";
+import { DepreciationPanel } from "./DepreciationPanel";
 import { FISCAL_YEARS_KEY, type FiscalYear } from "./FiscalYearsPage";
 
 type StepState = "todo" | "done" | "skipped" | "provisional";
@@ -234,6 +235,7 @@ function Inventory({ view }: { view: ClosingView }) {
           </Table.Tbody>
         </Table>
       ) : <Text size="sm" c="dimmed">Aucune écriture d'inventaire.</Text>}
+      <DepreciationPanel fyId={fyId} editable={editable} />
       <PrepaidPanel fyId={fyId} editable={editable} />
       {editable && <InventoryForm view={view} />}
       {withAssociates && <InterestPanel fyId={fyId} open={view.fiscal_year.status === "open"} />}

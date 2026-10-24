@@ -296,6 +296,13 @@ l'enregistrement), `/entries/<id>`, `/entries/<id>/edit` ([guide de saisie](sais
 | GET | `/api/v1/fiscal-years/<id>/period-lock` | Date de verrouillage (`locked_until`, `first_open_date`) ; `?until=` : aperçu (`drafts`, `problems`) |
 | POST | `/api/v1/fiscal-years/<id>/period-lock` | `{until}` : verrouille (lot F2), brouillards de la période validés (lot `lock`) ; 422 si la date recule ou sort de l'exercice ; 409 avec `problems` |
 | GET · POST | `/api/v1/fiscal-years/<id>/closing/prepaid` | Propositions de charges / produits constatés d'avance (lot F4) ; POST `{items: [{key, amount_cents?}]}` : écritures d'inventaire (`source_ref` = clé) |
+| GET · POST | `/api/v1/assets` | Registre (fiches de premier niveau, `?status=`), création (lot F5) ; `meta` : comptes 2x, méthodes, états, `enabled` |
+| GET · PATCH · DELETE | `/api/v1/assets/<id>` | Fiche avec tableau d'amortissement ; modification ; suppression (sans dotation ni écriture) |
+| POST | `/api/v1/assets/<id>/in-service` | `{date, account_id}` : 2x / 23x |
+| POST | `/api/v1/assets/<id>/dispose` | `{date, kind: sold\|scrapped, price_cents?, sale_id?}` |
+| POST | `/api/v1/purchases/<id>/lines/<line_id>/asset` | Fiche préremplie depuis une ligne d'achat 2x |
+| GET · POST · DELETE | `/api/v1/fiscal-years/<id>/closing/depreciation` | Dotations de l'exercice ; passer / repasser ; retirer |
+| GET | `/api/v1/fiscal-years/<id>/assets/annex` | Tableau de l'annexe par compte |
 | GET | `/api/v1/lettering/accounts` | Comptes lettrables mouvementés (`open_lines`, `open_balance_cents`), `gap_threshold_cents` (lot F3) |
 | GET | `/api/v1/lettering/accounts/<id>/lines` | `?state=open\|lettered\|all` ; lignes avec leur lettrage, `open_balance_cents` |
 | GET | `/api/v1/lettering/accounts/<id>/proposals` | Propositions (`pair`, `combination`) |

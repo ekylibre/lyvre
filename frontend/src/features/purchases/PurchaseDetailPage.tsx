@@ -34,6 +34,9 @@ export default function PurchaseDetailPage() {
   const qontoEnabled = useIntegration("qonto", "purchases");
   const id = Number(useParams().purchase_id);
   const goTo = useGoTo();
+  // Lot F5 : immobilisation préremplie depuis une ligne au compte 2x.
+  const createAsset = useAction((lineId: number) => api.post<{ item: { id: number }; notices: Notice[] }>(
+    `/api/v1/purchases/${id}/lines/${lineId}/asset`, {}), { invalidate: [PURCHASES_KEY, ["assets"]] });
   const key = [...PURCHASES_KEY, id];
   const { data, error } = useQuery({ queryKey: key, retry: false,
     queryFn: () => api.get<PurchaseDetail>(`/api/v1/purchases/${id}`) });
@@ -228,12 +231,16 @@ export default function PurchaseDetailPage() {
       ) : (
         <Table>
           <Table.Thead><Table.Tr><Table.Th>Produit</Table.Th><Table.Th>Compte</Table.Th><Table.Th>Libellé</Table.Th><Table.Th ta="right">HT</Table.Th>
-            <Table.Th ta="right">Taux %</Table.Th><Table.Th ta="right">TVA</Table.Th><Table.Th ta="right">TTC</Table.Th></Table.Tr></Table.Thead>
+            <Table.Th ta="right">Taux %</Table.Th><Table.Th ta="right">TVA</Table.Th><Table.Th ta="right">TTC</Table.Th><Table.Th /></Table.Tr></Table.Thead>
           <Table.Tbody>{data.lines_view.map((l, i) => (
             <Table.Tr key={i}>
               <Table.Td>{l.product ?? "—"}</Table.Td><Table.Td><Code>{l.account ?? "—"}</Code></Table.Td><Table.Td>{l.label}{l.project && <Text span size="xs" c="dimmed"> · projet {l.project}</Text>}</Table.Td>
               <Table.Td ta="right"><MoneyText cents={l.untaxed_cents} /></Table.Td><Table.Td ta="right" className="lv-num">{l.vat_rate ?? "?"}</Table.Td>
               <Table.Td ta="right"><MoneyText cents={l.vat_cents} /></Table.Td><Table.Td ta="right"><MoneyText cents={l.total_cents} /></Table.Td>
+              <Table.Td>{l.asset_id ? <Anchor component={AppLink} href={`/assets/${l.asset_id}`} size="sm">Immobilisation</Anchor>
+                : l.account?.startsWith("2") && p.journal_entry_id && can.write
+                  ? <Button size="compact-xs" variant="subtle" loading={createAsset.isPending} onClick={() => createAsset.mutate(l.id!, {
+                      onSuccess: (r) => goTo(`/assets/${r.item.id}`) })}>Créer l'immobilisation</Button> : null}</Table.Td>
             </Table.Tr>
           ))}</Table.Tbody>
           <Table.Tfoot><Table.Tr>

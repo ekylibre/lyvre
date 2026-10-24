@@ -79,6 +79,8 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
   "purchases.suppliers": () => import("../features/purchases/SuppliersPage"),
   "subscriptions.index": () => import("../features/subscriptions/SubscriptionsPage"),
   "lettering.index": () => import("../features/lettering/LetteringPage"),
+  "assets.index": () => import("../features/assets/AssetsPage"),
+  "assets.detail": () => import("../features/assets/AssetDetailPage"),
   "account_roles.index": () => import("../features/lettering/AccountRolesPage"),
   "subscriptions.detail": () => import("../features/subscriptions/SubscriptionDetailPage"),
   "sales.index": () => import("../features/sales/SalesPage"),

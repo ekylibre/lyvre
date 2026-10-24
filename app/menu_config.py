@@ -67,7 +67,7 @@ MENUS = [
         "label": "Compta",
         "charts": _ALL,
         "active": ["accounts", "journals", "fiscal_years", "products", "entries", "reports", "projects", "budgets", "budget_tracking",
-                   "lettering"],
+                   "lettering", "assets"],
         "items": [
             {"key": "entries", "label": "Écritures", "endpoint": "entries.index", "charts": _ALL, "bookkeeping": _DOUBLE},
             {"divider": True, "charts": _ALL},
@@ -76,6 +76,7 @@ MENUS = [
             {"key": "lettering", "label": "Lettrage", "endpoint": "lettering.index", "charts": _ALL, "bookkeeping": _DOUBLE},
             {"key": "bilan", "label": "Bilan", "endpoint": "reports.bilan", "charts": _ALL, "bookkeeping": _DOUBLE},
             {"key": "compte_resultat", "label": "Compte de résultat", "endpoint": "reports.compte_resultat", "charts": _ALL, "bookkeeping": _DOUBLE},
+            {"key": "assets", "label": "Immobilisations", "endpoint": "assets.index", "charts": _ALL},
             {"key": "projects", "label": "Projets", "endpoint": "projects.index", "charts": _ALL},
             {"key": "budgets", "label": "Budget", "endpoint": "budgets.index", "charts": _ALL},
             {"key": "budget_tracking", "label": "Suivi budgétaire", "endpoint": "budgets.tracking", "charts": _ALL},

@@ -65,7 +65,7 @@ export interface PurchaseDetail {
   };
   fiscal_year: { label: string; vat_liable: boolean } | null;
   lines: LineRow[];
-  lines_view: { product: string | null; account: string | null; label: string; untaxed_cents: number; vat_rate: string | null;
+  lines_view: { id?: number; asset_id?: number | null; product: string | null; account: string | null; label: string; untaxed_cents: number; vat_rate: string | null;
     project?: string | null;
     vat_cents: number; total_cents: number }[];
   payments: Payment[];

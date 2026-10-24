@@ -24,4 +24,6 @@ class Organization(db.Model):
     associate_interest_rate_bp = db.Column(db.Integer, nullable=False, default=0, server_default="0")
     # Lot F3 : écart de lettrage soldé en charge / produit divers jusqu'à ce montant.
     lettering_gap_cents = db.Column(db.Integer, nullable=False, default=100, server_default="100")
+    # Lot F5 : amortissements comptabilisés (None : oui pour une association, non pour une SCI à l'IR).
+    depreciation_enabled = db.Column(db.Boolean)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

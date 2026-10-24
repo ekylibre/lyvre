@@ -296,6 +296,19 @@ partiel), `partial`, `balance_cents`, `lettered_on` (`DateLet`), `origin` (`docu
 `journal_lines.service_start` · `service_end` (période de service, charges et produits constatés
 d'avance) ; `sales` les avait déjà.
 
+## Asset / AssetDepreciation — Immobilisations (lot F5)
+
+Migration `f5b7c9d1e3a5`. `assets` : `parent_id` (composant), `label`, `account_id` (2x), `depreciation_account_id`
+(28x, créé au besoin), `expense_account_id` (sinon rôle `depreciation_expense`), `waiting_account_id` (23x),
+`acquired_on`, `in_service_date`, `acquisition_cents`, `residual_cents`, `method` (`linear`, `regressive`,
+`none`), `duration_months`, `fiscal_coefficient`, `prior_depreciation_cents` · `prior_as_of` (reprise),
+`project_id`, `purchase_line_id`, `status` (`waiting`, `in_use`, `depreciated`, `sold`, `scrapped`),
+`in_service_entry_id`, `disposal_date` · `disposal_price_cents` · `disposal_entry_id` · `sale_id`, `notes`.
+`asset_depreciations` : dotation passée d'un exercice (`started_on`, `stopped_on`, `days` base 360,
+`amount_cents`, `entry_id`), unique par (immobilisation, exercice). `organization.depreciation_enabled`
+(None : oui pour une association, non pour une SCI). Source d'écriture `DEPRECIATION` (gérée par
+l'assistant) ; mise en service et sortie : source `ASSET`.
+
 ## ValidationBatch / EntryEvent — Validation et historique des écritures (lot F1)
 
 `validation_batches` (migration `b1d3f5a7c9e2`) : `fiscal_year_id`, `kind` (`manual`, `until`,

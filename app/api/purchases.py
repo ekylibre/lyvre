@@ -92,6 +92,13 @@ def _qonto():
 # ------------------------------------------------------------------ liste
 
 
+
+def _asset_of(line_id):
+    """Lot F5 : immobilisation créée depuis la ligne d'achat."""
+    from app.models import Asset
+    asset = Asset.query.filter_by(purchase_line_id=line_id).first()
+    return asset.id if asset else None
+
 @bp.route("/purchases")
 def purchases_list():
     args = request.args
@@ -234,7 +241,7 @@ def purchase_detail(p: Purchase) -> dict:
                             "url": url_for("entries.detail", entry_id=entry.id)} if entry else None)},
         "fiscal_year": {"label": fy.label, "vat_liable": fy.vat_liable} if fy else None,
         "lines": purchase_entry.line_rows(p.lines),
-        "lines_view": [{"product": l.product.name if l.product else None,
+        "lines_view": [{"id": l.id, "asset_id": _asset_of(l.id), "product": l.product.name if l.product else None,
                         "account": l.account.code if l.account else None, "label": l.label or "",
                         "untaxed_cents": l.untaxed_cents, "vat_rate": catalog.format_rate(l.vat_rate_bp) or None,
                         "vat_cents": l.vat_cents, "total_cents": l.total_cents,

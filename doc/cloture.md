@@ -39,6 +39,10 @@ motif** (5 caractères au moins), qui reste visible dans la liste des étapes.
    champs, équilibre, numérotation). Le SIREN doit être renseigné (Configuration › Structure).
    Les contrôles de l'étape 1 indiquent aussi le nombre d'écritures en brouillard (information).
 
+**Dotations aux amortissements** (étape 2, lot F5) : tableau des dotations de l'exercice, « Passer les
+dotations » (une écriture OD au dernier jour, repassée par « Recalculer ») ; voir
+[Immobilisations](immobilisations.md).
+
 **Charges et produits constatés d'avance** (étape 2, lot F4) : l'assistant **propose** les montants
 des pièces dont la période dépasse la clôture, au prorata des jours après le dernier jour de l'exercice
 (exemple : assurance de 1 200 € du 01/07 au 30/06, clôture au 31/12 → 1 200 × 181 / 365 = 595,07 €) :

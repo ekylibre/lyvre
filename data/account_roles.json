@@ -1,7 +1,74 @@
 {
   "_comment": "Comptes choisis par Lyvre selon le référentiel (lot F3 et suivants) : premier code existant non regroupement, sinon premier sous-compte. Modifiables par l'administrateur (Configuration › Comptes par défaut). À relire par l'expert-comptable.",
   "roles": {
-    "lettering_gap_expense": {"label": "Écart de lettrage (charge)", "asso": ["6588", "658"], "sci": ["671", "678"]},
-    "lettering_gap_income": {"label": "Écart de lettrage (produit)", "asso": ["758"], "sci": ["7718", "778"]}
+    "lettering_gap_expense": {
+      "label": "Écart de lettrage (charge)",
+      "asso": [
+        "6588",
+        "658"
+      ],
+      "sci": [
+        "671",
+        "678"
+      ]
+    },
+    "lettering_gap_income": {
+      "label": "Écart de lettrage (produit)",
+      "asso": [
+        "758"
+      ],
+      "sci": [
+        "7718",
+        "778"
+      ]
+    },
+    "depreciation_expense": {
+      "label": "Dotations aux amortissements",
+      "asso": [
+        "6811"
+      ],
+      "sci": [
+        "6811"
+      ]
+    },
+    "disposal_book_value": {
+      "label": "Valeur nette des immobilisations cédées",
+      "asso": [
+        "6752",
+        "675"
+      ],
+      "sci": [
+        "675"
+      ]
+    },
+    "disposal_proceeds": {
+      "label": "Produit de cession d'immobilisations",
+      "asso": [
+        "7752",
+        "775"
+      ],
+      "sci": [
+        "775"
+      ]
+    },
+    "disposal_receivable": {
+      "label": "Créance sur cession d'immobilisations",
+      "asso": [
+        "462"
+      ],
+      "sci": [
+        "462"
+      ]
+    },
+    "assets_in_progress": {
+      "label": "Immobilisations en cours",
+      "asso": [
+        "2313",
+        "231"
+      ],
+      "sci": [
+        "231"
+      ]
+    }
   }
 }
