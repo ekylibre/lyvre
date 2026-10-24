@@ -16,6 +16,8 @@ MANAGED_SOURCES = (*CLOSING_SOURCES, SOURCE_INVENTORY, SOURCE_DEDICATED_FUND)
 # Écriture d'une facture ou d'un avoir de vente émis : ni modifiée ni supprimée (on passe un avoir).
 SOURCE_SALE = "SALE"
 SALE_LOCKED_MESSAGE = "Écriture d'une facture de vente émise : elle se corrige par un avoir (Ventes)."
+# Contrepassation d'une écriture (lot F1) : écriture inverse liée par `reverses_entry_id`.
+SOURCE_CANCELLATION = "CANCELLATION"
 INVENTORY_KINDS = ("accrued_expense", "accrued_income", "prepaid_expense", "deferred_income")
 
 
@@ -32,9 +34,11 @@ class JournalEntry(db.Model):
     source = db.Column(db.String(20), default="MANUAL", nullable=False)
     source_ref = db.Column(db.String(200))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    # Numéro continu par journal et par exercice, attribué à la clôture provisoire (FEC).
+    # Validation (lot F1) : numéro continu par journal et par exercice, attribué par lot à la suite des
+    # numéros existants (jamais renuméroté) ; une écriture validée ne se modifie plus (ledger_guard).
     validation_number = db.Column(db.Integer)
     validated_at = db.Column(db.DateTime)
+    validation_batch_id = db.Column(db.Integer, db.ForeignKey("validation_batches.id", ondelete="SET NULL"))
     reverses_entry_id = db.Column(db.Integer, db.ForeignKey("journal_entries.id", ondelete="SET NULL"))
     inventory_kind = db.Column(db.String(20))
 
@@ -44,6 +48,10 @@ class JournalEntry(db.Model):
         "JournalLine", back_populates="entry", cascade="all, delete-orphan", lazy="joined"
     )
     odoo_lines = db.relationship("OdooImportLine", back_populates="journal_entry")
+
+    @property
+    def is_validated(self):
+        return self.validation_number is not None
 
     @property
     def total_debit(self):

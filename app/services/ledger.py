@@ -4,12 +4,9 @@ from app.models import (
     Account, AssociateExpense, BankTransaction, FiscalYear, Journal, JournalEntry, JournalLine, Purchase,
     PurchasePayment,
 )
-from app.models.journal_entry import MANAGED_SOURCES, SALE_LOCKED_MESSAGE, SOURCE_SALE
+from app.models.journal_entry import MANAGED_SOURCES, SALE_LOCKED_MESSAGE, SOURCE_CANCELLATION, SOURCE_SALE
 from app.services import projects
-
-
-class LedgerError(Exception):
-    pass
+from app.services.ledger_errors import LedgerError, LedgerGuardError  # noqa: F401 (réexportés)
 
 
 def _to_int(value):
@@ -249,6 +246,8 @@ def update_entry(entry, clean):
     """
     if entry.fiscal_year.closed:
         raise LedgerError("Impossible de modifier une écriture d'un exercice clôturé.")
+    if entry.is_validated:
+        raise LedgerGuardError(VALIDATED_MESSAGE)
     if entry_is_reconciled(entry):
         raise LedgerError(
             "Cette écriture est rapprochée à une transaction bancaire. "
@@ -348,13 +347,110 @@ def general_ledger(account_id, fiscal_year_id):
     return account, rows
 
 
-def delete_entries(entry_ids, allow_managed=False):
+VALIDATED_MESSAGE = "Écriture validée : elle ne se modifie plus ; contrepassez-la pour la corriger."
+
+
+def open_fiscal_year_for(on_date):
+    """Exercice non clôturé contenant la date, ou None."""
+    return FiscalYear.query.filter(FiscalYear.closed.is_(False), FiscalYear.start_date <= on_date,
+                                   FiscalYear.end_date >= on_date).first()
+
+
+def _detach(entry):
+    """L'écriture ne compte plus (supprimée ou contrepassée) : ses rapprochements sont défaits, la facture
+    d'achat, le règlement ou la note de frais adossés redeviennent à comptabiliser, ses encaissements de
+    vente disparaissent (sans commit)."""
+    line_ids = [l.id for l in entry.lines]
+    if line_ids:
+        BankTransaction.query.filter(BankTransaction.journal_line_id.in_(line_ids)).update(
+            {"journal_line_id": None, "reconciled": False}, synchronize_session="fetch")
+    # SQLite n'applique pas les ON DELETE SET NULL.
+    for model in (Purchase, PurchasePayment, AssociateExpense):
+        model.query.filter(model.journal_entry_id == entry.id).update(
+            {"journal_entry_id": None}, synchronize_session="fetch")
+    from app.services.sale_settlement import forget_entry_payments
+    forget_entry_payments(entry.id)
+
+
+def reversal_of(entry):
+    """Contrepassation de l'écriture, s'il y en a une."""
+    return JournalEntry.query.filter_by(reverses_entry_id=entry.id, source=SOURCE_CANCELLATION).first()
+
+
+def reverse(entry, on_date=None, reason=None, user_id=None, commit=True):
+    """Contrepasse l'écriture (lot F1) : écriture inverse au même journal, liée par `reverses_entry_id`,
+    datée du jour (ou de `on_date`) dans un exercice ouvert ; l'écriture d'origine est détachée
+    (`_detach`). Renvoie la contrepassation."""
+    if entry.source == SOURCE_SALE:
+        raise LedgerError(SALE_LOCKED_MESSAGE)
+    if entry.source in MANAGED_SOURCES:
+        raise LedgerError("Écriture gérée par l'assistant de clôture : corrigez-la depuis l'assistant.")
+    if entry.source == SOURCE_CANCELLATION:
+        raise LedgerError("Cette écriture est une contrepassation.")
+    if reversal_of(entry) is not None:
+        raise LedgerError("Écriture déjà contrepassée.")
+    if entry.fiscal_year.closed and on_date is None and open_fiscal_year_for(date.today()) is None:
+        raise LedgerError("Exercice clôturé et aucun exercice ouvert aujourd'hui : contrepassation impossible.")
+    on_date = on_date or date.today()
+    fy = open_fiscal_year_for(on_date)
+    if fy is None and not entry.fiscal_year.closed and on_date > entry.fiscal_year.end_date:
+        fy, on_date = entry.fiscal_year, entry.fiscal_year.end_date
+    if fy is None:
+        raise LedgerError(f"Aucun exercice ouvert au {on_date:%d/%m/%Y} pour la contrepassation.")
+    description = f"Contrepassation de {entry.reference or entry.id}"
+    if (reason or "").strip():
+        description += f" — {reason.strip()}"
+    lines = [{"account_id": l.account_id, "label": l.label or "", "debit_cents": l.credit_cents,
+              "credit_cents": l.debit_cents, "project_id": l.project_id} for l in entry.lines]
+    try:
+        reversal = post_entry(fy.id, entry.journal_id, on_date, description[:500], lines,
+                              source=SOURCE_CANCELLATION, source_ref=f"entry:{entry.id}", commit=False)
+        reversal.reverses_entry_id = entry.id
+        for original, inverse in zip(sorted(entry.lines, key=lambda l: l.id),
+                                     sorted(reversal.lines, key=lambda l: l.id)):
+            inverse.entity_id = original.entity_id
+        _detach(entry)
+        from app.models import EntryEvent
+        from app.services.ledger_guard import _author
+        author, origin = _author()
+        db.session.add(EntryEvent(entry_id=entry.id, fiscal_year_id=entry.fiscal_year_id, reference=entry.reference,
+                                  action="reverse", user_id=user_id or author, origin=origin,
+                                  snapshot_json=None))
+        if commit:
+            db.session.commit()
+        else:
+            db.session.flush()
+    except Exception:
+        if commit:
+            db.session.rollback()
+        raise
+    return reversal
+
+
+def reversed_entry_ids():
+    """Requête des écritures contrepassées (à exclure de ce qui « compte encore »)."""
+    return db.session.query(JournalEntry.reverses_entry_id).filter(
+        JournalEntry.source == SOURCE_CANCELLATION, JournalEntry.reverses_entry_id.isnot(None))
+
+
+def remove_entry(entry):
+    """Retire l'écriture remplacée par une autre (écriture de règle remplacée par un règlement…) :
+    supprimée en brouillard, contrepassée si validée (sans commit). Renvoie la contrepassation."""
+    if entry.is_validated:
+        return reverse(entry, commit=False)
+    db.session.delete(entry)
+    return None
+
+
+def delete_entries(entry_ids, allow_managed=False, reverse_validated=False):
     """Delete entries in one transaction, undoing their bank reconciliations
     first (a deleted line must not stay linked to a bank transaction).
 
     Entries of a closed fiscal year are refused, and so are entries managed by
-    the closing wizard unless ``allow_managed``. Returns
-    ``[{entry_id, status, reference?, message?}]``.
+    the closing wizard unless ``allow_managed``. A validated entry is refused,
+    or reversed when ``reverse_validated`` (services that redo a document's entry:
+    purchase reposted, payment undone…). Returns
+    ``[{entry_id, status, reference?, message?}]`` (status ``ok``, ``reversed`` or ``error``).
     """
     results = []
     for entry_id in entry_ids:
@@ -374,18 +470,20 @@ def delete_entries(entry_ids, allow_managed=False):
         if entry.source == SOURCE_SALE:
             results.append({"entry_id": entry_id, "status": "error", "message": SALE_LOCKED_MESSAGE})
             continue
-        line_ids = [l.id for l in entry.lines]
-        if line_ids:
-            BankTransaction.query.filter(BankTransaction.journal_line_id.in_(line_ids)).update(
-                {"journal_line_id": None, "reconciled": False}, synchronize_session="fetch")
-        # Facture d'achat ou règlement adossé à l'écriture : redeviennent à comptabiliser
-        # (SQLite n'applique pas les ON DELETE SET NULL).
-        for model in (Purchase, PurchasePayment, AssociateExpense):
-            model.query.filter(model.journal_entry_id == entry.id).update(
-                {"journal_entry_id": None}, synchronize_session="fetch")
-        # Encaissement d'une facture de vente : il disparaît avec son écriture.
-        from app.services.sale_settlement import forget_entry_payments
-        forget_entry_payments(entry.id)
+        if entry.is_validated:
+            if not reverse_validated:
+                results.append({"entry_id": entry_id, "status": "error",
+                                "message": "écriture validée : contrepassez-la."})
+                continue
+            try:
+                reversal = reverse(entry, commit=False)
+            except LedgerError as exc:
+                results.append({"entry_id": entry_id, "status": "error", "message": str(exc)})
+                continue
+            results.append({"entry_id": entry_id, "status": "reversed", "reference": entry.reference,
+                            "reversal": reversal.reference})
+            continue
+        _detach(entry)
         results.append({"entry_id": entry_id, "status": "ok", "reference": entry.reference})
         db.session.delete(entry)
     try:

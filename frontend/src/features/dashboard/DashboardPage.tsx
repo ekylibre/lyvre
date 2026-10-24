@@ -6,7 +6,7 @@ import { Alert, Anchor, Center, Group, Loader, Paper, Select, SimpleGrid, Stack,
 import { AreaChart, BarChart, CompositeChart } from "@mantine/charts";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/client";
-import { useIntegration } from "../../api/session";
+import { useBookkeeping, useCan, useIntegration } from "../../api/session";
 import { useUrlParams } from "../../components/FilterBar";
 import { MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
@@ -22,6 +22,8 @@ interface Dashboard {
   stats: { total_sales_cents: number; new_members: number; resultat_courant_cents: number; total_payouts_cents: number } | null;
   /** Module Ventes : CA facturé HT de l'exercice, encours clients, factures échues. */
   sales?: { revenue_cents: number; receivable_cents: number; overdue_count: number; overdue_cents: number; has_sales: boolean };
+  /** Écritures en brouillard des exercices ouverts ; `old` : plus de 3 mois (lot F1). */
+  drafts?: { drafts: number; old: number };
   monthly: Month[];
   recent_entries: { id: number; url: string; reference: string | null; date: string; description: string; total_cents: number }[];
   meta: ReportMeta;
@@ -83,6 +85,8 @@ function ForecastAlert() {
 
 export default function DashboardPage() {
   const [params, setParams] = useUrlParams({ fy_id: "" });
+  const can = useCan();
+  const bookkeeping = useBookkeeping();
   const { data, isPending } = useQuery({
     queryKey: ["dashboard", params.fy_id], placeholderData: (prev) => prev,
     queryFn: () => api.get<Dashboard>(`/api/v1/dashboard${params.fy_id ? `?fy_id=${params.fy_id}` : ""}`),
@@ -103,6 +107,10 @@ export default function DashboardPage() {
       ) : (
         <Stack gap="lg">
           <ForecastAlert />
+          {!!data.drafts?.old && can.write && bookkeeping === "double" && (
+            <Alert color="paille" variant="light">{data.drafts.old} écriture(s) en brouillard depuis plus de 3 mois :{" "}
+              <Anchor component={AppLink} href="/entries/?state=draft">validez-les</Anchor> une fois vérifiées.</Alert>
+          )}
           <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
             {odoo && <StatTile label="Ventes de l'exercice" meta="Caisse et factures Odoo"><MoneyText cents={stats.total_sales_cents} /></StatTile>}
             <StatTile label="Adhésions" meta="Adhérents de l'exercice">{stats.new_members}</StatTile>

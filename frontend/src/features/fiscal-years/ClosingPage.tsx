@@ -183,8 +183,11 @@ function StepActions({ step, view }: { step: Step; view: ClosingView }) {
 }
 
 function Checks({ checks }: { checks: Check[] }) {
+  const clean = !checks.some((c) => c.severity === "anomaly");
   if (!checks.length) return <Text size="sm" c="var(--lv-lichen)">✓ Aucune anomalie détectée.</Text>;
   return (
+    <>
+    {clean && <Text size="sm" c="var(--lv-lichen)" mb="xs">✓ Aucune anomalie détectée.</Text>}
     <Table>
       <Table.Tbody>
         {checks.map((c) => (
@@ -197,6 +200,7 @@ function Checks({ checks }: { checks: Check[] }) {
         ))}
       </Table.Tbody>
     </Table>
+    </>
   );
 }
 

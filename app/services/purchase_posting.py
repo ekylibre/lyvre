@@ -242,8 +242,8 @@ def unpost(p: Purchase) -> None:
     """Supprime l'écriture AC ; une facture Qonto reprend les dernières données Qonto (commit)."""
     if p.journal_entry_id is None:
         raise LedgerError("Cette facture n'est pas comptabilisée.")
-    (outcome,) = delete_entries([p.journal_entry_id])
-    if outcome["status"] != "ok":
+    (outcome,) = delete_entries([p.journal_entry_id], reverse_validated=True)
+    if outcome["status"] not in ("ok", "reversed"):
         raise LedgerError(outcome["message"])
     db.session.refresh(p)
     p.journal_entry_id = None
@@ -294,8 +294,8 @@ def delete(p: Purchase) -> str | None:
         raise LedgerError("Suppression impossible : " + " ; ".join(reasons) + ".")
     reference = None
     if p.journal_entry_id is not None:
-        (outcome,) = delete_entries([p.journal_entry_id])
-        if outcome["status"] != "ok":
+        (outcome,) = delete_entries([p.journal_entry_id], reverse_validated=True)
+        if outcome["status"] not in ("ok", "reversed"):
             raise LedgerError(outcome["message"])
         reference = outcome["reference"]
         db.session.refresh(p)

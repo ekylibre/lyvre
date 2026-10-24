@@ -266,11 +266,31 @@ FiscalYear ──────────────────── JournalE
 | `source` | String(20) default=`MANUAL` | `MANUAL`, `OFX_IMPORT`, `QONTO_IMPORT`, `ODOO_IMPORT`, `PURCHASE` (écriture d'achat) ; assistant de clôture (non modifiables ailleurs) : `INVENTORY`, `DEDICATED_FUND`, `OPENING`, `REVERSAL`, `ALLOCATION` |
 | `source_ref` | String(200) | Référence d'origine (FITID OFX ou numéro de facture Odoo) |
 | `created_at` | DateTime | |
-| `validation_number` · `validated_at` | Integer · DateTime | Numéro continu par journal et exercice, attribué à la clôture provisoire (FEC) |
-| `reverses_entry_id` | Integer FK→journal_entries ON DELETE SET NULL | Écriture d'inventaire extournée |
+| `validation_number` · `validated_at` | Integer · DateTime | **Validation** (lot F1) : numéro continu par journal et exercice (FEC), attribué par lot à la suite des numéros existants, jamais renuméroté ; renseigné = écriture validée, intangible |
+| `validation_batch_id` | Integer FK→validation_batches ON DELETE SET NULL | Lot de validation |
+| `reverses_entry_id` | Integer FK→journal_entries ON DELETE SET NULL | Écriture d'inventaire extournée, ou écriture contrepassée (source `CANCELLATION`) |
 | `inventory_kind` | String(20) | `accrued_expense`, `accrued_income`, `prepaid_expense`, `deferred_income` |
 
-Sources de clôture (`OPENING`, `REVERSAL`, `ALLOCATION`, `CLOSING`) : jamais proposées au rapprochement bancaire.
+Sources de clôture (`OPENING`, `REVERSAL`, `ALLOCATION`, `CLOSING`) : jamais proposées au rapprochement bancaire ;
+ni une contrepassation (`CANCELLATION`) ni l'écriture qu'elle contrepasse.
+
+**Garde** (`app/services/ledger_guard.py`, `before_flush`) : une écriture validée ne se modifie ni ne se
+supprime, ses lignes ne changent pas (sauf `project_id`, `entity_id`, `lettering_id`) ; les colonnes de
+validation ne changent que par `app/services/validation.py`. Refus : `LedgerGuardError` (API 409).
+
+## ValidationBatch / EntryEvent — Validation et historique des écritures (lot F1)
+
+`validation_batches` (migration `b1d3f5a7c9e2`) : `fiscal_year_id`, `kind` (`manual`, `until`,
+`closing`, `auto` — pièces émises —, `lock`, `import`, `migration`), `until_date`, `entries`, `user_id`,
+`at`, `undone_at` · `undone_by` · `undo_reason` (seul le dernier lot d'un exercice s'annule).
+Reprise : un lot `migration` par exercice déjà numéroté ; écritures des ventes émises des exercices
+ouverts validées d'office.
+
+`entry_events` : `entry_id` (sans clé étrangère : survit à la suppression), `fiscal_year_id`,
+`reference`, `action` (`create`, `update`, `delete`, `validate`, `unvalidate`, `reverse`),
+`snapshot_json` (en-tête et lignes après l'action ; dernier état pour `delete`), `user_id`, `origin`
+(`api:<endpoint>` ou `job`), `at`. Une création suivie de l'ajout de ses lignes dans la même
+transaction donne un seul événement.
 
 ## Organization — Identité de la structure
 

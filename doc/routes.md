@@ -275,18 +275,26 @@ Pages de la SPA (liste ; la création / modification s'ouvre dans une fenêtre p
 
 ## Écritures comptables (`/entries/`)
 
-Pages de la SPA : `/entries/` (filtres `fy_id`, `journal_id`, `month`, `q`, `sort`, `page`),
+Pages de la SPA : `/entries/` (filtres `fy_id`, `journal_id`, `state` = `draft`|`validated`, `month`, `q`, `sort`, `page`),
 `/entries/new` (`?bt_id=` : depuis une transaction bancaire, retour au rapprochement après
 l'enregistrement), `/entries/<id>`, `/entries/<id>/edit` ([guide de saisie](saisie_rapprochement.md)). API :
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
-| GET | `/api/v1/entries` | Liste paginée côté serveur (`page`, `per_page` ≤ 200 ; exercice ouvert le plus récent par défaut) ; `meta` : exercices, journaux, mois de l'exercice |
+| GET | `/api/v1/entries` | Liste paginée côté serveur (`page`, `per_page` ≤ 200 ; exercice ouvert le plus récent par défaut ; `state`) ; `meta` : exercices, journaux, mois de l'exercice, `drafts` (brouillards, dont plus de 3 mois) |
 | GET | `/api/v1/entries/form` | Préparation du formulaire : options (exercices ouverts, journaux, portée des comptes récents) et valeurs initiales ; `?entry_id=` modification (409 si exercice clôturé ou écriture rapprochée), `?bt_id=` création depuis une transaction (409 si déjà rapprochée) |
 | POST | `/api/v1/entries/validate` | Validation à blanc |
 | POST / PUT | `/api/v1/entries[/<id>]` | Création (`bank_transaction_id` facultatif : création et rapprochement atomiques) / modification |
-| GET | `/api/v1/entries/<id>` | Fiche : journal, exercice, origine, lignes, totaux, `reconciled`, `editable` |
-| DELETE | `/api/v1/entries/<id>` | Supprime l'écriture et **défait d'abord ses rapprochements** (`ledger.delete_entries`) ; 409 si l'exercice est clôturé |
+| GET | `/api/v1/entries/<id>` | Fiche : journal, exercice, origine, lignes, totaux, `reconciled`, `editable`, `validated`, `validation_number`, `validated_at`, `reversal` / `reverses`, `reversible` |
+| DELETE | `/api/v1/entries/<id>` | Supprime l'écriture et **défait d'abord ses rapprochements** (`ledger.delete_entries`) ; 409 si l'exercice est clôturé ou l'écriture validée |
+| POST | `/api/v1/entries/validation` | **Valide** (lot F1) `{ids}` ou `{fiscal_year_id, until}` : un lot, numéros à la suite ; 409 `validation_refused` avec `problems` (déséquilibrée, hors exercice) |
+| POST | `/api/v1/entries/<id>/reverse` | **Contrepasse** `{date?, reason}` : écriture inverse (source `CANCELLATION`), rapprochement défait ; 409 si vente émise, écriture de l'assistant, déjà contrepassée |
+| GET | `/api/v1/entries/<id>/history` | Historique : instantanés (`create`, `update`, `delete`, `validate`, `unvalidate`, `reverse`), auteur, origine |
+| GET | `/api/v1/fiscal-years/<id>/validation-batches` | Lots de validation (`undoable` : le dernier), `drafts` |
+| POST | `/api/v1/fiscal-years/<id>/validation-batches/last/undo` | Administrateur : annule le dernier lot `{reason}` (motif obligatoire) |
+
+Toute modification ou suppression d'une écriture validée, par n'importe quelle route, est refusée
+(409, code `entry_validated`) par la garde `ledger_guard`.
 | PUT | `/api/v1/entries/<id>/lines/<line_id>/project` | `{project_id}` (null : aucun) : projet d'une ligne, même sur une écriture rapprochée ; 409 si exercice clôturé ou écriture de l'assistant |
 | POST | `/api/v1/entries/<id>/lines/<line_id>/split` | **Ventilation** `{parts: [{project_id, amount_cents}]}` (≥ 2 parts, total = montant de la ligne) : lignes de même compte et même sens ; 409 sur la ligne rapprochée elle-même |
 ---

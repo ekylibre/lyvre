@@ -107,4 +107,7 @@ def post(sale: Sale, fy: FiscalYear):
         source_ref=f"SALE:{sale.id}", commit=False)
     sale.journal_entry = entry
     sale.journal_entry_id = entry.id
+    # Pièce émise : écriture validée d'office (décision CO7), elle se corrige par un avoir.
+    from app.services import validation
+    validation.validate_issued(entry)
     return entry

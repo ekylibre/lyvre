@@ -5,7 +5,7 @@ import pytest
 
 from app.extensions import db
 from app.models import Account, Entity, FiscalYear, Journal, JournalEntry
-from app.services import fec, organization
+from app.services import fec, organization, validation
 from app.services.ledger import post_entry
 
 SIREN = "732829320"
@@ -70,9 +70,9 @@ def test_validation_numbers_each_journal_continuously_by_date(books):
                     ("BQ", 1): date(2026, 1, 15), ("BQ", 2): date(2026, 3, 5)}
     assert all(e.validated_at is not None for e in JournalEntry.query.all())
     before = {e.id: e.validation_number for e in JournalEntry.query.all()}
-    fec.validate(books)  # déterministe
+    fec.validate(books)  # rien à valider : numéros inchangés
     assert {e.id: e.validation_number for e in JournalEntry.query.all()} == before
-    fec.unvalidate(books)
+    validation.undo_last_batch(books, "essai")  # lot de la clôture
     assert {e.validation_number for e in JournalEntry.query.all()} == {None}
 
 
@@ -154,5 +154,5 @@ def test_freeze_on_final_close(books, login_as, app):
     with open(os.path.join(app.instance_path, books.fec_path), "ab") as fh:
         fh.write(b"x")
     assert client.get(f"/fiscal-years/{books.id}/fec").status_code == 409  # altéré
-    with pytest.raises(fec.FecError):
-        fec.unvalidate(books)
+    with pytest.raises(validation.ValidationError):
+        validation.undo_last_batch(books, "essai")

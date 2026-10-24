@@ -211,7 +211,8 @@ def match(txn: BankTransaction, allocations: list[tuple[Sale, int]]) -> JournalE
             if rule_entry.fiscal_year.closed:
                 raise SaleError("Exercice clôturé : l'écriture de règle ne peut pas être remplacée.", status=409)
             txn.journal_line_id, txn.reconciled = None, False
-            db.session.delete(rule_entry)
+            from app.services.ledger import remove_entry
+            remove_entry(rule_entry)
             db.session.flush()
         entry = _post(allocations, txn.transaction_date, txn.bank_account, txn.label or "",
                       SOURCE_SALE_PAYMENT, f"SALE_PAYMENT:{txn.fitid}")
@@ -308,8 +309,8 @@ def unlink(payment: SalePayment) -> None:
         db.session.commit()
         return
     sales = [p.sale for p in SalePayment.query.filter_by(journal_entry_id=payment.journal_entry_id)]
-    (outcome,) = delete_entries([payment.journal_entry_id])
-    if outcome["status"] != "ok":
+    (outcome,) = delete_entries([payment.journal_entry_id], reverse_validated=True)
+    if outcome["status"] not in ("ok", "reversed"):
         raise SaleError(outcome["message"], status=409)
     from app.services import qonto_sales
     from app.services.qonto_client import QontoError

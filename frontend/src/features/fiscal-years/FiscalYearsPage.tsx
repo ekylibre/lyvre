@@ -17,6 +17,7 @@ import { formatDate } from "../../lib/format";
 import { useRouteModal } from "../../app/useRouteModal";
 import { AppLink } from "../../app/navigation";
 import { FecPanel } from "./FecPanel";
+import { ValidationBatchesPanel } from "../entries/validation";
 
 export interface FiscalYear {
   id: number; label: string; start_date: string; end_date: string; closed: boolean; vat_liable: boolean; vat_on_receipts?: boolean;
@@ -68,6 +69,7 @@ function FiscalYearForm({ years, onDone }: { years: FiscalYear[] | undefined; on
 export default function FiscalYearsPage() {
   const modal = useRouteModal("/fiscal-years/");
   const [fecFor, setFecFor] = useState<FiscalYear | null>(null);
+  const [batchesFor, setBatchesFor] = useState<FiscalYear | null>(null);
   const { data, isFetching } = useList<FiscalYear>(FISCAL_YEARS_KEY, "/api/v1/fiscal-years");
   const setVat = useAction((fy: FiscalYear) =>
     api.patch<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}`, { vat_liable: !fy.vat_liable }),
@@ -93,6 +95,8 @@ export default function FiscalYearsPage() {
             onConfirm: () => lock.mutate(fy),
           })}>{fy.status === "open" ? "Verrouiller" : "Déverrouiller"}</Button>) : null },
   ] : [
+    { accessor: "validation", title: "Validation", hideable: false,
+      render: (fy) => <Button variant="subtle" size="compact-sm" onClick={() => setBatchesFor(fy)}>Lots</Button> },
     // Hors colonne « actions » : l'expert-comptable (lecture seule) exporte aussi le FEC.
     { accessor: "fec", title: "FEC", hideable: false,
       render: (fy) => fy.status === "open" ? <Text size="sm" c="dimmed">après clôture</Text>
@@ -139,6 +143,9 @@ export default function FiscalYearsPage() {
         emptyText="Aucun exercice : créez le premier pour commencer à saisir." />
       <FormModal opened={modal.mode === "new"} onClose={modal.close} title="Créer un exercice">
         <FiscalYearForm years={data?.items} onDone={modal.close} />
+      </FormModal>
+      <FormModal opened={!!batchesFor} onClose={() => setBatchesFor(null)} title={`Validation des écritures — ${batchesFor?.label ?? ""}`} size="lg">
+        {batchesFor && <ValidationBatchesPanel fiscalYearId={batchesFor.id} open={batchesFor.status === "open"} />}
       </FormModal>
       <FormModal opened={!!fecFor} onClose={() => setFecFor(null)} title={`Fichier des écritures comptables — ${fecFor?.label ?? ""}`} size="lg">
         {fecFor && <FecPanel fiscalYearId={fecFor.id} />}

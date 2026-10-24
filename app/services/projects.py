@@ -120,6 +120,9 @@ def split_line(line: JournalLine, parts) -> list[JournalLine]:
         raise ProjectError("Exercice clôturé : ventilation impossible.", status=409)
     if entry.source in MANAGED_SOURCES:
         raise ProjectError("Écriture gérée par l'assistant de clôture.", status=409)
+    if entry.is_validated:
+        raise ProjectError("Écriture validée : ses lignes ne changent plus ; ventilez avant de valider, ou "
+                           "affectez la ligne entière à un projet.", status=409)
     if BankTransaction.query.filter_by(journal_line_id=line.id).first() is not None:
         raise ProjectError("Ligne rapprochée d'une transaction bancaire : ventilez la ligne de charge ou "
                            "de produit.", status=409)

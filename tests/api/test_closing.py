@@ -44,8 +44,12 @@ def _siren():
 # ------------------------------------------------------------------ contrôles et résultat
 
 
+def _anomalies(fy):
+    return [c for c in closing.checks(fy) if c.key != "drafts"]  # brouillards : information (lot F1)
+
+
 def test_checks_detect_anomalies(books):
-    assert closing.checks(books) == []
+    assert _anomalies(books) == []
     account = Account.query.filter_by(code="512100").one()
     ba = BankAccount(label="CIC", account_id=account.id)
     db.session.add(ba)
@@ -61,7 +65,7 @@ def test_checks_detect_anomalies(books):
     db.session.add(Purchase(source="manual", invoice_number="F-1", issue_date=date(2026, 7, 1), total_cents=100))
     db.session.commit()
     found = {c.key.split("_")[0] if c.key.startswith(("unreconciled", "suspense")) else c.key: c
-             for c in closing.checks(books)}
+             for c in _anomalies(books)}
     assert found["unreconciled"].count == 1 and found["unreconciled"].url == f"/reconciliation/?bank_account_id={ba.id}"
     assert found["unbalanced"].count == 1 and found["purchases_not_posted"].count == 1
     assert "471" in found["suspense"].label
@@ -73,7 +77,7 @@ def test_bank_credit_balance_detected(books):
     post_entry(books.id, bq.id, date(2026, 9, 1), "Gros achat", [
         {"account_id": Account.query.filter_by(code="6061").one().id, "debit_cents": 20000},
         {"account_id": Account.query.filter_by(code="512100").one().id, "credit_cents": 20000}])
-    assert [c.key for c in closing.checks(books)] == ["credit_512100"]
+    assert [c.key for c in _anomalies(books)] == ["credit_512100"]
 
 
 def test_result(books):

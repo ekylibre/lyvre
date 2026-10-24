@@ -20,18 +20,20 @@ export function useProjectOptions() {
     queryFn: () => api.get<{ items: { value: string; label: string }[] }>("/api/v1/projects/options") });
 }
 
-export function LineProjectModal({ entryId, line, invalidate, onClose }: {
+export function LineProjectModal({ entryId, line, invalidate, onClose, splittable = true }: {
   entryId: number; line: ProjectLine | null; invalidate: unknown[][]; onClose: () => void;
+  /** Faux sur une écriture validée : ses lignes ne changent plus, la ligne s'affecte entière. */
+  splittable?: boolean;
 }) {
   return (
     <FormModal opened={!!line} onClose={onClose} title={line ? `Projet — ligne ${line.account_code}` : ""}>
-      {line && <LineProjectForm key={line.id} entryId={entryId} line={line} invalidate={invalidate} onDone={onClose} />}
+      {line && <LineProjectForm key={line.id} entryId={entryId} line={line} invalidate={invalidate} onDone={onClose} splittable={splittable} />}
     </FormModal>
   );
 }
 
-function LineProjectForm({ entryId, line, invalidate, onDone }: {
-  entryId: number; line: ProjectLine; invalidate: unknown[][]; onDone: () => void;
+function LineProjectForm({ entryId, line, invalidate, onDone, splittable }: {
+  entryId: number; line: ProjectLine; invalidate: unknown[][]; onDone: () => void; splittable: boolean;
 }) {
   const options = useProjectOptions().data?.items ?? [];
   const amount = line.debit_cents || line.credit_cents;
@@ -50,7 +52,8 @@ function LineProjectForm({ entryId, line, invalidate, onDone }: {
   return (
     <Stack>
       <Text size="sm">{line.label || "Ligne"} · <MoneyText cents={amount} /></Text>
-      {!line.reconciled && (
+      {!splittable && <Text size="xs" c="dimmed">Écriture validée : la ligne s'affecte entière à un projet (pas de ventilation).</Text>}
+      {!line.reconciled && splittable && (
         <SegmentedControl value={mode} onChange={(v) => setMode(v as "one" | "split")}
           data={[{ value: "one", label: "Un projet" }, { value: "split", label: "Ventiler" }]} />
       )}

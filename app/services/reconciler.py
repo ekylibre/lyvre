@@ -10,8 +10,13 @@ REVERSED_MESSAGE = "Transaction annulée par la banque : elle ne peut pas être 
 from datetime import timedelta
 
 from app.extensions import db
-from app.models.journal_entry import CLOSING_SOURCES
+from app.models.journal_entry import CLOSING_SOURCES, SOURCE_CANCELLATION
 from app.models import BankTransaction, JournalEntry, JournalLine
+
+
+def _reversed_ids():
+    from app.services.ledger import reversed_entry_ids
+    return reversed_entry_ids()
 
 
 def suggest_matches_scored(bank_transaction_id, window_days=3):
@@ -36,7 +41,9 @@ def suggest_matches_scored(bank_transaction_id, window_days=3):
             JournalLine.bank_transaction == None,  # noqa: E711
             JournalEntry.entry_date.between(date_from, date_to),
             # À-nouveaux, extournes, affectation : jamais le reflet d'une opération bancaire.
-            JournalEntry.source.notin_(CLOSING_SOURCES),
+            JournalEntry.source.notin_((*CLOSING_SOURCES, SOURCE_CANCELLATION)),
+            # Écriture contrepassée : annulée, elle ne reflète plus l'opération.
+            JournalEntry.id.notin_(_reversed_ids()),
         )
     )
     if target < 0:
@@ -72,6 +79,8 @@ def check_link(bt, line, lines_taken=()):
         return REVERSED_MESSAGE
     if line.bank_transaction is not None or line.id in lines_taken:
         return "Ligne d'écriture déjà rapprochée."
+    if line.entry.source == SOURCE_CANCELLATION or line.entry_id in {i for (i,) in _reversed_ids()}:
+        return "Écriture contrepassée : elle ne se rapproche plus."
     if line.account_id != bt.bank_account.account_id:
         return "La ligne n'est pas sur le compte comptable du compte bancaire."
     if line.debit_cents - line.credit_cents != bt.amount_cents:

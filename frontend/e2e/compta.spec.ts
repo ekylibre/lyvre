@@ -47,3 +47,33 @@ test("tableau de bord de l'exercice", async ({ page }) => {
   await expect(page.getByText("Résultat courant")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Résultat mensuel" })).toBeVisible();
 });
+
+test("validation puis contrepassation d'une écriture (lot F1)", async ({ page }) => {
+  await login(page, "SCI E2E", "/entries/new");
+  await page.getByLabel("Description").fill("Achat scie");
+  await page.getByLabel("Compte, ligne 1").click();
+  await page.keyboard.type("6063");
+  await page.getByRole("option", { name: /606300/ }).click();
+  await page.getByLabel("Débit, ligne 1").fill("45,00");
+  await page.getByLabel("Compte, ligne 2").click();
+  await page.keyboard.type("512");
+  await page.getByRole("option", { name: /512000/ }).click();
+  await page.getByLabel("Crédit, ligne 2").click();
+  await page.keyboard.press("=");
+  await page.keyboard.press("Control+Shift+Enter");
+  await expect(page).toHaveURL(/\/entries\/\d+$/);
+  await expect(page.getByText("Brouillard", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Valider" }).click();
+  await expect(page.getByText(/^Validée n° \d+$/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Modifier" })).toHaveCount(0);
+  await expect(page.getByText(/elle ne se modifie plus/)).toBeVisible();
+  await expect(page.getByText("Validation", { exact: true })).toBeVisible();  // historique
+
+  await page.getByRole("button", { name: "Contrepasser" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel(/Motif/).fill("Doublon");
+  await dialog.getByRole("button", { name: "Contrepasser" }).click();
+  await expect(page.getByText(/Contrepassation de l'écriture/)).toBeVisible();
+  await expect(page.getByText("Brouillard", { exact: true })).toBeVisible();
+});

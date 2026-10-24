@@ -27,6 +27,7 @@ def create_app(config_name=None):
 
     # Import models so Alembic can detect them
     from . import models  # noqa: F401
+    from .services import ledger_guard  # noqa: F401  (garde et historique des écritures, lot F1)
 
     from .tenant import register_tenant_hooks
     register_tenant_hooks(app)

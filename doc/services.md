@@ -1118,15 +1118,33 @@ caractères hors jeu sans accent ou « ? »), nom `<SIREN>FEC<AAAAMMJJ>.txt` (da
 
 | Fonction | Rôle |
 |----------|------|
-| `validate(fy, at=None)` | Numérote les écritures **par journal et par exercice** (ordre date, id) et pose `validated_at` ; déterministe, recalculable tant que l'exercice n'est pas clôturé définitivement. Appelée à la clôture provisoire |
-| `unvalidate(fy)` | Efface la numérotation (réouverture) ; refusée sur un exercice définitif |
+| `validate(fy, at=None, user_id=None)` | Clôture provisoire : valide les brouillards restants (`validation.validate_remaining`, lot `closing`), numérotés à la suite ; aucun numéro existant ne change |
 | `check(fy)` | `(errors, warnings)` : SIREN, exercice ouvert, écritures vides / déséquilibrées / hors dates ; avertit si l'exercice n'a pas d'à-nouveaux alors qu'un exercice le précède |
 | `build(fy)` | `FecFile` (nom, contenu, lignes, écritures, totaux, `sha256`) : à-nouveaux (journal `AN`) en tête puis ordre chronologique ; `EcritureNum` = code journal + numéro sur 6 chiffres ; `PieceRef` = référence affichée ; comptes 401/411 d'un tiers en `CompAuxNum` / `CompAuxLib` |
 | `verify(content)` | Relecture : en-têtes, 18 champs, champs obligatoires, formats de dates et montants, équilibre par écriture et global, numérotation continue par journal, caractères de contrôle |
-| `preview(fy)` | Essai à blanc sur un exercice ouvert (assistant, étape 5) : numérotation provisoire et fichier relu dans un point de sauvegarde annulé ; renvoie (fichier, erreurs, avertissements, anomalies) |
+| `preview(fy)` | Essai à blanc sur un exercice ouvert (assistant, étape 5) : brouillards numérotés provisoirement à la suite (`validation.assign`) et fichier relu dans un point de sauvegarde annulé ; renvoie (fichier, erreurs, avertissements, anomalies) |
 | `freeze(fy)` | Clôture définitive : fichier écrit dans `instance/uploads/<slug>/fec/` (donc dans les sauvegardes `.zip`), `fec_path` et `fec_sha256` enregistrés |
 
 La validation officielle reste l'outil « Test Compta Demat » de la DGFiP.
+
+---
+
+## validation.py · ledger_guard.py — Validation des écritures (lot F1)
+
+| Fonction | Rôle |
+|----------|------|
+| `validation.validate(fy, entries, kind, user_id, until, at)` | Lot de validation (sans commit) : refus `ValidationError` (`problems`) si une écriture est déséquilibrée, sans ligne ou hors exercice ; numéros à la suite par journal, ordre (date, id) |
+| `validate_until(fy, until)` · `validate_remaining(fy)` | Brouillards jusqu'à une date ; ce qui reste (clôture provisoire) |
+| `validate_issued(entry)` | Écriture d'une facture / d'un avoir de vente émis : validée d'office (lot `auto` du jour) |
+| `assign(entries, at)` | Numérotation seule (essai à blanc du FEC) |
+| `undo_last_batch(fy, reason)` | Dévalide le dernier lot (motif) ; `last_batch`, `batches`, `draft_counts(fy)` (brouillards, plus de 3 mois) |
+| `ledger_guard.allow("validation")` | Contexte réservé à `validation.py` pour changer les colonnes de validation |
+| `ledger.reverse(entry, on_date, reason, user_id)` | Contrepassation (source `CANCELLATION`, `reverses_entry_id`) ; rapprochement défait, pièces détachées (`_detach`) |
+| `ledger.remove_entry(entry)` · `delete_entries(ids, reverse_validated=True)` | Écriture d'une pièce refaite : supprimée en brouillard, contrepassée si validée |
+| `ledger.reversed_entry_ids()` | Écritures contrepassées (exclues du rapprochement, des intérêts d'associés) |
+
+La garde (`ledger_guard`, `before_flush`) refuse toute modification d'une écriture validée par
+n'importe quel chemin et enregistre l'historique (`entry_events`, `after_flush`).
 
 ---
 

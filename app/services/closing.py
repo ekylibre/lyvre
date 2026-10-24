@@ -33,8 +33,8 @@ from app.models import (
 from app.models.closing import CLOSING_STEPS
 from app.models.fiscal_year import FY_CLOSED, FY_OPEN, FY_PROVISIONAL
 from app.models.journal_entry import SOURCE_ALLOCATION, SOURCE_INVENTORY, SOURCE_OPENING, SOURCE_REVERSAL
-from app.services import fec
-from app.services.ledger import delete_entries, post_entry
+from app.services import fec, validation
+from app.services.ledger import LedgerError, delete_entries, post_entry
 from app.services.purchase_posting import purchase_state
 from app.utils.money import euros
 
@@ -135,6 +135,11 @@ def checks(fy) -> list[Check]:
     if outside:
         found.append(Check("outside", f"{outside} écriture(s) datée(s) hors de l'exercice", outside, "anomaly",
                            "/entries/"))
+
+    drafts = validation.drafts(fy).count()
+    if drafts:
+        found.append(Check("drafts", f"{drafts} écriture(s) en brouillard : la clôture provisoire les validera",
+                           drafts, "info", f"/entries/?fy_id={fy.id}&state=draft"))
 
     purchases = Purchase.query.filter(Purchase.is_hidden.is_(False),
                                       Purchase.issue_date.between(fy.start_date, fy.end_date)).all()
@@ -308,7 +313,12 @@ def close_provisional(fy, user_id=None):
         raise ClosingError("Étapes à terminer ou à ignorer avant la clôture : " + ", ".join(pending) + ".", 422)
     fy.status = FY_PROVISIONAL
     db.session.flush()
-    count = fec.validate(fy, at=datetime.utcnow())
+    try:
+        count = fec.validate(fy, at=datetime.utcnow(), user_id=user_id)
+    except LedgerError as exc:
+        db.session.rollback()
+        problems = getattr(exc, "problems", [])
+        raise ClosingError(" ".join([str(exc), *problems[:3]]), 422) from None
     log(fy, "close", "provisional", user_id, entries=count)
     db.session.commit()
 
@@ -341,8 +351,14 @@ def reopen(fy, user_id=None, reason=None):
         if following.status != FY_OPEN:
             raise ClosingError(f"L'exercice suivant ({following.label}) est clôturé : ses à-nouveaux ne peuvent "
                                "plus être regénérés.")
+    if any(entry.is_validated for entry in carried):
+        raise ClosingError(f"Les à-nouveaux de {following.label} sont validés : annulez d'abord leur lot de "
+                           "validation (Exercices).")
     _drop(carried)
-    fec.unvalidate(fy)
+    # La clôture a validé les brouillards restants : la réouverture annule ce lot s'il est le dernier.
+    last = validation.last_batch(fy)
+    if last is not None and last.kind == "closing":
+        validation.undo_last_batch(fy, f"Réouverture : {reason.strip()}", user_id)
     fy.status = FY_OPEN
     for row in ClosingStep.query.filter(ClosingStep.fiscal_year_id == fy.id, ClosingStep.step.in_(LATER_STEPS)):
         row.state = "todo"
@@ -487,6 +503,9 @@ def generate_opening(fy, user_id=None, create_next=False):
     if allocation_entry(fy) is not None or fy.allocation_decided_on:
         raise ClosingError("Résultat déjà affecté : annulez d'abord l'affectation (étape 8).")
     lines = opening_lines(fy)
+    if any(entry.is_validated for entry in opening_entries(fy)):
+        raise ClosingError(f"Les à-nouveaux de {following.label} sont validés : annulez d'abord leur lot de "
+                           "validation pour les regénérer.")
     _drop(opening_entries(fy))
     opening = None
     if lines:

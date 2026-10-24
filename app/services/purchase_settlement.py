@@ -27,7 +27,7 @@ from app.extensions import db
 from app.models import (
     BankAccount, BankTransaction, Journal, JournalEntry, Purchase, PurchasePayment,
 )
-from app.services.ledger import LedgerError, delete_entries, post_entry
+from app.services.ledger import LedgerError, delete_entries, post_entry, remove_entry
 from app.services.purchase_posting import fiscal_year_for, supplier_account
 from app.services.reconciler import REVERSED_MESSAGE, reconcile
 
@@ -225,7 +225,7 @@ def replace_many(transaction_ids) -> dict:
                 raise LedgerError("Exercice clôturé : l'écriture de règle ne peut pas être supprimée.")
             txn.journal_line_id = None
             txn.reconciled = False
-            db.session.delete(entry)
+            remove_entry(entry)
             db.session.flush()
             new_entry = _settle_one(txn, _payments_of(txn))
             db.session.commit()
@@ -336,8 +336,8 @@ def unlink(payment: PurchasePayment) -> None:
     if payment.origin == "qonto":
         raise LedgerError("Un paiement désigné par Qonto ne se défait pas ici.")
     if payment.journal_entry_id is not None:
-        (outcome,) = delete_entries([payment.journal_entry_id])
-        if outcome["status"] != "ok":
+        (outcome,) = delete_entries([payment.journal_entry_id], reverse_validated=True)
+        if outcome["status"] not in ("ok", "reversed"):
             raise LedgerError(outcome["message"])
     db.session.delete(payment)
     db.session.commit()

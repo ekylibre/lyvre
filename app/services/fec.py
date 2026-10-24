@@ -1,9 +1,8 @@
 """Fichier des écritures comptables (FEC, article A47 A-1 du LPF) et validation des écritures.
 
-- `validate(fy)` : numérotation continue **par journal et par exercice** (ordre date, id) et date
-  de validation, attribuées à la clôture provisoire ; recalculée tant que l'exercice n'est pas
-  clôturé définitivement (l'ordre est déterministe : les mêmes écritures donnent les mêmes
-  numéros) ; `unvalidate(fy)` les efface (réouverture).
+- Numérotation : `app/services/validation.py` (lot F1) — continue **par journal et par exercice**,
+  attribuée par lots à la suite des numéros existants, jamais renumérotée ; la clôture provisoire
+  valide ce qui reste ; l'essai à blanc numérote provisoirement les brouillards (point de sauvegarde).
 - `build(fy)` : fichier texte, 18 champs, première ligne = noms des champs, séparateur
   tabulation, dates AAAAMMJJ, montants à virgule décimale sans séparateur de milliers, encodage
   ISO-8859-15 ; à-nouveaux (journal AN) en tête puis ordre chronologique ; nom
@@ -64,25 +63,13 @@ def _ordered_entries(fy):
             .order_by(JournalEntry.journal_id, JournalEntry.entry_date, JournalEntry.id).all())
 
 
-def validate(fy: FiscalYear, at: datetime | None = None) -> int:
-    """Numérote les écritures de l'exercice (continu par journal) ; renvoie leur nombre."""
+def validate(fy: FiscalYear, at: datetime | None = None, user_id=None) -> int:
+    """Clôture provisoire : valide les brouillards restants (lot `closing`) ; renvoie le nombre
+    d'écritures de l'exercice."""
+    from app.services import validation
     if fy.is_final:
         return JournalEntry.query.filter_by(fiscal_year_id=fy.id).count()
-    at = at or fy.provisional_at or datetime.utcnow()
-    counters = {}
-    entries = _ordered_entries(fy)
-    for entry in entries:
-        counters[entry.journal_id] = counters.get(entry.journal_id, 0) + 1
-        entry.validation_number = counters[entry.journal_id]
-        entry.validated_at = entry.validated_at if entry.validated_at and entry.validation_number else at
-    return len(entries)
-
-
-def unvalidate(fy: FiscalYear) -> None:
-    if fy.is_final:
-        raise FecError(["Exercice clôturé définitivement : la validation des écritures est figée."])
-    JournalEntry.query.filter_by(fiscal_year_id=fy.id).update(
-        {JournalEntry.validation_number: None, JournalEntry.validated_at: None}, synchronize_session=False)
+    return validation.validate_remaining(fy, "closing", user_id, at=at)
 
 
 # ------------------------------------------------------------------ format
@@ -161,9 +148,13 @@ def build(fy: FiscalYear, preview: bool = False) -> FecFile:
     errors, warnings = check(fy, allow_open=preview)
     if errors:
         raise FecError(errors)
-    if preview or any(e.validation_number is None for e in JournalEntry.query.filter_by(fiscal_year_id=fy.id)):
-        validate(fy, at=datetime.utcnow() if preview else None)
-        if not preview:
+    drafts = JournalEntry.query.filter_by(fiscal_year_id=fy.id, validation_number=None).all()
+    if drafts:
+        if preview:  # numérotation provisoire, annulée par le point de sauvegarde de `preview`
+            from app.services import validation
+            validation.assign(drafts, datetime.utcnow())
+        else:
+            validate(fy)
             db.session.commit()
     siren = organization.get().siren
     journals = {j.id: j for j in Journal.query.all()}

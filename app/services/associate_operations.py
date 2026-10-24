@@ -120,8 +120,8 @@ def unpay_purchase(payment: PurchasePayment) -> None:
     db.session.delete(payment)
     db.session.flush()
     if entry_id is not None:
-        results = delete_entries([entry_id])
-        if results[0]["status"] != "ok":
+        results = delete_entries([entry_id], reverse_validated=True)
+        if results[0]["status"] not in ("ok", "reversed"):
             db.session.rollback()
             raise OperationError(results[0]["message"])
     else:
@@ -203,8 +203,8 @@ def delete_expense(expense: AssociateExpense) -> None:
     db.session.delete(expense)
     db.session.flush()
     if entry_id is not None:
-        results = delete_entries([entry_id])
-        if results[0]["status"] != "ok":
+        results = delete_entries([entry_id], reverse_validated=True)
+        if results[0]["status"] not in ("ok", "reversed"):
             db.session.rollback()
             raise OperationError(results[0]["message"])
     else:
@@ -323,8 +323,10 @@ def _interest_ref(fy: FiscalYear, associate_id=None) -> str:
 
 
 def interest_entries(fy: FiscalYear) -> list[JournalEntry]:
+    from app.services.ledger import reversed_entry_ids
     return (JournalEntry.query.filter(JournalEntry.source == SOURCE,
-                                      JournalEntry.source_ref.like(_interest_ref(fy) + "%"))
+                                      JournalEntry.source_ref.like(_interest_ref(fy) + "%"),
+                                      JournalEntry.id.notin_(reversed_entry_ids()))
             .order_by(JournalEntry.id).all())
 
 
@@ -372,8 +374,8 @@ def post_interest(fy: FiscalYear) -> list[JournalEntry]:
         raise OperationError(f"L'exercice « {fy.label} » est clôturé.")
     old = [e.id for e in interest_entries(fy)]
     if old:
-        results = delete_entries(old)
-        failed = [r for r in results if r["status"] != "ok"]
+        results = delete_entries(old, reverse_validated=True)
+        failed = [r for r in results if r["status"] not in ("ok", "reversed")]
         if failed:
             raise OperationError(failed[0].get("message") or "Écritures d'intérêts non supprimées.")
     rows = [r for r in interest_preview(fy)["rows"] if r["interest_cents"] > 0]

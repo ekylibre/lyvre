@@ -142,6 +142,17 @@ def register_api(app):
     def _api_error(e):
         return error_response(e.code, e.message, e.status, e.fields, e.extra)
 
+    from app.services.ledger_errors import LedgerGuardError
+
+    @app.errorhandler(LedgerGuardError)
+    def _ledger_guard_error(e):
+        # Refus de la garde des écritures (écriture validée…), levé au flush par n'importe quel chemin.
+        from app.extensions import db
+        db.session.rollback()
+        if is_api_request():
+            return error_response(e.code, str(e), 409)
+        raise e
+
     # App-level handlers: unmatched /api/... URLs never reach the blueprint.
     @app.errorhandler(CSRFError)
     def _csrf_error(e):

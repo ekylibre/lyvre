@@ -7,11 +7,17 @@ from flask_login import login_required
 
 from app.extensions import db
 from app.models import BankTransaction, FiscalYear, Journal, JournalEntry
-from app.models.journal_entry import SALE_LOCKED_MESSAGE, SOURCE_SALE
-from app.services import projects
+import json
+
+from flask_login import current_user
+
+from app.access import instance_admin_required
+from app.models import EntryEvent
+from app.models.journal_entry import SALE_LOCKED_MESSAGE, SOURCE_CANCELLATION, SOURCE_SALE
+from app.services import projects, validation
 from app.services.ledger import (
-    MANAGED_SOURCES, LedgerError, delete_entries, entry_is_reconciled, post_validated_entry, update_entry,
-    validate_entry_payload,
+    MANAGED_SOURCES, VALIDATED_MESSAGE, LedgerError, delete_entries, entry_is_reconciled, post_validated_entry,
+    reversal_of, reverse, update_entry, validate_entry_payload,
 )
 from app.utils.list_filters import (
     apply_date_sort, apply_month_filter, month_options_for_fy, parse_month, parse_sort,
@@ -42,7 +48,13 @@ def entry_form_options(project_ids=()):
     }
 
 
+def _link(entry):
+    return {"id": entry.id, "reference": entry.reference} if entry is not None else None
+
+
 def serialize_entry(entry):
+    reversal = reversal_of(entry)
+    reverses = db.session.get(JournalEntry, entry.reverses_entry_id) if entry.reverses_entry_id else None
     return {
         "id": entry.id,
         "reference": entry.reference,
@@ -58,8 +70,16 @@ def serialize_entry(entry):
         "total_debit_cents": entry.total_debit,
         "total_credit_cents": entry.total_credit,
         "reconciled": entry_is_reconciled(entry),
-        "editable": not entry.fiscal_year.closed and entry.source not in (*MANAGED_SOURCES, SOURCE_SALE),
+        "editable": not entry.fiscal_year.closed and not entry.is_validated
+        and entry.source not in (*MANAGED_SOURCES, SOURCE_SALE),
         "managed": entry.source in MANAGED_SOURCES,
+        "validated": entry.is_validated,
+        "fiscal_year_closed": entry.fiscal_year.closed,
+        "validation_number": entry.validation_number,
+        "validated_at": entry.validated_at.isoformat() if entry.validated_at else None,
+        "reversal": _link(reversal),
+        "reverses": _link(reverses) if entry.source == SOURCE_CANCELLATION else None,
+        "reversible": reversal is None and entry.source not in (*MANAGED_SOURCES, SOURCE_SALE, SOURCE_CANCELLATION),
         "url": url_for("entries.detail", entry_id=entry.id),
         "lines": [
             {"id": l.id, "account_id": l.account_id, "account_code": l.account.code,
@@ -130,6 +150,8 @@ def entries_update(entry_id):
         raise ApiError("conflict", MANAGED_MESSAGE, 409)
     if entry.source == SOURCE_SALE:
         raise ApiError("conflict", SALE_LOCKED_MESSAGE, 409)
+    if entry.is_validated:
+        raise ApiError("entry_validated", VALIDATED_MESSAGE, 409)
     clean = _validated(json_body())
     try:
         update_entry(entry, clean)
@@ -157,6 +179,11 @@ def entries_list():
     if q:
         like = f"%{q}%"
         query = query.filter(db.or_(JournalEntry.reference.ilike(like), JournalEntry.description.ilike(like)))
+    state = request.args.get("state")
+    if state == "draft":
+        query = query.filter(JournalEntry.validation_number.is_(None))
+    elif state == "validated":
+        query = query.filter(JournalEntry.validation_number.isnot(None))
     query = apply_month_filter(query, JournalEntry.entry_date, parse_month(request.args.get("month")))
     query = apply_date_sort(query, JournalEntry.entry_date, parse_sort(request.args.get("sort")))
     page = max(request.args.get("page", 1, type=int), 1)
@@ -167,14 +194,17 @@ def entries_list():
     return jsonify(
         items=[{"id": e.id, "reference": e.reference, "entry_date": e.entry_date.isoformat(),
                 "journal": e.journal.code, "description": e.description or "",
-                "total_debit_cents": e.total_debit, "is_balanced": e.is_balanced, "source": e.source}
+                "total_debit_cents": e.total_debit, "is_balanced": e.is_balanced, "source": e.source,
+                "validation_number": e.validation_number}
                for e in entries],
         total=total, page=page, per_page=per_page,
         meta={"fy_id": fy_id,
               "fiscal_years": [{"value": str(f.id), "label": f.label} for f in fiscal_years],
               "journals": [{"value": str(j.id), "label": f"{j.code} — {j.label}"}
                            for j in Journal.query.order_by(Journal.code)],
-              "months": month_options_for_fy(fy) if fy else []},
+              "months": month_options_for_fy(fy) if fy else [],
+              "drafts": validation.draft_counts(fy) if fy else None,
+              "fiscal_year_open": bool(fy and not fy.closed)},
     )
 
 
@@ -217,6 +247,8 @@ def entries_form():
         entry = _get_entry(entry_id)
         if entry.fiscal_year.closed:
             raise ApiError("conflict", "Impossible de modifier une écriture d'un exercice clôturé.", 409)
+        if entry.is_validated:
+            raise ApiError("entry_validated", VALIDATED_MESSAGE, 409)
         if entry_is_reconciled(entry):
             raise ApiError("conflict", "Cette écriture est rapprochée à une transaction bancaire. "
                            "Annulez le rapprochement avant de la modifier.", 409)
@@ -257,3 +289,108 @@ def entries_form():
     return jsonify(mode="create", options=options, initial={
         "fiscal_year_id": fy.id if fy else None, "journal_id": journals[0].id if journals else None,
         "entry_date": date.today().isoformat(), "description": "", "lines": []})
+
+
+# ------------------------------------------------------------------ validation (lot F1)
+
+
+def _validation_error(exc):
+    problems = getattr(exc, "problems", [])
+    return ApiError("validation_refused", str(exc), 409, extra={"problems": problems})
+
+
+@bp.route("/entries/validation", methods=["POST"])
+@login_required
+def entries_validation():
+    """Valide une sélection (`{ids}`) ou tout jusqu'à une date (`{fiscal_year_id, until}`) : un lot."""
+    data = json_body()
+    try:
+        if data.get("ids") is not None:
+            ids = [i for i in data.get("ids") or [] if isinstance(i, int)]
+            entries = JournalEntry.query.filter(JournalEntry.id.in_(ids)).all() if ids else []
+            years = {e.fiscal_year_id for e in entries}
+            if len(years) > 1:
+                raise ApiError("validation_error", "Sélection sur plusieurs exercices : validez-les séparément.", 422)
+            if not entries:
+                raise ApiError("validation_error", "Aucune écriture sélectionnée.", 422)
+            fy = entries[0].fiscal_year
+            batch = validation.validate(fy, entries, "manual", current_user.id)
+        else:
+            fy = db.session.get(FiscalYear, data.get("fiscal_year_id")) if isinstance(data.get("fiscal_year_id"), int) else None
+            if fy is None:
+                raise ApiError("validation_error", "Exercice obligatoire.", 422, {"fiscal_year_id": "Exercice obligatoire."})
+            try:
+                until = date.fromisoformat(str(data.get("until") or ""))
+            except ValueError:
+                raise ApiError("validation_error", "Date invalide.", 422, {"until": "Date obligatoire (AAAA-MM-JJ)."}) from None
+            batch = validation.validate_until(fy, until, current_user.id)
+    except validation.ValidationError as exc:
+        db.session.rollback()
+        raise _validation_error(exc) from None
+    db.session.commit()
+    count = batch.entries if batch else 0
+    message = f"{count} écriture(s) validée(s)." if count else "Aucune écriture en brouillard à valider."
+    return jsonify(validated=count, notices=[notice(message, "success" if count else "info")])
+
+
+@bp.route("/entries/<int:entry_id>/reverse", methods=["POST"])
+@login_required
+def entries_reverse(entry_id):
+    """Contrepasse l'écriture : `{date?, reason}`."""
+    entry = _get_entry(entry_id)
+    data = json_body()
+    on_date = None
+    if data.get("date"):
+        try:
+            on_date = date.fromisoformat(str(data["date"]))
+        except ValueError:
+            raise ApiError("validation_error", "Date invalide.", 422, {"date": "Date invalide (AAAA-MM-JJ)."}) from None
+    try:
+        reversal = reverse(entry, on_date, data.get("reason"), current_user.id)
+    except LedgerError as exc:
+        raise ApiError("conflict", str(exc), 409) from None
+    return jsonify(item=serialize_entry(reversal),
+                   notices=[notice(f"Écriture {entry.reference} contrepassée par {reversal.reference}.")])
+
+
+@bp.route("/entries/<int:entry_id>/history")
+@login_required
+def entries_history(entry_id):
+    """Instantanés successifs de l'écriture (le plus ancien d'abord)."""
+    from app.models import User
+    events = EntryEvent.query.filter_by(entry_id=entry_id).order_by(EntryEvent.id).all()
+    if not events:
+        _get_entry(entry_id)
+    users = {u.id: u.email for u in User.query.filter(User.id.in_({e.user_id for e in events if e.user_id}))}
+    return jsonify(items=[{
+        "id": e.id, "action": e.action, "at": e.at.isoformat(), "user": users.get(e.user_id),
+        "origin": e.origin, "snapshot": json.loads(e.snapshot_json) if e.snapshot_json else None,
+    } for e in events])
+
+
+@bp.route("/fiscal-years/<int:fy_id>/validation-batches")
+@login_required
+def fiscal_year_validation_batches(fy_id):
+    fy = db.session.get(FiscalYear, fy_id)
+    if fy is None:
+        raise ApiError("not_found", "Exercice introuvable.", 404)
+    last = validation.last_batch(fy)
+    return jsonify(items=[validation.batch_payload(b, last.id if last and not fy.is_final else None)
+                          for b in validation.batches(fy)],
+                   drafts=validation.draft_counts(fy))
+
+
+@bp.route("/fiscal-years/<int:fy_id>/validation-batches/last/undo", methods=["POST"])
+@instance_admin_required
+def fiscal_year_validation_undo(fy_id):
+    """Dévalide le dernier lot (administrateur, motif obligatoire)."""
+    fy = db.session.get(FiscalYear, fy_id)
+    if fy is None:
+        raise ApiError("not_found", "Exercice introuvable.", 404)
+    try:
+        batch = validation.undo_last_batch(fy, json_body().get("reason"), current_user.id)
+    except validation.ValidationError as exc:
+        db.session.rollback()
+        raise ApiError("conflict", str(exc), 409, {"reason": str(exc)} if "Motif" in str(exc) else None) from None
+    db.session.commit()
+    return jsonify(notices=[notice(f"Lot de validation annulé : {batch.entries} écriture(s) repassent en brouillard.")])

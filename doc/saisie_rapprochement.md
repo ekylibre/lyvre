@@ -48,8 +48,35 @@ du même montant et du même sens, rien n'est enregistré.
 
 ### Modification
 
-Impossible si l'exercice est clôturé ou si une ligne est rapprochée (annuler d'abord le
-rapprochement). La référence d'origine est conservée.
+Impossible si l'exercice est clôturé, si l'écriture est **validée** ou si une ligne est rapprochée
+(annuler d'abord le rapprochement). La référence d'origine est conservée.
+
+### Validation et contrepassation
+
+Une écriture est d'abord en **brouillard** (modifiable, supprimable), puis **validée** : elle reçoit
+son numéro définitif, continu par journal et par exercice (celui du FEC), et ne se modifie plus.
+
+- **Valider** : depuis la fiche, une sélection dans la liste (« Valider (n) »), ou « Valider
+  jusqu'au… » (liste des écritures, Exercices › Lots). Chaque validation forme un **lot** ; les
+  numéros sont attribués à la suite des numéros existants et ne changent plus. Une écriture
+  déséquilibrée ou datée hors de l'exercice n'est pas validée (liste affichée).
+- **Validées d'office** : les écritures des factures et avoirs de vente émis (elles se corrigent par
+  un avoir). Les encaissements restent en brouillard tant qu'on ne les valide pas.
+- **Contrepasser** (fiche d'une écriture validée) : date et motif ; une écriture inverse est passée au
+  même journal. Un rapprochement bancaire est défait (la transaction redevient à rapprocher ;
+  l'écriture contrepassée et sa contrepassation ne sont plus proposées). Une facture d'achat ou un
+  règlement adossés redeviennent à comptabiliser.
+- Quand Lyvre refait l'écriture d'une pièce (facture d'achat modifiée ou décomptabilisée,
+  encaissement défait, écriture de règle remplacée par un règlement, intérêts d'associés recalculés)
+  et que l'écriture est validée, il la **contrepasse** au lieu de la supprimer.
+- **Projets** : une ligne validée s'affecte entière à un projet ; la ventilation se fait avant la
+  validation.
+- **Annuler le dernier lot** (administrateur, motif) : Exercices › Lots ; seul le dernier lot de
+  l'exercice s'annule, pour garder une numérotation continue.
+- **Historique** (fiche) : création, modifications (avant / après), validation, contrepassation,
+  suppression, avec l'auteur ; visible par l'expert-comptable.
+- Le tableau de bord signale les écritures en brouillard depuis plus de 3 mois.
+- Comptabilité simplifiée : pas de validation (pas de FEC).
 
 ---
 
