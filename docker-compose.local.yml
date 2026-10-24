@@ -1,0 +1,8 @@
+# Usage local (hors Dokploy) : port publié et données dans ./instance.
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+services:
+  web:
+    ports:
+      - "${APP_PORT:-5000}:5000"
+    volumes:
+      - ./instance:/app/instance:rw

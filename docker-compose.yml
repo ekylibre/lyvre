@@ -1,3 +1,10 @@
+# Lyvre — déploiement Dokploy (service Compose, domaine lyvre.seconde-nature.net) ou serveur Docker.
+# - Ni `container_name` ni `image` nommée : plusieurs services (ancien et nouveau) cohabitent sur le
+#   même hôte sans conflit de nom ni d'image.
+# - Pas de port publié sur l'hôte : le proxy (Traefik de Dokploy, domaine → port 5000 du conteneur)
+#   s'en charge. En local : docker compose -f docker-compose.yml -f docker-compose.local.yml up.
+# - Données (méta-base, bases des instances, pièces) : INSTANCE_DIR, propre à chaque service ;
+#   défaut ../files/instance = dossier persistant de Dokploy. Jamais le dossier d'un autre service.
 services:
   web:
     build:
@@ -5,13 +12,11 @@ services:
       args:
         APP_UID: ${APP_UID:-1000}
         APP_GID: ${APP_GID:-1000}
-    image: compta-asso:latest
-    container_name: compta-asso
     restart: unless-stopped
-    ports:
-      - "${APP_PORT:-5000}:5000"
+    expose:
+      - "5000"
     volumes:
-      - /home/ubuntu/compta/instance:/app/instance:rw
+      - ${INSTANCE_DIR:-../files/instance}:/app/instance:rw
     env_file:
       - .env
     environment:

@@ -41,8 +41,8 @@ cd compta-asso
 cp .env .env.example   # gardez-en une copie
 $EDITOR .env
 
-# Build + run
-docker compose up -d --build
+# Build + run (local : port publié et données dans ./instance)
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 docker compose logs -f web
 ```
 
@@ -91,10 +91,27 @@ manuelle : `docker compose build` (ou le build Dokploy) fait tout. `frontend/nod
 
 ### Dokploy
 
-Le déploiement est construit par **Dokploy** à partir du dépôt, en service *Dockerfile* ou
-*Compose* (le `docker-compose.yml` garde `build: .`) : le build multi-étapes s'exécute sur le
-serveur, sans CI. Adapter dans Dokploy le volume persistant de `instance/` et les variables
-d'environnement (équivalent du `.env`).
+Le déploiement est construit par **Dokploy** à partir du dépôt (service *Compose*, auto-déploiement
+de `main` ; service actuel : **lyvre.seconde-nature.net** sur seconde-nature-kvm) : le build
+multi-étapes s'exécute sur le serveur, sans CI. Le `docker-compose.yml` est fait pour cohabiter avec
+d'autres services sur le même hôte :
+
+- **ni `container_name` ni `image` nommée** (Dokploy nomme le conteneur et l'image par service) ;
+- **aucun port publié** : onglet *Domains* du service, *Container Port* `5000`, HTTPS Let's Encrypt ;
+- **données** dans `INSTANCE_DIR`, par défaut `../files/instance` (dossier persistant du service
+  Dokploy) — **jamais** le dossier `instance/` d'un autre service : l'entrypoint migre les bases
+  qu'il trouve (`flask db upgrade`) ;
+- **variables** dans l'onglet *Environment* (équivalent du `.env`) : `SECRET_KEY`, `ADMIN_EMAIL`,
+  `ADMIN_PASSWORD`, `APP_BASE_URL`, `MAIL_*` (voir ci-dessus).
+
+Premier déploiement : Dokploy crée `../files/instance` en `root` ; le conteneur tourne en UID 1000
+(voir [§ permissions](#permissions-sur-le-volume), option C) :
+
+```bash
+sudo chown -R 1000:1000 /etc/dokploy/compose/<nom-du-service>/files/instance
+```
+
+puis **Redeploy**.
 
 ---
 
@@ -214,7 +231,7 @@ Causes fréquentes :
 
 ```bash
 docker compose ps
-docker inspect compta-asso --format '{{.State.Health}}'
+docker inspect <conteneur> --format '{{.State.Health}}'
 ```
 
 Le bootstrap (migrations + seeds) peut prendre > 30 s sur une grosse DB. Allonger `start_period` dans `docker-compose.yml` si nécessaire.
