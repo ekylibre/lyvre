@@ -6,7 +6,7 @@ from datetime import date
 from flask import jsonify, send_file
 
 from app.extensions import db
-from app.models import Account, BankAccount, Lease, Recurrence, RentReceipt, Sale
+from app.models import Account, BankAccount, Lease, LeaseItem, Recurrence, RentReceipt, Sale
 from app.models.sale import FREQUENCIES
 from app.services import external_config, leases, recurrence, sale_entry
 from app.services.sale_entry import SaleError
@@ -110,12 +110,26 @@ def sales_issue_batch():
 
 # ------------------------------------------------------------------ baux
 
+def _options(choices: dict) -> list[dict]:
+    return [{"value": k, "label": v} for k, v in choices.items()]
+
+
+def item_payload(item: LeaseItem) -> dict:
+    return {"id": item.id, "position": item.position, "letter": item.letter or "", "label": item.label,
+            "nature": item.nature, "area_m2": item.area_m2, "built_m2": item.built_m2,
+            "billing_unit": item.billing_unit, "unit_price_cents": item.unit_price_cents,
+            "annual_cents": item.annual_cents, "cadastral_refs": item.cadastral_refs or [],
+            "source": item.source, "partial": item.partial, "has_geometry": item.geometry is not None}
+
+
 def lease_payload(lease: Lease, detail: bool = False) -> dict:
     rec = lease.recurrence
-    row = {"id": lease.id, "unit_label": lease.unit_label, "tenant": {"id": lease.entity_id, "name": lease.entity.name},
+    row = {"id": lease.id, "status": lease.status, "unit_label": lease.unit_label,
+           "tenant": {"id": lease.entity_id, "name": lease.entity.name},
            "address_line1": lease.address_line1 or "", "address_line2": lease.address_line2 or "",
            "postal_code": lease.postal_code or "", "city": lease.city or "", "start_date": _iso(lease.start_date),
            "end_date": _iso(lease.end_date), "rent_cents": lease.rent_cents, "charges_cents": lease.charges_cents,
+           "annual_cents": leases.annual_total(lease),
            "due_day": lease.due_day, "deposit_cents": lease.deposit_cents, "active": lease.active,
            "deposit_entry": {"id": lease.deposit_entry_id, "reference": lease.deposit_entry.reference}
            if lease.deposit_entry else None,
@@ -123,8 +137,15 @@ def lease_payload(lease: Lease, detail: bool = False) -> dict:
            "charges_account_code": lease.charges_account.code if lease.charges_account else "",
            "next_date": _iso(rec.next_date) if rec else None, "frequency": rec.frequency if rec else "monthly",
            "in_advance": rec.in_advance if rec else True, "qonto_emit": rec.qonto_emit if rec else False,
-           "notes": lease.notes or ""}
+           "vat_rate": leases._vat_rate(lease), "notes": lease.notes or "",
+           "kind": lease.kind or "", "kind_label": leases.KINDS.get(lease.kind, ""),
+           "premises_label": lease.premises_label or "", "signed_on_place": lease.signed_on_place or "",
+           "index_code": lease.index_code or "", "index_reference_period": lease.index_reference_period or "",
+           "index_reference_value": str(lease.index_reference_value) if lease.index_reference_value is not None else "",
+           "revision_months": str(lease.revision_months or ""), "next_revision_date": _iso(lease.next_revision_date),
+           "revise_deposit": lease.revise_deposit}
     if detail:
+        row["items"] = [item_payload(i) for i in lease.items]
         sales = Sale.query.filter_by(lease_id=lease.id).order_by(Sale.issue_date.desc(), Sale.id.desc()).all()
         row["invoices"] = [{**sale_row(s), "service_start": _iso(s.service_start), "service_end": _iso(s.service_end)}
                            for s in sales]
@@ -144,7 +165,9 @@ def receipt_payload(r: RentReceipt) -> dict:
 def leases_list():
     rows = Lease.query.order_by(Lease.active.desc(), Lease.unit_label).all()
     return jsonify(items=[lease_payload(l) for l in rows], meta={
-        "tenants": leases.tenant_options(),
+        "tenants": leases.tenant_options(), "kinds": _options(leases.KINDS), "natures": _options(leases.NATURES),
+        "units": _options(leases.UNITS), "indexes": _options(leases.INDEXES),
+        "frequencies": _options(FREQUENCIES),
         "accounts": [{"value": a.code, "label": f"{a.code} — {a.label}"} for a in
                      Account.query.filter(Account.code.like("7%"), Account.is_header.is_(False)).order_by(Account.code)],
         "bank_accounts": [{"value": str(b.id), "label": b.label} for b in BankAccount.query.order_by(BankAccount.label)],
@@ -153,8 +176,13 @@ def leases_list():
 
 @bp.route("/leases", methods=["POST"])
 def leases_create():
+    """`draft: true` : étape 1 de l'assistant (brouillon) ; sinon bail en une fois (loyer d'échéance)."""
+    data = json_body()
     with _errors():
-        lease = leases.create(json_body())
+        if data.get("draft"):
+            lease = leases.create_draft(data)
+            return jsonify(item=lease_payload(lease, True), notices=[notice("Brouillon de bail enregistré.")]), 201
+        lease = leases.create(data)
     return jsonify(item=lease_payload(lease, True), notices=[notice(
         f"Bail enregistré : avis d'échéance préparés à partir du {lease.recurrence.next_date:%d/%m/%Y}.")]), 201
 
@@ -170,6 +198,58 @@ def leases_update(lease_id):
     with _errors():
         leases.update(lease, json_body())
     return jsonify(item=lease_payload(lease, True), notices=[notice("Bail enregistré.")])
+
+
+@bp.route("/leases/<int:lease_id>", methods=["DELETE"])
+def leases_delete(lease_id):
+    lease = get_or_404(Lease, lease_id, "Bail introuvable.")
+    with _errors():
+        leases.delete_draft(lease)
+    return jsonify(notices=[notice("Brouillon de bail supprimé.")])
+
+
+@bp.route("/leases/<int:lease_id>/items", methods=["POST"])
+def lease_items_create(lease_id):
+    lease = get_or_404(Lease, lease_id, "Bail introuvable.")
+    with _errors():
+        item = leases.save_item(lease, json_body())
+    return jsonify(item=item_payload(item), lease=lease_payload(lease, True)), 201
+
+
+def _lease_item(lease_id, item_id) -> LeaseItem:
+    item = LeaseItem.query.filter_by(id=item_id, lease_id=lease_id).first()
+    if item is None:
+        raise ApiError("not_found", "Ligne de bail introuvable.", status=404)
+    return item
+
+
+@bp.route("/leases/<int:lease_id>/items/<int:item_id>", methods=["PATCH"])
+def lease_items_update(lease_id, item_id):
+    item = _lease_item(lease_id, item_id)
+    with _errors():
+        leases.save_item(item.lease, json_body(), item)
+    return jsonify(item=item_payload(item), lease=lease_payload(item.lease, True))
+
+
+@bp.route("/leases/<int:lease_id>/items/<int:item_id>", methods=["DELETE"])
+def lease_items_delete(lease_id, item_id):
+    item = _lease_item(lease_id, item_id)
+    lease = item.lease
+    with _errors():
+        leases.delete_item(item)
+    return jsonify(lease=lease_payload(lease, True))
+
+
+@bp.route("/leases/<int:lease_id>/activate", methods=["POST"])
+def leases_activate(lease_id):
+    """Étape 3 « Valider » : facturation ; brouillon → bail validé avec sa facture récurrente."""
+    lease = get_or_404(Lease, lease_id, "Bail introuvable.")
+    was_draft = lease.status == "draft"
+    with _errors():
+        leases.activate(lease, json_body())
+    message = (f"Bail validé : avis d'échéance préparés à partir du {lease.recurrence.next_date:%d/%m/%Y}."
+               if was_draft else "Loyer et facturation enregistrés.")
+    return jsonify(item=lease_payload(lease, True), notices=[notice(message)])
 
 
 @bp.route("/leases/<int:lease_id>/deposit", methods=["POST"])

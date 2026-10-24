@@ -138,8 +138,17 @@ export interface Lease {
   postal_code: string; city: string; start_date: string; end_date: string | null; rent_cents: number; charges_cents: number;
   due_day: number; deposit_cents: number; active: boolean; deposit_entry: { id: number; reference: string } | null;
   rent_account_code: string; charges_account_code: string; next_date: string | null; frequency: string; in_advance: boolean;
-  qonto_emit: boolean; notes: string;
+  qonto_emit: boolean; notes: string; status: "draft" | "active"; annual_cents: number; vat_rate: string;
+  kind: string; kind_label: string; premises_label: string; signed_on_place: string; index_code: string;
+  index_reference_period: string; index_reference_value: string; revision_months: string;
+  next_revision_date: string | null; revise_deposit: boolean; items?: LeaseItem[];
   invoices?: (SaleRow & { service_start: string | null; service_end: string | null })[]; receipts?: RentReceipt[];
+}
+
+export interface LeaseItem {
+  id: number; position: number; letter: string; label: string; nature: "building" | "land" | "flat"; area_m2: number;
+  built_m2: number; billing_unit: "m2" | "ha" | "flat"; unit_price_cents: number; annual_cents: number;
+  cadastral_refs: string[]; source: string; partial: boolean; has_geometry: boolean;
 }
 
 export const RECURRENCES_KEY = ["recurrences"];

@@ -74,7 +74,7 @@ describe("associés", () => {
     expect((screen.getByLabelText("Compte courant") as HTMLInputElement).placeholder).toBe("4551002");
     await user.click(screen.getByRole("button", { name: "Ajouter l'associé" }));
     await waitFor(() => expect(calls.find((c) => c.method === "POST")?.body).toEqual(
-      { entity_id: "9", account_code: "", interest_rate: "", notes: "" }));
+      { entity_id: "9", account_code: "", interest_rate: "", notes: "", is_manager: false }));
   });
 
   it("fiche : compte verrouillé et solde débiteur signalé", async () => {

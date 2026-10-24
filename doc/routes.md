@@ -582,8 +582,11 @@ Structure, onglet Facturation (`/configuration/organization?tab=billing`). API :
 | GET / PATCH / DELETE | `/api/v1/recurrences/<id>` | Fiche, modification (lignes d'un loyer : par le bail), suppression (les factures restent) |
 | GET | `/api/v1/sales/due` | Prépare les échéances arrivées en brouillon (une fois par période), liste les brouillons récurrents |
 | POST | `/api/v1/sales/issue-batch` | `{ids, send}` : émission en lot, envoi par email si `send` |
-| GET / POST | `/api/v1/leases` | Baux `{entity_id, unit_label, adresse, start_date, end_date, rent, charges, deposit, due_day, rent_account_code, charges_account_code, in_advance, qonto_emit}` ; crée la récurrence du loyer |
-| GET / PATCH | `/api/v1/leases/<id>` | Fiche (avis d'échéance, quittances), modification |
+| GET / POST | `/api/v1/leases` | Baux ; `draft: true` : étape 1 de l'assistant `{entity_id, kind, unit_label, premises_label, adresse, start_date, end_date, deposit, index_code, index_reference_period, index_reference_value, revision_months, revise_deposit, signed_on_place, notes}` (brouillon, sans récurrence) ; sinon bail en une fois avec `rent` (loyer d'échéance, une ligne forfaitaire) ; méta : `kinds`, `natures`, `units`, `indexes`, `frequencies` |
+| GET / PATCH / DELETE | `/api/v1/leases/<id>` | Fiche (`items`, `annual_cents`, avis d'échéance, quittances), termes ; suppression d'un brouillon seulement |
+| POST | `/api/v1/leases/<id>/items` | Ligne `{letter?, label, nature, area_m2, built_m2, billing_unit?, unit_price, cadastral_refs, partial}` ; renvoie `item` et `lease` |
+| PATCH / DELETE | `/api/v1/leases/<id>/items/<item_id>` | Ligne ; bail validé : facture récurrente mise à jour (au moins une ligne) |
+| POST | `/api/v1/leases/<id>/activate` | Étape 3 `{frequency, due_day, in_advance, vat_rate, charges, rent_account_code, charges_account_code, qonto_emit}` : brouillon → validé (récurrence, une ligne par ligne de bail) ; bail validé : facturation enregistrée |
 | POST | `/api/v1/leases/<id>/deposit` | `{paid_on, bank_account_id}` : dépôt de garantie encaissé (banque ou caisse / 165) |
 | POST | `/api/v1/sales/<id>/rent-receipt` | Quittance (loyer de la période payé) ou reçu (paiement partiel) ; PDF conservé |
 | GET / POST | `/api/v1/rent-receipts/<id>/pdf`, `/send` | PDF ; envoi au locataire (SMTP) |

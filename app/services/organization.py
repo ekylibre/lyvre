@@ -12,9 +12,10 @@ from app.extensions import db
 from app.models import Organization
 
 FIELDS = ("name", "siren", "rna", "address_line1", "address_line2", "postal_code", "city", "country", "purpose",
-          "signatory_name", "signatory_title")
+          "signatory_name", "signatory_title", "legal_form", "rcs_city")
 MAX_LENGTHS = {"name": 200, "siren": 9, "rna": 10, "address_line1": 200, "address_line2": 200, "postal_code": 10,
-               "city": 100, "country": 60, "signatory_name": 200, "signatory_title": 100}
+               "city": 100, "country": 60, "signatory_name": 200, "signatory_title": 100, "legal_form": 100,
+               "rcs_city": 100}
 LA_POSTE_SIREN = "356000000"
 
 

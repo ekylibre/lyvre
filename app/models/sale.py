@@ -255,13 +255,51 @@ class Lease(db.Model):
     recurrence_id = db.Column(db.Integer, db.ForeignKey("recurrences.id", ondelete="SET NULL"))
     notes = db.Column(db.Text)
     active = db.Column(db.Boolean, nullable=False, default=True, server_default=db.true())
+    # Assistant de rédaction (lot L1) : brouillon jusqu'à la validation (pas de facture récurrente).
+    status = db.Column(db.String(10), nullable=False, default="active", server_default="active")  # draft | active
+    kind = db.Column(db.String(12))                 # derogatory | commercial | residential | rural
+    premises_label = db.Column(db.String(200))      # lieu-dit, désignation des biens
+    signed_on_place = db.Column(db.String(100))     # « Fait à … »
+    # Révision du loyer (appliquée au lot L5).
+    index_code = db.Column(db.String(10))           # ILC | ILAT | IRL | FERMAGES
+    index_reference_period = db.Column(db.String(10))
+    index_reference_value = db.Column(db.Numeric(8, 2))
+    revision_months = db.Column(db.Integer)         # 12 | 36
+    next_revision_date = db.Column(db.Date)
+    revise_deposit = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     entity = db.relationship("Entity")
     recurrence = db.relationship("Recurrence")
+    items = db.relationship("LeaseItem", order_by="LeaseItem.position", cascade="all, delete-orphan",
+                            back_populates="lease")
     rent_account = db.relationship("Account", foreign_keys=[rent_account_id])
     charges_account = db.relationship("Account", foreign_keys=[charges_account_id])
     deposit_entry = db.relationship("JournalEntry")
+
+
+class LeaseItem(db.Model):
+    """Ligne d'un bail (élément loué A, B…) : surface, prix annuel par unité, références cadastrales,
+    géométrie (carte, lot L3). Le loyer du bail est la somme des montants annuels."""
+    __tablename__ = "lease_items"
+
+    id = db.Column(db.Integer, primary_key=True)
+    lease_id = db.Column(db.Integer, db.ForeignKey("leases.id", ondelete="CASCADE"), nullable=False, index=True)
+    position = db.Column(db.Integer, nullable=False, default=0)
+    letter = db.Column(db.String(3))
+    label = db.Column(db.String(200), nullable=False)
+    nature = db.Column(db.String(10), nullable=False, default="flat")       # building | land | flat
+    area_m2 = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+    built_m2 = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+    billing_unit = db.Column(db.String(4), nullable=False, default="flat")  # m2 | ha | flat
+    unit_price_cents = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+    annual_cents = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+    cadastral_refs = db.Column(db.JSON)
+    geometry = db.Column(db.JSON)
+    source = db.Column(db.String(10), nullable=False, default="manual", server_default="manual")
+    partial = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
+
+    lease = db.relationship("Lease", back_populates="items")
 
 
 class RentReceipt(db.Model):

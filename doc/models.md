@@ -972,10 +972,16 @@ Lot S4 (migration `e5f7a9b1c3d6`) : `entities.qonto_client_id`, `products.qonto_
 Lot S5 (migration `f6a8b0c2d4e7`) : **`recurrences`** (modèle `sales.kind = template`, périodicité
 mensuelle / trimestrielle / annuelle, jour d'échéance, début, fin, terme à échoir ou échu,
 `next_date`, `qonto_emit`, `active`), **`sale_occurrences`** (une période préparée une seule fois :
-unique `(recurrence_id, period_start)`), **`leases`** (locataire, lot et adresse, dates, loyer,
-charges, jour d'échéance, dépôt de garantie et son écriture, comptes des loyers et des charges,
-récurrence), **`rent_receipts`** (quittance ou reçu : période, loyer, charges, montant payé, PDF,
-envoi) ; `sales.recurrence_id`, `sales.lease_id`.
+unique `(recurrence_id, period_start)`), **`leases`** (locataire, désignation et adresse, dates, loyer
+d'échéance, charges, jour d'échéance, dépôt de garantie et son écriture, comptes des loyers et des
+charges, récurrence ; lot L1 : `status` brouillon / validé, `kind`, `premises_label`,
+`signed_on_place`, révision `index_code`, `index_reference_period`, `index_reference_value`,
+`revision_months`, `next_revision_date`, `revise_deposit`), **`lease_items`** (lignes du bail :
+`letter`, `label`, `nature` bâtiment / sol / forfait, `area_m2`, `built_m2`, `billing_unit` m² / ha /
+forfait, `unit_price_cents` annuel, `annual_cents`, `cadastral_refs`, `geometry`, `source`,
+`partial`), **`rent_receipts`** (quittance ou reçu : période, loyer, charges, montant payé, PDF,
+envoi) ; `sales.recurrence_id`, `sales.lease_id`. Lot L1 aussi : `associates.is_manager` (gérant,
+signataire des baux), `organization.legal_form` et `rcs_city`.
 
 Lot S6 (migration `a8c0e2f4b6d9`) : **`subscriptions`** (fournisseur, désignation, catégorie,
 produit du catalogue, montant TTC attendu fixe ou estimé, périodicité, jour d'échéance, compte

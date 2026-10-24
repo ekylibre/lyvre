@@ -38,18 +38,29 @@ test("facture : saisie, émission, PDF, encaissement", async ({ page }) => {
 
 test("bail : avis d'échéance émis, encaissé, quittance", async ({ page }) => {
   await login(page, "SCI Ventes E2E", "/leases/");
-  await page.getByRole("button", { name: "Nouveau bail" }).click();
-  const form = page.getByRole("dialog");
-  await form.getByRole("combobox", { name: "Locataire" }).click();
+  await page.getByRole("link", { name: "Nouveau bail" }).click();
+  await page.getByRole("combobox", { name: "Locataire (preneur)" }).click();
   await page.getByRole("option", { name: "Client Ventes E2E" }).click();
-  await form.getByLabel(/^Lot/).fill("Appartement 2B");
-  await form.getByLabel(/^Loyer hors charges/).fill("800");
-  await form.getByLabel(/^Provisions sur charges/).fill("50");
+  await page.getByRole("combobox", { name: "Type de bail" }).click();
+  await page.getByRole("option", { name: "Bail d'habitation" }).click();
+  await page.getByLabel(/^Désignation/).fill("Appartement 2B");
   const first = new Date();
   first.setDate(1);  // échéance le 1er : la première est celle du mois en cours
-  await form.getByLabel(/^Date d'effet/).fill(iso(first));
-  await form.getByRole("button", { name: "Créer le bail" }).click();
-  await expect(page.getByRole("heading", { name: "Appartement 2B" })).toBeVisible();
+  await page.getByLabel(/^Date d'effet/).fill(iso(first));
+  await page.getByRole("button", { name: "Suivant" }).click();
+  // Étape 2 : un bien au forfait (cas simple, sans carte).
+  await page.getByRole("button", { name: "Ajouter un bien" }).click();
+  const item = page.getByRole("dialog");
+  await item.getByLabel(/^Désignation/).fill("Appartement");
+  await item.getByText("Forfait").click();
+  await item.getByRole("button", { name: "Ajouter" }).click();
+  await expect(page.getByRole("cell", { name: "Appartement", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Suivant" }).click();
+  // Étape 3 : 9 600 € par an, soit 800 € par mois, plus 50 € de charges.
+  await page.getByLabel("Prix Appartement").fill("9600");
+  await page.getByLabel(/^Provisions sur charges/).fill("50");
+  await page.getByRole("button", { name: "Valider le bail" }).click();
+  await expect(page.getByRole("heading", { name: "Appartement 2B", exact: true })).toBeVisible();
 
   await page.goto("/sales/due");
   await expect(page.getByText("1 échéance(s) préparée(s) à l'instant.")).toBeVisible();

@@ -25,6 +25,7 @@ class Associate(db.Model):
     account_id = db.Column(db.Integer, db.ForeignKey("accounts.id", ondelete="RESTRICT"),
                            unique=True, nullable=False)
     interest_rate_bp = db.Column(db.Integer)  # None : taux de la structure
+    is_manager = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())  # gérant
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

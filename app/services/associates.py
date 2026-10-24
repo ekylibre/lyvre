@@ -97,7 +97,7 @@ def _entity(data) -> Entity:
 
 
 def create(data: dict) -> Associate:
-    """`{entity_id | new_name, account_code?, interest_rate?, notes?}` → associé (commit) ;
+    """`{entity_id | new_name, account_code?, interest_rate?, notes?, is_manager?}` → associé (commit) ;
     AssociateError sans rien laisser en session."""
     try:
         with db.session.no_autoflush:
@@ -107,7 +107,8 @@ def create(data: dict) -> Associate:
                 raise AssociateError(f"{entity.name} est déjà associé.", "entity_id")
             account = _account(data.get("account_code"), entity)
             associate = Associate(entity=entity, account=account, interest_rate_bp=rate,
-                                  notes=(str(data.get("notes") or "").strip() or None))
+                                  notes=(str(data.get("notes") or "").strip() or None),
+                                  is_manager=bool(data.get("is_manager")))
             db.session.add(associate)
         db.session.commit()
     except AssociateError:
@@ -117,7 +118,7 @@ def create(data: dict) -> Associate:
 
 
 def update(associate: Associate, data: dict) -> Associate:
-    """Compte courant (tant qu'il n'a pas d'écriture), taux, notes."""
+    """Compte courant (tant qu'il n'a pas d'écriture), taux, notes, gérant."""
     try:
         _update(associate, data)
     except AssociateError:
@@ -135,6 +136,8 @@ def _update(associate: Associate, data: dict) -> None:
         associate.interest_rate_bp = parse_rate(data.get("interest_rate"))
     if "notes" in data:
         associate.notes = str(data.get("notes") or "").strip() or None
+    if "is_manager" in data:
+        associate.is_manager = bool(data.get("is_manager"))
     db.session.commit()
 
 
@@ -203,6 +206,8 @@ def summary(associate: Associate, held: dict[int, dict[str, int]], total_parts: 
         "balance_cents": balance(associate.account_id, at),
         "interest_rate": format_rate(rate).replace(" %", "") if rate is not None else "",
         "notes": associate.notes,
+        "is_manager": associate.is_manager,
+        "email": associate.entity.email,
         "is_out": not any(parts.values()),
     }
 

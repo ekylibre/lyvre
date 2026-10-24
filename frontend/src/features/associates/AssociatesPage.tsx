@@ -38,6 +38,7 @@ export default function AssociatesPage() {
   const columns: GridColumn<Associate>[] = [
     { accessor: "name", title: "Associé", sortable: true, hideable: false, render: (a) => (
       <Group gap="xs"><AppLink href={`/associates/${a.id}`}>{a.name}</AppLink>
+        {a.is_manager && <StatusBadge tone="info">Gérant</StatusBadge>}
         {a.is_out && <StatusBadge tone="neutral">Sans parts</StatusBadge>}</Group>
     ) },
     { accessor: "account_code", title: "Compte courant", render: (a) => <span className="lv-num">{a.account_code}</span> },

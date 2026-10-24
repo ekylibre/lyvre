@@ -16,13 +16,14 @@ import { BillingSettings } from "../sales/BillingSettings";
 export interface Organization {
   name: string; siren: string | null; rna: string | null; address_line1: string | null; address_line2: string | null;
   postal_code: string | null; city: string | null; country: string; purpose: string | null;
-  signatory_name: string | null; signatory_title: string | null; fec_ready: boolean;
+  signatory_name: string | null; signatory_title: string | null; legal_form: string | null; rcs_city: string | null;
+  fec_ready: boolean;
   /** Module « Associés » : option de l'instance et taux d'intérêt des comptes courants par défaut. */
   has_associates: boolean; associate_interest_rate: string;
 }
 export const ORGANIZATION_KEY = ["organization"];
 const FIELDS = ["name", "siren", "rna", "address_line1", "address_line2", "postal_code", "city", "country", "purpose",
-  "signatory_name", "signatory_title"] as const;
+  "signatory_name", "signatory_title", "legal_form", "rcs_city"] as const;
 type Values = Record<(typeof FIELDS)[number] | "associate_interest_rate", string> & { has_associates: boolean };
 
 export default function OrganizationPage() {
@@ -75,6 +76,10 @@ export default function OrganizationPage() {
               <SimpleGrid cols={{ base: 1, sm: 2 }}>
                 {field("siren", "SIREN", { description: "9 chiffres", classNames: { input: "lv-num" } })}
                 {field("rna", "Numéro RNA", { description: "Associations : W suivi de 9 chiffres", classNames: { input: "lv-num" } })}
+              </SimpleGrid>
+              <SimpleGrid cols={{ base: 1, sm: 2 }}>
+                {field("legal_form", "Forme juridique", { placeholder: "Société civile immobilière, association…", description: "Reprise dans les baux" })}
+                {field("rcs_city", "Greffe du RCS", { placeholder: "Saintes", description: "Sociétés immatriculées" })}
               </SimpleGrid>
               <Textarea label="Objet" autosize minRows={2} readOnly={readOnly} {...form.getInputProps("purpose")} />
             </Stack>

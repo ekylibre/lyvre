@@ -88,17 +88,40 @@ envoyer**) en lot.
 
 ## Baux et quittances
 
-**Nouveau bail** : locataire (tiers), lot et adresse, date d'effet, fin, **loyer hors charges**,
-**provisions sur charges**, jour d'échéance, dépôt de garantie, comptes des loyers et des charges
-(706 / 708 par défaut — à valider avec l'expert-comptable). Le bail crée sa facture récurrente :
-les avis d'échéance arrivent dans « À émettre ».
+**Nouveau bail** : un assistant en trois étapes, enregistré en **brouillon** à chaque étape (un
+brouillon se reprend depuis la liste des baux, il se supprime tant qu'il n'est pas validé).
+
+1. **Bail** : locataire (preneur), **type** (dérogatoire commercial, commercial 3-6-9, habitation,
+   rural / prêt à usage), désignation (reprise sur les avis d'échéance), lieu-dit et adresse des
+   biens, date d'effet, fin, dépôt de garantie, **révision** (indice ILC, ILAT, IRL ou fermages,
+   indice de référence, annuelle ou triennale — appliquée automatiquement dans un lot à venir),
+   lieu de signature.
+2. **Biens loués** : une ligne par élément (parcelle, bâtiment, zone) : **lettre** (A, B… proposée),
+   désignation, nature (bâtiment, sol, forfait), surface louée, dont surface bâtie, références
+   cadastrales, « partie seulement ». La carte viendra compléter cette étape.
+3. **Loyer** : **prix annuel HT** par ligne — au m² (bâtiments), à l'hectare (sols, surface
+   arrondie à l'are : 4 940 m² → 0,49 ha) ou au forfait ; **loyer annuel** = somme des lignes ;
+   périodicité, jour d'échéance, provisions sur charges, TVA, comptes des loyers et des charges
+   (706 / 708 par défaut — à valider avec l'expert-comptable). **Valider le bail** crée la facture
+   récurrente : **une ligne « Loyer {période} — A Potager » par ligne de bail** (montant annuel
+   divisé par le nombre d'échéances, écart d'arrondi sur la dernière ligne ; une ligne à 0 € n'est
+   pas facturée) et la provision sur charges ; les avis d'échéance arrivent dans « À émettre ».
+
+**Modifier** (fiche du bail) rouvre l'assistant : un changement de lignes ou de prix met à jour la
+facture récurrente pour les échéances suivantes. Les baux créés avant l'assistant ont une ligne
+forfaitaire (loyer d'échéance × nombre d'échéances par an).
+
+Les **gérants** (Associés › case « Gérant ») et la **forme juridique** et le **greffe du RCS**
+(Configuration › Structure) serviront à la rédaction et à la signature des baux.
 
 - **Dépôt de garantie** : « Encaisser le dépôt » — banque ou caisse au débit, **165** au crédit.
 - **Quittance** : sur un avis d'échéance **payé**, bouton « Quittance » — loyer et charges
   distingués, période, montant reçu ; paiement partiel : **reçu** (ne vaut pas quittance). PDF
   conservé sur la fiche du bail, **Envoyer** au locataire.
 
-Hors périmètre : révision du loyer (IRL), régularisation annuelle des charges.
+Hors périmètre pour l'instant : régularisation annuelle des charges. À venir (conception
+`claudedocs/design_baux.md`) : modèles et PDF du bail, carte des biens, signature électronique,
+révision automatique du loyer.
 
 ## Avec Qonto
 

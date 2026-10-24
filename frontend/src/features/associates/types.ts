@@ -16,7 +16,7 @@ export interface Associate {
   parts: Record<Nature, number>; percent: Record<Nature, number>;
   /** Solde du compte courant, créditeur positif : la société doit à l'associé. */
   balance_cents: number;
-  interest_rate: string; notes: string | null; is_out: boolean;
+  interest_rate: string; notes: string | null; is_out: boolean; is_manager: boolean; email: string | null;
 }
 
 export interface AssociatesMeta {

@@ -71,6 +71,7 @@ export default function AssociateDetailPage() {
               <Text size="xs" c="dimmed">{a.account_label}</Text></Field>
             <Field label="Solde"><div style={{ display: "inline-block" }}><BalanceCell cents={a.balance_cents} /></div></Field>
             <Field label="Taux d'intérêt">{a.interest_rate ? `${a.interest_rate} %` : "Taux de la structure"}</Field>
+            {a.is_manager && <Field label="Gérant">{a.email ?? <Text span c="var(--lv-brique)" size="sm">e-mail manquant sur la fiche tiers</Text>}</Field>}
           </SimpleGrid>
           {a.notes && <Text size="sm" mt="sm" style={{ whiteSpace: "pre-wrap" }}>{a.notes}</Text>}
         </Paper>

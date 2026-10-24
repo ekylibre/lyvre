@@ -1,5 +1,6 @@
-// Ventes › Bail : locataire, lot, loyer et charges, échéancier, dépôt de garantie (encaissement au
-// compte 165), avis d'échéance (factures) et quittances / reçus (PDF, envoi au locataire).
+// Ventes › Bail : locataire, biens loués (lignes A, B…), loyer annuel et échéance, charges, dépôt de
+// garantie (encaissement au compte 165), avis d'échéance (factures) et quittances / reçus (PDF, envoi
+// au locataire). « Modifier » rouvre l'assistant.
 import { useState } from "react";
 import { useParams } from "react-router";
 import { Alert, Anchor, Button, Center, Grid, Group, Loader, Paper, Select, Stack, Table, Text, TextInput, Title } from "@mantine/core";
@@ -15,7 +16,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
-import { LeaseForm, type LeasesMeta } from "./LeasesPage";
+import type { LeasesMeta } from "./LeaseWizardPage";
 import { LEASES_KEY, STATUS_TONES, type Lease } from "./types";
 
 function DepositForm({ lease, accounts, onDone }: { lease: Lease; accounts: LeasesMeta["bank_accounts"]; onDone: (item?: Lease) => void }) {
@@ -41,7 +42,7 @@ export default function LeaseDetailPage() {
   const key = [...LEASES_KEY, id];
   const { data } = useQuery({ queryKey: key, queryFn: () => api.get<{ item: Lease }>(`/api/v1/leases/${id}`) });
   const meta = useList<Lease, LeasesMeta>(LEASES_KEY, "/api/v1/leases").data?.meta;
-  const [modal, setModal] = useState<"edit" | "deposit" | null>(null);
+  const [modal, setModal] = useState<"deposit" | null>(null);
   const smtp = useIntegrationGuard("smtp", "L'envoi par email");
   const sendReceipt = useAction((receiptId: number) => api.post<{ notices: Notice[] }>(`/api/v1/rent-receipts/${receiptId}/send`, {}),
     { invalidate: [LEASES_KEY] });
@@ -51,24 +52,27 @@ export default function LeaseDetailPage() {
   return (
     <>
       <PageHeader title={l.unit_label}
-        description={<Group component="span" gap={8}><StatusBadge tone={l.active ? "ok" : "neutral"}>{l.active ? "En cours" : "Terminé"}</StatusBadge>
+        description={<Group component="span" gap={8}>{l.status === "draft" ? <StatusBadge tone="todo">Brouillon</StatusBadge>
+          : <StatusBadge tone={l.active ? "ok" : "neutral"}>{l.active ? "En cours" : "Terminé"}</StatusBadge>}
+          {l.kind_label && <Text span size="sm">{l.kind_label}</Text>}
           <Anchor component={AppLink} href={`/entities/${l.tenant.id}`} size="sm">{l.tenant.name}</Anchor></Group>}
         actions={<>
           <Can>
-            {l.deposit_cents > 0 && !l.deposit_entry && <Button variant="default" onClick={() => setModal("deposit")}>Encaisser le dépôt</Button>}
-            <Button variant="default" onClick={() => setModal("edit")}>Modifier</Button>
+            {l.status === "active" && l.deposit_cents > 0 && !l.deposit_entry && <Button variant="default" onClick={() => setModal("deposit")}>Encaisser le dépôt</Button>}
+            <Button variant="default" component={AppLink} href={`/leases/${l.id}/edit`}>Modifier</Button>
           </Can>
           <Button variant="default" component={AppLink} href="/leases/">Baux</Button>
         </>} />
       <Grid mb="md">
         <Grid.Col span={{ base: 12, md: 6 }}><Paper p="md">
-          <Text size="sm" c="dimmed">Lot</Text>
-          <Text>{l.address_line1} {l.address_line2}<br />{l.postal_code} {l.city}</Text>
+          <Text size="sm" c="dimmed">Biens</Text>
+          <Text>{l.premises_label && <>{l.premises_label}<br /></>}{l.address_line1} {l.address_line2}<br />{l.postal_code} {l.city}</Text>
           <Text size="sm" mt="xs">Du {formatDate(l.start_date)}{l.end_date ? ` au ${formatDate(l.end_date)}` : ""} · échéance le {l.due_day} ({l.in_advance ? "à échoir" : "échu"})</Text>
         </Paper></Grid.Col>
         <Grid.Col span={{ base: 12, md: 6 }}><Paper p="md">
           <Group gap="xl">
-            <div><Text size="sm" c="dimmed">Loyer</Text><MoneyText cents={l.rent_cents} /></div>
+            <div><Text size="sm" c="dimmed">Loyer annuel</Text><MoneyText cents={l.annual_cents} /></div>
+            <div><Text size="sm" c="dimmed">Échéance</Text><MoneyText cents={l.rent_cents} /></div>
             <div><Text size="sm" c="dimmed">Charges</Text><MoneyText cents={l.charges_cents} /></div>
             <div><Text size="sm" c="dimmed">Dépôt de garantie</Text><MoneyText cents={l.deposit_cents} />
               {l.deposit_entry && <Text size="xs"><Anchor component={AppLink} href={`/entries/${l.deposit_entry.id}`}>{l.deposit_entry.reference}</Anchor></Text>}</div>
@@ -76,6 +80,26 @@ export default function LeaseDetailPage() {
           </Group>
         </Paper></Grid.Col>
       </Grid>
+      {!!l.items?.length && (
+        <Paper p="md" mb="md">
+          <Title order={3} mb="xs">Biens loués</Title>
+          <Table>
+            <Table.Thead><Table.Tr>
+              <Table.Th>Lettre</Table.Th><Table.Th>Désignation</Table.Th><Table.Th ta="right">Surface</Table.Th>
+              <Table.Th ta="right">Dont bâti</Table.Th><Table.Th>Cadastre</Table.Th><Table.Th ta="right">Montant annuel</Table.Th>
+            </Table.Tr></Table.Thead>
+            <Table.Tbody>{l.items.map((i) => (
+              <Table.Tr key={i.id}>
+                <Table.Td fw={600}>{i.letter}</Table.Td>
+                <Table.Td>{i.label}{i.partial && <Text span size="xs" c="dimmed"> (partie)</Text>}</Table.Td>
+                <Table.Td ta="right" className="lv-num">{i.area_m2 ? `${i.area_m2.toLocaleString("fr-FR")} m²` : "—"}</Table.Td>
+                <Table.Td ta="right" className="lv-num">{i.built_m2 ? `${i.built_m2.toLocaleString("fr-FR")} m²` : "—"}</Table.Td>
+                <Table.Td>{i.cadastral_refs.join(", ")}</Table.Td>
+                <Table.Td ta="right"><MoneyText cents={i.annual_cents} size="sm" /></Table.Td>
+              </Table.Tr>))}</Table.Tbody>
+          </Table>
+        </Paper>
+      )}
       <Grid>
         <Grid.Col span={{ base: 12, lg: 7 }}><Paper p="md">
           <Title order={3} mb="xs">Avis d'échéance</Title>
@@ -106,9 +130,6 @@ export default function LeaseDetailPage() {
         </Paper></Grid.Col>
       </Grid>
       {l.notes && <Alert color="ardoise" mt="md">{l.notes}</Alert>}
-      <FormModal opened={modal === "edit"} onClose={() => setModal(null)} title={`Modifier ${l.unit_label}`} size="xl">
-        {modal === "edit" && meta && <LeaseForm lease={l} meta={meta} onDone={refresh} />}
-      </FormModal>
       <FormModal opened={modal === "deposit"} onClose={() => setModal(null)} title="Dépôt de garantie">
         {modal === "deposit" && meta && <DepositForm lease={l} accounts={meta.bank_accounts} onDone={refresh} />}
       </FormModal>
