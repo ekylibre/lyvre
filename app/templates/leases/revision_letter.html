@@ -1,0 +1,43 @@
+{#- Courrier de révision du loyer (lot L5) : indices, ancien et nouveau loyer, date d'effet. -#}
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Révision du loyer — {{ lease.unit_label }}</title>
+<style>
+  @page { size: A4; margin: 20mm; }
+  body { font-family: "DejaVu Sans", sans-serif; font-size: 10pt; color: #111; line-height: 1.5; }
+  .head { display: flex; justify-content: space-between; margin-bottom: 14mm; }
+  .head div { width: 46%; }
+  h1 { font-size: 13pt; margin: 0 0 6mm; }
+  table { width: 100%; border-collapse: collapse; margin: 5mm 0; }
+  td, th { border-bottom: 0.2mm solid #bbb; padding: 2mm; text-align: left; }
+  .num { text-align: right; white-space: nowrap; }
+  .sign { margin-top: 14mm; margin-left: auto; width: 80mm; }
+</style>
+</head>
+<body>
+<div class="head">
+  <div><b>{{ org.name }}</b><br>{{ org.address_line1 or "" }}<br>{{ org.postal_code or "" }} {{ org.city or "" }}</div>
+  <div><b>{{ tenant.name }}</b><br>{{ tenant.address_line1 or "" }}<br>{{ tenant.postal_code or "" }} {{ tenant.city or "" }}
+    <br><br>{{ org.city or "" }}, le {{ today }}</div>
+</div>
+<h1>Révision du loyer — {{ lease.unit_label }}</h1>
+<p>Madame, Monsieur,</p>
+<p>Conformément à la clause de révision de votre bail{% if lease.kind_label %} ({{ lease.kind_label }}){% endif %},
+le loyer est révisé à compter du <b>{{ effective }}</b> selon la variation de l'{{ index_name }} :</p>
+<table>
+  <tr><th>Indice de référence</th><td>{{ old_period }}</td><td class="num">{{ old_value }}</td></tr>
+  <tr><th>Nouvel indice</th><td>{{ new_period }}</td><td class="num">{{ new_value }}</td></tr>
+</table>
+<table>
+  <tr><th></th><th class="num">Ancien</th><th class="num">Nouveau</th></tr>
+  <tr><td>Loyer annuel hors charges</td><td class="num">{{ money(rev.old_annual_cents) }}</td><td class="num">{{ money(rev.new_annual_cents) }}</td></tr>
+  {% if per_period %}<tr><td>Échéance {{ frequency }}</td><td class="num">{{ money(old_period_cents) }}</td><td class="num">{{ money(new_period_cents) }}</td></tr>{% endif %}
+  {% if rev.new_deposit_cents != rev.old_deposit_cents %}<tr><td>Dépôt de garantie</td><td class="num">{{ money(rev.old_deposit_cents) }}</td><td class="num">{{ money(rev.new_deposit_cents) }}</td></tr>{% endif %}
+</table>
+<p>Nouveau loyer = ancien loyer × {{ new_value }} ÷ {{ old_value }}. Les avis d'échéance suivants tiennent compte de ce montant.</p>
+<p>Nous vous prions d'agréer, Madame, Monsieur, nos salutations distinguées.</p>
+<div class="sign">{{ org.name }}{% if org.signatory_name %}<br>{{ org.signatory_name }}{% if org.signatory_title %}, {{ org.signatory_title }}{% endif %}{% endif %}</div>
+</body>
+</html>

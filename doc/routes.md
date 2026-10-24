@@ -598,6 +598,11 @@ Structure, onglet Facturation (`/configuration/organization?tab=billing`). API :
 | POST / DELETE | `/api/v1/leases/<id>/signature` | Envoyer à la signature (Documenso ; intégration requise ; 409 si bail non validé, sans gérant ou e-mail manquant, déjà envoyé ; 502 si Documenso refuse) / annuler l'envoi en cours |
 | POST | `/api/v1/leases/<id>/signature/refresh` | Relire le statut ; signé : PDF signé et journal d'audit rangés |
 | GET | `/api/v1/lease-signatures/<id>/<sent\|signed\|audit>.pdf` | PDF envoyé, signé, journal d'audit |
+| GET / POST | `/api/v1/rent-indices` | Indices (ILC, ILAT, IRL : INSEE ; FERMAGES : saisie) / `{code, period, value}` : saisie ou correction (applique les révisions qui l'attendaient) |
+| DELETE | `/api/v1/rent-indices/<id>` | Valeur saisie seulement (409 pour une valeur INSEE) |
+| POST | `/api/v1/rent-indices/fetch` | Relit les séries INSEE (503 si indisponible) puis applique les révisions dues |
+| POST | `/api/v1/lease-revisions/run` | Applique les révisions de loyer dues `{applied, pending}` (aussi fait par `GET /sales/due`, méta `revisions`) |
+| GET | `/api/v1/lease-revisions/<id>/letter.pdf` | Courrier de révision au preneur (révision appliquée) |
 | POST | `/api/v1/leases/<id>/activate` | Étape 3 `{frequency, due_day, in_advance, vat_rate, charges, rent_account_code, charges_account_code, qonto_emit}` : brouillon → validé (récurrence, une ligne par ligne de bail) ; bail validé : facturation enregistrée |
 | POST | `/api/v1/leases/<id>/deposit` | `{paid_on, bank_account_id}` : dépôt de garantie encaissé (banque ou caisse / 165) |
 | POST | `/api/v1/sales/<id>/rent-receipt` | Quittance (loyer de la période payé) ou reçu (paiement partiel) ; PDF conservé |

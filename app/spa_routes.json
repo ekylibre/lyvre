@@ -99,6 +99,7 @@
     {"rule": "/leases/", "endpoint": "leases.index"},
     {"rule": "/leases/new", "endpoint": "leases.new"},
     {"rule": "/lease-templates/", "endpoint": "lease_templates.index"},
+    {"rule": "/rent-indices/", "endpoint": "rent_indices.index"},
     {"rule": "/leases/<int:lease_id>", "endpoint": "leases.detail"},
     {"rule": "/leases/<int:lease_id>/edit", "endpoint": "leases.edit"},
     {"rule": "/sales/<int:sale_id>", "endpoint": "sales.detail"},

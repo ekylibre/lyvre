@@ -983,7 +983,9 @@ forfait, `unit_price_cents` annuel, `annual_cents`, `cadastral_refs`, `geometry`
 `updated_by_id`), **`lease_signatures`** (lot L4 : `submission_id`, `status` sent / completed /
 declined / expired / cancelled, dates, PDF envoyé, signé et journal d'audit, `error`) et
 **`lease_signers`** (`role`, `name`, `email`, associé ou tiers, `submitter_id`, `status`,
-`signed_at`, `declined_at`), **`rent_receipts`** (quittance ou reçu : période, loyer, charges, montant payé, PDF,
+`signed_at`, `declined_at`), **`rent_indices`** (lot L5 : `code`, `period` 2026-Q2 / 2026, `value`, `source` insee / manual ; unique
+code + période), **`lease_revisions`** (`due_date`, indices ancien et nouveau, loyer annuel et dépôt
+avant / après, `status` pending / applied, `note`), **`rent_receipts`** (quittance ou reçu : période, loyer, charges, montant payé, PDF,
 envoi) ; `sales.recurrence_id`, `sales.lease_id`. Lot L1 aussi : `associates.is_manager` (gérant,
 signataire des baux), `organization.legal_form` et `rcs_city`.
 

@@ -144,8 +144,14 @@ export interface Lease {
   next_revision_date: string | null; revise_deposit: boolean; items?: LeaseItem[];
   document: { generated_at: string | null; edited: boolean; frozen: boolean; preview_url: string };
   signature?: LeaseSignature | null; signers_planned?: { role: string; name: string; email: string }[];
-  signature_problems?: string[]; locked?: boolean;
+  signature_problems?: string[]; locked?: boolean; revisions?: LeaseRevision[];
   invoices?: (SaleRow & { service_start: string | null; service_end: string | null })[]; receipts?: RentReceipt[];
+}
+
+export interface LeaseRevision {
+  id: number; due_date: string; index_code: string; status: "pending" | "applied"; old_period: string; new_period: string;
+  old_value: string | null; new_value: string | null; old_annual_cents: number | null; new_annual_cents: number | null;
+  old_deposit_cents: number | null; new_deposit_cents: number | null; note: string | null; letter_url: string | null;
 }
 
 export interface LeaseSignature {

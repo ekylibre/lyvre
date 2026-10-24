@@ -148,12 +148,13 @@ MENUS = [
         "label": "Ventes",
         "charts": _ALL,
         "bookkeeping": _DOUBLE,   # journal VE, comptes clients 411
-        "active": ["sales", "leases"],
+        "active": ["sales", "leases", "rent_indices"],
         "items": [
             {"key": "sales_list", "label": "Factures, avoirs et devis", "endpoint": "sales.index", "charts": _ALL},
             {"key": "sales_due", "label": "À émettre", "endpoint": "sales.due", "charts": _ALL},
             {"key": "sales_recurring", "label": "Factures récurrentes", "endpoint": "sales.recurring", "charts": _ALL},
             {"key": "leases", "label": "Baux et quittances", "endpoint": "leases.index", "charts": _ALL},
+            {"key": "rent_indices", "label": "Indices de loyer", "endpoint": "rent_indices.index", "charts": _ALL},
         ],
     },
     # ------------------------------------------------------------------- Associés

@@ -13,7 +13,7 @@ import { AppLink } from "../../app/navigation";
 import { SALES_KEY, type SaleRow } from "./types";
 
 export default function DueSalesPage() {
-  const { data, isFetching } = useList<SaleRow, { prepared: number }>([...SALES_KEY, "due"], "/api/v1/sales/due");
+  const { data, isFetching } = useList<SaleRow, { prepared: number; revisions?: { applied: number; pending: number } }>([...SALES_KEY, "due"], "/api/v1/sales/due");
   const [selected, setSelected] = useState<SaleRow[]>([]);
   const issue = useAction((body: { ids: number[]; send: boolean }) => api.post<{ notices: Notice[] }>("/api/v1/sales/issue-batch", body),
     { invalidate: [SALES_KEY] });
@@ -30,6 +30,10 @@ export default function DueSalesPage() {
         description="Échéances des factures récurrentes et des loyers, préparées en brouillon : vérifiez-les, puis émettez-les (et envoyez-les)."
         actions={<Button variant="default" component={AppLink} href="/sales/recurring">Factures récurrentes</Button>} />
       {!!data?.meta?.prepared && <Alert color="lichen" mb="sm">{data.meta.prepared} échéance(s) préparée(s) à l'instant.</Alert>}
+      {!!data?.meta?.revisions?.applied && <Alert color="lichen" mb="sm">{data.meta.revisions.applied} révision(s) de loyer appliquée(s) avant
+        la préparation des échéances (courriers sur la fiche des baux).</Alert>}
+      {!!data?.meta?.revisions?.pending && <Alert color="paille" mb="sm">{data.meta.revisions.pending} révision(s) de loyer en attente d'un
+        indice (Ventes › Indices de loyer).</Alert>}
       <DataGrid id="sales-due" records={data?.items} columns={columns} fetching={isFetching}
         emptyText="Aucune échéance à émettre."
         selection={{

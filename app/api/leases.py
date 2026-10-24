@@ -8,13 +8,17 @@ from flask import jsonify, request, send_file
 from flask_login import current_user
 
 from app.extensions import db
-from app.models import Account, BankAccount, Lease, LeaseItem, LeaseSignature, Recurrence, RentReceipt, Sale
+from app.models import (
+    Account, BankAccount, Lease, LeaseItem, LeaseRevision, LeaseSignature, Recurrence, RentIndex, RentReceipt, Sale,
+)
 from app.models.sale import FREQUENCIES
 from app.access import instance_admin_required
 from app.services import (
     external_config, geodata, lease_documents, lease_signatures, leases, organization, recurrence, sale_entry,
 )
+from app.services import rent_revision
 from app.services.lease_documents import LeaseDocumentError
+from app.services.rent_revision import RevisionError
 from app.services.sale_entry import SaleError
 
 from . import ApiError, bp, get_or_404, invalid, json_body, notice, require_integration
@@ -25,7 +29,7 @@ from .sales import _line, _require_channel, sale_row
 def _errors():
     try:
         yield
-    except (SaleError, LeaseDocumentError) as exc:
+    except (SaleError, LeaseDocumentError, RevisionError) as exc:
         db.session.rollback()
         if exc.status == 422:
             raise invalid(exc.message, exc.field) from None
@@ -93,9 +97,11 @@ def recurrences_delete(rec_id):
 
 @bp.route("/sales/due")
 def sales_due():
-    """Prépare les échéances arrivées (brouillons), puis liste les brouillons récurrents à émettre."""
+    """Applique les révisions de loyer arrivées (avant), prépare les échéances arrivées (brouillons), puis
+    liste les brouillons récurrents à émettre."""
+    revised = rent_revision.revise_due()
     prepared = recurrence.prepare_due()
-    return jsonify(items=[sale_row(s) for s in recurrence.due_drafts()], meta={"prepared": prepared})
+    return jsonify(items=[sale_row(s) for s in recurrence.due_drafts()], meta={"prepared": prepared, "revisions": revised})
 
 
 @bp.route("/sales/issue-batch", methods=["POST"])
@@ -161,12 +167,23 @@ def lease_payload(lease: Lease, detail: bool = False) -> dict:
         row["signers_planned"] = [{"role": s["role"], "name": s["name"], "email": s["email"]} for s in planned]
         row["signature_problems"] = problems
         row["locked"] = bool(row["signature"] and row["signature"]["status"] in ("sent", "completed"))
+        row["revisions"] = [revision_payload(r) for r in reversed(lease.revisions)]
         sales = Sale.query.filter_by(lease_id=lease.id).order_by(Sale.issue_date.desc(), Sale.id.desc()).all()
         row["invoices"] = [{**sale_row(s), "service_start": _iso(s.service_start), "service_end": _iso(s.service_end)}
                            for s in sales]
         row["receipts"] = [receipt_payload(r) for r in
                            RentReceipt.query.filter_by(lease_id=lease.id).order_by(RentReceipt.id.desc())]
     return row
+
+
+def revision_payload(r: LeaseRevision) -> dict:
+    return {"id": r.id, "due_date": _iso(r.due_date), "index_code": r.index_code, "status": r.status,
+            "old_period": rent_revision.label_period(r.old_period), "new_period": rent_revision.label_period(r.new_period),
+            "old_value": str(r.old_value) if r.old_value is not None else None,
+            "new_value": str(r.new_value) if r.new_value is not None else None,
+            "old_annual_cents": r.old_annual_cents, "new_annual_cents": r.new_annual_cents,
+            "old_deposit_cents": r.old_deposit_cents, "new_deposit_cents": r.new_deposit_cents, "note": r.note,
+            "letter_url": f"/api/v1/lease-revisions/{r.id}/letter.pdf" if r.status == "applied" else None}
 
 
 def signature_payload(sig: LeaseSignature | None) -> dict | None:
@@ -539,3 +556,84 @@ def lease_signature_file(signature_id, kind):
         raise ApiError("not_found", "Document introuvable.", status=404)
     names = {"sent": "bail-envoye", "signed": "bail-signe", "audit": "journal-audit"}
     return send_file(path, mimetype="application/pdf", download_name=f"{names[kind]}-{sig.lease_id}.pdf")
+
+
+# ------------------------------------------------------------------ révision des loyers (lot L5)
+
+def index_payload(row: RentIndex) -> dict:
+    return {"id": row.id, "code": row.code, "period": row.period, "period_label": rent_revision.label_period(row.period),
+            "value": str(row.value), "source": row.source, "fetched_at": _iso(row.fetched_at)}
+
+
+@bp.route("/rent-indices")
+def rent_indices_list():
+    rows = RentIndex.query.order_by(RentIndex.code, RentIndex.period.desc()).all()
+    return jsonify(items=[index_payload(r) for r in rows], meta={
+        "indexes": _options(leases.INDEXES), "insee": sorted(rent_revision.INSEE_SERIES),
+        "last_fetch": _iso(rent_revision.last_fetch())})
+
+
+@bp.route("/rent-indices", methods=["POST"])
+def rent_indices_save():
+    data = json_body()
+    with _errors():
+        row = rent_revision.save_value(str(data.get("code") or ""), str(data.get("period") or ""), data.get("value"))
+        result = rent_revision.revise_due(fetch=False)  # une révision attendait peut-être cette valeur
+    notices = [notice(f"Indice {row.code} du {rent_revision.label_period(row.period)} enregistré : {row.value}.")]
+    if result["applied"]:
+        notices.append(notice(f"{result['applied']} révision(s) de loyer appliquée(s)."))
+    return jsonify(item=index_payload(row), notices=notices), 201
+
+
+@bp.route("/rent-indices/<int:index_id>", methods=["DELETE"])
+def rent_indices_delete(index_id):
+    row = get_or_404(RentIndex, index_id, "Indice introuvable.")
+    if row.source != "manual":
+        raise ApiError("conflict", "Valeur publiée par l'INSEE : elle ne se supprime pas.", status=409)
+    db.session.delete(row)
+    db.session.commit()
+    return jsonify(notices=[notice("Valeur supprimée.")])
+
+
+@bp.route("/rent-indices/fetch", methods=["POST"])
+def rent_indices_fetch():
+    with _errors():
+        added = rent_revision.fetch_insee()
+        result = rent_revision.revise_due(fetch=False)
+    notices = [notice(f"Indices de l'INSEE à jour : {added} valeur(s) nouvelle(s).")]
+    if result["applied"]:
+        notices.append(notice(f"{result['applied']} révision(s) de loyer appliquée(s)."))
+    return jsonify(notices=notices, last_fetch=_iso(rent_revision.last_fetch()))
+
+
+@bp.route("/lease-revisions/run", methods=["POST"])
+def lease_revisions_run():
+    with _errors():
+        result = rent_revision.revise_due()
+    level = "warning" if result["pending"] else "success"
+    return jsonify(result=result, notices=[notice(
+        f"{result['applied']} révision(s) appliquée(s), {result['pending']} en attente d'un indice.", level)])
+
+
+@bp.route("/lease-revisions/<int:revision_id>/letter.pdf")
+def lease_revision_letter(revision_id):
+    from flask import render_template
+    from weasyprint import HTML
+    from app.services.lease_documents import long_date
+    from app.utils.money import euros
+    rev = get_or_404(LeaseRevision, revision_id, "Révision introuvable.")
+    if rev.status != "applied":
+        raise ApiError("conflict", "Révision en attente : pas encore de courrier.", status=409)
+    lease = rev.lease
+    frequency = lease.recurrence.frequency if lease.recurrence else "monthly"
+    per_year = leases.PER_YEAR[frequency]
+    html = render_template(
+        "leases/revision_letter.html", lease={"unit_label": lease.unit_label, "kind_label": leases.KINDS.get(lease.kind, "")},
+        org=organization.get(), tenant=lease.entity, rev=rev, money=euros, today=long_date(date.today()),
+        effective=long_date(rev.due_date), index_name=leases.INDEXES[rev.index_code][0].lower() + leases.INDEXES[rev.index_code][1:],
+        old_period=rent_revision.label_period(rev.old_period), new_period=rent_revision.label_period(rev.new_period),
+        old_value=str(rev.old_value).replace(".", ","), new_value=str(rev.new_value).replace(".", ","),
+        per_period=per_year > 1, frequency=FREQUENCIES[frequency].lower(),
+        old_period_cents=round(rev.old_annual_cents / per_year), new_period_cents=round(rev.new_annual_cents / per_year))
+    return send_file(BytesIO(HTML(string=html).write_pdf()), mimetype="application/pdf",
+                     download_name=f"revision-loyer-{lease.id}-{rev.due_date}.pdf")

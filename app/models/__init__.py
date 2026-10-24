@@ -39,7 +39,7 @@ from .product import Product
 from .purchase import Purchase, PurchaseLine, PurchasePayment
 from .subscription import Subscription, SubscriptionPeriod
 from .sale import (
-    BillingSettings, Lease, LeaseItem, LeaseSignature, LeaseSigner, LeaseTemplate, Recurrence, RentReceipt, Sale, SaleCounter, SaleEmail, SaleLine, SaleOccurrence, SalePayment,
+    BillingSettings, Lease, LeaseItem, LeaseRevision, LeaseSignature, LeaseSigner, LeaseTemplate, Recurrence, RentIndex, RentReceipt, Sale, SaleCounter, SaleEmail, SaleLine, SaleOccurrence, SalePayment,
 )
 from .sync_cursor import SyncCursor
 from .rule import Rule
@@ -106,9 +106,11 @@ __all__ = [
     "SaleOccurrence",
     "Lease",
     "LeaseItem",
+    "LeaseRevision",
     "LeaseSignature",
     "LeaseSigner",
     "LeaseTemplate",
+    "RentIndex",
     "RentReceipt",
     "BillingSettings",
     "PurchaseLine",

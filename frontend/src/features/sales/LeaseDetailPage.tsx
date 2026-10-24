@@ -113,6 +113,43 @@ function SignaturePanel({ lease, onChange }: { lease: Lease; onChange: (item: Le
   );
 }
 
+const INDEX_NAMES: Record<string, string> = { ILC: "ILC", ILAT: "ILAT", IRL: "IRL", FERMAGES: "Indice des fermages" };
+
+/** Révision du loyer (lot L5) : clause, prochaine date, historique et courriers. */
+function RevisionPanel({ lease }: { lease: Lease }) {
+  if (!lease.index_code) return null;
+  const value = (v: string | null) => (v ?? "?").replace(".", ",");
+  return (
+    <Paper p="md" mb="md">
+      <Group justify="space-between" align="flex-start">
+        <div>
+          <Title order={3} mb={4}>Révision du loyer</Title>
+          <Text size="sm">{INDEX_NAMES[lease.index_code] ?? lease.index_code}, révision {lease.revision_months === "36" ? "triennale" : "annuelle"} ;
+            indice de référence {lease.index_reference_period || "?"} : {value(lease.index_reference_value || null)}
+            {lease.next_revision_date && <> · prochaine révision le <b>{formatDate(lease.next_revision_date)}</b></>}</Text>
+        </div>
+        <Button variant="default" component={AppLink} href="/rent-indices/">Indices de loyer</Button>
+      </Group>
+      {!!lease.revisions?.length && (
+        <Table mt="sm">
+          <Table.Thead><Table.Tr><Table.Th>Date</Table.Th><Table.Th>Indices</Table.Th><Table.Th ta="right">Loyer annuel</Table.Th>
+            <Table.Th>État</Table.Th><Table.Th /></Table.Tr></Table.Thead>
+          <Table.Tbody>{lease.revisions.map((r) => (
+            <Table.Tr key={r.id}>
+              <Table.Td className="lv-num">{formatDate(r.due_date)}</Table.Td>
+              <Table.Td><Text size="sm">{r.old_period} : {value(r.old_value)} → {r.new_period} : {value(r.new_value)}</Text>
+                {r.note && <Text size="xs" c="dimmed">{r.note}</Text>}</Table.Td>
+              <Table.Td ta="right">{r.status === "applied" && r.old_annual_cents !== null && r.new_annual_cents !== null
+                ? <><MoneyText cents={r.old_annual_cents} size="sm" /> → <MoneyText cents={r.new_annual_cents} size="sm" fw={600} /></> : "—"}</Table.Td>
+              <Table.Td><StatusBadge tone={r.status === "applied" ? "ok" : "todo"}>{r.status === "applied" ? "Appliquée" : "En attente de l'indice"}</StatusBadge></Table.Td>
+              <Table.Td>{r.letter_url && <Button size="compact-sm" variant="subtle" component="a" href={r.letter_url} target="_blank">Courrier</Button>}</Table.Td>
+            </Table.Tr>))}</Table.Tbody>
+        </Table>
+      )}
+    </Paper>
+  );
+}
+
 export default function LeaseDetailPage() {
   const id = Number(useParams().lease_id);
   const client = useQueryClient();
@@ -199,6 +236,7 @@ export default function LeaseDetailPage() {
         </Group>
       </Paper>
       <SignaturePanel lease={l} onChange={(item) => refresh(item)} />
+      <RevisionPanel lease={l} />
       <Grid>
         <Grid.Col span={{ base: 12, lg: 7 }}><Paper p="md">
           <Title order={3} mb="xs">Avis d'échéance</Title>

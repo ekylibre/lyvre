@@ -367,6 +367,47 @@ class LeaseSigner(db.Model):
     signature = db.relationship("LeaseSignature", back_populates="signers")
 
 
+class RentIndex(db.Model):
+    """Valeur publiée d'un indice de révision des loyers (lot L5) : ILC, ILAT, IRL (INSEE, trimestriels,
+    période « 2026-Q2 ») ou indice national des fermages (arrêté annuel, période « 2026 »)."""
+    __tablename__ = "rent_indices"
+    __table_args__ = (db.UniqueConstraint("code", "period", name="uq_rent_indices_code_period"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(10), nullable=False)
+    period = db.Column(db.String(10), nullable=False)
+    value = db.Column(db.Numeric(8, 2), nullable=False)
+    source = db.Column(db.String(10), nullable=False, default="manual")  # insee | manual
+    fetched_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class LeaseRevision(db.Model):
+    """Révision du loyer d'un bail (lot L5) : en attente de l'indice, puis appliquée (prix des lignes,
+    facture récurrente, dépôt de garantie si prévu)."""
+    __tablename__ = "lease_revisions"
+    __table_args__ = (db.UniqueConstraint("lease_id", "due_date", name="uq_lease_revisions_due"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    lease_id = db.Column(db.Integer, db.ForeignKey("leases.id", ondelete="CASCADE"), nullable=False, index=True)
+    due_date = db.Column(db.Date, nullable=False)
+    index_code = db.Column(db.String(10), nullable=False)
+    old_period = db.Column(db.String(10))
+    old_value = db.Column(db.Numeric(8, 2))
+    new_period = db.Column(db.String(10), nullable=False)
+    new_value = db.Column(db.Numeric(8, 2))
+    old_annual_cents = db.Column(db.Integer)
+    new_annual_cents = db.Column(db.Integer)
+    old_deposit_cents = db.Column(db.Integer)
+    new_deposit_cents = db.Column(db.Integer)
+    status = db.Column(db.String(10), nullable=False, default="pending")  # pending | applied
+    note = db.Column(db.String(300))
+    applied_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    lease = db.relationship("Lease", backref=db.backref("revisions", order_by="LeaseRevision.due_date",
+                                                        cascade="all, delete-orphan"))
+
+
 class RentReceipt(db.Model):
     """Quittance (loyer de la période entièrement payé) ou reçu (paiement partiel)."""
     __tablename__ = "rent_receipts"

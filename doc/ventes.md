@@ -152,6 +152,21 @@ crochets à compléter). Les champs `{{ … }}` (menu « Insérer un champ ») :
 (`{% if depot.montant %}…{% else %}…{% endif %}`). Un champ inconnu est signalé à l'aperçu. Aperçu
 d'un modèle (même non enregistré) sur un bail existant ; **Rétablir le modèle livré**.
 
+**Révision du loyer** (indice choisi à l'étape 1 : ILC, ILAT, IRL ou fermages, indice de
+référence, annuelle ou triennale) : à la date prévue, Lyvre prend l'indice de la **même période**
+un ou trois ans plus tard (2025-T2 → 2028-T2 en triennal), multiplie le prix de chaque ligne par
+nouvel indice ÷ indice de référence (au centime), met à jour la facture récurrente pour les
+échéances **pas encore préparées**, révise le dépôt de garantie si la case est cochée, et prend le
+nouvel indice comme référence. La révision se fait avant la préparation des échéances (page « À
+émettre ») ; un bail signé est révisé aussi. Indice pas encore publié : révision **en attente**,
+appliquée dès qu'il est connu. Fiche du bail › **Révision du loyer** : historique et **courrier** au
+preneur (PDF : indices, ancien et nouveau loyer, date d'effet).
+
+**Ventes › Indices de loyer** : ILC, ILAT et IRL lus à l'**INSEE** (séries publiques ; bouton
+« Mettre à jour depuis l'INSEE », et relecture automatique au plus une fois par jour quand une
+révision attend) ; **indice national des fermages** saisi chaque année (arrêté) ; une valeur saisie
+corrige celle de l'INSEE.
+
 **Modifier** (fiche du bail) rouvre l'assistant : un changement de lignes ou de prix met à jour la
 facture récurrente pour les échéances suivantes. Les baux créés avant l'assistant ont une ligne
 forfaitaire (loyer d'échéance × nombre d'échéances par an).
@@ -165,7 +180,7 @@ Les **gérants** (Associés › case « Gérant ») et la **forme juridique** et
   conservé sur la fiche du bail, **Envoyer** au locataire.
 
 Hors périmètre pour l'instant : régularisation annuelle des charges. À venir (conception
-`claudedocs/design_baux.md`) : révision automatique du loyer.
+`claudedocs/design_baux.md`) : avenants, régularisation annuelle des charges.
 
 ## Avec Qonto
 
