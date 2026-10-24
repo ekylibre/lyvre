@@ -219,6 +219,8 @@ MENUS = [
         "active": ["imports"],
         "items": [
             {"key": "ofx", "label": "Fichier OFX", "endpoint": "imports.ofx", "charts": _ALL},
+            {"key": "reprise", "label": "Reprise d'historique", "endpoint": "imports.reprise", "charts": _ALL,
+             "admin_only": True, "bookkeeping": _DOUBLE},
             {"key": "eco_import", "label": "Import de tonnages", "endpoint": "activity_report.eco", "charts": _ASSO, "admin_only": True},
         ],
     },

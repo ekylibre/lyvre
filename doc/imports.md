@@ -155,3 +155,39 @@ lecture seule). Guide d'utilisation :
 ## Après les imports : le rapprochement
 
 Une fois les transactions importées (OFX ou Qonto) et les écritures saisies (manuellement ou via Odoo), procéder au [rapprochement bancaire](reports.md#rapprochement-bancaire).
+
+---
+
+## Reprise d'historique (FEC, tableur)
+
+**Imports › Reprise d'historique** (administrateur de la structure, comptabilité en partie double).
+Rien n'est importé tant qu'une anomalie subsiste (tout-ou-rien).
+
+### FEC d'un autre logiciel
+
+1. Déposer le fichier (tabulation ou barre verticale ; UTF-8, ISO-8859-15 ou Windows-1252 ;
+   montants `Debit` / `Credit` ou `Montant` / `Sens`). L'analyse donne le nombre d'écritures, la
+   période, les lettrages et les anomalies (écriture déséquilibrée, date illisible).
+2. **Comptes** : un compte de même code est repris ; sinon il est créé, rattaché à son compte de
+   regroupement. Les comptes **auxiliaires** (`CompAuxNum`) deviennent des sous-comptes de tiers
+   (401NNN, 411NNN…) avec leur fiche de tiers. Chaque compte peut être mis en **correspondance**
+   avec un compte existant ; les correspondances sont mémorisées pour les imports suivants.
+3. **Que reprendre ?**
+   - **Historique complet** : l'exercice (dates proposées d'après le fichier) est créé, ses
+     écritures importées et **validées**, les lettrages repris, l'exercice clôturé
+     provisoirement et verrouillé. Les à-nouveaux de l'exercice suivant se génèrent ensuite avec
+     l'assistant de clôture. Refusé si l'exercice existe déjà avec des écritures.
+   - **Soldes d'ouverture** : seuls les soldes de fin (classes 1 à 5) sont repris en à-nouveaux au
+     premier jour de l'exercice choisi ; les comptes lettrables ligne par ligne (lignes non lettrées),
+     le résultat en 120 / 129.
+
+Contrôle : un FEC produit par Lyvre, réimporté, redonne la même balance et le même fichier.
+
+### Écritures d'un tableur (CSV, XLSX)
+
+Une ligne de fichier par ligne d'écriture. Les colonnes (date, journal, pièce, compte, libellé,
+débit, crédit — ou un montant signé) sont reconnues d'après leur en-tête et se corrigent ; on peut
+les **mémoriser** sous un nom (profil). Les lignes d'une même pièce (sinon même date et même
+libellé) forment une écriture ; elles sont importées **en brouillard** dans l'exercice ouvert de
+leur date (journal OD si la colonne manque).
+

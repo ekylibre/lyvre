@@ -309,6 +309,13 @@ Migration `f5b7c9d1e3a5`. `assets` : `parent_id` (composant), `label`, `account_
 (None : oui pour une association, non pour une SCI). Source d'écriture `DEPRECIATION` (gérée par
 l'assistant) ; mise en service et sortie : source `ASSET`.
 
+## AccountMapping / ImportProfile — Reprise d'historique (lot F6)
+
+Migration `a6c8e0f2b4d7`. `account_mappings(source_code unique, account_id)` : compte d'un autre logiciel
+(`512`, ou `aux:<compte>:<auxiliaire>`) → compte Lyvre. `import_profiles(name unique, kind csv|xlsx,
+columns_json, options_json)`. Sources d'écriture `FEC_IMPORT` (`source_ref` = journal + numéro d'origine)
+et `SHEET_IMPORT`.
+
 ## ValidationBatch / EntryEvent — Validation et historique des écritures (lot F1)
 
 `validation_batches` (migration `b1d3f5a7c9e2`) : `fiscal_year_id`, `kind` (`manual`, `until`,

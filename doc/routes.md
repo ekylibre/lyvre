@@ -296,6 +296,9 @@ l'enregistrement), `/entries/<id>`, `/entries/<id>/edit` ([guide de saisie](sais
 | GET | `/api/v1/fiscal-years/<id>/period-lock` | Date de verrouillage (`locked_until`, `first_open_date`) ; `?until=` : aperçu (`drafts`, `problems`) |
 | POST | `/api/v1/fiscal-years/<id>/period-lock` | `{until}` : verrouille (lot F2), brouillards de la période validés (lot `lock`) ; 422 si la date recule ou sort de l'exercice ; 409 avec `problems` |
 | GET · POST | `/api/v1/fiscal-years/<id>/closing/prepaid` | Propositions de charges / produits constatés d'avance (lot F4) ; POST `{items: [{key, amount_cents?}]}` : écritures d'inventaire (`source_ref` = clé) |
+| POST | `/api/v1/imports/fec/analyze` · `/api/v1/imports/fec` | Administrateur, multipart `file`, `mappings` (JSON `{clé: account_id}`) ; import : `mode=history` (`start_date`, `end_date`) ou `opening` (`fiscal_year_id`) ; 409 `import_refused` avec `problems` (lot F6) |
+| POST | `/api/v1/imports/sheet/analyze` · `/api/v1/imports/sheet` | Administrateur, multipart `file`, `columns` (JSON champ → en-tête), `mappings`, `profile_name` |
+| GET · DELETE | `/api/v1/import-profiles[/<id>]`, `/api/v1/account-mappings[/<id>]` | Profils de colonnes et correspondances mémorisés |
 | GET · POST | `/api/v1/assets` | Registre (fiches de premier niveau, `?status=`), création (lot F5) ; `meta` : comptes 2x, méthodes, états, `enabled` |
 | GET · PATCH · DELETE | `/api/v1/assets/<id>` | Fiche avec tableau d'amortissement ; modification ; suppression (sans dotation ni écriture) |
 | POST | `/api/v1/assets/<id>/in-service` | `{date, account_id}` : 2x / 23x |

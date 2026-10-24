@@ -1195,6 +1195,18 @@ dégressif avec bascule), `accumulated`, `enabled()`, `depreciation_account` (28
 
 ---
 
+## fec_import.py · sheet_import.py — Reprise d'historique (lot F6)
+
+`fec_import.parse` (écritures, anomalies), `analyze`, `plan_accounts(sources, overrides)` (existant,
+correspondance mémorisée ou choisie, création ; auxiliaires → sous-comptes de tiers et fiches),
+`apply_plan`, `import_history(content, filename, start, end, overrides)` (exercice créé, écritures
+validées — lot `import` —, lettrages repris avec leur code, clôture provisoire et verrou),
+`import_opening(content, filename, fy, overrides)` (à-nouveaux détaillés pour les comptes lettrables,
+résultat en 120 / 129). `sheet_import.read` (CSV / XLSX), `guess_mapping`, `build`, `analyze`, `run`
+(brouillards, tout-ou-rien), `profiles` / `save_profile`.
+
+---
+
 ## closing.py — Assistant de clôture
 
 Guide utilisateur : [Clôturer un exercice](cloture.md). Seule la décision de l'utilisateur est

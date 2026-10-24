@@ -77,6 +77,7 @@
     {"rule": "/payouts/", "endpoint": "payouts.index"},
     {"rule": "/payouts/<int:payout_id>", "endpoint": "payouts.detail"},
     {"rule": "/imports/ofx", "endpoint": "imports.ofx"},
+    {"rule": "/imports/reprise", "endpoint": "imports.reprise"},
     {"rule": "/purchases/", "endpoint": "purchases.index"},
     {"rule": "/purchases/new", "endpoint": "purchases.new"},
     {"rule": "/purchases/settlements", "endpoint": "purchases.settlements"},
