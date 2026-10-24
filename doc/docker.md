@@ -26,7 +26,7 @@ L'application est packagée dans une image unique. Toutes les données persistan
 ## Prérequis
 
 - Docker Engine ≥ 24 et le plugin Compose v2.
-- Sur l'hôte : le dossier `./instance/` (créé automatiquement par le bind-mount) doit être **inscriptible par UID 1000**. Si votre utilisateur hôte n'est pas UID 1000, voir [§ permissions](#permissions-sur-le-volume) ci-dessous.
+- Sur l'hôte : le dossier `./instance/` (créé automatiquement par le bind-mount) est rendu à l'UID 1000 du conteneur au démarrage ; voir [§ permissions](#permissions-sur-le-volume) ci-dessous.
 - Un fichier `.env` à la racine du projet (cf. [installation.md](installation.md#configuration-de-lenvironnement)).
 
 ---
@@ -104,14 +104,8 @@ d'autres services sur le même hôte :
 - **variables** dans l'onglet *Environment* (équivalent du `.env`) : `SECRET_KEY`, `ADMIN_EMAIL`,
   `ADMIN_PASSWORD`, `APP_BASE_URL`, `MAIL_*` (voir ci-dessus).
 
-Premier déploiement : Dokploy crée `../files/instance` en `root` ; le conteneur tourne en UID 1000
-(voir [§ permissions](#permissions-sur-le-volume), option C) :
-
-```bash
-sudo chown -R 1000:1000 /etc/dokploy/compose/<nom-du-service>/files/instance
-```
-
-puis **Redeploy**.
+Premier déploiement : Dokploy crée `../files/instance` en `root` ; l'entrypoint le rend
+automatiquement à `appuser` avant de démarrer (voir [§ permissions](#permissions-sur-le-volume)).
 
 ---
 
@@ -162,53 +156,21 @@ copie `cp` de la seule base ne contient pas les pièces des factures d'achat.
 
 ## Permissions sur le volume
 
-L'utilisateur dans le conteneur est `appuser` (UID/GID 1000 par défaut). Si l'utilisateur hôte qui fait `docker compose up` n'est pas UID 1000, le conteneur n'aura pas les droits d'écriture sur `./instance/`.
+Le conteneur démarre en `root` le temps de rendre `/app/instance` à `appuser` (UID/GID 1000 par
+défaut, ou `APP_UID`/`APP_GID` au build) s'il ne lui appartient pas — cas d'un dossier créé par
+Docker ou Dokploy, ou de bases restaurées par `root` —, puis abandonne ses privilèges (`setpriv`)
+avant les migrations : l'application ne tourne jamais en `root`. Rien à faire côté hôte.
 
-**Option A — Builder avec l'UID hôte (recommandé)** :
-
-```bash
-APP_UID=$(id -u) APP_GID=$(id -g) docker compose up -d --build
-```
-
-Ou en persistant via `.env` (lu par compose pour les `${VARS}`) :
-
-```
-APP_UID=1001
-APP_GID=1001
-```
-
-**Option B — Aligner le owner du dossier existant** :
+Conséquence en local : si votre utilisateur hôte n'est pas UID 1000, les fichiers de `./instance/`
+passent à l'UID 1000. Pour les garder à votre nom, buildez avec votre UID :
 
 ```bash
-sudo chown -R 1000:1000 instance/
+APP_UID=$(id -u) APP_GID=$(id -g) docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 ```
 
-**Option C — Déploiement Dokploy (ou autre PaaS qui provisionne le volume)** :
-
-Dokploy crée typiquement le volume avec `root:root`, ce qui empêche l'`appuser` (UID 1000) du conteneur d'écrire dedans — symptôme : `sqlite3.OperationalError: unable to open database file` au démarrage, dans `flask db upgrade`.
-
-Fix manuel côté hôte Dokploy (à refaire après chaque recréation du volume) :
-
-```bash
-# 1. Identifier le chemin du volume
-docker volume inspect <nom_du_volume>
-# → cherche "Mountpoint" dans la sortie JSON
-
-# 2. Aligner le propriétaire
-sudo chown -R 1000:1000 <Mountpoint>
-
-# 3. Redémarrer le conteneur
-docker restart <container_id>
-```
-
-Pour un bind-mount déclaré dans le `docker-compose.yml` Dokploy :
-
-```bash
-sudo chown -R 1000:1000 /chemin/hôte/vers/instance
-docker restart <container_id>
-```
-
-Alternative permanente : adapter le Dockerfile + l'entrypoint pour démarrer en `root`, chown le volume au boot, puis dropper les privilèges vers `appuser` via `gosu`. Voir `/sc:troubleshoot "container Dokploy"` pour le détail du correctif.
+(ou `APP_UID=…` / `APP_GID=…` dans le `.env`). Symptôme d'un problème de droits malgré tout (volume
+en lecture seule, système de fichiers sans `chown`) : `sqlite3.OperationalError: unable to open
+database file` dans `flask db upgrade`.
 
 ---
 

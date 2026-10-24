@@ -52,7 +52,9 @@ COPY --from=front --chown=appuser:appgrp /build/app/static/dist /app/app/static/
 RUN mkdir -p /app/instance && chown -R appuser:appgrp /app/instance \
  && chmod +x /app/docker/entrypoint.sh
 
-USER appuser
+# Pas de `USER appuser` ici : l'entrypoint démarre en root seulement pour rendre /app/instance à
+# appuser (dossier créé en root par Dokploy ou Docker au premier montage), puis abandonne ses
+# privilèges (setpriv) avant les migrations et gunicorn.
 
 ENV PYTHONUNBUFFERED=1 \
     FLASK_APP=run.py \

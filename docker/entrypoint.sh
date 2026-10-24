@@ -6,6 +6,18 @@ set -euo pipefail
 
 cd /app
 
+# Démarré en root (image standard) : /app/instance est rendu à appuser — le dossier monté est créé
+# en root par Dokploy / Docker au premier déploiement — puis le script se relance sans privilèges.
+# Rien d'autre ne tourne en root.
+if [ "$(id -u)" = "0" ]; then
+  owner="$(id -u appuser):$(id -g appuser)"
+  if [ "$(stat -c '%u:%g' /app/instance)" != "$owner" ] || [ -n "$(find /app/instance ! -user appuser -print -quit)" ]; then
+    echo "[entrypoint] /app/instance rendu à appuser (${owner})…"
+    chown -R appuser:appgrp /app/instance
+  fi
+  exec setpriv --reuid=appuser --regid=appgrp --init-groups "$0" "$@"
+fi
+
 echo "[entrypoint] Applying database migrations…"
 flask db upgrade
 
