@@ -18,10 +18,13 @@ import { useRouteModal } from "../../app/useRouteModal";
 import { AppLink } from "../../app/navigation";
 import { FecPanel } from "./FecPanel";
 import { ValidationBatchesPanel } from "../entries/validation";
+import { LockForm, UnlockForm } from "./PeriodLock";
 
 export interface FiscalYear {
   id: number; label: string; start_date: string; end_date: string; closed: boolean; vat_liable: boolean; vat_on_receipts?: boolean;
   status: "open" | "provisional" | "closed"; status_label: string;
+  /** Lot F2 : date de verrouillage, première date où l'on peut écrire. */
+  locked_until?: string | null; first_open_date?: string | null;
 }
 
 const STATUS_TONES = { open: "ok", provisional: "todo", closed: "neutral" } as const;
@@ -70,6 +73,8 @@ export default function FiscalYearsPage() {
   const modal = useRouteModal("/fiscal-years/");
   const [fecFor, setFecFor] = useState<FiscalYear | null>(null);
   const [batchesFor, setBatchesFor] = useState<FiscalYear | null>(null);
+  const [lockFor, setLockFor] = useState<FiscalYear | null>(null);
+  const [unlockFor, setUnlockFor] = useState<FiscalYear | null>(null);
   const { data, isFetching } = useList<FiscalYear>(FISCAL_YEARS_KEY, "/api/v1/fiscal-years");
   const setVat = useAction((fy: FiscalYear) =>
     api.patch<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}`, { vat_liable: !fy.vat_liable }),
@@ -95,6 +100,15 @@ export default function FiscalYearsPage() {
             onConfirm: () => lock.mutate(fy),
           })}>{fy.status === "open" ? "Verrouiller" : "Déverrouiller"}</Button>) : null },
   ] : [
+    { accessor: "locked_until", title: "Verrouillage", hideable: false,
+      render: (fy) => (
+        <Group gap={6} wrap="nowrap">
+          {fy.locked_until ? <Text size="sm" className="lv-num">{`jusqu'au ${formatDate(fy.locked_until)}`}</Text> : <Text size="sm" c="dimmed">—</Text>}
+          {fy.status === "open" && can.write && fy.first_open_date &&
+            <Button variant="subtle" size="compact-sm" onClick={() => setLockFor(fy)}>Verrouiller…</Button>}
+          {fy.status === "open" && can.instanceAdmin && fy.locked_until &&
+            <Button variant="subtle" size="compact-sm" onClick={() => setUnlockFor(fy)}>Déverrouiller…</Button>}
+        </Group>) },
     { accessor: "validation", title: "Validation", hideable: false,
       render: (fy) => <Button variant="subtle" size="compact-sm" onClick={() => setBatchesFor(fy)}>Lots</Button> },
     // Hors colonne « actions » : l'expert-comptable (lecture seule) exporte aussi le FEC.
@@ -143,6 +157,12 @@ export default function FiscalYearsPage() {
         emptyText="Aucun exercice : créez le premier pour commencer à saisir." />
       <FormModal opened={modal.mode === "new"} onClose={modal.close} title="Créer un exercice">
         <FiscalYearForm years={data?.items} onDone={modal.close} />
+      </FormModal>
+      <FormModal opened={!!lockFor} onClose={() => setLockFor(null)} title={`Verrouiller l'exercice ${lockFor?.label ?? ""}`}>
+        {lockFor && <LockForm fy={lockFor} onDone={() => setLockFor(null)} />}
+      </FormModal>
+      <FormModal opened={!!unlockFor} onClose={() => setUnlockFor(null)} title={`Déverrouiller l'exercice ${unlockFor?.label ?? ""}`}>
+        {unlockFor && <UnlockForm fy={unlockFor} onDone={() => setUnlockFor(null)} />}
       </FormModal>
       <FormModal opened={!!batchesFor} onClose={() => setBatchesFor(null)} title={`Validation des écritures — ${batchesFor?.label ?? ""}`} size="lg">
         {batchesFor && <ValidationBatchesPanel fiscalYearId={batchesFor.id} open={batchesFor.status === "open"} />}

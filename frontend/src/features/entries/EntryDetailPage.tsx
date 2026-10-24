@@ -27,7 +27,7 @@ interface EntryDetail {
   description: string; source: string; source_ref: string | null; is_balanced: boolean;
   total_debit_cents: number; total_credit_cents: number; reconciled: boolean; editable: boolean; managed?: boolean;
   validated: boolean; validation_number: number | null; validated_at: string | null; fiscal_year_id: number;
-  fiscal_year_closed: boolean; reversal: EntryLink | null; reverses: EntryLink | null; reversible: boolean;
+  fiscal_year_closed: boolean; locked_until: string | null; reversal: EntryLink | null; reverses: EntryLink | null; reversible: boolean;
   lines: (ProjectLine & { account_label: string; project: string | null })[];
 }
 
@@ -81,6 +81,7 @@ export default function EntryDetailPage() {
       {!data.editable && !data.reversal && <Alert color="ardoise" variant="light" mb="sm">{data.managed
         ? "Écriture gérée par l'assistant de clôture : elle se modifie depuis l'assistant de l'exercice."
         : data.fiscal_year_closed ? "Exercice clôturé : l'écriture ne peut plus être modifiée."
+          : data.locked_until && !data.validated ? `Période verrouillée jusqu'au ${formatDate(data.locked_until)} : l'écriture ne peut plus être modifiée.`
           : data.validated ? `Écriture validée${data.validated_at ? ` le ${formatDate(data.validated_at.slice(0, 10))}` : ""} : elle ne se modifie plus ; contrepassez-la pour la corriger.`
             : "Écriture d'une pièce émise : elle se corrige depuis la pièce."}</Alert>}
       {!data.is_balanced && <Alert color="brique" role="alert" mb="sm">Cette écriture n'est pas équilibrée.</Alert>}

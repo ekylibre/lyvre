@@ -114,7 +114,8 @@ def _check_allocations(allocations: list[tuple[Sale, int]]) -> None:
             raise SaleError(f"Le montant dépasse le restant dû de la facture {sale.number}.", "amount")
 
 
-def _post(allocations, when: date, ba: BankAccount, label: str, source: str, source_ref: str) -> JournalEntry:
+def _post(allocations, when: date, ba: BankAccount, label: str, source: str, source_ref: str,
+          auto_date: bool = False) -> JournalEntry:
     fy = fiscal_year_for(when)
     if fy is None:
         raise SaleError(f"Aucun exercice ne couvre le {when:%d/%m/%Y}.", status=409)
@@ -134,7 +135,7 @@ def _post(allocations, when: date, ba: BankAccount, label: str, source: str, sou
                    "debit_cents": 0, "credit_cents": released}]
     try:
         entry = post_entry(fiscal_year_id=fy.id, journal_id=_journal(ba).id, entry_date=when, description=text[:500],
-                           lines=lines, source=source, source_ref=source_ref, commit=False)
+                           lines=lines, source=source, source_ref=source_ref, commit=False, auto_date=auto_date)
     except LedgerError as exc:
         raise SaleError(str(exc), status=409) from None
     entry._releases = releases  # noqa: SLF001 — transmis à l'appelant, sans persistance
@@ -215,7 +216,7 @@ def match(txn: BankTransaction, allocations: list[tuple[Sale, int]]) -> JournalE
             remove_entry(rule_entry)
             db.session.flush()
         entry = _post(allocations, txn.transaction_date, txn.bank_account, txn.label or "",
-                      SOURCE_SALE_PAYMENT, f"SALE_PAYMENT:{txn.fitid}")
+                      SOURCE_SALE_PAYMENT, f"SALE_PAYMENT:{txn.fitid}", auto_date=True)
         bank_line = next(line for line in entry.lines if line.account_id == txn.bank_account.account_id)
         reconcile(txn.id, bank_line.id, commit=False)
         for sale, amount, released in entry._releases:  # noqa: SLF001

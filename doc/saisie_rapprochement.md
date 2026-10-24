@@ -48,7 +48,7 @@ du même montant et du même sens, rien n'est enregistré.
 
 ### Modification
 
-Impossible si l'exercice est clôturé, si l'écriture est **validée** ou si une ligne est rapprochée
+Impossible si l'exercice est clôturé, si l'écriture est **validée** ou dans une **période verrouillée**, ou si une ligne est rapprochée
 (annuler d'abord le rapprochement). La référence d'origine est conservée.
 
 ### Validation et contrepassation
@@ -77,6 +77,24 @@ son numéro définitif, continu par journal et par exercice (celui du FEC), et n
   suppression, avec l'auteur ; visible par l'expert-comptable.
 - Le tableau de bord signale les écritures en brouillard depuis plus de 3 mois.
 - Comptabilité simplifiée : pas de validation (pas de FEC).
+
+### Verrouillage des périodes
+
+Exercices › colonne **Verrouillage** : « Verrouiller jusqu'au… » fige les mois déjà rapprochés ou
+transmis à l'expert-comptable.
+
+- Jusqu'à cette date, plus aucune écriture ne se saisit, ne se modifie ni ne se supprime (quel que
+  soit l'écran : saisie, encaissement, règlement, règle…) ; le message donne la première date
+  ouverte. Les écritures de l'assistant de clôture ne sont pas concernées.
+- Verrouiller **valide** les écritures en brouillard de la période (aperçu avant de confirmer) ;
+  une écriture déséquilibrée empêche le verrouillage.
+- **Pièces reçues** après coup (factures d'achat Qonto ou saisies, règlements, transactions
+  catégorisées par une règle, encaissements rapprochés) : passées à la **première date ouverte**,
+  libellé préfixé « [pièce du JJ/MM/AAAA] » ; dans l'exercice suivant si celui-ci est entièrement
+  verrouillé.
+- **Déverrouiller…** (administrateur, motif) : recule la date ou retire le verrou ; rien n'est
+  dévalidé ; tracé dans l'historique de la clôture.
+- La clôture provisoire verrouille l'exercice entier ; la réouverture rétablit la date d'avant.
 
 ---
 

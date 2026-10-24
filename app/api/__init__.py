@@ -150,7 +150,8 @@ def register_api(app):
         from app.extensions import db
         db.session.rollback()
         if is_api_request():
-            return error_response(e.code, str(e), 409)
+            extra = {"first_open_date": e.first_open_date.isoformat()} if e.first_open_date else None
+            return error_response(e.code, str(e), 409, extra=extra)
         raise e
 
     # App-level handlers: unmatched /api/... URLs never reach the blueprint.

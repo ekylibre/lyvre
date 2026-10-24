@@ -121,7 +121,7 @@ def _settle_one(txn: BankTransaction, payments) -> JournalEntry:
     paid = txn.amount_cents < 0  # débit bancaire : paiement ; crédit : remboursement d'avoir
     bank_gl_id = txn.bank_account.account_id
     entry = post_entry(
-        fiscal_year_id=fy.id, journal_id=journal.id, entry_date=txn.transaction_date,
+        fiscal_year_id=fy.id, journal_id=journal.id, entry_date=txn.transaction_date, auto_date=True,
         description=label[:500],
         lines=[
             {"account_id": supplier.id, "label": label,

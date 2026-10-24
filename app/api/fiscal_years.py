@@ -9,7 +9,7 @@ from app.access import current_role, instance_admin_required
 from app.extensions import db
 from app.models import FiscalYear
 from app.models.instance_membership import ROLE_ADMIN
-from app.services import closing, dedicated_funds, fec, projects
+from app.services import closing, dedicated_funds, fec, period_lock, projects
 from app.services.ledger import LedgerError
 from app.tenant import current_instance
 
@@ -20,7 +20,7 @@ def fiscal_year_payload(fy: FiscalYear) -> dict:
     return {"id": fy.id, "label": fy.label, "start_date": fy.start_date.isoformat(),
             "end_date": fy.end_date.isoformat(), "closed": fy.closed, "status": fy.status,
             "status_label": fy.status_label, "vat_liable": fy.vat_liable,
-            "vat_on_receipts": fy.vat_on_receipts}
+            "vat_on_receipts": fy.vat_on_receipts, **period_lock.payload(fy)}
 
 
 def _date(data, key, label):
@@ -316,3 +316,53 @@ def fiscal_years_fec_check(fy_id):
                            "total_credit_cents": fec_file.total_credit_cents},
                     download_url=url_for("fec.download", fy_id=fy.id))
     return jsonify(body)
+
+
+# ------------------------------------------------------------------ verrouillage des périodes (lot F2)
+
+
+def _lock_error(exc):
+    db.session.rollback()
+    return ApiError("conflict" if not exc.field else "validation_error", str(exc), 409 if not exc.field else 422,
+                    {exc.field: str(exc)} if exc.field else None, {"problems": exc.problems} if exc.problems else None)
+
+
+@bp.route("/fiscal-years/<int:fy_id>/period-lock")
+def fiscal_years_period_lock(fy_id):
+    """Date de verrouillage ; `?until=` : brouillards qui seraient validés en verrouillant."""
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    body = {"item": fiscal_year_payload(fy)}
+    if request.args.get("until"):
+        body["preview"] = period_lock.preview(fy, _date(request.args, "until", "Date"))
+    return jsonify(body)
+
+
+@bp.route("/fiscal-years/<int:fy_id>/period-lock", methods=["POST"])
+def fiscal_years_period_lock_advance(fy_id):
+    """`{until}` : verrouille jusqu'à la date, brouillards de la période validés."""
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    until = _date(json_body(), "until", "Date")
+    try:
+        count = period_lock.advance(fy, until, current_user.id)
+    except period_lock.LockError as exc:
+        raise _lock_error(exc) from None
+    db.session.commit()
+    extra = f" ; {count} écriture(s) validée(s)" if count else ""
+    return jsonify(item=fiscal_year_payload(fy),
+                   notices=[notice(f"Exercice « {fy.label} » verrouillé jusqu'au {until:%d/%m/%Y}{extra}.")])
+
+
+@bp.route("/fiscal-years/<int:fy_id>/period-lock/rewind", methods=["POST"])
+@instance_admin_required
+def fiscal_years_period_lock_rewind(fy_id):
+    """`{until (null : aucun verrou), reason}` : recule la date de verrouillage (administrateur)."""
+    fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
+    data = json_body()
+    until = _date(data, "until", "Date") if data.get("until") else None
+    try:
+        period_lock.rewind(fy, until, data.get("reason"), current_user.id)
+    except period_lock.LockError as exc:
+        raise _lock_error(exc) from None
+    db.session.commit()
+    message = f"Verrou reculé au {until:%d/%m/%Y}." if until else "Exercice déverrouillé."
+    return jsonify(item=fiscal_year_payload(fy), notices=[notice(message)])

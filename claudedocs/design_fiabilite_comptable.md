@@ -1,7 +1,7 @@
 # Conception — Lot F : fiabilité comptable (validation, verrouillage, lettrage, CCA/PCA, immobilisations, reprise)
 
 > Statut : **validée** (24/10/2026 : Q-F1 brouillard, Q-F2 année de 360 jours selon Ekylibre, Q-F3 réglage).
-> **F1 réalisé** (24/10/2026). Écarts : route de validation `POST /entries/validation` (`/entries/validate` existait : validation à blanc du formulaire) ; la réouverture d'une clôture provisoire annule le lot `closing` s'il est le dernier (les écritures validées avant la clôture le restent).
+> **F1 et F2 réalisés** (24/10/2026). F2 : routes `/fiscal-years/<id>/period-lock` (`/lock` existait pour la comptabilité simplifiée) ; les écritures de l'assistant de clôture (`MANAGED_SOURCES`) échappent toujours au verrou (pas de contexte `closing`). Écarts : route de validation `POST /entries/validation` (`/entries/validate` existait : validation à blanc du formulaire) ; la réouverture d'une clôture provisoire annule le lot `closing` s'il est le dernier (les écritures validées avant la clôture le restent).
 > Besoins : `claudedocs/besoins_comparatif_oss.md` § 3 (E2, E3, E1, E9, E8, E5) et décisions CO1–CO13.
 > Suite : validation, puis `/sc:implement F1`.
 

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import event
 from sqlalchemy import inspect as sa_inspect
@@ -35,9 +35,22 @@ class FiscalYear(db.Model):
     vat_liable = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
     # Prestations de services : TVA exigible à l'encaissement (vrai, cas général) ou d'après les débits.
     vat_on_receipts = db.Column(db.Boolean, nullable=False, default=True, server_default=db.true())
+    # Lot F2 : aucune écriture ne se crée, ne se modifie ni ne se supprime à une date ≤ `locked_until`
+    # (garde des écritures) ; la clôture provisoire la porte au dernier jour (`lock_before_close` :
+    # date à rétablir à la réouverture).
+    locked_until = db.Column(db.Date)
+    lock_before_close = db.Column(db.Date)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     entries = db.relationship("JournalEntry", back_populates="fiscal_year", lazy="dynamic")
+
+    @property
+    def first_open_date(self):
+        """Première date où l'on peut écrire (None : exercice entièrement verrouillé)."""
+        if self.locked_until is None:
+            return self.start_date
+        following = self.locked_until + timedelta(days=1)
+        return following if following <= self.end_date else None
 
     @property
     def status_label(self):

@@ -1146,6 +1146,13 @@ La validation officielle reste l'outil « Test Compta Demat » de la DGFiP.
 La garde (`ledger_guard`, `before_flush`) refuse toute modification d'une écriture validée par
 n'importe quel chemin et enregistre l'historique (`entry_events`, `after_flush`).
 
+**Verrouillage (lot F2)** — `period_lock.advance(fy, until)` (valide les brouillards ≤ date, lot
+`lock`), `rewind(fy, until|None, reason)`, `preview(fy, until)`, `on_provisional_close` /
+`on_reopen` ; `ledger.post_entry(..., auto_date=True)` (factures d'achat, règlements, écritures de
+règle, encaissements rapprochés) passe une pièce d'une période verrouillée à la première date
+ouverte (`ledger.shifted_date`, exercice suivant si besoin) ; sinon `period_locked` (code
+`period_locked`, `first_open_date`).
+
 ---
 
 ## closing.py — Assistant de clôture

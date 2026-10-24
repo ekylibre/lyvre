@@ -124,6 +124,7 @@ def _post_entry_for_transaction(txn, account_code, description, project_id=None)
         fiscal_year_id=fy.id,
         journal_id=journal.id,
         entry_date=txn.transaction_date,
+        auto_date=True,  # transaction d'une période verrouillée : première date ouverte (F2)
         description=description or label,
         lines=[
             {"account_id": bank_gl_id, "label": label,

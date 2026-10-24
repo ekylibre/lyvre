@@ -45,11 +45,12 @@ motif** (5 caractères au moins), qui reste visible dans la liste des étapes.
   sont verrouillées ; celles encore en brouillard sont **validées** (lot « Clôture provisoire »),
   numérotées **à la suite** des écritures déjà validées de leur journal (voir
   [Validation des écritures](saisie_rapprochement.md#validation-et-contrepassation)) : les numéros
-  déjà attribués ne changent jamais. Le FEC est alors téléchargeable (liste des exercices, colonne
+  déjà attribués ne changent jamais ; l'exercice est verrouillé jusqu'à son dernier jour (voir
+  [Verrouillage des périodes](saisie_rapprochement.md#verrouillage-des-périodes)). Le FEC est alors téléchargeable (liste des exercices, colonne
   FEC) pour l'expert-comptable.
 - **Réouverture** (administrateur, motif obligatoire) — Pour corriger un oubli : le lot de
   validation de la clôture est annulé (ses écritures repassent en brouillard ; celles validées
-  avant la clôture le restent), les à-nouveaux et extournes de N+1 supprimés (à regénérer).
+  avant la clôture le restent), la date de verrouillage d'avant la clôture est rétablie, les à-nouveaux et extournes de N+1 supprimés (à regénérer).
   Impossible une fois le résultat affecté (annuler d'abord l'affectation), si N+1 est clôturé ou si
   ses à-nouveaux sont validés.
 - **Clôture définitive** (administrateur) — Le FEC est figé avec son empreinte SHA-256.

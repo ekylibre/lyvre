@@ -276,7 +276,9 @@ ni une contrepassation (`CANCELLATION`) ni l'écriture qu'elle contrepasse.
 
 **Garde** (`app/services/ledger_guard.py`, `before_flush`) : une écriture validée ne se modifie ni ne se
 supprime, ses lignes ne changent pas (sauf `project_id`, `entity_id`, `lettering_id`) ; les colonnes de
-validation ne changent que par `app/services/validation.py`. Refus : `LedgerGuardError` (API 409).
+validation ne changent que par `app/services/validation.py` ; aucune écriture (hors assistant de
+clôture) ne se crée, ne change ni ne se supprime à une date ≤ `fiscal_years.locked_until` (lot F2,
+migration `c2e4a6b8d0f1` : `locked_until`, `lock_before_close`). Refus : `LedgerGuardError` (API 409).
 
 ## ValidationBatch / EntryEvent — Validation et historique des écritures (lot F1)
 

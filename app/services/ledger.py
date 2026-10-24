@@ -6,7 +6,7 @@ from app.models import (
 )
 from app.models.journal_entry import MANAGED_SOURCES, SALE_LOCKED_MESSAGE, SOURCE_CANCELLATION, SOURCE_SALE
 from app.services import projects
-from app.services.ledger_errors import LedgerError, LedgerGuardError  # noqa: F401 (réexportés)
+from app.services.ledger_errors import LedgerError, LedgerGuardError, period_locked  # noqa: F401 (réexportés)
 
 
 def _to_int(value):
@@ -150,18 +150,45 @@ def next_reference(journal_id, fy):
     return f"{prefix}{max(numbers, default=0) + 1:04d}"
 
 
-def post_entry(fiscal_year_id, journal_id, entry_date, description, lines, source="MANUAL", source_ref=None, reference=None, commit=True):
+def shifted_date(fy, entry_date):
+    """Pièce reçue datée dans une période verrouillée (lot F2, CO8) : (exercice, première date ouverte),
+    dans l'exercice suivant si besoin ; LedgerGuardError si aucun exercice ouvert ne suit."""
+    if fy.locked_until is None or entry_date > fy.locked_until:
+        return fy, entry_date
+    first = fy.first_open_date
+    if first is not None:
+        return fy, first
+    following = (FiscalYear.query.filter(FiscalYear.start_date > fy.end_date, FiscalYear.closed.is_(False))
+                 .order_by(FiscalYear.start_date).first())
+    if following is None:
+        raise period_locked(fy, entry_date)
+    return shifted_date(following, following.start_date)
+
+
+def post_entry(fiscal_year_id, journal_id, entry_date, description, lines, source="MANUAL", source_ref=None,
+               reference=None, commit=True, auto_date=False):
     """
     Create a balanced journal entry.
     lines: list of dicts with keys: account_id, label, debit_cents, credit_cents
     Returns the created JournalEntry. ``commit=False`` only flushes, so the
     caller can include it in a larger transaction.
+
+    Lot F2 : une date verrouillée est refusée (`period_locked`), sauf ``auto_date`` (pièce reçue,
+    écriture automatique) : l'écriture passe à la première date ouverte, la date d'origine en tête
+    du libellé.
     """
-    fy = FiscalYear.query.get(fiscal_year_id)
+    fy = db.session.get(FiscalYear, fiscal_year_id)
     if fy is None:
         raise LedgerError("Exercice introuvable.")
     if fy.closed:
         raise LedgerError(f"L'exercice « {fy.label} » est clôturé.")
+    if source not in MANAGED_SOURCES and fy.locked_until is not None and entry_date <= fy.locked_until:
+        if not auto_date:
+            raise period_locked(fy, entry_date)
+        original = entry_date
+        fy, entry_date = shifted_date(fy, entry_date)
+        fiscal_year_id = fy.id
+        description = f"[pièce du {original:%d/%m/%Y}] {description or ''}".strip()[:500]
 
     validate_lines(lines)
 
@@ -469,6 +496,12 @@ def delete_entries(entry_ids, allow_managed=False, reverse_validated=False):
             continue
         if entry.source == SOURCE_SALE:
             results.append({"entry_id": entry_id, "status": "error", "message": SALE_LOCKED_MESSAGE})
+            continue
+        fy = entry.fiscal_year
+        if not entry.is_validated and fy.locked_until and entry.entry_date <= fy.locked_until \
+                and entry.source not in MANAGED_SOURCES:
+            results.append({"entry_id": entry_id, "status": "error",
+                            "message": f"période verrouillée jusqu'au {fy.locked_until:%d/%m/%Y}."})
             continue
         if entry.is_validated:
             if not reverse_validated:

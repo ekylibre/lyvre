@@ -33,7 +33,7 @@ from app.models import (
 from app.models.closing import CLOSING_STEPS
 from app.models.fiscal_year import FY_CLOSED, FY_OPEN, FY_PROVISIONAL
 from app.models.journal_entry import SOURCE_ALLOCATION, SOURCE_INVENTORY, SOURCE_OPENING, SOURCE_REVERSAL
-from app.services import fec, validation
+from app.services import fec, period_lock, validation
 from app.services.ledger import LedgerError, delete_entries, post_entry
 from app.services.purchase_posting import purchase_state
 from app.utils.money import euros
@@ -319,6 +319,7 @@ def close_provisional(fy, user_id=None):
         db.session.rollback()
         problems = getattr(exc, "problems", [])
         raise ClosingError(" ".join([str(exc), *problems[:3]]), 422) from None
+    period_lock.on_provisional_close(fy)
     log(fy, "close", "provisional", user_id, entries=count)
     db.session.commit()
 
@@ -358,7 +359,8 @@ def reopen(fy, user_id=None, reason=None):
     # La clôture a validé les brouillards restants : la réouverture annule ce lot s'il est le dernier.
     last = validation.last_batch(fy)
     if last is not None and last.kind == "closing":
-        validation.undo_last_batch(fy, f"Réouverture : {reason.strip()}", user_id)
+        validation.undo_last_batch(fy, f"Réouverture : {reason.strip()}", user_id, allow_locked=True)
+    period_lock.on_reopen(fy)
     fy.status = FY_OPEN
     for row in ClosingStep.query.filter(ClosingStep.fiscal_year_id == fy.id, ClosingStep.step.in_(LATER_STEPS)):
         row.state = "todo"

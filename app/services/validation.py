@@ -128,8 +128,10 @@ def batches(fy: FiscalYear) -> list[ValidationBatch]:
     return ValidationBatch.query.filter_by(fiscal_year_id=fy.id).order_by(ValidationBatch.id.desc()).all()
 
 
-def undo_last_batch(fy: FiscalYear, reason: str, user_id=None, kind: str | None = None) -> ValidationBatch:
-    """Dévalide le dernier lot (administrateur, motif) ; sans commit. `kind` : n'annule que ce type."""
+def undo_last_batch(fy: FiscalYear, reason: str, user_id=None, kind: str | None = None,
+                    allow_locked: bool = False) -> ValidationBatch:
+    """Dévalide le dernier lot (administrateur, motif) ; sans commit. `kind` : n'annule que ce type.
+    Refusé si une écriture du lot est dans la période verrouillée (sauf réouverture : `allow_locked`)."""
     if fy.is_final:
         raise ValidationError("Exercice clôturé définitivement : la validation est figée.")
     if not (reason or "").strip():
@@ -137,6 +139,10 @@ def undo_last_batch(fy: FiscalYear, reason: str, user_id=None, kind: str | None 
     batch = last_batch(fy)
     if batch is None or (kind and batch.kind != kind):
         raise ValidationError("Aucun lot de validation à annuler.")
+    if not allow_locked and fy.locked_until is not None and JournalEntry.query.filter(
+            JournalEntry.validation_batch_id == batch.id, JournalEntry.entry_date <= fy.locked_until).first():
+        raise ValidationError(f"Le lot contient des écritures de la période verrouillée (jusqu'au "
+                              f"{fy.locked_until:%d/%m/%Y}) : reculez d'abord le verrou.")
     with ledger_guard.allow("validation"):
         for entry in JournalEntry.query.filter_by(validation_batch_id=batch.id):
             entry.validation_number = None

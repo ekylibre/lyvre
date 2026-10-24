@@ -7,9 +7,12 @@ simplifié, clôture, projets…) :
   s'ajoutent, ne se suppriment ni ne changent, sauf les colonnes libres (`FREE_LINE_COLUMNS` :
   projet, tiers, lettrage) ;
 - les colonnes de validation ne changent que dans le contexte `validation` (`allow("validation")`,
-  ouvert par `app/services/validation.py` seulement).
+  ouvert par `app/services/validation.py` seulement) ;
+- lot F2 : aucune écriture (ni ligne) ne se crée, ne se modifie ni ne se supprime à une date
+  (ancienne ou nouvelle) ≤ `fiscal_years.locked_until`, sauf celles de l'assistant de clôture
+  (`MANAGED_SOURCES`) ; la validation reste possible.
 
-Refus : `LedgerGuardError` (API 409, code `entry_validated`).
+Refus : `LedgerGuardError` (API 409, code `entry_validated` ou `period_locked`).
 
 Historique (`entry_events`) : après chaque flush qui touche une écriture, son état complet
 (en-tête et lignes) est enregistré ; dans une même transaction, création puis ajout des lignes
@@ -24,8 +27,9 @@ from sqlalchemy import event, select
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm import Session
 
-from app.models import Account, EntryEvent, Journal, JournalEntry, JournalLine
-from app.services.ledger_errors import LedgerGuardError
+from app.models import Account, EntryEvent, FiscalYear, Journal, JournalEntry, JournalLine
+from app.models.journal_entry import MANAGED_SOURCES
+from app.services.ledger_errors import LedgerGuardError, period_locked
 
 FREE_LINE_COLUMNS = frozenset({"project_id", "entity_id", "lettering_id"})
 VALIDATION_COLUMNS = frozenset({"validation_number", "validated_at", "validation_batch_id"})
@@ -67,6 +71,23 @@ def _was_validated(entry) -> bool:
     return _committed(entry, "validation_number") is not None
 
 
+def _check_lock(session, fy_id, on_date, source):
+    """Refus si la date tombe dans la période verrouillée de l'exercice (lot F2)."""
+    if fy_id is None or on_date is None or source in MANAGED_SOURCES:
+        return
+    fy = session.get(FiscalYear, fy_id)
+    if fy is not None and fy.locked_until is not None and on_date <= fy.locked_until:
+        raise period_locked(fy, on_date)
+
+
+def _check_entry_lock(session, entry, committed=True):
+    """Date actuelle et, pour une écriture déjà en base, date enregistrée."""
+    _check_lock(session, entry.fiscal_year_id, entry.entry_date, entry.source)
+    if committed and sa_inspect(entry).persistent:
+        _check_lock(session, _committed(entry, "fiscal_year_id"), _committed(entry, "entry_date"),
+                    _committed(entry, "source"))
+
+
 def _entry_of(session, line):
     if line.entry is not None:
         return line.entry
@@ -81,12 +102,14 @@ def _guard(session, flush_context, instances):
         deleted_entries = {id(o) for o in session.deleted if isinstance(o, JournalEntry)}
         for obj in session.new:
             if isinstance(obj, JournalEntry):
+                _check_entry_lock(session, obj, committed=False)
                 pending[id(obj)] = (obj, "create", None)
             elif isinstance(obj, JournalLine):
                 entry = _entry_of(session, obj)
                 if _was_validated(entry):
                     raise LedgerGuardError(VALIDATED_MESSAGE)
                 if entry is not None:
+                    _check_entry_lock(session, entry)
                     pending.setdefault(id(entry), (entry, "update", None))
         for obj in session.dirty:
             if isinstance(obj, JournalEntry):
@@ -97,6 +120,8 @@ def _guard(session, flush_context, instances):
                     raise LedgerGuardError("La numérotation de validation est attribuée par la validation des écritures.")
                 if _was_validated(obj) and changed - VALIDATION_COLUMNS:
                     raise LedgerGuardError(VALIDATED_MESSAGE)
+                if changed - VALIDATION_COLUMNS:
+                    _check_entry_lock(session, obj)
                 before, after = _committed(obj, "validation_number"), obj.validation_number
                 if before is None and after is not None:
                     action = "validate"
@@ -116,11 +141,13 @@ def _guard(session, flush_context, instances):
                 if _was_validated(entry):
                     raise LedgerGuardError(VALIDATED_MESSAGE)
                 if entry is not None:
+                    _check_entry_lock(session, entry)
                     pending.setdefault(id(entry), (entry, "update", None))
         for obj in session.deleted:
             if isinstance(obj, JournalEntry):
                 if _was_validated(obj):
                     raise LedgerGuardError(VALIDATED_MESSAGE)
+                _check_entry_lock(session, obj)
                 pending[id(obj)] = (obj, "delete", _snapshot(session, obj.id))
             elif isinstance(obj, JournalLine):
                 entry = _entry_of(session, obj)
@@ -128,6 +155,7 @@ def _guard(session, flush_context, instances):
                     continue
                 if _was_validated(entry):
                     raise LedgerGuardError(VALIDATED_MESSAGE)
+                _check_entry_lock(session, entry)
                 pending.setdefault(id(entry), (entry, "update", None))
 
 

@@ -293,8 +293,13 @@ l'enregistrement), `/entries/<id>`, `/entries/<id>/edit` ([guide de saisie](sais
 | GET | `/api/v1/fiscal-years/<id>/validation-batches` | Lots de validation (`undoable` : le dernier), `drafts` |
 | POST | `/api/v1/fiscal-years/<id>/validation-batches/last/undo` | Administrateur : annule le dernier lot `{reason}` (motif obligatoire) |
 
+| GET | `/api/v1/fiscal-years/<id>/period-lock` | Date de verrouillage (`locked_until`, `first_open_date`) ; `?until=` : aperçu (`drafts`, `problems`) |
+| POST | `/api/v1/fiscal-years/<id>/period-lock` | `{until}` : verrouille (lot F2), brouillards de la période validés (lot `lock`) ; 422 si la date recule ou sort de l'exercice ; 409 avec `problems` |
+| POST | `/api/v1/fiscal-years/<id>/period-lock/rewind` | Administrateur : `{until \| null, reason}` recule ou retire le verrou |
+
 Toute modification ou suppression d'une écriture validée, par n'importe quelle route, est refusée
-(409, code `entry_validated`) par la garde `ledger_guard`.
+(409, code `entry_validated`) par la garde `ledger_guard` ; une écriture datée dans la période
+verrouillée aussi (409, code `period_locked`, `first_open_date`).
 | PUT | `/api/v1/entries/<id>/lines/<line_id>/project` | `{project_id}` (null : aucun) : projet d'une ligne, même sur une écriture rapprochée ; 409 si exercice clôturé ou écriture de l'assistant |
 | POST | `/api/v1/entries/<id>/lines/<line_id>/split` | **Ventilation** `{parts: [{project_id, amount_cents}]}` (≥ 2 parts, total = montant de la ligne) : lignes de même compte et même sens ; 409 sur la ligne rapprochée elle-même |
 ---

@@ -77,3 +77,22 @@ test("validation puis contrepassation d'une écriture (lot F1)", async ({ page }
   await expect(page.getByText(/Contrepassation de l'écriture/)).toBeVisible();
   await expect(page.getByText("Brouillard", { exact: true })).toBeVisible();
 });
+
+test("verrouillage d'une période puis déverrouillage motivé (lot F2)", async ({ page }) => {
+  const year = new Date().getFullYear();
+  await login(page, "SCI E2E", "/fiscal-years/");
+  const row = page.getByRole("row", { name: new RegExp(`^${year}`) });
+  await row.getByRole("button", { name: "Verrouiller…" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Verrouiller jusqu'au").fill(`31/01/${year}`);
+  await dialog.getByLabel("Verrouiller jusqu'au").press("Tab");
+  await expect(dialog.getByText(/brouillard/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Verrouiller" }).click();
+  await expect(row.getByText(`jusqu'au 31/01/${year}`)).toBeVisible();
+
+  await row.getByRole("button", { name: "Déverrouiller…" }).click();
+  const unlock = page.getByRole("dialog");
+  await unlock.getByLabel(/Motif/).fill("Essai de bout en bout");
+  await unlock.getByRole("button", { name: "Déverrouiller" }).click();
+  await expect(row.getByRole("button", { name: "Déverrouiller…" })).toHaveCount(0);
+});

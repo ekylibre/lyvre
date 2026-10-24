@@ -17,7 +17,7 @@ from app.models.journal_entry import SALE_LOCKED_MESSAGE, SOURCE_CANCELLATION, S
 from app.services import projects, validation
 from app.services.ledger import (
     MANAGED_SOURCES, VALIDATED_MESSAGE, LedgerError, delete_entries, entry_is_reconciled, post_validated_entry,
-    reversal_of, reverse, update_entry, validate_entry_payload,
+    period_locked, reversal_of, reverse, update_entry, validate_entry_payload,
 )
 from app.utils.list_filters import (
     apply_date_sort, apply_month_filter, month_options_for_fy, parse_month, parse_sort,
@@ -52,6 +52,12 @@ def _link(entry):
     return {"id": entry.id, "reference": entry.reference} if entry is not None else None
 
 
+def _locked(entry):
+    """Date de verrouillage si l'écriture est dans la période verrouillée (lot F2), sinon None."""
+    fy = entry.fiscal_year
+    return fy.locked_until.isoformat() if fy.locked_until and entry.entry_date <= fy.locked_until else None
+
+
 def serialize_entry(entry):
     reversal = reversal_of(entry)
     reverses = db.session.get(JournalEntry, entry.reverses_entry_id) if entry.reverses_entry_id else None
@@ -70,8 +76,9 @@ def serialize_entry(entry):
         "total_debit_cents": entry.total_debit,
         "total_credit_cents": entry.total_credit,
         "reconciled": entry_is_reconciled(entry),
-        "editable": not entry.fiscal_year.closed and not entry.is_validated
+        "editable": not entry.fiscal_year.closed and not entry.is_validated and not _locked(entry)
         and entry.source not in (*MANAGED_SOURCES, SOURCE_SALE),
+        "locked_until": _locked(entry),
         "managed": entry.source in MANAGED_SOURCES,
         "validated": entry.is_validated,
         "fiscal_year_closed": entry.fiscal_year.closed,
@@ -204,7 +211,8 @@ def entries_list():
                            for j in Journal.query.order_by(Journal.code)],
               "months": month_options_for_fy(fy) if fy else [],
               "drafts": validation.draft_counts(fy) if fy else None,
-              "fiscal_year_open": bool(fy and not fy.closed)},
+              "fiscal_year_open": bool(fy and not fy.closed),
+              "locked_until": fy.locked_until.isoformat() if fy and fy.locked_until else None},
     )
 
 
@@ -249,6 +257,9 @@ def entries_form():
             raise ApiError("conflict", "Impossible de modifier une écriture d'un exercice clôturé.", 409)
         if entry.is_validated:
             raise ApiError("entry_validated", VALIDATED_MESSAGE, 409)
+        if _locked(entry):
+            exc = period_locked(entry.fiscal_year, entry.entry_date)
+            raise ApiError(exc.code, str(exc), 409)
         if entry_is_reconciled(entry):
             raise ApiError("conflict", "Cette écriture est rapprochée à une transaction bancaire. "
                            "Annulez le rapprochement avant de la modifier.", 409)

@@ -187,7 +187,7 @@ def post(p: Purchase):
         fiscal_year_id=fy.id, journal_id=_journal().id, entry_date=p.issue_date,
         description=f"{kind} {p.invoice_number or ''} — {p.entity.name}".replace("  ", " ")[:500],
         lines=entry_lines(p, fy, supplier), source="PURCHASE", source_ref=f"PURCHASE:{p.id}",
-        commit=False,
+        commit=False, auto_date=True,  # pièce reçue : période verrouillée → première date ouverte (F2)
     )
     p.journal_entry = entry
     p.journal_entry_id = entry.id  # l'état « comptabilisée » se lit avant le flush

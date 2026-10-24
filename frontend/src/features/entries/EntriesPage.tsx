@@ -27,7 +27,7 @@ interface ListResponse {
   items: EntryRow[]; total: number; page: number; per_page: number;
   meta: { fy_id: number | null; fiscal_years: { value: string; label: string }[];
     journals: { value: string; label: string }[]; months: MonthOption[];
-    drafts: { drafts: number; old: number } | null; fiscal_year_open: boolean };
+    drafts: { drafts: number; old: number } | null; fiscal_year_open: boolean; locked_until: string | null };
 }
 
 const PER_PAGE = 50;
@@ -67,6 +67,7 @@ export default function EntriesPage() {
         actions={<Can>
           {meta?.fiscal_year_open && <Button variant="default" onClick={() => setUntilOpen(true)}>Valider jusqu'au…</Button>}
           <Button component={AppLink} href="/entries/new">Saisir une écriture</Button></Can>} />
+      {meta?.locked_until && meta.fiscal_year_open && <Text size="sm" c="dimmed" mb="xs">{`Période verrouillée jusqu'au ${formatDate(meta.locked_until)} (Exercices).`}</Text>}
       {!!meta?.drafts?.old && <Alert color="paille" variant="light" mb="sm">{meta.drafts.old} écriture(s) en brouillard depuis plus de
         3 mois : validez-les une fois vérifiées.</Alert>}
       <ValidationRefusals error={validate.error} />
