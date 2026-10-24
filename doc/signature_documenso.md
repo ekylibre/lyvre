@@ -14,13 +14,13 @@ Fichiers (Documenso v2.20.0 + PostgreSQL 15) :
 
 ## Déploiement Dokploy (seconde-nature-kvm)
 
-Adresse retenue dans les exemples : `https://signature.seconde-nature.net` (à adapter).
+Adresse du serveur : `https://sign.seconde-nature.net` (en service depuis le 25/10/2026).
 
 ### 1. DNS
 
 Chez le fournisseur DNS de `seconde-nature.net` : enregistrement **A** `signature` → adresse IP
 publique de seconde-nature-kvm (la même que celle de `compta.seconde-nature.net`). Vérifier :
-`dig +short signature.seconde-nature.net`.
+`dig +short sign.seconde-nature.net`.
 
 ### 2. Secrets et certificat (sur un poste, pas dans le dépôt)
 
@@ -48,7 +48,7 @@ les PDF déjà signés restent valides mais on ne peut pas en signer de nouveaux
    *Autodeploy* : Documenso n'a pas à être redéployé à chaque poussée de Lyvre.)
 3. Onglet **Environment** : coller `docker/documenso/dokploy.env.example`, puis remplacer les lignes
    vides par celles de `secrets.env` et renseigner :
-   - `NEXT_PUBLIC_WEBAPP_URL=https://signature.seconde-nature.net` ;
+   - `NEXT_PUBLIC_WEBAPP_URL=https://sign.seconde-nature.net` ;
    - le **SMTP** (le même que celui qui envoie les e-mails de Seconde Nature, ou un compte dédié) :
      hôte, port (587 + `NEXT_PRIVATE_SMTP_SECURE=false` en STARTTLS ; 465 + `true` en TLS), identifiant,
      mot de passe, `NEXT_PRIVATE_SMTP_FROM_ADDRESS` (adresse autorisée par ce SMTP) ;
@@ -56,16 +56,16 @@ les PDF déjà signés restent valides mais on ne peut pas en signer de nouveaux
 
    **Save**.
 4. Onglet **Domains** › **Add Domain** : *Service* `documenso`, *Host*
-   `signature.seconde-nature.net`, *Path* `/`, *Container Port* `3500`, **HTTPS** activé,
+   `sign.seconde-nature.net`, *Path* `/`, *Container Port* `3500`, **HTTPS** activé,
    *Certificate* **Let's Encrypt** ; **Create**. (**Preview Compose** montre les labels Traefik et le
    réseau `dokploy-network` que Dokploy ajoute au service.)
 5. **Deploy**. Onglet **Logs** (service `documenso`) : `Telemetry is disabled`, puis le serveur
-   démarré ; ouvrir `https://signature.seconde-nature.net` (certificat Let's Encrypt après quelques
+   démarré ; ouvrir `https://sign.seconde-nature.net` (certificat Let's Encrypt après quelques
    secondes).
 
 ### 4. Compte, inscriptions fermées, jeton
 
-1. Sur `https://signature.seconde-nature.net` : **Sign up** avec l'adresse de l'administrateur,
+1. Sur `https://sign.seconde-nature.net` : **Sign up** avec l'adresse de l'administrateur,
    confirmer l'e-mail (vérifie au passage le SMTP).
 2. Créer l'**équipe** (ex. « Seconde Nature »).
 3. Dokploy › Environment : `NEXT_PUBLIC_DISABLE_SIGNUP=true` › **Save** › **Deploy** (plus personne
@@ -76,7 +76,7 @@ les PDF déjà signés restent valides mais on ne peut pas en signer de nouveaux
 ### 5. Lyvre
 
 Dans l'instance concernée (ex. SCI Chênes Verts) : Configuration › Intégrations › **Documenso** :
-**Activer**, URL `https://signature.seconde-nature.net`, jeton, **Enregistrer et tester** (« Serveur
+**Activer**, URL `https://sign.seconde-nature.net`, jeton, **Enregistrer et tester** (« Serveur
 Documenso … accessible, jeton d'API accepté »). Puis, sur un bail validé, un premier envoi à la
 signature **vers vos propres adresses** (gérants et preneur de test) pour contrôler e-mails,
 paraphes et PDF signé avant le premier vrai bail.
@@ -113,14 +113,14 @@ paraphes et PDF signé avant le premier vrai bail.
    ```
 
 3. **Démarrer** : `docker compose up -d` ; Documenso écoute sur `127.0.0.1:3500`.
-4. **Proxy HTTPS** (nginx, Caddy…) de `https://signature.seconde-nature.net` vers
+4. **Proxy HTTPS** (nginx, Caddy…) de `https://sign.seconde-nature.net` vers
    `127.0.0.1:3500` (adresse = `NEXT_PUBLIC_WEBAPP_URL`).
 5. **Compte** : s'inscrire sur l'adresse publique, confirmer l'e-mail, créer l'équipe ; puis
    `NEXT_PUBLIC_DISABLE_SIGNUP=true` dans `.env` et `docker compose up -d` (plus d'inscription libre).
 6. **Jeton** : Documenso › Paramètres de l'équipe › Jetons d'API › créer (sans expiration) ; le
    copier (`api_…`, affiché une seule fois).
 7. **Lyvre** : Configuration › Intégrations › **Documenso** : activer, URL
-   `https://signature.seconde-nature.net`, jeton, **Enregistrer et tester**.
+   `https://sign.seconde-nature.net`, jeton, **Enregistrer et tester**.
 
 ## Ce que fait Lyvre à l'envoi
 
