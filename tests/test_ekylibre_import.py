@@ -274,3 +274,43 @@ def test_import_bank_documents_assets(app, archive, tmp_path, monkeypatch):
     reclass = JournalEntry.query.filter_by(source_ref="RECLASSEMENT-TERRAINS").one()
     assert sorted((l.account.code, l.debit_cents, l.credit_cents) for l in reclass.lines) == [("211000", 20000, 0), ("2131", 0, 20000)]
     assert ctx.stats["attachments"] == 1 and not reclass.is_validated
+
+
+# ------------------------------------------------------------------ lot K4 : règles d'affectation
+
+
+def test_label_pattern():
+    from app.services.ekylibre.importer import label_pattern
+    assert label_pattern("PRELEVEMENT Free Telecom 2025-04") == "FREE TELECOM"
+    assert label_pattern("VIREMENT EMIS WEB MG architecture 2025-176") == "MG ARCHITECTURE"
+    assert label_pattern("PRELEVEMENT Électricité de France FA123") == "ELECTRICITE FRANCE"
+    assert label_pattern("12/03 2025") is None
+
+
+def test_statement_item_through_waiting_account():
+    from app.services.ekylibre.data import EkyData
+    data = EkyData(date(2025, 1, 1), date(2025, 12, 31), {
+        "accounts": [{"id": "1", "number": "51101000"}, {"id": "2", "number": "40100000003"}],
+        "journal_entry_items": [
+            {"id": "1", "entry_id": "10", "account_id": "2", "letter": "AI"},     # règlement : 401 / 511
+            {"id": "2", "entry_id": "10", "account_id": "1", "letter": "FX"},
+            {"id": "3", "entry_id": "20", "account_id": "1", "letter": "FX"},     # relevé : 511 / 512
+        ],
+        "bank_statement_items": [{"id": "7", "journal_entry_id": "20"}],
+        **{t: [] for t in ("purchase_items", "sale_items", "attachments")},
+    })
+    data._index()
+    assert data.statement_item_for("10")["id"] == "7" and data.statement_item_for("20")["id"] == "7"
+    assert data.statement_item_for("30") is None
+
+
+def test_rules_default_product_and_skipped_patterns(app, archive):
+    _mini_chart()
+    from app.extensions import db
+    from app.models import Entity, Product, Rule
+    ctx = _import(archive)
+    db.session.commit()
+    edf = Entity.query.filter_by(name="EDF").one()
+    assert edf.default_product.purchase_account.code == "60613" and Product.query.count() == 1
+    assert edf.siret == "55208131766522"  # déjà connu d'Ekylibre, confirmé par la pièce
+    assert Rule.query.count() == 0 and ("EDF", "motif trop court") in ctx.rules_skipped

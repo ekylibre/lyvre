@@ -191,3 +191,28 @@ les **mémoriser** sous un nom (profil). Les lignes d'une même pièce (sinon m�
 libellé) forment une écriture ; elles sont importées **en brouillard** dans l'exercice ouvert de
 leur date (journal OD si la colonne manque).
 
+---
+
+## Reprise de la SCI Chênes Verts depuis Ekylibre (ponctuel, avant la mise en production)
+
+Script : `scripts/import_ekylibre_sci.py` (besoins et conception : `claudedocs/besoins_import_ekylibre_sci.md`,
+`claudedocs/design_import_ekylibre_sci.md`). Lit l'export du tenant Ekylibre (archive `.zip` : dump SQL et
+pièces) sans PostgreSQL.
+
+```bash
+# Analyse à blanc : contrôles, correspondances de comptes et de tiers, rapport ; rien n'est écrit
+.venv/bin/python scripts/import_ekylibre_sci.py EXPORT.zip --dry-run --report rapport.md
+# Import dans une nouvelle instance (tout-ou-rien), à côté de la méta-base indiquée
+.venv/bin/python scripts/import_ekylibre_sci.py EXPORT.zip --meta-url sqlite:////chemin/meta.db \
+    [--until 2026-06-30] [--attachments-from 2026] [--replace] --report rapport.md
+```
+
+Repris : exercices 2025 et 2026 (jusqu'à `--until`), à-nouveaux, écritures (brouillard, validées si
+confirmées dans Ekylibre ; TVA des achats intégrée à la charge), lettrages, registre et comptes courants
+des associés, compte bancaire, relevés rapprochés, factures d'achat et règlements (banque, compte
+courant d'associé), pièces de vente et encaissements, immobilisations (terrains reclassés en 211),
+pièces des achats à partir de `--attachments-from`, fiche de la structure ; règles : identifiants des
+fournisseurs lus dans les pièces, compte par défaut par fournisseur, règles bancaires (motif ≥ 6
+caractères, ≥ 2 paiements, un seul fournisseur). Le rapport liste contrôles, corrections, règles et
+remarques ; la balance de Lyvre est comparée compte par compte à celle d'Ekylibre (échec sinon).
+

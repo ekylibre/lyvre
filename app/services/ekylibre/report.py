@@ -84,6 +84,12 @@ def render(data: EkyData, mapping: dict, results: list[checks_module.Check], sou
             out += ["### Pièces reprises", ""]
             out += _table(["Facture", "Fichier", "SHA-256 (début)"], imported.attachments)
             out.append("")
+        out += ["### Règles d'affectation créées", ""]
+        out += _table(["Tiers", "Sorte", "Valeur"], imported.rules) if imported.rules else ["Aucune."]
+        if imported.rules_skipped:
+            out += ["", "Motifs bancaires écartés :", ""]
+            out += _table(["Motif", "Raison"], imported.rules_skipped)
+        out.append("")
         out += ["### Remarques", ""] + [f"- {note}" for note in imported.notes]
     out += ["", "## Corrections prévues", "",
             "- TVA déductible des achats intégrée à la charge (EK3) : voir le contrôle « TVA ».",

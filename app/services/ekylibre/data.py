@@ -64,6 +64,10 @@ class EkyData:
                 self.attachments[(att["resource_type"], att["resource_id"])].append(att)
         self.statement_items_by_entry = {i["journal_entry_id"]: i for i in self.rows["bank_statement_items"]
                                          if i.get("journal_entry_id")}
+        self.items_by_letter = defaultdict(list)
+        for item in self.rows["journal_entry_items"]:
+            if item.get("letter"):
+                self.items_by_letter[(item["account_id"], item["letter"].rstrip("*"))].append(item)
 
     # ---------------------------------------------------------------- accès
 
@@ -111,6 +115,20 @@ class EkyData:
     def fiscal_year(self, on: date) -> dict | None:
         return next((fy for fy in self.rows["financial_years"]
                      if day(fy["started_on"]) <= on <= day(fy["stopped_on"])), None)
+
+    def statement_item_for(self, entry_id) -> dict | None:
+        """Ligne de relevé d'une écriture : liée directement, ou par le compte d'attente lettré (511…) :
+        règlement → 511 lettré avec la ligne 511 de l'écriture du relevé."""
+        if entry_id in self.statement_items_by_entry:
+            return self.statement_items_by_entry[entry_id]
+        for item in self.items_by_entry.get(entry_id, []):
+            number = self.account_number(item["account_id"]) or ""
+            if not number.startswith("511") or not item.get("letter"):
+                continue
+            for other in self.items_by_letter[(item["account_id"], item["letter"].rstrip("*"))]:
+                if other["entry_id"] != entry_id and other["entry_id"] in self.statement_items_by_entry:
+                    return self.statement_items_by_entry[other["entry_id"]]
+        return None
 
     def documents_of(self, resource_type, resource_id) -> list[dict]:
         return [self.get("documents", a["document_id"]) for a in self.attachments.get((resource_type, resource_id), [])

@@ -12,7 +12,7 @@ from datetime import date
 
 from app.extensions import db
 from app.models import (
-    Account, Associate, BankAccount, BankTransaction, Entity, FiscalYear, Journal, JournalEntry, Lettering, Purchase,
+    Account, Associate, BankAccount, Product, Rule, BankTransaction, Entity, FiscalYear, Journal, JournalEntry, Lettering, Purchase,
     PurchaseLine, PurchasePayment, Sale, SaleLine, SalePayment, ShareMovement, ShareMovementLine,
 )
 from app.models.journal_entry import SOURCE_OPENING
@@ -53,6 +53,8 @@ class Context:
     purchases: dict = field(default_factory=dict)                     # id d'achat Ekylibre → facture d'achat
     sales: dict = field(default_factory=dict)                         # id de vente Ekylibre → pièce de vente
     attachments: list = field(default_factory=list)                   # (n° de facture, fichier, empreinte)
+    rules: list = field(default_factory=list)                         # (tiers, sorte, valeur)
+    rules_skipped: list = field(default_factory=list)                 # (motif, raison)
 
 
 # ------------------------------------------------------------------ E1 structure
@@ -330,7 +332,7 @@ def _associate_for_cash(ctx: Context, cash_id) -> Associate | None:
 
 
 def _transaction_of(ctx: Context, eky_entry_id):
-    item = ctx.data.statement_items_by_entry.get(eky_entry_id)
+    item = ctx.data.statement_item_for(eky_entry_id)
     return ctx.transactions.get(item["id"]) if item else None
 
 
@@ -564,10 +566,181 @@ def step_attachments(ctx: Context, source, year_from: int) -> None:
     db.session.flush()
 
 
+# ------------------------------------------------------------------ structure (fiche de l'organisation)
+
+
+def company(data: EkyData) -> dict | None:
+    return next((e for e in data.rows["entities"] if e.get("of_company") == "t"), None)
+
+
+def step_organization(ctx: Context) -> None:
+    """Nom, SIREN et adresse de la structure, tirés de la fiche « of_company » d'Ekylibre."""
+    from app.models import Organization
+    from app.services.ekylibre.mapping import _address
+    entity = company(ctx.data)
+    if entity is None:
+        return
+    org = Organization.query.first() or Organization(name=entity["full_name"])
+    org.name = (entity.get("full_name") or org.name)[:200]
+    siret = (entity.get("siret_number") or "").replace(" ", "")
+    if len(siret) >= 9 and not org.siren:
+        org.siren = siret[:9]
+    street, postal, city = _address(ctx.data, entity["id"])
+    org.address_line1 = org.address_line1 or street
+    org.postal_code = org.postal_code or postal
+    org.city = org.city or city
+    db.session.add(org)
+    db.session.flush()
+
+
+# ------------------------------------------------------------------ E10 règles d'affectation (EK4)
+
+
+STOPWORDS = {"PRELEVEMENT", "PRLV", "VIREMENT", "VIR", "EMIS", "INST", "VERS", "WEB", "SEPA", "CB", "CARTE", "FACTURE",
+             "FACT", "DE", "DU", "DES", "LA", "LE", "LES", "EN", "VOTRE", "FAVEUR", "REF", "ECHEANCE", "PAIEMENT", "PAR",
+             "ET", "A", "AU", "AUX", "POUR", "NO", "N", "SAS", "SARL", "SA", "EURL", "FR"}
+DOMINANT_SHARE = 0.6
+MIN_OCCURRENCES = 2
+MIN_PATTERN = 6  # caractères : un motif plus court attraperait d'autres libellés
+
+
+def label_pattern(label: str) -> str | None:
+    """Partie stable d'un libellé bancaire : majuscules sans accents, sans mots génériques, chiffres,
+    dates ni références ; trois premiers mots significatifs."""
+    import re
+    import unicodedata
+    plain = unicodedata.normalize("NFKD", label or "").encode("ascii", "ignore").decode().upper()
+    words = [w for w in re.split(r"[^A-Z0-9]+", plain) if w and not any(c.isdigit() for c in w)
+             and w not in STOPWORDS and len(w) > 1]
+    return " ".join(words[:3]) or None
+
+
+def _identifiers(ctx: Context, source) -> None:
+    """Fournisseur reconnu : SIRET, TVA, IBAN lus dans les pièces, ajoutés aux fiches s'ils y manquent."""
+    from app.services import invoice_reader
+    org = company(ctx.data)
+    own_siren = ((org or {}).get("siret_number") or "").replace(" ", "")[:9]
+    own_ibans = [(c.get("iban") or "").replace(" ", "") for c in ctx.data.rows["cashes"] if c.get("iban")]
+    found = defaultdict(lambda: defaultdict(Counter))
+    for row in ctx.data.purchases():
+        entity = ctx.entities.get(row["supplier_id"])
+        if entity is None:
+            continue
+        for document in ctx.data.documents_of("Purchase", row["id"]):
+            text = document.get("file_content_text") or ""
+            if not text.strip():
+                continue
+            ext = invoice_reader.parse_text(text, ignore_ibans=own_ibans, ignore_sirens=[own_siren])
+            for name, valid in (("siret", invoice_reader.valid_siret), ("vat_number", invoice_reader.valid_fr_vat),
+                                ("iban", invoice_reader.valid_iban)):
+                value = ext.value(name)
+                if value and valid(value):
+                    found[entity.id][name][value] += 1
+    owners = defaultdict(set)  # identifiant → fournisseurs où il est lu (intermédiaire, plateforme…)
+    for entity_id, fields in found.items():
+        for name, values in fields.items():
+            for value in values:
+                owners[(name, value)].add(entity_id)
+    for entity_id, fields in found.items():
+        entity = db.session.get(Entity, entity_id)
+        for name, values in fields.items():
+            shared = [v for v in values if len(owners[(name, v)]) > 1]
+            for value in shared:
+                ctx.notes.append(f"{name} {value} lu dans les pièces de plusieurs fournisseurs : non retenu pour {entity.name}.")
+                del values[value]
+            if not values:
+                continue
+            if len(values) > 1:
+                ctx.notes.append(f"{entity.name} : plusieurs {name} lus dans les pièces ({', '.join(values)}) : rien n'est écrit.")
+                continue
+            (value,) = values
+            current = getattr(entity, name)
+            if current and current != value:
+                ctx.notes.append(f"{entity.name} : {name} de la fiche ({current}) différent de la pièce ({value}) : fiche gardée.")
+            elif not current:
+                setattr(entity, name, value[:34])
+                ctx.stats[f"rules_{name}"] += 1
+                ctx.rules.append((entity.name, name, value))
+
+
+def _products(ctx: Context) -> dict[int, Account]:
+    """Compte par fournisseur : produit du catalogue par défaut (compte unique ou dominant ≥ 60 %)."""
+    associates = {a.entity_id for a in Associate.query.all()}
+    per_supplier = defaultdict(Counter)
+    for eky_id, purchase in ctx.purchases.items():
+        if purchase.entity_id is None:
+            continue
+        for line in purchase.lines:
+            if line.account_id:
+                per_supplier[purchase.entity_id][line.account_id] += 1
+    chosen = {}
+    for entity_id, counts in per_supplier.items():
+        entity = db.session.get(Entity, entity_id)
+        account_id, count = counts.most_common(1)[0]
+        if entity_id in associates:
+            ctx.notes.append(f"{entity.name} : associé, pas de compte par défaut.")
+            continue
+        if count / sum(counts.values()) < DOMINANT_SHARE:
+            ctx.notes.append(f"{entity.name} : comptes trop variés ({len(counts)}), pas de compte par défaut.")
+            continue
+        account = db.session.get(Account, account_id)
+        name = f"{account.label} ({account.code})"[:200]
+        product = Product.query.filter_by(name=name).first()
+        if product is None:
+            product = Product(name=name, kind="purchase", purchase_account_id=account.id, nature="services")
+            db.session.add(product)
+            db.session.flush()
+            ctx.stats["rules_products"] += 1
+        if entity.default_product_id is None:
+            entity.default_product_id = product.id
+            ctx.stats["rules_default_product"] += 1
+            ctx.rules.append((entity.name, "compte par défaut", account.code))
+        chosen[entity_id] = account
+    return chosen
+
+
+def _bank_rules(ctx: Context, accounts: dict[int, Account]) -> None:
+    """Règles bancaires : motif de libellé ≥ 2 fois, un seul fournisseur et un seul compte."""
+    from app.models import BankTransaction, PurchasePayment
+    by_pattern = defaultdict(list)
+    for purchase in ctx.purchases.values():
+        for payment in PurchasePayment.query.filter_by(purchase_id=purchase.id, origin="match"):
+            txn = db.session.get(BankTransaction, payment.bank_transaction_id) if payment.bank_transaction_id else None
+            pattern = label_pattern(txn.label) if txn else None
+            if pattern:
+                by_pattern[pattern].append(purchase)
+    position = (db.session.query(db.func.max(Rule.position)).scalar() or 0) + 1
+    for pattern, purchases in sorted(by_pattern.items()):
+        suppliers = {p.entity_id for p in purchases}
+        targets = {accounts[e].code for e in suppliers if e in accounts}
+        if len(pattern) < MIN_PATTERN or len(purchases) < MIN_OCCURRENCES or len(suppliers) != 1 or len(targets) != 1:
+            reason = ("motif trop court" if len(pattern) < MIN_PATTERN else
+                      "une seule occurrence" if len(purchases) < MIN_OCCURRENCES else
+                      "plusieurs fournisseurs" if len(suppliers) != 1 else "pas de compte unique")
+            ctx.rules_skipped.append((pattern, reason))
+            continue
+        entity = db.session.get(Entity, next(iter(suppliers)))
+        db.session.add(Rule(position=position, name=f"Reprise Ekylibre — {entity.name}"[:200], label_contains=pattern,
+                            entity_name=entity.name, entity_type=entity.entity_type, account_code=next(iter(targets)),
+                            is_active=True))
+        position += 1
+        ctx.stats["rules_bank"] += 1
+        ctx.rules.append((entity.name, "règle bancaire", f"« {pattern} » → {next(iter(targets))}"))
+    db.session.flush()
+
+
+def step_rules(ctx: Context, source) -> None:
+    _identifiers(ctx, source)
+    accounts = _products(ctx)
+    _bank_rules(ctx, accounts)
+    db.session.flush()
+
+
 def run(data: EkyData, accounts_plan, entities_plan, chart: Chart, source=None, attachments_from: int | None = None) -> Context:
     """Étapes K2-K3 dans la base courante, sans commit (l'appelant valide ou annule le tout)."""
     ctx = Context(data, chart, accounts_plan, entities_plan)
     step_structure(ctx)
+    step_organization(ctx)
     step_associates(ctx)
     step_entries(ctx)
     step_lettering(ctx)
@@ -580,4 +753,5 @@ def run(data: EkyData, accounts_plan, entities_plan, chart: Chart, source=None, 
     step_assets(ctx)
     if source is not None and attachments_from:
         step_attachments(ctx, source, attachments_from)
+    step_rules(ctx, source)
     return ctx
