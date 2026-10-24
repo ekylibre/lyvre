@@ -107,6 +107,24 @@ brouillon se reprend depuis la liste des baux, il se supprime tant qu'il n'est p
    divisé par le nombre d'échéances, écart d'arrondi sur la dernière ligne ; une ligne à 0 € n'est
    pas facturée) et la provision sur charges ; les avis d'échéance arrivent dans « À émettre ».
 
+**Texte du bail** : à la validation, le texte est **rédigé depuis le modèle** du type de bail
+(Configuration › **Modèles de bail**) et **figé** dans le bail : modifier ensuite le modèle ne change
+pas les baux déjà rédigés. Sur la fiche : **Aperçu (PDF)** (tableau des biens, décomposition du loyer,
+pied de page « Page x / y — paraphes »), **Retoucher** (pour ce bail seul ; un texte contenant un
+tableau se retouche en source HTML), **Régénérer** (depuis le modèle et les données actuelles ; les
+retouches sont perdues). L'étape 3 de l'assistant propose aussi l'aperçu avant validation.
+
+**Modèles de bail** (administrateur de l'instance) : un modèle par type, livré pré-rempli — le bail
+dérogatoire reprend le bail de la SCI ; commercial 3-6-9, habitation et rural sont des **bases à
+relire** (bandeau « à relire » tant que le modèle n'a pas été enregistré une fois, mentions entre
+crochets à compléter). Les champs `{{ … }}` (menu « Insérer un champ ») : `bailleur.identite`,
+`preneur.identite`, `biens.situation`, `biens.tableau`, `biens.lettres`, `bail.debut`, `bail.fin`,
+`bail.duree`, `loyer.annuel`, `loyer.annuel_lettres`, `loyer.detail`, `loyer.echeance`,
+`loyer.frequence`, `charges.montant`, `depot.montant`, `indice.nom`, `indice.reference`,
+`indice.periodicite`, `signature.lieu`, `signature.date`, `signatures`… ; conditions possibles
+(`{% if depot.montant %}…{% else %}…{% endif %}`). Un champ inconnu est signalé à l'aperçu. Aperçu
+d'un modèle (même non enregistré) sur un bail existant ; **Rétablir le modèle livré**.
+
 **Modifier** (fiche du bail) rouvre l'assistant : un changement de lignes ou de prix met à jour la
 facture récurrente pour les échéances suivantes. Les baux créés avant l'assistant ont une ligne
 forfaitaire (loyer d'échéance × nombre d'échéances par an).
@@ -120,8 +138,8 @@ Les **gérants** (Associés › case « Gérant ») et la **forme juridique** et
   conservé sur la fiche du bail, **Envoyer** au locataire.
 
 Hors périmètre pour l'instant : régularisation annuelle des charges. À venir (conception
-`claudedocs/design_baux.md`) : modèles et PDF du bail, carte des biens, signature électronique,
-révision automatique du loyer.
+`claudedocs/design_baux.md`) : carte des biens, signature électronique, révision automatique du
+loyer.
 
 ## Avec Qonto
 

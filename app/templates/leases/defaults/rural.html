@@ -1,0 +1,29 @@
+<h1>BAIL RURAL</h1>
+<p>Bail soumis au statut du fermage (articles L.411-1 et suivants du Code rural et de la pêche maritime) et à l’arrêté préfectoral fixant les valeurs locatives du département.</p>
+<p>ENTRE LES SOUSSIGNÉS :</p>
+<p>{{ bailleur.identite }}, ci-après « le Bailleur »,</p>
+<p>ET</p>
+<p>{{ preneur.identite }}, ci-après « le Preneur »,</p>
+<p>IL A ÉTÉ ARRÊTÉ ET CONVENU CE QUI SUIT :</p>
+<h2>Article 1 : Désignation</h2>
+<p>Le Bailleur donne à bail au Preneur, qui accepte, les biens ruraux ci-après désignés{{ biens.situation }} :</p>
+<p>{{ biens.tableau }}</p>
+<p>{{ biens.carte }}</p>
+<p>Un état des lieux est établi contradictoirement dans le mois qui précède ou qui suit l’entrée en jouissance (article L.411-4).</p>
+<h2>Article 2 : Durée</h2>
+<p>Le bail est consenti pour une durée de {{ bail.duree }} (neuf ans au moins), à compter du {{ bail.debut }} pour se terminer le {{ bail.fin }}. Il se renouvelle dans les conditions des articles L.411-46 et suivants.</p>
+<h2>Article 3 : Fermage</h2>
+<p>Le bail est consenti moyennant un fermage annuel de {{ loyer.annuel }} ({{ loyer.annuel_lettres }}), dans les limites fixées par l’arrêté préfectoral, décomposé comme suit :</p>
+<p>{{ loyer.detail }}</p>
+<p>Il est payable par échéance {{ loyer.frequence }} de {{ loyer.echeance }}.</p>
+<p>{% if indice.code %}Le fermage est actualisé chaque année selon la variation de l’{{ indice.nom }} constatée par arrêté ministériel ; indice de référence : {{ indice.reference }}.{% else %}Le fermage est actualisé chaque année selon l’indice national des fermages.{% endif %}</p>
+<h2>Article 4 : Impôts et charges</h2>
+<p>L’impôt foncier reste à la charge du Bailleur ; le Preneur lui rembourse la fraction de la taxe pour frais de chambre d’agriculture et la part prévue par l’article L.415-3.</p>
+<h2>Article 5 : Obligations du Preneur</h2>
+<p>Le Preneur exploite les biens en bon père de famille, en assure la bonne exploitation et ne peut en changer la destination sans l’accord du Bailleur. Il ne peut sous-louer ni céder le bail, sauf dans les cas prévus par la loi.</p>
+<h2>Article 6 : Dépôt de garantie</h2>
+<p>{% if depot.montant %}Le Preneur verse un dépôt de garantie de {{ depot.montant }} ({{ depot.lettres }}).{% else %}Aucun dépôt de garantie n’est demandé.{% endif %}</p>
+<h2>Article 7 : Élection de domicile</h2>
+<p>Les parties font élection de domicile en leur adresse indiquée en tête des présentes.</p>
+<p>Fait à {{ signature.lieu }}, le {{ signature.date }}, en deux exemplaires.</p>
+<p>{{ signatures }}</p>

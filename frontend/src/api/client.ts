@@ -106,6 +106,19 @@ export const api = {
   delete: <T>(url: string, options?: RequestOptions) => request<T>("DELETE", url, options),
 };
 
+/** POST dont la réponse est un fichier (PDF d'aperçu…) ; erreur JSON de l'API sinon. */
+export async function postBlob(url: string, body: unknown): Promise<Blob> {
+  const response = await fetch(url, {
+    method: "POST", credentials: "same-origin", body: JSON.stringify(body),
+    headers: { Accept: "application/pdf, application/json", "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+  }).catch(() => { throw new ApiError("network_error", "Serveur injoignable. Vérifiez la connexion.", 0); });
+  if (!response.ok) {
+    const e = (await response.json().catch(() => null))?.error ?? {};
+    throw new ApiError(e.code ?? "http_error", e.message ?? `Erreur serveur (${response.status}).`, response.status, e.fields ?? {}, e);
+  }
+  return response.blob();
+}
+
 /** Paramètres de requête (valeurs vides omises). */
 export function query(params: Record<string, string | number | boolean | null | undefined>): string {
   const search = new URLSearchParams();

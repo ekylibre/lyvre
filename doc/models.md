@@ -975,11 +975,12 @@ mensuelle / trimestrielle / annuelle, jour d'échéance, début, fin, terme à �
 unique `(recurrence_id, period_start)`), **`leases`** (locataire, désignation et adresse, dates, loyer
 d'échéance, charges, jour d'échéance, dépôt de garantie et son écriture, comptes des loyers et des
 charges, récurrence ; lot L1 : `status` brouillon / validé, `kind`, `premises_label`,
-`signed_on_place`, révision `index_code`, `index_reference_period`, `index_reference_value`,
+`signed_on_place`, lot L2 : `document_html`, `document_generated_at`, `document_edited`, révision `index_code`, `index_reference_period`, `index_reference_value`,
 `revision_months`, `next_revision_date`, `revise_deposit`), **`lease_items`** (lignes du bail :
 `letter`, `label`, `nature` bâtiment / sol / forfait, `area_m2`, `built_m2`, `billing_unit` m² / ha /
 forfait, `unit_price_cents` annuel, `annual_cents`, `cadastral_refs`, `geometry`, `source`,
-`partial`), **`rent_receipts`** (quittance ou reçu : période, loyer, charges, montant payé, PDF,
+`partial`), **`lease_templates`** (lot L2 : `kind` unique, `title`, `body_html`, `version`, `reviewed`,
+`updated_by_id`), **`rent_receipts`** (quittance ou reçu : période, loyer, charges, montant payé, PDF,
 envoi) ; `sales.recurrence_id`, `sales.lease_id`. Lot L1 aussi : `associates.is_manager` (gérant,
 signataire des baux), `organization.legal_form` et `rcs_city`.
 

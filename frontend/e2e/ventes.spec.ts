@@ -61,6 +61,8 @@ test("bail : avis d'échéance émis, encaissé, quittance", async ({ page }) =>
   await page.getByLabel(/^Provisions sur charges/).fill("50");
   await page.getByRole("button", { name: "Valider le bail" }).click();
   await expect(page.getByRole("heading", { name: "Appartement 2B", exact: true })).toBeVisible();
+  await expect(page.getByText(/^Rédigé le /)).toBeVisible();  // texte du bail figé à la validation (lot L2)
+  await expect(page.getByRole("link", { name: "Aperçu (PDF)" })).toHaveAttribute("href", /\/preview\.pdf$/);
 
   await page.goto("/sales/due");
   await expect(page.getByText("1 échéance(s) préparée(s) à l'instant.")).toBeVisible();
@@ -125,4 +127,12 @@ test("produit constaté d'avance proposé à la clôture (lot F4)", async ({ pag
   await page.getByRole("button", { name: "Passer les écritures (1)" }).click();
   await expect(page.getByText("passée", { exact: true })).toBeVisible();
   await expect(page.getByRole("cell", { name: /Produit constaté d'avance/ }).first()).toBeVisible();
+});
+
+test("modèles de bail : livrés, à relire (lot L2)", async ({ page }) => {
+  await login(page, "SCI Ventes E2E", "/lease-templates/");
+  await expect(page.getByRole("tab", { name: /Bail dérogatoire commercial/ })).toBeVisible();
+  await expect(page.getByText("Modèle livré, à relire")).toBeVisible();
+  await page.getByRole("tab", { name: /Bail d'habitation/ }).click();
+  await expect(page.getByText("CONTRAT DE LOCATION")).toBeVisible();
 });

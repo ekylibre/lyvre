@@ -9,7 +9,9 @@ import { api } from "../../api/client";
 import { useAction, useList, type Notice } from "../../api/resources";
 import { FormBody } from "../../components/ApiForm";
 import { Can } from "../../components/Can";
+import { confirmAction } from "../../components/ConfirmButton";
 import { FormModal } from "../../components/FormModal";
+import { HtmlTemplateEditor } from "../../components/HtmlTemplateEditor";
 import { useIntegrationGuard } from "../../components/IntegrationRequired";
 import { MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
@@ -36,13 +38,31 @@ function DepositForm({ lease, accounts, onDone }: { lease: Lease; accounts: Leas
   );
 }
 
+/** Retouche du texte d'un bail (pour ce bail seul). */
+function DocumentForm({ lease, onDone }: { lease: Lease; onDone: (item?: Lease) => void }) {
+  const { data } = useQuery({ queryKey: [...LEASES_KEY, lease.id, "document"], gcTime: 0,
+    queryFn: () => api.get<{ item: { body_html: string } }>(`/api/v1/leases/${lease.id}/document`) });
+  const [body, setBody] = useState<string | null>(null);
+  const save = useAction(() => api.put<{ item: Lease; notices: Notice[] }>(`/api/v1/leases/${lease.id}/document`, { body_html: body }));
+  if (!data) return <Center h={200}><Loader /></Center>;
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); save.mutate(undefined, { onSuccess: (r) => onDone(r.item) }); }}>
+      <FormBody submitLabel="Enregistrer le texte" onCancel={() => onDone()} loading={save.isPending}>
+        <Text size="sm" c="dimmed">La retouche ne vaut que pour ce bail ; le modèle ne change pas.</Text>
+        <HtmlTemplateEditor label="Source du texte du bail" initial={data.item.body_html} onChange={setBody} />
+      </FormBody>
+    </form>
+  );
+}
+
 export default function LeaseDetailPage() {
   const id = Number(useParams().lease_id);
   const client = useQueryClient();
   const key = [...LEASES_KEY, id];
   const { data } = useQuery({ queryKey: key, queryFn: () => api.get<{ item: Lease }>(`/api/v1/leases/${id}`) });
   const meta = useList<Lease, LeasesMeta>(LEASES_KEY, "/api/v1/leases").data?.meta;
-  const [modal, setModal] = useState<"deposit" | null>(null);
+  const [modal, setModal] = useState<"deposit" | "document" | null>(null);
+  const regenerate = useAction(() => api.post<{ item: Lease; notices: Notice[] }>(`/api/v1/leases/${id}/document/regenerate`));
   const smtp = useIntegrationGuard("smtp", "L'envoi par email");
   const sendReceipt = useAction((receiptId: number) => api.post<{ notices: Notice[] }>(`/api/v1/rent-receipts/${receiptId}/send`, {}),
     { invalidate: [LEASES_KEY] });
@@ -100,6 +120,26 @@ export default function LeaseDetailPage() {
           </Table>
         </Paper>
       )}
+      <Paper p="md" mb="md">
+        <Group justify="space-between" align="flex-start">
+          <div>
+            <Title order={3} mb={4}>Texte du bail</Title>
+            <Text size="sm" c="dimmed">{!l.kind ? "Choisissez le type du bail (Modifier) pour rédiger son texte."
+              : l.document.frozen ? `Rédigé le ${formatDate(l.document.generated_at)}${l.document.edited ? ", retouché pour ce bail" : ""}.`
+                : "Brouillon : le texte est rédigé depuis le modèle à la validation."}</Text>
+          </div>
+          {l.kind && <Group gap="xs">
+            <Button variant="default" component="a" href={l.document.preview_url} target="_blank">Aperçu (PDF)</Button>
+            <Can>
+              <Button variant="default" onClick={() => setModal("document")}>Retoucher</Button>
+              {l.document.frozen && <Button variant="subtle" onClick={() => confirmAction({
+                title: "Régénérer le texte depuis le modèle ?", confirmLabel: "Régénérer",
+                message: "Le texte est rédigé à nouveau avec le modèle et les données actuelles du bail ; les retouches sont perdues.",
+                onConfirm: () => regenerate.mutate(undefined, { onSuccess: (r) => refresh(r.item) }) })}>Régénérer</Button>}
+            </Can>
+          </Group>}
+        </Group>
+      </Paper>
       <Grid>
         <Grid.Col span={{ base: 12, lg: 7 }}><Paper p="md">
           <Title order={3} mb="xs">Avis d'échéance</Title>
@@ -130,6 +170,9 @@ export default function LeaseDetailPage() {
         </Paper></Grid.Col>
       </Grid>
       {l.notes && <Alert color="ardoise" mt="md">{l.notes}</Alert>}
+      <FormModal opened={modal === "document"} onClose={() => setModal(null)} title={`Texte du bail ${l.unit_label}`} size="90%">
+        {modal === "document" && <DocumentForm lease={l} onDone={refresh} />}
+      </FormModal>
       <FormModal opened={modal === "deposit"} onClose={() => setModal(null)} title="Dépôt de garantie">
         {modal === "deposit" && meta && <DepositForm lease={l} accounts={meta.bank_accounts} onDone={refresh} />}
       </FormModal>

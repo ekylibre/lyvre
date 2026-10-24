@@ -1,6 +1,6 @@
 # Conception — rédaction de bail assistée (carte, modèles, signature, révision)
 
-> Statut : **L1 réalisé** (25/10/2026) : lignes de bail, brouillon, assistant en trois étapes sans
+> Statut : **L1 et L2 réalisés** (25/10/2026). L2 : modèles (dérogatoire repris du bail ODT, trois bases à relire), Configuration › Modèles de bail (éditeur, champs, aperçu, rétablir), texte figé à la validation, retouche et régénération, PDF (pied de page, paraphes). Écarts L2 : champs composés `bailleur.identite`, `preneur.identite`, `biens.situation` (modèles lisibles sans conditions) ; l'assainissement garde les classes (styles du PDF) ; un texte contenant un tableau se retouche en source HTML (l'éditeur riche ne gère pas les tableaux) ; le bloc `signatures` n'a pas encore les balises Docuseal (L4). L1 : lignes de bail, brouillon, assistant en trois étapes sans
 > carte, facture récurrente à une ligne par ligne de bail, gérants, forme juridique et greffe. Écarts :
 > la facturation (périodicité, échéance, charges, TVA, comptes) est saisie à l'**étape 3** (un brouillon
 > n'a pas de facture récurrente qui la porterait) ; surfaces à l'hectare **arrondies à l'are** (0,01 ha)

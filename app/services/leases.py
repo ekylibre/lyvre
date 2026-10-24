@@ -214,6 +214,8 @@ def save_item(lease: Lease, data: dict, item: LeaseItem | None = None) -> LeaseI
         if "built_m2" in data:
             item.built_m2 = _int(data.get("built_m2"), "Dont surface bâtie", "built_m2")
         item.area_m2, item.built_m2 = item.area_m2 or 0, item.built_m2 or 0
+        if item.nature == "building" and "built_m2" not in data and not item.built_m2:
+            item.built_m2 = item.area_m2  # bâtiment : la surface louée est bâtie, sauf indication contraire
         if "billing_unit" in data:
             if data.get("billing_unit") not in UNITS:
                 raise SaleError("Unité : m², hectare ou forfait.", "billing_unit")

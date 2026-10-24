@@ -227,15 +227,29 @@ function RentStep({ lease, meta, onBack, onDone }: { lease: Lease; meta: LeasesM
   const annual = (i: LeaseItem) => annualOf(prices[i.id]?.unit ?? i.billing_unit, i.area_m2, toCents(prices[i.id]?.price ?? ""));
   const total = items.reduce((sum, i) => sum + annual(i), 0);
   const perPeriod = Math.round(total / PER_YEAR[form.values.frequency]);
-  const save = useAction(async (values: typeof form.values) => {
+  const savePrices = async () => {
     for (const i of items) {
       const p = prices[i.id];
       if (p && (p.unit !== i.billing_unit || toCents(p.price) !== i.unit_price_cents)) {
         await api.patch<ItemResponse>(`/api/v1/leases/${lease.id}/items/${i.id}`, { billing_unit: p.unit, unit_price: p.price || "0" });
       }
     }
+  };
+  const save = useAction(async (values: typeof form.values) => {
+    await savePrices();
     return api.post<LeaseResponse>(`/api/v1/leases/${lease.id}/activate`, values);
   }, { invalidate: [LEASES_KEY, RECURRENCES_KEY, SALES_KEY], silent: true });
+  /** Aperçu : prix saisis enregistrés d'abord ; onglet ouvert tout de suite (pas de blocage). */
+  const preview = async () => {
+    const tab = window.open("", "_blank");
+    try {
+      await savePrices();
+      if (tab) tab.location.href = `/api/v1/leases/${lease.id}/preview.pdf`;
+    } catch (e) {
+      tab?.close();
+      setError((e as Error).message);
+    }
+  };
   const frequencyLabel = meta.frequencies.find((f) => f.value === form.values.frequency)?.label.toLowerCase() ?? "";
   return (
     <form onSubmit={form.onSubmit((values) => save.mutate(values, { onSuccess: (r) => onDone(r.item), onError: (e) => setError(applyApiError(form, e)) }))}>
@@ -283,6 +297,7 @@ function RentStep({ lease, meta, onBack, onDone }: { lease: Lease; meta: LeasesM
         </Group>
         <Group justify="flex-end">
           <Button variant="default" onClick={onBack}>Précédent</Button>
+          {lease.kind && <Button variant="default" onClick={() => void preview()}>Aperçu du bail (PDF)</Button>}
           <Button type="submit" loading={save.isPending}>{lease.status === "draft" ? "Valider le bail" : "Enregistrer"}</Button>
         </Group>
       </Stack>

@@ -93,6 +93,7 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
   "leases.index": () => import("../features/sales/LeasesPage"),
   "leases.detail": () => import("../features/sales/LeaseDetailPage"),
   ...pages(["leases.new", "leases.edit"], () => import("../features/sales/LeaseWizardPage")),
+  "lease_templates.index": () => import("../features/sales/LeaseTemplatesPage"),
   "orders.index": () => import("../features/odoo/OrdersPage"),
   "orders.detail": () => import("../features/odoo/OrderDetailPage"),
   "customer_invoices.index": () => import("../features/odoo/CustomerInvoicesPage"),

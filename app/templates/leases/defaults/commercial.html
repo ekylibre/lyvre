@@ -1,0 +1,41 @@
+<h1>BAIL COMMERCIAL</h1>
+<p>Bail soumis aux articles L.145-1 et suivants et R.145-1 et suivants du Code de commerce (statut des baux commerciaux).</p>
+<p>ENTRE LES SOUSSIGNÉS :</p>
+<p>{{ bailleur.identite }}, ci-après désignée « le Bailleur »,</p>
+<p>ET</p>
+<p>{{ preneur.identite }}, ci-après désigné « le Preneur »,</p>
+<p>IL A ÉTÉ ARRÊTÉ ET CONVENU CE QUI SUIT :</p>
+<h2>Article 1 : Objet et désignation</h2>
+<p>Le Bailleur donne à bail commercial au Preneur, qui accepte, les biens ci-après désignés{{ biens.situation }} :</p>
+<p>{{ biens.tableau }}</p>
+<p>{{ biens.carte }}</p>
+<p>Le Preneur déclare bien connaître les lieux pour les avoir visités et les accepter dans l’état où ils se trouvent.</p>
+<h2>Article 2 : Destination</h2>
+<p>Les lieux sont destinés exclusivement à l’activité suivante : [activité du Preneur]. Toute modification de cette destination est soumise à l’accord préalable et écrit du Bailleur.</p>
+<h2>Article 3 : Durée</h2>
+<p>Le bail est consenti pour une durée de {{ bail.duree }}, à compter du {{ bail.debut }} pour se terminer le {{ bail.fin }}.</p>
+<p>Le Preneur a la faculté de donner congé à l’expiration de chaque période triennale, dans les formes et délais de l’article L.145-9 du Code de commerce, soit au moins six mois à l’avance.</p>
+<h2>Article 4 : Loyer</h2>
+<p>Le bail est consenti moyennant un loyer annuel hors taxes et hors charges de {{ loyer.annuel }} ({{ loyer.annuel_lettres }}), décomposé comme suit :</p>
+<p>{{ loyer.detail }}</p>
+<p>Il est payable d’avance par échéance {{ loyer.frequence }} de {{ loyer.echeance }}{% if charges.montant %}, augmentée d’une provision sur charges de {{ charges.montant }}{% endif %}.</p>
+<h2>Article 5 : Révision du loyer</h2>
+<p>{% if indice.code %}Le loyer sera révisé de plein droit {{ indice.frequence_texte }}, en fonction de la variation de l’{{ indice.nom }} publié par l’INSEE. L’indice de référence est celui du {{ indice.reference }}.{% else %}Le loyer pourra être révisé dans les conditions des articles L.145-37 et suivants du Code de commerce.{% endif %}</p>
+<h2>Article 6 : Dépôt de garantie</h2>
+<p>{% if depot.montant %}Le Preneur verse au Bailleur un dépôt de garantie de {{ depot.montant }} ({{ depot.lettres }}), non productif d’intérêts, restitué dans les trois mois suivant la remise des clés, déduction faite des sommes restant dues.{% else %}Aucun dépôt de garantie n’est demandé.{% endif %}</p>
+<h2>Article 7 : Charges, impôts et taxes</h2>
+<p>Le Preneur rembourse au Bailleur les charges, impôts et taxes afférents aux lieux loués selon l’inventaire précis et limitatif annexé au présent bail, conformément à l’article L.145-40-2 du Code de commerce. Un état récapitulatif annuel lui est adressé.</p>
+<h2>Article 8 : Entretien et travaux</h2>
+<p>Le Preneur entretient les lieux en bon état de réparations locatives. Les grosses réparations de l’article 606 du Code civil restent à la charge du Bailleur.</p>
+<h2>Article 9 : Assurances</h2>
+<p>Le Preneur assure les lieux loués contre les risques locatifs et en justifie au Bailleur à première demande.</p>
+<h2>Article 10 : Cession et sous-location</h2>
+<p>Toute sous-location est interdite sans l’accord écrit du Bailleur. La cession du bail n’est permise qu’à l’acquéreur du fonds de commerce.</p>
+<h2>Article 11 : Clause résolutoire</h2>
+<p>À défaut de paiement d’un seul terme de loyer ou d’exécution d’une seule des conditions du bail, et un mois après un commandement resté infructueux, le bail sera résilié de plein droit.</p>
+<h2>Article 12 : Diagnostics</h2>
+<p>Les diagnostics prévus par la réglementation (état des risques, diagnostic de performance énergétique, et le cas échéant amiante) sont remis au Preneur.</p>
+<h2>Article 13 : Élection de domicile</h2>
+<p>Pour l’exécution des présentes, les parties font élection de domicile en leur adresse indiquée en tête des présentes.</p>
+<p>Fait à {{ signature.lieu }}, le {{ signature.date }}, en deux exemplaires.</p>
+<p>{{ signatures }}</p>

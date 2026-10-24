@@ -1,0 +1,29 @@
+<h1>CONTRAT DE LOCATION</h1>
+<p>Logement soumis au titre Ier de la loi n° 89-462 du 6 juillet 1989 tendant à améliorer les rapports locatifs.</p>
+<h2>I. Désignation des parties</h2>
+<p>Le bailleur : {{ bailleur.identite }}, ci-après « le Bailleur ».</p>
+<p>Le locataire : {{ preneur.nom }}, demeurant {{ preneur.adresse }}{% if preneur.email %}, courriel {{ preneur.email }}{% endif %}, ci-après « le Locataire ».</p>
+<h2>II. Objet du contrat</h2>
+<p>Le présent contrat a pour objet la location d’un logement à usage de résidence principale{% if biens.adresse %}, situé {{ biens.adresse }}{% endif %}{% if biens.lieu %} ({{ biens.lieu }}){% endif %}, composé de :</p>
+<p>{{ biens.tableau }}</p>
+<p>Surface habitable : [surface habitable] m². Type d’habitat, régime juridique de l’immeuble, période de construction, éléments d’équipement et locaux à usage privatif : [à compléter].</p>
+<h2>III. Date de prise d’effet et durée du contrat</h2>
+<p>Le contrat prend effet le {{ bail.debut }}, pour une durée de {{ bail.duree }} (trois ans au moins pour un bailleur personne physique ou société civile familiale, six ans pour un bailleur personne morale). À défaut de congé, il est reconduit tacitement.</p>
+<h2>IV. Conditions financières</h2>
+<p>Loyer annuel hors charges : {{ loyer.annuel }} ({{ loyer.annuel_lettres }}), payable par échéance {{ loyer.frequence }} de {{ loyer.echeance }}{% if charges.montant %}, augmentée d’une provision sur charges de {{ charges.montant }} régularisée chaque année{% endif %}.</p>
+<p>{% if indice.code %}Le loyer est révisé chaque année à la date anniversaire du contrat, en fonction de la variation de l’{{ indice.nom }} ; indice de référence : {{ indice.reference }}.{% else %}Le loyer n’est pas révisé en cours de bail.{% endif %}</p>
+<p>Le cas échéant, informations relatives au loyer de référence et au complément de loyer (zones d’encadrement des loyers) : [à compléter].</p>
+<h2>V. Travaux</h2>
+<p>Montant et nature des travaux d’amélioration ou de mise en conformité effectués depuis la fin du dernier contrat : [à compléter le cas échéant].</p>
+<h2>VI. Garanties</h2>
+<p>{% if depot.montant %}Dépôt de garantie : {{ depot.montant }} ({{ depot.lettres }}), au plus un mois de loyer hors charges pour un logement vide, restitué dans un délai d’un mois (deux mois en cas d’écart avec l’état des lieux d’entrée) après la remise des clés.{% else %}Aucun dépôt de garantie n’est demandé.{% endif %}</p>
+<h2>VII. Clause de solidarité et clause résolutoire</h2>
+<p>Le bail sera résilié de plein droit, deux mois après un commandement de payer demeuré infructueux, à défaut de paiement du loyer, des charges ou du dépôt de garantie, ou à défaut d’assurance des risques locatifs, ou en cas de troubles de voisinage constatés par une décision de justice.</p>
+<h2>VIII. Honoraires de location</h2>
+<p>[Le cas échéant : honoraires à la charge du bailleur et du locataire, dans la limite des plafonds réglementaires.]</p>
+<h2>IX. Autres conditions particulières</h2>
+<p>[À compléter.]</p>
+<h2>X. Annexes</h2>
+<p>Sont annexés au contrat : le dossier de diagnostic technique (diagnostic de performance énergétique, constat de risque d’exposition au plomb, état d’amiante, état de l’installation intérieure d’électricité et de gaz, état des risques), l’état des lieux d’entrée, la notice d’information prévue par l’arrêté du 29 mai 2015 et, le cas échéant, le règlement de copropriété.</p>
+<p>Fait à {{ signature.lieu }}, le {{ signature.date }}, en deux exemplaires.</p>
+<p>{{ signatures }}</p>

@@ -142,6 +142,7 @@ export interface Lease {
   kind: string; kind_label: string; premises_label: string; signed_on_place: string; index_code: string;
   index_reference_period: string; index_reference_value: string; revision_months: string;
   next_revision_date: string | null; revise_deposit: boolean; items?: LeaseItem[];
+  document: { generated_at: string | null; edited: boolean; frozen: boolean; preview_url: string };
   invoices?: (SaleRow & { service_start: string | null; service_end: string | null })[]; receipts?: RentReceipt[];
 }
 

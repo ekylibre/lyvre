@@ -230,7 +230,8 @@ MENUS = [
         "label": "Configuration",
         "charts": _ALL,
         "admin_only": True,
-        "active": ["organization", "integrations", "access", "receipts_settings", "simple_categories", "account_roles"],
+        "active": ["organization", "integrations", "access", "receipts_settings", "simple_categories", "account_roles",
+                   "lease_templates"],
         "items": [
             {"key": "organization", "label": "Structure", "endpoint": "organization.index", "charts": _ALL},
             {"key": "receipts_settings", "label": "Reçus fiscaux", "endpoint": "receipts.settings", "charts": _ASSO},
@@ -238,6 +239,7 @@ MENUS = [
              "bookkeeping": _SIMPLE},
             {"key": "account_roles", "label": "Comptes par défaut", "endpoint": "account_roles.index", "charts": _ALL,
              "bookkeeping": _DOUBLE},
+            {"key": "lease_templates", "label": "Modèles de bail", "endpoint": "lease_templates.index", "charts": _ALL},
             {"key": "integrations", "label": "Intégrations", "endpoint": "integrations.index", "charts": _ALL},
             {"key": "access", "label": "Accès", "endpoint": "access.index", "charts": _ALL},
         ],

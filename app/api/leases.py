@@ -2,13 +2,17 @@
 baux (dépôt de garantie), quittances et reçus de loyer."""
 from contextlib import contextmanager
 from datetime import date
+from io import BytesIO
 
 from flask import jsonify, send_file
+from flask_login import current_user
 
 from app.extensions import db
 from app.models import Account, BankAccount, Lease, LeaseItem, Recurrence, RentReceipt, Sale
 from app.models.sale import FREQUENCIES
-from app.services import external_config, leases, recurrence, sale_entry
+from app.access import instance_admin_required
+from app.services import external_config, lease_documents, leases, recurrence, sale_entry
+from app.services.lease_documents import LeaseDocumentError
 from app.services.sale_entry import SaleError
 
 from . import ApiError, bp, get_or_404, invalid, json_body, notice, require_integration
@@ -19,7 +23,7 @@ from .sales import _line, _require_channel, sale_row
 def _errors():
     try:
         yield
-    except SaleError as exc:
+    except (SaleError, LeaseDocumentError) as exc:
         db.session.rollback()
         if exc.status == 422:
             raise invalid(exc.message, exc.field) from None
@@ -143,7 +147,10 @@ def lease_payload(lease: Lease, detail: bool = False) -> dict:
            "index_code": lease.index_code or "", "index_reference_period": lease.index_reference_period or "",
            "index_reference_value": str(lease.index_reference_value) if lease.index_reference_value is not None else "",
            "revision_months": str(lease.revision_months or ""), "next_revision_date": _iso(lease.next_revision_date),
-           "revise_deposit": lease.revise_deposit}
+           "revise_deposit": lease.revise_deposit,
+           "document": {"generated_at": _iso(lease.document_generated_at), "edited": lease.document_edited,
+                        "frozen": lease.document_html is not None,
+                        "preview_url": f"/api/v1/leases/{lease.id}/preview.pdf"}}
     if detail:
         row["items"] = [item_payload(i) for i in lease.items]
         sales = Sale.query.filter_by(lease_id=lease.id).order_by(Sale.issue_date.desc(), Sale.id.desc()).all()
@@ -249,7 +256,112 @@ def leases_activate(lease_id):
         leases.activate(lease, json_body())
     message = (f"Bail validé : avis d'échéance préparés à partir du {lease.recurrence.next_date:%d/%m/%Y}."
                if was_draft else "Loyer et facturation enregistrés.")
-    return jsonify(item=lease_payload(lease, True), notices=[notice(message)])
+    notices = [notice(message)]
+    if was_draft and lease.kind:
+        try:  # texte du bail figé à la validation ; un modèle en erreur ne bloque pas la validation
+            lease_documents.generate(lease)
+            db.session.commit()
+        except LeaseDocumentError as exc:
+            db.session.rollback()
+            notices.append(notice(f"Texte du bail non rédigé : {exc.message}", "warning"))
+    return jsonify(item=lease_payload(lease, True), notices=notices)
+
+
+# ------------------------------------------------------------------ texte du bail (lot L2)
+
+@bp.route("/leases/<int:lease_id>/preview.pdf")
+def leases_preview(lease_id):
+    lease = get_or_404(Lease, lease_id, "Bail introuvable.")
+    with _errors():
+        pdf = lease_documents.render_pdf(lease)
+    return send_file(BytesIO(pdf), mimetype="application/pdf", download_name=f"bail-{lease.id}.pdf")
+
+
+@bp.route("/leases/<int:lease_id>/document")
+def leases_document(lease_id):
+    """Texte du bail (figé, sinon rendu depuis le modèle) pour la retouche."""
+    lease = get_or_404(Lease, lease_id, "Bail introuvable.")
+    with _errors():
+        body = lease_documents.current_html(lease)
+    return jsonify(item={"body_html": body, "frozen": lease.document_html is not None, "edited": lease.document_edited})
+
+
+@bp.route("/leases/<int:lease_id>/document", methods=["PUT"])
+def leases_document_save(lease_id):
+    lease = get_or_404(Lease, lease_id, "Bail introuvable.")
+    with _errors():
+        lease_documents.save_document(lease, str(json_body().get("body_html") or ""))
+    return jsonify(item=lease_payload(lease, True), notices=[notice("Texte du bail enregistré (retouché pour ce bail).")])
+
+
+@bp.route("/leases/<int:lease_id>/document/regenerate", methods=["POST"])
+def leases_document_regenerate(lease_id):
+    lease = get_or_404(Lease, lease_id, "Bail introuvable.")
+    with _errors():
+        lease_documents.generate(lease)
+        db.session.commit()
+    return jsonify(item=lease_payload(lease, True), notices=[notice("Texte du bail régénéré depuis le modèle.")])
+
+
+# ------------------------------------------------------------------ modèles de bail (lot L2)
+
+def template_payload(row, detail=False) -> dict:
+    item = {"kind": row.kind, "title": row.title, "version": row.version, "reviewed": row.reviewed,
+            "updated_at": _iso(row.updated_at)}
+    if detail:
+        item["body_html"] = row.body_html
+    return item
+
+
+@bp.route("/lease-templates")
+@instance_admin_required
+def lease_templates_list():
+    rows = lease_documents.templates()
+    return jsonify(items=[template_payload(r) for r in rows], meta={
+        "fields": [{"value": f"{{{{ {key} }}}}", "label": label} for key, label in lease_documents.FIELDS],
+        "leases": [{"value": str(l.id), "label": leases.lease_label(l), "kind": l.kind or ""}
+                   for l in Lease.query.order_by(Lease.unit_label)]})
+
+
+@bp.route("/lease-templates/<kind>")
+@instance_admin_required
+def lease_templates_detail(kind):
+    with _errors():
+        row = lease_documents.template_for(kind)
+        db.session.commit()
+    return jsonify(item=template_payload(row, True))
+
+
+@bp.route("/lease-templates/<kind>", methods=["PUT"])
+@instance_admin_required
+def lease_templates_save(kind):
+    with _errors():
+        row = lease_documents.save_template(kind, str(json_body().get("body_html") or ""), current_user.get_id())
+    return jsonify(item=template_payload(row, True), notices=[notice(
+        "Modèle enregistré : il servira aux prochains baux (les textes déjà rédigés ne changent pas).")])
+
+
+@bp.route("/lease-templates/<kind>/reset", methods=["POST"])
+@instance_admin_required
+def lease_templates_reset(kind):
+    with _errors():
+        row = lease_documents.reset_template(kind, current_user.get_id())
+    return jsonify(item=template_payload(row, True), notices=[notice("Modèle livré rétabli (à relire).")])
+
+
+@bp.route("/lease-templates/<kind>/preview", methods=["POST"])
+@instance_admin_required
+def lease_templates_preview(kind):
+    """`{body_html, lease_id}` : PDF du modèle (non enregistré) appliqué à un bail."""
+    data = json_body()
+    lease = db.session.get(Lease, int(data["lease_id"])) if str(data.get("lease_id") or "").isdigit() else None
+    if lease is None:
+        raise invalid("Choisissez un bail pour l'aperçu.", "lease_id")
+    with _errors():
+        lease_documents.template_for(kind)
+        body = lease_documents.sanitize(str(data.get("body_html") or ""))
+        pdf = lease_documents.render_pdf(lease, body)
+    return send_file(BytesIO(pdf), mimetype="application/pdf", download_name=f"apercu-{kind}.pdf")
 
 
 @bp.route("/leases/<int:lease_id>/deposit", methods=["POST"])

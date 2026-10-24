@@ -267,6 +267,10 @@ class Lease(db.Model):
     revision_months = db.Column(db.Integer)         # 12 | 36
     next_revision_date = db.Column(db.Date)
     revise_deposit = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
+    # Texte du bail (lot L2) : généré depuis le modèle à la validation, figé, retouchable.
+    document_html = db.Column(db.Text)
+    document_generated_at = db.Column(db.DateTime)
+    document_edited = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     entity = db.relationship("Entity")
@@ -300,6 +304,21 @@ class LeaseItem(db.Model):
     partial = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
 
     lease = db.relationship("Lease", back_populates="items")
+
+
+class LeaseTemplate(db.Model):
+    """Modèle de bail d'un type (lot L2) : HTML avec champs Jinja, modifiable dans les paramètres ;
+    créé depuis le modèle livré (`templates/leases/defaults/<kind>.html`) au premier usage."""
+    __tablename__ = "lease_templates"
+
+    id = db.Column(db.Integer, primary_key=True)
+    kind = db.Column(db.String(12), nullable=False, unique=True)
+    title = db.Column(db.String(200), nullable=False)
+    body_html = db.Column(db.Text, nullable=False)
+    version = db.Column(db.Integer, nullable=False, default=1, server_default="1")
+    reviewed = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())  # enregistré une fois
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_by_id = db.Column(db.Integer)  # utilisateur (base méta), sans clé étrangère
 
 
 class RentReceipt(db.Model):
