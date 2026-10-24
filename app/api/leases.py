@@ -4,14 +4,14 @@ from contextlib import contextmanager
 from datetime import date
 from io import BytesIO
 
-from flask import jsonify, send_file
+from flask import jsonify, request, send_file
 from flask_login import current_user
 
 from app.extensions import db
 from app.models import Account, BankAccount, Lease, LeaseItem, Recurrence, RentReceipt, Sale
 from app.models.sale import FREQUENCIES
 from app.access import instance_admin_required
-from app.services import external_config, lease_documents, leases, recurrence, sale_entry
+from app.services import external_config, geodata, lease_documents, leases, organization, recurrence, sale_entry
 from app.services.lease_documents import LeaseDocumentError
 from app.services.sale_entry import SaleError
 
@@ -123,7 +123,8 @@ def item_payload(item: LeaseItem) -> dict:
             "nature": item.nature, "area_m2": item.area_m2, "built_m2": item.built_m2,
             "billing_unit": item.billing_unit, "unit_price_cents": item.unit_price_cents,
             "annual_cents": item.annual_cents, "cadastral_refs": item.cadastral_refs or [],
-            "source": item.source, "partial": item.partial, "has_geometry": item.geometry is not None}
+            "source": item.source, "partial": item.partial, "has_geometry": item.geometry is not None,
+            "geometry": item.geometry}
 
 
 def lease_payload(lease: Lease, detail: bool = False) -> dict:
@@ -407,3 +408,62 @@ def rent_receipts_send(receipt_id):
         to = sale_issue.validate_emails(json_body().get("to") or [row.lease.entity.email], "to")
         leases.send_receipt(row, to)
     return jsonify(item=receipt_payload(row), notices=[notice("Quittance envoyée.")])
+
+
+# ------------------------------------------------------------------ carte des biens (lot L3)
+
+@contextmanager
+def _geo_errors():
+    try:
+        yield
+    except geodata.GeoUnavailable as exc:
+        raise ApiError("service_unavailable", exc.message, status=503) from None
+    except ValueError as exc:
+        raise invalid(str(exc)) from None
+
+
+FRANCE = {"lat": 46.6, "lon": 2.4, "zoom": 6, "label": "France"}
+
+
+@bp.route("/geo/organization")
+def geo_organization():
+    """Centre de la carte : adresse de la structure géocodée (BF6), sinon la France."""
+    org = organization.get()
+    address = " ".join(p for p in (org.address_line1, org.postal_code, org.city) if p)
+    try:
+        found = geodata.geocode(address)
+    except geodata.GeoUnavailable:
+        found = None
+    if found is None:
+        return jsonify(center=FRANCE)
+    return jsonify(center={"lat": found["lat"], "lon": found["lon"], "zoom": 17, "label": found["label"],
+                           "insee": found["insee"]})
+
+
+@bp.route("/geo/parcels")
+def geo_parcels():
+    with _geo_errors():
+        return jsonify(geodata.parcels(geodata.parse_bbox(request.args.get("bbox", ""))))
+
+
+@bp.route("/geo/buildings")
+def geo_buildings():
+    with _geo_errors():
+        return jsonify(geodata.buildings(geodata.parse_bbox(request.args.get("bbox", ""))))
+
+
+@bp.route("/geo/parcel")
+def geo_parcel():
+    """`?lat=&lon=` : fiche Lexicon de la parcelle au point ; `?ref=17387000AH0248` : contour IGN."""
+    with _geo_errors():
+        if request.args.get("ref"):
+            found = geodata.parcel_by_ref(request.args["ref"])
+        else:
+            try:
+                lat, lon = float(request.args.get("lat", "")), float(request.args.get("lon", ""))
+            except ValueError:
+                raise ValueError("Coordonnées attendues : lat et lon.") from None
+            found = geodata.parcel_at(lat, lon)
+    if found is None:
+        raise ApiError("not_found", "Aucune parcelle cadastrale à cet endroit.", status=404)
+    return jsonify(item=found)

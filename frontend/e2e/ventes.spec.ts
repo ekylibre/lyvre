@@ -136,3 +136,55 @@ test("modèles de bail : livrés, à relire (lot L2)", async ({ page }) => {
   await page.getByRole("tab", { name: /Bail d'habitation/ }).click();
   await expect(page.getByText("CONTRAT DE LOCATION")).toBeVisible();
 });
+
+test("bail : bien choisi sur la carte (lot L3)", async ({ page }) => {
+  // Aucun appel extérieur : services géographiques de Lyvre et tuiles IGN interceptés.
+  const parcel = { type: "Polygon", coordinates: [[[-0.7840, 45.8270], [-0.7830, 45.8270], [-0.7830, 45.8277], [-0.7840, 45.8277], [-0.7840, 45.8270]]] };
+  await page.route("https://data.geopf.fr/**", (r) => r.fulfill({ status: 200, contentType: "image/png",
+    body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64") }));
+  await page.route("**/api/v1/geo/organization", (r) => r.fulfill({ json: { center: { lat: 45.82735, lon: -0.7835, zoom: 17, label: "SCI", insee: "17387" } } }));
+  await page.route("**/api/v1/geo/parcels?**", (r) => r.fulfill({ json: { type: "FeatureCollection", features: [{ type: "Feature", id: "17387000AH0248",
+    geometry: parcel, properties: { idu: "17387000AH0248", ref: "AH 248", insee: "17387", commune: "Saint-Porchaire", area_m2: 5619 } }] } }));
+  await page.route("**/api/v1/geo/parcel?lat=**", (r) => r.fulfill({ json: { item: { idu: "17387000AH0248", ref: "AH 248", area_m2: 5619,
+    buildings: 2, buildings_area_m2: 155, commune: "ST PORCHAIRE" } } }));
+
+  await login(page, "SCI Ventes E2E", "/leases/new");
+  await page.getByRole("combobox", { name: "Locataire (preneur)" }).click();
+  await page.getByRole("option", { name: "Client Ventes E2E" }).click();
+  await page.getByRole("combobox", { name: "Type de bail" }).click();
+  await page.getByRole("option", { name: "Bail dérogatoire commercial" }).click();
+  await page.getByLabel(/^Désignation/).fill("La Vauzelle E2E");
+  await page.getByRole("button", { name: "Suivant" }).click();
+  await page.getByText("Avec carte").click();
+  await page.locator("[data-testid=lease-map] path.leaflet-interactive").first().click();
+  await expect(page.getByText("Total : 5 619 m²")).toBeVisible();
+  await expect(page.getByText("2 bât. · 155 m²")).toBeVisible();  // fiche Lexicon
+  await page.getByRole("button", { name: "Valider la sélection" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByLabel(/^Références cadastrales/)).toHaveValue("AH 248");
+  await expect(dialog.getByLabel(/^Surface louée/)).toHaveValue("5619");
+  await expect(dialog.getByLabel(/^Dont surface bâtie/)).toHaveValue("155");
+  await dialog.getByLabel(/^Désignation/).fill("Potager");
+  await dialog.getByRole("button", { name: "Ajouter" }).click();
+  await expect(page.getByRole("cell", { name: "Potager", exact: true })).toBeVisible();
+  await expect(page.locator("[data-testid=lease-map] .lease-letter")).toHaveText("A");
+
+  // Zone dessinée (Bâtiment) à cheval sur la parcelle : surface calculée, parcelle touchée reprise.
+  await page.getByText("Dessiner").click();
+  await page.getByText("Bâtiment", { exact: true }).click();
+  const box = (await page.getByTestId("lease-map").boundingBox())!;
+  const at = (dx: number, dy: number) => page.mouse.click(box.x + box.width / 2 + dx, box.y + box.height / 2 + dy);
+  await at(-40, -30);
+  await at(40, -30);
+  await at(40, 30);
+  await at(-40, 30);
+  await at(-40, -30);  // fermeture sur le premier point
+  await expect(page.getByText(/^Zone de .* m²/)).toBeVisible();
+  await page.getByRole("button", { name: "Valider la sélection" }).click();
+  const zone = page.getByRole("dialog");
+  await expect(zone.getByLabel(/^Références cadastrales/)).toHaveValue("AH 248");
+  await zone.getByLabel(/^Désignation/).fill("Atelier");
+  await zone.getByRole("button", { name: "Ajouter" }).click();
+  await expect(page.getByRole("cell", { name: "Atelier", exact: true })).toBeVisible();
+  await expect(page.locator("[data-testid=lease-map] .lease-letter")).toHaveText(["A", "B"]);
+});

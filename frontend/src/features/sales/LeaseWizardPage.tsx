@@ -2,7 +2,7 @@
 // dépôt, révision) — enregistré en brouillon ; 2. Biens loués (une ligne par élément : lettre,
 // désignation, nature, surfaces, références cadastrales) ; 3. Loyer et facturation (prix annuel par
 // ligne, échéance) — « Valider » crée la facture récurrente. Le même assistant modifie un bail validé.
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
 import {
   ActionIcon, Alert, Button, Center, Checkbox, Group, Loader, Paper, SegmentedControl, Select, SimpleGrid, Stack, Stepper,
@@ -19,7 +19,10 @@ import { MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
 import { AppLink, useGoTo } from "../../app/navigation";
 import type { Option } from "../purchases/types";
+import type { ItemPrefill } from "./LeaseMap";
 import { LEASES_KEY, RECURRENCES_KEY, SALES_KEY, type Lease, type LeaseItem } from "./types";
+
+const LeaseMap = lazy(() => import("./LeaseMap"));
 
 export interface LeasesMeta {
   tenants: Option[]; accounts: Option[]; bank_accounts: Option[]; qonto: boolean; kinds: Option[]; natures: Option[];
@@ -133,15 +136,19 @@ function TermsStep({ lease, meta, onSaved }: { lease: Lease | null; meta: Leases
 
 // ------------------------------------------------------------------ étape 2 : biens loués
 
-function ItemForm({ lease, item, meta, onDone }: { lease: Lease; item: LeaseItem | null; meta: LeasesMeta; onDone: (r?: ItemResponse) => void }) {
+function ItemForm({ lease, item, prefill, meta, onDone }: {
+  lease: Lease; item: LeaseItem | null; prefill?: ItemPrefill | null; meta: LeasesMeta; onDone: (r?: ItemResponse) => void;
+}) {
   const [error, setError] = useState<string | null>(null);
   const form = useForm({ initialValues: {
-    letter: item?.letter ?? "", label: item?.label ?? "", nature: item?.nature ?? "building",
-    area_m2: item ? String(item.area_m2) : "", built_m2: item ? String(item.built_m2) : "",
-    cadastral_refs: item?.cadastral_refs.join(", ") ?? "", partial: item?.partial ?? false,
+    letter: item?.letter ?? "", label: item?.label ?? prefill?.label ?? "", nature: item?.nature ?? prefill?.nature ?? "building",
+    area_m2: item ? String(item.area_m2) : prefill ? String(prefill.area_m2) : "",
+    built_m2: item ? String(item.built_m2) : prefill ? String(prefill.built_m2) : "",
+    cadastral_refs: (item?.cadastral_refs ?? prefill?.cadastral_refs ?? []).join(", "), partial: item?.partial ?? false,
   } });
   const save = useAction(({ letter, ...values }: typeof form.values) => {
-    const body = { ...values, ...(letter || item ? { letter } : {}) };
+    const body = { ...values, ...(letter || item ? { letter } : {}),
+      ...(prefill ? { geometry: prefill.geometry, source: prefill.source } : {}) };
     return item ? api.patch<ItemResponse>(`/api/v1/leases/${lease.id}/items/${item.id}`, body)
       : api.post<ItemResponse>(`/api/v1/leases/${lease.id}/items`, body);
   }, { silent: true });
@@ -170,11 +177,21 @@ function ItemsStep({ lease, meta, onChange, onBack, onNext }: {
   lease: Lease; meta: LeasesMeta; onChange: (lease: Lease) => void; onBack: () => void; onNext: () => void;
 }) {
   const [editing, setEditing] = useState<LeaseItem | "new" | null>(null);
+  const [prefill, setPrefill] = useState<ItemPrefill | null>(null);
   const remove = useAction((itemId: number) => api.delete<{ lease: Lease; notices?: Notice[] }>(`/api/v1/leases/${lease.id}/items/${itemId}`));
   const items = lease.items ?? [];
+  const [withMap, setWithMap] = useState(items.some((i) => i.has_geometry));
   const natureLabel = Object.fromEntries(meta.natures.map((n) => [n.value, n.label]));
+  const close = () => { setEditing(null); setPrefill(null); };
   return (
     <Stack>
+      <SegmentedControl w={300} value={withMap ? "map" : "plain"} onChange={(v) => setWithMap(v === "map")}
+        data={[{ value: "map", label: "Avec carte" }, { value: "plain", label: "Sans carte" }]} />
+      {withMap && (
+        <Suspense fallback={<Text size="sm" c="dimmed">Chargement de la carte…</Text>}>
+          <LeaseMap items={items} onPick={(p) => { setPrefill(p); setEditing("new"); }} />
+        </Suspense>
+      )}
       <Text size="sm" c="dimmed">Une ligne par élément loué (parcelle, bâtiment, zone) : elle porte une lettre, reprise dans le
         tableau du bail et sur les avis d'échéance.</Text>
       {items.length > 0 && (
@@ -204,9 +221,9 @@ function ItemsStep({ lease, meta, onChange, onBack, onNext }: {
         <Button variant="default" onClick={onBack}>Précédent</Button>
         <Button disabled={!items.length} onClick={onNext}>Suivant</Button>
       </Group>
-      <FormModal opened={editing !== null} onClose={() => setEditing(null)} title={editing === "new" ? "Ajouter un bien" : "Modifier le bien"} size="lg">
-        {editing !== null && <ItemForm lease={lease} meta={meta} item={editing === "new" ? null : editing}
-          onDone={(r) => { if (r) onChange(r.lease); setEditing(null); }} />}
+      <FormModal opened={editing !== null} onClose={close} title={editing === "new" ? "Ajouter un bien" : "Modifier le bien"} size="lg">
+        {editing !== null && <ItemForm lease={lease} meta={meta} item={editing === "new" ? null : editing} prefill={prefill}
+          onDone={(r) => { if (r) onChange(r.lease); close(); }} />}
       </FormModal>
     </Stack>
   );

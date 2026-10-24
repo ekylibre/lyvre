@@ -98,7 +98,19 @@ brouillon se reprend depuis la liste des baux, il se supprime tant qu'il n'est p
    lieu de signature.
 2. **Biens loués** : une ligne par élément (parcelle, bâtiment, zone) : **lettre** (A, B… proposée),
    désignation, nature (bâtiment, sol, forfait), surface louée, dont surface bâtie, références
-   cadastrales, « partie seulement ». La carte viendra compléter cette étape.
+   cadastrales, « partie seulement ». **Avec carte** : photo aérienne IGN centrée sur l'adresse de
+   la structure ;
+   - **Parcelles** (cadastre IGN, à partir du zoom 16) : cliquer une ou plusieurs parcelles ; la
+     fiche **Lexicon** de chacune donne sa surface et l'emprise de ses bâtiments ;
+   - **Bâtiments** (BD TOPO de l'IGN) : cliquer un ou plusieurs bâtiments ;
+   - **Dessiner** : une zone libre (Sol ou Bâtiment), à cheval sur plusieurs parcelles ou sur une
+     partie seulement ; surface calculée, parcelles touchées reprises ;
+   - « Ajouter une parcelle par référence » (AH 248) sans cliquer la carte.
+
+   **Valider la sélection** ouvre la ligne pré-remplie (surface, dont bâti, références, contour) :
+   nom, lettre, « partie seulement » (surface saisie à la main) à compléter. Les biens déjà saisis
+   sont dessinés en bleu avec leur lettre. Services indisponibles : message, saisie **Sans carte**
+   toujours possible.
 3. **Loyer** : **prix annuel HT** par ligne — au m² (bâtiments), à l'hectare (sols, surface
    arrondie à l'are : 4 940 m² → 0,49 ha) ou au forfait ; **loyer annuel** = somme des lignes ;
    périodicité, jour d'échéance, provisions sur charges, TVA, comptes des loyers et des charges
@@ -106,6 +118,9 @@ brouillon se reprend depuis la liste des baux, il se supprime tant qu'il n'est p
    récurrente : **une ligne « Loyer {période} — A Potager » par ligne de bail** (montant annuel
    divisé par le nombre d'échéances, écart d'arrondi sur la dernière ligne ; une ligne à 0 € n'est
    pas facturée) et la provision sur charges ; les avis d'échéance arrivent dans « À émettre ».
+
+La **carte du bail** (photo aérienne IGN, zones lettrées, « © IGN ») est rendue par le serveur et
+placée dans le texte (`{{ biens.carte }}`) ; elle n'est refaite que si les zones changent.
 
 **Texte du bail** : à la validation, le texte est **rédigé depuis le modèle** du type de bail
 (Configuration › **Modèles de bail**) et **figé** dans le bail : modifier ensuite le modèle ne change
@@ -138,8 +153,7 @@ Les **gérants** (Associés › case « Gérant ») et la **forme juridique** et
   conservé sur la fiche du bail, **Envoyer** au locataire.
 
 Hors périmètre pour l'instant : régularisation annuelle des charges. À venir (conception
-`claudedocs/design_baux.md`) : carte des biens, signature électronique, révision automatique du
-loyer.
+`claudedocs/design_baux.md`) : signature électronique, révision automatique du loyer.
 
 ## Avec Qonto
 

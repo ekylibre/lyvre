@@ -187,6 +187,36 @@ def _refs(value) -> list[str]:
     return [str(v).strip()[:30] for v in value if str(v).strip()][:50]
 
 
+MAX_POINTS = 20000
+SOURCES = ("parcels", "buildings", "drawn", "manual")
+
+
+def _geometry(value) -> dict | None:
+    """Polygon / MultiPolygon GeoJSON en WGS84 (contrôlé : type, coordonnées, taille), ou rien."""
+    if value in (None, ""):
+        return None
+    if not isinstance(value, dict) or value.get("type") not in ("Polygon", "MultiPolygon"):
+        raise SaleError("Géométrie : polygone ou multipolygone attendu.", "geometry")
+    polygons = value.get("coordinates")
+    if value["type"] == "Polygon":
+        polygons = [polygons]
+    points = 0
+    try:
+        for polygon in polygons:
+            for ring in polygon:
+                if len(ring) < 4:
+                    raise ValueError
+                for lon, lat, *_rest in ring:
+                    if not (-180 <= float(lon) <= 180 and -90 <= float(lat) <= 90):
+                        raise ValueError
+                points += len(ring)
+    except (TypeError, ValueError):
+        raise SaleError("Géométrie invalide.", "geometry") from None
+    if not points or points > MAX_POINTS:
+        raise SaleError("Géométrie vide ou trop détaillée.", "geometry")
+    return {"type": value["type"], "coordinates": value["coordinates"]}
+
+
 def save_item(lease: Lease, data: dict, item: LeaseItem | None = None) -> LeaseItem:
     """Ajoute ou modifie une ligne (commit) ; bail validé : facture récurrente mise à jour."""
     try:
@@ -229,6 +259,13 @@ def save_item(lease: Lease, data: dict, item: LeaseItem | None = None) -> LeaseI
             item.cadastral_refs = _refs(data.get("cadastral_refs")) or None
         if "partial" in data:
             item.partial = bool(data.get("partial"))
+        if "geometry" in data:
+            item.geometry = _geometry(data.get("geometry"))
+        if "source" in data:
+            if data.get("source") not in SOURCES:
+                raise SaleError("Origine de la géométrie inconnue.", "source")
+            item.source = data["source"]
+        item.source = item.source or ("manual" if item.geometry is None else "drawn")
         item.annual_cents = annual_of(item)
         if lease.status == "active":
             _sync_recurrence(lease)

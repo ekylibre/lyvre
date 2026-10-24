@@ -10,7 +10,7 @@ modèle ne change pas les baux déjà rédigés ; il reste retouchable pour ce b
 et peut être régénéré. Tant qu'il n'est pas figé (brouillon), l'aperçu rend le modèle à la volée.
 
 PDF : gabarit `leases/document.html` + texte, WeasyPrint, sans ressource extérieure (seules les images
-`data:` et les fichiers de l'instance sont lus).
+`data:` et la carte figée du bail, `lease-map:carte-….png`, sont lues).
 """
 from __future__ import annotations
 
@@ -28,8 +28,7 @@ from markupsafe import Markup, escape
 from app.extensions import db
 from app.models import Associate, Lease, LeaseTemplate
 from app.models.sale import FREQUENCIES
-from app.services import leases, organization
-from app.services.attachments import instance_dir
+from app.services import lease_map, leases, organization
 from app.services.recurrence import MONTHS
 from app.utils.money import euros, euros_in_words, number_in_words
 
@@ -66,6 +65,7 @@ VOID_TAGS = {"br", "hr"}
 DROPPED_TAGS = {"script", "style", "iframe", "object", "embed", "head", "title", "svg", "math", "template"}
 SAFE_LINK = re.compile(r"^(https?:|mailto:|\{\{)", re.I)
 SAFE_CLASS = re.compile(r"^[a-z0-9 _-]{1,60}$")
+MAP_SRC = re.compile(r"^lease-map:(carte-[0-9a-f]{8,16}\.png)$")  # carte figée du bail (lot L3), seule image admise
 
 
 class LeaseDocumentError(ValueError):
@@ -94,10 +94,14 @@ class _Sanitizer(HTMLParser):
             safe = f' href="{html.escape(href)}"' if href and SAFE_LINK.match(href.strip()) else ""
             safe += f' class="{css}"' if css and SAFE_CLASS.match(css) else ""
             self.out.append(f"<{tag}{safe}>")
+        elif not self.skipping and tag == "img" and MAP_SRC.match(dict(attrs).get("src") or ""):
+            self.out.append(f'<img class="map" src="{dict(attrs)["src"]}">')
 
     def handle_startendtag(self, tag, attrs):
         if not self.skipping and tag in VOID_TAGS:
             self.out.append(f"<{tag}>")
+        elif tag == "img":
+            self.handle_starttag(tag, attrs)
 
     def handle_endtag(self, tag):
         if tag in DROPPED_TAGS:
@@ -277,6 +281,12 @@ def _detail(lease: Lease) -> Markup:
     return Markup("<ul class='rent'>" + "".join(f"<li>{escape(line)}</li>" for line in lines) + "</ul>")
 
 
+def _map(lease: Lease) -> Markup:
+    """Carte figée des biens (image rendue une fois par jeu de zones), vide sans géométrie."""
+    name = lease_map.render(lease)
+    return Markup(f'<img class="map" src="lease-map:{name}">') if name else Markup("")
+
+
 def _letters(lease: Lease) -> str:
     letters = [i.letter for i in lease.items if i.letter]
     if len(letters) <= 1:
@@ -334,7 +344,7 @@ def context(lease: Lease) -> dict:
         },
         "biens": {
             "lieu": lease.premises_label or "", "adresse": premises_address, "situation": situation,
-            "tableau": _table(lease), "carte": Markup(""), "lettres": _letters(lease),
+            "tableau": _table(lease), "carte": _map(lease), "lettres": _letters(lease),
             "surface_batie": _area(sum(i.built_m2 for i in lease.items)),
             "surface_sol": _hectares(sum(i.area_m2 for i in lease.items if i.nature == "land")),
         },
@@ -392,14 +402,19 @@ def current_html(lease: Lease) -> str:
     return render_body(template_for(_kind(lease)).body_html, lease)
 
 
-def _url_fetcher(url, *args, **kwargs):
-    """Aucune ressource extérieure dans un bail : images `data:` et fichiers de l'instance seulement."""
-    from weasyprint import default_url_fetcher
-    if url.startswith("data:"):
-        return default_url_fetcher(url, *args, **kwargs)
-    if url.startswith("file://") and Path(url[7:]).resolve().is_relative_to(instance_dir().resolve()):
-        return default_url_fetcher(url, *args, **kwargs)
-    raise ValueError(f"Ressource refusée dans un bail : {url[:80]}")
+def _url_fetcher(lease: Lease):
+    """Aucune ressource extérieure dans un bail : images `data:` et carte figée du bail seulement."""
+    def fetch(url, *args, **kwargs):
+        from weasyprint import default_url_fetcher
+        if url.startswith("data:"):
+            return default_url_fetcher(url, *args, **kwargs)
+        match = MAP_SRC.match(url)
+        if match:
+            path = lease_map.folder(lease) / match.group(1)
+            if path.is_file():
+                return {"string": path.read_bytes(), "mime_type": "image/png"}
+        raise ValueError(f"Ressource refusée dans un bail : {url[:80]}")
+    return fetch
 
 
 def render_pdf(lease: Lease, body_html: str | None = None) -> bytes:
@@ -408,4 +423,4 @@ def render_pdf(lease: Lease, body_html: str | None = None) -> bytes:
     body = render_body(body_html, lease) if body_html is not None else current_html(lease)
     page = render_template("leases/document.html", body=Markup(body), lease=lease, org=organization.get(),
                            title=leases.KINDS.get(lease.kind, "Bail"))
-    return HTML(string=page, url_fetcher=_url_fetcher, base_url=str(current_app.root_path)).write_pdf()
+    return HTML(string=page, url_fetcher=_url_fetcher(lease), base_url=str(current_app.root_path)).write_pdf()

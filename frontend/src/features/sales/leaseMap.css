@@ -1,0 +1,7 @@
+/* Carte des biens loués (lot L3). */
+.lease-map { height: 560px; border-radius: var(--mantine-radius-md); overflow: hidden; }
+.lease-map .lease-letter {
+  background: transparent; border: none; box-shadow: none; color: #fff; font-weight: 800; font-size: 18px;
+  text-shadow: 0 0 3px #14195a, 0 0 3px #14195a, 0 0 6px #14195a;
+}
+.lease-map .lease-letter::before { display: none; }

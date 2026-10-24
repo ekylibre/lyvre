@@ -150,6 +150,7 @@ export interface LeaseItem {
   id: number; position: number; letter: string; label: string; nature: "building" | "land" | "flat"; area_m2: number;
   built_m2: number; billing_unit: "m2" | "ha" | "flat"; unit_price_cents: number; annual_cents: number;
   cadastral_refs: string[]; source: string; partial: boolean; has_geometry: boolean;
+  geometry: import("geojson").Polygon | import("geojson").MultiPolygon | null;
 }
 
 export const RECURRENCES_KEY = ["recurrences"];

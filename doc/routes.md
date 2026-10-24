@@ -584,7 +584,7 @@ Structure, onglet Facturation (`/configuration/organization?tab=billing`). API :
 | POST | `/api/v1/sales/issue-batch` | `{ids, send}` : émission en lot, envoi par email si `send` |
 | GET / POST | `/api/v1/leases` | Baux ; `draft: true` : étape 1 de l'assistant `{entity_id, kind, unit_label, premises_label, adresse, start_date, end_date, deposit, index_code, index_reference_period, index_reference_value, revision_months, revise_deposit, signed_on_place, notes}` (brouillon, sans récurrence) ; sinon bail en une fois avec `rent` (loyer d'échéance, une ligne forfaitaire) ; méta : `kinds`, `natures`, `units`, `indexes`, `frequencies` |
 | GET / PATCH / DELETE | `/api/v1/leases/<id>` | Fiche (`items`, `annual_cents`, avis d'échéance, quittances), termes ; suppression d'un brouillon seulement |
-| POST | `/api/v1/leases/<id>/items` | Ligne `{letter?, label, nature, area_m2, built_m2, billing_unit?, unit_price, cadastral_refs, partial}` ; renvoie `item` et `lease` |
+| POST | `/api/v1/leases/<id>/items` | Ligne `{letter?, label, nature, area_m2, built_m2, billing_unit?, unit_price, cadastral_refs, partial, geometry?, source?}` (géométrie : Polygon / MultiPolygon WGS84 contrôlé ; `source` parcels / buildings / drawn / manual) ; renvoie `item` et `lease` |
 | PATCH / DELETE | `/api/v1/leases/<id>/items/<item_id>` | Ligne ; bail validé : facture récurrente mise à jour (au moins une ligne) |
 | GET | `/api/v1/leases/<id>/preview.pdf` | PDF du bail (texte figé, sinon modèle rendu à la volée) ; 422 sans type de bail ou champ inconnu |
 | GET / PUT | `/api/v1/leases/<id>/document` | Texte du bail (pour la retouche) / `{body_html}` : texte retouché pour ce bail (assaini) |
@@ -592,6 +592,9 @@ Structure, onglet Facturation (`/configuration/organization?tab=billing`). API :
 | GET | `/api/v1/lease-templates` | Admin d'instance : modèles (`kind`, `title`, `version`, `reviewed`), méta `fields` (champs insérables), `leases` (aperçu) |
 | GET / PUT | `/api/v1/lease-templates/<kind>` | Modèle (`body_html`) / enregistrement (assaini, syntaxe vérifiée, `reviewed`, version + 1) |
 | POST | `/api/v1/lease-templates/<kind>/reset` · `…/preview` | Modèle livré rétabli · `{body_html, lease_id}` : PDF du modèle appliqué à un bail |
+| GET | `/api/v1/geo/organization` | Centre de la carte : adresse de la structure géocodée (IGN), sinon la France |
+| GET | `/api/v1/geo/parcels?bbox=o,s,e,n` · `/api/v1/geo/buildings?bbox=` | Parcelles (IGN Parcellaire Express : `idu`, `ref`, `insee`, `area_m2`) / bâtiments (BD TOPO) de l'emprise (≤ 0,03°) ; 503 si le service ne répond pas |
+| GET | `/api/v1/geo/parcel?lat=&lon=` · `?ref=<idu>` | Fiche Lexicon de la parcelle au point (surface, bâtiments, emprise) / parcelle par identifiant (contour IGN) |
 | POST | `/api/v1/leases/<id>/activate` | Étape 3 `{frequency, due_day, in_advance, vat_rate, charges, rent_account_code, charges_account_code, qonto_emit}` : brouillon → validé (récurrence, une ligne par ligne de bail) ; bail validé : facturation enregistrée |
 | POST | `/api/v1/leases/<id>/deposit` | `{paid_on, bank_account_id}` : dépôt de garantie encaissé (banque ou caisse / 165) |
 | POST | `/api/v1/sales/<id>/rent-receipt` | Quittance (loyer de la période payé) ou reçu (paiement partiel) ; PDF conservé |
