@@ -1,9 +1,10 @@
 # Besoins — écarts retenus du comparatif des logiciels open source
 
-> Statut : expression de besoins (`/sc:brainstorm`, 23/10/2026), **à valider**. Pas de conception ni de code.
+> Statut : expression de besoins (`/sc:brainstorm`, 23/10/2026), **validée le 24/10/2026** (§ 1, CO5–CO13 ;
+> § 8 : questions tranchées, points restant pour l'expert-comptable). Pas de conception ni de code.
 > Origine : `doc/ref_compta/comparatif_oss_compta.md` (synthèse, § 3 écarts E1…E49) et rapports
 > `doc/ref_compta/comparatif_oss/*.md` (Invoice Ninja, Diacamma, enDI, Dokos, Frappe Books, Tryton).
-> Étape suivante : réponses au § 8, puis `/sc:design` par lot.
+> Étape suivante : `/sc:design` du lot F.
 
 ## 1. Décisions déjà prises (23/10/2026)
 
@@ -12,7 +13,16 @@
 | CO1 | Familles retenues | **Fiabilité comptable** (E1, E2, E3, E5, E8, E9), **échéances réglementaires** (E7, E29, E30), **vie associative et SCI** (E10, E35, E36, E41) |
 | CO2 | Familles écartées pour l'instant | Encaissements associatifs (remises de chèques E14, notes de frais E32, SEPA E18/E19, paiement en ligne E20, relances auto E21, balance âgée E22) et plateforme (E43–E49) |
 | CO3 | Invoice Ninja | Dans le tableau « Lyvre et les autres logiciels open source », avec la mention « code source disponible, licence non libre (Elastic License 2.0) » |
-| CO4 | TVA | **Ni Seconde Nature ni la SCI ne sont assujetties** : E7, E29, E30 servent d'abord les **autres structures** visées par Lyvre ; ils ne sont pas urgents pour les deux instances actuelles |
+| CO4 | TVA | **Ni Seconde Nature ni la SCI ne sont redevables** : E7 et E30 servent d'abord les **autres structures** visées par Lyvre. Nuance (24/10) : la SCI, qui loue nu, reste **assujettie exonérée** et doit **recevoir** les factures électroniques depuis le 01/09/2026 (pas d'obligation d'émettre) ; voir CO5 |
+| CO5 | Réception de la SCI | **Qonto reste la plateforme agréée (PA n° 23) de la SCI** ; Lyvre reprend ces factures par la synchronisation des factures d'achat Qonto existante (à vérifier au design : accès au XML structuré ou au Factur-X par l'API Qonto) |
+| CO6 | SuperPDP | Nouvelle **intégration SuperPDP** (PA, API OpenAPI v1.beta, OAuth2, bac à sable) pour les **autres structures** (réception, émission, statuts, annuaire) et pour **valider les Factur-X** produits par Lyvre (`/validation_reports`, point ouvert des ventes). Une structure reçoit par une seule PA |
+| CO7 | Écritures des pièces émises (Q2-1) | Factures de vente, avoirs, reçus fiscaux, quittances : écritures **validées d'office** |
+| CO8 | Période verrouillée (Q3-1) | Pièce reçue datée d'une période verrouillée : écriture à la **première date ouverte**, date d'origine dans le libellé ; une synchronisation ne bloque jamais |
+| CO9 | Analytique (Q10-1) | Clés de répartition appliquées **à la saisie** (ligne ventilée tout de suite) |
+| CO10 | Baux de la SCI (Q41-1) | Baux d'**habitation et commerciaux** : charges récupérables paramétrées **par bail** |
+| CO11 | Adhésions (Q35-1) | Adhésion **individuelle** seulement ; familles, activités, licences fédérales plus tard |
+| CO12 | Subventions d'investissement (Q8-2) | **Plus tard**, hors du lot immobilisations |
+| CO13 | Autres questions du § 8 | Propositions retenues sauf avis contraire (§ 8) |
 
 ## 2. Principes communs (exigences non fonctionnelles)
 
@@ -51,11 +61,12 @@ Avant la clôture, toute écriture est modifiable et supprimable.
 - E2.3 Écriture validée : ni modification, ni suppression. Action **Contrepasser** : écriture inverse
   datée du jour (ou d'une date choisie dans un exercice ouvert), liée par `reverses_entry_id`,
   rapprochements et lettrages défaits proprement.
-- E2.4 Les pièces émises (factures de vente numérotées, reçus fiscaux, quittances) génèrent des
-  écritures **validées d'office** (option à confirmer, Q2-1).
+- E2.4 Les pièces émises (factures de vente et avoirs numérotés, reçus fiscaux, quittances) génèrent des
+  écritures **validées d'office** (CO7) ; elles se corrigent par avoir ou annulation de la pièce.
 - E2.5 **Historique** des écritures en brouillard : création, modification (avant / après), suppression,
   par qui et quand ; consultable depuis la fiche de l'écriture et par l'expert-comptable.
-- E2.6 Contrôles de clôture : nombre d'écritures en brouillard affiché, validation proposée.
+- E2.6 Contrôles de clôture : nombre d'écritures en brouillard affiché, validation proposée. Validation
+  **libre** jusqu'à la clôture ; le tableau de bord signale les écritures en brouillard de plus de 3 mois.
 - E2.7 Rapprochement bancaire et règles : inchangés pour l'utilisateur ; une écriture validée reste
   rapprochable et délettrable.
 
@@ -82,7 +93,7 @@ Avant la clôture, toute écriture est modifiable et supprimable.
   d'achat, encaissement) tombe dans une période verrouillée : proposer la date du jour.
 
 **Critères d'acceptation.** Une facture d'achat Qonto datée d'un mois verrouillé est comptabilisée à
-la première date ouverte avec mention dans le libellé, ou bloquée selon Q3-1.
+la première date ouverte avec sa date d'origine dans le libellé (CO8).
 
 ### E1 — Lettrage des comptes de tiers
 
@@ -101,9 +112,9 @@ Aucun lettrage au niveau des lignes d'écriture.
 - E1.3 **Lettrage automatique** : à l'encaissement / au règlement d'une facture dans Lyvre (ventes,
   achats, quittances), et proposition sur un compte (même montant, même référence de pièce, puis
   combinaisons de montants).
-- E1.4 **Écart** de faible montant (seuil paramétrable, par défaut 1 €) : lettrage avec écriture d'écart
+- E1.4 **Écart** de faible montant (seuil paramétrable, par défaut 1 € ; comptes d'écart à confirmer par l'expert-comptable) : lettrage avec écriture d'écart
   en charge / produit divers de gestion selon le référentiel.
-- E1.5 **Inter-exercices** : les à-nouveaux reprennent les lignes **non lettrées** une par une pour les
+- E1.5 **Inter-exercices** : les à-nouveaux reprennent les lignes **non lettrées** une par une pour **tous** les
   comptes lettrables (au lieu d'un solde global), pour pouvoir les lettrer l'année suivante.
 - E1.6 Écran par compte de tiers : lignes non lettrées / lettrées / toutes, totaux, lettrer au clavier
   (dans l'esprit du rapprochement bancaire).
@@ -125,7 +136,7 @@ d'inventaire (486 / 487) ; lignes d'achat liées au catalogue.
 
 **Exigences.**
 - E8.1 **Fiche immobilisation** : libellé, compte (2x), date de mise en service, valeur d'origine,
-  valeur résiduelle, mode (**linéaire** ; dégressif : Q8-1), durée, prorata temporis au jour, projet,
+  valeur résiduelle, mode **linéaire** (le dégressif viendra si une structure fiscalisée le demande), durée, prorata temporis au jour, projet,
   pièce d'origine, état (en cours, amortie, cédée, mise au rebut).
 - E8.2 **Composants** : une immobilisation peut être découpée (terrain non amortissable, gros œuvre,
   toiture, installations…) avec durée propre.
@@ -137,9 +148,10 @@ d'inventaire (486 / 487) ; lignes d'achat liées au catalogue.
   produit de cession), selon le référentiel en vigueur.
 - E8.6 **États** : registre des immobilisations, tableau des immobilisations et des amortissements
   pour l'annexe (mouvements de l'exercice), exports tableur.
-- E8.7 Association : **subventions d'investissement** (13x) et leur quote-part virée au résultat au
-  rythme de l'amortissement du bien financé (Q8-2).
-- E8.8 Mode simplifié : registre seulement, sans écritures (Q8-3).
+- E8.7 ~~Subventions d'investissement~~ : reportées (CO12).
+- E8.8 Mode simplifié : registre seulement, sans écritures.
+- E8.9 SCI à l'IR : amortissement comptable proposé, non déductible au 2072 ; activation par structure,
+  à valider avec l'expert-comptable (Q8-4).
 
 **Critères d'acceptation.** Une immobilisation acquise le 15/03 sur 5 ans donne la bonne dotation
 prorata temporis la première année, et la somme des dotations égale la base amortissable.
@@ -189,17 +201,31 @@ balance et les mêmes états.
 > Rappel CO4 : ni Seconde Nature ni la SCI ne sont assujetties. Ces besoins sont **activés par
 > structure** selon le régime de TVA (`fiscal_years.vat_liable`) et restent invisibles sinon.
 
-### E29 — Facture électronique via une plateforme agréée
+### E29 — Facture électronique via une plateforme agréée (SuperPDP, Qonto)
 
 **Objectif.** Recevoir (et plus tard émettre) les factures électroniques par une plateforme agréée,
-comme l'impose la réforme aux assujettis.
+comme l'impose la réforme aux assujettis, **y compris exonérés** (réception obligatoire depuis le
+01/09/2026). Deux voies : **Qonto** quand il est la PA de la structure (cas de la SCI, CO5) et
+**SuperPDP** pour les autres (CO6).
+
+**SuperPDP (API v1.beta lue le 24/10/2026).** OAuth2 (identifiants client pour sa propre société,
+code d'autorisation pour un mandat), bac à sable (`sandbox`), factures entrantes / sortantes
+(`/invoices?direction=`, Factur-X, CII, UBL, fichier original), événements de cycle de vie
+(`/invoice_events`, statuts `fr:200`…`fr:220`, dont `fr:212` encaissée), annuaire
+(`/french_directory`, `/directory_entries`), validation (`/validation_reports`), facture de test,
+e-reporting (hors périmètre).
 
 **Existant.** Lecture Factur-X / PDF / OCR des factures d'achat ; Factur-X produit en vente ; émission
 optionnelle via Qonto ; écran Intégrations avec sondes.
 
 **Exigences.**
-- E29.1 Nouvelle intégration « plateforme agréée » (une à la fois par structure) dans l'écran
-  Intégrations, avec sonde et description.
+- E29.1 Nouvelle intégration **SuperPDP** dans l'écran Intégrations (logo, sonde, bac à sable), proposée
+  à toutes les structures ; une seule plateforme de réception par structure (Qonto **ou** SuperPDP).
+- E29.1b **Validation Factur-X** : bouton « Vérifier » sur une facture de vente émise et contrôle des
+  PDF produits dans les tests d'intégration (sans envoi), même si SuperPDP n'est pas la PA.
+- E29.1c **SCI via Qonto** : les factures reçues par la PA Qonto arrivent par la synchronisation des
+  achats existante ; lecture du XML / Factur-X quand Qonto le fournit (à vérifier), statuts renvoyés
+  par Qonto s'il le permet.
 - E29.2 **Réception** : les factures reçues arrivent dans le circuit des factures d'achat existant
   (fournisseur retrouvé par SIREN / TVA, lignes lues depuis le XML structuré, pas d'OCR).
 - E29.3 **Statuts de cycle de vie** renvoyés à la plateforme : refusée, approuvée, payée (à partir du
@@ -244,6 +270,8 @@ garantie), factures récurrentes, quittances distinguant loyer et charges.
 **Exigences.**
 - E41.1 **Charges récupérables** : comptes de charges marqués récupérables (eau, entretien, taxe
   d'enlèvement des ordures ménagères…), sur une période de régularisation (par défaut l'année civile).
+  **Par bail** (CO10) : habitation = liste du décret n° 87-713 (TEOM seule pour la taxe foncière) ;
+  commercial / professionnel = liste du bail (taxe foncière entière possible, honoraires exclus…).
 - E41.2 **Clé de répartition** par lot / bail : tantièmes, surface ou pourcentage ; prorata de la
   durée d'occupation en cas d'entrée ou de sortie en cours d'année.
 - E41.3 **Décompte** par locataire : charges par nature, quote-part, provisions appelées (depuis les
@@ -273,8 +301,8 @@ cotisations dans Lyvre, et à celles qui l'utilisent de compléter (chèque, esp
 - E35.3 Encaissement : écriture de produit en partie double (caisse 53x, banque, ou chèque à
   encaisser) ou recette en mode simplifié ; rapprochable.
 - E35.4 **Renouvellement en masse** d'une saison à l'autre (sélection, même type, courriel d'appel).
-- E35.5 **Familles** (adhésion familiale rattachant plusieurs personnes) et **activités** facultatives
-  (Q35-1).
+- E35.5 ~~Familles, activités, licences~~ : plus tard (CO11).
+- E35.5b Adhésions HelloAsso existantes **converties automatiquement** dans ce modèle à la migration.
 - E35.6 Statistiques simples : nombre d'adhérents par saison, par type, nouveaux / renouvelés.
 
 **Critères d'acceptation.** Une adhésion payée par chèque met l'adhérent « à jour » avec la même règle
@@ -286,6 +314,7 @@ que pour HelloAsso, et la relance d'expiration fonctionne sans HelloAsso.
 demandes au trésorier.
 
 **Exigences.**
+- E36.0 **Un seul espace** pour tous les tiers ; son contenu dépend de ce que le tiers a (adhésion, factures, bail…).
 - E36.1 Accès par **lien de connexion envoyé par courriel** (sans mot de passe), à l'adresse connue
   du tiers ; lien à durée limitée ; aucun accès aux écrans de gestion.
 - E36.2 Contenu selon le tiers : **adhésion** (statut, échéance), **reçus fiscaux**, **factures** et
@@ -308,13 +337,13 @@ d'une ligne, compte de résultat d'un projet, budget par projet, fonds dédiés 
 - E10.1 **Axes** paramétrables (le premier = projets existants, repris sans perte), chacun avec ses
   valeurs ; une ligne porte **au plus une valeur par axe**.
 - E10.2 **Clés de répartition** en pourcentage (frais de structure répartis entre projets), appliquées
-  à la saisie ou à la clôture (Q10-1).
+  **à la saisie** (CO9).
 - E10.3 **Règles d'affectation** automatiques par compte, tiers ou journal ; les règles bancaires
   existantes acceptent une valeur par axe.
 - E10.4 Axe **obligatoire** pour certains comptes (contrôle à la saisie et à la clôture).
 - E10.5 États par valeur d'axe : compte de résultat (existant, généralisé), balance et grand livre
   analytiques, croisement de deux axes (projet × financeur).
-- E10.6 Budget : par valeur du **premier axe** comme aujourd'hui ; extension aux autres axes en Q10-2.
+- E10.6 Budget : par valeur du **premier axe** seulement, comme aujourd'hui.
 
 **Critères d'acceptation.** Une charge de loyer de structure ventilée par la clé 60 / 40 apparaît pour
 60 % et 40 % dans les comptes de résultat des deux projets, et le total analytique égale le total général.
@@ -335,7 +364,8 @@ d'une ligne, compte de résultat d'un projet, budget par projet, fonds dédiés 
 | US8 | trésorier d'un club | enregistrer les adhésions payées par chèque | avoir un fichier d'adhérents à jour sans HelloAsso |
 | US9 | adhérent / locataire | télécharger mes reçus, factures, quittances | ne plus les demander |
 | US10 | trésorier | ventiler par projet et par financeur | produire le compte rendu de chaque subvention |
-| US11 | structure assujettie | recevoir mes factures par la plateforme agréée | respecter la réforme |
+| US11 | structure assujettie (même exonérée) | recevoir mes factures par la plateforme agréée | respecter la réforme |
+| US13 | trésorier | vérifier qu'une facture de vente Factur-X est conforme | l'envoyer sans rejet |
 | US12 | structure assujettie | obtenir les montants de ma CA3 / CA12 | déclarer sans tableur |
 
 ## 7. Ordre proposé
@@ -344,26 +374,35 @@ d'une ligne, compte de résultat d'un projet, budget par projet, fonds dédiés 
    E1 ensuite (dont dépendent E36 relevé et E41 soldes), E5 en dernier (réutilise E1 et E2).
 2. **Lot V (vie associative et SCI)** : E41 → E35 → E10 → E36 (l'espace tiers réunit les documents
    produits par les autres).
-3. **Lot R (réglementaire)** : E7 → E29 → E30, quand une structure assujettie sera accueillie (CO4).
+3. **Lot R (réglementaire)** : E29 (SuperPDP : validation Factur-X d'abord, puis réception / émission ;
+   SCI via Qonto) → E7 → E30. La validation Factur-X (E29.1b) peut être avancée pendant le lot F : elle
+   lève un point ouvert des ventes.
 
-## 8. Questions ouvertes
+## 8. Questions — réponses du 24/10/2026
 
-| # | Question |
-|---|---|
-| Q2-1 | Pièces émises (factures de vente, reçus, quittances) : écritures **validées d'office**, ou en brouillard comme les autres ? |
-| Q2-2 | Validation : faut-il **imposer** une validation périodique (ex. mensuelle) ou la laisser libre jusqu'à la clôture ? |
-| Q3-1 | Pièce reçue datée d'une période verrouillée : **comptabiliser à la première date ouverte** ou **bloquer** jusqu'au déverrouillage ? |
-| Q1-1 | Seuil d'écart de lettrage par défaut : 1 € ? Comptes d'écart à confirmer avec l'expert-comptable. |
-| Q1-2 | À-nouveaux détaillés (lignes non lettrées) : pour tous les comptes lettrables, ou seulement 411 / 401 ? |
-| Q8-1 | Amortissement dégressif utile (association fiscalisée) ou linéaire seul ? |
-| Q8-2 | Subventions d'investissement (E8.7) : dans ce lot ou plus tard ? |
-| Q8-3 | Mode simplifié : registre des immobilisations sans écritures, ou rien ? |
-| Q8-4 | SCI à l'IR : amortissement comptable tenu malgré tout (pas déductible au 2072) ? Point à valider avec l'expert-comptable. |
-| Q41-1 | Taxe foncière : la part TEOM seulement est récupérable (habitation) ; d'autres règles pour les baux commerciaux de la SCI ? |
-| Q35-1 | Familles, activités, licences fédérales : utiles à Seconde Nature, ou seulement à d'autres associations (alors plus tard) ? |
-| Q35-2 | Adhésions HelloAsso existantes : conversion automatique dans le nouveau modèle à la migration ? |
-| Q36-1 | Espace tiers : un seul espace pour tous les types de tiers, ou espaces distincts (adhérent, locataire, client) ? |
-| Q10-1 | Clés de répartition appliquées **à la saisie** (lignes ventilées tout de suite) ou **à la clôture** (écritures de répartition) ? |
-| Q10-2 | Budget par axe autre que projet : nécessaire ? |
-| Q29-1 | Plateforme agréée : laquelle (Qonto est-il immatriculé et son API couvre-t-elle la réception ? sinon SuperPDP, utilisé par Diacamma et enDI) ? À vérifier avant le design. |
-| Q29-2 | Une SCI qui ne loue que des logements nus (exonérés) est-elle tenue de recevoir par plateforme ? À vérifier (le champ exact de l'obligation pour les assujettis exonérés). |
+| # | Question | Réponse |
+|---|---|---|
+| Q2-1 | Écritures des pièces émises | **Validées d'office** (CO7) |
+| Q2-2 | Validation périodique imposée ? | Non : **libre** jusqu'à la clôture, rappel des brouillards de plus de 3 mois (proposé) |
+| Q3-1 | Pièce datée d'une période verrouillée | **Première date ouverte** (CO8) |
+| Q1-1 | Seuil d'écart de lettrage | **1 €** (proposé) ; comptes d'écart : **expert-comptable** |
+| Q1-2 | À-nouveaux détaillés | **Tous les comptes lettrables** (proposé) |
+| Q8-1 | Dégressif | **Linéaire seul** (proposé) |
+| Q8-2 | Subventions d'investissement | **Plus tard** (CO12) |
+| Q8-3 | Mode simplifié | **Registre sans écritures** (proposé) |
+| Q8-4 | SCI à l'IR : amortissement comptable | **Expert-comptable** ; option par structure en attendant |
+| Q41-1 | Charges récupérables | Baux **habitation et commerciaux** : paramétrage par bail (CO10) ; liste par type de bail à relire par l'**expert-comptable** |
+| Q35-1 | Familles, activités, licences | **Plus tard** (CO11) |
+| Q35-2 | Conversion des adhésions HelloAsso | **Automatique** à la migration (proposé) |
+| Q36-1 | Un ou plusieurs espaces tiers | **Un seul** espace (proposé) |
+| Q10-1 | Clés de répartition | **À la saisie** (CO9) |
+| Q10-2 | Budget par autre axe | **Non** (proposé) |
+| Q29-1 | Plateforme agréée | **Qonto** pour la SCI (CO5), **SuperPDP** pour les autres structures et la validation (CO6) |
+| Q29-2 | SCI exonérée tenue de recevoir ? | **Oui** : assujettie exonérée, réception depuis le 01/09/2026, pas d'émission (sources : Dougs, Qonto, fiscalite-sci.com, 24/10/2026) |
+
+**Reste à vérifier au design** : l'API Qonto donne-t-elle le XML ou le Factur-X des factures reçues par
+la PA (CO5) ? Accès au bac à sable SuperPDP (identifiants OAuth2 fournis par l'utilisateur).
+
+**Pour l'expert-comptable** : comptes d'écart de lettrage (Q1-1), amortissement de la SCI à l'IR (Q8-4),
+charges récupérables par type de bail (Q41-1) — avec les points déjà ouverts (comptes 706 / 708 des
+loyers, affectation SCI 455x).
