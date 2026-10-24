@@ -39,6 +39,9 @@ pied du menu latéral.
 | GET | `/login` | Page de la SPA (connexion) ; `?next=` suivi seulement s'il désigne une page de l'application |
 | GET | `/select-instance` | Page de la SPA (choix de l'instance) ; connexion exigée |
 | GET | `/password` | Page de la SPA (choix du mot de passe) ; connexion exigée ; imposée tant que `must_change_password` (menu utilisateur sinon) |
+| GET | `/password/forgot` · `/password/reset?token=` | Pages publiques : demande du lien (« Mot de passe oublié ? » sur la connexion) ; nouveau mot de passe |
+| POST | `/api/v1/session/password-forgot` | `{email}` : lien envoyé (SMTP du serveur, `APP_BASE_URL`) si compte actif, une fois toutes les 5 minutes ; réponse identique dans tous les cas |
+| POST | `/api/v1/session/password-reset/check` · `/api/v1/session/password-reset` | `{token}` : lien valable ? (`valid`, `email`) · `{token, password}` : nouveau mot de passe (8 caractères au moins) ; jeton signé, 1 heure, une seule fois |
 | GET | `/logout` | Détruit la session (login + instance), redirige vers `/login` (lien direct ; la SPA utilise `POST /api/v1/session/logout`) |
 
 Connexion, déconnexion et choix d'instance passent par l'API (`/api/v1/session/*`, ci-dessous). La session ne liste que les instances accessibles à l'utilisateur et renvoie son `role` et ses `permissions` sur l'instance courante.

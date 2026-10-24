@@ -32,6 +32,12 @@ _TENANT_FREE_ENDPOINTS = {
     "api.update_preferences",
     "api.change_password",
     "auth.change_password",
+    # Mot de passe oublié (méta-base seulement, sans connexion).
+    "api.password_forgot",
+    "api.password_reset_check",
+    "api.password_reset",
+    "auth.password_forgot",
+    "auth.password_reset",
 }
 
 # Seules routes ouvertes à un compte dont le mot de passe est à changer (F5.4) : la session,

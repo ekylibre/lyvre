@@ -16,7 +16,7 @@ from app.access import accessible_instances, permissions, role_for
 from app.extensions import db
 from app.menu_config import build_nav
 from app.models import Instance, SyncJob, User
-from app.services import external_config
+from app.services import external_config, password_reset
 from app.services.instance_access import MIN_PASSWORD
 
 from . import ApiError, bp, json_body
@@ -154,6 +154,35 @@ def logout():
     flask_session.pop("instance_id", None)
     logout_user()
     return jsonify(session_payload())
+
+
+@bp.route("/session/password-forgot", methods=["POST"])
+def password_forgot():
+    """`{email}` : lien de réinitialisation envoyé si un compte actif a cette adresse ; même réponse
+    dans tous les cas (pas de découverte des comptes)."""
+    password_reset.request_reset(str(json_body().get("email") or ""))
+    return jsonify(notices=[{"level": "success", "message": (
+        "Si un compte correspond à cette adresse, un e-mail avec un lien de réinitialisation vient de "
+        "lui être envoyé (valable une heure). Pensez à regarder les indésirables ; sans e-mail, "
+        "contactez un administrateur.")}])
+
+
+@bp.route("/session/password-reset/check", methods=["POST"])
+def password_reset_check():
+    """`{token}` : le lien est-il encore valable (page de saisie du nouveau mot de passe) ?"""
+    user = password_reset.user_for(str(json_body().get("token") or ""))
+    return jsonify(valid=user is not None, email=user.email if user else None)
+
+
+@bp.route("/session/password-reset", methods=["POST"], endpoint="password_reset")
+def password_reset_view():
+    """`{token, password}` : nouveau mot de passe ; l'utilisateur se connecte ensuite avec."""
+    data = json_body()
+    try:
+        password_reset.reset(str(data.get("token") or ""), str(data.get("password") or ""))
+    except password_reset.ResetError as exc:
+        raise ApiError("validation_error", exc.message, status=422, fields={exc.field: exc.message}) from None
+    return jsonify(notices=[{"level": "success", "message": "Mot de passe modifié : connectez-vous avec le nouveau."}])
 
 
 @bp.route("/me/password", methods=["POST"])

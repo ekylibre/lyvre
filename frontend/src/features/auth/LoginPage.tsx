@@ -1,11 +1,12 @@
-// Connexion (FM5) : POST /api/v1/session/login, puis instance ou page demandée (`next`).
+// Connexion (FM5) : POST /api/v1/session/login, puis instance ou page demandée (`next`) ; lien
+// « Mot de passe oublié ? » vers la demande d'un lien de réinitialisation.
 import { useEffect } from "react";
 import { useSearchParams } from "react-router";
 import { Alert, Anchor, Button, PasswordInput, Stack, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { safeNext } from "../../api/client";
 import { useLogin, useSession, type Session } from "../../api/session";
-import { useGoTo } from "../../app/navigation";
+import { AppLink, useGoTo } from "../../app/navigation";
 import { AuthCard } from "./AuthCard";
 
 /** Après connexion : choisir son mot de passe s'il est à changer, puis l'instance s'il n'y en a
@@ -19,6 +20,7 @@ export function afterLogin(session: Session, next: string): string {
 export default function LoginPage() {
   const [params] = useSearchParams();
   const next = safeNext(params.get("next"));
+  const reset = params.get("reset") === "1";
   const goTo = useGoTo();
   const { data: session } = useSession();
   const login = useLogin();
@@ -42,12 +44,14 @@ export default function LoginPage() {
         onSuccess: (s) => goTo(afterLogin(s, next), { replace: true }),
       }))}>
         <Stack>
+          {reset && !login.error && <Alert color="lichen" role="status">Mot de passe modifié : connectez-vous avec le nouveau.</Alert>}
           {login.error && <Alert color="red" role="alert">{login.error.message}</Alert>}
           <TextInput label="Email" type="email" autoComplete="username" autoFocus required
             key={form.key("email")} {...form.getInputProps("email")} />
           <PasswordInput label="Mot de passe" autoComplete="current-password" required
             key={form.key("password")} {...form.getInputProps("password")} />
           <Button type="submit" loading={login.isPending}>Se connecter</Button>
+          <Anchor component={AppLink} href="/password/forgot" size="sm" ta="center">Mot de passe oublié ?</Anchor>
           <Anchor href="/about" size="sm" ta="center">Découvrir Lyvre et ses fonctionnalités</Anchor>
         </Stack>
       </form>

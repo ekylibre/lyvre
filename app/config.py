@@ -42,7 +42,12 @@ class Config:
     # True = pro-rata des jours. Surcharge ponctuelle via ?prorata=1.
     ECO_PRORATA = os.environ.get("ECO_PRORATA", "false").lower() in ("1", "true", "yes")
 
-    # SMTP / Flask-Mail (relance des adhérents)
+    # Adresse publique de Lyvre (liens envoyés par e-mail : mot de passe oublié). En production,
+    # obligatoire pour ces liens (jamais l'en-tête Host de la requête) ; en développement, repli sur
+    # l'adresse de la requête.
+    APP_BASE_URL = os.environ.get("APP_BASE_URL", "")
+
+    # SMTP / Flask-Mail (relance des adhérents, mot de passe oublié)
     MAIL_SERVER = os.environ.get("MAIL_SERVER", "")
     MAIL_PORT = int(os.environ.get("MAIL_PORT", "587"))
     MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS", "true").lower() in ("1", "true", "yes")

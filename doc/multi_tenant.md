@@ -244,7 +244,7 @@ Table méta `instance_memberships(user_id, instance_id, role)` (`app/access.py`)
 
 ## Hors-périmètre (v1)
 
-- Reset de mot de passe par email (l'admin réinitialise via le CRUD).
+- ~~Reset de mot de passe par email~~ : fait (« Mot de passe oublié ? » sur la page de connexion ; voir `doc/routes.md`).
 - 2FA / SSO.
 - Provisioning automatique de bases Postgres (le mode "Manuel" suffit).
 - Suppression d'instance.

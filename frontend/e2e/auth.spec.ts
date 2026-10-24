@@ -49,3 +49,18 @@ test("changer d'instance depuis la page de choix", async ({ page }) => {
   await page.getByRole("button", { name: "Continuer" }).click();
   await expect(page.getByRole("banner")).toContainText("SCI E2E");
 });
+
+test("mot de passe oublié : lien depuis la connexion, demande du lien", async ({ page }) => {
+  // Le serveur E2E n'a pas de SMTP : la demande répond comme en production, sans envoi.
+  await page.goto("/login");
+  await page.getByRole("link", { name: "Mot de passe oublié ?" }).click();
+  await expect(page).toHaveURL(/\/password\/forgot$/);
+  await page.getByLabel("Email").fill("e2e@example.org");
+  await page.getByRole("button", { name: "Recevoir le lien" }).click();
+  await expect(page.getByText(/Si un compte correspond à cette adresse/)).toBeVisible();
+  await page.getByRole("link", { name: "Retour à la connexion" }).click();
+  await expect(page.getByRole("button", { name: "Se connecter" })).toBeVisible();
+
+  await page.goto("/password/reset?token=faux");
+  await expect(page.getByText(/invalide, expiré ou a déjà servi/)).toBeVisible();
+});
