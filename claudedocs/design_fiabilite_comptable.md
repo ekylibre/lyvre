@@ -1,6 +1,6 @@
 # Conception — Lot F : fiabilité comptable (validation, verrouillage, lettrage, CCA/PCA, immobilisations, reprise)
 
-> Statut : **proposée** (`/sc:design`, 24/10/2026), à valider. Pas de code.
+> Statut : **validée** (24/10/2026 : Q-F1 brouillard, Q-F2 année de 360 jours selon Ekylibre, Q-F3 réglage). Pas de code.
 > Besoins : `claudedocs/besoins_comparatif_oss.md` § 3 (E2, E3, E1, E9, E8, E5) et décisions CO1–CO13.
 > Suite : validation, puis `/sc:implement F1`.
 
@@ -17,8 +17,8 @@
 | F-C7 | **Lettrage** = table `letterings` + `journal_lines.lettering_id` ; colonne lettrable sur le compte ; les pièces de Lyvre (ventes, achats) se **relettrent par document** (fonction idempotente appelée après chaque encaissement / règlement) | Le lettrage suit les paiements existants sans nouveau geste ; idempotent = pas de dérive |
 | F-C8 | **À-nouveaux détaillés** pour les comptes lettrables : une ligne AN par ligne (ou groupe partiel) non lettrée, reliée à sa ligne d'origine (`carried_from_line_id`) | Lettrage inter-exercices (E1.5) ; le relettrage par document suit la chaîne |
 | F-C9 | **Rôles de comptes** (`account_roles` : rôle → compte) pour les comptes que Lyvre choisit seul (écart de lettrage, dotations, cessions, CCA / PCA…), valeurs par défaut par référentiel dans `data/account_roles.json`, modifiables par l'administrateur | N5 : pas de numéro codé en dur hors paramétrage ; l'expert-comptable valide une table, pas du code |
-| F-C10 | Amortissements **calculés, pas stockés** (tableau recalculé) ; seules les **dotations passées** sont enregistrées (`asset_depreciations`) | Le tableau suit les modifications de la fiche tant que rien n'est comptabilisé |
-| F-C11 | Prorata temporis **au jour réel** : dotation d'un exercice = arrondi(base × jours cumulés / jours du plan) − cumul précédent | Somme des dotations = base exactement (N1) ; voir Q-F2 pour la base 360 |
+| F-C10 | Amortissements **calculés, pas stockés** (tableau recalculé) ; seules les **dotations passées** sont enregistrées et figées (`asset_depreciations`) ; le reste du plan se recalcule à partir d'elles | Comme Ekylibre (`planned_depreciations` recalculées, dotations comptabilisées verrouillées) |
+| F-C11 | Méthodes et calendrier **repris d'Ekylibre** (`app/models/fixed_asset.rb`) : linéaire, dégressif (coefficient fiscal), non amortissable ; **année de 360 jours, mois de 30 jours** ; dotation d'un exercice = arrondi(base × jours cumulés / jours du plan) − cumul précédent | Usage fiscal (Q-F2) ; méthodes éprouvées dans Ekylibre ; somme des dotations = base exactement (N1) |
 | F-C12 | Le mode simplifié n'a **ni validation ni lettrage** (pas de FEC) ; il a le **verrouillage** et le **registre** des immobilisations sans écritures | N2, CO13 (Q8-3) |
 
 ## 2. Données (base de l'instance)
@@ -116,23 +116,28 @@ Rôles F3 : `lettering_gap_expense`, `lettering_gap_income`.
 | `account_id` | FK | compte 2x |
 | `depreciation_account_id` | FK NULL | 28x (déduit du 2x : `28` + suite du code, sinon rôle) |
 | `expense_account_id` | FK NULL | dotation (rôle `depreciation_expense`, 6811) |
-| `in_service_date` | Date | |
+| `acquired_on` | Date | date d'acquisition (point de départ du dégressif) |
+| `in_service_date` | Date NULL | mise en service (point de départ du linéaire) ; vide = en cours |
 | `acquisition_cents` | Integer | valeur d'origine HT (ou TTC si non assujetti) |
 | `residual_cents` | Integer | valeur résiduelle (défaut 0) |
-| `method` | String(8) | `linear` ou `none` (terrain, non amortissable) |
-| `duration_months` | Integer NULL | |
+| `method` | String(10) | `linear`, `regressive` ou `none` (terrain, non amortissable) |
+| `duration_months` | Integer NULL | affichée aussi en taux (100 / années) |
+| `fiscal_coefficient` | Numeric NULL | dégressif : 1,25 (3-4 ans), 1,75 (5-6 ans), 2,25 (plus de 6 ans), proposé selon la durée |
+| `waiting_account_id` | FK NULL | 23x tant que l'immobilisation est en cours |
 | `prior_depreciation_cents`, `prior_as_of` | NULL | reprise d'un tableau existant (E8.3) |
 | `project_id` | FK NULL | |
 | `purchase_line_id` | FK NULL | pièce d'origine |
-| `status` | String(10) | `active`, `depreciated`, `disposed`, `scrapped` |
-| `disposal_date`, `disposal_price_cents`, `disposal_entry_id` | NULL | cession / rebut (E8.5) |
+| `status` | String(10) | `waiting` (en cours, 23x), `in_use`, `depreciated`, `sold`, `scrapped` |
+| `disposal_date`, `disposal_price_cents`, `disposal_entry_id`, `sale_id` | NULL | cession / rebut (E8.5) ; facture de vente de cession |
 | `notes` | Text | |
 
-**`asset_depreciations`** : `asset_id`, `fiscal_year_id`, `amount_cents`, `entry_id` (écriture de
-dotation de l'exercice, source `DEPRECIATION`, gérée par l'assistant) ; unique `(asset_id, fiscal_year_id)`.
+**`asset_depreciations`** : `asset_id`, `fiscal_year_id`, `started_on`, `stopped_on`, `days` (base 360),
+`amount_cents`, `entry_id` (écriture de dotation de l'exercice, source `DEPRECIATION`, gérée par
+l'assistant) ; unique `(asset_id, fiscal_year_id)`. Une ligne par exercice (Lyvre n'a pas de périodes
+mensuelles ; Ekylibre propose aussi mensuel et trimestriel).
 
 Rôles : `depreciation_expense` (6811), `disposal_book_value` (675), `disposal_proceeds` (775),
-`disposal_receivable` (462).
+`disposal_receivable` (462), `assets_in_progress` (23).
 
 ### 2.6 Reprise (F6)
 
@@ -251,25 +256,44 @@ Conséquences sur l'existant :
 
 ### 3.6 Immobilisations (E8)
 
-- **Plan** (F-C11) : période = `[in_service_date, in_service_date + durée − 1 jour]` ; base =
-  `acquisition − residual` ; dotation de l'exercice = arrondi(base × jours de la période ≤ fin
-  d'exercice / jours de la période) − cumul antérieur (dont `prior_depreciation_cents`).
-- **Création** : depuis une ligne de facture d'achat au compte 2x (bouton « Créer l'immobilisation »
-  sur la facture, proposé à la comptabilisation), à la main, ou par reprise (cumul à une date).
+Méthodes et calendrier repris d'**Ekylibre** (`FixedAsset#depreciate!`, `FixedAsset.duration`).
+
+- **Jours (base 360)** : chaque mois compte 30 jours ; un jour 31, ou le dernier jour du mois, compte
+  pour 30. Durée entre deux dates (incluses) : `30 − jour_début + 1` + 30 par mois plein + `jour_fin`
+  (même mois : `jour_fin − jour_début + 1`). Le plan couvre `durée en mois × 30` jours.
+- **Linéaire** : départ à la **mise en service** ; dotation de l'exercice = arrondi(base × jours 360
+  cumulés jusqu'à la fin de l'exercice / jours 360 du plan) − cumul antérieur (dont
+  `prior_depreciation_cents`). La dernière dotation solde exactement la base.
+- **Dégressif** : départ au **1er jour du mois d'acquisition** ; taux = (100 / années) × coefficient
+  fiscal ; chaque exercice : restant × max(taux dégressif, taux linéaire sur les années restantes) ×
+  jours 360 de l'exercice / 360, plafonné au restant (bascule automatique en linéaire quand il
+  devient plus fort, comme Ekylibre). Proposé seulement si l'exercice est **soumis à la TVA ou à
+  l'impôt** (association fiscalisée) ; sinon masqué (CO13).
+- **Non amortissable** (`none`) : terrain, œuvre d'art, immobilisation financière.
+- **Composants** (E8.2) : un bien (immeuble de la SCI) a des composants (terrain `none`, gros œuvre,
+  toiture, installations…) avec leur propre méthode et durée ; le bien est la somme de ses composants.
+- **En cours** (`waiting`, 23x) : travaux ou bien non encore utilisé ; pas de dotation ; la **mise en
+  service** passe 23x → 2x (écriture OD) et ouvre le plan.
+- **Création** : depuis une ligne de facture d'achat au compte 2x ou 23x (bouton « Créer
+  l'immobilisation », proposé à la comptabilisation), à la main, ou par reprise (cumul à une date).
 - **Dotations** : sous-étape de l'inventaire « Amortissements » : tableau des dotations de l'exercice,
   « Passer » = une écriture OD (source `DEPRECIATION`, ajoutée à `MANAGED_SOURCES`), une ligne par
-  composant (6811 / 28x), projet de l'immobilisation ; regénérée tant que l'exercice est ouvert ; une
-  immobilisation dont la dotation est passée ne change plus de base ni de durée (refus, sauf
-  « Recalculer » qui regénère l'écriture de l'exercice ouvert).
-- **Cession / rebut** : dotation complémentaire jusqu'à la date de sortie, puis écriture : 28x au débit
-  (cumul), 675 au débit (VNC), 2x au crédit (valeur d'origine) ; cession : 462 au débit / 775 au crédit
-  (prix). Comptes par rôle.
+  composant (6811 / 28x), projet de l'immobilisation ; regénérée tant que l'exercice est ouvert. Les
+  dotations passées sont figées (F-C10) : modifier la base ou la durée recalcule seulement la suite
+  du plan (révision du plan, comme Ekylibre).
+- **Cession / rebut** (comme le `FixedAssetBookkeeper` d'Ekylibre) : dotation complémentaire jusqu'à
+  la date de sortie, puis écriture de sortie : 2x au crédit (valeur d'origine), 28x au débit (cumul),
+  675 au débit (valeur nette comptable). **Prix de cession** : par une **facture de vente** de Lyvre
+  (ligne au 775, `sale_id`), ou, vendu hors Lyvre, écriture 462 / 775. Comptes par rôle.
 - **États** : registre (filtre état, compte, projet), tableau de l'annexe (valeurs brutes et
   amortissements : début, augmentations, diminutions, fin), tableau d'amortissement d'une fiche ;
   exports XLSX (`app/views/exports.py`).
 - **Mode simplifié** : registre et tableau, sans dotations ni écritures.
 - **SCI à l'IR** (Q8-4) : option `organization.depreciation_enabled` (défaut **vrai** pour une
   association, **faux** pour une SCI) ; faux = registre seul, comme le mode simplifié.
+- Contrôles (tests) : mise en service le 15/03, 5 ans, clôture au 31/12 → 1re dotation = base × 286 /
+  1 800 ; somme des dotations = base ; dégressif 5 ans (coefficient 1,75) : 35 % puis bascule en
+  linéaire la 4e année.
 
 ### 3.7 Reprise (E5)
 
@@ -389,7 +413,8 @@ bouton « Vérifier » sur une facture émise, test d'intégration marqué (dés
 - Lettrage : loyer encaissé par virement rapproché → lettré sans action ; facture de décembre impayée,
   clôture, à-nouveaux, encaissement en janvier → lettrée ; écart de 0,40 € ; FEC `EcritureLet`/`DateLet`.
 - CCA : 181 / 365 ; abonnement annuel rattaché.
-- Amortissements : mise en service le 15/03, 5 ans → somme des dotations = base ; composants ; cession.
+- Amortissements (base 360) : mise en service le 15/03, 5 ans → 286 / 1 800 la 1re année, somme = base ;
+  dégressif avec bascule ; composants ; en cours puis mise en service ; cession par facture de vente.
 - Reprise : aller-retour FEC (export → import historique → même balance, mêmes états).
 - E2E : un parcours par sous-lot (valider puis contrepasser ; verrouiller ; lettrer ; CCA à la clôture ;
   immobilisation ; import FEC).
@@ -405,10 +430,10 @@ bouton « Vérifier » sur une facture émise, test d'intégration marqué (dés
 | Données réelles : écritures déjà numérotées (SN 2025) | Migration : un lot `migration` par exercice numéroté ; les numéros existants ne changent pas |
 | Comptes par défaut (écart, 675 / 775 / 462, 6811) | Table de rôles relue par l'expert-comptable avant la mise en production |
 
-## 10. Questions
+## 10. Questions — réponses du 24/10/2026
 
-| # | Question | Proposition |
+| # | Question | Réponse |
 |---|---|---|
-| Q-F1 | Les **encaissements et règlements** (écritures de banque créées par Lyvre) : brouillard comme proposé, ou validés d'office comme les factures ? | Brouillard (ils se défont tant que le mois n'est pas validé ou verrouillé) |
-| Q-F2 | Prorata temporis des amortissements : **jours réels** (proposé) ou **année de 360 jours** (usage fiscal fréquent) ? | Jours réels ; à confirmer par l'expert-comptable |
-| Q-F3 | Seuil d'écart de lettrage : réglage de la structure (proposé) ou fixe ? | Réglage, 1 € par défaut |
+| Q-F1 | Encaissements et règlements créés par Lyvre | **Brouillard** (défaisables tant que non validés ni verrouillés) |
+| Q-F2 | Prorata temporis | **Année de 360 jours**, méthodes d'Ekylibre (linéaire, dégressif, non amortissable ; § 3.6) |
+| Q-F3 | Seuil d'écart de lettrage | **Réglage** de la structure, 1 € par défaut |
