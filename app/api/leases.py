@@ -218,7 +218,7 @@ def leases_create():
 @bp.route("/leases/<int:lease_id>")
 def leases_detail(lease_id):
     lease = get_or_404(Lease, lease_id, "Bail introuvable.")
-    if external_config.is_enabled("docuseal") and external_config.is_configured("docuseal"):
+    if external_config.is_enabled("documenso") and external_config.is_configured("documenso"):
         lease_signatures.refresh_if_due(lease)  # statut de signature relu au plus une fois par minute
     return jsonify(item=lease_payload(lease, True))
 
@@ -504,7 +504,7 @@ def _signature(lease: Lease) -> LeaseSignature:
 @bp.route("/leases/<int:lease_id>/signature", methods=["POST"])
 def leases_signature_send(lease_id):
     lease = get_or_404(Lease, lease_id, "Bail introuvable.")
-    require_integration("docuseal")
+    require_integration("documenso")
     with _errors():
         sig = lease_signatures.send(lease, current_user.get_id())
     names = ", ".join(s.name for s in sig.signers)
@@ -515,7 +515,7 @@ def leases_signature_send(lease_id):
 @bp.route("/leases/<int:lease_id>/signature/refresh", methods=["POST"])
 def leases_signature_refresh(lease_id):
     lease = get_or_404(Lease, lease_id, "Bail introuvable.")
-    require_integration("docuseal")
+    require_integration("documenso")
     with _errors():
         sig = lease_signatures.refresh(_signature(lease))
     return jsonify(item=lease_payload(lease, True), notices=[notice(f"Statut : {lease_signatures.STATUS_LABELS[sig.status]}.",
@@ -525,7 +525,7 @@ def leases_signature_refresh(lease_id):
 @bp.route("/leases/<int:lease_id>/signature", methods=["DELETE"])
 def leases_signature_cancel(lease_id):
     lease = get_or_404(Lease, lease_id, "Bail introuvable.")
-    require_integration("docuseal")
+    require_integration("documenso")
     with _errors():
         lease_signatures.cancel(_signature(lease))
     return jsonify(item=lease_payload(lease, True), notices=[notice("Envoi annulé : le bail est de nouveau modifiable.")])

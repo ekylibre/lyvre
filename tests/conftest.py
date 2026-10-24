@@ -52,7 +52,7 @@ def session(app):
     return db.session
 
 
-ALL_INTEGRATIONS = '{"enabled": ["docuseal", "facebook", "ga4", "helloasso", "odoo", "qonto", "smtp", "stancer"], "dismissed": []}'
+ALL_INTEGRATIONS = '{"enabled": ["documenso", "facebook", "ga4", "helloasso", "odoo", "qonto", "smtp", "stancer"], "dismissed": []}'
 
 
 def _test_instance(**fields):

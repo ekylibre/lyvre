@@ -24,7 +24,7 @@ Deux cas, **un seul assistant** :
 | BX2 | Bâtiments | Contours des bâtiments de l'**IGN BD TOPO** (Géoplateforme, public, sans clé), cliquables comme les parcelles |
 | BX3 | Modèle de bail | **Un modèle par type de bail et par instance**, articles avec champs à remplacer, modifiable dans les Paramètres ; le texte généré d'un bail reste **retouchable** avant PDF et signature |
 | BX4 | Types de bail | Dérogatoire commercial, commercial 3-6-9, habitation, rural / prêt à usage |
-| BX5 | Signataires | **Gérants de la SCI** (registre des associés) puis le **preneur**, via **Docuseal** |
+| BX5 | Signataires | **Gérants de la SCI** (registre des associés) puis le **preneur**, via **Documenso** (au départ Docuseal : son édition libre n'accepte pas de PDF par l'API) ; paraphe sur chaque page |
 | BX6 | Suivi de signature | Lyvre interroge Docuseal (à la demande et à l'ouverture du bail), range le PDF signé sur le bail ; webhook ajouté en production |
 | BX7 | Loyer | **Annuel par ligne** : quantité × prix unitaire annuel ; loyer annuel = total, réparti selon la fréquence de facturation ; **une ligne de facture récurrente par ligne de bail** |
 | BX8 | Cas A | **Même assistant**, étape 2 « Sans carte » : lignes saisies à la main |

@@ -300,7 +300,7 @@ def _managers() -> list[str]:
 
 def _signatures(org, managers: list[str], tenant: str) -> Markup:
     """Bloc des signatures : une case par gérant (`sign-l1`, `sign-l2`…) et pour le preneur
-    (`sign-t`) ; à l'envoi, chaque case reçoit la balise du champ de signature Docuseal."""
+    (`sign-t`) ; à l'envoi, chaque case reçoit la balise du champ de signature Documenso."""
     landlord = "".join(f"<div class='signer'>{escape(name)}<div class='sign-box sign-l{n}'></div></div>"
                        for n, name in enumerate(managers, start=1)) or \
         f"<div class='signer'>{escape(org.signatory_name or '')}<div class='sign-box sign-l1'></div></div>"
@@ -424,7 +424,7 @@ def _url_fetcher(lease: Lease):
 
 def render_pdf(lease: Lease, body_html: str | None = None, signers: list[dict] | None = None) -> bytes:
     """PDF du bail : texte figé (ou rendu à la volée), ou `body_html` (aperçu d'un modèle) ; avec
-    `signers`, les cases de signature reçoivent les balises Docuseal (envoi à la signature)."""
+    `signers`, les cases de signature reçoivent les balises Documenso (envoi à la signature)."""
     from weasyprint import HTML
     body = render_body(body_html, lease) if body_html is not None else current_html(lease)
     if signers:

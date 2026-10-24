@@ -60,7 +60,7 @@ const SIGNER_TONES: Record<string, "ok" | "todo" | "gap" | "neutral" | "info"> =
 
 /** Signature électronique (lot L4) : signataires prévus, envoi, suivi, PDF signé. */
 function SignaturePanel({ lease, onChange }: { lease: Lease; onChange: (item: Lease) => void }) {
-  const docuseal = useIntegrationGuard("docuseal", "L'envoi à la signature");
+  const signing = useIntegrationGuard("documenso", "L'envoi à la signature");
   const send = useAction(() => api.post<{ item: Lease; notices: Notice[] }>(`/api/v1/leases/${lease.id}/signature`));
   const refresh = useAction(() => api.post<{ item: Lease; notices: Notice[] }>(`/api/v1/leases/${lease.id}/signature/refresh`));
   const cancel = useAction(() => api.delete<{ item: Lease; notices: Notice[] }>(`/api/v1/leases/${lease.id}/signature`));
@@ -74,7 +74,7 @@ function SignaturePanel({ lease, onChange }: { lease: Lease; onChange: (item: Le
           <Title order={3} mb={4}>Signature</Title>
           {sig ? <Group gap={8}><StatusBadge tone={sig.status === "completed" ? "ok" : sig.status === "sent" ? "info" : "gap"}>{sig.status_label}</StatusBadge>
             <Text size="sm" c="dimmed">envoyé le {formatDate(sig.sent_at)}{sig.completed_at ? `, signé le ${formatDate(sig.completed_at)}` : ""}</Text></Group>
-            : <Text size="sm" c="dimmed">Signature électronique avec Docuseal : les gérants signent, puis le preneur.</Text>}
+            : <Text size="sm" c="dimmed">Signature électronique avec Documenso : les gérants signent, puis le preneur.</Text>}
         </div>
         <Group gap="xs">
           {sig?.files.signed && <Button component="a" href={sig.files.signed} target="_blank">PDF signé</Button>}
@@ -82,16 +82,16 @@ function SignaturePanel({ lease, onChange }: { lease: Lease; onChange: (item: Le
           {sig?.files.sent && !sig.files.signed && <Button variant="default" component="a" href={sig.files.sent} target="_blank">PDF envoyé</Button>}
           <Can>
             {sig?.status === "sent" && <>
-              <Button variant="default" loading={refresh.isPending} onClick={docuseal.guard(() => refresh.mutate(undefined, { onSuccess: (r) => onChange(r.item) }))}>Actualiser</Button>
-              <Button variant="subtle" color="brique" onClick={docuseal.guard(() => confirmAction({
+              <Button variant="default" loading={refresh.isPending} onClick={signing.guard(() => refresh.mutate(undefined, { onSuccess: (r) => onChange(r.item) }))}>Actualiser</Button>
+              <Button variant="subtle" color="brique" onClick={signing.guard(() => confirmAction({
                 title: "Annuler l'envoi à la signature ?", confirmLabel: "Annuler l'envoi",
-                message: "L'envoi est archivé chez Docuseal (les invitations ne sont plus valables) ; le bail redevient modifiable.",
+                message: "L'envoi est annulé chez Documenso (les signataires sont prévenus) ; le bail redevient modifiable.",
                 onConfirm: () => cancel.mutate(undefined, { onSuccess: (r) => onChange(r.item) }) }))}>Annuler l'envoi</Button>
             </>}
             {sending && <Button disabled={!!lease.signature_problems?.length} loading={send.isPending}
-              onClick={docuseal.guard(() => confirmAction({
+              onClick={signing.guard(() => confirmAction({
                 title: "Envoyer le bail à la signature ?", danger: false, confirmLabel: "Envoyer",
-                message: `Docuseal envoie une invitation par e-mail à ${(lease.signers_planned ?? []).map((s) => `${s.name} (${s.email})`).join(", puis ")}. Le bail ne sera plus modifiable, sauf en annulant l'envoi.`,
+                message: `Documenso envoie une invitation par e-mail à ${(lease.signers_planned ?? []).map((s) => `${s.name} (${s.email})`).join(", puis ")}. Le bail ne sera plus modifiable, sauf en annulant l'envoi.`,
                 onConfirm: () => send.mutate(undefined, { onSuccess: (r) => onChange(r.item) }) }))}>
               {sig ? "Renvoyer à la signature" : "Envoyer à la signature"}</Button>}
           </Can>

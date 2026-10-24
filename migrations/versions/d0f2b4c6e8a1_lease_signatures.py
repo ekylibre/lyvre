@@ -1,4 +1,4 @@
-"""lot L4 : signature électronique des baux (Docuseal)
+"""lot L4 : signature électronique des baux (Documenso)
 
 Revision ID: d0f2b4c6e8a1
 Revises: c9e1a3b5d7f9
@@ -21,7 +21,7 @@ def upgrade():
         'lease_signatures',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('lease_id', sa.Integer(), nullable=False),
-        sa.Column('provider', sa.String(length=20), nullable=False, server_default='docuseal'),
+        sa.Column('provider', sa.String(length=20), nullable=False, server_default='documenso'),
         sa.Column('submission_id', sa.String(length=64), nullable=True),
         sa.Column('status', sa.String(length=12), nullable=False, server_default='sent'),
         sa.Column('sent_at', sa.DateTime(), nullable=False),

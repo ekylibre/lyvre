@@ -1,24 +1,29 @@
-"""Signature électronique des baux (lot L4, BF13–BF17) avec Docuseal.
+"""Signature électronique des baux (lot L4, BF13–BF17) avec Documenso.
 
 - Signataires : les **gérants** (registre des associés, case « Gérant », e-mail de leur fiche tiers),
   dans l'ordre du registre, puis le **preneur** (e-mail de sa fiche, sinon premier e-mail de
-  facturation) ; Docuseal les sollicite dans cet ordre.
+  facturation) ; Documenso les sollicite dans cet ordre.
 - Envoi : le PDF du bail est figé (`baux/<bail>/bail-envoye-<n>.pdf`) avec, dans chaque case du bloc de
-  signatures, une balise de champ Docuseal (`{{…;role=…;type=signature}}`).
+  signatures, une balise de champ Documenso (`{{signature, r1}}` : r1 = premier signataire) ; l'envoi
+  est créé, les champs de signature agrandis, une case de **paraphe** par signataire ajoutée en bas à
+  droite de chaque page, puis les invitations partent.
 - Suivi : `refresh` lit l'état de l'envoi ; signé, le PDF signé et le journal d'audit sont rangés
   avec le bail. Un bail envoyé (ou signé) n'est plus modifiable dans ses termes ; annuler l'envoi le
   rend modifiable (BF17).
 """
 from __future__ import annotations
 
+import io
 import re
 from datetime import datetime, timedelta
+
+from pypdf import PdfReader
 
 from markupsafe import escape
 
 from app.extensions import db
 from app.models import Associate, Lease, LeaseSignature, LeaseSigner
-from app.services import docuseal, lease_documents
+from app.services import documenso, lease_documents
 from app.services.attachments import instance_dir
 from app.services.lease_map import folder
 from app.services.sale_entry import SaleError
@@ -28,6 +33,16 @@ STATUS_LABELS = {"sent": "Envoyé à la signature", "completed": "Signé", "decl
 SIGNER_LABELS = {"awaiting": "En attente", "sent": "Invitation envoyée", "opened": "Ouvert", "completed": "Signé",
                  "declined": "Refusé"}
 REFRESH_EVERY = timedelta(minutes=1)
+SIGNATURE_SIZE = (32.0, 7.0)  # largeur et hauteur des champs de signature, en % de la page (case de 24 mm)
+# Paraphes : une case par signataire en bas à droite de chaque page (pied de page du bail), côte à côte,
+# la dernière contre la marge droite (18 mm) ; en % de la page A4.
+INITIALS_WIDTH, INITIALS_HEIGHT, INITIALS_STEP, INITIALS_RIGHT, INITIALS_TOP = 9.0, 3.0, 10.0, 91.4, 93.4
+
+
+def initials_boxes(count: int) -> list[tuple[float, float, float, float]]:
+    return [(round(INITIALS_RIGHT - INITIALS_WIDTH - (count - 1 - n) * INITIALS_STEP, 2), INITIALS_TOP,
+             INITIALS_WIDTH, INITIALS_HEIGHT) for n in range(count)]
+ENVELOPE_STATUS = {"COMPLETED": "completed", "REJECTED": "declined", "CANCELLED": "cancelled"}
 BOX = re.compile(r"""<div class=["']sign-box sign-(\w+)["']></div>""")
 
 
@@ -66,14 +81,15 @@ def current(lease: Lease) -> LeaseSignature | None:
 
 
 def with_tags(body: str, signers: list[dict]) -> str:
-    """Balises Docuseal dans les cases du bloc de signatures ; une page de signatures en plus pour les
-    signataires sans case (texte rédigé avant le lot L4, gérants ajoutés depuis)."""
+    """Balises Documenso dans les cases du bloc de signatures (`{{signature, r1}}`, numérotées dans
+    l'ordre de signature) ; une page de signatures en plus pour les signataires sans case (texte
+    rédigé avant le lot L4, gérants ajoutés depuis)."""
     by_key = {s["key"]: s for s in signers}
+    rank = {s["key"]: n for n, s in enumerate(signers, start=1)}
 
     def tag(signer):
-        # Balise sur une seule ligne (Docuseal la lit dans le texte du PDF) : nom de champ court.
-        return (f'<div class="sign-box"><span class="sign-tag">{{{{Signature {signer["key"].upper()};'
-                f'role={escape(signer["role"])};type=signature;width=170;height=55}}}}</span></div>')
+        # Balise sur une seule ligne, lue dans le texte du PDF ; le champ prend la taille du texte.
+        return f'<div class="sign-box"><span class="sign-tag">{{{{signature, r{rank[signer["key"]]}}}}}</span></div>'
 
     placed = set()
 
@@ -92,7 +108,8 @@ def with_tags(body: str, signers: list[dict]) -> str:
     return body
 
 
-def send(lease: Lease, user_id=None, client: docuseal.Client | None = None) -> LeaseSignature:
+def send(lease: Lease, user_id=None, client: documenso.Client | None = None,
+         send_email: bool = True) -> LeaseSignature:
     if lease.status != "active":
         raise SaleError("Validez le bail avant de l'envoyer à la signature.", status=409)
     if current(lease) is not None and current(lease).status in ("sent", "completed"):
@@ -103,30 +120,35 @@ def send(lease: Lease, user_id=None, client: docuseal.Client | None = None) -> L
     if lease.document_html is None:
         lease_documents.generate(lease)
     pdf = lease_documents.render_pdf(lease, signers=signers)
-    client = client or docuseal.Client.from_config()
+    client = client or documenso.Client.from_config()
     number = len(lease.signatures) + 1
     path = folder(lease) / f"bail-envoye-{number}.pdf"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(pdf)
-    name = f"Bail {lease.unit_label} — {lease.entity.name}"[:200]
+    title = f"Bail {lease.unit_label} — {lease.entity.name}"[:200]
+    envelope_id = None
     try:
-        data = client.create_submission(name, pdf, [
-            {"role": s["role"], "email": s["email"], "name": s["name"], "external_id": f"lease-{lease.id}-{s['key']}"}
-            for s in signers], external_id=f"lease-{lease.id}")
-    except docuseal.DocusealError as exc:
+        envelope_id = client.create_envelope(title, pdf, signers, f"lease-{lease.id}-{number}", send_email=send_email)
+        if client.resize_signatures(envelope_id, *SIGNATURE_SIZE) != len(signers):
+            raise documenso.DocumensoError("Documenso n'a pas trouvé toutes les cases de signature dans le PDF.")
+        client.add_initials(envelope_id, len(PdfReader(io.BytesIO(pdf)).pages), initials_boxes(len(signers)))
+        client.distribute(envelope_id)
+        remote = client.envelope(envelope_id)
+    except documenso.DocumensoError as exc:
         path.unlink(missing_ok=True)
+        if envelope_id:  # brouillon créé mais non envoyé : retiré, rien ne reste à moitié fait
+            try:
+                client.delete(envelope_id)
+            except documenso.DocumensoError:
+                pass
         raise SaleError(exc.message, status=502) from None
-    submitters = {s.get("role"): s for s in data.get("submitters") or []}
-    submission_id = data.get("id") or next((s.get("submission_id") for s in submitters.values()), None)
-    signature = LeaseSignature(lease=lease, submission_id=str(submission_id or ""), status="sent",
+    signature = LeaseSignature(lease=lease, provider="documenso", submission_id=str(envelope_id), status="sent",
                                sent_at=datetime.utcnow(), checked_at=datetime.utcnow(), created_by_id=user_id,
                                sent_pdf_path=str(path.relative_to(instance_dir())))
     for position, s in enumerate(signers):
-        remote = submitters.get(s["role"]) or {}
-        signature.signers.append(LeaseSigner(
-            position=position, role=s["role"], name=s["name"], email=s["email"], associate_id=s["associate_id"],
-            entity_id=s["entity_id"], submitter_id=str(remote.get("id") or "") or None,
-            status=remote.get("status") if remote.get("status") in SIGNER_LABELS else "awaiting"))
+        signature.signers.append(LeaseSigner(position=position, role=s["role"], name=s["name"], email=s["email"],
+                                             associate_id=s["associate_id"], entity_id=s["entity_id"]))
+    _apply_recipients(signature, remote)
     db.session.add(signature)
     db.session.commit()
     return signature
@@ -141,6 +163,32 @@ def _when(value) -> datetime | None:
         return None
 
 
+def _recipient_status(r: dict) -> str:
+    if r.get("signingStatus") == "SIGNED":
+        return "completed"
+    if r.get("signingStatus") == "REJECTED":
+        return "declined"
+    if r.get("readStatus") == "OPENED":
+        return "opened"
+    if r.get("sendStatus") == "SENT":
+        return "sent"
+    return "awaiting"
+
+
+def _apply_recipients(signature: LeaseSignature, remote: dict) -> None:
+    """Statut de chaque signataire, apparié par ordre de signature (puis par e-mail)."""
+    recipients = sorted(remote.get("recipients") or [], key=lambda r: r.get("signingOrder") or 0)
+    for signer in signature.signers:
+        r = next((x for x in recipients if x.get("signingOrder") == signer.position + 1), None) or \
+            next((x for x in recipients if (x.get("email") or "").lower() == signer.email.lower()), {})
+        signer.submitter_id = str(r.get("id") or "") or signer.submitter_id
+        signer.status = _recipient_status(r) if r else signer.status
+        if signer.status == "completed":
+            signer.signed_at = _when(r.get("signedAt")) or signer.signed_at or datetime.utcnow()
+        if signer.status == "declined":
+            signer.declined_at = signer.declined_at or datetime.utcnow()
+
+
 def _store(signature: LeaseSignature, name: str, content: bytes) -> str:
     path = folder(signature.lease) / f"{name}-{signature.id}.pdf"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -148,36 +196,29 @@ def _store(signature: LeaseSignature, name: str, content: bytes) -> str:
     return str(path.relative_to(instance_dir()))
 
 
-def refresh(signature: LeaseSignature, client: docuseal.Client | None = None) -> LeaseSignature:
-    """Lit l'état de l'envoi chez Docuseal ; signé : PDF signé et journal d'audit rangés (commit)."""
+def refresh(signature: LeaseSignature, client: documenso.Client | None = None) -> LeaseSignature:
+    """Lit l'état de l'envoi chez Documenso ; signé : PDF signé et journal d'audit rangés (commit)."""
     if signature.status != "sent":
         return signature
-    client = client or docuseal.Client.from_config()
+    client = client or documenso.Client.from_config()
     signature.checked_at = datetime.utcnow()
     try:
-        data = client.submission(signature.submission_id)
-        remote = {s.get("role"): s for s in data.get("submitters") or []}
-        for signer in signature.signers:
-            r = remote.get(signer.role) or {}
-            if r.get("status") in SIGNER_LABELS:
-                signer.status = r["status"]
-            signer.signed_at = _when(r.get("completed_at")) or signer.signed_at
-            signer.declined_at = _when(r.get("declined_at")) or signer.declined_at
-        status = data.get("status")
-        if any(s.status == "declined" for s in signature.signers) or status == "declined":
+        remote = client.envelope(signature.submission_id)
+        _apply_recipients(signature, remote)
+        status = ENVELOPE_STATUS.get(remote.get("status"))
+        if status == "declined" or any(s.status == "declined" for s in signature.signers):
             signature.status = "declined"
-        elif status == "completed" or (signature.signers and all(s.status == "completed" for s in signature.signers)):
-            documents = client.documents(signature.submission_id)
-            if documents:
-                signature.signed_pdf_path = _store(signature, "bail-signe", client.download(documents[0]["url"]))
-            if data.get("audit_log_url"):
-                signature.audit_pdf_path = _store(signature, "journal-audit", client.download(data["audit_log_url"]))
+        elif status == "completed":
+            items = remote.get("envelopeItems") or []
+            if items:
+                signature.signed_pdf_path = _store(signature, "bail-signe", client.download_signed(items[0]["id"]))
+            signature.audit_pdf_path = _store(signature, "journal-audit", client.audit_log(signature.submission_id))
             signature.status = "completed"
-            signature.completed_at = _when(data.get("completed_at")) or datetime.utcnow()
-        elif status == "expired":
-            signature.status = "expired"
+            signature.completed_at = _when(remote.get("completedAt")) or datetime.utcnow()
+        elif status == "cancelled":  # annulé depuis Documenso
+            signature.status = "cancelled"
         signature.error = None
-    except docuseal.DocusealError as exc:
+    except documenso.DocumensoError as exc:
         signature.error = exc.message
         db.session.commit()
         raise SaleError(exc.message, status=502) from None
@@ -199,13 +240,13 @@ def refresh_if_due(lease: Lease) -> None:
         pass
 
 
-def cancel(signature: LeaseSignature, client: docuseal.Client | None = None) -> None:
-    """Annule l'envoi (archivé chez Docuseal) : le bail redevient modifiable."""
+def cancel(signature: LeaseSignature, client: documenso.Client | None = None) -> None:
+    """Annule l'envoi en cours chez Documenso : le bail redevient modifiable."""
     if signature.status != "sent":
         raise SaleError("Seul un envoi en cours s'annule.", status=409)
     try:
-        (client or docuseal.Client.from_config()).archive(signature.submission_id)
-    except docuseal.DocusealError as exc:
+        (client or documenso.Client.from_config()).cancel(signature.submission_id)
+    except documenso.DocumensoError as exc:
         raise SaleError(exc.message, status=502) from None
     signature.status = "cancelled"
     db.session.commit()

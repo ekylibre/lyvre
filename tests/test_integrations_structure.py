@@ -37,7 +37,7 @@ def admin(login_as):
 def test_sci_lists_only_its_integrations(admin):
     _structure("sci", ["qonto", "helloasso"])
     items = admin.get(API).get_json()["items"]
-    assert [i["slug"] for i in items] == ["stancer", "odoo", "smtp", "qonto", "docuseal"]
+    assert [i["slug"] for i in items] == ["stancer", "odoo", "smtp", "qonto", "documenso"]
     assert admin.get(f"{API}/helloasso").status_code == 404
     assert admin.post(f"{API}/ga4/enabled", json={"enabled": True}).status_code == 404
     # Non applicable : éteinte, même présente dans les interrupteurs.
@@ -144,7 +144,7 @@ def test_instance_creation_with_integrations(app, login_as, monkeypatch, tmp_pat
 
     meta = client.get("/api/v1/instances").get_json()["meta"]["integrations_by_chart"]
     assert [(i["value"], i["recommended"]) for i in meta["sci"]] == [
-        ("stancer", False), ("odoo", False), ("smtp", False), ("qonto", True), ("docuseal", False)]
+        ("stancer", False), ("odoo", False), ("smtp", False), ("qonto", True), ("documenso", False)]
     assert "helloasso" in [i["value"] for i in meta["asso"]]
 
     assert client.post("/api/v1/instances", json={"slug": "sci-a", "label": "A", "chart": "sci"}).status_code == 201

@@ -10,8 +10,9 @@
   @page {
     size: A4; margin: 20mm 18mm 22mm;
     @bottom-left { content: string(doctitle); font-family: "DejaVu Sans", sans-serif; font-size: 7.5pt; color: #666; }
-    @bottom-right { content: "Page " counter(page) " / " counter(pages) " — paraphes :"; font-family: "DejaVu Sans", sans-serif;
-                    font-size: 7.5pt; color: #666; }
+    /* Coin bas droit laissé libre : cases de paraphe des signataires (signature électronique). */
+    @bottom-center { content: "Page " counter(page) " / " counter(pages) " — paraphes :"; font-family: "DejaVu Sans", sans-serif;
+                     font-size: 7.5pt; color: #666; }
   }
   .doctitle { string-set: doctitle content(); height: 0; overflow: hidden; visibility: hidden; }
   body { font-family: "DejaVu Sans", sans-serif; font-size: 9.5pt; color: #111; line-height: 1.45; text-align: justify; }
@@ -31,7 +32,8 @@
   table.signatures td { width: 50%; vertical-align: top; padding: 2mm 4mm 0 0; }
   table.signatures .signer { margin-top: 4mm; }
   table.signatures .sign-box { height: 24mm; }
-  .sign-tag { font-size: 5pt; color: #ffffff; white-space: nowrap; text-align: left; }
+  /* Balise Documenso (blanc sur blanc) : le champ de signature prend la taille de ce texte. */
+  .sign-tag { font-size: 15pt; line-height: 1; color: #ffffff; white-space: nowrap; text-align: left; }
   table.signatures td { text-align: left; }
   .signature-page { page-break-before: always; }
 </style>

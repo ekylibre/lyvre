@@ -1,7 +1,7 @@
 # Intégrations
 
 Services externes qu'une instance peut utiliser : **Qonto** (banque, factures d'achat), **SMTP**
-(emails), **Stancer** (paiements par carte), **Odoo** (caisse, factures clients), **Docuseal**
+(emails), **Stancer** (paiements par carte), **Odoo** (caisse, factures clients), **Documenso**
 (signature électronique des baux), et pour une
 association seulement **HelloAsso** (adhésions), **Google Analytics** et **Facebook** (Visibilité &
 Impact).
@@ -17,7 +17,7 @@ son logo, son état et son dernier test.
 | SMTP (emails) | ✔ | ✔ |
 | Stancer | ✔ | ✔ |
 | Odoo | ✔ | ✔ |
-| Docuseal | ✔ | ✔ |
+| Documenso | ✔ | ✔ |
 | HelloAsso | ✔ **recommandée** | — |
 | Google Analytics (GA4), Facebook (Page) | ✔ | — |
 
@@ -41,13 +41,14 @@ Les intégrations recommandées sont proposées :
 
 Les réglages sont ceux **de l'instance**. Le fichier `.env` ne sert de repli qu'en développement
 (`INTEGRATIONS_ENV_FALLBACK`) ; un service commun à toutes les instances n'est pas une intégration.
-**Docuseal n'a pas de repli `.env`** : une copie de base servie en local ne peut pas envoyer de bail
+**Documenso n'a pas de repli `.env`** : une copie de base servie en local ne peut pas envoyer de bail
 à la signature tant que son intégration n'est pas configurée.
 
-**Docuseal** : URL du serveur (auto-hébergé, par exemple `https://docuseal.seconde-nature.net`, ou
-`https://api.docuseal.com` / `https://api.docuseal.eu`) et **clé d'API** (Docuseal › Paramètres ›
-API). Chaque instance a les siens ; plusieurs instances peuvent viser le même serveur. Le test lit
-la liste des modèles (lecture seule).
+**Documenso** (édition communautaire, auto-hébergée ; l'édition libre de Docuseal ne permet pas
+d'envoyer un PDF par l'API) : URL du serveur et **jeton d'API** d'équipe (Documenso › Paramètres de
+l'équipe › Jetons d'API, `api_…`). Chaque instance a les siens ; plusieurs instances peuvent viser le
+même serveur. Le test lit la liste des envois (lecture seule). Installation du serveur :
+[Signature électronique des baux : serveur Documenso](signature_documenso.md).
 
 ## Périmètre (Qonto)
 

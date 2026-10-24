@@ -322,13 +322,13 @@ class LeaseTemplate(db.Model):
 
 
 class LeaseSignature(db.Model):
-    """Envoi d'un bail à la signature électronique (lot L4, Docuseal) : PDF envoyé, statut, PDF
+    """Envoi d'un bail à la signature électronique (lot L4, Documenso) : PDF envoyé, statut, PDF
     signé et journal d'audit rangés à la fin."""
     __tablename__ = "lease_signatures"
 
     id = db.Column(db.Integer, primary_key=True)
     lease_id = db.Column(db.Integer, db.ForeignKey("leases.id", ondelete="CASCADE"), nullable=False, index=True)
-    provider = db.Column(db.String(20), nullable=False, default="docuseal")
+    provider = db.Column(db.String(20), nullable=False, default="documenso")
     submission_id = db.Column(db.String(64))
     status = db.Column(db.String(12), nullable=False, default="sent")  # sent | completed | declined | expired | cancelled
     sent_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)

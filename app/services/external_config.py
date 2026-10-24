@@ -31,7 +31,7 @@ SERVICE_KEYS: dict[str, list[str]] = {
     "ga4":       ["property_id", "credentials_json"],
     "facebook":  ["page_id", "page_token", "app_id", "app_secret"],
     "qonto":     ["login", "secret_key", "staging_token"],
-    "docuseal":  ["url", "api_key"],
+    "documenso": ["url", "api_key"],
 }
 
 SERVICE_LABELS: dict[str, str] = {
@@ -42,7 +42,7 @@ SERVICE_LABELS: dict[str, str] = {
     "ga4":       "Google Analytics (GA4)",
     "facebook":  "Facebook (Page)",
     "qonto":     "Qonto",
-    "docuseal":  "Docuseal",
+    "documenso": "Documenso",
 }
 
 # Usage de chaque intégration dans l'application (page index des intégrations).
@@ -54,7 +54,7 @@ SERVICE_DESCRIPTIONS: dict[str, str] = {
     "ga4":       "Fréquentation du site pour Visibilité & Impact",
     "facebook":  "Abonnés de la Page pour Visibilité & Impact",
     "qonto":     "Comptes, transactions bancaires et factures d'achat",
-    "docuseal":  "Signature électronique des baux",
+    "documenso": "Signature électronique des baux",
 }
 
 # Structures (Instance.chart) pour lesquelles l'intégration existe ; absente = toutes.
@@ -87,7 +87,7 @@ SECRET_KEYS: set[tuple[str, str]] = {
     ("facebook",  "app_secret"),
     ("qonto",     "secret_key"),
     ("qonto",     "staging_token"),
-    ("docuseal",  "api_key"),
+    ("documenso", "api_key"),
 }
 
 # Champs à rendre en <textarea> (valeurs longues / secrets multilignes).
@@ -104,7 +104,7 @@ SERVICE_REQUIRED_KEYS: dict[str, list[str]] = {
     "ga4":       ["property_id", "credentials_json"],
     "facebook":  ["page_id", "page_token"],
     "qonto":     ["login", "secret_key"],
-    "docuseal":  ["url", "api_key"],
+    "documenso": ["url", "api_key"],
 }
 
 ENV_FALLBACK: dict[tuple[str, str], str] = {

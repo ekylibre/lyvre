@@ -129,15 +129,16 @@ pied de page « Page x / y — paraphes »), **Retoucher** (pour ce bail seul ; 
 tableau se retouche en source HTML), **Régénérer** (depuis le modèle et les données actuelles ; les
 retouches sont perdues). L'étape 3 de l'assistant propose aussi l'aperçu avant validation.
 
-**Signature électronique** (intégration **Docuseal**) : sur la fiche d'un bail validé, **Envoyer à
-la signature** — les **gérants** (Associés, case « Gérant », e-mail de leur fiche tiers), dans
+**Signature électronique** (intégration **Documenso**, voir [serveur Documenso](signature_documenso.md)) :
+sur la fiche d'un bail validé, **Envoyer à la signature** — les **gérants** (Associés, case « Gérant », e-mail de leur fiche tiers), dans
 l'ordre du registre, puis le **preneur** (e-mail de sa fiche, sinon de facturation) reçoivent
-l'invitation de Docuseal, l'un après l'autre. Le PDF envoyé est conservé ; chaque case du bloc de
+l'invitation de Documenso, l'un après l'autre. Le PDF envoyé est conservé ; chaque case du bloc de
 signatures porte le champ de signature (un texte rédigé avant cette version reçoit une page de
-signatures en fin de document). Statut relu à l'ouverture de la fiche (au plus une fois par
+signatures en fin de document) et chaque page a, en bas à droite, une case de **paraphe** par
+signataire. Statut relu à l'ouverture de la fiche (au plus une fois par
 minute) ou par **Actualiser** ; signé, le **PDF signé** et le **journal d'audit** sont rangés avec le
 bail. Un bail envoyé ou signé **n'est plus modifiable** (termes, biens, loyer, texte) ; **Annuler
-l'envoi** l'archive chez Docuseal et rend le bail modifiable ; après un refus, le bail se corrige et
+l'envoi** l'annule chez Documenso et rend le bail modifiable ; après un refus, le bail se corrige et
 se renvoie. Fin du bail et dépôt de garantie restent possibles.
 
 **Modèles de bail** (administrateur de l'instance) : un modèle par type, livré pré-rempli — le bail
