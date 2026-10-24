@@ -41,7 +41,8 @@ réglages `docker/documenso/env.example`.
 2. création de l'envoi (brouillon), signataires dans l'ordre (signature **séquentielle**) ;
 3. champs de signature agrandis (32 % × 7 % de la page) ; si une balise n'est pas trouvée, l'envoi
    est supprimé et une erreur s'affiche ;
-4. une case de **paraphe** par signataire en bas à droite de **chaque page** ;
+4. une case de **paraphe** par signataire en bas à droite de **chaque page**, dans la bande entre la
+   fin du texte et le pied de page (le paraphe s'inscrit d'un clic : initiales du signataire) ;
 5. distribution : Documenso invite le premier signataire, puis le suivant quand le précédent a signé.
 
 Suivi depuis la fiche du bail (à l'ouverture, au plus une fois par minute, ou « Actualiser ») ;

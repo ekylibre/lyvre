@@ -34,9 +34,11 @@ SIGNER_LABELS = {"awaiting": "En attente", "sent": "Invitation envoyée", "opene
                  "declined": "Refusé"}
 REFRESH_EVERY = timedelta(minutes=1)
 SIGNATURE_SIZE = (32.0, 7.0)  # largeur et hauteur des champs de signature, en % de la page (case de 24 mm)
-# Paraphes : une case par signataire en bas à droite de chaque page (pied de page du bail), côte à côte,
-# la dernière contre la marge droite (18 mm) ; en % de la page A4.
-INITIALS_WIDTH, INITIALS_HEIGHT, INITIALS_STEP, INITIALS_RIGHT, INITIALS_TOP = 9.0, 3.0, 10.0, 91.4, 93.4
+# Paraphes : une case par signataire en bas à droite de chaque page, côte à côte, la dernière contre la
+# marge droite (18 mm), dans la bande entre la fin du texte (marge basse de 22 mm) et le pied de page
+# (au ras du bas) : jamais sur le texte ni sur le pied de page, quel que soit le nombre de signataires ;
+# en % de la page A4.
+INITIALS_WIDTH, INITIALS_HEIGHT, INITIALS_STEP, INITIALS_RIGHT, INITIALS_TOP = 9.0, 2.6, 10.0, 91.4, 93.0
 
 
 def initials_boxes(count: int) -> list[tuple[float, float, float, float]]:

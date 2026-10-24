@@ -109,7 +109,7 @@ def test_send_with_signature_tags_then_complete(admin, fake):  # noqa: F811
     assert sent["external_id"] == f"lease-{lease_id}-1" and fake.distributed == ["envelope_1"]
     assert fake.resized == ("envelope_1", 32.0, 7.0)
     pages = len(PdfReader(BytesIO(sent["pdf"])).pages)
-    assert fake.initials == ("envelope_1", pages, [(62.4, 93.4, 9.0, 3.0), (72.4, 93.4, 9.0, 3.0), (82.4, 93.4, 9.0, 3.0)])
+    assert fake.initials == ("envelope_1", pages, [(62.4, 93.0, 9.0, 2.6), (72.4, 93.0, 9.0, 2.6), (82.4, 93.0, 9.0, 2.6)])
     assert [r["email"] for r in sent["recipients"]] == ["dupont@exemple.org", "martin@exemple.org", "preneur@example.org"]
     text = "".join(page.extract_text() for page in PdfReader(BytesIO(sent["pdf"])).pages)
     for n in (1, 2, 3):
