@@ -160,6 +160,63 @@ def test_report_and_dry_run_script(archive, tmp_path):
     spec.loader.exec_module(module)
     out = tmp_path / "rapport.md"
     code = module.main([str(archive), "--dry-run", "--report", str(out)])
-    assert code == 1 and out.read_text(encoding="utf-8").startswith("# Rapport de reprise")  # contrôle du registre en échec
+    assert code == 0 and out.read_text(encoding="utf-8").startswith("# Rapport de reprise")  # registre : signalé, non bloquant
     with pytest.raises(SystemExit):
-        module.main([str(archive)])  # import réel : lot K2
+        module.main([str(archive)])  # import sans --meta-url : refusé
+
+
+# ------------------------------------------------------------------ lot K2 : import dans la base courante
+
+
+def _mini_chart():
+    from app.extensions import db
+    from app.models import Account
+    for code, label, header in (("101", "Capital", True), ("11", "Report", True), ("12", "Résultat", True),
+                                ("213", "Constructions", True), ("401", "Fournisseurs", True), ("411", "Clients", True),
+                                ("445", "État TVA", True), ("455", "Associés", True), ("512", "Banque", True),
+                                ("511", "Valeurs à l'encaissement", True), ("6061", "Fournitures", True),
+                                ("60613", "Électricité", False), ("708", "Produits annexes", True)):
+        db.session.add(Account(code=code, label=label, account_type="OTHER", is_header=header))
+    db.session.commit()
+
+
+def _import(archive):
+    from app.services.ekylibre import importer, report
+    from app.services.ekylibre.mapping import Chart
+    data = load(archive)
+    chart = Chart.from_database()
+    plan = report.plan(data, chart)
+    return importer.run(data, plan["accounts"], plan["entities"], chart)
+
+
+def test_import_entries_vat_states_lettering_associates(app, archive):
+    _mini_chart()
+    from app.extensions import db
+    from app.models import Account, Associate, JournalEntry, Lettering, ShareMovement
+    ctx = _import(archive)
+    db.session.commit()
+    assert ctx.stats["entries"] == 3 and JournalEntry.query.count() == 3
+    purchase = JournalEntry.query.filter_by(source_ref="ACHA000001").one()
+    assert sorted((l.account.code, l.debit_cents, l.credit_cents) for l in purchase.lines) == [
+        ("401007", 0, 12000), ("60613", 12000, 0)]  # TVA intégrée à la charge (EK3)
+    assert ctx.vat_corrections == [("ACHA000001", 2000)]
+    opening = JournalEntry.query.filter_by(source_ref="RG000001").one()
+    assert opening.source == "OPENING" and opening.journal.code == "AN" and opening.is_validated
+    assert not purchase.is_validated and purchase.journal.code == "AC"
+    (item,) = Lettering.query.all()
+    assert item.code == "A" and not item.partial and item.account.code == "401007"
+    assert Associate.query.count() == 2 and ShareMovement.query.one().kind == "opening"
+    assert Account.query.filter_by(code="4551001").one().label == "Compte courant — Alice"
+    assert Account.query.filter_by(code="51201").one().parent.code == "512"
+
+
+def test_import_refuses_unknown_account(app, archive):
+    _mini_chart()
+    from app.services.ekylibre import importer, report
+    from app.services.ekylibre.mapping import Chart
+    data = load(archive)
+    chart = Chart.from_database()
+    plan = report.plan(data, chart)
+    plan["accounts"].pop("60613000")
+    with pytest.raises(importer.ImportFailure):
+        importer.run(data, plan["accounts"], plan["entities"], chart)

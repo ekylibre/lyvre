@@ -29,7 +29,8 @@ def _table(headers, rows) -> list[str]:
     return lines
 
 
-def render(data: EkyData, mapping: dict, results: list[checks_module.Check], source: str, dry_run: bool) -> str:
+def render(data: EkyData, mapping: dict, results: list[checks_module.Check], source: str, dry_run: bool,
+           imported=None) -> str:
     accounts: dict[str, AccountTarget] = mapping["accounts"]
     entities: dict[str, EntityTarget] = mapping["entities"]
     entries = data.entries()
@@ -49,11 +50,12 @@ def render(data: EkyData, mapping: dict, results: list[checks_module.Check], sou
         ("Immobilisations", len(data.rows["fixed_assets"])),
         ("Tiers repris", len(entities)),
     ])
-    failed = [c for c in results if not c.ok]
-    out += ["", "## Contrôles", "", f"**{len(failed)} contrôle(s) en échec** sur {len(results)}." if failed
-            else f"Tous les contrôles bloquants sont passés ({len(results)}).", ""]
+    failed = [c for c in results if not c.ok and c.blocking]
+    warnings = [c for c in results if not c.ok and not c.blocking]
+    out += ["", "## Contrôles", "", (f"**{len(failed)} contrôle(s) bloquant(s) en échec**" if failed
+            else "Contrôles bloquants passés") + f", {len(warnings)} anomalie(s) signalée(s) (⚠️), {len(results)} contrôles.", ""]
     for check in results:
-        out.append(f"- {'✅' if check.ok else '❌'} {check.label}")
+        out.append(f"- {'✅' if check.ok else ('❌' if check.blocking else '⚠️')} {check.label}")
         out += [f"  - {d}" for d in check.details[:40]]
         if len(check.details) > 40:
             out.append(f"  - … ({len(check.details) - 40} de plus)")
@@ -71,6 +73,14 @@ def render(data: EkyData, mapping: dict, results: list[checks_module.Check], sou
     out += _table(["Nom", "Type", "Fournisseur", "Client", "SIRET", "TVA", "IBAN", "Ville"],
                   [(e.name, e.entity_type, e.supplier_code or "", e.customer_code or "", e.siret or "", e.vat_number or "",
                     "oui" if e.iban else "", e.city or "") for e in sorted(entities.values(), key=lambda e: e.name.lower())])
+    if imported is not None:
+        out += ["", "## Import", ""]
+        out += _table(["Élément", "Nombre"], sorted(imported.stats.items()))
+        out += ["", f"TVA intégrée à la charge : {len(imported.vat_corrections)} écriture(s), "
+                f"{sum(v for _n, v in imported.vat_corrections) / 100:.2f} €.", ""]
+        out += _table(["Écriture", "TVA intégrée"], [(n, f"{v / 100:.2f} €") for n, v in imported.vat_corrections])
+        out += ["", "Contrôle : balance Lyvre = balance Ekylibre de la période, corrections de TVA comprises (aucun écart).", ""]
+        out += [f"- {note}" for note in imported.notes]
     out += ["", "## Corrections prévues", "",
             "- TVA déductible des achats intégrée à la charge (EK3) : voir le contrôle « TVA ».",
             "- Reclassement des terrains (Bois, Terres) du 2131 au 211 au "

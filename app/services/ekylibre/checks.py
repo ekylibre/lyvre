@@ -12,6 +12,7 @@ class Check:
     label: str
     ok: bool
     details: list = field(default_factory=list)
+    blocking: bool = False   # bloquant : l'import est refusé ; sinon anomalie signalée au rapport
 
 
 def _signed(item) -> int:
@@ -52,7 +53,8 @@ def run(data: EkyData) -> list[Check]:
 
     unbalanced = [f"{e['number']} ({e['printed_on']}) : {sum(_signed(i) for i in data.items_by_entry[e['id']]) / 100:.2f} €"
                   for e in entries if sum(_signed(i) for i in data.items_by_entry[e["id"]])]
-    checks.append(Check("balanced", f"Écritures de la période équilibrées ({len(entries)})", not unbalanced, unbalanced))
+    checks.append(Check("balanced", f"Écritures de la période équilibrées ({len(entries)})", not unbalanced, unbalanced,
+                        blocking=True))
 
     previous = data.fiscal_year(data.start - timedelta(days=1))
     if previous is not None:
@@ -127,7 +129,7 @@ def run(data: EkyData) -> list[Check]:
 
     names = Counter((data.get("entities", i)["full_name"] or "").strip().lower() for i in data.entities_used())
     duplicates = [n for n, c in names.items() if c > 1]
-    checks.append(Check("entity_names", "Noms de tiers uniques (fiches Lyvre)", not duplicates, duplicates))
+    checks.append(Check("entity_names", "Noms de tiers uniques (fiches Lyvre)", not duplicates, duplicates, blocking=True))
 
     opening = balances(data, opening_entries(data))
     watch = [f"{n} : {v / 100:.2f} €" for n, v in sorted(opening.items()) if n and n.startswith("4552") and v]
