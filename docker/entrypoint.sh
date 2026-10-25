@@ -30,6 +30,11 @@ python seed_accounts.py || echo "[entrypoint] seed_accounts.py reported issues �
 echo "[entrypoint] Seeding meta DB (idempotent)…"
 python seed_meta.py
 
+# `flask db upgrade` ci-dessus ne migre que la base par défaut : chaque autre instance déclarée
+# dans la base méta est migrée ici (un échec est signalé sans bloquer le démarrage).
+echo "[entrypoint] Applying migrations to every instance database…"
+python scripts/migrate_instances.py
+
 echo "[entrypoint] Seeding rules (idempotent)…"
 python seed_rules.py
 
