@@ -6,12 +6,18 @@ from app.access import instance_admin_required
 from app.extensions import db
 from app.services import associates, organization
 from app.services.catalog import format_rate
+from app.tenant import is_association
 
 from . import ApiError, bp, json_body, notice
+
+# Champs propres à une structure : ignorés à l'écriture pour l'autre (rien n'est effacé en base).
+ASSOCIATION_FIELDS = ("rna", "signatory_name", "signatory_title")
+COMPANY_FIELDS = ("has_associates", "associate_interest_rate")
 
 
 def organization_payload(org) -> dict:
     return {**{key: getattr(org, key) for key in organization.FIELDS}, "fec_ready": bool(org.siren),
+            "share_capital": organization.share_capital_text(org), "rcs_mention": organization.rcs_mention(org),
             "has_associates": associates.enabled(),
             "associate_interest_rate": format_rate(org.associate_interest_rate_bp).replace(" %", "")}
 
@@ -25,6 +31,8 @@ def organization_get():
 @instance_admin_required
 def organization_update():
     data = json_body()
+    for key in COMPANY_FIELDS if is_association() else ASSOCIATION_FIELDS:
+        data.pop(key, None)
     instance = g.current_instance
     was_enabled = bool(instance.has_associates)
     org, errors = organization.update(data)

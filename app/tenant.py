@@ -99,6 +99,12 @@ def current_chart() -> str:
     return getattr(current_instance(), "chart", None) or DEFAULT_CHART
 
 
+def is_association() -> bool:
+    """Instance courante tenue par une association : reçus fiscaux, adhérents, bénévolat, fonds
+    dédiés… Toute autre structure (SCI) ne voit ni n'atteint ces fonctions."""
+    return current_chart() == "asso"
+
+
 def _is_tenant_free_endpoint() -> bool:
     if request.endpoint is None:
         return True

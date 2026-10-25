@@ -14,12 +14,13 @@ from app.models.customer_invoice import CUSTOMER_INVOICE_PAYMENT_STATES, CUSTOME
 from app.models.entity import ENTITY_TYPES
 from app.models.order import POS_ORDER_STATES
 from app.queries.entities import last_membership_dates
-from app.services import catalog, external_config, odoo_partner_update
+from app.services import catalog, external_config, odoo_partner_update, organization
 from app.services.helloasso_client import HelloAssoConfigError
 from app.services.helloasso_sync import sync_helloasso
 from app.services.odoo_client import OdooConfigError
 from app.services.purchase_posting import purchase_state
 from app.services.purchase_sync import normalize_iban, normalize_siret, normalize_vat
+from app.tenant import is_association
 
 from . import ApiError, bp, get_or_404, invalid, json_body, notice, require_integration
 
@@ -42,7 +43,8 @@ def entity_payload(e: Entity, last_ha=None, last_pos=None, transactions=None) ->
         "account_code": e.account_code, "is_member": e.is_member, "is_benevole": e.is_benevole,
         "notes": e.notes, "default_product_id": e.default_product_id,
         "default_product": e.default_product.name if e.default_product else None,
-        "vat_number": e.vat_number, "siret": e.siret, "iban": e.iban,
+        "vat_number": e.vat_number, "siret": e.siret, "siren": e.siren, "iban": e.iban,
+        "naf_code": e.naf_code, "naf_nomenclature": e.naf_nomenclature,
         **{key: getattr(e, key) for key in ADDRESS_FIELDS}, "person_kind": e.person_kind,
         "last_helloasso_membership": _iso(last_ha), "last_pos_membership": _iso(last_pos),
         "transactions": e.transactions.count() if transactions is None else transactions,
@@ -64,7 +66,7 @@ def tiers_list():
         like = f"%{q}%"
         query = query.filter(db.or_(Entity.name.ilike(like), Entity.email.ilike(like)))
     entities = query.order_by(Entity.name).all()
-    last_ha, last_pos = last_membership_dates()
+    last_ha, last_pos = last_membership_dates() if is_association() else ({}, {})
     counts = dict(db.session.query(Entity.id, db.func.count())
                   .join(Entity.transactions).group_by(Entity.id).all())
     return jsonify(items=[entity_payload(e, last_ha.get(e.id), last_pos.get(e.id), counts.get(e.id, 0))
@@ -92,6 +94,28 @@ def _apply_address(entity: Entity, data: dict) -> None:
         entity.person_kind = kind
 
 
+def _siren(data: dict, siret: str | None) -> str | None:
+    """SIREN saisi seul (unité légale sans établissement connu) ; avec un SIRET, il doit en être le début."""
+    siren = organization.normalize_siren(str(data.get("siren") or ""))
+    if not siren:
+        return None
+    if not re.fullmatch(r"\d{9}", siren) or not organization.luhn_valid(siren):
+        raise invalid("SIREN invalide : 9 chiffres, clé de contrôle comprise.", "siren")
+    if siret and not siret.startswith(siren):
+        raise invalid("Le SIREN doit être le début du SIRET.", "siren")
+    return siren
+
+
+def _naf(data: dict) -> tuple[str | None, str | None] | None:
+    """Activité (code NAF sans point, nomenclature), si elle est envoyée."""
+    if "naf_code" not in data:
+        return None
+    code = str(data.get("naf_code") or "").replace(".", "").replace(" ", "").upper() or None
+    if code and not re.fullmatch(r"\d{4}[A-Z]", code):
+        raise invalid("Code NAF : 4 chiffres et une lettre (68.20B).", "naf_code")
+    return code, (str(data.get("naf_nomenclature") or "").strip()[:12] or None) if code else None
+
+
 def _apply(entity: Entity, data: dict) -> None:
     name = str(data.get("name") or "").strip()
     if not name:
@@ -104,6 +128,8 @@ def _apply(entity: Entity, data: dict) -> None:
     siret = str(data.get("siret") or "").strip()
     if siret and normalize_siret(siret) is None:
         raise invalid(SIRET_MESSAGE, "siret")
+    siren = _siren(data, normalize_siret(siret))
+    naf = _naf(data)
     entity_type = data.get("entity_type") or "AUTRE"
     if entity_type not in TYPE_CODES:
         raise invalid("Type de tiers inconnu.", "entity_type")
@@ -118,11 +144,16 @@ def _apply(entity: Entity, data: dict) -> None:
     text = lambda key, size: (str(data.get(key) or "").strip()[:size] or None)  # noqa: E731
     entity.name, entity.entity_type = name[:200], entity_type
     entity.account_code, entity.email = text("account_code", 20), text("email", 200)
-    entity.is_member, entity.is_benevole = bool(data.get("is_member")), bool(data.get("is_benevole"))
+    if is_association():  # autre structure : adhérent et bénévole conservés tels quels
+        entity.is_member, entity.is_benevole = bool(data.get("is_member")), bool(data.get("is_benevole"))
     entity.notes = str(data.get("notes") or "").strip() or None
     entity.default_product_id = product_id
     entity.vat_number = normalize_vat(data.get("vat_number"))
-    entity.siret = normalize_siret(siret)
+    entity.siret = normalize_siret(siret)  # dérive aussi le SIREN (Entity._derive_siren)
+    if entity.siret is None and "siren" in data:
+        entity.siren = siren
+    if naf is not None:
+        entity.naf_code, entity.naf_nomenclature = naf
     entity.iban = normalize_iban(data.get("iban"))
 
 
@@ -195,12 +226,15 @@ def _open_items(entity):
 def tiers_detail(entity_id):
     """Fiche du tiers : identité et toutes ses pièces rattachées."""
     entity = get_or_404(Entity, entity_id, "Tiers introuvable.")
-    last_ha, last_pos = last_membership_dates([entity.id])
+    association = is_association()  # adhésions, bénévolat et HelloAsso : associations seulement
+    last_ha, last_pos = last_membership_dates([entity.id]) if association else ({}, {})
 
-    ha_orders = (HelloAssoOrder.query.filter_by(entity_id=entity.id)
-                 .order_by(HelloAssoOrder.date.desc().nullslast()).all())
-    ha_items = HelloAssoItem.query.filter_by(entity_id=entity.id).order_by(HelloAssoItem.id.desc()).all()
-    ha_payments = []
+    ha_orders, ha_items, ha_payments, work_times = [], [], [], []
+    if association:
+        ha_orders = (HelloAssoOrder.query.filter_by(entity_id=entity.id)
+                     .order_by(HelloAssoOrder.date.desc().nullslast()).all())
+        ha_items = HelloAssoItem.query.filter_by(entity_id=entity.id).order_by(HelloAssoItem.id.desc()).all()
+        work_times = entity.work_times.order_by(WorkTime.work_date.desc(), WorkTime.id.desc()).all()
     if ha_orders:
         ha_payments = (HelloAssoPayment.query.filter(HelloAssoPayment.order_id.in_([o.id for o in ha_orders]))
                        .order_by(HelloAssoPayment.payment_date.desc().nullslast()).all())
@@ -208,7 +242,6 @@ def tiers_detail(entity_id):
     invoice_states, payment_states = dict(CUSTOMER_INVOICE_STATES), dict(CUSTOMER_INVOICE_PAYMENT_STATES)
     invoices = (CustomerInvoice.query.filter_by(entity_id=entity.id)
                 .order_by(CustomerInvoice.invoice_date.desc().nullslast(), CustomerInvoice.id.desc()).all())
-    work_times = entity.work_times.order_by(WorkTime.work_date.desc(), WorkTime.id.desc()).all()
     purchases = (Purchase.query.filter_by(entity_id=entity.id)
                  .order_by(Purchase.issue_date.desc().nullslast(), Purchase.id.desc()).all())
     account = Account.query.filter_by(code=entity.account_code).first() if entity.account_code else None
@@ -236,8 +269,8 @@ def tiers_detail(entity_id):
             for inv in invoices],
         work_times=[{"id": wt.id, "date": _iso(wt.work_date), "task_type": wt.task_type.name,
                      "hours": float(wt.hours), "valuation_cents": wt.valuation_cents, "notes": wt.notes}
-                    for wt in work_times],
-        helloasso={
+                    for wt in work_times] if association else None,
+        helloasso=None if not association else {
             "orders": [{"date": _iso(o.date), "form_slug": o.form_slug, "form_type": o.form_type,
                         "amount_total_cents": o.amount_total_cents,
                         "payer": " ".join(filter(None, (o.payer_first_name, o.payer_last_name)))}

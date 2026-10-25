@@ -23,6 +23,7 @@ Application web de comptabilité pour associations loi 1901 (plan comptable des 
 | [Immobilisations](immobilisations.md) | Registre, composants, plans linéaire / dégressif (année de 360 jours, méthodes d'Ekylibre), dotations à la clôture, mise en service, cession et rebut, annexe |
 | [Lettrage](lettrage.md) | Comptes de tiers : lettrage automatique des factures et règlements, à la main au clavier, partiel, écart, propositions, à-nouveaux détaillés, FEC |
 | [Ventes](ventes.md) | Devis, factures et avoirs (numérotation continue, PDF Factur-X, journal VE), encaissements et relances, factures récurrentes, baux et quittances, avec ou sans Qonto ; abonnements d'achat dans [Factures d'achat](achats.md#abonnements) |
+| [Sirene](sirene.md) | API Sirene v4 de l'INSEE : pré-remplissage de la Structure et des tiers, quota, cache, nomenclatures |
 | [Intégrations](integrations.md) | Qonto, SMTP, Stancer, Odoo, HelloAsso, Google Analytics, Facebook : proposées selon la structure, désactivées par défaut, silencieuses quand elles sont désactivées, message quand une action en a besoin |
 - [Signature électronique des baux : serveur Documenso](signature_documenso.md)
 | [Associés](associes.md) | Sociétés (SCI, entreprises) : registre des parts (pleine propriété, usufruit, nue-propriété), comptes courants d'associés (factures payées par un associé, notes de frais, apports), intérêts et affectation du résultat à la clôture, import CSV |

@@ -405,6 +405,8 @@ def purchases_stage():
 def _validated(data, exclude_id=None):
     values = _values(data)
     clean, errors = purchase_entry.validate_header(values)
+    if clean["new_name"]:
+        clean["new_entity"] = purchase_entry.clean_new_entity(data.get("new_entity"))
     token = data.get("token") or None
     if token:
         try:

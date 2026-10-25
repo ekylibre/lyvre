@@ -49,3 +49,8 @@ export function compareValues(a: unknown, b: unknown): number {
   if (typeof a === "boolean" && typeof b === "boolean") return Number(a) - Number(b);
   return COLLATOR.compare(String(a), String(b));
 }
+
+/** Code NAF tel que Sirene le renvoie (« 6820B ») → affichage officiel (« 68.20B »). */
+export function formatNaf(code: string | null | undefined): string {
+  return code && code.length === 5 ? `${code.slice(0, 2)}.${code.slice(2)}` : code ?? "";
+}

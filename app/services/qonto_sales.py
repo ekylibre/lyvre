@@ -253,16 +253,17 @@ def _entity_for(qonto_client: dict, result: dict) -> Entity:
         return entity
     name = (qonto_client.get("name") or " ".join(filter(None, [qonto_client.get("first_name"), qonto_client.get("last_name")]))
             or "Client Qonto").strip()[:200]
-    siren = (qonto_client.get("tax_identification_number") or "")[:9]
+    siren = "".join((qonto_client.get("tax_identification_number") or "").split())[:9]
+    siren = siren if len(siren) == 9 and siren.isdigit() else ""
     query = Entity.query
-    entity = ((siren and query.filter(Entity.siret.like(f"{siren}%")).first())
+    entity = ((siren and query.filter(db.or_(Entity.siren == siren, Entity.siret.like(f"{siren}%"))).first())
               or (qonto_client.get("vat_number") and query.filter_by(vat_number=qonto_client["vat_number"]).first())
               or (qonto_client.get("email") and query.filter_by(email=qonto_client["email"]).first())
               or query.filter(db.func.lower(Entity.name) == name.lower()).first())
     if entity is None:
         address = qonto_client.get("billing_address") or {}
         entity = Entity(name=name, entity_type="CLIENT", email=qonto_client.get("email"),
-                        vat_number=qonto_client.get("vat_number"), siret=siren or None,
+                        vat_number=qonto_client.get("vat_number"), siren=siren or None,
                         address_line1=address.get("street_address") or qonto_client.get("address"),
                         postal_code=address.get("zip_code") or qonto_client.get("zip_code"),
                         city=address.get("city") or qonto_client.get("city"),

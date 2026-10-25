@@ -23,7 +23,10 @@ Qonto, l'écran ne montre que les factures saisies, sans élément Qonto (voir [
 3. **Fournisseurs** — Tiers › Entités : sur la fiche, choisissez le **produit par défaut** ; il est
    repris sur les lignes de chaque nouvelle facture. Sans produit par défaut, le premier produit
    précis (autre qu'« Achats divers ») choisi sur une de ses factures le devient. L'identifiant Qonto, le n° de TVA, le SIRET,
-   l'IBAN puis le nom servent, dans cet ordre, à reconnaître le fournisseur d'une facture.
+   le SIREN (tiré du SIRET ou d'un n° de TVA français), l'IBAN puis le nom servent, dans cet ordre, à
+   reconnaître le fournisseur d'une facture. À la saisie, « Chercher dans Sirene » trouve le
+   fournisseur : un tiers connu est repris tel quel, un nouveau est créé avec sa fiche Sirene à
+   l'enregistrement de la facture (voir [sirene.md](sirene.md)).
 4. **Date de début** (administrateur) — sur la page Factures d'achat, avant la première
    synchronisation ; défaut : début de l'exercice ouvert. La reculer plus tard relit tout depuis
    cette date, sans doublon.

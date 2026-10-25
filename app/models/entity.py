@@ -1,4 +1,7 @@
 from datetime import datetime
+
+from sqlalchemy.orm import validates
+
 from app.extensions import db
 
 ENTITY_TYPES = [
@@ -32,6 +35,11 @@ class Entity(db.Model):
     qonto_supplier_id = db.Column(db.String(36), index=True)
     vat_number = db.Column(db.String(30), index=True)
     siret = db.Column(db.String(14), index=True)
+    # SIREN : 9 premiers chiffres du SIRET (tenu à jour avec lui), ou seul (unité légale sans
+    # établissement connu). Rapprochement des fournisseurs et mise à jour depuis Sirene (lot G).
+    siren = db.Column(db.String(9), index=True)
+    naf_code = db.Column(db.String(8))           # « 6820B », sans point, comme Sirene
+    naf_nomenclature = db.Column(db.String(12))  # NAFRev2, NAF2025
     iban = db.Column(db.String(34))
     # Adresse et nature (lot B, reçus fiscaux) : exigées à l'émission d'un reçu, pas à la saisie.
     address_line1 = db.Column(db.String(200))
@@ -45,6 +53,13 @@ class Entity(db.Model):
     billing_emails = db.Column(db.Text)
     qonto_client_id = db.Column(db.String(36), index=True)  # client Qonto (ventes, lot S4)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @validates("siret")
+    def _derive_siren(self, _key, value):
+        """Tout chemin qui écrit un SIRET (fiche, achats, Qonto, reprise) en dérive le SIREN."""
+        if value and len(value) == 14 and value.isdigit():
+            self.siren = value[:9]
+        return value
 
     transactions = db.relationship("BankTransaction", back_populates="entity", lazy="dynamic")
     purchases = db.relationship("Purchase", back_populates="entity", lazy="dynamic")

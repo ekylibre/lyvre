@@ -243,10 +243,21 @@ def next_fiscal_year(fy):
     return FiscalYear.query.filter(FiscalYear.start_date > fy.end_date).order_by(FiscalYear.start_date).first()
 
 
+def step_keys() -> tuple[str, ...]:
+    """Étapes de la structure : les fonds dédiés n'existent que pour une association."""
+    from app.tenant import is_association
+    return CLOSING_STEPS if is_association() else tuple(s for s in CLOSING_STEPS if s != "dedicated_funds")
+
+
+def decided_before_close() -> tuple[str, ...]:
+    keys = step_keys()
+    return tuple(s for s in DECIDED_BEFORE_CLOSE if s in keys)
+
+
 def steps(fy) -> list[dict]:
     stored = _stored(fy)
     out = []
-    for key in CLOSING_STEPS:
+    for key in step_keys():
         row = stored.get(key)
         state = row.state if row else "todo"
         if key == "close":
@@ -274,7 +285,7 @@ def _mark(fy, step, state, user_id=None):
 
 
 def set_step(fy, step, state, note=None, user_id=None):
-    if step not in DECIDED_BEFORE_CLOSE:
+    if step not in decided_before_close():
         raise ClosingError("Étape non modifiable ici.", 422)
     if fy.status != FY_OPEN:
         raise ClosingError("Exercice clôturé : rouvrez-le pour modifier les étapes.")
@@ -307,7 +318,7 @@ def close_provisional(fy, user_id=None):
     if fy.status != FY_OPEN:
         raise ClosingError("Cet exercice est déjà clôturé.")
     stored = _stored(fy)
-    pending = [STEP_LABELS[s] for s in DECIDED_BEFORE_CLOSE
+    pending = [STEP_LABELS[s] for s in decided_before_close()
                if s not in stored or stored[s].state not in ("done", "skipped")]
     if pending:
         raise ClosingError("Étapes à terminer ou à ignorer avant la clôture : " + ", ".join(pending) + ".", 422)

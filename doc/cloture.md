@@ -25,7 +25,7 @@ motif** (5 caractères au moins), qui reste visible dans la liste des étapes.
    441), charges constatées d'avance (486), produits constatés d'avance (487). Passées en journal
    OD au dernier jour de l'exercice, elles seront **extournées** automatiquement à l'ouverture de
    N+1.
-3. **Fonds dédiés** — Pour une subvention, une contribution d'un autre organisme ou un don
+3. **Fonds dédiés** (associations seulement : l'étape n'existe pas pour une SCI) — Pour une subvention, une contribution d'un autre organisme ou un don
    affecté à un projet et non entièrement utilisé : créer la ressource (nature, montant reçu,
    compte de produit facultatif), puis **doter** la part non utilisée (689x / 19x). Les années
    suivantes, l'assistant présente le solde du fonds : enregistrer l'**utilisation** (19x /

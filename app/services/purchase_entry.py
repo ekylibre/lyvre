@@ -223,7 +223,7 @@ def validate_header(form) -> tuple[dict, list[str]]:
         errors.append("Le montant TTC est obligatoire.")
 
     choice = (form.get("entity_id") or "").strip()
-    clean["entity"], clean["new_name"] = None, None
+    clean["entity"], clean["new_name"], clean["new_entity"] = None, None, {}
     if choice == "new":
         clean["new_name"] = (form.get("new_name") or "").strip()[:200] or None
         if clean["new_name"] is None:
@@ -260,6 +260,26 @@ def _same(p: Purchase, number, issue_date, total) -> bool:
 
 # ------------------------------------------------------------------ enregistrement
 
+# Fiche Sirene du fournisseur à créer (lot G4) : appliquée seulement à la création du tiers.
+NEW_ENTITY_FIELDS = {"siren": 9, "address_line1": 200, "address_line2": 200, "postal_code": 10, "city": 100,
+                     "country": 60, "naf_code": 8, "naf_nomenclature": 12, "person_kind": 12}
+
+
+def clean_new_entity(data) -> dict:
+    """Champs reconnus d'une proposition Sirene (le reste est ignoré)."""
+    if not isinstance(data, dict):
+        return {}
+    out = {key: str(data[key]).strip()[:size] for key, size in NEW_ENTITY_FIELDS.items()
+           if data.get(key) not in (None, "")}
+    if out.get("person_kind") not in (None, "individual", "company"):
+        out.pop("person_kind")
+    if "naf_code" in out:
+        out["naf_code"] = out["naf_code"].replace(".", "").upper()
+    if "siren" in out and not (out["siren"].isdigit() and len(out["siren"]) == 9):
+        out.pop("siren")
+    return out
+
+
 def chosen_supplier(clean) -> Entity | None:
     """Fournisseur choisi, ou homonyme existant du fournisseur à créer (sans rien créer)."""
     if clean["entity"] is not None or not clean["new_name"]:
@@ -273,6 +293,8 @@ def _supplier(clean) -> Entity | None:
     entity = chosen_supplier(clean)
     if entity is None and clean["new_name"]:
         entity = Entity(name=clean["new_name"], entity_type="FOURNISSEUR")
+        for key, value in clean.get("new_entity", {}).items():  # jamais sur un tiers existant (B19)
+            setattr(entity, key, value)
         db.session.add(entity)
     if entity is not None:
         entity.vat_number = entity.vat_number or clean["supplier_vat"]

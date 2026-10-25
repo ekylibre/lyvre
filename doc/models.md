@@ -342,6 +342,8 @@ transaction donne un seul événement.
 | `address_line1/2` · `postal_code` · `city` · `country` | String | Adresse du siège (`country` défaut `France` ; code postal français sur 5 chiffres) |
 | `purpose` | Text | Objet |
 | `signatory_name` · `signatory_title` · `signature_path` | String | Signataire des reçus fiscaux (lot B) |
+| `legal_form` · `share_capital_cents` · `rcs_city` · `vat_number` | String / Integer | Mentions légales, seule source pour les factures et les baux (lot G2) ; mention d'immatriculation composée par `organization.rcs_mention` |
+| `naf_code` · `naf_nomenclature` | String(8) / String(12) | Activité, code sans point comme Sirene (« 6820B »), affiché « 68.20B » |
 
 ## ClosingStep / ClosingEvent — Assistant de clôture
 
@@ -566,6 +568,8 @@ comme fournisseur, pour les transactions présentes et futures.
 | `default_product_id` | FK→products ON DELETE SET NULL | Produit proposé sur les lignes de ses factures d'achat |
 | `qonto_supplier_id` | String(36) (indexé) | Identifiant du fournisseur dans Qonto |
 | `vat_number` / `siret` / `iban` | String(30) / String(14) (indexés) / String(34) | Reconnaissance du fournisseur : id Qonto → TVA → SIRET → IBAN → nom (`purchase_sync.find_supplier`) |
+| `siren` | String(9) (indexé) | 9 premiers chiffres du SIRET, dérivés à chaque écriture du SIRET (`Entity._derive_siren`) ; peut exister seul (lot G2) |
+| `naf_code` · `naf_nomenclature` | String(8) / String(12) | Activité du tiers (Sirene) |
 | `address_line1` · `address_line2` · `postal_code` · `city` · `country` | String | Adresse du donateur (lot B.1, migration `c1e5a7b9d402`) ; exigée à l'émission d'un reçu, pas à la saisie |
 | `person_kind` | String(12) nullable | `individual` (particulier) ou `company` (entreprise ou organisme) : modèle de reçu |
 | `created_at` | DateTime | |
@@ -949,7 +953,7 @@ Migration `c3d5e7f9a1b4` (claudedocs/design_ventes.md).
 | `sale_lines` | Lignes : produit, désignation, description, `quantity_milli`, unité, `unit_price_cents` HT, `discount_bp`, HT, `vat_rate_bp`, TVA (calculée par taux puis répartie), compte de vente 7…, projet, `nature` (exigibilité de la TVA) |
 | `sale_counters` | Dernier numéro par série (`D`, `F`, `AV`) et année civile ; avancé dans la transaction d'émission (pas de trou) |
 | `sale_emails` | Envois par email (destinataires, objet, statut, erreur) |
-| `billing_settings` | Une ligne : forme juridique, capital, RCS, TVA intracommunautaire, IBAN/BIC, délai de paiement, pénalités, indemnité de 40 €, escompte, pied de page, logo, message d'envoi |
+| `billing_settings` | Une ligne : IBAN/BIC, délai de paiement, pénalités, indemnité de 40 €, escompte, pied de page, logo, message d'envoi. Les mentions légales (forme, capital, greffe, TVA) sont dans `organization` depuis le lot G2 (migration `f3b5d7e9a1c4`) |
 
 Colonnes ajoutées : `entities.customer_account_code` (411NNN), `entities.billing_emails` (copies) ;
 `products.description`, `unit`, `sale_price_cents`, `nature` ; `fiscal_years.vat_on_receipts`

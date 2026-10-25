@@ -106,4 +106,4 @@ def test_sci_has_no_receipts(app, login_as):
     client = login_as(role="admin")
     Instance.query.one().chart = "sci"
     db.session.commit()
-    _error(client.get("/api/v1/receipts/settings"), 404)
+    assert _error(client.get("/api/v1/receipts/settings"), 403)["code"] == "association_only"

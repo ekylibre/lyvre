@@ -40,13 +40,18 @@ interface InventoryEntry {
 }
 interface InventoryOption { label: string; classes: string[]; counterparts: { value: string; label: string }[] }
 interface ClosingEvent { at: string; step: string | null; action: string; details: Record<string, unknown> | null }
+interface DedicatedFundsView {
+  funds: DedicatedFund[]; kinds: { value: string; label: string; accounts: string[] }[];
+  projects: { value: string; label: string }[];
+}
+
 interface ClosingView {
   fiscal_year: FiscalYear; steps: Step[]; checks: Check[]; inventory: InventoryEntry[];
   inventory_options: Record<string, InventoryOption>;
   result: { income_cents: number; expense_cents: number; result_cents: number };
   next_fiscal_year: FiscalYear | null; events: ClosingEvent[];
-  dedicated_funds: { funds: DedicatedFund[]; kinds: { value: string; label: string; accounts: string[] }[];
-    projects: { value: string; label: string }[] };
+  /** Associations seulement : `null` pour une autre structure, qui n'a pas cette étape. */
+  dedicated_funds: DedicatedFundsView | null;
   opening: {
     lines: { account_code: string; label: string; debit_cents: number; credit_cents: number }[];
     error: string | null; reversals_planned: number; next_start_date: string;
@@ -343,11 +348,13 @@ function Close({ view }: { view: ClosingView }) {
   );
 }
 
+const NO_FUNDS: DedicatedFundsView = { funds: [], kinds: [], projects: [] };
+
 function DedicatedFunds({ view }: { view: ClosingView }) {
   const can = useCan();
   const fy = view.fiscal_year;
   const editable = can.write && fy.status === "open";
-  const { funds, kinds, projects } = view.dedicated_funds;
+  const { funds, kinds, projects } = view.dedicated_funds ?? NO_FUNDS;
   const removeFund = useClosingAction(fy.id, (id: number) => api.delete<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}/dedicated-funds/${id}`));
   const removeMovement = useClosingAction(fy.id, (id: number) =>
     api.delete<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}/dedicated-fund-movements/${id}`));
@@ -445,7 +452,7 @@ function FundMovementForm({ fyId, fund }: { fyId: number; fund: DedicatedFund })
 }
 
 function FundForm({ fyId, kinds, projects }: {
-  fyId: number; kinds: ClosingView["dedicated_funds"]["kinds"]; projects: ClosingView["dedicated_funds"]["projects"];
+  fyId: number; kinds: DedicatedFundsView["kinds"]; projects: DedicatedFundsView["projects"];
 }) {
   const [label, setLabel] = useState("");
   const [kind, setKind] = useState<string | null>("subsidy");

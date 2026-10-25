@@ -1,5 +1,6 @@
-"""Réglages de facturation (lot S1) : mentions légales du vendeur, coordonnées bancaires, conditions
-de paiement, logo, modèle d'email d'envoi. Une ligne `billing_settings` par instance."""
+"""Réglages de facturation (lot S1) : coordonnées bancaires, conditions de paiement, logo, modèle
+d'email d'envoi. Une ligne `billing_settings` par instance. Les mentions légales du vendeur (forme,
+capital, RCS, TVA) sont celles de la Structure (lot G2)."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -29,7 +30,7 @@ Merci de procéder à son règlement, ou de nous indiquer s'il a déjà été ef
 Bien cordialement,
 {organisation}"""
 DEFAULT_LATE_PENALTY = ("En cas de retard de paiement, pénalités au taux d'intérêt de la BCE majoré de 10 points.")
-TEXT_FIELDS = {"legal_form": 100, "rcs": 100, "vat_number": 20, "iban": 34, "bic": 11, "send_subject": 255,
+TEXT_FIELDS = {"iban": 34, "bic": 11, "send_subject": 255,
                "late_penalty_text": None, "discount_text": None, "footer": None, "send_body": None,
                "reminder_subject": 255, "reminder_body": None}
 
@@ -61,7 +62,8 @@ def readiness(settings: BillingSettings | None = None, vat_liable: bool = False)
         {"key": "siren", "label": "SIREN (Configuration › Structure)", "ok": bool(org.siren)},
     ]
     if vat_liable:
-        rows.append({"key": "vat_number", "label": "N° de TVA intracommunautaire (Facturation)", "ok": bool(settings.vat_number)})
+        rows.append({"key": "vat_number", "label": "N° de TVA intracommunautaire (Configuration › Structure)",
+                     "ok": bool(org.vat_number)})
     return rows
 
 
@@ -69,7 +71,6 @@ def payload(settings: BillingSettings | None = None) -> dict:
     settings = settings or get()
     return {
         **{key: getattr(settings, key) or "" for key in TEXT_FIELDS},
-        "share_capital": "" if settings.share_capital_cents is None else f"{settings.share_capital_cents / 100:.2f}".replace(".", ","),
         "payment_terms_days": settings.payment_terms_days, "recovery_fee": settings.recovery_fee,
         "has_logo": logo_file(settings) is not None,
         "defaults": {"send_subject": DEFAULT_SEND_SUBJECT, "send_body": DEFAULT_SEND_BODY,
@@ -80,8 +81,6 @@ def payload(settings: BillingSettings | None = None) -> dict:
 
 
 def save(data: dict) -> BillingSettings:
-    from app.services.sale_entry import parse_decimal
-
     settings = get()
     for key, size in TEXT_FIELDS.items():
         if key in data:
@@ -93,11 +92,6 @@ def save(data: dict) -> BillingSettings:
         if not iban.is_valid(settings.iban):
             db.session.rollback()
             raise SaleError("IBAN invalide.", "iban")
-    if settings.vat_number:
-        settings.vat_number = settings.vat_number.replace(" ", "").upper()
-    if "share_capital" in data:
-        capital = parse_decimal(data.get("share_capital"), "Capital", "share_capital", minimum=0)
-        settings.share_capital_cents = None if capital is None else int(capital * 100)
     if "payment_terms_days" in data:
         try:
             days = int(data.get("payment_terms_days") or 0)

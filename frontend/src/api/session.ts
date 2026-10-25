@@ -30,6 +30,8 @@ export interface Session {
   nav: NavMenu[];
   admin_links: { label: string; url: string }[];
   preferences: Preferences;
+  /** Services du serveur : Sirene si la clé de l'INSEE est configurée (lot G3). */
+  services?: { sirene: boolean };
   csrf_token: string;
 }
 
@@ -91,6 +93,12 @@ export function useIntegration(slug: string, scope?: string): boolean {
 /** Mode de tenue de l'instance courante : partie double, ou comptabilité simplifiée (lot D). */
 export function useBookkeeping(): "double" | "simple" {
   return useCurrentSession().instance?.bookkeeping ?? "double";
+}
+
+/** Structure tenue par une association (plan « asso ») : reçus fiscaux, adhérents, bénévolat,
+ * fonds dédiés. Les autres structures (SCI) ne voient pas ces fonctions ; le serveur les refuse. */
+export function useIsAssociation(): boolean {
+  return (useCurrentSession().instance?.chart ?? "asso") === "asso";
 }
 
 export function useLogin() {

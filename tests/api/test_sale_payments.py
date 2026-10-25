@@ -37,8 +37,15 @@ def admin(app, login_as):
     db.session.add_all([BankAccount(label="Compte courant", kind="bank", account_id=bank.id),
                         BankAccount(label="Caisse", kind="cash", account_id=cash.id)])
     db.session.commit()
-    client.put("/api/v1/billing-settings", json={"vat_number": "FR32123456789"})
+    _vat_number("FR32123456789")
     return client
+
+
+def _vat_number(vat):
+    """TVA du vendeur : mention de la Structure (lot G2)."""
+    from app.services import organization
+    organization.get().vat_number = vat
+    db.session.commit()
 
 
 def _invoice(admin, amount="1000", client="Client SARL", issue=None, due=None):

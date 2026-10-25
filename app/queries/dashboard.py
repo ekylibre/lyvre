@@ -10,6 +10,7 @@ from app.models import (
     Account, Order, OrderLine, Payout,
 )
 from app.services.reports import build_compte_resultat, section_total
+from app.tenant import is_association
 
 
 def _months_in_fy(fy):
@@ -246,7 +247,7 @@ def dashboard_data(fy):
     return {
         "stats": {
             "total_sales_cents": _total_sales_cents(fy),
-            "new_members": _new_members_count(fy),
+            "new_members": _new_members_count(fy) if is_association() else None,
             "resultat_courant_cents": _resultat_courant_cents(fy),
             "total_payouts_cents": _total_payouts_cents(fy),
         },

@@ -31,6 +31,8 @@ def create_app(config_name=None):
 
     from .tenant import register_tenant_hooks
     register_tenant_hooks(app)
+    from .association_only import register_association_guard
+    register_association_guard(app)
 
     from .views.reports import bp as reports_bp
     from .views.auth import bp as auth_bp

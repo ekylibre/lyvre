@@ -18,6 +18,7 @@ import { AppLink, useGoTo } from "../../app/navigation";
 import { AttachmentPreview } from "./AttachmentPreview";
 import { EMPTY_LINE, cents } from "./lines";
 import { LinesEditor } from "./LinesEditor";
+import { SupplierSirene, type SupplierChoice } from "./SupplierSirene";
 import { PURCHASES_KEY, type FormOptions, type LineRow, type Option } from "./types";
 import { writeOnly } from "../../components/ReadOnlyPage";
 import { useCurrentSession } from "../../api/session";
@@ -72,6 +73,8 @@ function PurchaseFormPage() {
   const [paidBy, setPaidBy] = useState<string | null>(null);
   const [paidOn, setPaidOn] = useState(() => new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
+  // Fournisseur trouvé dans Sirene : tiers connu (information) ou fiche du tiers à créer (lot G4).
+  const [sireneChoice, setSireneChoice] = useState<SupplierChoice | null>(null);
 
   useEffect(() => {
     if (header.data) {
@@ -141,6 +144,7 @@ function PurchaseFormPage() {
     setSaving(true); setErrors([]);
     const body = { ...v, is_credit_note: v.is_credit_note === "1", token, rows: form.rows, confirm_duplicate: confirmDuplicate,
       send_to_qonto: qontoUpload && token ? sendToQonto : false,
+      ...(v.entity_id === "new" && sireneChoice?.kind === "new" ? { new_entity: sireneChoice.entity } : {}),
       ...(withAssociates && paidBy ? { paid_by_associate: { associate_id: Number(paidBy), paid_on: paidOn } } : {}) };
     try {
       const result = editId
@@ -188,6 +192,19 @@ function PurchaseFormPage() {
                     onChange={(id) => set({ entity_id: id ?? "", ...(id === "new" && !v.new_name ? { new_name: v.supplier_name ?? "" } : {}) })} />
                   {v.entity_id === "new" && field("new_name", "Nom du nouveau fournisseur", { maxLength: 200 })}
                 </SimpleGrid>
+                <Group mt="xs" gap="sm">
+                  <SupplierSirene initialQuery={v.new_name || v.supplier_name || ""} onChoose={(choice) => {
+                    setSireneChoice(choice);
+                    if (choice.kind === "known") set({ entity_id: String(choice.id) });
+                    else set({ entity_id: "new", new_name: choice.name, supplier_siret: choice.siret, supplier_vat: choice.vat });
+                  }} />
+                  {sireneChoice?.kind === "known" && v.entity_id === String(sireneChoice.id) && (
+                    <Text size="sm" c="dimmed">Fournisseur connu : {sireneChoice.name}.</Text>
+                  )}
+                  {sireneChoice?.kind === "new" && v.entity_id === "new" && (
+                    <Text size="sm" c="dimmed">Créé à l'enregistrement de la facture, avec l'adresse et l'activité de Sirene.</Text>
+                  )}
+                </Group>
                 <SimpleGrid cols={{ base: 1, md: 3 }} mt="xs">
                   {field("supplier_vat", "N° de TVA", { maxLength: 30, classNames: { input: "lv-num" } })}
                   {field("supplier_siret", "SIRET", { maxLength: 20, inputMode: "numeric", classNames: { input: "lv-num" } })}

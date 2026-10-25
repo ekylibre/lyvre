@@ -176,10 +176,15 @@ def normalize_siret(value) -> str | None:
 
 
 def find_supplier(qonto_id=None, vat=None, siret=None, iban=None, name=None) -> Entity | None:
-    """Entité d'un fournisseur : identifiant Qonto, n° de TVA, SIRET, IBAN, puis nom normalisé."""
+    """Entité d'un fournisseur : identifiant Qonto, n° de TVA, SIRET, SIREN (tiré du SIRET ou d'un
+    n° de TVA français), IBAN, puis nom normalisé."""
+    vat, siret = normalize_vat(vat), normalize_siret(siret)
+    siren = siret[:9] if siret else (vat[4:] if vat and vat.startswith("FR") and len(vat) == 13
+                                     and vat[4:].isdigit() else None)
     for column, value in ((Entity.qonto_supplier_id, qonto_id),
-                          (Entity.vat_number, normalize_vat(vat)),
-                          (Entity.siret, normalize_siret(siret)),
+                          (Entity.vat_number, vat),
+                          (Entity.siret, siret),
+                          (Entity.siren, siren),
                           (Entity.iban, normalize_iban(iban))):
         if value:
             entity = Entity.query.filter(column == value).order_by(Entity.id).first()

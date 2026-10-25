@@ -174,14 +174,11 @@ class SaleEmail(db.Model):
 
 
 class BillingSettings(db.Model):
-    """Mentions et réglages de facturation de l'instance (une ligne, Configuration › Facturation)."""
+    """Réglages de facturation de l'instance (une ligne, Configuration › Facturation). Les mentions
+    légales du vendeur sont dans `organization` (lot G2)."""
     __tablename__ = "billing_settings"
 
     id = db.Column(db.Integer, primary_key=True)
-    legal_form = db.Column(db.String(100))
-    share_capital_cents = db.Column(db.Integer)
-    rcs = db.Column(db.String(100))
-    vat_number = db.Column(db.String(20))
     iban = db.Column(db.String(34))
     bic = db.Column(db.String(11))
     payment_terms_days = db.Column(db.Integer, nullable=False, default=30, server_default="30")

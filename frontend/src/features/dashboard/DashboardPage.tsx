@@ -19,7 +19,7 @@ import { IntegrationProposals } from "../integrations/IntegrationProposals";
 
 interface Month { month: string; produits: number; charges: number; net: number; ventes: number; pos: number; factures: number; solde: number }
 interface Dashboard {
-  stats: { total_sales_cents: number; new_members: number; resultat_courant_cents: number; total_payouts_cents: number } | null;
+  stats: { total_sales_cents: number; new_members: number | null; resultat_courant_cents: number; total_payouts_cents: number } | null;
   /** Module Ventes : CA facturé HT de l'exercice, encours clients, factures échues. */
   sales?: { revenue_cents: number; receivable_cents: number; overdue_count: number; overdue_cents: number; has_sales: boolean };
   /** Écritures en brouillard des exercices ouverts ; `old` : plus de 3 mois (lot F1). */
@@ -113,7 +113,7 @@ export default function DashboardPage() {
           )}
           <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
             {odoo && <StatTile label="Ventes de l'exercice" meta="Caisse et factures Odoo"><MoneyText cents={stats.total_sales_cents} /></StatTile>}
-            <StatTile label="Adhésions" meta="Adhérents de l'exercice">{stats.new_members}</StatTile>
+            {stats.new_members !== null && <StatTile label="Adhésions" meta="Adhérents de l'exercice">{stats.new_members}</StatTile>}
             <StatTile label="Résultat courant" meta="Exploitation et financier">
               <MoneyText cents={stats.resultat_courant_cents} c={stats.resultat_courant_cents >= 0 ? "var(--lv-lichen)" : "var(--lv-brique)"} />
             </StatTile>

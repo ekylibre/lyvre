@@ -314,10 +314,7 @@ def _signatures(org, managers: list[str], tenant: str) -> Markup:
 def context(lease: Lease) -> dict:
     org, tenant = organization.get(), lease.entity
     managers = _managers()
-    if org.siren and org.rcs_city:
-        rcs = f"{org.siren[:3]} {org.siren[3:6]} {org.siren[6:]} RCS {org.rcs_city}"
-    else:
-        rcs = f"SIREN {org.siren}" if org.siren else ""
+    rcs = organization.rcs_mention(org)
     rec = lease.recurrence
     frequency = rec.frequency if rec else "monthly"
     per_period = sum(amount for _i, amount in leases.period_amounts(lease, frequency))

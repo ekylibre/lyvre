@@ -11,7 +11,7 @@ from app.models import FiscalYear
 from app.models.instance_membership import ROLE_ADMIN
 from app.services import closing, dedicated_funds, fec, period_lock, projects
 from app.services.ledger import LedgerError
-from app.tenant import current_instance
+from app.tenant import current_instance, is_association
 
 from . import ApiError, bp, get_or_404, invalid, json_body, notice
 
@@ -114,7 +114,8 @@ def fiscal_years_closing(fy_id):
         result=closing.result(fy),
         next_fiscal_year=fiscal_year_payload(following) if following else None,
         dedicated_funds={"funds": [dedicated_funds.payload(f, fy) for f in dedicated_funds.funds_for(fy)],
-                         "kinds": dedicated_funds.options(), "projects": projects.options()},
+                         "kinds": dedicated_funds.options(), "projects": projects.options()}
+        if is_association() else None,
         opening=_opening_payload(fy, following),
         allocation=_allocation_payload(fy),
         events=closing.events(fy),

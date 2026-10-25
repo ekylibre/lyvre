@@ -52,6 +52,7 @@
     {"rule": "/entities/new", "endpoint": "entities.new"},
     {"rule": "/entities/<int:entity_id>", "endpoint": "entities.detail"},
     {"rule": "/entities/<int:entity_id>/edit", "endpoint": "entities.edit"},
+    {"rule": "/entities/sirene-review/<int:job_id>", "endpoint": "entities.sirene_review"},
     {"rule": "/entities/members", "endpoint": "entities.members"},
     {"rule": "/entities/members/reminders", "endpoint": "entities.members_reminders"},
     {"rule": "/entities/members/reminder-template", "endpoint": "entities.reminder_template"},

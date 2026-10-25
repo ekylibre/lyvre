@@ -12,7 +12,6 @@ from app.extensions import db
 from app.models import DonationReceipt, Entity, InKindDonation
 from app.models.sync_job import SYNC_KIND_RECEIPTS_ISSUE, SYNC_KIND_RECEIPTS_SEND
 from app.services import receipts, sync_jobs
-from app.tenant import current_chart
 
 from . import ApiError, bp, json_body, notice, require_integration
 from .session import job_payload
@@ -28,14 +27,8 @@ def _errors():
         raise ApiError(code, exc.message, exc.status, {exc.field: exc.message} if exc.field else None) from None
 
 
-def _asso_only():
-    if current_chart() != "asso":
-        raise ApiError("not_found", "Les reçus fiscaux concernent les associations.", 404)
-
-
 @bp.route("/receipts/settings")
 def receipts_settings_get():
-    _asso_only()
     return jsonify(item=receipts.payload())
 
 
@@ -44,7 +37,6 @@ def receipts_settings_get():
 def receipts_settings_save():
     """`{enabled, eligibility, eligibility_detail, rescrit_ref, cgi_articles, donation_prefixes,
     default_mode, acknowledged}`."""
-    _asso_only()
     with _errors():
         settings = receipts.save(json_body(), current_user.id)
     message = "Reçus fiscaux activés." if settings.enabled else "Paramètres des reçus fiscaux enregistrés."
@@ -54,7 +46,6 @@ def receipts_settings_save():
 @bp.route("/receipts/settings/signature", methods=["POST"])
 @instance_admin_required
 def receipts_signature_upload():
-    _asso_only()
     with _errors():
         receipts.save_signature(request.files.get("signature"))
     return jsonify(item=receipts.payload(), notices=[notice("Signature enregistrée.")])
@@ -63,7 +54,6 @@ def receipts_signature_upload():
 @bp.route("/receipts/settings/signature", methods=["DELETE"])
 @instance_admin_required
 def receipts_signature_delete():
-    _asso_only()
     receipts.delete_signature()
     return jsonify(item=receipts.payload(), notices=[notice("Signature retirée ; reçus désactivés.")])
 
@@ -81,7 +71,6 @@ def _year():
 @bp.route("/receipts")
 def receipts_list():
     """Reçus émis de l'année `?year=` (défaut : année en cours)."""
-    _asso_only()
     year = _year()
     rows = DonationReceipt.query.filter_by(year=year).order_by(DonationReceipt.number).all()
     return jsonify(items=[receipts.receipt_payload(r) for r in rows], meta={"year": year, "enabled": receipts.get().enabled})
@@ -90,7 +79,6 @@ def receipts_list():
 @bp.route("/receipts/candidates")
 def receipts_candidates():
     """Dons de l'année non encore repris sur un reçu, par donateur ; lignes sans donateur."""
-    _asso_only()
     data = receipts.candidates(_year())
     entities = [{"value": str(e.id), "label": e.name} for e in Entity.query.order_by(Entity.name)]
     return jsonify(entities=entities, **data)
@@ -100,7 +88,6 @@ def receipts_candidates():
 def receipts_issue():
     """`{year, entity_ids?, mode?}` : émission en arrière-plan (job `donation_receipts`, notification
     de fin) ; contrôles préalables immédiats (activation, mentions, année, mode)."""
-    _asso_only()
     data = json_body()
     year = data.get("year")
     with _errors():
@@ -123,7 +110,6 @@ def receipts_send():
     """`{ids?, year?}` : envoi par email (PDF joint) des reçus choisis, ou des reçus émis, non encore
     envoyés et dont le donateur a une adresse email, de l'année ; en arrière-plan (job
     `donation_receipts_send`)."""
-    _asso_only()
     data = json_body()
     ids = data.get("ids")
     if not ids:
@@ -147,7 +133,6 @@ def receipts_send():
 def receipts_cancel(receipt_id):
     """`{reason, reissue}` : annulation tracée (jamais de suppression ni de renumérotation) et
     réémission éventuelle des mêmes dons sous un nouveau numéro."""
-    _asso_only()
     data = json_body()
     with _errors():
         receipt, replacement = receipts.cancel(receipt_id, data.get("reason"), bool(data.get("reissue")), current_user.id)
@@ -159,7 +144,6 @@ def receipts_cancel(receipt_id):
 def receipts_summary():
     """État annuel `?year=` : reçus émis / annulés, par type de donateur et nature, envoi, et
     rapprochement avec les dons comptabilisés."""
-    _asso_only()
     year = _year()
     return jsonify(export_url=f"/receipts/summary.xlsx?year={year}", **receipts.annual_summary(year))
 
@@ -167,7 +151,6 @@ def receipts_summary():
 @bp.route("/receipts/lines/<int:line_id>/donor", methods=["PUT"])
 def receipts_line_donor(line_id):
     """`{entity_id}` (null : retirer) : donateur d'une ligne de don."""
-    _asso_only()
     with _errors():
         receipts.assign_donor(line_id, json_body().get("entity_id"))
     return jsonify(notices=[notice("Donateur enregistré.")])
@@ -176,7 +159,6 @@ def receipts_line_donor(line_id):
 @bp.route("/receipts/in-kind", methods=["POST"])
 def receipts_in_kind_create():
     """`{entity_id, date, description, valuation_cents, valuation_method}`."""
-    _asso_only()
     with _errors():
         gift = receipts.save_in_kind(json_body())
     return jsonify(notices=[notice(f"Don en nature « {gift.description} » enregistré.")]), 201
@@ -184,7 +166,6 @@ def receipts_in_kind_create():
 
 @bp.route("/receipts/in-kind/<int:gift_id>", methods=["DELETE"])
 def receipts_in_kind_delete(gift_id):
-    _asso_only()
     with _errors():
         receipts.delete_in_kind(gift_id)
     return jsonify(notices=[notice("Don en nature supprimé.")])
@@ -193,7 +174,6 @@ def receipts_in_kind_delete(gift_id):
 @bp.route("/receipts/in-kind")
 def receipts_in_kind_list():
     """Dons en nature de l'année `?year=`, avec le reçu qui les reprend."""
-    _asso_only()
     year = _year()
     done = receipts.issued_in_kind_ids()
     rows = (InKindDonation.query.filter(InKindDonation.date.between(date(year, 1, 1), date(year, 12, 31)))

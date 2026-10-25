@@ -1,7 +1,8 @@
-// Configuration › Structure › Facturation : mentions légales du vendeur (forme, capital, RCS, TVA),
-// coordonnées bancaires, conditions de paiement, pénalités, logo, message d'envoi des factures.
+// Configuration › Structure › Facturation : coordonnées bancaires, conditions de paiement, pénalités,
+// logo, message d'envoi des factures. Les mentions légales (forme, capital, RCS, TVA) sont celles de
+// l'onglet Identité, rappelées ici en lecture.
 import { useEffect, useState } from "react";
-import { Alert, Button, Center, Checkbox, Fieldset, FileButton, Group, List, Loader, SimpleGrid, Stack, Text, TextInput, Textarea } from "@mantine/core";
+import { Alert, Anchor, Button, Center, Checkbox, Fieldset, FileButton, Group, List, Loader, SimpleGrid, Stack, Text, TextInput, Textarea } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
@@ -11,18 +12,23 @@ import { upload } from "../../api/upload";
 import { applyApiError } from "../../components/ApiForm";
 import { BILLING_KEY } from "./types";
 
+/** Mentions légales de la Structure (lecture). */
+export interface LegalMentions {
+  legal_form: string | null; share_capital: string; rcs_mention: string; vat_number: string | null;
+}
+
 interface Billing {
-  legal_form: string; share_capital: string; rcs: string; vat_number: string; iban: string; bic: string;
+  iban: string; bic: string;
   payment_terms_days: number; late_penalty_text: string; recovery_fee: boolean; discount_text: string; footer: string;
   send_subject: string; send_body: string; reminder_subject: string; reminder_body: string; has_logo: boolean;
   defaults: { send_subject: string; send_body: string; reminder_subject: string; reminder_body: string; late_penalty_text: string };
   readiness: { key: string; label: string; ok: boolean }[];
 }
 type Values = Omit<Billing, "has_logo" | "defaults" | "readiness" | "payment_terms_days"> & { payment_terms_days: string };
-const TEXT = ["legal_form", "share_capital", "rcs", "vat_number", "iban", "bic", "late_penalty_text", "discount_text", "footer",
+const TEXT = ["iban", "bic", "late_penalty_text", "discount_text", "footer",
   "send_subject", "send_body", "reminder_subject", "reminder_body"] as const;
 
-export function BillingSettings() {
+export function BillingSettings({ organization, onEditLegal }: { organization: LegalMentions; onEditLegal: () => void }) {
   const can = useCan();
   const client = useQueryClient();
   const { data } = useQuery({ queryKey: BILLING_KEY, queryFn: () => api.get<{ item: Billing }>("/api/v1/billing-settings") });
@@ -55,12 +61,16 @@ export function BillingSettings() {
         {missing.length > 0 && <Alert color="paille" title="Mentions obligatoires manquantes (aucune facture ne s'émet sans elles) :">
           <List size="sm">{missing.map((r) => <List.Item key={r.key}>{r.label}</List.Item>)}</List></Alert>}
         <Fieldset legend="Mentions légales">
-          <SimpleGrid cols={{ base: 1, sm: 2 }}>
-            <TextInput label="Forme juridique" placeholder="SCI, SAS, association…" readOnly={readOnly} {...form.getInputProps("legal_form")} />
-            <TextInput label="Capital social (€)" inputMode="decimal" readOnly={readOnly} classNames={{ input: "lv-num" }} {...form.getInputProps("share_capital")} />
-            <TextInput label="RCS" placeholder="RCS Paris 123 456 789" readOnly={readOnly} {...form.getInputProps("rcs")} />
-            <TextInput label="N° de TVA intracommunautaire" placeholder="FR…" readOnly={readOnly} classNames={{ input: "lv-num" }} {...form.getInputProps("vat_number")} />
-          </SimpleGrid>
+          <Stack gap="xs">
+            <SimpleGrid cols={{ base: 1, sm: 2 }}>
+              <TextInput label="Forme juridique" readOnly value={organization.legal_form ?? ""} placeholder="—" />
+              <TextInput label="Capital social (€)" readOnly value={organization.share_capital} placeholder="—" classNames={{ input: "lv-num" }} />
+              <TextInput label="Immatriculation" readOnly value={organization.rcs_mention} placeholder="—" />
+              <TextInput label="N° de TVA intracommunautaire" readOnly value={organization.vat_number ?? ""} placeholder="—" classNames={{ input: "lv-num" }} />
+            </SimpleGrid>
+            <Text size="sm" c="dimmed">Saisies dans l'onglet Identité, communes aux factures et aux baux.{" "}
+              <Anchor component="button" type="button" size="sm" onClick={onEditLegal}>Modifier dans Structure</Anchor></Text>
+          </Stack>
         </Fieldset>
         <Fieldset legend="Paiement">
           <Stack>

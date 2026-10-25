@@ -16,6 +16,9 @@ os.environ["FLASK_ENV"] = "development"
 os.environ.setdefault("HELLOASSO_ORG_SLUG", "test-org")
 os.environ.setdefault("MAIL_SERVER", "smtp.example.org")
 os.environ.setdefault("MAIL_DEFAULT_SENDER", "noreply@example.org")
+# Jamais d'appel à l'INSEE depuis les tests : clé vide (les tests Sirene simulent les réponses).
+os.environ["SIRENE_API_KEY"] = ""
+os.environ["SIRENE_API_URL"] = "https://sirene.invalid/api-sirene/4"
 
 import pytest  # noqa: E402
 

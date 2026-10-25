@@ -52,6 +52,7 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
   ...pages(["users.index", "users.new", "users.edit"], () => import("../features/users/UsersPage")),
   ...pages(["entities.index", "entities.new", "entities.edit"], () => import("../features/entities/EntitiesPage")),
   "entities.detail": () => import("../features/entities/EntityDetailPage"),
+  "entities.sirene_review": () => import("../features/entities/SireneReviewPage"),
   "entities.members": () => import("../features/members/MembersPage"),
   "entities.members_reminders": () => import("../features/members/RemindersPage"),
   "entities.reminder_template": () => import("../features/members/ReminderTemplatePage"),

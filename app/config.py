@@ -56,6 +56,11 @@ class Config:
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD", "")
     MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", "")
 
+    # API Sirene v4 (INSEE) : pré-remplissage de la Structure et des tiers. Clé du serveur (en-tête
+    # X-INSEE-Api-Key-Integration), jamais envoyée au navigateur ; vide : fonctions Sirene masquées.
+    SIRENE_API_URL = os.environ.get("SIRENE_API_URL") or "https://api.insee.fr/api-sirene/4"
+    SIRENE_API_KEY = os.environ.get("SIRENE_API_KEY", "")
+
     # Qonto (API Business, clé API) : repli global, surchargé par Configuration › Intégrations.
     # Noms alternatifs acceptés : QONTO_API_ID / QONTO_API_SECRET.
     QONTO_LOGIN = os.environ.get("QONTO_LOGIN") or os.environ.get("QONTO_API_ID", "")

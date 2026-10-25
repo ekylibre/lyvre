@@ -75,6 +75,7 @@ Le `.env` est injecté dans le conteneur via `env_file:` dans `docker-compose.ym
 | `APP_PORT` | Port hôte → conteneur (défaut `5000`). Utile si 5000 est pris : `APP_PORT=8000 docker compose up -d`. |
 | `APP_UID` / `APP_GID` | UID/GID au sein du conteneur (défaut `1000:1000`). À builder avec `--build-arg APP_UID=$(id -u)` pour matcher un hôte différent. |
 | `APP_BASE_URL` | Adresse publique de Lyvre (`https://compta.seconde-nature.net`) : liens envoyés par e-mail (« Mot de passe oublié ? »). **Obligatoire en production** pour ces liens (sans elle, aucun lien n'est envoyé : jamais construit sur l'en-tête `Host` de la requête). |
+| `SIRENE_API_KEY` (`SIRENE_API_URL`, par défaut `https://api.insee.fr/api-sirene/4`) | **Clé de l'API Sirene v4** de l'INSEE (portail-api.insee.fr), commune à toutes les instances : bouton « Compléter depuis Sirene » de la Structure (puis des tiers). Restée sur le serveur, jamais envoyée au navigateur. Vide : les fonctions Sirene sont masquées. Quota de l'INSEE : 30 requêtes par minute, 2 000 par heure, pour tout le serveur. |
 | `MAIL_SERVER`, `MAIL_PORT`, `MAIL_USE_TLS`, `MAIL_USE_SSL`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_DEFAULT_SENDER` | **SMTP du serveur**, commun à toutes les instances : e-mails de la plateforme (lien « Mot de passe oublié »). Distinct de l'intégration SMTP de chaque instance (relances, reçus, factures). |
 
 Les credentials externes (`STANCER_*`, `ODOO_*`, `HELLOASSO_*`, `QONTO_*`, et `MAIL_*` pour les intégrations) **ne servent pas de repli aux intégrations en production** (`FLASK_ENV=production`) : chaque instance saisit ses réglages et active ses intégrations dans **Configuration › Intégrations**. Avant de passer une instance existante sur cette version, lancer `scripts/integrations_report.py` dans le conteneur et saisir les réglages signalés (voir [integrations.md](integrations.md)). La table `integration_states` est créée par `flask db upgrade` (lancé par l'entrypoint) : **toute base tenant doit être migrée** (voir [multi_tenant.md](multi_tenant.md)).
@@ -102,7 +103,7 @@ d'autres services sur le même hôte :
   Dokploy) — **jamais** le dossier `instance/` d'un autre service : l'entrypoint migre les bases
   qu'il trouve (`flask db upgrade`) ;
 - **variables** dans l'onglet *Environment* (équivalent du `.env`) : `SECRET_KEY`, `ADMIN_EMAIL`,
-  `ADMIN_PASSWORD`, `APP_BASE_URL`, `MAIL_*` (voir ci-dessus).
+  `ADMIN_PASSWORD`, `APP_BASE_URL`, `MAIL_*`, `SIRENE_API_KEY` (voir ci-dessus).
 
 Premier déploiement : Dokploy crée `../files/instance` en `root` ; l'entrypoint le rend
 automatiquement à `appuser` avant de démarrer (voir [§ permissions](#permissions-sur-le-volume)).

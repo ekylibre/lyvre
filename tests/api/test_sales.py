@@ -28,8 +28,16 @@ def admin(app, login_as):
                city="Lyon", siret="98765432100012", email="compta@client.example"),
     ])
     db.session.commit()
-    client.put("/api/v1/billing-settings", json={"vat_number": "FR32123456789", "iban": "FR76 3000 6000 0112 3456 7890 189"})
+    client.put("/api/v1/billing-settings", json={"iban": "FR76 3000 6000 0112 3456 7890 189"})
+    _vat_number("FR32123456789")
     return client
+
+
+def _vat_number(vat):
+    """TVA du vendeur : mention de la Structure (lot G2)."""
+    from app.services import organization
+    organization.get().vat_number = vat
+    db.session.commit()
 
 
 def _client():
@@ -236,7 +244,7 @@ def test_billing_settings(admin):
     assert admin.put("/api/v1/billing-settings", json={"iban": "FR00 1234"}).status_code == 422
     resp = admin.put("/api/v1/billing-settings", json={"legal_form": "SCI", "share_capital": "274 890,00",
                                                        "payment_terms_days": 45})
-    assert resp.get_json()["item"]["share_capital"] == "274890,00"
+    assert resp.status_code == 200 and "share_capital" not in resp.get_json()["item"]  # mentions : Structure
     item = _draft(admin)
     assert item["due_date"] == "2026-12-07"
 

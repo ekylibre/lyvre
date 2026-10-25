@@ -137,7 +137,14 @@ Le plan comptable de l'instance courante (`app.tenant.current_chart()`) pilote :
   tonnages) sont masquées pour une SCI. `build_nav(chart, is_admin)` filtre aussi par droits
   admin et masque les menus déroulants vides ; le résultat est injecté dans `base.html`
   (variable `nav_menus`) ;
-- **le Bilan et le Compte de résultat** (voir [reports.md](reports.md)).
+- **le Bilan et le Compte de résultat** (voir [reports.md](reports.md)) ;
+- **les fonctions réservées aux associations** (`app.tenant.is_association()`, `useIsAssociation()`
+  côté client) : reçus fiscaux, adhérents et bénévolat, temps de travaux, comptabilité simplifiée,
+  indicateurs et rapport d'activité, fonds dédiés de la clôture, tuile « Adhésions » du tableau de
+  bord, RNA et signataire des reçus (Structure). Le menu les masque, et `app/association_only.py`
+  refuse aussi une adresse saisie à la main : 403 `association_only` pour l'API, 404 pour les pages.
+  Les champs d'association envoyés pour une autre structure sont ignorés, et ceux déjà en base sont
+  seulement masqués. À l'inverse, le bloc Associés de la Structure n'existe pas pour une association.
 
 En mode manuel, le plan est mémorisé mais aucun compte n'est chargé : l'admin lance
 lui-même `seed_accounts.py <chart>` sur la base.

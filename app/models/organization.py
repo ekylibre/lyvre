@@ -4,7 +4,8 @@ from app.extensions import db
 
 
 class Organization(db.Model):
-    """Identité de la structure (une ligne par base d'instance) : FEC, reçus, états."""
+    """Identité et mentions légales de la structure (une ligne par base d'instance) : FEC, reçus,
+    factures, baux, états."""
     __tablename__ = "organization"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -21,6 +22,11 @@ class Organization(db.Model):
     signatory_title = db.Column(db.String(100))
     legal_form = db.Column(db.String(100))         # « Société civile immobilière » (baux)
     rcs_city = db.Column(db.String(100))           # greffe du RCS (« Saintes »)
+    # Mentions légales (lot G2 : seule source, reprises de Facturation) et activité (Sirene).
+    share_capital_cents = db.Column(db.Integer)
+    vat_number = db.Column(db.String(20))          # TVA intracommunautaire
+    naf_code = db.Column(db.String(8))             # « 6820B », sans point, comme Sirene
+    naf_nomenclature = db.Column(db.String(12))    # NAFRev2, NAF2025
     signature_path = db.Column(db.String(300))     # lot B (reçus)
     # Module « Associés » : taux d'intérêt des comptes courants par défaut (l'option est sur l'instance).
     associate_interest_rate_bp = db.Column(db.Integer, nullable=False, default=0, server_default="0")

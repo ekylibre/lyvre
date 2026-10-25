@@ -1,5 +1,5 @@
 // Fiche d'un tiers : identité, solde fournisseur, factures d'achat, commandes de caisse,
-// factures clients, temps de travaux, HelloAsso.
+// factures clients ; temps de travaux et HelloAsso pour une association.
 import { useState, type ReactNode } from "react";
 import { useParams } from "react-router";
 import {
@@ -8,13 +8,13 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
-import { useIntegration } from "../../api/session";
+import { useIntegration, useIsAssociation } from "../../api/session";
 import { FormDrawer } from "../../components/FormModal";
 import { MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
 import { Can } from "../../components/Can";
 import { StatusBadge, type Tone } from "../../components/StatusBadge";
-import { formatDate } from "../../lib/format";
+import { formatDate, formatNaf } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
 import { EntityForm } from "./EntityForm";
 import { TIERS_KEY, type EntitiesMeta, type Entity } from "./types";
@@ -36,12 +36,13 @@ interface Detail {
   customer_invoices: { id: number; url: string; date: string | null; name: string; ref: string | null;
     amount_total_cents: number; amount_residual_cents: number; state: string | null; state_label: string | null;
     payment_state: string | null; payment_state_label: string | null }[];
-  work_times: { id: number; date: string; task_type: string; hours: number; valuation_cents: number; notes: string | null }[];
+  /** Associations seulement (`null` pour une autre structure), comme `helloasso`. */
+  work_times: { id: number; date: string; task_type: string; hours: number; valuation_cents: number; notes: string | null }[] | null;
   helloasso: {
     orders: { date: string | null; form_slug: string | null; form_type: string | null; amount_total_cents: number; payer: string }[];
     items: { name: string | null; type: string | null; state: string | null; amount_cents: number; beneficiary: string }[];
     payments: { date: string | null; means: string | null; state: string | null; amount_cents: number }[];
-  };
+  } | null;
 }
 
 const ORDER_TONES: Record<string, Tone> = { done: "ok", invoiced: "ok", paid: "info", cancel: "gap" };
@@ -78,6 +79,7 @@ export default function EntityDetailPage() {
   const [editing, setEditing] = useState(false);
   const odoo = useIntegration("odoo");
   const helloasso = useIntegration("helloasso");
+  const association = useIsAssociation();
   const { data, isPending } = useQuery({
     queryKey: [...TIERS_KEY, id], queryFn: () => api.get<Detail>(`/api/v1/tiers/${id}`),
   });
@@ -88,22 +90,26 @@ export default function EntityDetailPage() {
   const identity = [
     types[e.entity_type] ?? e.entity_type, e.email,
     e.account_code && `compte ${e.account_code}`, e.vat_number && `TVA ${e.vat_number}`,
-    e.siret && `SIRET ${e.siret}`, e.default_product && `produit par défaut : ${e.default_product}`,
+    e.siret ? `SIRET ${e.siret}` : e.siren && `SIREN ${e.siren}`, e.naf_code && `NAF ${formatNaf(e.naf_code)}`,
+    e.default_product && `produit par défaut : ${e.default_product}`,
     e.person_kind && (e.person_kind === "individual" ? "particulier" : "entreprise ou organisme"),
     [e.address_line1, e.address_line2, [e.postal_code, e.city].filter(Boolean).join(" "), e.country]
       .filter(Boolean).join(", "),
   ].filter(Boolean).join(" · ");
   const balance = data.supplier.balance_cents;
-  const totalHours = data.work_times.reduce((s, w) => s + w.hours, 0);
-  const totalValuation = data.work_times.reduce((s, w) => s + w.valuation_cents, 0);
+  const workTimes = data.work_times ?? [];
+  const totalHours = workTimes.reduce((s, w) => s + w.hours, 0);
+  const totalValuation = workTimes.reduce((s, w) => s + w.valuation_cents, 0);
+  const member = association && e.is_member;
 
   return (
     <>
       <PageHeader
-        title={<Group gap="sm">{e.name}{e.is_member && <StatusBadge tone="ok">Adhérent</StatusBadge>}{e.is_benevole && <StatusBadge tone="info">Bénévole</StatusBadge>}</Group>}
+        title={<Group gap="sm">{e.name}{member && <StatusBadge tone="ok">Adhérent</StatusBadge>}
+          {association && e.is_benevole && <StatusBadge tone="info">Bénévole</StatusBadge>}</Group>}
         description={identity}
         actions={<>
-          {e.is_member && odoo && (
+          {member && odoo && (
             <Can><Button variant="default" loading={odooNote.isPending} disabled={!data.meta.integrations.odoo.available}
               title="Écrire la date anniversaire et le statut d'adhésion dans « Notes interne » d'Odoo"
               onClick={() => odooNote.mutate(undefined)}>Mettre à jour la fiche Odoo</Button></Can>
@@ -114,8 +120,10 @@ export default function EntityDetailPage() {
       {e.notes && <Text c="dimmed" mb="md">{e.notes}</Text>}
 
       <SimpleGrid cols={{ base: 1, sm: 3 }} mb="md">
-        <Paper p="md"><Text size="sm" c="dimmed">Adhésion HelloAsso</Text><Text className="lv-num" size="lg">{formatDate(e.last_helloasso_membership)}</Text></Paper>
-        <Paper p="md"><Text size="sm" c="dimmed">Adhésion caisse</Text><Text className="lv-num" size="lg">{formatDate(e.last_pos_membership)}</Text></Paper>
+        {association && <>
+          <Paper p="md"><Text size="sm" c="dimmed">Adhésion HelloAsso</Text><Text className="lv-num" size="lg">{formatDate(e.last_helloasso_membership)}</Text></Paper>
+          <Paper p="md"><Text size="sm" c="dimmed">Adhésion caisse</Text><Text className="lv-num" size="lg">{formatDate(e.last_pos_membership)}</Text></Paper>
+        </>}
         <Paper p="md">
           <Text size="sm" c="dimmed">Solde fournisseur{data.supplier.account_code && ` (${data.supplier.account_code})`}</Text>
           {balance === null ? <Text size="lg">—</Text> : (
@@ -181,11 +189,11 @@ export default function EntityDetailPage() {
         </Section>
       )}
 
-      {(e.is_benevole || data.work_times.length > 0) && (
-        <Section title={`Temps de travaux (${data.work_times.length})`}>
-          {data.work_times.length ? (
+      {association && (e.is_benevole || workTimes.length > 0) && (
+        <Section title={`Temps de travaux (${workTimes.length})`}>
+          {workTimes.length ? (
             <SimpleTable head={["Date", "Tâche", right("Heures"), right("Valorisation"), "Notes"]}
-              rows={data.work_times.map((w) => [num(formatDate(w.date)), w.task_type, right(num(hours(w.hours))),
+              rows={workTimes.map((w) => [num(formatDate(w.date)), w.task_type, right(num(hours(w.hours))),
                 right(<MoneyText cents={w.valuation_cents} />), <Text size="sm" c="dimmed">{w.notes ?? ""}</Text>])}
               foot={["", "Total", right(num(hours(totalHours))), right(<MoneyText cents={totalValuation} />), ""]} />
           ) : <Text c="dimmed" size="sm">Aucun temps saisi pour ce bénévole.</Text>}
@@ -193,7 +201,7 @@ export default function EntityDetailPage() {
       )}
 
       {/* HelloAsso désactivée : section seulement s'il reste des commandes importées. */}
-      {e.is_member && (helloasso || data.helloasso.orders.length > 0) && (
+      {member && data.helloasso && (helloasso || data.helloasso.orders.length > 0) && (
         <Section title="HelloAsso">
           {data.helloasso.orders.length ? (
             <SimpleTable head={["Date", "Formulaire", "Type", right("Montant"), "Payeur"]}

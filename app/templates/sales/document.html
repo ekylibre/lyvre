@@ -40,12 +40,12 @@
   <div class="seller">
     {% if logo_src %}<img src="{{ logo_src }}" alt="">{% endif %}
     <div class="name">{{ org.name }}</div>
-    {% if settings.legal_form %}<div>{{ settings.legal_form }}{% if settings.share_capital_cents %} au capital de {{ money(settings.share_capital_cents) }}{% endif %}</div>{% endif %}
+    {% if org.legal_form %}<div>{{ org.legal_form }}{% if org.share_capital_cents %} au capital de {{ money(org.share_capital_cents) }}{% endif %}</div>{% endif %}
     <div>{{ org.address_line1 or "" }}{% if org.address_line2 %}<br>{{ org.address_line2 }}{% endif %}</div>
     <div>{{ org.postal_code or "" }} {{ org.city or "" }}</div>
-    {% if org.siren %}<div>SIREN {{ org.siren }}{% if settings.rcs %} — {{ settings.rcs }}{% endif %}</div>{% endif %}
+    {% if rcs_mention %}<div>{{ rcs_mention }}</div>{% endif %}
     {% if org.rna %}<div>RNA {{ org.rna }}</div>{% endif %}
-    {% if settings.vat_number %}<div>TVA intracommunautaire {{ settings.vat_number }}</div>{% endif %}
+    {% if org.vat_number %}<div>TVA intracommunautaire {{ org.vat_number }}</div>{% endif %}
   </div>
   <div class="doc">
     <h1>{{ title|upper }}</h1>

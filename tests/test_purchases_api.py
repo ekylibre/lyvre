@@ -444,3 +444,39 @@ def test_delete_refused_in_closed_fiscal_year(app, login_as):
     db.session.commit()
     resp = client.delete(f"{API}/{p.id}")
     assert resp.status_code == 409 and "exercice clôturé" in error(resp) and Purchase.query.count() == 1
+
+
+# ------------------------------------------------------------------ fournisseur trouvé dans Sirene (lot G4)
+
+SIRENE_FREE = {"siren": "421938861", "address_line1": "16 rue de la Ville l'Évêque", "postal_code": "75008",
+               "city": "Paris", "country": "France", "naf_code": "61.10Z", "naf_nomenclature": "NAFRev2",
+               "person_kind": "company", "email": "ignoré@example.org"}
+
+
+def test_new_supplier_created_with_sirene_record(entry_books, login_as):
+    client = login_as()
+    resp = client.post(API, json=_save("", supplier_siret="42193886100029", new_entity=SIRENE_FREE))
+    assert resp.status_code == 201, resp.get_json()
+    free = Entity.query.filter_by(name="Free").one()
+    assert (free.siren, free.siret, free.city, free.naf_code, free.person_kind) == \
+        ("421938861", "42193886100029", "Paris", "6110Z", "company")
+    assert free.email is None  # champ hors fiche Sirene : ignoré
+
+
+def test_sirene_record_never_modifies_an_existing_supplier(entry_books, login_as):
+    client = login_as()
+    db.session.add(Entity(name="Free", entity_type="FOURNISSEUR", city="Marseille"))
+    db.session.commit()
+    resp = client.post(API, json=_save("", new_entity=SIRENE_FREE))  # homonyme repris tel quel
+    assert resp.status_code == 201, resp.get_json()
+    free = Entity.query.filter_by(name="Free").one()
+    assert (free.city, free.naf_code, free.siren) == ("Marseille", None, None)
+
+
+def test_supplier_recognised_by_siren(app):
+    free = Entity(name="Free SAS", siren="421938861")
+    db.session.add(free)
+    db.session.commit()
+    assert purchase_sync.find_supplier(siret="42193886100037") == free  # autre établissement
+    assert purchase_sync.find_supplier(vat="FR 60 421938861") == free   # TVA française : clé + SIREN
+    assert purchase_sync.find_supplier(vat="BE0123456789") is None

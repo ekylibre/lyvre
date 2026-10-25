@@ -43,6 +43,8 @@ def test_session_and_disabled_api(app, login_as):
 
 def test_option_set_from_structure_page_with_warning(app, login_as):
     client = login_as(role="admin")
+    Instance.query.one().chart = "sci"  # une association n'a pas d'associés (option ignorée)
+    db.session.commit()
     _accounts()
     org = client.get("/api/v1/organization").get_json()["item"]
     assert org["has_associates"] is False and org["associate_interest_rate"] == "0"

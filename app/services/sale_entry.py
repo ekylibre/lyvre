@@ -74,7 +74,7 @@ def client_snapshot(entity: Entity) -> dict:
     """Identité du client figée à l'émission (mentions obligatoires)."""
     return {"name": entity.name, "address_line1": entity.address_line1, "address_line2": entity.address_line2,
             "postal_code": entity.postal_code, "city": entity.city, "country": entity.country or "France",
-            "siren": (entity.siret or "")[:9] or None, "siret": entity.siret, "vat_number": entity.vat_number,
+            "siren": entity.siren or (entity.siret or "")[:9] or None, "siret": entity.siret, "vat_number": entity.vat_number,
             "email": entity.email, "person_kind": entity.person_kind}
 
 

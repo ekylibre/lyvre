@@ -12,10 +12,10 @@ from app.extensions import db
 from app.models import Organization
 
 FIELDS = ("name", "siren", "rna", "address_line1", "address_line2", "postal_code", "city", "country", "purpose",
-          "signatory_name", "signatory_title", "legal_form", "rcs_city")
+          "signatory_name", "signatory_title", "legal_form", "rcs_city", "vat_number", "naf_code", "naf_nomenclature")
 MAX_LENGTHS = {"name": 200, "siren": 9, "rna": 10, "address_line1": 200, "address_line2": 200, "postal_code": 10,
                "city": 100, "country": 60, "signatory_name": 200, "signatory_title": 100, "legal_form": 100,
-               "rcs_city": 100}
+               "rcs_city": 100, "vat_number": 20, "naf_code": 8, "naf_nomenclature": 12}
 LA_POSTE_SIREN = "356000000"
 
 
@@ -70,6 +70,27 @@ def validate(data: dict) -> tuple[dict, dict]:
         if not re.fullmatch(r"W\d{9}", rna):
             errors["rna"] = "Le numéro RNA s'écrit W suivi de 9 chiffres."
         clean["rna"] = rna
+    if clean.get("vat_number"):
+        vat = re.sub(r"[\s.]", "", clean["vat_number"]).upper()
+        if not re.fullmatch(r"[A-Z]{2}[0-9A-Z]{2,13}", vat):
+            errors["vat_number"] = "N° de TVA : code pays et numéro (FR + 11 caractères)."
+        elif vat.startswith("FR"):
+            from stdnum.fr import tva
+            if not tva.is_valid(vat):
+                errors["vat_number"] = "N° de TVA français invalide (clé de contrôle)."
+        clean["vat_number"] = vat
+    if clean.get("naf_code"):
+        naf = clean["naf_code"].replace(".", "").replace(" ", "").upper()
+        if not re.fullmatch(r"\d{4}[A-Z]", naf):
+            errors["naf_code"] = "Code NAF : 4 chiffres et une lettre (68.20B)."
+        clean["naf_code"] = naf
+    if "share_capital" in data:
+        from app.services.sale_entry import SaleError, parse_decimal
+        try:
+            capital = parse_decimal(data.get("share_capital"), "Capital", "share_capital", minimum=0)
+            clean["share_capital_cents"] = None if capital is None else int(capital * 100)
+        except SaleError as exc:
+            errors["share_capital"] = str(exc)
     country = (clean.get("country") or "France") if "country" in clean else None
     if clean.get("postal_code") and (country or "France").lower() == "france" \
             and not re.fullmatch(r"\d{5}", clean["postal_code"]):
@@ -94,3 +115,23 @@ def update(data: dict) -> tuple[Organization, dict]:
         setattr(org, key, value)
     db.session.commit()
     return org, {}
+
+
+def format_siren(siren: str | None) -> str:
+    """« 840 968 499 » (groupes de trois chiffres)."""
+    siren = siren or ""
+    return f"{siren[:3]} {siren[3:6]} {siren[6:]}" if len(siren) == 9 else siren
+
+
+def rcs_mention(org: Organization | None = None) -> str:
+    """Mention d'immatriculation des factures et des baux : « 840 968 499 RCS Saintes », sinon
+    « SIREN 840968499 » (structure non immatriculée au RCS), sinon vide."""
+    org = org or get()
+    if org.siren and org.rcs_city:
+        return f"{format_siren(org.siren)} RCS {org.rcs_city}"
+    return f"SIREN {org.siren}" if org.siren else ""
+
+
+def share_capital_text(org: Organization) -> str:
+    """Capital saisi tel qu'affiché dans le formulaire (« 1500,00 »), vide s'il n'est pas renseigné."""
+    return "" if org.share_capital_cents is None else f"{org.share_capital_cents / 100:.2f}".replace(".", ",")

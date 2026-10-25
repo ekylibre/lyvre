@@ -48,6 +48,7 @@ def render_html(sale: Sale) -> str:
     title = TITLES.get(sale.kind, "Facture")
     return render_template(
         "sales/document.html", sale=sale, org=org, settings=settings, client=client, title=title,
+        rcs_mention=organization.rcs_mention(org),
         invoice=sale.invoice if sale.kind == "credit_note" else None,
         logo_src=logo.as_uri() if logo else None, money=euros, date=_date, qty=_qty, rate=_rate,
         vat_rows=vat_rows(sale), exempt=sale.vat_mode == "none",
@@ -69,7 +70,7 @@ def einvoice_document(sale: Sale) -> einvoice.Document:
         type_code=einvoice.CREDIT_NOTE if sale.kind == "credit_note" else einvoice.INVOICE,
         seller=einvoice.Party(org.name, address1=org.address_line1, address2=org.address_line2,
                               postcode=org.postal_code, city=org.city, siren=org.siren,
-                              vat_number=settings.vat_number),
+                              vat_number=org.vat_number),
         buyer=einvoice.Party(client["name"], address1=client.get("address_line1"), address2=client.get("address_line2"),
                              postcode=client.get("postal_code"), city=client.get("city"),
                              siren=client.get("siren"), vat_number=client.get("vat_number")),

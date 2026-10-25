@@ -5,6 +5,8 @@ export interface Entity {
   is_member: boolean; is_benevole: boolean; notes: string | null;
   default_product_id: number | null; default_product: string | null;
   vat_number: string | null; siret: string | null; iban: string | null;
+  /** SIREN : début du SIRET, ou seul ; activité (code NAF sans point). */
+  siren: string | null; naf_code: string | null; naf_nomenclature: string | null;
   address_line1: string | null; address_line2: string | null; postal_code: string | null; city: string | null;
   country: string | null; person_kind: "individual" | "company" | null;
   last_helloasso_membership: string | null; last_pos_membership: string | null; transactions: number;

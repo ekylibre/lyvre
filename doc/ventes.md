@@ -9,11 +9,13 @@ Factures récurrentes ; Baux et quittances. (Les abonnements d'achat sont dans
 
 Configuration › Structure :
 
-- onglet **Identité** : dénomination, SIREN, adresse (obligatoires sur une facture) ;
-- onglet **Facturation** : forme juridique, capital, RCS, n° de TVA intracommunautaire (obligatoire
-  si l'exercice est soumis à la TVA), IBAN / BIC, délai de paiement (30 jours par défaut), pénalités
-  de retard, indemnité de 40 € (clients professionnels), escompte, logo, pied de page, messages
-  d'envoi et de relance.
+- onglet **Identité** : dénomination, SIREN, adresse (obligatoires sur une facture) et **mentions
+  légales** — forme juridique, capital, greffe du RCS, n° de TVA intracommunautaire (obligatoire si
+  l'exercice est soumis à la TVA). Ce sont les seules : factures et baux les reprennent (« 840 968 499
+  RCS Saintes », `organization.rcs_mention`) ;
+- onglet **Facturation** : IBAN / BIC, délai de paiement (30 jours par défaut), pénalités de retard,
+  indemnité de 40 € (clients professionnels), escompte, logo, pied de page, messages d'envoi et de
+  relance. Les mentions légales y sont rappelées en lecture.
 
 Exercices : **TVA** soumis ou non ; pour les prestations de services, TVA exigible **à
 l'encaissement** (par défaut) ou **d'après les débits** (bouton « Option TVA sur les débits »).

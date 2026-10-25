@@ -16,7 +16,7 @@ from app.access import accessible_instances, permissions, role_for
 from app.extensions import db
 from app.menu_config import build_nav
 from app.models import Instance, SyncJob, User
-from app.services import external_config, password_reset
+from app.services import external_config, password_reset, sirene
 from app.services.instance_access import MIN_PASSWORD
 
 from . import ApiError, bp, json_body
@@ -120,6 +120,8 @@ def session_payload() -> dict:
         "admin_links": ([{"label": "Utilisateurs", "url": url_for("users.index")},
                          {"label": "Instances", "url": url_for("instances.index")}] if is_admin else []),
         "preferences": preferences_of(current_user),
+        # Services du serveur (pas d'interrupteur par instance) : Sirene si la clé est configurée.
+        "services": {"sirene": sirene.available()},
         "csrf_token": generate_csrf(),
     }
 

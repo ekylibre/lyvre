@@ -17,7 +17,7 @@ from app.services import external_config
 from app.models.sync_job import (
     SYNC_KIND_METRICS, SYNC_KIND_PAYOUT_PAYMENTS, SYNC_KIND_PAYOUTS, SYNC_KIND_QONTO, SYNC_KIND_QONTO_INVOICES,
     SYNC_KIND_QONTO_SALES,
-    SYNC_KIND_RECEIPTS_ISSUE, SYNC_KIND_RECEIPTS_SEND, SYNC_STATUS_FAILED,
+    SYNC_KIND_RECEIPTS_ISSUE, SYNC_KIND_RECEIPTS_SEND, SYNC_KIND_SIRENE_REFRESH, SYNC_STATUS_FAILED,
 )
 
 RETENTION_DAYS = 90
@@ -34,6 +34,7 @@ JOB_LABELS = {
     SYNC_KIND_METRICS: "Synchronisation des indicateurs",
     SYNC_KIND_RECEIPTS_ISSUE: "Émission des reçus fiscaux",
     SYNC_KIND_RECEIPTS_SEND: "Expédition des reçus fiscaux par email",
+    SYNC_KIND_SIRENE_REFRESH: "Comparaison des tiers avec Sirene",
 }
 
 # Intégrations dont dépend un type de job : aucune notification si elles sont toutes désactivées
@@ -53,6 +54,8 @@ def _url(job: SyncJob) -> str | None:
     """Écran de la SPA où voir le résultat."""
     if job.kind == SYNC_KIND_QONTO:
         return f"/bank-accounts/{job.bank_account_id}/transactions" if job.bank_account_id else "/bank-accounts/"
+    if job.kind == SYNC_KIND_SIRENE_REFRESH:
+        return f"/entities/sirene-review/{job.id}"
     if job.kind == SYNC_KIND_PAYOUT_PAYMENTS and job.payout_id:
         return f"/payouts/{job.payout_id}"
     return {SYNC_KIND_PAYOUTS: "/payouts/", SYNC_KIND_QONTO_INVOICES: "/purchases/", SYNC_KIND_QONTO_SALES: "/sales/",
@@ -102,6 +105,11 @@ def summary(kind: str, result: dict) -> str:
         return text
     if kind == SYNC_KIND_RECEIPTS_ISSUE:
         return f"{n('issued')} reçu(s) émis, {n('refused')} donateur(s) à compléter."
+    if kind == SYNC_KIND_SIRENE_REFRESH:
+        text = (f"{n('changes')} tiers à revoir, {n('up_to_date')} à jour sur {n('compared')} comparé(s)"
+                + (f", {n('ceased')} cessé(s) ou fermé(s)" if n("ceased") else "")
+                + (f", {n('not_found') + n('invalid')} introuvable(s) ou au numéro invalide" if n("not_found") + n("invalid") else ""))
+        return text + (" (arrêtée avant la fin)." if result.get("cancelled") else ".")
     if kind == SYNC_KIND_RECEIPTS_SEND:
         return f"{n('sent')} reçu(s) envoyé(s), {n('skipped')} sans adresse email."
     return "Terminée."
