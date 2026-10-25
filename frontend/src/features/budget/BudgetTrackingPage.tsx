@@ -10,7 +10,7 @@ import { useList } from "../../api/resources";
 import { FilterBar, useUrlParams } from "../../components/FilterBar";
 import { MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
-import { formatDate, formatEuros } from "../../lib/format";
+import { EUROS_Y_AXIS, formatDate, formatEuros } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
 import { FISCAL_YEARS_KEY, type FiscalYear } from "../fiscal-years/FiscalYearsPage";
 
@@ -94,7 +94,7 @@ export default function BudgetTrackingPage() {
           {chart.length > 0 && (
             <Paper p="md" mb="md" className="lv-no-print">
               <Title order={2} size="h4" mb="sm">Charges : prévu à date et réalisé</Title>
-              <BarChart h={240} data={chart} dataKey="poste" valueFormatter={(v) => formatEuros(Math.round(v * 100))} withLegend
+              <BarChart h={240} data={chart} dataKey="poste" yAxisProps={EUROS_Y_AXIS} valueFormatter={(v) => formatEuros(Math.round(v * 100))} withLegend
                 series={[{ name: "Prévu à date", color: "var(--lv-ardoise)" }, { name: "Réalisé", color: "var(--lv-lichen)" }]} />
             </Paper>
           )}

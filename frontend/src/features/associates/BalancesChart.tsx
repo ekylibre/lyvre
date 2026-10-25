@@ -4,7 +4,7 @@ import { BarChart } from "@mantine/charts";
 import { Text } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/client";
-import { formatEuros } from "../../lib/format";
+import { EUROS_Y_AXIS, formatEuros } from "../../lib/format";
 import { ASSOCIATES_KEY } from "./types";
 
 const COLORS = ["var(--lv-lichen)", "var(--lv-ardoise)", "var(--lv-paille-ink)", "var(--lv-brique)", "var(--lv-lichen-strong)",
@@ -24,7 +24,7 @@ export function BalancesChart() {
   if (!data) return null;
   if (!data.years.length || !data.series.length) return <Text size="sm" c="dimmed">Aucun exercice ou aucun associé.</Text>;
   return (
-    <BarChart h={320} data={chartRows(data)} dataKey="exercice" type="stacked" withLegend
+    <BarChart h={320} data={chartRows(data)} yAxisProps={EUROS_Y_AXIS} dataKey="exercice" type="stacked" withLegend
       valueFormatter={(v) => formatEuros(Math.round(v * 100))}
       series={data.series.map((s, i) => ({ name: s.name, color: COLORS[i % COLORS.length] }))} />
   );

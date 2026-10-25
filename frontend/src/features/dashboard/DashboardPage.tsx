@@ -10,7 +10,7 @@ import { useBookkeeping, useCan, useIntegration } from "../../api/session";
 import { useUrlParams } from "../../components/FilterBar";
 import { MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
-import { formatDate, formatEuros } from "../../lib/format";
+import { EUROS_Y_AXIS, formatDate, formatEuros } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
 import type { ReportMeta } from "../reports/ReportFrame";
 import { RateBar, useTracking } from "../budget/BudgetTrackingPage";
@@ -131,7 +131,7 @@ export default function DashboardPage() {
           )}
           {fy && <BudgetCard fyId={fy.id} />}
           <ChartCard title="Résultat mensuel">
-            <CompositeChart h={300} data={data.monthly} dataKey="month" valueFormatter={euros} withLegend
+            <CompositeChart h={300} data={data.monthly} yAxisProps={EUROS_Y_AXIS} dataKey="month" valueFormatter={euros} withLegend
               series={[
                 { name: "produits", label: "Produits", color: "lichen.7", type: "bar" },
                 { name: "charges", label: "Charges", color: "ardoise.5", type: "bar" },
@@ -140,7 +140,7 @@ export default function DashboardPage() {
           </ChartCard>
           <SimpleGrid cols={{ base: 1, lg: 2 }}>
             <ChartCard title="Ventes mensuelles">
-              <BarChart h={260} data={data.monthly} dataKey="month" valueFormatter={euros} withLegend
+              <BarChart h={260} data={data.monthly} yAxisProps={EUROS_Y_AXIS} dataKey="month" valueFormatter={euros} withLegend
                 series={[
                   { name: "ventes", label: "Ventes (70x)", color: "lichen.7" },
                   ...(odoo ? [{ name: "pos", label: "Caisse", color: "ardoise.5" },
@@ -148,7 +148,7 @@ export default function DashboardPage() {
                 ]} />
             </ChartCard>
             <ChartCard title="Solde bancaire (fin de mois)">
-              <AreaChart h={260} data={data.monthly} dataKey="month" valueFormatter={euros} curveType="monotone"
+              <AreaChart h={260} data={data.monthly} yAxisProps={EUROS_Y_AXIS} dataKey="month" valueFormatter={euros} curveType="monotone"
                 series={[{ name: "solde", label: "Solde", color: "lichen.7" }]} />
             </ChartCard>
           </SimpleGrid>

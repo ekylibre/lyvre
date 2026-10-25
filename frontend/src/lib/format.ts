@@ -11,6 +11,19 @@ export function formatEuros(cents: number, options: { plus?: boolean } = {}): st
   return options.plus && cents > 0 ? `+${text}` : text;
 }
 
+const COMPACT = new Intl.NumberFormat("fr-FR", { notation: "compact", maximumFractionDigits: 1 });
+
+/** Euros (pas centimes) → « 12,3 k€ », « 1,5 M€ », « 950 € » : graduations des axes de graphique, où le
+ * montant complet ne tient pas (l'infobulle le donne). */
+export function formatEurosShort(euros: number): string {
+  const number = COMPACT.format(Math.abs(euros));
+  const text = /[kM]$/.test(number) ? `${number}€` : `${number}\u202f€`;
+  return euros < 0 ? `\u2212${text}` : text;
+}
+
+/** Graduations en euros de l'axe Y (Mantine Charts) : format court, largeur suffisante. */
+export const EUROS_Y_AXIS = { tickFormatter: formatEurosShort, width: 64 };
+
 /** « 2026-10-02 » → « 02/10/2026 » ; vide → « — ». */
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";
