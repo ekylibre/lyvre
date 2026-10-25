@@ -8,8 +8,8 @@ import {
   useComputedColorScheme,
 } from "@mantine/core";
 import {
-  BadgeCheck, Banknote, BarChart3, BookOpen, Building2, Calculator, FileCheck2, FileText, HandCoins, Landmark, Receipt, ShieldCheck,
-  Users,
+  BadgeCheck, Banknote, BarChart3, BookOpen, Building2, Calculator, FileCheck2, FileText, HandCoins, Home, Landmark, Receipt,
+  ShieldCheck, Users,
 } from "lucide-react";
 import symbol from "../../assets/lyvre-symbole.svg";
 import symbolInverse from "../../assets/lyvre-symbole-inverse.svg";
@@ -25,6 +25,9 @@ const DOMAINS: Domain[] = [
     "Plan comptable associatif (règlement ANC 2018-06) ou SCI, choisi par structure",
     "Partie double : saisie au clavier, journaux, grand livre, balance, bilan et compte de résultat N / N-1",
     "Comptabilité simplifiée : recettes et dépenses par catégorie, sans débit ni crédit, passage en partie double sans ressaisie",
+    "Écritures validées par lots, intangibles ensuite (extourne pour corriger), historique ; verrouillage de période",
+    "Lettrage automatique ou au clavier des comptes de tiers, à-nouveaux détaillés",
+    "Immobilisations : composants, plans linéaire et dégressif, dotations à la clôture, cession ; charges et produits constatés d'avance",
     "Contributions volontaires en nature (86 / 87), TVA par exercice",
   ] },
   { icon: <Landmark size={18} />, title: "Banque et caisse", items: [
@@ -34,18 +37,25 @@ const DOMAINS: Domain[] = [
     "Prévisionnel de trésorerie sur 12 mois avec alerte de solde négatif",
   ] },
   { icon: <Receipt size={18} />, title: "Achats", items: [
-    "Factures fournisseurs Qonto ou déposées : lecture Factur-X, PDF ou photo (OCR)",
+    "Factures fournisseurs Qonto ou déposées : lecture Factur-X, PDF ou photo (OCR) ; fournisseur trouvé dans Sirene",
     "Catalogue de produits, comptabilisation en engagement (401 par fournisseur), règlements rapprochés",
     "Abonnements (internet, téléphone, assurance, banque) : échéances attendues, facture et prélèvement rattachés, préavis",
   ] },
   { icon: <FileText size={18} />, title: "Ventes", items: [
     "Devis, factures et avoirs numérotés, PDF Factur-X, écriture au journal des ventes, envoi par email",
     "Encaissements rapprochés de la banque, TVA à l'encaissement ou sur les débits, relances",
-    "Factures récurrentes, baux, avis d'échéance et quittances ; émission par Qonto en option",
+    "Factures récurrentes, avis d'échéance et quittances ; émission par Qonto en option",
+  ] },
+  { icon: <Home size={18} />, title: "SCI et baux", items: [
+    "Associés : registre des parts, comptes courants, notes de frais, gérants",
+    "Baux par lots (bâtiments, terres), modèles relus et texte figé, carte des parcelles et bâtiments (IGN)",
+    "Signature électronique des baux (Documenso auto-hébergé), paraphe sur chaque page",
+    "Révision des loyers : indices INSEE (ILC, ILAT, IRL) lus automatiquement, indice des fermages, courrier au locataire",
   ] },
   { icon: <Users size={18} />, title: "Adhérents et tiers", items: [
-    "Répertoire des tiers, adhésions HelloAsso et caisse, relances par email",
-    "Bénévolat : temps de travaux et valorisation",
+    "Répertoire des tiers, pré-rempli et mis à jour depuis l'API Sirene de l'INSEE (SIREN, adresse, NAF, TVA)",
+    "Adhésions HelloAsso et caisse, relances par email, bénévolat : temps de travaux et valorisation",
+    "Liste des adhérents synchronisée vers Brevo, sans doublon et sans réinscrire les désinscrits",
   ] },
   { icon: <HandCoins size={18} />, title: "Dons et reçus fiscaux", items: [
     "Dons repris de la comptabilité, donateur retrouvé par la banque ou le compte de tiers ; dons en nature",
@@ -56,6 +66,7 @@ const DOMAINS: Domain[] = [
     "Assistant de clôture en 8 étapes : contrôles, écritures d'inventaire, fonds dédiés, résultat, FEC",
     "Clôture provisoire puis définitive, réouverture motivée, à-nouveaux et extournes, affectation du résultat",
     "Fichier des écritures comptables (FEC) conforme à l'article A47 A-1 du LPF",
+    "Reprise d'historique depuis un FEC, un tableur ou un export Ekylibre (écritures, tiers, lettrage, pièces)",
   ] },
   { icon: <Calculator size={18} />, title: "Budget et projets", items: [
     "Projets ou activités sur les écritures, les achats et les règles ; ventilation d'une ligne",
@@ -67,8 +78,8 @@ const DOMAINS: Domain[] = [
     "Indicateurs de visibilité et d'impact, rapport d'activité PDF / DOCX / ODT",
   ] },
   { icon: <ShieldCheck size={18} />, title: "Collaboration et souveraineté", items: [
-    "Plusieurs structures dans une même installation, une base par structure",
-    "Rôles par structure : administrateur, trésorier, expert-comptable en lecture seule",
+    "Plusieurs structures dans une même installation, une base par structure ; écrans adaptés à l'association ou à la SCI",
+    "Rôles par structure : administrateur, trésorier, expert-comptable en lecture seule ; mot de passe oublié par email",
     "Logiciel libre (AGPL-3.0), auto-hébergé, sauvegardes avec les pièces jointes",
   ] },
 ];
@@ -105,9 +116,9 @@ const ROWS: Row[] = [
 const OSS_ROWS: Row[] = [
   ...ROWS,
   { key: "sci", label: "SCI : associés, baux, quittances", lyvre: "yes" },
-  { key: "lettering", label: "Lettrage des comptes de tiers", lyvre: "no" },
-  { key: "entry_lock", label: "Écritures validées intangibles", lyvre: "partial", note: "Lyvre : à la clôture provisoire" },
-  { key: "fixed_assets", label: "Immobilisations, amortissements", lyvre: "no" },
+  { key: "lettering", label: "Lettrage des comptes de tiers", lyvre: "yes" },
+  { key: "entry_lock", label: "Écritures validées intangibles", lyvre: "yes" },
+  { key: "fixed_assets", label: "Immobilisations, amortissements", lyvre: "yes" },
   { key: "vat_return", label: "Déclaration de TVA préparée", lyvre: "no" },
   { key: "einvoicing", label: "Facture électronique, plateforme agréée", lyvre: "partial", note: "Lyvre : Factur-X émis et lu, émission par Qonto" },
   { key: "sepa_online", label: "Prélèvement SEPA, paiement en ligne", lyvre: "no" },
@@ -116,7 +127,7 @@ const OSS_ROWS: Row[] = [
 const LIMITS = [
   "Pas d'application mobile native : l'interface s'adapte au téléphone.",
   "Pas de remise de chèques ni de billetterie ; la facture électronique (réforme 2026-2027) passe par Qonto.",
-  "Pas d'immobilisations ni d'amortissements calculés (comptes présents, sans suivi).",
+  "Pas de déclaration de TVA préparée : les comptes de TVA sont tenus, la déclaration reste à remplir.",
   "Pas de paiement en ligne propre : les adhésions et dons en ligne passent par HelloAsso.",
   "Modèles de reçus fiscaux à faire relire face aux formulaires Cerfa en vigueur avant usage.",
 ];
@@ -192,8 +203,8 @@ export default function AboutPage() {
           <Title order={1} fz={{ base: 32, sm: 42 }} lh={1.15}>La comptabilité des associations, libre, sobre et souveraine.</Title>
           <Text size="lg" c="dimmed">
             Lyvre tient la comptabilité d'une association ou d'une SCI, de la saisie au bilan : banque et caisse,
-            achats, adhésions, dons et reçus fiscaux, budget et projets, clôture et FEC pour l'expert-comptable.
-            En partie double, ou simplifiée pour les petites structures.
+            achats et ventes, adhésions, dons et reçus fiscaux, baux, budget et projets, immobilisations, clôture et
+            FEC pour l'expert-comptable. En partie double, ou simplifiée pour les petites structures.
           </Text>
         </Stack>
 
@@ -239,6 +250,8 @@ export default function AboutPage() {
               <List.Item>Clôture complète guidée et FEC, comme un logiciel d'expert-comptable.</List.Item>
               <List.Item>Rapprochement bancaire au clavier, lecture des factures, règles automatiques.</List.Item>
               <List.Item>Plusieurs structures et rôles par structure, dont l'expert-comptable en lecture seule.</List.Item>
+              <List.Item>Pour une SCI : baux, carte des parcelles, signature électronique et révision des loyers.</List.Item>
+              <List.Item>Tiers pré-remplis depuis Sirene, adhérents synchronisés vers Brevo.</List.Item>
               <List.Item>Partie double ou simplifiée, avec passage de l'une à l'autre sans ressaisie.</List.Item>
             </List>
           </Paper>
