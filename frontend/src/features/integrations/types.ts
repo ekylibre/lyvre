@@ -19,7 +19,7 @@ export function sortIntegrations(items: Integration[]): Integration[] {
 }
 
 export interface Field {
-  key: string; label: string; input: "text" | "password" | "textarea"; help: string; required: boolean; secret: boolean;
+  key: string; label: string; input: "text" | "password" | "textarea" | "brevo_list"; help: string; required: boolean; secret: boolean;
   source: "db" | "env" | "none"; value: string; env_value: string | null;
 }
 

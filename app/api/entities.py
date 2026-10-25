@@ -311,10 +311,19 @@ def helloasso_sync():
     except Exception as e:  # noqa: BLE001
         current_app.logger.exception("Sync HelloAsso échouée")
         raise ApiError("bad_gateway", f"Erreur HelloAsso : {e}", status=502) from None
+    notices = []
+    member_ids = result.get("member_ids") or []
+    if member_ids and external_config.is_enabled("brevo") and external_config.is_configured("brevo"):
+        # Adhérents touchés renvoyés vers Brevo, une fois la première synchronisation faite (aperçu validé).
+        from app.models.sync_job import SYNC_KIND_BREVO
+        from app.services import brevo_sync, sync_jobs
+        if brevo_sync.has_links() and not sync_jobs.running_job(SYNC_KIND_BREVO):
+            brevo_sync.start(current_app._get_current_object(), dry_run=False, entity_ids=member_ids)
+            notices.append(notice(f"{len(member_ids)} adhérent(s) envoyé(s) vers Brevo en arrière-plan.", "info"))
     return jsonify(result=result, notices=[notice(
         "Synchronisation HelloAsso terminée : "
         f"{result['orders_imported'] + result['orders_updated']} commande(s), "
         f"{result['items_imported'] + result['items_updated']} article(s), "
         f"{result['payments_imported'] + result['payments_updated']} paiement(s), "
         f"{result['members_created']} adhérent(s) créé(s), "
-        f"{result['members_flagged']} adhérent(s) marqué(s).")])
+        f"{result['members_flagged']} adhérent(s) marqué(s).")] + notices)

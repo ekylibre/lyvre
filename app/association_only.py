@@ -1,5 +1,5 @@
 """Fonctions réservées aux associations : reçus fiscaux, adhérents, bénévolat, comptabilité
-simplifiée, indicateurs, fonds dédiés. Le menu les masque déjà pour une autre structure (SCI) ;
+simplifiée, indicateurs, fonds dédiés, Brevo. Le menu les masque déjà pour une autre structure (SCI) ;
 cette garde refuse aussi une adresse saisie à la main : 403 `association_only` pour l'API,
 404 pour les pages. Les données déjà en base ne sont ni modifiées ni supprimées.
 """
@@ -7,7 +7,7 @@ from flask import abort, current_app, request
 
 # Modules de l'API (app/api/<module>.py) dont toutes les routes sont réservées.
 ASSOCIATION_ONLY_MODULES = {"receipts", "members", "work_times", "task_types", "simple_operations",
-                            "simple_categories", "simple_reports", "activity_report", "impact"}
+                            "simple_categories", "simple_reports", "activity_report", "impact", "brevo"}
 # Routes isolées dans un module commun.
 ASSOCIATION_ONLY_ENDPOINTS = {"api.helloasso_sync", "api.tiers_update_odoo_note",
                               "exports.receipts_signature", "exports.receipt_pdf", "exports.receipts_summary_xlsx",

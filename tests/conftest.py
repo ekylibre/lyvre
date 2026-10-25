@@ -19,6 +19,7 @@ os.environ.setdefault("MAIL_DEFAULT_SENDER", "noreply@example.org")
 # Jamais d'appel à l'INSEE depuis les tests : clé vide (les tests Sirene simulent les réponses).
 os.environ["SIRENE_API_KEY"] = ""
 os.environ["SIRENE_API_URL"] = "https://sirene.invalid/api-sirene/4"
+os.environ["BREVO_API_KEY"] = ""  # jamais d'appel au compte Brevo réel depuis les tests
 
 import pytest  # noqa: E402
 

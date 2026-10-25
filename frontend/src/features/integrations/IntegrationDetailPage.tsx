@@ -12,6 +12,7 @@ import { SESSION_KEY } from "../../api/session";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { AppLink } from "../../app/navigation";
+import { BrevoAttributes, BrevoListField } from "./BrevoSettings";
 import { IntegrationLogo } from "./IntegrationLogo";
 import { INTEGRATIONS_KEY, STATUS_TONES, checkSummary, localDateTime, type Field, type IntegrationDetail } from "./types";
 
@@ -84,7 +85,11 @@ export default function IntegrationDetailPage() {
                   };
                   return (
                     <div key={f.key}>
-                      {f.input === "textarea" ? <Textarea {...common} autosize minRows={4} classNames={{ input: "lv-num" }} />
+                      {f.input === "brevo_list" ? (
+                        <BrevoListField label={common.label} description={f.help} value={values[f.key] ?? ""}
+                          keySaved={data.fields.some((x) => x.key === "api_key" && x.source !== "none")}
+                          onChange={(value) => setValues({ ...values, [f.key]: value })} />
+                      ) : f.input === "textarea" ? <Textarea {...common} autosize minRows={4} classNames={{ input: "lv-num" }} />
                         : f.input === "password" ? <PasswordInput {...common} autoComplete="new-password" />
                         : <TextInput {...common} />}
                       {f.secret && f.source === "db" && <Checkbox mt={4} size="xs" label="Effacer la valeur enregistrée" checked={clear.includes(f.key)}
@@ -122,6 +127,9 @@ export default function IntegrationDetailPage() {
               </Tooltip>
             </Group>
           </Paper>
+          {v.slug === "brevo" && data.fields.some((x) => x.key === "api_key" && x.source !== "none") && (
+            <BrevoAttributes admin />
+          )}
           {!!v.scopes?.length && (
             <Paper p="md" mb="md">
               <Title order={3} mb="sm">Périmètre</Title>

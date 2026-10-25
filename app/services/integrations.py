@@ -304,6 +304,28 @@ def _probe_documenso() -> str:
     return f"Serveur Documenso {documenso.base_url()} accessible, jeton d'API accepté."
 
 
+def _probe_brevo() -> str:
+    from app.services import brevo_attributes, brevo_client
+
+    client = brevo_client.Client.from_config(timeout=CHECK_TIMEOUT / 3)
+    account = client.account()
+    plans = ", ".join(p.get("type", "") for p in account.get("plan") or [] if p.get("type"))
+    message = f"Compte Brevo « {account.get('companyName') or account.get('email') or '?'} »" + \
+        (f" (offre {plans})" if plans else "") + " accessible."
+    list_id = external_config.get("brevo", "list_id")
+    found = next((l for l in client.lists() if str(l.get("id")) == str(list_id)), None) if list_id else None
+    if not list_id:
+        message += " Choisissez la liste des adhérents."
+    elif found is None:
+        raise brevo_client.BrevoError("not_found", f"Liste n° {list_id} introuvable dans Brevo : choisissez-en une autre.")
+    else:
+        message += f" Liste « {found.get('name')} » ({found.get('uniqueSubscribers', 0)} contacts)."
+    missing = brevo_attributes.missing(client.attributes())
+    if missing:
+        message += " Attributs à créer : " + ", ".join(missing) + "."
+    return message
+
+
 PROBES: dict[str, Callable[[], str]] = {
     "stancer": _probe_stancer,
     "odoo": _probe_odoo,
@@ -313,6 +335,7 @@ PROBES: dict[str, Callable[[], str]] = {
     "facebook": _probe_facebook,
     "qonto": _probe_qonto,
     "documenso": _probe_documenso,
+    "brevo": _probe_brevo,
 }
 
 
@@ -360,12 +383,15 @@ def _first_line(text) -> str:
 
 def describe_error(service: str, exc: BaseException) -> str:
     """Message en français, compréhensible par un non-technicien."""
+    from app.services.brevo_client import BrevoError
     from app.services.facebook_client import FacebookConfigError
     from app.services.ga4_client import GA4ConfigError
     from app.services.helloasso_client import HelloAssoConfigError
     from app.services.odoo_client import OdooConfigError
     from app.services.qonto_client import QontoConfigError, QontoError
 
+    if isinstance(exc, BrevoError):  # déjà en français (IP non autorisée, clé refusée…)
+        return exc.message
     name = type(exc).__name__
     timeout_msg = f"Délai dépassé ({CHECK_TIMEOUT} s) : le service ne répond pas."
 

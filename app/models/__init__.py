@@ -53,6 +53,7 @@ from .report_content import ReportContent
 from .report_asset import ReportAsset
 from .report_archive import ReportArchive
 from .associate import Associate, AssociateExpense, ShareMovement, ShareMovementLine
+from .brevo_link import BrevoLink
 
 __all__ = [
     "Associate",
@@ -126,4 +127,5 @@ __all__ = [
     "ReportContent",
     "ReportAsset",
     "ReportArchive",
+    "BrevoLink",
 ]

@@ -67,6 +67,10 @@ class Config:
     QONTO_SECRET_KEY = os.environ.get("QONTO_SECRET_KEY") or os.environ.get("QONTO_API_SECRET", "")
     QONTO_STAGING_TOKEN = os.environ.get("QONTO_STAGING_TOKEN", "")
 
+    # Brevo : repli de développement seulement (INTEGRATIONS_ENV_FALLBACK) ; en production, la clé se
+    # saisit dans Configuration › Intégrations.
+    BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "")
+
 
 def _flag(name: str, default: bool) -> bool:
     value = os.environ.get(name)

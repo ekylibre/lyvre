@@ -11,6 +11,7 @@ SYNC_KIND_QONTO_SALES = "qonto_sales"
 SYNC_KIND_RECEIPTS_ISSUE = "donation_receipts"
 SYNC_KIND_RECEIPTS_SEND = "donation_receipts_send"
 SYNC_KIND_SIRENE_REFRESH = "sirene_refresh"
+SYNC_KIND_BREVO = "brevo_sync"
 
 SYNC_STATUS_RUNNING = "running"
 SYNC_STATUS_DONE = "done"

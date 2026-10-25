@@ -23,7 +23,7 @@ import { TIERS_KEY, type EntitiesMeta, type Entity } from "./types";
 
 export function useHelloAssoSync() {
   return useAction(() => api.post<{ notices: Notice[] }>("/api/v1/helloasso/sync"),
-    { invalidate: [TIERS_KEY, ["members"]] });
+    { invalidate: [TIERS_KEY, ["members"], ["brevo"]] });  // passage Brevo enchaîné (lot B3)
 }
 
 export default function EntitiesPage() {

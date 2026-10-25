@@ -3,8 +3,8 @@
 Services externes qu'une instance peut utiliser : **Qonto** (banque, factures d'achat), **SMTP**
 (emails), **Stancer** (paiements par carte), **Odoo** (caisse, factures clients), **Documenso**
 (signature électronique des baux), et pour une
-association seulement **HelloAsso** (adhésions), **Google Analytics** et **Facebook** (Visibilité &
-Impact).
+association seulement **HelloAsso** (adhésions), **Brevo** (liste de contacts des adhérents),
+**Google Analytics** et **Facebook** (Visibilité & Impact).
 
 Configuration › **Intégrations** (administrateur de l'instance) : une carte par intégration, avec
 son logo, son état et son dernier test.
@@ -20,6 +20,7 @@ son logo, son état et son dernier test.
 | Documenso | ✔ | ✔ |
 | HelloAsso | ✔ **recommandée** | — |
 | Google Analytics (GA4), Facebook (Page) | ✔ | — |
+| Brevo | ✔ | — |
 
 Une intégration d'une autre structure n'apparaît pas (son adresse répond « introuvable »).
 
@@ -49,6 +50,34 @@ d'envoyer un PDF par l'API) : URL du serveur et **jeton d'API** d'équipe (Docum
 l'équipe › Jetons d'API, `api_…`). Chaque instance a les siens ; plusieurs instances peuvent viser le
 même serveur. Le test lit la liste des envois (lecture seule). Installation du serveur :
 [Signature électronique des baux : serveur Documenso](signature_documenso.md).
+
+**Brevo** : **clé API** (Brevo › Paramètres › SMTP et API › Clés API, `xkeysib-…`) et **liste des
+adhérents**, choisie parmi les listes du compte une fois la clé enregistrée. Le compte peut limiter
+l'API à des **adresses IP autorisées** : le test l'indique (« L'adresse IP du serveur (…) n'est pas
+autorisée dans Brevo ») ; ajouter l'adresse du serveur Lyvre dans Brevo › Sécurité › IP autorisées.
+La fiche montre les attributs attendus par la synchronisation des adhérents : `PRENOM` et `NOM`
+(complétés seulement s'ils sont vides dans Brevo), `DATE_ADH`, `LYVRE_STATUT`, `LYVRE_ECHEANCE`,
+`LYVRE_BENEVOLE` (tenus par Lyvre). Les manquants se créent par le bouton « Créer les attributs
+manquants », jamais automatiquement. Repli `.env` de développement : `BREVO_API_KEY`. Conception :
+`claudedocs/design_brevo.md`.
+
+**Synchronisation des adhérents vers Brevo** (`services/brevo_sync.py`, tâche `brevo_sync`) : un
+adhérent = un contact Brevo, lié une fois pour toutes (table `brevo_links`) puis retrouvé par
+l'identifiant du contact. Chaque passage lit tout le compte et classe chaque adhérent : rattacher
+(contact existant, même e-mail ou `EXT_ID` Lyvre), créer, mettre à jour, inchangé (aucun appel),
+conflit, retirer de la liste. Règles : jamais de fusion ni de doublon ; jamais de changement d'e-mail
+d'un contact désinscrit (Brevo le réinscrirait) ; un adhérent sorti est retiré de la liste, jamais
+supprimé ; les contacts de la liste inconnus de Lyvre ne sont pas touchés. La première
+synchronisation commence par un **aperçu** sans écriture (`dry_run`).
+
+Écran **Adhérents** › bouton **Brevo** : « Aperçu (sans rien écrire) », « Synchroniser avec Brevo »
+(possible une fois un aperçu abouti), dernier passage. Le rapport (`/entities/members/brevo/<n°>`,
+lien de la notification de fin) donne les compteurs (créés, rattachés, mis à jour, inchangés, retirés
+de la liste), les **conflits à traiter** avec leur motif, les désinscrits (restés désinscrits), les
+adhérents sans e-mail et les erreurs ; celui d'un aperçu propose « Synchroniser ». Après chaque
+synchronisation HelloAsso, les adhérents touchés sont renvoyés vers Brevo en arrière-plan, dès que
+la première synchronisation a eu lieu. API : `GET /api/v1/brevo/status`, `POST /api/v1/brevo/sync`
+`{dry_run, entity_ids?}`, `GET /api/v1/brevo/sync/<n°>`.
 
 ## Périmètre (Qonto)
 

@@ -345,6 +345,13 @@ transaction donne un seul événement.
 | `legal_form` · `share_capital_cents` · `rcs_city` · `vat_number` | String / Integer | Mentions légales, seule source pour les factures et les baux (lot G2) ; mention d'immatriculation composée par `organization.rcs_mention` |
 | `naf_code` · `naf_nomenclature` | String(8) / String(12) | Activité, code sans point comme Sirene (« 6820B »), affiché « 68.20B » |
 
+## BrevoLink — Adhérent ↔ contact Brevo
+
+**Table :** `brevo_links` (lot B2, migration `a1c3e5f7b9d2`) : `entity_id` (unique, `ON DELETE SET
+NULL` : le lien survit au tiers le temps de le retirer de la liste), `contact_id` (identifiant Brevo,
+unique), `email` et `payload_hash` (dernier envoi : un contact inchangé n'est pas renvoyé), `in_list`,
+`state` (`linked`, `conflict`, `removed`), `note` (motif), `synced_at`.
+
 ## ClosingStep / ClosingEvent — Assistant de clôture
 
 `closing_steps(fiscal_year_id, step, state todo|done|skipped, note, user_id, updated_at)`, unique par

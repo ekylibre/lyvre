@@ -16,6 +16,7 @@ import { useIntegrationGuard } from "../../components/IntegrationRequired";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
 import { useHelloAssoSync } from "../entities/EntitiesPage";
+import { BrevoMenu } from "./BrevoMenu";
 import {
   EXPIRY, filterQuery, MEMBER_FILTERS, MEMBERS_KEY, type Integrations, type Member,
 } from "./types";
@@ -77,6 +78,7 @@ export default function MembersPage() {
               href={`/entities/members/reminders${filterQuery({ q: params.q, date_from: params.date_from, date_to: params.date_to })}`}
               disabled={!meta?.integrations.smtp.available}>Relancer les échus</Button>
             : <Button variant="default" onClick={smtp.guard(() => undefined)}>Relancer les échus</Button>}</Can>
+          <BrevoMenu />
           {helloasso && <Can><Button loading={sync.isPending} disabled={!meta?.integrations.helloasso.available}
             onClick={() => sync.mutate(undefined)}>Synchroniser HelloAsso</Button></Can>}
         </>} />

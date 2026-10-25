@@ -32,6 +32,7 @@ SERVICE_KEYS: dict[str, list[str]] = {
     "facebook":  ["page_id", "page_token", "app_id", "app_secret"],
     "qonto":     ["login", "secret_key", "staging_token"],
     "documenso": ["url", "api_key"],
+    "brevo":     ["api_key", "list_id"],
 }
 
 SERVICE_LABELS: dict[str, str] = {
@@ -43,6 +44,7 @@ SERVICE_LABELS: dict[str, str] = {
     "facebook":  "Facebook (Page)",
     "qonto":     "Qonto",
     "documenso": "Documenso",
+    "brevo":     "Brevo",
 }
 
 # Usage de chaque intégration dans l'application (page index des intégrations).
@@ -55,6 +57,7 @@ SERVICE_DESCRIPTIONS: dict[str, str] = {
     "facebook":  "Abonnés de la Page pour Visibilité & Impact",
     "qonto":     "Comptes, transactions bancaires et factures d'achat",
     "documenso": "Signature électronique des baux",
+    "brevo":     "Liste de contacts des adhérents (synchronisée depuis Lyvre)",
 }
 
 # Structures (Instance.chart) pour lesquelles l'intégration existe ; absente = toutes.
@@ -62,6 +65,7 @@ SERVICE_CHARTS: dict[str, set[str]] = {
     "helloasso": {"asso"},
     "ga4":       {"asso"},
     "facebook":  {"asso"},
+    "brevo":     {"asso"},
 }
 
 # Périmètre d'une intégration (cases de sa fiche) ; défaut quand rien n'est enregistré.
@@ -88,6 +92,7 @@ SECRET_KEYS: set[tuple[str, str]] = {
     ("qonto",     "secret_key"),
     ("qonto",     "staging_token"),
     ("documenso", "api_key"),
+    ("brevo",     "api_key"),
 }
 
 # Champs à rendre en <textarea> (valeurs longues / secrets multilignes).
@@ -105,6 +110,7 @@ SERVICE_REQUIRED_KEYS: dict[str, list[str]] = {
     "facebook":  ["page_id", "page_token"],
     "qonto":     ["login", "secret_key"],
     "documenso": ["url", "api_key"],
+    "brevo":     ["api_key", "list_id"],
 }
 
 ENV_FALLBACK: dict[tuple[str, str], str] = {
@@ -133,6 +139,7 @@ ENV_FALLBACK: dict[tuple[str, str], str] = {
     ("qonto",     "login"):           "QONTO_LOGIN",
     ("qonto",     "secret_key"):      "QONTO_SECRET_KEY",
     ("qonto",     "staging_token"):   "QONTO_STAGING_TOKEN",
+    ("brevo",     "api_key"):         "BREVO_API_KEY",
 }
 
 

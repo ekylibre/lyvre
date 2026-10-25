@@ -300,4 +300,6 @@ def sync_helloasso(progress_cb=None):
         "payments_updated": payments_updated,
         "members_flagged": members_flagged,
         "members_created": members_created,
+        # Adhérents touchés : leur synchronisation Brevo suit (lot B3).
+        "member_ids": sorted(i for i in touched_entity_ids if i),
     }

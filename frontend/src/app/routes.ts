@@ -55,6 +55,7 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
   "entities.sirene_review": () => import("../features/entities/SireneReviewPage"),
   "entities.members": () => import("../features/members/MembersPage"),
   "entities.members_reminders": () => import("../features/members/RemindersPage"),
+  "entities.members_brevo": () => import("../features/members/BrevoReportPage"),
   "entities.reminder_template": () => import("../features/members/ReminderTemplatePage"),
   ...pages(["work_times.index", "work_times.new", "work_times.edit"], () => import("../features/work-times/WorkTimesPage")),
   "work_times.import_view": () => import("../features/work-times/WorkTimesImportPage"),
