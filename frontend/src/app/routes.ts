@@ -39,6 +39,7 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
   "budgets.index": () => import("../features/budget/BudgetPage"),
   "cash_forecast.index": () => import("../features/cash-forecast/CashForecastPage"),
   "about.index": () => import("../features/about/AboutPage"),
+  "changelog.index": () => import("../features/changelog/ChangelogPage"),
   "receipts.settings": () => import("../features/receipts/ReceiptSettingsPage"),
   "simple_categories.index": () => import("../features/simple/CategoriesPage"),
   "simple_operations.index": () => import("../features/simple/OperationsPage"),

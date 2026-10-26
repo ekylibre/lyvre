@@ -38,13 +38,16 @@ _TENANT_FREE_ENDPOINTS = {
     "api.password_reset",
     "auth.password_forgot",
     "auth.password_reset",
+    # Version de Lyvre (page À propos, publique) et nouveautés (méta-base seulement).
+    "api.app_version",
+    "api.changelog",
 }
 
 # Seules routes ouvertes à un compte dont le mot de passe est à changer (F5.4) : la session,
 # le changement de mot de passe et la déconnexion.
 PASSWORD_CHANGE_ALLOWED = {
     "api.session_info", "api.login", "api.logout", "api.change_password",
-    "auth.login", "auth.logout", "auth.change_password", "about.index", "static",
+    "auth.login", "auth.logout", "auth.change_password", "about.index", "static", "api.app_version",
 }
 
 

@@ -3,6 +3,7 @@
 // les sites des éditeurs (competitors.ts), comparaison avec les logiciels open source (openSourceVendors.ts),
 // limites actuelles et sources.
 import type { ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Anchor, Badge, Box, Button, Container, Group, Image, List, Paper, SimpleGrid, Stack, Table, Text, ThemeIcon, Title, Tooltip,
   useComputedColorScheme,
@@ -14,6 +15,7 @@ import {
 import symbol from "../../assets/lyvre-symbole.svg";
 import symbolInverse from "../../assets/lyvre-symbole-inverse.svg";
 import { Wordmark } from "../../app/AppShell/Wordmark";
+import { api } from "../../api/client";
 import { useSession } from "../../api/session";
 import { CHECKED_ON, type Evidence, type Mark, type Vendor, VENDORS } from "./competitors";
 import { OSS_VENDORS } from "./openSourceVendors";
@@ -190,6 +192,8 @@ export default function AboutPage() {
   const dark = useComputedColorScheme("light") === "dark";
   const { data: session } = useSession();
   const signedIn = !!session?.user;
+  const app = useQuery({ queryKey: ["app-version"], staleTime: Infinity,
+    queryFn: () => api.get<{ version: string; commit: string }>("/api/v1/version", { redirect: false }) });
   return (
     <Box bg="var(--lv-paper)" mih="100vh">
       <Container size="lg" py="md">
@@ -272,7 +276,8 @@ export default function AboutPage() {
           <List.Item>Sites et centres d'aide des éditeurs, consultés le {CHECKED_ON} : chaque case du tableau renvoie à sa page.</List.Item>
           <List.Item>Logiciels open source : documentation et dépôts de code publics, consultés le {CHECKED_ON} ; chaque case renvoie à sa page.</List.Item>
         </List>
-        <Text size="xs" c="dimmed" ta="center" pb="lg">LOGICIEL LIBRE · AGPL-3.0 · AUTO-HÉBERGÉ</Text>
+        <Text size="xs" c="dimmed" ta="center" pb="lg">LOGICIEL LIBRE · AGPL-3.0 · AUTO-HÉBERGÉ
+          {app.data && <> · VERSION {app.data.version}{app.data.commit && ` (${app.data.commit.slice(0, 7)})`}</>}</Text>
       </Container>
     </Box>
   );

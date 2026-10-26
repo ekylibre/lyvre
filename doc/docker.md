@@ -110,6 +110,21 @@ automatiquement à `appuser` avant de démarrer (voir [§ permissions](#permissi
 
 ---
 
+## Version et nouveautés
+
+Le numéro de version (calendaire `AAAA.MM.N`) et les nouveautés viennent de `data/changelog.yml` ;
+`CHANGELOG.md`, la version de `frontend/package.json` et le badge du README en sont générés.
+
+- Ajouter chaque changement sous `next` (`kind` : `new`, `improved`, `fixed` ou `action` pour une
+  action requise à la mise à jour ; `structure` : `asso` ou `sci` ; `text` pour l'utilisateur,
+  `tech` pour l'hébergeur).
+- Publier : `python scripts/release.py publish --title "…"`, puis lancer les commandes `git commit` et
+  `git tag v<version>` qu'il affiche (le script ne commite ni ne pousse rien).
+- `python scripts/release.py check` (aussi lancé par la suite de tests) signale un fichier généré
+  qui n'est plus à jour : `python scripts/release.py build` les régénère.
+- Le commit construit s'affiche à côté de la version si l'image reçoit `SOURCE_COMMIT` (argument de
+  construction, transmis par `docker-compose.yml`) ; sinon seule la version s'affiche.
+
 ## Mise à jour de l'application
 
 ```bash

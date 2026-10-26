@@ -1,7 +1,9 @@
 // Captures d'écran du README (doc/images/) sur la base jetable des tests de bout en bout : données
-// fictives créées par l'API dans « SCI Ventes E2E », aucun service externe appelé.
+// fictives créées par l'API (« SCI Ventes E2E », « SCI E2E », association « Les Jardins Partagés »),
+// Sirene et Brevo simulés par scripts/e2e_demo.py. Seule la carte du bail appelle le service public
+// de l'IGN (capture sautée sans réseau).
 // Serveur neuf requis (les données s'ajoutent à chaque passage) :
-//   .venv/bin/python scripts/e2e_server.py &
+//   .venv/bin/python scripts/e2e_server.py --demo &
 //   cd frontend && node --input-type=module - ../doc/images < ../scripts/readme_screenshots.mjs
 // (lu sur l'entrée standard depuis frontend/ pour y résoudre @playwright/test)
 import { chromium } from "@playwright/test";
@@ -48,9 +50,17 @@ async function shot(path, name, { wait, dark = false, full = false } = {}) {
 }
 
 // ---------------------------------------------------------------- données (SCI Ventes E2E)
+async function use(label) {
+  const session = await call("GET", "/session");
+  const target = session.instances.find((i) => i.label === label);
+  await call("POST", "/session/instance", { instance_id: target.id });
+  csrf = "";
+}
+
 await login("SCI Ventes E2E");
-await call("PUT", "/billing-settings", { legal_form: "SCI", share_capital: "274890", iban: "FR76 3000 6000 0112 3456 7890 189",
-  rcs: "RCS Paris 123 456 782" });
+await call("PUT", "/organization", { name: "SCI Ventes E2E", legal_form: "Société civile immobilière", share_capital: "274890",
+  rcs_city: "Paris" });
+await call("PUT", "/billing-settings", { iban: "FR76 3000 6000 0112 3456 7890 189" });
 const client = (await call("GET", "/sales/form-options")).clients.find((c) => c.label === "Client Ventes E2E").value;
 const invoices = [
   [["Gestion locative — octobre", "1", "450"], ["Frais de dossier", "1", "120"]],
@@ -105,5 +115,44 @@ await shot(`/sales/${ids[3]}`, "facture", { wait: "Encaissements" });
 await shot(`/leases/${lease.id}`, "bail", { wait: "Quittances et reçus" });
 await shot("/subscriptions/", "abonnements", { wait: "Coût mensuel" });
 await shot("/configuration/integrations/", "integrations", { wait: "Qonto" });
+
+// Structure › Compléter depuis Sirene (Sirene simulé : « SCI DES TILLEULS », fabriquée).
+await page.emulateMedia({ colorScheme: "light" });
+await page.goto(`${BASE}/configuration/organization`);
+await page.getByRole("button", { name: "Compléter depuis Sirene" }).click();
+await page.getByText("Reporter dans le formulaire").waitFor();
+await page.waitForTimeout(400);
+await page.screenshot({ path: `${OUT}/sirene.png` });
+console.log("capture", "sirene");
+
+// Carte d'un bail : brouillon, étape « Biens loués » (photo aérienne et parcelles de l'IGN).
+try {
+  const draft = (await call("POST", "/leases", { draft: true, entity_id: client, unit_label: "Les Tilleuls", kind: "derogatory",
+    premises_label: "Les Tilleuls", start_date: iso(first), end_date: iso(new Date(first.getFullYear() + 3, first.getMonth(), 0, 12)),
+    deposit: "200" })).item;
+  await page.goto(`${BASE}/leases/${draft.id}/edit?step=1`);
+  await page.getByText("Avec carte").click();
+  await page.locator(".leaflet-tile-loaded").first().waitFor({ timeout: 20000 });
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: `${OUT}/bail-carte.png` });
+  console.log("capture", "bail-carte");
+} catch (err) {
+  console.log("capture bail-carte sautée (réseau IGN indisponible ?) :", String(err).split("\n")[0]);
+}
+
+// SCI E2E : rapprochement au clavier et assistant de clôture.
+await use("SCI E2E");
+const bank = (await call("GET", "/bank-accounts")).items[0];
+await shot(`/reconciliation/?bank_account_id=${bank.id}`, "rapprochement", { wait: "VIR CLIENT DUPONT" });
+const years = (await call("GET", "/fiscal-years")).items;
+const old = years.reduce((a, b) => (a.start_date < b.start_date ? a : b));
+await shot(`/fiscal-years/${old.id}/closing`, "cloture", { wait: "Contrôles" });
+
+// Association « Les Jardins Partagés » : adhérents, aperçu Brevo (simulé), nouveautés.
+await use("Les Jardins Partagés");
+await shot("/entities/members", "adherents", { wait: "Camille Martin" });
+const job = (await call("POST", "/brevo/sync", { dry_run: true })).job;
+await shot(`/entities/members/brevo/${job.id}`, "brevo", { wait: "Rattachés" });
+await shot("/changelog", "nouveautes", { wait: "Version actuelle" });
 
 await browser.close();

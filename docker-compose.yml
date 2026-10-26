@@ -12,6 +12,7 @@ services:
       args:
         APP_UID: ${APP_UID:-1000}
         APP_GID: ${APP_GID:-1000}
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-}
     restart: unless-stopped
     expose:
       - "5000"

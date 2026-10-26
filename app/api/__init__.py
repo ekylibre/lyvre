@@ -20,7 +20,7 @@ bp = Blueprint("api", __name__, url_prefix="/api/v1")
 
 # Seules routes accessibles sans être connecté (toutes les autres : 401 JSON).
 PUBLIC_ENDPOINTS = {"api.login", "api.logout", "api.password_forgot", "api.password_reset_check",
-                    "api.password_reset"}
+                    "api.password_reset", "api.app_version"}
 
 # Écritures permises en lecture seule (expert-comptable) : session et préférences personnelles.
 READ_ONLY_ALLOWED = {"api.login", "api.logout", "api.select_instance", "api.update_preferences",

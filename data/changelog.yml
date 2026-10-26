@@ -1,0 +1,389 @@
+# Nouveautés de Lyvre : source unique du numéro de version, de CHANGELOG.md et de la page
+# « Nouveautés ». Ajouter les entrées sous « next », puis `python scripts/release.py publish`.
+# kind : new | improved | fixed | action ; structure : asso | sci (absent : toutes) ;
+# text : pour l'utilisateur ; tech : précision pour CHANGELOG.md seulement.
+next: []
+versions:
+- version: 2026.10.19
+  date: 2026-10-26
+  title: Version et nouveautés
+  entries:
+  - kind: new
+    text: Numéro de version affiché dans le menu utilisateur et sur la page À propos.
+    tech: 'Lot R1 : data/changelog.yml (source unique), app/version.py, scripts/release.py, CHANGELOG.md généré.'
+  - kind: new
+    text: Page « Nouveautés » dans le menu utilisateur, signalée par une pastille à chaque nouvelle version.
+    tech: 'Lot R2 : GET /api/v1/changelog, préférence changelog_seen.'
+- version: 2026.10.18
+  date: 2026-10-26
+  title: Brevo
+  entries:
+  - kind: action
+    structure: asso
+    text: 'Pour utiliser Brevo : autoriser l''adresse IP du serveur dans Brevo › Sécurité, puis activer l''intégration,
+      saisir la clé et choisir la liste.'
+  - kind: new
+    structure: asso
+    text: 'La liste des adhérents se synchronise vers une liste de contacts Brevo : un aperçu sans écriture d''abord,
+      puis la synchronisation.'
+    tech: 'Lots B1–B3 : intégration brevo, table brevo_links (migration a1c3e5f7b9d2), tâche brevo_sync.'
+  - kind: new
+    structure: asso
+    text: 'Pas de doublon : chaque adhérent est lié une fois à son contact, retrouvé par e-mail la première fois
+      ; les désinscrits ne sont jamais réinscrits.'
+  - kind: new
+    structure: asso
+    text: 'Rapport de synchronisation : contacts créés, rattachés, mis à jour, retirés de la liste, conflits à traiter.'
+  - kind: improved
+    structure: asso
+    text: Après chaque synchronisation HelloAsso, les adhérents concernés sont renvoyés vers Brevo.
+  - kind: improved
+    text: La page À propos présente les nouveautés récentes.
+- version: 2026.10.17
+  date: 2026-10-25
+  title: Structure et Sirene
+  entries:
+  - kind: action
+    text: Ajouter la variable SIRENE_API_KEY au serveur pour faire apparaître les boutons Sirene.
+  - kind: new
+    text: « Compléter depuis Sirene » remplit la Structure (adresse, forme juridique, activité, n° de TVA) à partir
+      de l'API de l'INSEE.
+    tech: 'Lot G3 : services/sirene.py (quota, cache 24 h), nomenclatures INSEE dans data/insee/.'
+  - kind: new
+    text: 'Fiche d''un tiers : recherche dans Sirene par nom, SIREN ou SIRET, avec alerte si le SIREN est déjà celui
+      d''un autre tiers.'
+    tech: Lot G4.
+  - kind: new
+    text: 'Facture d''achat : « Chercher dans Sirene » retrouve un fournisseur connu ou prépare sa création.'
+    tech: 'Lot G4 : new_entity appliqué à la création seulement.'
+  - kind: new
+    text: Mise à jour groupée des tiers depuis Sirene, avec un écran de revue avant d'appliquer.
+    tech: 'Lot G5 : tâche sirene_refresh.'
+  - kind: improved
+    text: Les mentions légales (forme juridique, capital, greffe, TVA) se saisissent une seule fois, dans Configuration
+      › Structure, et servent aux factures comme aux baux.
+    tech: Lot G2, migration f3b5d7e9a1c4 (reprise depuis Facturation).
+  - kind: improved
+    text: Les tiers ont un SIREN, tiré du SIRET ou saisi seul, et une activité (code NAF).
+  - kind: improved
+    structure: sci
+    text: Une SCI ne voit plus les fonctions réservées aux associations (reçus fiscaux, adhésions, bénévolat, fonds
+      dédiés) ; ses données éventuelles sont conservées.
+    tech: 'Lot G1 : app/association_only.py.'
+  - kind: fixed
+    text: Au démarrage, la base de chaque structure est mise à jour, et non plus seulement celle par défaut.
+    tech: scripts/migrate_instances.py lancé par l'entrypoint.
+- version: 2026.10.16
+  date: 2026-10-25
+  title: Mise en production
+  entries:
+  - kind: new
+    text: Lyvre est en service sur son nouveau serveur, avec les données et les réglages d'intégration repris.
+    tech: Bascule du 25/10/2026 vers le service Dokploy Lyvre ; l'ancien service est arrêté, ses données conservées.
+  - kind: fixed
+    text: 'Bilan : les colonnes N-1 et Net N-1 restent visibles.'
+  - kind: fixed
+    text: 'Graphiques du tableau de bord : les montants de l''axe vertical ne débordent plus (12,3 k€).'
+  - kind: fixed
+    text: 'Démarrage du conteneur : le dossier des données est rendu à l''application, sans manipulation.'
+    tech: 'docker/entrypoint.sh : chown puis setpriv.'
+- version: 2026.10.15
+  date: 2026-10-24
+  title: Baux
+  entries:
+  - kind: action
+    structure: sci
+    text: 'Pour signer les baux en ligne : configurer l''intégration Documenso, cocher les gérants (Associés) et
+      renseigner forme juridique et greffe (Structure).'
+  - kind: new
+    structure: sci
+    text: 'Assistant de bail en trois étapes, enregistré en brouillon : conditions, biens loués (bâtiments, terres)
+      avec leur loyer, récapitulatif.'
+    tech: Lot L1.
+  - kind: new
+    structure: sci
+    text: Modèles de bail par type, texte figé à la validation, retouche et PDF.
+    tech: Lot L2.
+  - kind: new
+    structure: sci
+    text: 'Carte du bail : photo aérienne, parcelles cadastrales et bâtiments de l''IGN, zones dessinées.'
+    tech: Lot L3.
+  - kind: new
+    structure: sci
+    text: Signature électronique des baux avec Documenso (auto-hébergé), paraphe sur chaque page.
+    tech: Lot L4.
+  - kind: new
+    structure: sci
+    text: Révision des loyers sur les indices INSEE (ILC, ILAT, IRL) et l'indice des fermages, avec le courrier
+      au locataire.
+    tech: Lot L5.
+  - kind: new
+    text: 'Mot de passe oublié : lien sur la page de connexion, nouveau mot de passe choisi depuis un lien reçu
+      par e-mail.'
+- version: 2026.10.14
+  date: 2026-10-24
+  title: Reprise Ekylibre
+  entries:
+  - kind: new
+    structure: sci
+    text: 'Reprise d''une comptabilité Ekylibre dans une nouvelle structure : exercices, écritures, tiers, associés,
+      TVA, lettrage, banque, achats, ventes et immobilisations, après un rapport à blanc.'
+    tech: 'Lots K1–K4 : app/services/ekylibre.'
+  - kind: improved
+    text: Les règles de catégorisation passent par le compte du tiers (pièce puis règlement lettré) au lieu d'imputer
+      directement la banque.
+- version: 2026.10.13
+  date: 2026-10-24
+  title: Fiabilité comptable
+  entries:
+  - kind: new
+    text: 'Validation des écritures par lots : une écriture validée ne se modifie plus, elle se corrige par extourne
+      ; historique de chaque écriture.'
+    tech: Lot F1, migration b1d3f5a7c9e2.
+  - kind: new
+    text: 'Verrouillage de période par exercice : les pièces reçues après sont datées du premier jour ouvert.'
+    tech: Lot F2.
+  - kind: new
+    text: Lettrage des comptes de tiers, automatique ou au clavier, et à-nouveaux détaillés.
+    tech: 'Lot F3 : comptes par rôle à valider avec l''expert-comptable.'
+  - kind: new
+    text: Charges et produits constatés d'avance proposés à la clôture.
+    tech: Lot F4.
+  - kind: new
+    text: 'Immobilisations : composants, plans linéaire et dégressif, dotations à la clôture, cession.'
+    tech: 'Lot F5 : méthodes d''Ekylibre, année de 360 jours.'
+  - kind: new
+    text: Reprise d'historique depuis un fichier FEC ou un tableur.
+    tech: Lot F6.
+- version: 2026.10.12
+  date: 2026-10-23
+  title: Ventes
+  entries:
+  - kind: new
+    text: Factures et avoirs numérotés, PDF Factur-X, écriture au journal des ventes, envoi par e-mail.
+    tech: Lots S0–S1.
+  - kind: new
+    text: Encaissements rapprochés de la banque, relances des factures échues, chiffres de ventes au tableau de
+      bord.
+    tech: Lot S2.
+  - kind: new
+    text: Devis, transformés en facture.
+    tech: Lot S3.
+  - kind: new
+    text: Ventes émises par Qonto en option, avec un périmètre choisi pour l'intégration Qonto.
+    tech: Lot S4.
+  - kind: new
+    text: Factures récurrentes, baux, avis d'échéance et quittances.
+    tech: Lot S5.
+  - kind: new
+    text: 'Abonnements d''achat : échéances attendues, facture et prélèvement rattachés, préavis.'
+    tech: Lot S6.
+- version: 2026.10.11
+  date: 2026-10-23
+  title: Intégrations par structure
+  entries:
+  - kind: improved
+    text: Les intégrations proposées dépendent de la structure, et les intégrations recommandées sont suggérées.
+    tech: Lots I1–I3.
+  - kind: improved
+    text: Une intégration désactivée ne laisse rien à l'écran ; une action qui en a besoin propose de l'activer.
+    tech: Lot I4.
+  - kind: improved
+    text: Logos des services et rapport de disponibilité sur la page des intégrations.
+    tech: Lot I5.
+- version: 2026.10.10
+  date: 2026-10-23
+  title: Associés
+  entries:
+  - kind: new
+    structure: sci
+    text: 'Module Associés : registre des parts (souscriptions, cessions, démembrement) et capital à une date.'
+    tech: Lots A1–A2.
+  - kind: new
+    structure: sci
+    text: 'Comptes courants d''associés : facture payée par un associé, notes de frais, apports et retraits.'
+    tech: Lot A3.
+  - kind: new
+    structure: sci
+    text: Intérêts des comptes courants et proposition d'affectation du résultat à la clôture ; import des associés
+      par fichier CSV.
+    tech: Lots A4–A5.
+- version: 2026.10.9
+  date: 2026-10-23
+  title: Utilisateurs et rôles
+  entries:
+  - kind: new
+    text: Comptes et rôles choisis à la création ou à l'import d'une structure ; mot de passe à changer à la première
+      connexion.
+    tech: Lots E1–E4.
+  - kind: improved
+    text: Lecture des factures d'achat plus fiable (montants cohérents, seconde passe OCR, mémoire du fournisseur)
+      ; produit créé depuis une ligne de facture.
+  - kind: improved
+    text: L'envoi d'une facture saisie vers Qonto devient un choix explicite.
+- version: 2026.10.8
+  date: 2026-10-23
+  title: Comptabilité simplifiée
+  entries:
+  - kind: new
+    text: Caisse en espèces et dépôts en banque par virement interne.
+    tech: Lot D1.
+  - kind: new
+    text: 'Comptabilité simplifiée : recettes et dépenses par catégorie, sans débit ni crédit, états simplifiés
+      et verrouillage d''exercice.'
+    tech: Lots D2–D4.
+  - kind: new
+    text: Passage de la comptabilité simplifiée à la partie double, sans ressaisie.
+    tech: Lot D5.
+  - kind: new
+    text: 'Page publique À propos : fonctionnalités et comparaison avec les autres logiciels.'
+- version: 2026.10.7
+  date: 2026-10-23
+  title: Reçus fiscaux
+  entries:
+  - kind: new
+    structure: asso
+    text: Reçus fiscaux des dons (particuliers et entreprises), annuels ou par don, avec PDF figés et numérotation
+      continue.
+    tech: Lots B1–B2 (obligations associatives).
+  - kind: new
+    structure: asso
+    text: Envoi des reçus par e-mail, annulation motivée et réémission, état annuel ; dons en nature.
+    tech: Lot B3.
+- version: 2026.10.6
+  date: 2026-10-23
+  title: Projets et budget
+  entries:
+  - kind: new
+    text: Projets ou activités sur les écritures, les achats et les règles, avec ventilation d'une ligne.
+    tech: Lot C1.
+  - kind: new
+    text: Budget annuel ou mensuel par projet, suivi prévu / réalisé et compte de résultat d'un projet.
+    tech: Lots C2–C3.
+  - kind: new
+    text: Prévisionnel de trésorerie sur 12 mois avec alerte de solde négatif.
+    tech: Lot C4.
+  - kind: new
+    structure: asso
+    text: Fonds dédiés rattachés à un projet.
+    tech: Lot C5.
+- version: 2026.10.5
+  date: 2026-10-23
+  title: Obligations comptables
+  entries:
+  - kind: new
+    text: 'Rôles par structure : administrateur, trésorier, expert-comptable en lecture seule.'
+    tech: Lot A1 (obligations associatives).
+  - kind: new
+    text: Identité de la structure, numérotation des écritures et export FEC.
+    tech: Lots A2–A3.
+  - kind: new
+    text: 'Assistant de clôture : contrôles, écritures d''inventaire, résultat, clôture provisoire puis définitive,
+      réouverture motivée.'
+    tech: Lot A4.
+  - kind: new
+    text: À-nouveaux, extournes et affectation du résultat.
+    tech: Lot A5.
+  - kind: new
+    structure: asso
+    text: Fonds dédiés à la clôture (dotation et reprise).
+    tech: Lot A6.
+- version: 2026.10.4
+  date: 2026-10-22
+  title: Nouvelle interface
+  entries:
+  - kind: improved
+    text: 'Toute l''application passe à une nouvelle interface : plus rapide, utilisable au clavier, thème sombre,
+      lisible sur mobile.'
+    tech: Front React + Mantine, phases A–I.
+  - kind: new
+    text: Notifications à la fin des tâches longues (synchronisations, envois), avec une cloche dans l'en-tête.
+- version: 2026.10.3
+  date: 2026-10-22
+  title: Factures d'achat
+  entries:
+  - kind: new
+    text: Factures fournisseurs Qonto importées dans les achats, avec un catalogue de produits et la TVA de l'exercice.
+    tech: Qonto lot 2a.
+  - kind: new
+    text: Comptabilisation en engagement (compte par fournisseur) et règlement depuis les paiements Qonto ou les
+      relevés OFX.
+  - kind: new
+    text: 'Saisie d''une facture depuis son fichier : lecture Factur-X, texte du PDF ou photo (OCR), pièce conservée,
+      envoi à Qonto en option.'
+    tech: Qonto lot 2b.
+  - kind: new
+    text: Sauvegardes des structures en .zip avec leurs pièces jointes.
+- version: 2026.10.2
+  date: 2026-10-21
+  title: Banque Qonto
+  entries:
+  - kind: new
+    text: Comptes Qonto reliés aux comptes bancaires et transactions synchronisées en arrière-plan.
+    tech: Qonto phases A–G.
+  - kind: new
+    text: Contreparties bancaires rattachées aux tiers, fournisseurs proposés ; opérations annulées et justificatifs
+      gérés.
+  - kind: fixed
+    structure: sci
+    text: Une nouvelle SCI ne reçoit plus les règles de catégorisation propres aux associations.
+- version: 2026.10.1
+  date: 2026-10-20
+  title: Plan SCI et intégrations
+  entries:
+  - kind: new
+    structure: sci
+    text: Plan comptable SCI au choix à la création d'une structure, menus, bilan et compte de résultat adaptés.
+  - kind: new
+    text: Saisie d'écriture et rapprochement bancaire au clavier, avec suggestions.
+  - kind: new
+    text: 'Écran des intégrations : activer, configurer et tester chaque service.'
+  - kind: fixed
+    structure: asso
+    text: 'Bilan associatif : chaque compte apparaît une seule fois, avec le résultat de l''exercice.'
+- version: 2026.06.2
+  date: 2026-06-28
+  title: Visibilité et rapport d'activité
+  entries:
+  - kind: new
+    structure: asso
+    text: Indicateurs de visibilité et d'impact.
+  - kind: new
+    structure: asso
+    text: Rapport d'activité exportable.
+  - kind: new
+    structure: asso
+    text: Statut d'adhésion écrit dans la fiche Odoo de l'adhérent.
+- version: 2026.06.1
+  date: 2026-06-25
+  title: Relances
+  entries:
+  - kind: new
+    structure: asso
+    text: Relance par e-mail des adhérents dont l'adhésion arrive à échéance.
+- version: 2026.05.2
+  date: 2026-05-21
+  title: Plusieurs structures
+  entries:
+  - kind: new
+    text: Plusieurs structures dans une même installation, une base par structure, restauration d'une structure.
+  - kind: new
+    text: Déploiement avec Docker.
+  - kind: fixed
+    text: Synchronisation Stancer corrigée ; tableau de bord enrichi.
+- version: 2026.05.1
+  date: 2026-05-15
+  title: Odoo
+  entries:
+  - kind: improved
+    text: Factures clients Odoo et menus revus.
+- version: 2026.04.1
+  date: 2026-04-28
+  title: Première version
+  entries:
+  - kind: new
+    text: Plan comptable, journaux, écritures et exercices ; bilan, compte de résultat, balance et grand livre.
+  - kind: new
+    text: Imports bancaires OFX et caisse Odoo, rapprochement bancaire.
+  - kind: new
+    text: Versements et paiements Stancer, commandes de caisse Odoo, tableau de bord.

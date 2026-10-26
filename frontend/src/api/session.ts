@@ -30,6 +30,8 @@ export interface Session {
   nav: NavMenu[];
   admin_links: { label: string; url: string }[];
   preferences: Preferences;
+  /** Version de Lyvre (data/changelog.yml) et commit déployé s'il est connu (lot R1). */
+  app?: { version: string; commit: string };
   /** Services du serveur : Sirene si la clé de l'INSEE est configurée (lot G3). */
   services?: { sirene: boolean };
   csrf_token: string;

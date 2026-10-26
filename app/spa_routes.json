@@ -3,6 +3,7 @@
   "routes": [
     {"rule": "/login", "endpoint": "auth.login", "public": true},
     {"rule": "/about", "endpoint": "about.index", "public": true},
+    {"rule": "/changelog", "endpoint": "changelog.index"},
     {"rule": "/select-instance", "endpoint": "auth.select_instance"},
     {"rule": "/password", "endpoint": "auth.change_password"},
     {"rule": "/password/forgot", "endpoint": "auth.password_forgot", "public": true},

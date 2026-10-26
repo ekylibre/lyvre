@@ -16,6 +16,7 @@ from app.access import accessible_instances, permissions, role_for
 from app.extensions import db
 from app.menu_config import build_nav
 from app.models import Instance, SyncJob, User
+from app import version
 from app.services import external_config, password_reset, sirene
 from app.services.instance_access import MIN_PASSWORD
 
@@ -97,7 +98,7 @@ def session_payload() -> dict:
     if not current_user.is_authenticated:
         return {"user": None, "instance": None, "instances": [], "nav": [], "admin_links": [],
                 "role": None, "permissions": permissions(None), "preferences": {},
-                "csrf_token": generate_csrf()}
+                "app": version.info(), "csrf_token": generate_csrf()}
     inst = getattr(g, "current_instance", None) or _current_instance()
     is_admin = bool(current_user.is_admin)
     role = role_for(current_user, inst) if inst else None
@@ -119,11 +120,35 @@ def session_payload() -> dict:
         # Menu de l'utilisateur (en-tête) : administration réservée aux admins.
         "admin_links": ([{"label": "Utilisateurs", "url": url_for("users.index")},
                          {"label": "Instances", "url": url_for("instances.index")}] if is_admin else []),
-        "preferences": preferences_of(current_user),
+        "preferences": _initial_changelog_seen(current_user),
         # Services du serveur (pas d'interrupteur par instance) : Sirene si la clé est configurée.
         "services": {"sirene": sirene.available()},
+        "app": version.info(),  # version de Lyvre (data/changelog.yml) et commit déployé
         "csrf_token": generate_csrf(),
     }
+
+
+@bp.route("/changelog")
+@login_required
+def changelog():
+    """Page « Nouveautés » : versions publiées, sans les précisions techniques (lot R2)."""
+    return jsonify(items=version.published(), version=version.version())
+
+
+def _initial_changelog_seen(user) -> dict:
+    """Première session : la version courante est réputée vue (pas de pastille sur ce qui précède)."""
+    prefs = preferences_of(user)
+    if "changelog_seen" not in prefs:
+        prefs["changelog_seen"] = version.version()
+        user.preferences = json.dumps(prefs, ensure_ascii=False)
+        db.session.commit()
+    return prefs
+
+
+@bp.route("/version")
+def app_version():
+    """Version de Lyvre et commit déployé : publique (page À propos), rien d'autre."""
+    return jsonify(version.info())
 
 
 @bp.route("/session")

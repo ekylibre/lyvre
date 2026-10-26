@@ -3,7 +3,8 @@
 Bases SQLite et dossier d'instance jetables (jamais les vraies données) :
 méta-base avec l'utilisateur et les instances de frontend/e2e/fixtures.json,
 une base tenant vide par instance. Les fichiers du front doivent être construits
-(`npm --prefix frontend run build`).
+(`npm --prefix frontend run build`). `--demo` ajoute les données et services simulés des captures du
+README (scripts/e2e_demo.py).
 """
 import json
 import os
@@ -17,6 +18,8 @@ with open(os.path.join(ROOT, "frontend", "e2e", "fixtures.json"), encoding="utf-
     FIXTURES = json.load(fh)
 
 TMPDIR = tempfile.mkdtemp(prefix="compta-asso-e2e-")
+# --demo : en plus, une association fabriquée et des services Sirene / Brevo simulés (captures du README).
+DEMO = "--demo" in sys.argv
 os.environ["META_DATABASE_URL"] = f"sqlite:///{os.path.join(TMPDIR, 'meta.db')}"
 os.environ["DATABASE_URL"] = f"sqlite:///{os.path.join(TMPDIR, 'default.db')}"
 os.environ.pop("VITE_DEV_SERVER", None)
@@ -210,6 +213,16 @@ def seed(app):
             db.session.add(Instance(slug=spec["slug"], label=spec["label"], chart=spec["chart"],
                                     bookkeeping=spec.get("bookkeeping", "double"), database_url=url,
                                     integrations=json.dumps({"enabled": spec.get("integrations", []), "dismissed": []})))
+        if DEMO:  # captures du README : association fabriquée (scripts/e2e_demo.py)
+            from scripts import e2e_demo
+            spec = e2e_demo.DEMO_INSTANCE
+            url = f"sqlite:///{os.path.join(TMPDIR, spec['slug'] + '.db')}"
+            engine = create_engine(url)
+            db.metadata.create_all(engine)
+            e2e_demo.seed(engine, TMPDIR)
+            engine.dispose()
+            db.session.add(Instance(slug=spec["slug"], label=spec["label"], chart=spec["chart"], database_url=url,
+                                    integrations=json.dumps({"enabled": ["brevo"], "dismissed": ["helloasso"]})))
         for name in FIXTURES.get("spare_databases", []):
             engine = create_engine(f"sqlite:///{os.path.join(TMPDIR, name + '.db')}")
             db.metadata.create_all(engine)
@@ -221,6 +234,9 @@ def main():
     app = create_app("development")
     app.instance_path = TMPDIR
     seed(app)
+    if DEMO:
+        from scripts import e2e_demo
+        e2e_demo.install(app)
     print(f"[e2e] base jetable : {TMPDIR}", flush=True)
     app.run(host="127.0.0.1", port=FIXTURES["port"], debug=False, use_reloader=False)
 

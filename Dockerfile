@@ -32,6 +32,9 @@ RUN apt-get update \
 # Non-root user; UID/GID overridable at build time to match the host owner of ./instance.
 ARG APP_UID=1000
 ARG APP_GID=1000
+# Commit construit (affiché à côté de la version) : transmis par le compose, vide sinon.
+ARG SOURCE_COMMIT=""
+ENV APP_COMMIT=$SOURCE_COMMIT
 RUN groupadd -g ${APP_GID} appgrp \
  && useradd -m -u ${APP_UID} -g ${APP_GID} -s /bin/bash appuser
 

@@ -4,17 +4,18 @@
 import type { ReactNode } from "react";
 import { useLocation } from "react-router";
 import {
-  ActionIcon, Anchor, AppShell, Badge, Box, Burger, Divider, Group, Image, Kbd, Menu, NavLink, ScrollArea, Text,
+  ActionIcon, Anchor, AppShell, Badge, Box, Burger, Divider, Group, Image, Indicator, Kbd, Menu, NavLink, ScrollArea, Text,
   Tooltip, UnstyledButton, useComputedColorScheme, useMantineColorScheme,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { spotlight } from "@mantine/spotlight";
-import { ArrowLeftRight, ChevronDown, Eye, KeyRound, LogOut, Moon, Search, Sun } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, Eye, KeyRound, LogOut, Moon, Search, Sparkles, Sun } from "lucide-react";
 import symbolInverse from "../../assets/lyvre-symbole-inverse.svg";
 import {
   useCan, useCurrentSession, useLogout, usePreferences, useSelectInstance, type NavMenu,
 } from "../../api/session";
 import { AppLink } from "../navigation";
+import { useChangelogUnseen } from "../../features/changelog/useChangelog";
 import { NotificationBell } from "./NotificationBell";
 import { Wordmark } from "./Wordmark";
 
@@ -127,14 +128,18 @@ function ReadOnlyBadge() {
 function UserMenu() {
   const session = useCurrentSession();
   const logout = useLogout();
+  const unseen = useChangelogUnseen();
+  const app = session.app;
   return (
     <Menu position="bottom-end" width={240}>
       <Menu.Target>
-        <UnstyledButton aria-label="Menu utilisateur" mih={44}>
-          <Group gap={4}>
-            <Text size="sm" visibleFrom="sm">{session.user?.email}</Text>
-            <ChevronDown size={16} />
-          </Group>
+        <UnstyledButton aria-label={unseen ? "Menu utilisateur (nouveautés)" : "Menu utilisateur"} mih={44}>
+          <Indicator disabled={!unseen} color="lichen" size={8} offset={2}>
+            <Group gap={4}>
+              <Text size="sm" visibleFrom="sm">{session.user?.email}</Text>
+              <ChevronDown size={16} />
+            </Group>
+          </Indicator>
         </UnstyledButton>
       </Menu.Target>
       <Menu.Dropdown>
@@ -143,6 +148,10 @@ function UserMenu() {
         </Menu.Item>
         <Menu.Item component={AppLink} href="/password" leftSection={<KeyRound size={16} />}>
           Changer mon mot de passe
+        </Menu.Item>
+        <Menu.Item component={AppLink} href="/changelog" leftSection={<Sparkles size={16} />}
+          rightSection={unseen ? <Badge size="xs" color="lichen" variant="filled">nouveau</Badge> : undefined}>
+          Nouveautés
         </Menu.Item>
         {session.admin_links.length > 0 && <Menu.Divider />}
         {session.admin_links.map((link) => (
@@ -153,6 +162,11 @@ function UserMenu() {
           onClick={() => logout.mutate(undefined, { onSuccess: () => window.location.assign("/login") })}>
           Se déconnecter
         </Menu.Item>
+        {app && (
+          <Menu.Label ta="center" fw={400}>
+            Lyvre {app.version}{app.commit && ` · ${app.commit.slice(0, 7)}`}
+          </Menu.Label>
+        )}
       </Menu.Dropdown>
     </Menu>
   );

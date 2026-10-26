@@ -1,6 +1,7 @@
 """API de session de la SPA : connexion, instance, menus, préférences, tâches."""
 import json
 
+from app import version
 from app.extensions import db
 from app.models import Instance, SyncJob, User
 
@@ -55,7 +56,7 @@ def test_login_selects_single_instance_and_returns_session(app):
     assert "Tableau de bord" in labels and "Tiers" in labels
     compta = next(m for m in body["nav"] if m["key"] == "compta")
     assert {"key": "entries", "label": "Écritures", "url": "/entries/"} in compta["items"]
-    assert body["csrf_token"] and body["preferences"] == {} and body["admin_links"] == []
+    assert body["csrf_token"] and body["preferences"] == {"changelog_seen": version.version()} and body["admin_links"] == []
     assert body["role"] == "treasurer" and body["permissions"] == {"write": True, "instance_admin": False}
     assert client.get("/api/v1/session").get_json()["instance"]["id"] == inst.id
     assert User.query.one().last_login_at is not None
@@ -107,7 +108,7 @@ def test_preferences_merge_delete_and_limits(app):
     patch = lambda data: client.patch("/api/v1/me/preferences", json=data)
     assert patch({"color_scheme": "dark", "tables": {"journals": {"hidden": ["code"]}}}).status_code == 200
     body = patch({"tables": {"purchases": {"hidden": []}}}).get_json()
-    assert body["preferences"] == {"color_scheme": "dark",
+    assert body["preferences"] == {"changelog_seen": version.version(), "color_scheme": "dark",  # posé à la connexion
                                    "tables": {"journals": {"hidden": ["code"]}, "purchases": {"hidden": []}}}
     body = patch({"tables": {"journals": None}}).get_json()
     assert body["preferences"]["tables"] == {"purchases": {"hidden": []}}
