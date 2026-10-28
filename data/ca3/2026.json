@@ -1,0 +1,56 @@
+{
+  "_comment": "Formulaire 3310-CA3-SD (cerfa 10963*31), millésime 2026 : cases utilisées par Lyvre, dans l'ordre du formulaire, avec le code de la case (saisie TeleDEC / EDI). Source : https://www.impots.gouv.fr/sites/default/files/formulaires/3310-ca3-sd/2026/3310-ca3-sd_5377.pdf (lot T3, claudedocs/design_societe_tva.md § 3.4).",
+  "form": "3310-CA3-SD",
+  "cerfa": "10963*31",
+  "sections": [
+    {"title": "A — Montant des opérations réalisées : opérations taxées (HT)", "boxes": [
+      {"line": "A1", "code": "0979", "label": "Ventes, prestations de services"},
+      {"line": "A3", "code": "0044", "label": "Achats de prestations de services réalisés auprès d'un assujetti non établi en France (article 283-2 du CGI)"},
+      {"line": "B2", "code": "0031", "label": "Acquisitions intracommunautaires"}
+    ]},
+    {"title": "A — Montant des opérations réalisées : opérations non taxées", "boxes": [
+      {"line": "E1", "code": "0032", "label": "Exportations hors UE"},
+      {"line": "E2", "code": "0033", "label": "Autres opérations non imposables"},
+      {"line": "F2", "code": "0034", "label": "Livraisons intracommunautaires à destination d'une personne assujettie – Ventes B to B"}
+    ]},
+    {"title": "B — Décompte de la TVA à payer : TVA brute", "boxes": [
+      {"line": "08", "code": "0207", "label": "Taux normal 20 %", "with_base": true},
+      {"line": "09", "code": "0105", "label": "Taux réduit 5,5 %", "with_base": true},
+      {"line": "9B", "code": "0151", "label": "Taux réduit 10 %", "with_base": true},
+      {"line": "T6", "code": "1010", "label": "Opérations réalisées en France continentale au taux de 2,1 %", "with_base": true},
+      {"line": "16", "code": null, "label": "Total de la TVA brute due (lignes 08 à 5B)", "total": true},
+      {"line": "17", "code": "0035", "label": "Dont TVA sur acquisitions intracommunautaires"}
+    ]},
+    {"title": "B — Décompte de la TVA à payer : TVA déductible", "boxes": [
+      {"line": "19", "code": "0703", "label": "Biens constituant des immobilisations"},
+      {"line": "20", "code": "0702", "label": "Autres biens et services"},
+      {"line": "22", "code": "8001", "label": "Report du crédit apparaissant ligne 27 de la précédente déclaration"},
+      {"line": "23", "code": null, "label": "Total TVA déductible (ligne 19 à 2C)", "total": true}
+    ]},
+    {"title": "TVA due ou crédit de TVA", "boxes": [
+      {"line": "25", "code": "0705", "label": "Crédit de TVA (ligne 23 – ligne 16)"},
+      {"line": "TD", "code": "8900", "label": "TVA due (ligne 16 – ligne 23)"},
+      {"line": "26", "code": "8002", "label": "Remboursement de crédit de TVA demandé sur formulaire n° 3519"},
+      {"line": "28", "code": "8901", "label": "TVA nette due (ligne TD – ligne X5)"},
+      {"line": "27", "code": "8003", "label": "Crédit de TVA à reporter (ligne 25 – ligne 26) — à reporter ligne 22 de la prochaine déclaration"},
+      {"line": "32", "code": "9992", "label": "Total à payer (lignes 28 + 29 + Z5 – AB)"}
+    ]}
+  ],
+  "codes": {
+    "V20": {"base": ["A1", "08"], "tax": "08"},
+    "V55": {"base": ["A1", "09"], "tax": "09"},
+    "V10": {"base": ["A1", "9B"], "tax": "9B"},
+    "V21": {"base": ["A1", "T6"], "tax": "T6"},
+    "V_UE_S": {"base": ["E2"]},
+    "V_UE_B": {"base": ["F2"]},
+    "V_EXP": {"base": ["E1"]},
+    "V_EXO": {"base": ["E2"]},
+    "D20": {"deductible": true},
+    "D10": {"deductible": true},
+    "D55": {"deductible": true},
+    "D21": {"deductible": true},
+    "AL_S": {"base": ["A3", "08"], "tax": "08", "deductible": true},
+    "AL_B": {"base": ["B2", "08"], "tax": "08", "also": ["17"], "deductible": true}
+  },
+  "deductible_lines": {"44562": "19", "default": "20"}
+}

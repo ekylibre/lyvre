@@ -596,23 +596,11 @@ def step_organization(ctx: Context) -> None:
 # ------------------------------------------------------------------ E10 règles d'affectation (EK4)
 
 
-STOPWORDS = {"PRELEVEMENT", "PRLV", "VIREMENT", "VIR", "EMIS", "INST", "VERS", "WEB", "SEPA", "CB", "CARTE", "FACTURE",
-             "FACT", "DE", "DU", "DES", "LA", "LE", "LES", "EN", "VOTRE", "FAVEUR", "REF", "ECHEANCE", "PAIEMENT", "PAR",
-             "ET", "A", "AU", "AUX", "POUR", "NO", "N", "SAS", "SARL", "SA", "EURL", "FR"}
+from app.services.rule_suggestions import STOPWORDS, label_pattern  # noqa: E402,F401  (motif partagé)
+
 DOMINANT_SHARE = 0.6
 MIN_OCCURRENCES = 2
 MIN_PATTERN = 6  # caractères : un motif plus court attraperait d'autres libellés
-
-
-def label_pattern(label: str) -> str | None:
-    """Partie stable d'un libellé bancaire : majuscules sans accents, sans mots génériques, chiffres,
-    dates ni références ; trois premiers mots significatifs."""
-    import re
-    import unicodedata
-    plain = unicodedata.normalize("NFKD", label or "").encode("ascii", "ignore").decode().upper()
-    words = [w for w in re.split(r"[^A-Z0-9]+", plain) if w and not any(c.isdigit() for c in w)
-             and w not in STOPWORDS and len(w) > 1]
-    return " ".join(words[:3]) or None
 
 
 def _identifiers(ctx: Context, source) -> None:

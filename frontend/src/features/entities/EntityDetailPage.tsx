@@ -17,7 +17,7 @@ import { StatusBadge, type Tone } from "../../components/StatusBadge";
 import { formatDate, formatNaf } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
 import { EntityForm } from "./EntityForm";
-import { TIERS_KEY, type EntitiesMeta, type Entity } from "./types";
+import { TIERS_KEY, VAT_REGIMES, type EntitiesMeta, type Entity } from "./types";
 
 interface PosOrder {
   id: number; name: string; date: string | null; session: string | null; state: string | null;
@@ -90,6 +90,7 @@ export default function EntityDetailPage() {
   const identity = [
     types[e.entity_type] ?? e.entity_type, e.email,
     e.account_code && `compte ${e.account_code}`, e.vat_number && `TVA ${e.vat_number}`,
+    e.vat_regime && e.vat_regime !== "fr" && `TVA : ${VAT_REGIMES.find((r) => r.value === e.vat_regime)?.label}`,
     e.siret ? `SIRET ${e.siret}` : e.siren && `SIREN ${e.siren}`, e.naf_code && `NAF ${formatNaf(e.naf_code)}`,
     e.default_product && `produit par défaut : ${e.default_product}`,
     e.person_kind && (e.person_kind === "individual" ? "particulier" : "entreprise ou organisme"),

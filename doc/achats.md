@@ -64,6 +64,17 @@ complète.
 | 44566 (soumis) | TVA | |
 | compte du fournisseur 401NNN | | TTC |
 
+Dans un exercice soumis à la TVA, la TVA est passée **par taux** et **par compte** : 44562 pour une
+ligne d'immobilisation (classe 2), 44566 sinon. Chaque ligne de TVA porte un **code de TVA** (`D20`,
+`D10`…) et sa base HT, que la déclaration de TVA reprend (lot T2).
+
+**Fournisseur hors de France** (régime TVA « Union européenne » ou « Hors UE » sur sa fiche, proposé
+d'après son n° de TVA) : **autoliquidation**. La facture est passée au HT (401 au HT) ; Lyvre ajoute la
+TVA due au crédit de **4452** et la même TVA déductible au débit de 44566 (ou 44562), codées `AL_S`
+(services) ou `AL_B` (biens achetés dans l'UE, selon la nature du produit). Le régime se change sur la
+fiche de la facture tant qu'elle n'est pas comptabilisée ; une facture étrangère qui porte de la TVA
+reste « à compléter » jusqu'à ce choix.
+
 Un **avoir** produit l'écriture inverse. Le compte du fournisseur est celui de sa fiche (convention
 `401NNN`, ex. `401001`) ; il est créé dans le plan comptable s'il n'existe pas, et un fournisseur sans
 code reçoit le numéro suivant libre.
@@ -115,6 +126,17 @@ La facture complète est comptabilisée aussitôt (journal AC). Tant qu'elle ne 
 l'en-tête** (fiche) permet de corriger fournisseur, n°, dates, montants et de remplacer la pièce. La
 pièce se consulte et se télécharge depuis la fiche ; elle est rangée dans le dossier de l'instance
 (`instance/uploads/<instance>/achats/AAAA/MM/`). Filtre **Origine** de la liste : Qonto ou saisies.
+
+### Depuis le justificatif d'une transaction Qonto
+
+Un paiement Qonto (carte, prélèvement) qui porte un **justificatif** dans Qonto et n'est relié à aucune
+facture affiche **« Créer la facture »** dans Banque › Transactions. Lyvre télécharge le justificatif
+(API Qonto : transaction → `attachment_ids` → pièce jointe), le lit comme un dépôt (Factur-X, texte,
+OCR) et ouvre le formulaire de saisie prérempli ; la transaction fait foi pour le montant payé (un
+total lu différent est signalé), la date et le fournisseur (tiers de la transaction, sinon son nom
+Qonto) complètent la lecture. À l'enregistrement, la facture est **reliée à cette transaction avant
+d'être comptabilisée** : son règlement (401 / banque) porte sur elle, jamais sur un autre débit de
+même montant. « Envoyer à Qonto » n'est pas proposé (la pièce y est déjà).
 
 ### Supprimer une facture
 

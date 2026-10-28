@@ -121,3 +121,51 @@ def rules_apply():
         notices.append(notice(f"… et {len(errors) - 10} autre(s) erreur(s) non affichée(s).", "warning"))
     return jsonify(result={k: result[k] for k in ("matched", "posted", "skipped", "total")},
                    notices=notices)
+
+
+# ------------------------------------------------------------------ propositions depuis un mois
+
+def _month(text):
+    from app.services.vat_return import VatReturnError, parse_period
+    try:
+        return parse_period(text)
+    except VatReturnError as exc:
+        raise invalid(str(exc), "period") from None
+
+
+def _suggestion_payload(s) -> dict:
+    from app.services.rule_suggestions import SOURCE_LABELS
+    return {"pattern": s.pattern, "status": s.status, "reason": s.reason, "creatable": s.creatable,
+            "entity": s.entity.name if s.entity else None, "account_code": s.account_code,
+            "accounts": sorted(s.accounts), "count": len(s.transactions),
+            "sources": {SOURCE_LABELS[k]: v for k, v in s.sources.items()},
+            "examples": sorted({t.label for t in s.transactions})[:3],
+            "rule": {"id": s.rule.id, "name": s.rule.name, "account_code": s.rule.account_code,
+                     "entity_name": s.rule.entity_name} if s.rule else None,
+            "shadowed_by": {"id": s.shadowed_by.id, "name": s.shadowed_by.name} if s.shadowed_by else None}
+
+
+@bp.route("/rules/suggestions")
+def rules_suggestions():
+    """Règles proposées depuis le mois `?period=AAAA-MM` (relevés et factures réglées), `?bank_account_id=`."""
+    from flask import request
+
+    from app.services import rule_suggestions
+    start, end = _month(request.args.get("period"))
+    items = rule_suggestions.suggest(start, end, request.args.get("bank_account_id", type=int))
+    return jsonify(items=[_suggestion_payload(s) for s in items])
+
+
+@bp.route("/rules/suggestions", methods=["POST"])
+def rules_suggestions_apply():
+    """`{period, patterns: [...], bank_account_id?}` : crée ou recrée les règles des motifs choisis."""
+    from app.services import rule_suggestions
+    data = json_body()
+    patterns = data.get("patterns")
+    if not isinstance(patterns, list) or not patterns:
+        raise invalid("Choisissez au moins une règle.", "patterns")
+    start, end = _month(data.get("period"))
+    result = rule_suggestions.apply(start, end, patterns, data.get("bank_account_id"))
+    return jsonify(result=result, notices=[notice(
+        f"Règles : {result['created']} créée(s), {result['updated']} mise(s) à jour. "
+        "« Appliquer les règles » les passe sur les transactions non catégorisées.")])

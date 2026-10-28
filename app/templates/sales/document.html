@@ -96,6 +96,7 @@
 
 <div class="notes">
   {% if exempt %}<p><b>TVA non applicable, art. 293 B du CGI.</b></p>{% endif %}
+  {% for mention in exemption_mentions %}<p><b>{{ mention }}</b></p>{% endfor %}
   {% if sale.vat_mode == "debits" and has_services %}<p>Option pour le paiement de la taxe d'après les débits.</p>{% endif %}
   {% if sale.kind == "invoice" %}
     <p>Paiement à réception{% if sale.due_date %}, au plus tard le {{ date(sale.due_date) }}{% endif %}. {{ settings.discount_text or "Pas d'escompte pour paiement anticipé." }}</p>

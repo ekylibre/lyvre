@@ -321,6 +321,7 @@ Toute modification ou suppression d'une écriture validée, par n'importe quelle
 (409, code `entry_validated`) par la garde `ledger_guard` ; une écriture datée dans la période
 verrouillée aussi (409, code `period_locked`, `first_open_date`).
 | PUT | `/api/v1/entries/<id>/lines/<line_id>/project` | `{project_id}` (null : aucun) : projet d'une ligne, même sur une écriture rapprochée ; 409 si exercice clôturé ou écriture de l'assistant |
+| PUT | `/api/v1/entries/<id>/lines/<line_id>/vat` | `{vat_code, vat_base_cents}` (code vide : aucun) : code de TVA d'une ligne (lot T2), même rapprochée ; 422 code inconnu, 409 écriture validée (contrepasser) ou exercice clôturé |
 | POST | `/api/v1/entries/<id>/lines/<line_id>/split` | **Ventilation** `{parts: [{project_id, amount_cents}]}` (≥ 2 parts, total = montant de la ligne) : lignes de même compte et même sens ; 409 sur la ligne rapprochée elle-même |
 ---
 
@@ -515,6 +516,14 @@ Pages de la SPA : `/purchases/` (filtres `q`, `source` (`qonto` / `manual`), `st
 | POST | `/api/v1/purchases/read` | Multipart `invoice_file` (PDF, JPEG, PNG ≤ 10 Mo) : mise en attente et lecture → `token`, `preview` (`url`, `mime`), `form` (`values`, `checks` à vérifier, `rows`, `warnings`, `source` `facturx`/`text`/`ocr`/`none`) ; 422 si refusé |
 | POST | `/api/v1/purchases/stage` | Multipart `invoice_file` : mise en attente sans lecture (remplacement de la pièce) → `token`, `preview` |
 | POST | `/api/v1/purchases` | Création : en-tête (`entity_id`, `new_name`, `supplier_name`, `supplier_vat`, `supplier_siret`, `supplier_iban`, `invoice_number`, `issue_date`, `due_date`, `is_credit_note`, `untaxed`, `tax`, `total`), `rows` (`product_id`, `account_code`, `label`, `untaxed`, `vat_rate`, `vat`), `token` facultatif, `send_to_qonto` (dépôt de la pièce dans Qonto, si configuré) → 201 `item.url` ; 422 `fields.form` (liste) ; 409 `duplicate` + `duplicates`, sauf `confirm_duplicate` |
+| GET | `/api/v1/vat-returns?fiscal_year_id=` | Lot T3 : mois de l'exercice déclarant (défaut : le plus récent) — statut (`to_prepare`, `in_progress`, `validated`, `declared`), échéance, retard, déclaration |
+| GET | `/api/v1/vat-returns/preview?period=AAAA-MM` | Cases (figées si validée, sinon calculées), détail par code, contrôles, crédit reporté, TVA due ou crédit |
+| GET | `/api/v1/vat-returns/lines?period=&box=` | Lignes d'écriture qui composent une case |
+| POST | `/api/v1/vat-returns` | `{period}` : valider (brouillards validés, cases figées, liquidation) ; 409 si un contrôle bloque |
+| POST | `/api/v1/vat-returns/<id>/unvalidate` · `/declare` | Annuler la dernière validation non déposée ; `{declared_on, reference}` déposée (liquidation validée, mois verrouillé, dans l'ordre) |
+| GET (Flask) | `/vat-returns/<AAAA-MM>.pdf` · `.xlsx` | Déclaration à saisir sur TeleDEC (projet si non validée) |
+| POST | `/api/v1/bank-transactions/<id>/purchase-draft` | Justificatif d'une transaction Qonto (débit, pièce jointe, sans facture ni rapprochement) téléchargé et lu : `token`, `preview`, `form` prérempli, `transaction` ; 409 si la transaction ne s'y prête pas, 502 si Qonto refuse. `POST /purchases` accepte ensuite `bank_transaction_id` (facture reliée avant comptabilisation, pas d'envoi à Qonto) ; les transactions listées portent `purchase_from_attachment` |
+| PUT | `/api/v1/purchases/<id>/vat-regime` | `{vat_regime}` (`fr`, `eu`, `world`, vide : celui du fournisseur) d'une facture non comptabilisée (lot T2), puis comptabilisation si elle est prête ; 409 si comptabilisée |
 | GET | `/api/v1/purchases/<id>` | Fiche : `item` (état et motifs, montants, pièce, écriture, envoi Qonto), exercice, `lines` (saisie) et `lines_view`, `payments` (état), `awaiting_payment`, `suggestions` (transactions de même montant ; `rule` : déjà passée par une règle), `match_window`, `can_send` |
 | GET | `/api/v1/purchases/<id>/header` | En-tête d'une facture saisie non comptabilisée (sinon 409), aperçu de la pièce, `can_replace_attachment` |
 | PATCH | `/api/v1/purchases/<id>` | Modifie cet en-tête (mêmes champs et erreurs que la création ; `token` remplace la pièce, refusé si déjà envoyée à Qonto) |
@@ -685,6 +694,7 @@ Pages de la SPA (liste ; la création / modification s'ouvre dans une fenêtre p
 | DELETE | `/api/v1/rules/<id>` | Supprime |
 | POST | `/api/v1/rules/<id>/move` | `{"direction": "up"\|"down"}` : échange avec la voisine ; renvoie la liste |
 | POST | `/api/v1/rules/apply` | `{"overwrite": bool}` : applique aux transactions (catégorisées aussi si `overwrite`) ; `result` + `notices` |
+| GET · POST | `/api/v1/rules/suggestions` | Règles proposées depuis un mois (`?period=AAAA-MM`, `bank_account_id`) : transactions réglées par une facture d'achat / de vente ou rapprochées d'une écriture saisie, par motif de libellé, statut `new` · `update` · `identical` · `conflict` · `too_short`, règle antérieure qui les masque ; POST `{period, patterns}` crée ou recrée (met à jour) les règles retenues, sans les appliquer |
 
 **Champs d'une règle :**
 

@@ -20,6 +20,7 @@ from sqlalchemy import func
 
 from app.extensions import db
 from app.models import BankAccount, BankTransaction, Journal, JournalEntry, PurchasePayment, Sale, SalePayment
+from app.services import vat_codes
 from app.services.ledger import LedgerError, post_entry
 from app.services.reconciler import REVERSED_MESSAGE, reconcile
 from app.services.sale_entry import SaleError, fiscal_year_for
@@ -86,6 +87,44 @@ def vat_release(sale: Sale, amount: int) -> int:
     return outstanding if amount >= due else round(outstanding * amount / due)
 
 
+def release_lines(releases, numbers: str) -> list[dict]:
+    """Virement 44574 → 44571 de la TVA encaissée, par taux (lot T2) : chaque paire de lignes porte le
+    code `V<taux>` et la base HT au prorata de la TVA libérée (arrondie au centime ; la déclaration
+    arrondit à l'euro). Sans code de taux connu, la ligne reste sans code."""
+    by_rate: dict[int, list[int]] = {}
+    for sale, _amount, released in releases:
+        if not released:
+            continue
+        services = [l for l in sale.lines if l.nature != "goods" and l.vat_cents]
+        total = sum(l.vat_cents for l in services)
+        if not total:
+            continue
+        rates: dict[int, list[int]] = {}
+        for line in services:
+            row = rates.setdefault(line.vat_rate_bp, [0, 0])
+            row[0] += line.vat_cents
+            row[1] += line.untaxed_cents
+        allocated = 0
+        for i, (rate, (tax, base)) in enumerate(sorted(rates.items())):
+            part = released - allocated if i == len(rates) - 1 else round(released * tax / total)
+            allocated += part
+            row = by_rate.setdefault(rate, [0, 0])
+            row[0] += part
+            row[1] += round(part * base / tax) if tax else 0
+    text = f"TVA encaissée — {numbers}"[:255]
+    lines = []
+    for rate, (tax, base) in sorted(by_rate.items()):
+        if not tax:
+            continue
+        code = vat_codes.sale_tax_code(rate)
+        coded = {"vat_code": code, "vat_base_cents": abs(base) if code else None}
+        lines += [{"account_id": vat_account(VAT_ON_RECEIPTS).id, "label": text, "debit_cents": tax, "credit_cents": 0,
+                   **coded},
+                  {"account_id": vat_account(VAT_COLLECTED).id, "label": text, "debit_cents": 0, "credit_cents": tax,
+                   **coded}]
+    return lines
+
+
 # ------------------------------------------------------------------ écriture
 
 def _journal(ba: BankAccount) -> Journal:
@@ -135,10 +174,7 @@ def _post(allocations, when: date, ba: BankAccount, label: str, source: str, sou
     lines = [{"account_id": ba.account_id, "label": label or text, "debit_cents": total, "credit_cents": 0},
              {"account_id": customer.id, "label": text, "debit_cents": 0, "credit_cents": total}]
     if released:
-        lines += [{"account_id": vat_account(VAT_ON_RECEIPTS).id, "label": f"TVA encaissée — {numbers}"[:255],
-                   "debit_cents": released, "credit_cents": 0},
-                  {"account_id": vat_account(VAT_COLLECTED).id, "label": f"TVA encaissée — {numbers}"[:255],
-                   "debit_cents": 0, "credit_cents": released}]
+        lines += release_lines(releases, numbers)
     try:
         entry = post_entry(fiscal_year_id=fy.id, journal_id=_journal(ba).id, entry_date=when, description=text[:500],
                            lines=lines, source=source, source_ref=source_ref, commit=False, auto_date=auto_date)

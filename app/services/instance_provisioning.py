@@ -20,6 +20,7 @@ SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,48}[a-z0-9]$")
 CHARTS = {
     "asso": "Association (loi 1901)",
     "sci": "SCI (société civile immobilière)",
+    "societe": "Société commerciale (SAS, SASU)",
 }
 DEFAULT_CHART = "asso"
 # data/rules.yml holds an association's bank rules: other charts start without rules.
@@ -98,7 +99,7 @@ def validate_chart(chart: str) -> str:
 def provision_sqlite_database(database_url: str, chart: str = DEFAULT_CHART) -> None:
     """Create the SQLite file (if absent), apply migrations, seed accounts.
 
-    ``chart`` selects the plan comptable to load ("asso" or "sci"). The default
+    ``chart`` selects the plan comptable to load ("asso", "sci" or "societe"). The default
     bank rules are only seeded for the charts in ``RULES_CHARTS``.
     """
     chart = validate_chart(chart)

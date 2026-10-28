@@ -5,7 +5,7 @@ from app.models import (
     PurchasePayment,
 )
 from app.models.journal_entry import MANAGED_SOURCES, SALE_LOCKED_MESSAGE, SOURCE_CANCELLATION, SOURCE_SALE
-from app.services import projects
+from app.services import projects, vat_codes
 from app.services.ledger_errors import LedgerError, LedgerGuardError, period_locked  # noqa: F401 (réexportés)
 
 
@@ -103,6 +103,13 @@ def validate_entry_payload(data):
                 period.append(None)
         if bool(period[0]) != bool(period[1]) or (period[0] and period[1] < period[0]):
             errors[f"lines[{i}].service_end"] = "Période : début et fin, la fin suivant le début."
+        # Lot T2 : code de TVA et base HT (ligne de taxe), facultatifs.
+        vat_code = (raw.get("vat_code") or "").strip() or None
+        vat_base = _to_int(raw.get("vat_base_cents")) if raw.get("vat_base_cents") not in (None, "") else None
+        if vat_code is not None and not vat_codes.is_known(vat_code):
+            errors[f"lines[{i}].vat_code"] = f"Code de TVA inconnu : {vat_code}."
+        if vat_base is not None and (vat_base < 0 or vat_code is None):
+            errors[f"lines[{i}].vat_base_cents"] = "Base HT : un montant positif, avec un code de TVA."
         lines.append({
             "index": i,
             "account_id": account_id,
@@ -112,6 +119,8 @@ def validate_entry_payload(data):
             "project_id": project.id if project else None,
             "service_start": period[0],
             "service_end": period[1],
+            "vat_code": vat_code,
+            "vat_base_cents": vat_base if vat_code else None,
         })
     clean["lines"] = lines
 
@@ -232,6 +241,8 @@ def post_entry(fiscal_year_id, journal_id, entry_date, description, lines, sourc
             carried_from_line_id=l.get("carried_from_line_id"),
             service_start=l.get("service_start"),
             service_end=l.get("service_end"),
+            vat_code=l.get("vat_code"),
+            vat_base_cents=l.get("vat_base_cents"),
         ))
 
     if commit:
@@ -316,6 +327,8 @@ def update_entry(entry, clean):
                 project_id=l.get("project_id"),
                 service_start=l.get("service_start"),
                 service_end=l.get("service_end"),
+                vat_code=l.get("vat_code"),
+                vat_base_cents=l.get("vat_base_cents"),
             ))
         db.session.commit()
     except Exception:
@@ -448,7 +461,8 @@ def reverse(entry, on_date=None, reason=None, user_id=None, commit=True):
     if (reason or "").strip():
         description += f" — {reason.strip()}"
     lines = [{"account_id": l.account_id, "label": l.label or "", "debit_cents": l.credit_cents,
-              "credit_cents": l.debit_cents, "project_id": l.project_id} for l in entry.lines]
+              "credit_cents": l.debit_cents, "project_id": l.project_id,
+              "vat_code": l.vat_code, "vat_base_cents": l.vat_base_cents} for l in entry.lines]
     try:
         reversal = post_entry(fy.id, entry.journal_id, on_date, description[:500], lines,
                               source=SOURCE_CANCELLATION, source_ref=f"entry:{entry.id}", commit=False)

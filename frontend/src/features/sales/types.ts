@@ -1,6 +1,7 @@
 // Ventes (lot S1) : factures et avoirs de l'application (API /api/v1/sales).
 import type { Tone } from "../../components/StatusBadge";
 import type { Option } from "../purchases/types";
+import type { VatRegime } from "../entities/types";
 
 export const SALES_KEY = ["sales"];
 export const BILLING_KEY = ["billing-settings"];
@@ -40,6 +41,8 @@ export interface SaleDetail extends Omit<SaleRow, "client"> {
     city: string | null; country: string | null; siren: string | null; vat_number: string | null; email: string | null };
   service_start: string | null; service_end: string | null; operation_type: string; purchase_order: string; terms: string;
   header: string; footer: string; vat_mode: "none" | "receipts" | "debits" | null; credit_reason: string | null;
+  /** Lot T2 : régime TVA de la pièce et mentions d'une vente sans TVA française (autoliquidation, export…). */
+  vat_regime: VatRegime; vat_exemptions: string[];
   lines: (SaleLineRow & { id: number; untaxed_cents: number; vat_cents: number; total_cents: number })[];
   vat_rows: { rate: number; base: number; tax: number }[];
   journal_entry: { id: number; reference: string } | null; invoice: { id: number; number: string } | null;
@@ -59,8 +62,10 @@ export interface SaleProductOption extends Option {
   account: string; rate: string; price: string; unit: string; description: string; nature: "goods" | "services";
 }
 
+export interface SaleClientOption extends Option { vat_regime: VatRegime; vat_number: string }
+
 export interface SaleFormOptions {
-  clients: Option[]; products: SaleProductOption[]; sale_accounts: Option[]; default_account: string;
+  clients: SaleClientOption[]; vat_regimes: Option[]; products: SaleProductOption[]; sale_accounts: Option[]; default_account: string;
   projects: Option[]; units: string[]; operation_types: Option[]; vat_mode: "none" | "receipts" | "debits";
   vat_liable: boolean; payment_terms_days: number; qonto: boolean;
 }

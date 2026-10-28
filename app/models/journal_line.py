@@ -22,6 +22,11 @@ class JournalLine(db.Model):
     # Lot F4 : période de service d'une charge / d'un produit (charges et produits constatés d'avance).
     service_start = db.Column(db.Date)
     service_end = db.Column(db.Date)
+    # Lot T2 : code de TVA (data/vat_codes.json) et base HT d'une ligne de taxe (positive, sens de la ligne).
+    vat_code = db.Column(db.String(16), index=True)
+    vat_base_cents = db.Column(db.Integer)
+    # Lot T3 : déclaration de TVA qui a retenu la ligne (une ligne déclarée n'est plus reprise).
+    vat_return_id = db.Column(db.Integer, db.ForeignKey("vat_returns.id", ondelete="SET NULL"), index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     entry = db.relationship("JournalEntry", back_populates="lines")

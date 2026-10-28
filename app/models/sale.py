@@ -52,6 +52,7 @@ class Sale(db.Model):
     header = db.Column(db.Text)
     footer = db.Column(db.Text)
     vat_mode = db.Column(db.String(10))
+    vat_regime = db.Column(db.String(8))  # lot T2 : régime TVA du document ; nul = celui du client
     quote_id = db.Column(db.Integer, db.ForeignKey("sales.id", ondelete="SET NULL"))
     invoice_id = db.Column(db.Integer, db.ForeignKey("sales.id", ondelete="RESTRICT"))
     credit_reason = db.Column(db.Text)

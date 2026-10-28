@@ -13,6 +13,7 @@ import { api, ApiError } from "../../api/client";
 import { showNotices, type Notice } from "../../api/resources";
 import { upload } from "../../api/upload";
 import { PageHeader } from "../../components/PageHeader";
+import { MoneyText } from "../../components/Money";
 import { formatDate, formatEuros } from "../../lib/format";
 import { AppLink, useGoTo } from "../../app/navigation";
 import { AttachmentPreview } from "./AttachmentPreview";
@@ -20,6 +21,9 @@ import { EMPTY_LINE, cents } from "./lines";
 import { LinesEditor } from "./LinesEditor";
 import { SupplierSirene, type SupplierChoice } from "./SupplierSirene";
 import { PURCHASES_KEY, type FormOptions, type LineRow, type Option } from "./types";
+
+/** Transaction Qonto dont le justificatif a donné la facture. */
+interface TransactionInfo { id: number; date: string; label: string; amount_cents: number; bank_account: string }
 import { writeOnly } from "../../components/ReadOnlyPage";
 import { useCurrentSession } from "../../api/session";
 import { ASSOCIATES_KEY, type Associate } from "../associates/types";
@@ -75,6 +79,10 @@ function PurchaseFormPage() {
   const [saving, setSaving] = useState(false);
   // Fournisseur trouvé dans Sirene : tiers connu (information) ou fiche du tiers à créer (lot G4).
   const [sireneChoice, setSireneChoice] = useState<SupplierChoice | null>(null);
+  // Facture créée depuis le justificatif d'une transaction Qonto (Banque › Transactions).
+  const fromTransaction = editId ? null : Number(search.get("bank_transaction_id")) || null;
+  const [bankTxn, setBankTxn] = useState<TransactionInfo | null>(null);
+  const [drafting, setDrafting] = useState(false);
 
   useEffect(() => {
     if (header.data) {
@@ -82,7 +90,24 @@ function PurchaseFormPage() {
       setPreview(header.data.preview);
     }
   }, [header.data]);
-  useEffect(() => { if (!editId && !search.get("manual")) { setForm(null); setToken(""); setPreview(null); } }, [editId, search]);
+  useEffect(() => {
+    if (!editId && !search.get("manual") && !fromTransaction) { setForm(null); setToken(""); setPreview(null); }
+  }, [editId, search, fromTransaction]);
+  useEffect(() => {
+    if (!fromTransaction) return;
+    let live = true;
+    setDrafting(true); setErrors([]);
+    api.post<{ token: string; preview: Preview; form: EntryForm; transaction: TransactionInfo }>(
+      `/api/v1/bank-transactions/${fromTransaction}/purchase-draft`, {})
+      .then((body) => {
+        if (!live) return;
+        setToken(body.token); setPreview(body.preview); setBankTxn(body.transaction);
+        setForm({ ...body.form, rows: body.form.rows.length ? body.form.rows : [EMPTY_LINE] });
+      })
+      .catch((e) => live && setErrors([e instanceof Error ? e.message : "Lecture du justificatif impossible."]))
+      .finally(() => live && setDrafting(false));
+    return () => { live = false; };
+  }, [fromTransaction]);
 
   const send = async (file: File, url: string) => {
     const data = new FormData();
@@ -110,6 +135,18 @@ function PurchaseFormPage() {
     return <>{pageHeader("")}<Alert color="paille">{(header.error as Error).message}</Alert></>;
   }
   if (editId && !form) return <Center h={300}><Loader /></Center>;
+  if (fromTransaction && !form) {
+    return (
+      <>
+        {pageHeader("Justificatif de la transaction Qonto : téléchargement et lecture (quelques secondes).")}
+        <Stack maw={640}>
+          {drafting && <Group><Loader size="sm" /><Text size="sm">Lecture du justificatif…</Text></Group>}
+          {errors.length > 0 && <Alert color="brique" role="alert">{errors[0]}</Alert>}
+          {!drafting && <Anchor component={AppLink} href="/purchases/new">Déposer un fichier à la place</Anchor>}
+        </Stack>
+      </>
+    );
+  }
   if (!form) {
     return (
       <>
@@ -143,7 +180,8 @@ function PurchaseFormPage() {
   const submit = async () => {
     setSaving(true); setErrors([]);
     const body = { ...v, is_credit_note: v.is_credit_note === "1", token, rows: form.rows, confirm_duplicate: confirmDuplicate,
-      send_to_qonto: qontoUpload && token ? sendToQonto : false,
+      send_to_qonto: qontoUpload && token && !bankTxn ? sendToQonto : false,
+      ...(bankTxn ? { bank_transaction_id: bankTxn.id } : {}),
       ...(v.entity_id === "new" && sireneChoice?.kind === "new" ? { new_entity: sireneChoice.entity } : {}),
       ...(withAssociates && paidBy ? { paid_by_associate: { associate_id: Number(paidBy), paid_on: paidOn } } : {}) };
     try {
@@ -179,6 +217,9 @@ function PurchaseFormPage() {
               {form.warnings.length > 0 && <Alert color="paille"><List size="sm">{form.warnings.map((w) => <List.Item key={w}>{w}</List.Item>)}</List></Alert>}
               {SOURCES[form.source] && errors.length === 0 && <Alert color="ardoise" variant="light">{SOURCES[form.source]} Les champs <Badge size="xs" color="paille" variant="light">à vérifier</Badge> sont encadrés.</Alert>}
               {form.source === "none" && token && !editId && <Alert color="gray">Rien n'a pu être lu dans le fichier : saisissez la facture.</Alert>}
+              {bankTxn && <Alert color="lichen" variant="light">Facture du paiement {bankTxn.bank_account} du {formatDate(bankTxn.date)} :
+                {" "}{bankTxn.label} — <MoneyText cents={bankTxn.amount_cents} size="sm" />. Elle sera réglée par cette transaction
+                dès qu'elle sera comptabilisée.</Alert>}
               {duplicates.length > 0 && (
                 <Alert color="brique" title="Doublon possible">
                   <Text size="sm">{duplicates.map((d, i) => <span key={d.id}>{i > 0 && ", "}<Anchor component={AppLink} href={`/purchases/${d.id}`} size="sm">{d.label}</Anchor> du {formatDate(d.issue_date)} ({formatEuros(d.total_cents)})</span>)}.</Text>
@@ -264,7 +305,7 @@ function PurchaseFormPage() {
               onChange={(e) => setPaidOn(e.currentTarget.value)} />}
           </Group>
         )}
-        {qontoUpload && (
+        {qontoUpload && !bankTxn && (
           <Checkbox label="Envoyer à Qonto" checked={!!token && sendToQonto} disabled={!token} onChange={(e) => setSendToQonto(e.currentTarget.checked)}
             description={token ? "Cochez pour déposer la pièce dans Qonto (factures fournisseurs) à l'enregistrement." : "Envoi impossible sans fichier."} />
         )}

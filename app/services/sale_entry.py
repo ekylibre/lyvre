@@ -90,12 +90,15 @@ def default_sale_account() -> Account | None:
 
 def compute(sale: Sale) -> None:
     """HT des lignes, TVA par taux répartie sur les lignes, totaux de la pièce (sans commit)."""
+    from app.services import vat_codes
+
     exempt = sale.vat_mode == "none"
     by_rate: dict[int, list[SaleLine]] = {}
     for line in sale.lines:
         gross = Decimal(line.quantity_milli) * line.unit_price_cents / 1000
         line.untaxed_cents = _round(gross * (Decimal(10000 - (line.discount_bp or 0)) / 10000))
-        if exempt:
+        # Lot T2 : client de l'UE avec n° de TVA ou client hors UE → pas de TVA française.
+        if exempt or (sale.entity is not None and vat_codes.sale_exemption_code(sale, line.nature)):
             line.vat_rate_bp = 0
         by_rate.setdefault(line.vat_rate_bp or 0, []).append(line)
     tax = 0
@@ -130,6 +133,7 @@ class Header:
     terms: str | None
     header: str | None
     footer: str | None
+    vat_regime: str | None = None
 
 
 def _client(data) -> Entity:
@@ -174,7 +178,19 @@ def parse_header(data: dict) -> Header:
     return Header(entity=_client(data), issue_date=issue, due_date=due, validity_date=validity,
                   service_start=start, service_end=end,
                   operation_type=operation, purchase_order=text("purchase_order", 100), terms=text("terms"),
-                  header=text("header"), footer=text("footer"))
+                  header=text("header"), footer=text("footer"), vat_regime=_regime(data))
+
+
+def _regime(data: dict) -> str | None:
+    """Régime TVA choisi sur la pièce (lot T2) ; absent : celui du client."""
+    from app.services.vat_codes import REGIMES
+
+    value = data.get("vat_regime")
+    if value in (None, ""):
+        return None
+    if value not in REGIMES:
+        raise SaleError("Régime TVA inconnu.", "vat_regime")
+    return value
 
 
 def parse_lines(rows) -> list[SaleLine]:
@@ -242,6 +258,8 @@ def _apply(sale: Sale, header: Header, lines: list[SaleLine], settings) -> None:
     sale.operation_type, sale.purchase_order = header.operation_type, header.purchase_order
     sale.terms, sale.header, sale.footer = header.terms, header.header, header.footer
     sale.vat_mode = vat_mode_for(header.issue_date)
+    if sale.kind != "credit_note":  # l'avoir suit sa facture (vat_codes.sale_regime)
+        sale.vat_regime = header.vat_regime or getattr(header.entity, "vat_regime", None) or "fr"
     sale.lines = lines
     compute(sale)
 

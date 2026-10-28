@@ -5,6 +5,8 @@ export interface Entity {
   is_member: boolean; is_benevole: boolean; notes: string | null;
   default_product_id: number | null; default_product: string | null;
   vat_number: string | null; siret: string | null; iban: string | null;
+  /** Régime TVA (lot T2) : France, Union européenne (autoliquidation), hors UE. */
+  vat_regime?: VatRegime;
   /** SIREN : début du SIRET, ou seul ; activité (code NAF sans point). */
   siren: string | null; naf_code: string | null; naf_nomenclature: string | null;
   address_line1: string | null; address_line2: string | null; postal_code: string | null; city: string | null;
@@ -13,6 +15,12 @@ export interface Entity {
 }
 
 export interface Option { value: string; label: string }
+
+export type VatRegime = "fr" | "eu" | "world";
+/** Régimes TVA d'un tiers, dans l'ordre de `data/vat_codes.json`. */
+export const VAT_REGIMES: Option[] = [
+  { value: "fr", label: "France" }, { value: "eu", label: "Union européenne" }, { value: "world", label: "Hors Union européenne" },
+];
 
 export interface EntitiesMeta {
   types: Option[];

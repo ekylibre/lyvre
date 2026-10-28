@@ -3,11 +3,12 @@
 // réglages des factures de vente). Modifiable par l'administrateur de l'instance, lisible par tous.
 import { useEffect, useState } from "react";
 import { Alert, Button, Center, Checkbox, Fieldset, Group, Loader, SimpleGrid, Stack, Tabs, Text, TextInput, Textarea } from "@mantine/core";
+import { DateInput } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
-import { SESSION_KEY, useCan, useIsAssociation } from "../../api/session";
+import { SESSION_KEY, useCan, useCurrentSession, useIsAssociation } from "../../api/session";
 import { applyApiError } from "../../components/ApiForm";
 import { useUrlParams } from "../../components/FilterBar";
 import { PageHeader } from "../../components/PageHeader";
@@ -30,6 +31,10 @@ export interface Organization {
   fec_ready: boolean;
   /** Module « Associés » : option de l'instance et taux d'intérêt des comptes courants par défaut. */
   has_associates: boolean; associate_interest_rate: string;
+  /** Jeune entreprise innovante depuis cette date (sociétés), AAAA-MM-JJ. */
+  jei_since: string | null;
+  /** Lot T3 : jour d'échéance de la CA3 (15 à 24), vide : 24. */
+  vat_due_day: string;
 }
 export const ORGANIZATION_KEY = ["organization"];
 const FIELDS = ["name", "siren", "rna", "address_line1", "address_line2", "postal_code", "city", "country", "purpose",
@@ -40,21 +45,24 @@ const SIRENE_FIELDS: Record<string, string> = {
   naf_code: "Activité (NAF)", address_line1: "Adresse", address_line2: "Complément", postal_code: "Code postal",
   city: "Ville", country: "Pays",
 };
-type Values = Record<(typeof FIELDS)[number] | "associate_interest_rate", string> & { has_associates: boolean };
+type Values = Record<(typeof FIELDS)[number] | "associate_interest_rate", string>
+  & { has_associates: boolean; jei_since: string | null; vat_due_day: string };
 
 export default function OrganizationPage() {
   const can = useCan();
   const association = useIsAssociation();
+  const company = useCurrentSession().instance?.chart === "societe";
   const client = useQueryClient();
   const [params, setParams] = useUrlParams({ tab: "identity" });
   const { data } = useQuery({ queryKey: ORGANIZATION_KEY,
     queryFn: () => api.get<{ item: Organization }>("/api/v1/organization") });
   const [error, setError] = useState<string | null>(null);
   const form = useForm<Values>({ initialValues: { ...Object.fromEntries(FIELDS.map((f) => [f, ""])),
-    has_associates: false, associate_interest_rate: "" } as Values });
+    has_associates: false, associate_interest_rate: "", jei_since: null, vat_due_day: "" } as Values });
   useEffect(() => {
     if (data) form.setValues({ ...Object.fromEntries(FIELDS.map((f) => [f, data.item[f] ?? ""])),
-      has_associates: data.item.has_associates, associate_interest_rate: data.item.associate_interest_rate } as Values);
+      has_associates: data.item.has_associates, associate_interest_rate: data.item.associate_interest_rate,
+      jei_since: data.item.jei_since, vat_due_day: data.item.vat_due_day ?? "" } as Values);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
   const sireneAvailable = useSireneAvailable();
@@ -121,6 +129,9 @@ export default function OrganizationPage() {
                 {field("share_capital", "Capital social (€)", { inputMode: "decimal", classNames: { input: "lv-num" } })}
                 {field("rcs_city", "Greffe du RCS", { placeholder: "Saintes", description: "Sociétés immatriculées" })}
                 {field("vat_number", "N° de TVA intracommunautaire", { placeholder: "FR…", classNames: { input: "lv-num" } })}
+                <TextInput label="Échéance de la déclaration de TVA" inputMode="numeric" readOnly={readOnly} placeholder="24"
+                  description="Jour du mois suivant fixé par votre SIE (15 à 24) ; vide : le 24."
+                  classNames={{ input: "lv-num" }} {...form.getInputProps("vat_due_day")} />
               </SimpleGrid>
               {form.values.naf_code && (
                 <TextInput label="Activité (code NAF)" readOnly classNames={{ input: "lv-num" }}
@@ -147,7 +158,7 @@ export default function OrganizationPage() {
               </SimpleGrid>
             </Fieldset>
           ) : (
-          <Fieldset legend="Associés (sociétés)">
+          <Fieldset legend={company ? "Société" : "Associés (sociétés)"}>
             <Stack>
               <Checkbox label="Société avec associés" disabled={readOnly}
                 description="Active le menu Associés : parts sociales, comptes courants d'associés."
@@ -155,6 +166,11 @@ export default function OrganizationPage() {
               {form.values.has_associates && (
                 <TextInput label="Taux d'intérêt des comptes courants (%)" w={300} readOnly={readOnly} inputMode="decimal"
                   description="Par défaut pour tous les associés ; 0 : pas d'intérêts." {...form.getInputProps("associate_interest_rate")} />
+              )}
+              {company && (
+                <DateInput label="Jeune entreprise innovante depuis" w={300} clearable valueFormat="DD/MM/YYYY"
+                  readOnly={readOnly} description="Vide : pas de statut JEI. Repris par la liasse et les crédits d'impôt."
+                  {...form.getInputProps("jei_since")} />
               )}
             </Stack>
           </Fieldset>

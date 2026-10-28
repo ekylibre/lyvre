@@ -12,6 +12,9 @@ export interface EntryLinePayload {
   debit_cents: number;
   credit_cents: number;
   project_id?: number | null;
+  /** Lot T2 : code de TVA (data/vat_codes.json) et base HT d'une ligne de taxe. */
+  vat_code?: string | null;
+  vat_base_cents?: number | null;
 }
 
 export interface EntryPayload {
@@ -52,6 +55,8 @@ export interface BankTransaction {
   entity: string | null;
   entry: { id: number; reference: string; url: string } | null;
   new_entry_url: string;
+  /** Débit Qonto avec justificatif, sans facture : facture d'achat à créer depuis la pièce. */
+  purchase_from_attachment?: boolean;
 }
 
 export interface Counters {

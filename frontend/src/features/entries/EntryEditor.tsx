@@ -14,7 +14,7 @@ import { formatEuros, formatDate } from "../../lib/format";
 import { toInput } from "../../lib/money";
 import type { EntryResponse, FieldErrors } from "../../lib/types";
 import {
-  balancingAmount, balancingLine, computeTotals, isComplete, isEmptyLine, newLine, reducer,
+  balancingAmount, balancingLine, computeTotals, hasVatFields, isComplete, isEmptyLine, newLine, proposedBase, reducer,
   toPayload, withMinimumLines, type EntryState, type InitialLine,
 } from "./entryState";
 
@@ -29,6 +29,8 @@ export interface EntryFormData {
     journals: { id: number; code: string; label: string }[];
     recentsScope: string;
     projects?: { value: string; label: string }[];
+    /** Lot T2 : codes de TVA (`on` : ligne de taxe ou de base). */
+    vatCodes?: { value: string; label: string; on: "tax" | "base"; rate_bp: number }[];
   };
   initial: { fiscal_year_id: number | null; journal_id: number | null; entry_date: string;
     description: string; lines: InitialLine[] };
@@ -231,6 +233,25 @@ export function EntryEditor({ data, onSaved, onCancel, focusAccountOfLine }: {
                         <TextInput aria-label={`Libellé, ligne ${i + 1}`} placeholder={state.description} data-line={i}
                           data-field="label" value={line.label}
                           onChange={(e) => dispatch({ type: "line", index: i, patch: { label: e.currentTarget.value } })} />
+                        {hasVatFields(line) && (options.vatCodes?.length ?? 0) > 0 && (
+                          <Group gap={6} mt={6} wrap="nowrap">
+                            <Select size="xs" aria-label={`Code TVA, ligne ${i + 1}`} placeholder="Code TVA" clearable searchable
+                              data={options.vatCodes!.filter((c) => c.on === "tax" || c.value === line.vatCode)
+                                .map(({ value, label }) => ({ value, label }))}
+                              value={line.vatCode} error={err(`lines[${i}].vat_code`)} comboboxProps={{ width: 380 }}
+                              onChange={(vatCode) => {
+                                const rate = options.vatCodes!.find((c) => c.value === vatCode)?.rate_bp ?? 0;
+                                dispatch({ type: "line", index: i, patch: {
+                                  vatCode, vatBase: vatCode && !line.vatBase ? proposedBase(line, rate) : vatCode ? line.vatBase : "" } });
+                              }} />
+                            {line.vatCode && (
+                              <TextInput size="xs" w={120} inputMode="decimal" aria-label={`Base HT, ligne ${i + 1}`}
+                                placeholder="Base HT" classNames={{ input: "lv-num" }} value={line.vatBase}
+                                error={err(`lines[${i}].vat_base_cents`)}
+                                onChange={(e) => dispatch({ type: "line", index: i, patch: { vatBase: e.currentTarget.value } })} />
+                            )}
+                          </Group>
+                        )}
                       </Table.Td>
                       {withProjects && (
                         <Table.Td>

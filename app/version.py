@@ -18,7 +18,7 @@ import yaml
 CHANGELOG_FILE = Path(__file__).resolve().parents[1] / "data" / "changelog.yml"
 VERSION_PATTERN = re.compile(r"^(\d{4})\.(\d{2})\.(\d+)$")
 KINDS = {"action": "Action requise", "new": "Nouveautés", "improved": "Améliorations", "fixed": "Corrections"}
-STRUCTURES = {"asso": "Associations", "sci": "SCI"}
+STRUCTURES = {"asso": "Associations", "sci": "SCI", "societe": "Sociétés"}
 
 
 class ChangelogError(ValueError):

@@ -20,6 +20,7 @@ class Purchase(db.Model):
     supplier_name = db.Column(db.String(200))
     qonto_supplier_id = db.Column(db.String(36))
     supplier_vat = db.Column(db.String(30))
+    vat_regime = db.Column(db.String(8))  # lot T2 : régime TVA du document ; nul = celui du fournisseur
     supplier_iban = db.Column(db.String(34))
     supplier_siret = db.Column(db.String(14))
     invoice_number = db.Column(db.String(100))

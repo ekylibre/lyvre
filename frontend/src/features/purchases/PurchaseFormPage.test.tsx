@@ -30,6 +30,13 @@ beforeEach(() => {
       }
       return json(201, { item: { id: 9, url: "/purchases/9" }, notices: [{ level: "success", message: "Facture enregistrée." }] });
     }
+    if (url === "/api/v1/bank-transactions/7/purchase-draft") {
+      return json(200, { token: "a".repeat(32), preview: { url: "/purchases/staged/x", mime: "application/pdf" },
+        transaction: { id: 7, date: "2026-07-02", label: "Google Workspace_ekyli", amount_cents: -5832, bank_account: "Qonto" },
+        form: { values: { total: "58,32", issue_date: "2026-07-02", invoice_number: "5214789632", entity_id: "4" }, checks: ["total"],
+          rows: [{ product_id: "", account_code: "6061", label: "Google", untaxed: "48,60", vat_rate: "20", vat: "9,72", total: "58,32" }],
+          warnings: [], source: "text" } });
+    }
     if (url === "/api/v1/chart-of-accounts" && method === "POST") {
       return json(201, { item: { id: 30, code: body.code, label: body.label }, notices: [] });
     }
@@ -107,5 +114,15 @@ describe("saisie d'une facture d'achat", () => {
     expect(calls.find((c) => c.url === "/api/v1/chart-of-accounts")?.body).toEqual(
       { code: "6063", label: "Fournitures d'entretien et de petit équipement", account_type: "EXPENSE" });
     expect(calls.filter((c) => c.url === "/api/v1/purchases")).toEqual([]);
+  });
+
+  it("depuis le justificatif d'une transaction Qonto : prérempli, relié à la transaction, sans envoi à Qonto", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PurchaseFormPage />, { route: "/purchases/new?bank_transaction_id=7" });
+    expect(await screen.findByText(/Facture du paiement Qonto du 02\/07\/2026/)).toBeTruthy();
+    expect(screen.queryByRole("checkbox", { name: /Envoyer à Qonto/ })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Enregistrer la facture" }));
+    await waitFor(() => expect(calls.find((c) => c.url === "/api/v1/purchases" && c.method === "POST")?.body)
+      .toMatchObject({ bank_transaction_id: 7, token: "a".repeat(32), send_to_qonto: false }));
   });
 });

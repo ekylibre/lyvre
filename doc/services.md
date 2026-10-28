@@ -1043,6 +1043,49 @@ ses montants, sa date ou sa nature : le changement est noté dans `review_reason
 
 ---
 
+## rule_suggestions.py — Règles proposées depuis un mois
+
+`label_pattern(label)` (trois premiers mots significatifs, sans chiffres ni mots génériques ; partagé
+avec la reprise Ekylibre), `suggest(start, end, bank_account_id=None)` : transactions du mois réglées
+par une facture d'achat (`purchase_payments` : fournisseur, compte 6 principal de la facture) ou de
+vente (`sale_payments` : client, compte 7 principal), ou rapprochées d'une écriture saisie (un seul
+compte 6 / 7, hors écritures de règle), regroupées par motif → `Suggestion` (statut, tiers, compte,
+règle de même motif, règle antérieure qui la masque) ; `apply(start, end, patterns)` crée ou met à
+jour les règles « libellé contient », nommées « tiers — relevé MM/AAAA », sans les appliquer.
+
+## transaction_invoice.py — Facture d'achat depuis un justificatif Qonto
+
+`blocker(txn)` (débit Qonto avec justificatif, ni facture liée ni rapprochement autre qu'une règle),
+`draft(txn, client=None)` (`qonto_client.transaction` → `attachment` → `download`, pièce mise en
+attente par `attachments.stage_bytes`, lue par `purchase_entry.read_staged`, complétée par la
+transaction : montant payé, date, fournisseur), `link(purchase, txn)` (paiement `manual` ajouté par
+`purchase_entry.create(..., bank_transaction=)` avant `post_ready`).
+
+## vat_codes.py — Codes de TVA des lignes d'écriture (lot T2)
+
+Codes et mentions dans `data/vat_codes.json`. `guess_regime(vat_number, country)` (préfixe du n° de
+TVA, sinon pays), `sale_regime(sale)` / `purchase_regime(p)` (pièce, sinon facture de l'avoir, sinon
+tiers), `sale_tax_code(rate)` (`V20`…), `sale_exemption_code(sale, nature)` (`V_UE_S`, `V_UE_B`,
+`V_EXP`, `V_EXO`, ou None si la vente est imposable en France), `purchase_code(regime, nature, rate)`
+(`D20`… ou `AL_S` / `AL_B`), `exemption(code)` (mention de facture et catégorie Factur-X),
+`account(code)` (compte de TVA créé sous son regroupement s'il manque). Un écouteur `before_insert`
+propose le régime d'un tiers créé par une synchronisation avec un n° de TVA étranger. Utilisé par
+`purchase_posting`, `sale_posting`, `sale_settlement` (virement 44574 → 44571 par taux, base au
+prorata), `sale_entry` (lignes à 0 % hors de France), `sale_documents` et `ledger` (saisie manuelle,
+contrepassation).
+
+## vat_return.py — Déclarations de TVA (lot T3)
+
+`form_spec(year)` (`data/ca3/<année>.json`, sinon le millésime antérieur), `parse_period`, `deadline`,
+`periods(fy)` (mois, statut, retard), `retained_lines(start, end)` (lignes codées non déclarées
+jusqu'à la fin du mois, hors 44574), `compute` (cases arrondies à l'euro, totaux 16 / 23, TD / 28 ou
+25 / 27, crédit reporté de la déclaration précédente ou de 44567 des à-nouveaux), `checks`
+(bloquant : exercice non déclarant ou clos, mois précédent non validé ; avertissements), `lines_for`
+(case → lignes), `validate` (brouillards validés, `VatReturn`, lignes rattachées, liquidation
+`liquidation_lines` : comptes soldés, 44551 / 44567, arrondi 658 / 758 par les rôles `vat_*`),
+`unvalidate` (dernière, non déposée : liquidation supprimée ou contrepassée), `declare` (liquidation
+validée, `period_lock.advance` jusqu'à la fin du mois, dans l'ordre). Erreurs : `VatReturnError`.
+
 ## purchase_posting.py — Comptabilisation en engagement
 
 | Fonction | Rôle |

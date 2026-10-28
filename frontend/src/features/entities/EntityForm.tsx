@@ -13,7 +13,7 @@ import { SireneSearch } from "../../components/sirene/SireneSearch";
 import { isValidSiren, sireneMessage, useSireneAvailable, useSireneProposal, type SireneCandidate } from "../../components/sirene/useSirene";
 import { AppLink } from "../../app/navigation";
 import { formatNaf } from "../../lib/format";
-import { TIERS_KEY, type EntitiesMeta, type Entity } from "./types";
+import { TIERS_KEY, VAT_REGIMES, type EntitiesMeta, type Entity } from "./types";
 
 /** Champs que Sirene peut compléter sur un tiers, dans l'ordre du formulaire. */
 const SIRENE_FIELDS: Record<string, string> = {
@@ -33,7 +33,7 @@ export function EntityForm({ entity, meta, onDone }: {
     account_code: entity?.account_code ?? "", is_member: entity?.is_member ?? false,
     is_benevole: entity?.is_benevole ?? false, notes: entity?.notes ?? "",
     default_product_id: entity?.default_product_id ? String(entity.default_product_id) : "",
-    vat_number: entity?.vat_number ?? "", siret: entity?.siret ?? "", siren: entity?.siren ?? "", iban: entity?.iban ?? "",
+    vat_number: entity?.vat_number ?? "", vat_regime: entity?.vat_regime ?? "", siret: entity?.siret ?? "", siren: entity?.siren ?? "", iban: entity?.iban ?? "",
     address_line1: entity?.address_line1 ?? "", address_line2: entity?.address_line2 ?? "",
     postal_code: entity?.postal_code ?? "", city: entity?.city ?? "", country: entity?.country ?? "",
     person_kind: entity?.person_kind ?? "", naf_code: entity?.naf_code ?? "", naf_nomenclature: entity?.naf_nomenclature ?? "",
@@ -117,6 +117,11 @@ export function EntityForm({ entity, meta, onDone }: {
           {...form.getInputProps("default_product_id")} />
         <Group grow align="flex-start">
           <TextInput label="N° de TVA" classNames={{ input: "lv-num" }} {...form.getInputProps("vat_number")} />
+          <Select label="Régime TVA" data={VAT_REGIMES} placeholder="Selon le n° de TVA ou le pays"
+            description="Hors de France : autoliquidation des achats, ventes sans TVA française."
+            {...form.getInputProps("vat_regime")} />
+        </Group>
+        <Group grow align="flex-start">
           <TextInput label="SIRET" inputMode="numeric" classNames={{ input: "lv-num" }} {...form.getInputProps("siret")} />
           <TextInput label="SIREN" inputMode="numeric" classNames={{ input: "lv-num" }}
             description={form.values.siret ? "Début du SIRET" : "Sans établissement connu"} {...form.getInputProps("siren")} />

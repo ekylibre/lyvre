@@ -113,8 +113,10 @@ def test_post_vat_liable_splits_vat(books):
     ]
     p = _purchase(books, lines=lines, total=13055)
     purchase_posting.post(p)
-    assert _entry_lines(p) == [("401001", 0, 13055), ("44566", 2055, 0),
+    assert _entry_lines(p) == [("401001", 0, 13055), ("44566", 55, 0), ("44566", 2000, 0),
                                ("6061", 10000, 0), ("6068", 1000, 0)]
+    vat = sorted((l.vat_code, l.vat_base_cents, l.debit_cents) for l in p.journal_entry.lines if l.vat_code)
+    assert vat == [("D20", 10000, 2000), ("D55", 1000, 55)]  # lot T2 : une ligne codée par taux
 
 
 def test_discount_line_credited(books):

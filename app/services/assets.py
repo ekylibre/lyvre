@@ -187,7 +187,7 @@ def enabled() -> bool:
         instance = current_instance()
         if instance is not None and getattr(instance, "bookkeeping", "double") == "simple":
             return False
-        return current_chart() == "asso"
+        return current_chart() != "sci"  # SCI à l'IR : pas d'amortissement par défaut
     except RuntimeError:
         return True
 

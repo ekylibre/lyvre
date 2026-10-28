@@ -16,10 +16,12 @@ import { EMPTY_SALE_LINE, KIND_TITLES, SALES_KEY, VAT_MODE_LABELS, type SaleDeta
 
 const NEW_CLIENT = "__new__";
 type Header = { entity_id: string; new_client_name: string; issue_date: string; due_date: string; validity_date: string; service_start: string;
-  service_end: string; operation_type: string; purchase_order: string; header: string; terms: string; footer: string };
+  service_end: string; operation_type: string; purchase_order: string; header: string; terms: string; footer: string;
+  /** Lot T2 : régime TVA de la pièce ; vide : celui du client. */
+  vat_regime: string };
 const today = () => new Date().toISOString().slice(0, 10);
 const EMPTY: Header = { entity_id: "", new_client_name: "", issue_date: today(), due_date: "", validity_date: "", service_start: "", service_end: "",
-  operation_type: "services", purchase_order: "", header: "", terms: "", footer: "" };
+  operation_type: "services", purchase_order: "", header: "", terms: "", footer: "", vat_regime: "" };
 
 function SaleFormPage() {
   const editId = Number(useParams().sale_id) || null;
@@ -42,7 +44,7 @@ function SaleFormPage() {
       setHeader({ entity_id: String(item.client.id), new_client_name: "", issue_date: item.issue_date ?? today(),
         due_date: item.due_date ?? "", validity_date: item.validity_date ?? "", service_start: item.service_start ?? "", service_end: item.service_end ?? "",
         operation_type: item.operation_type, purchase_order: item.purchase_order, header: item.header, terms: item.terms,
-        footer: item.footer });
+        footer: item.footer, vat_regime: item.vat_regime });
       setQontoEmit(item.qonto_emit);
       setRows(item.lines.map(({ id: _id, untaxed_cents: _u, vat_cents: _v, total_cents: _t, ...row }) => row));
     }
@@ -58,7 +60,11 @@ function SaleFormPage() {
     return <Alert color="paille" mt="md">Pièce émise : elle ne se modifie plus. <AppLink href={`/sales/${item.id}`}>Retour à la pièce</AppLink></Alert>;
   }
   const set = (patch: Partial<Header>) => setHeader((h) => ({ ...h, ...patch }));
-  const exempt = (item?.vat_mode ?? o.vat_mode) === "none";
+  const chosenClient = o.clients.find((c) => c.value === header.entity_id);
+  const regime = header.vat_regime || chosenClient?.vat_regime || "fr";
+  // Pas de TVA française : client de l'UE avec n° de TVA (autoliquidation) ou client hors UE (lot T2).
+  const foreign = regime === "world" || (regime === "eu" && !!chosenClient?.vat_number);
+  const exempt = (item?.vat_mode ?? o.vat_mode) === "none" || foreign;
   const isCredit = item?.kind === "credit_note";
   const kind = item?.kind ?? (search.get("kind") === "quote" ? "quote" : "invoice");
   const isQuote = kind === "quote";
@@ -96,12 +102,18 @@ function SaleFormPage() {
               <SimpleGrid cols={{ base: 1, md: 3 }}>
                 <Select label="Client" required searchable disabled={isCredit} value={header.entity_id || null}
                   data={[{ value: NEW_CLIENT, label: "+ Nouveau client…" }, ...o.clients]}
-                  onChange={(v) => set({ entity_id: v ?? "" })} />
+                  onChange={(v) => set({ entity_id: v ?? "", vat_regime: "" })} />
                 {header.entity_id === NEW_CLIENT && <TextInput label="Nom du nouveau client" required value={header.new_client_name}
                   description="Complétez ensuite son adresse sur sa fiche (Tiers) : elle figure sur la facture."
                   onChange={(e) => set({ new_client_name: e.currentTarget.value })} />}
                 <Select label="Nature de l'opération" data={o.operation_types} value={header.operation_type} allowDeselect={false}
                   onChange={(v) => set({ operation_type: v ?? "services" })} />
+                {o.vat_liable && !isCredit && (
+                  <Select label="Régime TVA du client" data={o.vat_regimes} value={regime} allowDeselect={false}
+                    description={foreign ? "Pas de TVA française : la mention légale est ajoutée à la facture."
+                      : regime === "eu" ? "Client de l'UE sans n° de TVA : TVA française." : undefined}
+                    onChange={(v) => set({ vat_regime: v ?? "" })} />
+                )}
               </SimpleGrid>
               <SimpleGrid cols={{ base: 2, md: 5 }}>
                 {date("issue_date", "Date", { required: true })}

@@ -1,8 +1,39 @@
 # Nouveautés de Lyvre : source unique du numéro de version, de CHANGELOG.md et de la page
 # « Nouveautés ». Ajouter les entrées sous « next », puis `python scripts/release.py publish`.
-# kind : new | improved | fixed | action ; structure : asso | sci (absent : toutes) ;
+# kind : new | improved | fixed | action ; structure : asso | sci | societe (absent : toutes) ;
 # text : pour l'utilisateur ; tech : précision pour CHANGELOG.md seulement.
-next: []
+next:
+- kind: new
+  structure: societe
+  text: Nouvelle structure « Société (SAS, SASU) » à la création d'une instance, avec le plan comptable général 2026,
+    le bilan et le compte de résultat présentés comme la liasse 2050 et le statut de jeune entreprise innovante dans la
+    Structure.
+  tech: 'Lot T1 : référentiel societe (data/plan_comptable_societe.json extrait du PCG 2026 par scripts/build_pcg_chart.py),
+    rôles de comptes 657 / 757, organization.jei_since (migration b2d4f6a8c0e1).'
+- kind: new
+  text: Codes de TVA sur les écritures (TVA par taux et par compte, base HT), régime TVA des tiers (France, Union
+    européenne, hors UE) avec autoliquidation des achats auprès de fournisseurs étrangers, et factures de vente sans TVA
+    française (autoliquidation, exportation) avec leur mention légale.
+  tech: 'Lot T2 : journal_lines.vat_code / vat_base_cents, entities / purchases / sales.vat_regime (migration c3e5a7b9d1f2),
+    data/vat_codes.json, app/services/vat_codes.py, PUT /entries/<id>/lines/<line_id>/vat, PUT /purchases/<id>/vat-regime.'
+- kind: new
+  text: Déclarations de TVA mensuelles (CA3) calculées depuis les écritures — cases du formulaire 2026 avec leur code
+    de saisie, lignes de chaque case, contrôles, écriture de liquidation, crédit reporté d'un mois sur l'autre, PDF et
+    tableur pour TeleDEC, mois verrouillé une fois la déclaration déposée.
+  tech: 'Lot T3 : vat_returns, journal_lines.vat_return_id, fiscal_years.vat_period, organization.vat_due_day
+    (migration d4f6b8c0e2a3), data/ca3/2026.json, app/services/vat_return.py, /api/v1/vat-returns, source VAT_RETURN.'
+- kind: new
+  text: Règles de catégorisation proposées depuis un mois, d'après les transactions réglées par une facture ou
+    catégorisées à la main ; création des nouvelles et mise à jour de celles dont le tiers ou le compte a changé.
+  tech: 'app/services/rule_suggestions.py, GET / POST /api/v1/rules/suggestions, Tiers › Règles › « Proposer depuis un mois ».'
+- kind: fixed
+  text: Une facture d'achat saisie se règle aussi par une transaction Qonto que Qonto ne rattache à aucune facture
+    (abonnement Qonto, facture absente du module Factures fournisseurs), automatiquement après la synchronisation.
+- kind: new
+  text: Facture d'achat créée depuis le justificatif d'un paiement Qonto (Banque › Transactions, « Créer la facture ») —
+    pièce téléchargée de Qonto et lue, formulaire prérempli, facture réglée par ce paiement.
+  tech: 'app/services/transaction_invoice.py, POST /api/v1/bank-transactions/<id>/purchase-draft, qonto_client.transaction,
+    attachments.stage_bytes, POST /purchases bank_transaction_id.'
 versions:
 - version: 2026.10.19
   date: 2026-10-26

@@ -76,7 +76,11 @@ def stage(file_storage) -> str:
     """Met en attente un fichier déposé (PDF, JPEG, PNG ≤ 10 Mo) ; renvoie son jeton."""
     if file_storage is None or not file_storage.filename:
         raise AttachmentError("Aucun fichier.")
-    body = file_storage.stream.read(MAX_SIZE + 1)
+    return stage_bytes(file_storage.stream.read(MAX_SIZE + 1), file_storage.filename)
+
+
+def stage_bytes(body: bytes, filename: str) -> str:
+    """Met en attente un contenu (justificatif téléchargé de Qonto…) ; mêmes contrôles qu'un dépôt."""
     if len(body) > MAX_SIZE:
         raise AttachmentError(f"Fichier trop volumineux (maximum {MAX_SIZE // (1024 * 1024)} Mo).")
     if not body:
@@ -89,7 +93,7 @@ def stage(file_storage) -> str:
     folder = _staging_dir()
     folder.mkdir(parents=True, exist_ok=True)
     (folder / token).write_bytes(body)
-    meta = {"name": Path(file_storage.filename).name[:200], "mime": kind[0], "ext": kind[1],
+    meta = {"name": Path(filename).name[:200], "mime": kind[0], "ext": kind[1],
             "size": len(body)}
     (folder / f"{token}.json").write_text(json.dumps(meta), encoding="utf-8")
     return token

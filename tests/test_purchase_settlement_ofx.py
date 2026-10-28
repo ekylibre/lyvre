@@ -65,11 +65,29 @@ def test_candidates_window_amount_and_bank(books):
     txn(books, date(2026, 8, 27))                       # avant date − 5 j
     txn(books, date(2026, 11, 4))                       # après échéance + 60 j
     txn(books, date(2026, 9, 5), amount=-4000)          # autre montant
-    txn(books, date(2026, 9, 5), bank=books["qonto"])   # compte Qonto : désigné par Qonto
+    claimed = txn(books, date(2026, 9, 5), bank=books["qonto"], fitid="qt-claimed")  # réclamée par Qonto
+    other = invoice(books, number="Q-9", post=False)
+    other.source, other.qonto_id = "qonto", "si-9"
+    other.payments.append(PurchasePayment(qonto_transaction_id=claimed.fitid, origin="qonto"))
+    db.session.commit()
     txn(books, date(2026, 9, 6), is_reversed=True)      # annulée
     late = txn(books, date(2026, 11, 3))                # dernier jour de la fenêtre
     assert ps.match_window(p) == (date(2026, 8, 28), date(2026, 11, 3))
     assert ps.match_candidates(p) == [good, late]
+
+
+def test_entered_invoice_paid_by_a_free_qonto_transaction(books):
+    """Facture saisie (abonnement Qonto, absente du module Factures fournisseurs) payée par le compte Qonto :
+    la transaction Qonto que Qonto ne rattache à aucune facture la règle ; la synchro le fait seule."""
+    p = invoice(books)
+    paid = txn(books, date(2026, 9, 2), bank=books["qonto"], fitid="qt-free")
+    assert ps.match_candidates(p) == [paid]
+    assert ps.auto_match()["matched"] == 1
+    assert p.payments[0].bank_transaction == paid and p.payments[0].journal_entry_id is not None
+    # Si Qonto désigne ensuite cette transaction pour la facture (facture envoyée à Qonto) : pas de second lien.
+    p.raw_payload = '{"matched_transactions": [{"transaction_id": "qt-free"}]}'
+    ps.link_invoice(p)
+    assert len(p.payments) == 1
 
 
 def test_candidates_prefer_same_supplier_then_nearest_date(books):

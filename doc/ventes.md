@@ -53,6 +53,19 @@ la facture, elle est **annulée**.
 Le compte client 411NNN est créé à la première facture et noté sur la fiche du tiers ; 44571 et
 44574 sont créés sous 4457 s'ils manquent.
 
+**Codes de TVA (lot T2)** : dans un exercice soumis à la TVA, une ligne de TVA par taux, codée `V20`,
+`V10`… avec sa base HT ; à l'encaissement, le virement 44574 → 44571 se fait aussi par taux, avec la
+base au prorata. C'est la **date de l'encaissement** qui place la TVA des prestations dans la
+déclaration.
+
+**Client hors de France** (régime TVA de la fiche ou de la pièce) : client de l'UE **avec n° de TVA** →
+pas de TVA française, mention « Autoliquidation — article 283-2 du CGI » (services) ou d'exonération
+(livraison intracommunautaire) ; client **hors UE** → exportation (biens) ou prestation hors de France
+(services). Les lignes passent à 0 %, la mention figure sur la facture et dans le Factur-X (catégories
+AE, K, G ou O), la ligne de produit est codée `V_UE_S`, `V_UE_B`, `V_EXP` ou `V_EXO`. Un client de l'UE
+sans n° de TVA (particulier) paie la TVA française. Limite : l'émission **par Qonto** ne transmet pas
+encore ces motifs d'exonération.
+
 ## Encaissements et relances
 
 - **Encaisser** (fiche d'une facture) :

@@ -85,7 +85,7 @@ def test_sci_compte_resultat_lines_and_result(session):
     assert "EXCÉDENT" not in rows
 
 
-@pytest.mark.parametrize("chart", ["asso", "sci"])
+@pytest.mark.parametrize("chart", ["asso", "sci", "societe"])
 def test_compte_resultat_counts_every_account_exactly_once(session, chart):
     """Chaque compte de classe 6 / 7 du référentiel est compté une seule fois
     (pas de recouvrement de préfixes, aucun compte oublié)."""
@@ -116,7 +116,7 @@ def test_asso_dont_lines_not_summed(session):
     assert rows["TOTAL I — Produits d'exploitation"][0] == 1500
 
 
-@pytest.mark.parametrize("chart", ["asso", "sci"])
+@pytest.mark.parametrize("chart", ["asso", "sci", "societe"])
 def test_bilan_balances_with_every_account(session, chart):
     """Une écriture équilibrée sur chaque compte (classes 1 à 7) du référentiel
     donne un bilan équilibré : aucun compte oublié ni compté deux fois."""

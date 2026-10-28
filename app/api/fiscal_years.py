@@ -20,7 +20,7 @@ def fiscal_year_payload(fy: FiscalYear) -> dict:
     return {"id": fy.id, "label": fy.label, "start_date": fy.start_date.isoformat(),
             "end_date": fy.end_date.isoformat(), "closed": fy.closed, "status": fy.status,
             "status_label": fy.status_label, "vat_liable": fy.vat_liable,
-            "vat_on_receipts": fy.vat_on_receipts, **period_lock.payload(fy)}
+            "vat_on_receipts": fy.vat_on_receipts, "vat_period": fy.vat_period, **period_lock.payload(fy)}
 
 
 def _date(data, key, label):
@@ -281,7 +281,7 @@ def fiscal_years_update(fy_id):
     à l'encaissement, sinon d'après les débits), sur un exercice ouvert."""
     fy = get_or_404(FiscalYear, fy_id, "Exercice introuvable.")
     data = json_body()
-    if "vat_liable" not in data and "vat_on_receipts" not in data:
+    if not {"vat_liable", "vat_on_receipts", "vat_period"} & data.keys():
         raise invalid("Rien à modifier.")
     if fy.closed:
         raise ApiError("conflict", "Cet exercice est clôturé.", status=409)
@@ -296,6 +296,16 @@ def fiscal_years_update(fy_id):
         mode = "à l'encaissement" if fy.vat_on_receipts else "d'après les débits"
         notices.append(notice(f"TVA des prestations de services exigible {mode} (exercice « {fy.label} »). "
                               "S'applique aux factures de vente émises à partir de maintenant."))
+    if "vat_period" in data:  # lot T3 : déclaration mensuelle (CA3) préparée dans Lyvre
+        if data["vat_period"] not in (None, "", "monthly"):
+            raise invalid("Période de déclaration inconnue.", "vat_period")
+        if data["vat_period"] and not fy.vat_liable:
+            raise invalid("Déclarez d'abord l'exercice soumis à la TVA.", "vat_period")
+        fy.vat_period = data["vat_period"] or None
+        notices.append(notice(f"Exercice « {fy.label} » : déclaration de TVA "
+                              f"{'mensuelle (CA3) préparée dans Lyvre' if fy.vat_period else 'non préparée dans Lyvre'}."))
+    if not fy.vat_liable:
+        fy.vat_period = None
     db.session.commit()
     return jsonify(item=fiscal_year_payload(fy), notices=notices)
 

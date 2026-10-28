@@ -34,6 +34,8 @@ class Entity(db.Model):
     # Identifiants du fournisseur côté Qonto / facture (rattachement des factures d'achat).
     qonto_supplier_id = db.Column(db.String(36), index=True)
     vat_number = db.Column(db.String(30), index=True)
+    # Lot T2 : régime TVA (fr | eu | world) : autoliquidation des achats, ventes sans TVA française.
+    vat_regime = db.Column(db.String(8), nullable=False, default="fr", server_default="fr")
     siret = db.Column(db.String(14), index=True)
     # SIREN : 9 premiers chiffres du SIRET (tenu à jour avec lui), ou seul (unité légale sans
     # établissement connu). Rapprochement des fournisseurs et mise à jour depuis Sirene (lot G).

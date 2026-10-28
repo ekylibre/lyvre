@@ -39,6 +39,8 @@ class FiscalYear(db.Model):
     # (garde des écritures) ; la clôture provisoire la porte au dernier jour (`lock_before_close` :
     # date à rétablir à la réouverture).
     locked_until = db.Column(db.Date)
+    # Lot T3 : déclaration de TVA de l'exercice (`monthly` : CA3 mensuelle ; nul : aucune dans Lyvre).
+    vat_period = db.Column(db.String(10))
     lock_before_close = db.Column(db.Date)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

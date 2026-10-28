@@ -7,6 +7,10 @@ d'émission :
 Un avoir produit l'écriture inverse. Le 411NNN est noté sur la fiche du client
 (`Entity.customer_account_code`) et créé dans le plan s'il manque, comme le 401NNN des fournisseurs ;
 44571 et 44574 sont créés sous 4457 s'ils manquent (le plan SCI n'a que 4457).
+
+Lot T2 : dans un exercice soumis à TVA, une ligne de TVA par taux et par compte, codée `V<taux>` avec sa
+base HT ; une vente sans TVA française (client de l'UE avec n° de TVA, client hors UE) porte son code
+(`V_UE_S`, `V_UE_B`, `V_EXP`, `V_EXO`) sur ses lignes de produit.
 """
 from __future__ import annotations
 
@@ -15,6 +19,7 @@ import re
 from app.extensions import db
 from app.models import Account, Entity, FiscalYear, Journal, Sale
 from app.models.journal_entry import SOURCE_SALE
+from app.services import vat_codes
 from app.services.ledger import LedgerError, post_entry
 
 CUSTOMER_PARENT = "411"
@@ -71,23 +76,33 @@ def vat_account(code_label: tuple[str, str]) -> Account:
     return account
 
 
-def entry_lines(sale: Sale, customer: Account) -> list[dict]:
+def _collected_now(sale: Sale, line) -> bool:
+    """TVA exigible à la facture (biens, ou option sur les débits) ; sinon à l'encaissement (44574)."""
+    return sale.vat_mode == "debits" or line.nature == "goods"
+
+
+def entry_lines(sale: Sale, customer: Account, coded: bool = False) -> list[dict]:
+    """Lignes de l'écriture VE ; `coded` (exercice soumis à TVA) : codes et bases de TVA (lot T2)."""
     label = f"{sale.entity.name} — {sale.number}"[:255]
-    credits: list[tuple[int, str, int, int | None]] = []
+    credits: list[tuple] = []
     for line in sale.lines:
         if line.untaxed_cents:
-            credits.append((line.account_id, line.label[:255], line.untaxed_cents, line.project_id))
-    collected = sum(l.vat_cents for l in sale.lines if l.nature == "goods" or sale.vat_mode == "debits")
-    on_receipts = sale.tax_cents - collected if sale.vat_mode == "receipts" else 0
-    if sale.vat_mode == "debits":
-        collected = sale.tax_cents
-    if collected:
-        credits.append((vat_account(VAT_COLLECTED).id, f"TVA — {label}", collected, None))
-    if on_receipts:
-        credits.append((vat_account(VAT_ON_RECEIPTS).id, f"TVA à encaisser — {label}", on_receipts, None))
+            code = vat_codes.sale_exemption_code(sale, line.nature) if coded and not line.vat_cents else None
+            credits.append((line.account_id, line.label[:255], line.untaxed_cents, line.project_id, code, None))
+    taxes: dict[tuple[bool, int], list[int]] = {}
+    for line in sale.lines:
+        if line.vat_cents:
+            totals = taxes.setdefault((_collected_now(sale, line), line.vat_rate_bp), [0, 0])
+            totals[0] += line.vat_cents
+            totals[1] += line.untaxed_cents
+    for (now, rate), (tax, base) in sorted(taxes.items(), key=lambda item: (not item[0][0], -item[0][1])):
+        account, text = (VAT_COLLECTED, "TVA") if now else (VAT_ON_RECEIPTS, "TVA à encaisser")
+        code = vat_codes.sale_tax_code(rate) if coded else None
+        credits.append((vat_account(account).id, f"{text} — {label}", tax, None, code, abs(base) if code else None))
     lines = [{"account_id": customer.id, "label": label, "debit_cents": sale.total_cents, "credit_cents": 0}]
     lines += [{"account_id": acc, "label": text, "debit_cents": max(-amount, 0), "credit_cents": max(amount, 0),
-               "project_id": project_id} for acc, text, amount, project_id in credits]
+               "project_id": project_id, "vat_code": code, "vat_base_cents": base}
+              for acc, text, amount, project_id, code, base in credits]
     if sale.kind == "credit_note":
         for line in lines:
             line["debit_cents"], line["credit_cents"] = line["credit_cents"], line["debit_cents"]
@@ -103,7 +118,7 @@ def post(sale: Sale, fy: FiscalYear):
     entry = post_entry(
         fiscal_year_id=fy.id, journal_id=_journal().id, entry_date=sale.issue_date,
         description=f"{kind} {sale.number} — {sale.entity.name}"[:500],
-        lines=entry_lines(sale, customer_account(sale.entity)), source=SOURCE_SALE,
+        lines=entry_lines(sale, customer_account(sale.entity), coded=fy.vat_liable), source=SOURCE_SALE,
         source_ref=f"SALE:{sale.id}", commit=False)
     sale.journal_entry = entry
     sale.journal_entry_id = entry.id

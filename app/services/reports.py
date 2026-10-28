@@ -3,6 +3,8 @@ Build Bilan and Compte de Résultat structures for each chart of accounts.
 
 - ``asso`` : modèle du plan comptable des associations (XLS de référence).
 - ``sci``  : plan comptable général adapté aux SCI (doc/plan-comptable-SCI.pdf).
+- ``societe`` : PCG 2026 d'une société commerciale, postes de la liasse 2050 (bilan) et 2052-2053
+  (compte de résultat).
 
 Each line aggregates account codes by prefix using database sums. The SCI
 layouts use disjoint prefixes (with exclusions) so that totals never count
@@ -244,6 +246,92 @@ BILAN_LAYOUTS = {
             ("total", "TOTAL PASSIF"),
         ],
     },
+    # Bilan d'une société (PCG 2026) : postes du tableau 2050 (actif) et 2051 (passif avant répartition).
+    "societe": {
+        "actif": [
+            ("row", "Capital souscrit non appelé", ["109"], 1),
+            ("section", "ACTIF IMMOBILISÉ"),
+            ("section", "Immobilisations incorporelles"),
+            ("row", "Frais d'établissement", ["201"], 2),
+            ("row", "Frais de développement", ["203"], 2),
+            ("row", "Concessions, brevets et droits similaires", ["205"], 2),
+            ("row", "Fonds commercial", ["206", "207"], 2),
+            ("row", "Autres immobilisations incorporelles", ["20"], 2, "debit", ["201", "203", "205", "206", "207"]),
+            ("row", "Immobilisations incorporelles en cours, avances et acomptes", ["232", "237"], 2),
+            ("section", "Immobilisations corporelles"),
+            ("row", "Terrains", ["211", "212"], 2),
+            ("row", "Constructions", ["213", "214"], 2),
+            ("row", "Installations techniques, matériel et outillage industriels", ["215"], 2),
+            ("row", "Autres immobilisations corporelles", ["21", "22"], 2, "debit",
+             ["211", "212", "213", "214", "215"]),
+            ("row", "Immobilisations corporelles en cours, avances et acomptes", ["23"], 2, "debit", ["232", "237"]),
+            ("section", "Immobilisations financières"),
+            ("row", "Participations", ["26"], 2, "debit", ["267", "268"]),
+            ("row", "Créances rattachées à des participations", ["267", "268"], 2),
+            ("row", "Autres titres immobilisés", ["271", "272", "273"], 2),
+            ("row", "Prêts", ["274"], 2),
+            ("row", "Autres immobilisations financières", ["27"], 2, "debit", ["271", "272", "273", "274"]),
+            ("row", "Amortissements et dépréciations des immobilisations", ["28", "29"], 1),
+            ("section", "ACTIF CIRCULANT"),
+            ("row", "Matières premières, approvisionnements", ["31", "32"], 1),
+            ("row", "En-cours de production de biens et de services", ["33", "34"], 1),
+            ("row", "Produits intermédiaires et finis", ["35", "36"], 1),
+            ("row", "Marchandises", ["37", "38"], 1),
+            ("row", "Dépréciations des stocks", ["39"], 1),
+            ("row", "Avances et acomptes versés sur commandes", ["4091"], 1, "debit_only"),
+            ("row", "Clients et comptes rattachés", ["41"], 1, "debit_only"),
+            ("row", "Autres créances", ["40", "42", "43", "44", "45", "46", "47"], 1, "debit_only",
+             ["4091", "476", "477"]),
+            ("row", "Dépréciations des comptes de tiers", ["49"], 1),
+            ("row", "Valeurs mobilières de placement", ["50", "59"], 1),
+            ("row", "Instruments de trésorerie", ["52"], 1, "debit_only"),
+            ("row", "Disponibilités", ["51", "53", "54", "58"], 1, "debit_only"),
+            ("row", "Charges constatées d'avance", ["486"], 1),
+            ("section", "COMPTES DE RÉGULARISATION"),
+            ("row", "Frais d'émission d'emprunt et charges à répartir", ["48"], 1, "debit", ["486", "487"]),
+            ("row", "Primes de remboursement des emprunts", ["169"], 1),
+            ("row", "Écarts de conversion actif", ["476"], 1),
+            ("total", "TOTAL ACTIF"),
+        ],
+        "passif": [
+            ("section", "CAPITAUX PROPRES"),
+            ("row", "Capital social ou individuel", ["101", "108"], 1),
+            ("row", "Primes d'émission, de fusion, d'apport", ["104"], 1),
+            ("row", "Écarts de réévaluation", ["105"], 1),
+            ("row", "Réserve légale", ["1061"], 1),
+            ("row", "Réserves statutaires ou contractuelles", ["1063"], 1),
+            ("row", "Réserves réglementées", ["1062", "1064"], 1),
+            ("row", "Autres réserves", ["10"], 1, "credit", ["101", "104", "105", "1061", "1062", "1063", "1064",
+                                                              "108", "109"]),
+            ("row", "Report à nouveau", ["11"], 1),
+            ("row", "Résultat de l'exercice (bénéfice ou perte)", ["12", "6", "7"], 1),
+            ("row", "Subventions d'investissement", ["13"], 1),
+            ("row", "Provisions réglementées", ["14"], 1),
+            ("section", "AUTRES FONDS PROPRES"),
+            ("row", "Produit des émissions de titres participatifs", ["1671"], 1),
+            ("row", "Avances conditionnées", ["1674"], 1),
+            ("section", "PROVISIONS"),
+            ("row", "Provisions pour risques", ["151"], 1),
+            ("row", "Provisions pour charges", ["15"], 1, "credit", ["151"]),
+            ("section", "DETTES"),
+            ("row", "Emprunts obligataires convertibles", ["161"], 1),
+            ("row", "Autres emprunts obligataires", ["163"], 1),
+            ("row", "Emprunts et dettes auprès des établissements de crédit", ["164"], 1),
+            ("row", "Concours bancaires courants", ["51", "53", "54", "58"], 1, "credit_only"),
+            ("row", "Emprunts et dettes financières divers", ["16", "17", "18"], 1, "credit",
+             ["161", "163", "164", "169", "1671", "1674"]),
+            ("row", "Associés — comptes courants", ["455"], 1, "credit_only"),
+            ("row", "Avances et acomptes reçus sur commandes en cours", ["4191"], 1, "credit_only"),
+            ("row", "Dettes fournisseurs et comptes rattachés", ["40"], 1, "credit_only", ["404", "405"]),
+            ("row", "Dettes fiscales et sociales", ["42", "43", "44"], 1, "credit_only"),
+            ("row", "Dettes sur immobilisations et comptes rattachés", ["404", "405"], 1, "credit_only"),
+            ("row", "Autres dettes", ["41", "45", "46", "47"], 1, "credit_only", ["4191", "455", "476", "477"]),
+            ("row", "Instruments de trésorerie", ["52"], 1, "credit_only"),
+            ("row", "Produits constatés d'avance", ["487"], 1),
+            ("row", "Écarts de conversion passif", ["477"], 1),
+            ("total", "TOTAL PASSIF"),
+        ],
+    },
 }
 
 
@@ -401,10 +489,72 @@ SCI_CDR_SECTIONS = [
         ("dotations", "Dotations aux amortissements et provisions", ["687"], []),
     ]),
 ]
+# Compte de résultat d'une société (PCG 2026, postes du tableau 2052-2053) : les cessions
+# d'immobilisations incorporelles et corporelles sont en exploitation (657 / 757), le résultat
+# exceptionnel se limite aux comptes 67 / 77 et 687 / 787.
+_SOCIETE_MATIERES = ["601", "602", "6091", "6092"]
+_SOCIETE_MARCHANDISES = ["607", "6097"]
+_SOCIETE_BIENS = ["701", "702", "703", "7091", "7092", "7093"]
+_SOCIETE_SALAIRES = ["641", "644", "648", "649"]
+SOCIETE_CDR_SECTIONS = [
+    ("produits_exploitation", "credit", [
+        ("ventes_marchandises", "Ventes de marchandises", ["707", "7097"], []),
+        ("production_biens", "Production vendue — biens", _SOCIETE_BIENS, []),
+        ("production_services", "Production vendue — services", ["70"], ["707", "7097", *_SOCIETE_BIENS]),
+        ("production_stockee", "Production stockée", ["71"], []),
+        ("production_immobilisee", "Production immobilisée", ["72"], []),
+        ("subventions", "Subventions d'exploitation", ["74"], []),
+        ("reprises", "Reprises sur amortissements, dépréciations et provisions", ["78"], ["786", "787"]),
+        ("cessions", "Produits des cessions d'immobilisations incorporelles et corporelles", ["757"], []),
+        ("autres_produits", "Autres produits", ["73", "75", "79"], ["757"]),
+    ]),
+    ("charges_exploitation", "debit", [
+        ("achats_marchandises", "Achats de marchandises", _SOCIETE_MARCHANDISES, []),
+        ("variation_marchandises", "Variation de stocks (marchandises)", ["6037"], []),
+        ("achats_matieres", "Achats de matières premières et autres approvisionnements", _SOCIETE_MATIERES, []),
+        ("variation_matieres", "Variation de stocks (matières premières et approvisionnements)", ["603"], ["6037"]),
+        ("autres_achats_charges_externes", "Autres achats et charges externes", ["60", "61", "62"],
+         ["603", *_SOCIETE_MARCHANDISES, *_SOCIETE_MATIERES]),
+        ("impots_taxes", "Impôts, taxes et versements assimilés", ["63"], []),
+        ("salaires", "Salaires et traitements", _SOCIETE_SALAIRES, []),
+        ("charges_sociales", "Charges sociales", ["64"], _SOCIETE_SALAIRES),
+        ("dotations_amortissements", "Dotations aux amortissements sur immobilisations", ["6811"], []),
+        ("dotations_depreciations_immo", "Dotations aux dépréciations sur immobilisations", ["6816"], []),
+        ("dotations_actif_circulant", "Dotations aux dépréciations sur actif circulant", ["6817"], []),
+        ("dotations_provisions", "Dotations aux provisions pour risques et charges", ["68"],
+         ["6811", "6816", "6817", "686", "687"]),
+        ("valeurs_cedees", "Valeurs comptables des immobilisations incorporelles et corporelles cédées", ["657"], []),
+        ("autres_charges", "Autres charges", ["65"], ["657"]),
+    ]),
+    ("produits_financiers", "credit", [
+        ("participations", "Produits financiers de participations", ["761"], []),
+        ("autres_valeurs", "Produits des autres valeurs mobilières et créances de l'actif immobilisé", ["762"], []),
+        ("autres_interets", "Autres intérêts et produits assimilés", ["76"], ["761", "762", "766", "767"]),
+        ("reprises", "Reprises sur dépréciations et provisions", ["786"], []),
+        ("differences_positives_change", "Différences positives de change", ["766"], []),
+        ("cessions_vmp", "Produits nets sur cessions de valeurs mobilières de placement", ["767"], ["7671"]),
+        ("cessions_immo_fin", "Produits de cessions d'immobilisations financières", ["7671"], []),
+    ]),
+    ("charges_financieres", "debit", [
+        ("dotations", "Dotations financières aux amortissements, dépréciations et provisions", ["686"], []),
+        ("interets", "Intérêts et charges assimilées", ["66"], ["666", "667"]),
+        ("differences_negatives_change", "Différences négatives de change", ["666"], []),
+        ("valeurs_cedees_fin", "Valeurs comptables des immobilisations financières cédées", ["6671"], []),
+        ("cessions_vmp", "Charges nettes sur cessions de valeurs mobilières de placement", ["667"], ["6671"]),
+    ]),
+    ("produits_exceptionnels", "credit", [
+        ("produits_exceptionnels", "Produits exceptionnels", ["77"], []),
+        ("reprises", "Reprises sur dépréciations et provisions", ["787"], []),
+    ]),
+    ("charges_exceptionnelles", "debit", [
+        ("charges_exceptionnelles", "Charges exceptionnelles", ["67"], []),
+        ("dotations", "Dotations exceptionnelles aux amortissements, dépréciations et provisions", ["687"], []),
+    ]),
+]
 PARTICIPATION = (["691"], [])
 IMPOTS_BENEFICES = (["69"], ["691"])
 
-CDR_SECTIONS = {"asso": ASSO_CDR_SECTIONS, "sci": SCI_CDR_SECTIONS}
+CDR_SECTIONS = {"asso": ASSO_CDR_SECTIONS, "sci": SCI_CDR_SECTIONS, "societe": SOCIETE_CDR_SECTIONS}
 
 
 def _cdr_labels(chart):

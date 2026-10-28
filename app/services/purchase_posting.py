@@ -8,6 +8,11 @@ prête ou comptabilisée. Une facture prête est comptabilisée automatiquement
     débit  44566 / 4456             TVA (exercice soumis à TVA)
     crédit 401xxx du fournisseur    TTC
 
+Lot T2 : dans un exercice soumis à TVA, une ligne de TVA par taux et par compte (44562 pour les lignes
+d'immobilisation, classe 2), codée `D<taux>` avec sa base HT. Fournisseur non établi en France
+(régime `eu` / `world`) : autoliquidation — facture au HT, débit 44566 (ou 44562) et crédit 4452 du
+même montant, codés `AL_S` (services) ou `AL_B` (biens de l'UE).
+
 Un avoir produit l'écriture inverse. Le compte 401xxx est celui de la fiche du
 fournisseur (`Entity.account_code`, convention 401NNN) ; il est créé dans le plan
 s'il n'existe pas, et un fournisseur sans code reçoit le suivant libre.
@@ -21,7 +26,7 @@ from decimal import Decimal, InvalidOperation
 
 from app.extensions import db
 from app.models import Account, Entity, FiscalYear, Journal, Product, Purchase, PurchaseLine
-from app.services import catalog, projects
+from app.services import catalog, projects, vat_codes
 from app.services.ledger import LedgerError, delete_entries, post_entry
 
 STATE_LABELS = {
@@ -128,8 +133,12 @@ def purchase_state(p: Purchase) -> State:
     if any(line.account is None or line.account.is_header for line in p.lines):
         reasons.append("Ligne sans compte de charge.")
     if fy is not None and fy.vat_liable:
-        if any(line.vat_rate_bp is None for line in p.lines):
+        foreign = p.entity is not None and vat_codes.purchase_regime(p) != "fr"
+        if any(line.vat_rate_bp is None for line in p.lines) and not foreign:
             reasons.append("Taux de TVA à confirmer.")
+        if foreign and any(line.vat_cents for line in p.lines):
+            reasons.append("Fournisseur hors de France avec de la TVA facturée : vérifiez son régime TVA "
+                           "(France si la facture porte la TVA française).")
         if any(line.vat_cents for line in p.lines) and vat_account() is None:
             reasons.append("Compte de TVA déductible (44566 ou 4456) absent du plan.")
     lines_total = sum(line.total_cents for line in p.lines)
@@ -153,6 +162,42 @@ def _journal() -> Journal:
     return journal
 
 
+def _deductible_account(line: PurchaseLine) -> Account:
+    """44562 pour une immobilisation (s'il existe), sinon le compte de TVA déductible habituel."""
+    if line.account is not None and (line.account.code or "").startswith("2"):
+        immo = Account.query.filter_by(code="44562", is_header=False).first()
+        if immo is not None:
+            return immo
+    return vat_account() or vat_codes.account("44566")
+
+
+def _vat_lines(p: Purchase, label: str) -> list[tuple]:
+    """Lignes de TVA d'un exercice soumis à TVA : (compte, libellé, montant, code, base), regroupées par
+    compte et par code ; l'autoliquidation ajoute la TVA due au crédit de 4452 (montant négatif)."""
+    regime = vat_codes.purchase_regime(p)
+    groups: dict[tuple[int, str | None], list[int]] = {}
+    for line in p.lines:
+        nature = line.product.nature if line.product is not None else "services"
+        if regime == "fr":
+            tax, rate = line.vat_cents, line.vat_rate_bp or 0
+        else:
+            rate = line.vat_rate_bp or 2000
+            tax = round(line.untaxed_cents * rate / 10000)
+        if not tax:
+            continue
+        code = vat_codes.purchase_code(regime, nature, rate)
+        key = (_deductible_account(line).id, code)
+        totals = groups.setdefault(key, [0, 0])
+        totals[0] += tax
+        totals[1] += line.untaxed_cents
+    lines = []
+    for (account_id, code), (tax, base) in groups.items():
+        lines.append((account_id, f"TVA — {label}", tax, code, abs(base)))
+        if regime != "fr":
+            lines.append((vat_codes.account("4452").id, f"TVA due (autoliquidation) — {label}", -tax, code, abs(base)))
+    return lines
+
+
 def entry_lines(p: Purchase, fy: FiscalYear, supplier: Account) -> list[dict]:
     """Lignes de l'écriture AC (sens d'une facture ; inversées pour un avoir)."""
     label = f"{p.entity.name} — {p.invoice_number or 'sans numéro'}"[:255]
@@ -160,13 +205,13 @@ def entry_lines(p: Purchase, fy: FiscalYear, supplier: Account) -> list[dict]:
     for line in p.lines:
         amount = line.untaxed_cents if fy.vat_liable else line.total_cents
         if amount:
-            debits.append((line.account_id, line.label or label, amount, line.project_id))
-    vat = sum(line.vat_cents for line in p.lines) if fy.vat_liable else 0
-    if vat:
-        debits.append((vat_account().id, f"TVA — {label}", vat, None))
+            debits.append((line.account_id, line.label or label, amount, line.project_id, None, None))
+    if fy.vat_liable:
+        debits += [(acc, text, amount, None, code, base) for acc, text, amount, code, base in _vat_lines(p, label)]
     # Une ligne négative (remise obtenue, 609) passe au crédit.
     lines = [{"account_id": acc, "label": text, "debit_cents": max(amount, 0),
-              "credit_cents": max(-amount, 0), "project_id": project_id} for acc, text, amount, project_id in debits]
+              "credit_cents": max(-amount, 0), "project_id": project_id, "vat_code": code, "vat_base_cents": base}
+             for acc, text, amount, project_id, code, base in debits]
     lines.append({"account_id": supplier.id, "label": label, "debit_cents": 0,
                   "credit_cents": p.total_cents})
     if p.is_credit_note:

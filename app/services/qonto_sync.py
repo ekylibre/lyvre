@@ -319,6 +319,10 @@ def sync_bank_account(bank_account_id, client=None, progress_cb=None) -> dict:
                 settlement = purchase_settlement.settle(transactions=created)
                 result["settled"] += settlement["settled"]
                 result["errors"].extend(settlement["errors"])
+                # Facture saisie (hors module Factures fournisseurs) : débit unique de même montant.
+                matching = purchase_settlement.auto_match()
+                result["settled"] += matching["settled"]
+                result["errors"].extend(matching["errors"])
                 # Crédit de même montant que le restant dû d'une seule facture de vente : encaissée.
                 from app.services import sale_settlement
                 sales = sale_settlement.auto_match()

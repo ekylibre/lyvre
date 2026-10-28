@@ -5,6 +5,7 @@ de Luhn (exception : La Poste, dont les établissements ont un SIREN 356000000 h
 format W + 9 chiffres.
 """
 import re
+from datetime import date
 
 from flask import g
 
@@ -97,6 +98,20 @@ def validate(data: dict) -> tuple[dict, dict]:
         errors["postal_code"] = "Code postal français : 5 chiffres."
     if "country" in clean and not clean["country"]:
         clean["country"] = "France"
+    if "jei_since" in data:
+        text = str(data.get("jei_since") or "").strip()
+        try:
+            clean["jei_since"] = date.fromisoformat(text) if text else None
+        except ValueError:
+            errors["jei_since"] = "Date attendue (AAAA-MM-JJ)."
+    if "vat_due_day" in data:  # lot T3 : échéance de la CA3 fixée par le SIE (15 à 24)
+        text = str(data.get("vat_due_day") or "").strip()
+        if not text:
+            clean["vat_due_day"] = None
+        elif text.isdigit() and 15 <= int(text) <= 24:
+            clean["vat_due_day"] = int(text)
+        else:
+            errors["vat_due_day"] = "Jour du mois entre 15 et 24 (voir votre espace professionnel)."
     if "associate_interest_rate" in data:
         from app.services.associates import AssociateError, parse_rate
         try:

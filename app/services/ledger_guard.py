@@ -31,7 +31,8 @@ from app.models import Account, EntryEvent, FiscalYear, Journal, JournalEntry, J
 from app.models.journal_entry import MANAGED_SOURCES
 from app.services.ledger_errors import LedgerGuardError, period_locked
 
-FREE_LINE_COLUMNS = frozenset({"project_id", "entity_id", "lettering_id"})
+# Lot T3 : `vat_return_id` (ligne retenue par une déclaration de TVA) change sur une écriture validée.
+FREE_LINE_COLUMNS = frozenset({"project_id", "entity_id", "lettering_id", "vat_return_id"})
 VALIDATION_COLUMNS = frozenset({"validation_number", "validated_at", "validation_batch_id"})
 VALIDATED_MESSAGE = "Écriture validée : elle ne se modifie plus ; contrepassez-la pour la corriger."
 
@@ -176,15 +177,19 @@ def _snapshot(session, entry_id):
     if head is None:
         return None
     rows = conn.execute(
-        select(accounts.c.code, lines.c.label, lines.c.debit_cents, lines.c.credit_cents, lines.c.project_id)
+        select(accounts.c.code, lines.c.label, lines.c.debit_cents, lines.c.credit_cents, lines.c.project_id,
+               lines.c.vat_code, lines.c.vat_base_cents)
         .select_from(lines.join(accounts, accounts.c.id == lines.c.account_id))
         .where(lines.c.entry_id == entry_id).order_by(lines.c.id)).all()
     return {
         "reference": head.reference, "entry_date": head.entry_date.isoformat() if head.entry_date else None,
         "journal": head.code, "description": head.description or "", "source": head.source,
         "fiscal_year_id": head.fiscal_year_id, "validation_number": head.validation_number,
+        # Code de TVA (lot T2) : noté seulement s'il existe, les instantanés antérieurs restent comparables.
         "lines": [{"account": r.code, "label": r.label or "", "debit_cents": r.debit_cents,
-                   "credit_cents": r.credit_cents, "project_id": r.project_id} for r in rows],
+                   "credit_cents": r.credit_cents, "project_id": r.project_id,
+                   **({"vat_code": r.vat_code, "vat_base_cents": r.vat_base_cents} if r.vat_code else {})}
+                  for r in rows],
     }
 
 

@@ -4,11 +4,11 @@ Ce fichier décrit **l'intégralité** des menus et sous-menus de l'application.
 L'affichage de chaque menu / sous-menu est piloté par le **plan comptable de
 l'instance courante** (``Instance.chart``) via la clé ``charts`` :
 
-    "charts": ["asso", "sci"]   # visible pour les deux plans comptables
-    "charts": ["asso"]          # visible uniquement pour une association
-    "charts": ["sci"]           # visible uniquement pour une SCI
+    "charts": ["asso", "sci", "societe"]  # visible pour tous les plans comptables
+    "charts": ["asso"]                    # visible uniquement pour une association
+    "charts": ["sci"]                     # visible uniquement pour une SCI
 
-Les menus communs sont déclarés pour les deux plans (``_ALL``) ; les
+Les menus communs sont déclarés pour tous les plans (``_ALL``) ; les
 fonctionnalités propres à une association (adhérents, bénévolat, Stancer,
 Odoo, indicateurs, tonnages) sont réservées au plan ``asso`` (``_ASSO``).
 Il suffit d'éditer les listes ``charts`` ci-dessous pour ajuster le
@@ -37,13 +37,13 @@ from __future__ import annotations
 
 # Tous les plans comptables connus (doit rester cohérent avec
 # app.services.instance_provisioning.CHARTS et seed_accounts.CHARTS).
-ALL_CHARTS = ("asso", "sci")
+ALL_CHARTS = ("asso", "sci", "societe")
 DEFAULT_CHART = "asso"
 
 # Raccourci : visible pour tous les plans comptables.
 _ALL = list(ALL_CHARTS)
 # Raccourci : fonctionnalités propres à une association (adhérents, bénévolat,
-# boutique/POS, indicateurs d'impact…), masquées pour une SCI.
+# boutique/POS, indicateurs d'impact…), masquées pour une SCI ou une société.
 _ASSO = ["asso"]
 
 
@@ -66,7 +66,7 @@ MENUS = [
         "key": "compta",
         "label": "Compta",
         "charts": _ALL,
-        "active": ["accounts", "journals", "fiscal_years", "products", "entries", "reports", "projects", "budgets", "budget_tracking",
+        "active": ["accounts", "journals", "fiscal_years", "vat_returns", "products", "entries", "reports", "projects", "budgets", "budget_tracking",
                    "lettering", "assets"],
         "items": [
             {"key": "entries", "label": "Écritures", "endpoint": "entries.index", "charts": _ALL, "bookkeeping": _DOUBLE},
@@ -84,6 +84,8 @@ MENUS = [
             {"key": "accounts", "label": "Plan comptable", "endpoint": "accounts.index", "charts": _ALL, "bookkeeping": _DOUBLE},
             {"key": "journals", "label": "Journaux", "endpoint": "journals.index", "charts": _ALL, "bookkeeping": _DOUBLE},
             {"key": "fiscal_years", "label": "Exercices", "endpoint": "fiscal_years.index", "charts": _ALL},
+            {"key": "vat_returns", "label": "Déclarations de TVA", "endpoint": "vat_returns.index", "charts": _ALL,
+             "feature": "vat_returns", "bookkeeping": _DOUBLE},
             {"key": "products", "label": "Catalogue", "endpoint": "products.index", "charts": _ALL, "bookkeeping": _DOUBLE},
         ],
     },

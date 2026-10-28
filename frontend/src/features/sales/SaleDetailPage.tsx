@@ -167,6 +167,7 @@ export default function SaleDetailPage() {
               {s.sent_at && <div><Text size="sm" c="dimmed">Envoyée</Text><Text className="lv-num">{formatDate(s.sent_at)}</Text></div>}
             </Group>
             <Text size="sm" c="dimmed" mt="sm">{s.vat_mode && VAT_MODE_LABELS[s.vat_mode]}</Text>
+            {s.vat_exemptions.map((mention) => <Text key={mention} size="sm" fw={600}>{mention}</Text>)}
           </Paper>
         </Grid.Col>
       </Grid>

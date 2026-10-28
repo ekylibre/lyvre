@@ -1,0 +1,42 @@
+{#- Déclaration de TVA préparée (lot T3) : cases dans l'ordre du formulaire 3310-CA3-SD, à saisir sur TeleDEC. -#}
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>CA3 {{ period }} — {{ org.name }}</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm; @bottom-right { content: "page " counter(page) " / " counter(pages); font-size: 8pt; color: #666; } }
+  body { font-family: "IBM Plex Sans", "DejaVu Sans", sans-serif; font-size: 9.5pt; color: #1E2421; }
+  h1 { font-size: 15pt; margin: 0 0 2mm; }
+  .meta { color: #555; margin-bottom: 5mm; }
+  .draft { border: 1px solid #b5502b; color: #b5502b; padding: 2mm 3mm; margin-bottom: 4mm; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 1.6mm 2mm; border-bottom: 0.3mm solid #ddd; vertical-align: top; }
+  th { text-align: left; font-size: 8.5pt; color: #555; }
+  td.num { text-align: right; font-family: "IBM Plex Mono", "DejaVu Sans Mono", monospace; white-space: nowrap; }
+  td.line { font-family: "IBM Plex Mono", "DejaVu Sans Mono", monospace; width: 10mm; }
+  td.code { font-family: "IBM Plex Mono", "DejaVu Sans Mono", monospace; color: #555; width: 12mm; }
+  tr.section td { background: #F6F4EE; font-weight: 600; padding-top: 3mm; }
+  tr.total td { font-weight: 600; }
+  .result { margin-top: 5mm; font-size: 11pt; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>Déclaration de TVA — {{ form }} du {{ start }} au {{ end }}</h1>
+<div class="meta">{{ org.name }}{% if org.siren %} — SIREN {{ org.siren }}{% endif %}{% if org.vat_number %} — TVA {{ org.vat_number }}{% endif %}
+  — formulaire {{ form_year }} — échéance {{ deadline }}{% if declared_on %} — déposée le {{ declared_on }}{% if reference %} (réf. {{ reference }}){% endif %}{% endif %}</div>
+{% if not validated %}<div class="draft">Projet non validé : les montants peuvent encore changer.</div>{% endif %}
+<table>
+  <thead><tr><th>Ligne</th><th>Code</th><th>Libellé</th><th>Base HT (€)</th><th>Montant (€)</th></tr></thead>
+  <tbody>
+  {% for row in rows %}
+    {% if row.kind == "section" %}<tr class="section"><td colspan="5">{{ row.label }}</td></tr>
+    {% else %}<tr class="{{ row.kind }}"><td class="line">{{ row.line }}</td><td class="code">{{ row.code or "" }}</td>
+      <td>{{ row.label }}</td><td class="num">{{ euros(row.base) if row.with_base else "" }}</td>
+      <td class="num">{{ euros(row.amount) }}</td></tr>{% endif %}
+  {% endfor %}
+  </tbody>
+</table>
+<p class="result">{% if due %}TVA nette due : {{ euros(due) }} €{% elif credit %}Crédit de TVA à reporter : {{ euros(credit) }} €{% else %}Déclaration néant{% endif %}</p>
+</body>
+</html>

@@ -322,8 +322,10 @@ def _lines(p: Purchase, rows) -> list[PurchaseLine]:
     return purchase_sync.default_lines(p, catalog.product_for(p.entity), [])
 
 
-def create(clean, rows, token=None) -> tuple[Purchase, dict]:
-    """Crée la facture, range la pièce, comptabilise si elle est prête. LedgerError sur les lignes."""
+def create(clean, rows, token=None, bank_transaction=None) -> tuple[Purchase, dict]:
+    """Crée la facture, range la pièce, comptabilise si elle est prête. LedgerError sur les lignes.
+    `bank_transaction` : transaction Qonto dont la facture vient (justificatif), reliée avant la
+    comptabilisation pour que le règlement porte sur elle."""
     p = Purchase(source="manual", lines_edited=True, currency="EUR",
                  idempotency_key=str(uuid.uuid4()))
     db.session.add(p)
@@ -334,6 +336,9 @@ def create(clean, rows, token=None) -> tuple[Purchase, dict]:
     db.session.flush()
     if token:
         attachments.store(p, token)
+    if bank_transaction is not None:
+        from app.services import transaction_invoice
+        transaction_invoice.link(p, bank_transaction)
     db.session.commit()
     return p, purchase_posting.post_ready([p])
 

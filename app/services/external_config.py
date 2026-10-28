@@ -77,6 +77,7 @@ DEFAULT_SCOPES: dict[str, set[str]] = {"qonto": {"transactions", "purchases"}}
 # Intégrations dont l'activation est proposée, par structure.
 RECOMMENDED: dict[str, list[str]] = {
     "sci":  ["qonto"],
+    "societe": ["qonto"],
     "asso": ["helloasso"],
 }
 

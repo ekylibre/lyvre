@@ -153,7 +153,11 @@ export default function TransactionsPage() {
           <Group gap={6}><Text size="sm">{t.label || "—"}</Text>
             {t.is_reversed && <StatusBadge tone="gap">Annulée</StatusBadge>}
             {attachment && <StatusBadge tone={attachment.tone}>{attachment.label}</StatusBadge>}
-            {t.invoices.map((inv) => <Anchor key={inv.id} href={inv.url} size="xs"><StatusBadge tone="info">{inv.label}</StatusBadge></Anchor>)}</Group>
+            {t.invoices.map((inv) => <Anchor key={inv.id} href={inv.url} size="xs"><StatusBadge tone="info">{inv.label}</StatusBadge></Anchor>)}
+            {t.purchase_from_attachment && can.write && (
+              <Button size="compact-xs" variant="light" component={AppLink} href={`/purchases/new?bank_transaction_id=${t.id}`}
+                title="Lit le justificatif Qonto et prépare la facture d'achat, réglée par cette transaction">
+                Créer la facture</Button>)}</Group>
           {t.note && <Text size="xs" c="dimmed">{t.note}</Text>}
         </Stack>
       );

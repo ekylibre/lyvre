@@ -13,13 +13,14 @@ import { useAction, useList, type Notice } from "../../api/resources";
 import { applyApiError, FormBody } from "../../components/ApiForm";
 import { confirmAction } from "../../components/ConfirmButton";
 import { DataGrid, type GridColumn } from "../../components/DataGrid";
-import { FormDrawer } from "../../components/FormModal";
+import { FormDrawer, FormModal } from "../../components/FormModal";
 import { MoneyInput } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
 import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatEuros } from "../../lib/format";
 import { useRouteModal } from "../../app/useRouteModal";
+import { RuleSuggestions } from "./RuleSuggestions";
 
 export interface Rule {
   id: number; position: number; name: string; label_contains: string | null; label_regex: string | null;
@@ -150,6 +151,7 @@ export default function RulesPage() {
   const can = useCan();
   const modal = useRouteModal("/rules/", "rule_id");
   const [overwrite, setOverwrite] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
   const { data, isFetching } = useList<Rule, { entity_types: string[]; projects: Option[] }>(KEY, "/api/v1/rules");
   const editing = modal.mode === "edit" ? data?.items.find((r) => r.id === modal.id) ?? null : null;
   const toggle = useAction((r: Rule) => api.patch<{ notices: Notice[] }>(`/api/v1/rules/${r.id}`, { is_active: !r.is_active }),
@@ -201,6 +203,7 @@ export default function RulesPage() {
           <Checkbox label="Réappliquer aux transactions déjà catégorisées" checked={overwrite}
             onChange={(e) => setOverwrite(e.currentTarget.checked)} />
           <Can><Button variant="default" loading={apply.isPending} onClick={() => apply.mutate(undefined)}>Appliquer les règles</Button></Can>
+          <Can><Button variant="default" onClick={() => setSuggesting(true)}>Proposer depuis un mois</Button></Can>
           <Can><Button onClick={modal.openNew}>Créer une règle</Button></Can>
         </>} />
       <DataGrid id="rules" records={items} columns={columns} fetching={isFetching}
@@ -210,6 +213,9 @@ export default function RulesPage() {
         <RuleForm key={editing?.id ?? "new"} rule={editing} entityTypes={data?.meta?.entity_types ?? []}
           projects={data?.meta?.projects ?? []} onDone={modal.close} />
       </FormDrawer>
+      <FormModal opened={suggesting} onClose={() => setSuggesting(false)} title="Règles proposées depuis un mois" size="xl">
+        {suggesting && <RuleSuggestions invalidate={[KEY]} onDone={() => setSuggesting(false)} />}
+      </FormModal>
     </>
   );
 }

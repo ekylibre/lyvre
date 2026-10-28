@@ -67,6 +67,11 @@ def _rule_fitids(transactions) -> set[str]:
     return {ref.removeprefix("RULE:") for (ref,) in rows}
 
 
+def _free_for_purchase(bt) -> bool:
+    from app.services import purchase_settlement
+    return purchase_settlement._free_for_matching(bt)  # noqa: SLF001 — même règle que le rapprochement
+
+
 def serialize_transaction(bt, invoices=None, rule_fitids=()):
     line = bt.journal_line
     return {
@@ -92,6 +97,9 @@ def serialize_transaction(bt, invoices=None, rule_fitids=()):
             if line else None
         ),
         "new_entry_url": url_for("entries.new", bt_id=bt.id),
+        # Débit Qonto avec justificatif, sans facture ni rapprochement : facture d'achat à créer depuis la pièce.
+        "purchase_from_attachment": bool(bt.source == "qonto" and bt.amount_cents < 0 and bt.attachment_count
+                                         and not bt.is_reversed and not invoices and _free_for_purchase(bt)),
         # Passée par une règle (tiers par défaut ou tiers de la règle) : un vrai tiers peut être attribué.
         "rule_tiers": bt.fitid in rule_fitids,
     }

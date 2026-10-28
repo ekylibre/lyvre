@@ -160,7 +160,7 @@ def instances_create():
         if not database_url:
             raise invalid("URL de base de données obligatoire en mode manuel.", "database_url")
     inst = Instance(slug=slug, label=label, database_url=database_url, chart=chart, bookkeeping=bookkeeping,
-                    has_associates=chart == "sci",
+                    has_associates=chart in ("sci", "societe"),
                     integrations=json.dumps({"enabled": sorted(integrations), "dismissed": []}),
                     is_active=True)
     counts = _save_with_grants(inst, grants, lambda: discard_sqlite_database(database_url) if auto else None)

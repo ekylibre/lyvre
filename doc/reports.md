@@ -52,13 +52,14 @@ choisi à la création de l'instance) :
 |------|----------------------------|
 | `asso` | Modèle du plan comptable des associations (règlement ANC 2018-06) : fonds propres, fonds reportés et dédiés, contributions volontaires en nature, ligne finale **EXCÉDENT / DÉFICIT** |
 | `sci` | Plan comptable général présenté pour une SCI : capital, comptes courants d'associés, dépôts de garantie, loyers, taxe foncière, ligne finale **BÉNÉFICE / PERTE** |
+| `societe` | PCG 2026 d'une société commerciale (SAS, SASU), postes de la liasse : bilan du **2050 / 2051** (frais de développement, réserve légale, avances conditionnées, comptes courants d'associés…), compte de résultat du **2052 / 2053** (production vendue biens / services, cessions d'immobilisations en exploitation 657 / 757, résultat exceptionnel limité aux 67 / 77), ligne finale **BÉNÉFICE / PERTE** |
 
 Règles de calcul, identiques pour les deux plans (mises en page déclaratives
 `BILAN_LAYOUTS` / `CDR_SECTIONS` dans `app/services/reports.py`) :
 
 - **Chaque compte est compté une seule fois.** Les lignes sont définies par des préfixes de
   comptes, avec exclusions (`60 sauf 603, 607`) ; les préfixes sont disjoints et couvrent
-  toutes les classes 1 à 7 des deux référentiels (vérifié par `tests/test_reports_charts.py`).
+  toutes les classes 1 à 7 des trois référentiels (vérifié par `tests/test_reports_charts.py`).
 - **Lignes « dont »** (ventes de dons en nature, parrainages) : informatives, exclues des totaux.
 - **Comptes de tiers et de trésorerie ventilés selon le sens de leur solde**, compte par compte :
   un solde débiteur va à l'actif (`[soldes débiteurs]`), un solde créditeur au passif

@@ -140,9 +140,9 @@ besoin de ligne. Voir [multi_tenant.md](multi_tenant.md#accès-par-instance-et-r
 | `slug` | String(50) UNIQUE NOT NULL | Identifiant URL-safe, sert de nom de fichier SQLite (`tenants/<slug>.db`) |
 | `label` | String(200) NOT NULL | Nom affiché (ex : « Seconde Nature ») |
 | `database_url` | String(500) NOT NULL | URL SQLAlchemy de la base tenant (SQLite relatif au dossier `instance/`, ou Postgres) |
-| `chart` | String(20) NOT NULL default=`asso` | Plan comptable de l'instance : `asso` (associations) ou `sci` (SCI). Choisi à la création, non modifiable ensuite ; pilote le référentiel chargé, les menus et la présentation du Bilan / Compte de résultat |
+| `chart` | String(20) NOT NULL default=`asso` | Plan comptable de l'instance : `asso` (associations), `sci` (SCI) ou `societe` (SAS, SASU). Choisi à la création, non modifiable ensuite ; pilote le référentiel chargé, les menus et la présentation du Bilan / Compte de résultat |
 | `integrations` | Text nullable | Intégrations de l'instance (JSON) : `{"enabled": [...], "dismissed": [...]}` — interrupteurs et propositions écartées (« Ne plus proposer »). `NULL` = jamais initialisée : à la première ouverture, activées = intégrations de la structure paramétrées dans sa base (`external_config.ensure_initialized`). Non restaurée avec une sauvegarde |
-| `has_associates` | Boolean NOT NULL default=False | Module « Associés » (sociétés) : menu et API `/associates`. Coché d'office à la création d'une instance au plan `sci` ; modifiable par l'administrateur de l'instance (Configuration › Structure) |
+| `has_associates` | Boolean NOT NULL default=False | Module « Associés » (sociétés) : menu et API `/associates`. Coché d'office à la création d'une instance au plan `sci` ou `societe` ; modifiable par l'administrateur de l'instance (Configuration › Structure) |
 | `is_active` | Boolean default=True | Faux = retirée du sélecteur d'instance ; sortie de session forcée si elle était choisie |
 | `created_at` | DateTime default=utcnow | |
 
@@ -182,6 +182,7 @@ FiscalYear ──────────────────── JournalE
 | `fec_sha256` · `fec_path` | String | FEC figé à la clôture définitive (phase A.3) |
 | `allocation_decided_on` · `allocation_body` | Date · String(100) | Décision d'affectation du résultat (phase A.5) |
 | `vat_liable` | Boolean NOT NULL default=False | Soumis à la TVA : TVA des factures d'achat en 44566 ; sinon incluse dans la charge |
+| `vat_period` | String(10) | Lot T3 (migration `d4f6b8c0e2a3`) : `monthly` = CA3 mensuelle préparée dans Lyvre (menu Déclarations de TVA) ; nul : aucune ; remis à nul si l'exercice n'est plus soumis |
 | `created_at` | DateTime | |
 
 **Relations :** `entries` → liste de `JournalEntry`
@@ -306,7 +307,7 @@ Migration `f5b7c9d1e3a5`. `assets` : `parent_id` (composant), `label`, `account_
 `in_service_entry_id`, `disposal_date` · `disposal_price_cents` · `disposal_entry_id` · `sale_id`, `notes`.
 `asset_depreciations` : dotation passée d'un exercice (`started_on`, `stopped_on`, `days` base 360,
 `amount_cents`, `entry_id`), unique par (immobilisation, exercice). `organization.depreciation_enabled`
-(None : oui pour une association, non pour une SCI). Source d'écriture `DEPRECIATION` (gérée par
+(None : oui pour une association ou une société, non pour une SCI). Source d'écriture `DEPRECIATION` (gérée par
 l'assistant) ; mise en service et sortie : source `ASSET`.
 
 ## AccountMapping / ImportProfile — Reprise d'historique (lot F6)
@@ -330,6 +331,16 @@ ouverts validées d'office.
 (`api:<endpoint>` ou `job`), `at`. Une création suivie de l'ajout de ses lignes dans la même
 transaction donne un seul événement.
 
+## VatReturn — Déclaration de TVA (lot T3)
+
+**Table :** `vat_returns` (migration `d4f6b8c0e2a3`) : une ligne par mois **validé** (un mois non validé
+se calcule à la volée). `fiscal_year_id`, `period_start` · `period_end`, `form` (`CA3`, unique avec
+`period_start`), `status` (`validated`, `declared`), `boxes_json` (cases figées en euros, lignes du
+formulaire et détail par code de TVA en centimes, millésime), `credit_carried_cents` (case 22),
+`due_cents` (TD / 28) · `credit_cents` (27), `liquidation_entry_id` (écriture OD source `VAT_RETURN`,
+gérée ; brouillard jusqu'au dépôt), `deadline`, `declared_on` · `declared_reference`,
+`validated_at` · `validated_by_user_id`. Service : `app/services/vat_return.py` ; guide : [tva.md](tva.md).
+
 ## Organization — Identité de la structure
 
 **Table :** `organization` (une ligne par base d'instance, créée à la première lecture avec le nom de l'instance)
@@ -344,6 +355,8 @@ transaction donne un seul événement.
 | `signatory_name` · `signatory_title` · `signature_path` | String | Signataire des reçus fiscaux (lot B) |
 | `legal_form` · `share_capital_cents` · `rcs_city` · `vat_number` | String / Integer | Mentions légales, seule source pour les factures et les baux (lot G2) ; mention d'immatriculation composée par `organization.rcs_mention` |
 | `naf_code` · `naf_nomenclature` | String(8) / String(12) | Activité, code sans point comme Sirene (« 6820B »), affiché « 68.20B » |
+| `vat_due_day` | Integer | Lot T3 : jour d'échéance de la CA3 (15 à 24) le mois suivant ; nul : 24 |
+| `jei_since` | Date | Jeune entreprise innovante depuis cette date (sociétés, lot T1, migration `b2d4f6a8c0e1`) ; repris par la liasse et les crédits d'impôt (lot suivant) |
 
 ## BrevoLink — Adhérent ↔ contact Brevo
 
@@ -444,6 +457,9 @@ entry_id SET NULL)` : dotation ou utilisation d'un exercice, avec son écriture
 | `credit_cents` | Integer default=0 | Montant crédit **en centimes** |
 | `project_id` | Integer FK→projects SET NULL, indexé | Projet / activité (lot C.1) ; une ligne ventilée devient plusieurs lignes de même compte |
 | `entity_id` | Integer FK→entities SET NULL | Donateur d'une ligne de don choisi explicitement (reçus fiscaux, lot B.2) |
+| `vat_code` | String(16), indexé | Code de TVA (`data/vat_codes.json`, lot T2, migration `c3e5a7b9d1f2`) : sur une ligne de taxe (445…), ou sur la ligne de produit d'une vente sans TVA française |
+| `vat_base_cents` | Integer | Base HT d'une ligne de taxe, toujours positive : son signe est celui de la ligne (contrepassation, avoir) |
+| `vat_return_id` | FK→vat_returns SET NULL, indexé | Lot T3 : déclaration qui a retenu la ligne ; colonne libre de la garde (posée sur une écriture validée) |
 | `created_at` | DateTime | |
 
 > Les montants sont stockés en centimes entiers pour éviter les erreurs d'arrondi flottant. Ex : 1 234,56 € → `123456`.
@@ -575,6 +591,7 @@ comme fournisseur, pour les transactions présentes et futures.
 | `default_product_id` | FK→products ON DELETE SET NULL | Produit proposé sur les lignes de ses factures d'achat |
 | `qonto_supplier_id` | String(36) (indexé) | Identifiant du fournisseur dans Qonto |
 | `vat_number` / `siret` / `iban` | String(30) / String(14) (indexés) / String(34) | Reconnaissance du fournisseur : id Qonto → TVA → SIRET → IBAN → nom (`purchase_sync.find_supplier`) |
+| `vat_regime` | String(8) NOT NULL default=`fr` | Régime TVA (lot T2) : `fr`, `eu`, `world` ; proposé d'après le n° de TVA ou le pays à la création (aussi par les synchronisations) ; `purchases.vat_regime` et `sales.vat_regime` le remplacent sur une pièce |
 | `siren` | String(9) (indexé) | 9 premiers chiffres du SIRET, dérivés à chaque écriture du SIRET (`Entity._derive_siren`) ; peut exister seul (lot G2) |
 | `naf_code` · `naf_nomenclature` | String(8) / String(12) | Activité du tiers (Sirene) |
 | `address_line1` · `address_line2` · `postal_code` · `city` · `country` | String | Adresse du donateur (lot B.1, migration `c1e5a7b9d402`) ; exigée à l'émission d'un reçu, pas à la saisie |

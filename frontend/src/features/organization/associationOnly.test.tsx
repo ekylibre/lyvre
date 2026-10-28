@@ -12,7 +12,7 @@ import type { Entity } from "../entities/types";
 import OrganizationPage from "./OrganizationPage";
 
 const json = (body: unknown) => Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
-const session = (chart: "asso" | "sci"): Session => ({ ...TEST_SESSION, role: "admin",
+const session = (chart: "asso" | "sci" | "societe"): Session => ({ ...TEST_SESSION, role: "admin",
   permissions: { write: true, instance_admin: true }, instance: { ...TEST_SESSION.instance!, chart } });
 
 const ENTITY: Entity = {
@@ -28,7 +28,7 @@ const ORGANIZATION = {
   name: "Structure", siren: null, rna: null, address_line1: null, address_line2: null, postal_code: null, city: null,
   country: null, purpose: null, signatory_name: null, signatory_title: null, legal_form: null, rcs_city: null,
   vat_number: null, share_capital: "", naf_code: null, naf_nomenclature: null, rcs_mention: "",
-  fec_ready: false, has_associates: false, associate_interest_rate: "0",
+  fec_ready: false, has_associates: false, associate_interest_rate: "0", jei_since: null, vat_due_day: "",
 };
 
 let sci = false;
@@ -82,6 +82,7 @@ describe("SCI", () => {
   it("Structure : bloc Associés, sans RNA ni signataire", async () => {
     renderWithProviders(<OrganizationPage />, { session: session("sci") });
     expect(await screen.findByText("Associés (sociétés)")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Jeune entreprise innovante depuis")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Numéro RNA")).not.toBeInTheDocument();
     expect(screen.queryByText("Signataire des reçus fiscaux")).not.toBeInTheDocument();
     expect(screen.queryByText(/reçus fiscaux/)).not.toBeInTheDocument();
@@ -110,5 +111,16 @@ describe("SCI", () => {
     renderWithProviders(<DashboardPage />, { session: session("sci") });
     expect(await screen.findByText("Résultat courant")).toBeInTheDocument();
     expect(screen.queryByText("Adhésions")).not.toBeInTheDocument();
+  });
+});
+
+describe("société", () => {
+  beforeEach(() => { sci = true; });
+
+  it("Structure : bloc Société avec le statut JEI, sans RNA", async () => {
+    renderWithProviders(<OrganizationPage />, { session: session("societe") });
+    expect(await screen.findByText("Société")).toBeInTheDocument();
+    expect(screen.getByLabelText("Jeune entreprise innovante depuis")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Numéro RNA")).not.toBeInTheDocument();
   });
 });

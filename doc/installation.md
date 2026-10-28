@@ -60,7 +60,7 @@ Variables disponibles :
 | `ADMIN_PASSWORD` | `admin` | Mot de passe du premier admin (uniquement utilisé par `seed_meta.py`). |
 | `DEFAULT_INSTANCE_SLUG` | `seconde-nature` | Slug de la 1ère instance créée par `seed_meta.py`. |
 | `DEFAULT_INSTANCE_LABEL` | `Seconde Nature` | Libellé de la 1ère instance. |
-| `DEFAULT_INSTANCE_CHART` | `asso` | Plan comptable de la 1ère instance (`asso` ou `sci`) : chargé par `seed_accounts.py` sans argument dans une base vide, et enregistré par `seed_meta.py`. Une base déjà remplie garde son plan. |
+| `DEFAULT_INSTANCE_CHART` | `asso` | Plan comptable de la 1ère instance (`asso`, `sci` ou `societe`) : chargé par `seed_accounts.py` sans argument dans une base vide, et enregistré par `seed_meta.py`. Une base déjà remplie garde son plan. |
 | `DEFAULT_INSTANCE_URL` | `sqlite:///seconde-nature.db` | URL de la base tenant de la 1ère instance (relative au dossier `instance/`). |
 | `STANCER_SECRET_KEY` | (vide) | Clé secrète Stancer (`sk_xxx`) utilisée pour interroger l'API v2 (`/v2/payouts` et `/v2/payouts/{id}/payments`). Tant qu'elle n'est pas définie, le bouton de synchronisation des Versements Stancer reste désactivé. |
 | `STANCER_MODE` | `live` | Mode Stancer : `live` ou `test` |
@@ -88,10 +88,12 @@ FLASK_APP=run.py flask db upgrade
 # Charger le plan comptable et les journaux par défaut
 python seed_accounts.py          # plan associatif (783 comptes) — défaut
 # python seed_accounts.py sci    # plan SCI (576 comptes)
+# python seed_accounts.py societe  # plan des sociétés SAS / SASU (837 comptes, PCG 2026)
 ```
 
 L'argument choisit le référentiel : `asso` (`data/plan_comptable_asso.json`) ou
-`sci` (`data/plan_comptable_sci.json`, généré depuis `doc/plan-comptable-SCI.pdf`).
+`sci` (`data/plan_comptable_sci.json`, généré depuis `doc/plan-comptable-SCI.pdf`) ou `societe`
+(`data/plan_comptable_societe.json`, généré depuis le PCG 2026 par `scripts/build_pcg_chart.py`).
 Sans argument, le script complète le plan **déjà présent** dans la base (détecté par ses comptes
 propres) ; une base vide reçoit `DEFAULT_INSTANCE_CHART` (défaut `asso`). Un argument contraire au
 plan déjà chargé est refusé, pour ne jamais mélanger les deux référentiels.
@@ -175,7 +177,7 @@ Depuis l'UI, un admin peut créer d'autres instances via le menu **Utilisateur �
 
 1. Crée le fichier SQLite `instance/tenants/<slug>.db`
 2. Applique les migrations du schéma comptable
-3. Charge le plan comptable choisi dans le formulaire (**Association** : 783 comptes, **SCI** : 576 comptes) + 6 journaux
+3. Charge le plan comptable choisi dans le formulaire (**Association** : 783 comptes, **SCI** : 576 comptes, **Société** : 837 comptes) + 6 journaux
 
 Le plan comptable est mémorisé sur l'instance (`Instance.chart`) et adapte les menus et la
 présentation du Bilan / Compte de résultat (voir [multi_tenant.md](multi_tenant.md#plan-comptable-de-linstance)).

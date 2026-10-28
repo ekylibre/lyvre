@@ -34,4 +34,8 @@ class Organization(db.Model):
     lettering_gap_cents = db.Column(db.Integer, nullable=False, default=100, server_default="100")
     # Lot F5 : amortissements comptabilisés (None : oui pour une association, non pour une SCI à l'IR).
     depreciation_enabled = db.Column(db.Boolean)
+    # Lot T1 : jeune entreprise innovante depuis cette date (sociétés ; liasse et crédits d'impôt).
+    jei_since = db.Column(db.Date)
+    # Lot T3 : jour d'échéance de la CA3 (fixé par le SIE, du 15 au 24 du mois suivant) ; nul : 24.
+    vat_due_day = db.Column(db.Integer)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

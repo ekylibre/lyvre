@@ -12,7 +12,7 @@ class Instance(db.Model):
     slug = db.Column(db.String(50), unique=True, nullable=False, index=True)
     label = db.Column(db.String(200), nullable=False)
     database_url = db.Column(db.String(500), nullable=False)
-    # Plan comptable de l'instance ("asso", "sci", …). Pilote l'affichage des
+    # Plan comptable de l'instance ("asso", "sci", "societe"). Pilote l'affichage des
     # menus (voir app/menu_config.py).
     chart = db.Column(db.String(20), nullable=False, default="asso", server_default="asso")
     # Mode de tenue (lot D, D19) : "double" (partie double) ou "simple" (recettes et dépenses,

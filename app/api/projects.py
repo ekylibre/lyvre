@@ -8,6 +8,7 @@ from flask import jsonify, request
 from app.extensions import db
 from app.models import JournalLine, Project
 from app.services import projects
+from app.services.ledger_errors import LedgerGuardError
 
 from . import ApiError, bp, get_or_404, json_body, notice
 
@@ -74,6 +75,35 @@ def entry_line_project(entry_id, line_id):
     with _errors():
         projects.set_line_project(line, json_body().get("project_id"))
     return jsonify(notices=[notice("Projet de la ligne enregistré.")])
+
+
+@bp.route("/entries/<int:entry_id>/lines/<int:line_id>/vat", methods=["PUT"])
+def entry_line_vat(entry_id, line_id):
+    """Lot T2 : `{vat_code, vat_base_cents}` (code vide : aucun) d'une ligne d'écriture en brouillard, même
+    rapprochée ; une écriture validée se corrige par contrepassation (garde F1)."""
+    from app.services import vat_codes
+
+    line = _line(entry_id, line_id)
+    data = json_body()
+    code = (data.get("vat_code") or "").strip() or None
+    if code is not None and not vat_codes.is_known(code):
+        raise ApiError("validation_error", "Code de TVA inconnu.", 422, {"vat_code": "Code de TVA inconnu."})
+    base = data.get("vat_base_cents")
+    try:
+        base = int(base) if base not in (None, "") and code else None
+    except (TypeError, ValueError):
+        base = -1
+    if base is not None and base < 0:
+        raise ApiError("validation_error", "Base HT invalide.", 422, {"vat_base_cents": "Montant positif attendu."})
+    if line.entry.fiscal_year.closed:
+        raise ApiError("conflict", "Exercice clôturé.", 409)
+    line.vat_code, line.vat_base_cents = code, base
+    try:
+        db.session.commit()
+    except LedgerGuardError as exc:
+        db.session.rollback()
+        raise ApiError(exc.code, str(exc), 409) from None
+    return jsonify(notices=[notice("TVA de la ligne enregistrée.")])
 
 
 @bp.route("/entries/<int:entry_id>/lines/<int:line_id>/split", methods=["POST"])

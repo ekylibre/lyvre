@@ -10,6 +10,9 @@
       "sci": [
         "671",
         "678"
+      ],
+      "societe": [
+        "658"
       ]
     },
     "lettering_gap_income": {
@@ -20,6 +23,9 @@
       "sci": [
         "7718",
         "778"
+      ],
+      "societe": [
+        "758"
       ]
     },
     "depreciation_expense": {
@@ -28,6 +34,9 @@
         "6811"
       ],
       "sci": [
+        "6811"
+      ],
+      "societe": [
         "6811"
       ]
     },
@@ -39,6 +48,9 @@
       ],
       "sci": [
         "675"
+      ],
+      "societe": [
+        "657"
       ]
     },
     "disposal_proceeds": {
@@ -49,6 +61,9 @@
       ],
       "sci": [
         "775"
+      ],
+      "societe": [
+        "757"
       ]
     },
     "disposal_receivable": {
@@ -57,6 +72,9 @@
         "462"
       ],
       "sci": [
+        "462"
+      ],
+      "societe": [
         "462"
       ]
     },
@@ -68,6 +86,58 @@
       ],
       "sci": [
         "231"
+      ],
+      "societe": [
+        "231"
+      ]
+    },
+    "vat_payable": {
+      "label": "TVA à décaisser (déclaration de TVA)",
+      "asso": [
+        "44551"
+      ],
+      "sci": [
+        "44551",
+        "4455"
+      ],
+      "societe": [
+        "44551"
+      ]
+    },
+    "vat_credit": {
+      "label": "Crédit de TVA à reporter",
+      "asso": [
+        "44567"
+      ],
+      "sci": [
+        "44567"
+      ],
+      "societe": [
+        "44567"
+      ]
+    },
+    "vat_rounding_expense": {
+      "label": "Arrondi de la déclaration de TVA (charge)",
+      "asso": [
+        "658"
+      ],
+      "sci": [
+        "678"
+      ],
+      "societe": [
+        "658"
+      ]
+    },
+    "vat_rounding_income": {
+      "label": "Arrondi de la déclaration de TVA (produit)",
+      "asso": [
+        "758"
+      ],
+      "sci": [
+        "778"
+      ],
+      "societe": [
+        "758"
       ]
     }
   }

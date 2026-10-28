@@ -17,6 +17,7 @@ from pathlib import Path
 CHARTS = {
     "asso": "plan_comptable_asso.json",
     "sci": "plan_comptable_sci.json",
+    "societe": "plan_comptable_societe.json",
 }
 DEFAULT_CHART = "asso"
 DATA_DIR = Path(__file__).parent / "data"

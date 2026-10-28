@@ -11,7 +11,7 @@ import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { FormModal } from "../../components/FormModal";
 import { PageHeader } from "../../components/PageHeader";
 import { Can } from "../../components/Can";
-import { useBookkeeping, useCan } from "../../api/session";
+import { SESSION_KEY, useBookkeeping, useCan } from "../../api/session";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { useRouteModal } from "../../app/useRouteModal";
@@ -22,6 +22,8 @@ import { LockForm, UnlockForm } from "./PeriodLock";
 
 export interface FiscalYear {
   id: number; label: string; start_date: string; end_date: string; closed: boolean; vat_liable: boolean; vat_on_receipts?: boolean;
+  /** Lot T3 : déclaration de TVA préparée dans Lyvre (`monthly` : CA3 mensuelle). */
+  vat_period?: "monthly" | null;
   status: "open" | "provisional" | "closed"; status_label: string;
   /** Lot F2 : date de verrouillage, première date où l'on peut écrire. */
   locked_until?: string | null; first_open_date?: string | null;
@@ -82,6 +84,9 @@ export default function FiscalYearsPage() {
   const setVatMode = useAction((fy: FiscalYear) =>
     api.patch<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}`, { vat_on_receipts: !fy.vat_on_receipts }),
     { invalidate: [FISCAL_YEARS_KEY] });
+  const setVatPeriod = useAction((fy: FiscalYear) =>
+    api.patch<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}`, { vat_period: fy.vat_period ? null : "monthly" }),
+    { invalidate: [FISCAL_YEARS_KEY, SESSION_KEY] });  // menu « Déclarations de TVA »
   const simple = useBookkeeping() === "simple";
   const can = useCan();
   const lock = useAction((fy: FiscalYear) => api.post<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}/lock`,
@@ -129,7 +134,8 @@ export default function FiscalYearsPage() {
     { accessor: "vat_liable", title: "TVA",
       render: (fy) => <Group gap={6} wrap="nowrap">
         <StatusBadge tone={fy.vat_liable ? "info" : "neutral"}>{fy.vat_liable ? "Soumis" : "Non soumis"}</StatusBadge>
-        {fy.vat_liable && <Text size="xs" c="dimmed">{fy.vat_on_receipts === false ? "services : sur les débits" : "services : à l'encaissement"}</Text>}
+        {fy.vat_liable && <Text size="xs" c="dimmed">{fy.vat_on_receipts === false ? "services : sur les débits" : "services : à l'encaissement"}
+          {fy.vat_period === "monthly" && " · CA3 mensuelle"}</Text>}
       </Group> },
     ...closingColumns,
     { accessor: "actions", title: "", hideable: false, textAlign: "right",
@@ -144,6 +150,12 @@ export default function FiscalYearsPage() {
             title="TVA des prestations de services ; s'applique aux factures de vente émises à partir de maintenant"
             onClick={() => setVatMode.mutate(fy)}>
             {fy.vat_on_receipts === false ? "TVA à l'encaissement" : "Option TVA sur les débits"}
+          </Button>}
+          {fy.vat_liable && !simple && <Button variant="subtle" size="compact-sm"
+            loading={setVatPeriod.isPending && setVatPeriod.variables?.id === fy.id}
+            title="Prépare la déclaration de TVA de chaque mois (Compta › Déclarations de TVA)"
+            onClick={() => setVatPeriod.mutate(fy)}>
+            {fy.vat_period ? "Ne plus préparer la CA3" : "Déclaration mensuelle (CA3)"}
           </Button>}
         </Group>
       ) },

@@ -13,6 +13,7 @@ from app.models import Account, BankAccount, BankTransaction, Entity, Lease, Ren
 from app.models.sale import OPERATION_TYPES, PAYMENT_METHODS, QUOTE_STATUS_LABELS, STATUS_LABELS
 from app.services import (
     billing, catalog, external_config, projects, qonto_sales, sale_documents, sale_entry, sale_issue, sale_settlement,
+    vat_codes,
 )
 from app.services.sale_entry import SaleError
 from app.utils.list_filters import apply_month_filter, month_options_for_fy, parse_month
@@ -83,6 +84,7 @@ def sale_detail(s: Sale) -> dict:
             "service_start": _iso(s.service_start), "service_end": _iso(s.service_end),
             "operation_type": s.operation_type, "purchase_order": s.purchase_order or "", "terms": s.terms or "",
             "header": s.header or "", "footer": s.footer or "", "vat_mode": s.vat_mode,
+            "vat_regime": vat_codes.sale_regime(s), "vat_exemptions": sale_documents.exemption_mentions(s),
             "credit_reason": s.credit_reason, "lines": [_line(l) for l in s.lines],
             "vat_rows": sale_documents.vat_rows(s),
             "journal_entry": {"id": s.journal_entry_id, "reference": s.journal_entry.reference}
@@ -177,7 +179,8 @@ def sales_form_options():
     fy = sale_entry.fiscal_year_for(date.today())
     default_account = sale_entry.default_sale_account()
     return jsonify(
-        clients=[{"value": str(e.id), "label": e.name} for e in Entity.query.order_by(Entity.name)],
+        clients=[{"value": str(e.id), "label": e.name, "vat_regime": e.vat_regime or "fr",
+                  "vat_number": e.vat_number or ""} for e in Entity.query.order_by(Entity.name)],
         products=[{"value": str(p.id), "label": p.name, "account": p.sale_account.code if p.sale_account else "",
                    "rate": catalog.format_rate(p.vat_rate_bp).replace(" %", "") if p.vat_rate_bp is not None else "",
                    "price": "" if p.sale_price_cents is None else _money(p.sale_price_cents),
@@ -188,6 +191,7 @@ def sales_form_options():
         default_account=default_account.code if default_account else "",
         projects=projects.options(), units=UNIT_OPTIONS,
         operation_types=[{"value": k, "label": v} for k, v in OPERATION_TYPES.items()],
+        vat_regimes=[{"value": k, "label": v} for k, v in vat_codes.regime_labels().items()],
         vat_mode=sale_entry.vat_mode_for(date.today()), vat_liable=bool(fy and fy.vat_liable),
         qonto=external_config.scope_available("qonto", "sales"),
         payment_terms_days=settings.payment_terms_days)

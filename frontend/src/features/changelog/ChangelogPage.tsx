@@ -10,18 +10,19 @@ import { PageHeader } from "../../components/PageHeader";
 import { formatDate } from "../../lib/format";
 
 type Kind = "action" | "new" | "improved" | "fixed";
-interface Entry { kind: Kind; structure?: "asso" | "sci"; text: string }
+interface Entry { kind: Kind; structure?: "asso" | "sci" | "societe"; text: string }
 interface Release { version: string; date: string; title: string; entries: Entry[] }
 
 const SECTIONS: { kind: Exclude<Kind, "action">; label: string }[] = [
   { kind: "new", label: "Nouveautés" }, { kind: "improved", label: "Améliorations" }, { kind: "fixed", label: "Corrections" },
 ];
-const STRUCTURES = { asso: "Associations", sci: "SCI" };
+const STRUCTURES = { asso: "Associations", sci: "SCI", societe: "Sociétés" };
+const STRUCTURE_COLORS = { asso: "lichen", sci: "ardoise", societe: "gray" };
 
 function Item({ entry }: { entry: Entry }) {
   return (
     <List.Item>
-      {entry.structure && <Badge size="xs" variant="light" color={entry.structure === "sci" ? "ardoise" : "lichen"} mr={6}>
+      {entry.structure && <Badge size="xs" variant="light" color={STRUCTURE_COLORS[entry.structure]} mr={6}>
         {STRUCTURES[entry.structure]}</Badge>}
       {entry.text}
     </List.Item>

@@ -45,7 +45,9 @@ export interface LineRow {
 
 export interface ProductOption extends Option { account: string; rate: string }
 
-export interface FormOptions { products: ProductOption[]; charge_accounts: Option[]; qonto: QontoState; projects?: Option[] }
+export interface FormOptions {
+  products: ProductOption[]; charge_accounts: Option[]; qonto: QontoState; projects?: Option[]; vat_regimes?: Option[];
+}
 
 export interface Payment {
   id: number; origin: "qonto" | "match" | "manual" | "associate"; status: "to_import" | "settled" | "reversed" | "other_entry" | "pending";
@@ -60,6 +62,8 @@ export interface PurchaseDetail {
   item: Purchase & {
     payment_date: string | null; untaxed_cents: number | null; tax_cents: number | null;
     supplier_vat: string | null; supplier_siret: string | null; supplier_iban: string | null; supplier_account_code: string | null;
+    /** Lot T2 : régime TVA choisi sur la facture (nul : celui du fournisseur) et régime appliqué. */
+    vat_regime?: string | null; effective_vat_regime?: string | null;
     attachment: { name: string; size: number | null; mime: string; url: string } | null;
     entry: { reference: string; date: string; url: string } | null;
   };

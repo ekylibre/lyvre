@@ -1,0 +1,30 @@
+{
+  "_comment": "Codes de TVA portés par les lignes d'écriture (lot T2, claudedocs/design_societe_tva.md § 3.2). La correspondance code → case de la CA3 est dans data/ca3/<année>.json (lot T3). Ligne de taxe : vat_base_cents = base HT ; ligne de base (opération sans taxe) : la base est le montant de la ligne.",
+  "codes": {
+    "V20": {"label": "Vente imposable 20 %", "side": "sale", "on": "tax", "rate_bp": 2000},
+    "V10": {"label": "Vente imposable 10 %", "side": "sale", "on": "tax", "rate_bp": 1000},
+    "V55": {"label": "Vente imposable 5,5 %", "side": "sale", "on": "tax", "rate_bp": 550},
+    "V21": {"label": "Vente imposable 2,1 %", "side": "sale", "on": "tax", "rate_bp": 210},
+    "V_UE_S": {"label": "Prestation de services à un assujetti de l'UE (autoliquidée par le client)", "side": "sale", "on": "base", "rate_bp": 0},
+    "V_UE_B": {"label": "Livraison intracommunautaire de biens", "side": "sale", "on": "base", "rate_bp": 0},
+    "V_EXP": {"label": "Exportation hors UE", "side": "sale", "on": "base", "rate_bp": 0},
+    "V_EXO": {"label": "Autre opération non imposable", "side": "sale", "on": "base", "rate_bp": 0},
+    "D20": {"label": "TVA déductible 20 %", "side": "purchase", "on": "tax", "rate_bp": 2000},
+    "D10": {"label": "TVA déductible 10 %", "side": "purchase", "on": "tax", "rate_bp": 1000},
+    "D55": {"label": "TVA déductible 5,5 %", "side": "purchase", "on": "tax", "rate_bp": 550},
+    "D21": {"label": "TVA déductible 2,1 %", "side": "purchase", "on": "tax", "rate_bp": 210},
+    "AL_S": {"label": "Achat de services à un prestataire non établi en France (autoliquidation)", "side": "purchase", "on": "tax", "rate_bp": 2000},
+    "AL_B": {"label": "Acquisition intracommunautaire de biens (autoliquidation)", "side": "purchase", "on": "tax", "rate_bp": 2000}
+  },
+  "regimes": {
+    "fr": "France",
+    "eu": "Union européenne",
+    "world": "Hors Union européenne"
+  },
+  "sale_exemptions": {
+    "V_UE_S": {"mention": "Autoliquidation — article 283-2 du CGI : TVA due par le preneur.", "category": "AE", "reason_code": "VATEX-EU-AE", "reason": "Autoliquidation"},
+    "V_UE_B": {"mention": "Exonération de TVA, article 262 ter I du CGI (livraison intracommunautaire).", "category": "K", "reason_code": "VATEX-EU-IC", "reason": "Livraison intracommunautaire"},
+    "V_EXP": {"mention": "Exonération de TVA, article 262 I du CGI (exportation).", "category": "G", "reason_code": "VATEX-EU-G", "reason": "Exportation hors UE"},
+    "V_EXO": {"mention": "TVA non applicable, article 259-1 du CGI (prestation hors de France).", "category": "O", "reason_code": "VATEX-EU-O", "reason": "Hors du champ de la TVA française"}
+  }
+}

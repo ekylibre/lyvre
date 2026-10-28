@@ -14,7 +14,7 @@ from flask_login import current_user
 from app.access import instance_admin_required
 from app.models import EntryEvent
 from app.models.journal_entry import SALE_LOCKED_MESSAGE, SOURCE_CANCELLATION, SOURCE_SALE
-from app.services import projects, validation
+from app.services import projects, validation, vat_codes
 from app.services.ledger import (
     MANAGED_SOURCES, VALIDATED_MESSAGE, LedgerError, delete_entries, entry_is_reconciled, post_validated_entry,
     period_locked, reversal_of, reverse, update_entry, validate_entry_payload,
@@ -45,6 +45,9 @@ def entry_form_options(project_ids=()):
                      for j in Journal.query.order_by(Journal.code).all()],
         "recentsScope": instance.slug if instance else "default",
         "projects": projects.options(project_ids),
+        # Lot T2 : codes de TVA des lignes 445… (saisie manuelle).
+        "vatCodes": [{"value": code, "label": f"{code} — {spec['label']}", "on": spec["on"], "rate_bp": spec["rate_bp"]}
+                     for code, spec in vat_codes.codes().items()],
     }
 
 
@@ -95,6 +98,8 @@ def serialize_entry(entry):
              "project_id": l.project_id, "project": l.project.name if l.project else None,
              "service_start": l.service_start.isoformat() if l.service_start else None,
              "service_end": l.service_end.isoformat() if l.service_end else None,
+             "vat_code": l.vat_code, "vat_label": vat_codes.label(l.vat_code) or None,
+             "vat_base_cents": l.vat_base_cents,
              "reconciled": l.bank_transaction is not None}
             for l in entry.lines
         ],
@@ -270,7 +275,8 @@ def entries_form():
             "entry_date": entry.entry_date.isoformat(), "description": entry.description or "",
             "lines": [{"account": _account_json(l.account), "label": l.label or "",
                        "debit_cents": l.debit_cents, "credit_cents": l.credit_cents,
-                       "project_id": str(l.project_id) if l.project_id else None} for l in entry.lines]})
+                       "project_id": str(l.project_id) if l.project_id else None,
+                       "vat_code": l.vat_code, "vat_base_cents": l.vat_base_cents} for l in entry.lines]})
     if bt_id:
         bt = db.session.get(BankTransaction, bt_id)
         if bt is None:

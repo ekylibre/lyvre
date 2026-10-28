@@ -129,3 +129,4 @@ __all__ = [
     "ReportArchive",
     "BrevoLink",
 ]
+from .vat_return import VatReturn

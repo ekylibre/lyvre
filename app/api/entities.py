@@ -14,7 +14,7 @@ from app.models.customer_invoice import CUSTOMER_INVOICE_PAYMENT_STATES, CUSTOME
 from app.models.entity import ENTITY_TYPES
 from app.models.order import POS_ORDER_STATES
 from app.queries.entities import last_membership_dates
-from app.services import catalog, external_config, odoo_partner_update, organization
+from app.services import catalog, external_config, odoo_partner_update, organization, vat_codes
 from app.services.helloasso_client import HelloAssoConfigError
 from app.services.helloasso_sync import sync_helloasso
 from app.services.odoo_client import OdooConfigError
@@ -43,7 +43,8 @@ def entity_payload(e: Entity, last_ha=None, last_pos=None, transactions=None) ->
         "account_code": e.account_code, "is_member": e.is_member, "is_benevole": e.is_benevole,
         "notes": e.notes, "default_product_id": e.default_product_id,
         "default_product": e.default_product.name if e.default_product else None,
-        "vat_number": e.vat_number, "siret": e.siret, "siren": e.siren, "iban": e.iban,
+        "vat_number": e.vat_number, "vat_regime": e.vat_regime or "fr",
+        "siret": e.siret, "siren": e.siren, "iban": e.iban,
         "naf_code": e.naf_code, "naf_nomenclature": e.naf_nomenclature,
         **{key: getattr(e, key) for key in ADDRESS_FIELDS}, "person_kind": e.person_kind,
         "last_helloasso_membership": _iso(last_ha), "last_pos_membership": _iso(last_pos),
@@ -54,7 +55,8 @@ def entity_payload(e: Entity, last_ha=None, last_pos=None, transactions=None) ->
 def _meta():
     return {"types": [{"value": v, "label": l} for v, l in ENTITY_TYPES],
             "products": [{"value": str(p.id), "label": p.name} for p in catalog.purchase_products()],
-            "integrations": integrations_state()}
+            "integrations": integrations_state(),
+            "vat_regimes": [{"value": k, "label": v} for k, v in vat_codes.regime_labels().items()]}
 
 
 @bp.route("/tiers")
@@ -149,6 +151,15 @@ def _apply(entity: Entity, data: dict) -> None:
     entity.notes = str(data.get("notes") or "").strip() or None
     entity.default_product_id = product_id
     entity.vat_number = normalize_vat(data.get("vat_number"))
+    # Lot T2 : régime TVA choisi, sinon proposé d'après le n° de TVA ou le pays (création seulement).
+    regime = data.get("vat_regime")
+    if regime not in (None, "") and regime not in vat_codes.REGIMES:
+        raise invalid("Régime TVA inconnu.", "vat_regime")
+    if regime:
+        entity.vat_regime = regime
+        entity._vat_regime_chosen = True  # noqa: SLF001 — lu par vat_codes à l'insertion
+    elif entity.id is None:
+        entity.vat_regime = vat_codes.guess_regime(entity.vat_number, data.get("country"))
     entity.siret = normalize_siret(siret)  # dérive aussi le SIREN (Entity._derive_siren)
     if entity.siret is None and "siren" in data:
         entity.siren = siren

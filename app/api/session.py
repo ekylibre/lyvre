@@ -89,8 +89,12 @@ def _integrations(inst, role) -> dict:
 
 
 def _features(inst) -> set[str]:
-    """Options de l'instance qui conditionnent des menus : module Associés, intégrations activées."""
-    return {*(["associates"] if inst.has_associates else []), *_enabled_integrations(inst)}
+    """Options de l'instance qui conditionnent des menus : module Associés, intégrations activées,
+    déclarations de TVA (un exercice les prépare dans Lyvre, lot T3)."""
+    from app.models import FiscalYear
+    vat = db.session.query(FiscalYear.id).filter(FiscalYear.vat_period.isnot(None)).first() is not None
+    return {*(["associates"] if inst.has_associates else []), *(["vat_returns"] if vat else []),
+            *_enabled_integrations(inst)}
 
 
 def session_payload() -> dict:

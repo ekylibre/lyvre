@@ -28,7 +28,9 @@ interface EntryDetail {
   total_debit_cents: number; total_credit_cents: number; reconciled: boolean; editable: boolean; managed?: boolean;
   validated: boolean; validation_number: number | null; validated_at: string | null; fiscal_year_id: number;
   fiscal_year_closed: boolean; locked_until: string | null; reversal: EntryLink | null; reverses: EntryLink | null; reversible: boolean;
-  lines: (ProjectLine & { account_label: string; project: string | null })[];
+  lines: (ProjectLine & { account_label: string; project: string | null;
+    /** Lot T2 : code de TVA, son intitulé et la base HT d'une ligne de taxe. */
+    vat_code?: string | null; vat_label?: string | null; vat_base_cents?: number | null })[];
 }
 
 export default function EntryDetailPage() {
@@ -94,7 +96,10 @@ export default function EntryDetailPage() {
             {data.lines.map((l) => (
               <Table.Tr key={l.id}>
                 <Table.Td><span className="lv-num">{l.account_code}</span> <Text span size="sm" c="dimmed">{l.account_label}</Text></Table.Td>
-                <Table.Td>{l.label}</Table.Td>
+                <Table.Td>{l.label}
+                  {l.vat_code && <Text size="xs" c="dimmed" title={l.vat_label ?? undefined}>
+                    TVA {l.vat_code}{l.vat_base_cents != null && <> · base <MoneyText cents={l.vat_base_cents} size="xs" /></>}</Text>}
+                </Table.Td>
                 {withProjects && <Table.Td>
                   {projectsEditable
                     ? <Button variant="subtle" size="compact-sm" onClick={() => setProjectLine(l)}>{l.project ?? "Affecter…"}</Button>

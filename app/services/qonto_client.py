@@ -239,6 +239,10 @@ class QontoClient:
     def send_quote(self, quote_id: str, payload: dict) -> None:
         self._post(f"/quotes/{quote_id}/send", payload)
 
+    def transaction(self, transaction_id: str) -> dict:
+        """Une transaction (UUID `id`), avec ses `attachment_ids`."""
+        return self._get(f"/transactions/{transaction_id}").get("transaction") or {}
+
     def attachment(self, attachment_id: str) -> dict:
         """Pièce jointe : `url` de téléchargement valable 30 minutes."""
         return self._get(f"/attachments/{attachment_id}").get("attachment") or {}

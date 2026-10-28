@@ -53,4 +53,28 @@ describe("EntryEditor", () => {
     expect(screen.getByText("Écart : 89,90 €")).toBeInTheDocument();
     expect(screen.getByText("Hors de l'exercice 2026.")).toBeInTheDocument();
   });
+
+  it("ligne 44566 : code de TVA et base HT proposée (lot T2)", async () => {
+    const VAT = { id: 3, code: "44566", label: "TVA déductible" };
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (url) =>
+      String(url).endsWith("/validate") ? json({ errors: {} })
+        : json({ id: 8, reference: "AC-2026-0008", url: "/entries/8", reconciled: false, editable: true }, 201));
+    const data: EntryFormData = { ...DATA, options: { ...DATA.options, vatCodes: [
+      { value: "D20", label: "D20 — TVA déductible 20 %", on: "tax", rate_bp: 2000 },
+      { value: "V_EXP", label: "V_EXP — Exportation hors UE", on: "base", rate_bp: 0 }] },
+    initial: { ...DATA.initial, lines: [{ account: EXPENSE, debit_cents: 10000 }, { account: VAT, debit_cents: 2000 },
+      { account: BANK, credit_cents: 12000 }] } };
+    renderWithProviders(<EntryEditor data={data} onSaved={() => {}} onCancel={() => {}} />);
+
+    expect(screen.queryByRole("combobox", { name: "Code TVA, ligne 1" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("combobox", { name: "Code TVA, ligne 2" }));
+    expect(screen.queryByRole("option", { name: /V_EXP/ })).not.toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("option", { name: /D20/ }));
+    expect(screen.getByLabelText("Base HT, ligne 2")).toHaveValue("100,00");
+
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([u, init]) => String(u) === "/api/v1/entries" && init?.method === "POST")).toBe(true));
+    const post = fetchMock.mock.calls.find(([u, init]) => String(u) === "/api/v1/entries" && init?.method === "POST")!;
+    expect(JSON.parse(String(post[1]!.body)).lines[1]).toMatchObject({ vat_code: "D20", vat_base_cents: 10000 });
+  });
 });

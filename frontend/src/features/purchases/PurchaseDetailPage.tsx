@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useParams } from "react-router";
 import {
-  Alert, Anchor, Badge, Button, Center, Code, Collapse, Grid, Group, List, Loader, Paper, Stack, Table, Text, Title,
+  Alert, Anchor, Badge, Button, Center, Code, Collapse, Grid, Group, List, Loader, Paper, Select, Stack, Table, Text, Title,
 } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/client";
@@ -48,6 +48,8 @@ export default function PurchaseDetailPage() {
   const post = useAction(() => api.post<{ notices: Notice[] }>(`/api/v1/purchases/${id}/post`), opts);
   const unpost = useAction(() => api.post<{ notices: Notice[] }>(`/api/v1/purchases/${id}/unpost`), opts);
   const saveLines = useAction((r: LineRow[]) => api.put<{ notices: Notice[] }>(`/api/v1/purchases/${id}/lines`, { rows: r }), opts);
+  const setRegime = useAction((regime: string | null) => api.put<{ notices: Notice[] }>(`/api/v1/purchases/${id}/vat-regime`,
+    { vat_regime: regime }), opts);
   const sendToQonto = useAction(() => api.post<{ notices: Notice[] }>(`/api/v1/purchases/${id}/qonto`), opts);
   const link = useAction((tid: number) => api.post<{ notices: Notice[] }>(`/api/v1/purchases/${id}/payments`, { bank_transaction_id: tid }), opts);
   const [payingByAssociate, setPayingByAssociate] = useState(false);
@@ -103,6 +105,17 @@ export default function PurchaseDetailPage() {
                 <Row label="Paiement"><span className="lv-num">{formatDate(p.payment_date)}</span></Row>
                 <Row label={fromQonto ? "Montants Qonto" : "Montants"}>
                   HT {amount(p.untaxed_cents)} · TVA {amount(p.tax_cents)} · <b>TTC <MoneyText cents={p.total_cents} fw={700} /></b></Row>
+                {data.fiscal_year?.vat_liable && p.effective_vat_regime && (
+                  <Row label="Régime TVA">
+                    {p.journal_entry_id || !can.write
+                      ? <Text size="sm">{data.meta.vat_regimes?.find((r) => r.value === p.effective_vat_regime)?.label}
+                          {p.effective_vat_regime !== "fr" && " — autoliquidation"}</Text>
+                      : <Select size="xs" w={260} aria-label="Régime TVA de la facture" allowDeselect={false}
+                          data={data.meta.vat_regimes ?? []} value={p.effective_vat_regime} disabled={setRegime.isPending}
+                          description={p.effective_vat_regime !== "fr" ? "Autoliquidation : TVA due et déductible du même montant." : undefined}
+                          onChange={(v) => v && v !== p.effective_vat_regime && setRegime.mutate(v)} />}
+                  </Row>
+                )}
                 {(p.supplier_vat || p.supplier_siret || p.supplier_iban) && (
                   <Row label={`Fournisseur (${fromQonto ? "Qonto" : "facture"})`}>
                     <Text size="sm" className="lv-num">{[p.supplier_vat, p.supplier_siret, p.supplier_iban].filter(Boolean).join(" ")}</Text></Row>
@@ -173,9 +186,9 @@ export default function PurchaseDetailPage() {
               </Table>
             </>
           ) : data.match_window && (
-            <Text size="sm" c="dimmed">Non réglée : aucune transaction bancaire hors Qonto de <MoneyText cents={p.total_cents} size="sm" /> entre
-              le {formatDate(data.match_window[0])} et le {formatDate(data.match_window[1])}. Le règlement sera passé automatiquement à l'import
-              du relevé (OFX) qui la contient.</Text>
+            <Text size="sm" c="dimmed">Non réglée : aucune transaction bancaire libre de <MoneyText cents={p.total_cents} size="sm" /> entre
+              le {formatDate(data.match_window[0])} et le {formatDate(data.match_window[1])}. Le règlement sera passé automatiquement à la
+              synchronisation Qonto ou à l'import du relevé (OFX) qui la contient.</Text>
           )}
         </Stack>
       )}

@@ -10,7 +10,7 @@ from flask import render_template
 
 from app.models import Sale
 from app.models.sale import OPERATION_TYPES
-from app.services import billing, einvoice, organization
+from app.services import billing, einvoice, organization, vat_codes
 from app.services.attachments import instance_dir
 from app.utils.money import euros
 
@@ -41,6 +41,27 @@ def vat_rows(sale: Sale) -> list[dict]:
     return [] if sale.vat_mode == "none" else [r for _, r in sorted(rows.items()) if r["rate"]]
 
 
+def _exemption(sale: Sale, line) -> dict | None:
+    """Lot T2 : mention et catégorie d'une ligne de vente sans TVA française (client UE, hors UE)."""
+    if sale.vat_mode == "none" or line.vat_rate_bp:
+        return None
+    return vat_codes.exemption(vat_codes.sale_exemption_code(sale, line.nature))
+
+
+def _factur_x_exemption(sale: Sale, line) -> tuple[str, str, str] | None:
+    exemption = _exemption(sale, line)
+    return (exemption["category"], exemption["reason_code"], exemption["reason"]) if exemption else None
+
+
+def exemption_mentions(sale: Sale) -> list[str]:
+    mentions = []
+    for line in sale.lines:
+        exemption = _exemption(sale, line)
+        if exemption and exemption["mention"] not in mentions:
+            mentions.append(exemption["mention"])
+    return mentions
+
+
 def render_html(sale: Sale) -> str:
     settings, org = billing.get(), organization.get()
     logo = billing.logo_file(settings)
@@ -51,7 +72,7 @@ def render_html(sale: Sale) -> str:
         rcs_mention=organization.rcs_mention(org),
         invoice=sale.invoice if sale.kind == "credit_note" else None,
         logo_src=logo.as_uri() if logo else None, money=euros, date=_date, qty=_qty, rate=_rate,
-        vat_rows=vat_rows(sale), exempt=sale.vat_mode == "none",
+        vat_rows=vat_rows(sale), exempt=sale.vat_mode == "none", exemption_mentions=exemption_mentions(sale),
         has_discount=any(l.discount_bp for l in sale.lines),
         has_services=any(l.nature == "services" for l in sale.lines),
         is_business=client.get("person_kind") != "individual",
@@ -75,7 +96,8 @@ def einvoice_document(sale: Sale) -> einvoice.Document:
                              postcode=client.get("postal_code"), city=client.get("city"),
                              siren=client.get("siren"), vat_number=client.get("vat_number")),
         lines=[einvoice.Line(l.label, l.quantity_milli, l.unit_price_cents, l.untaxed_cents, l.vat_rate_bp,
-                             unit=UNIT_CODES.get(l.unit or "", "C62"), description=l.description)
+                             unit=UNIT_CODES.get(l.unit or "", "C62"), description=l.description,
+                             exemption=_factur_x_exemption(sale, l))
                for l in sale.lines],
         vat_exempt=sale.vat_mode == "none", vat_on_receipts=sale.vat_mode == "receipts",
         iban=settings.iban if sale.kind == "invoice" else None,

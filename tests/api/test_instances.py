@@ -29,7 +29,7 @@ def test_spa_pages(admin):
 def test_list_and_detail(admin):
     body = admin.get("/api/v1/instances").get_json()
     assert [i["slug"] for i in body["items"]] == ["test"]
-    assert {c["value"] for c in body["meta"]["charts"]} == {"asso", "sci"}
+    assert {c["value"] for c in body["meta"]["charts"]} == {"asso", "sci", "societe"}
     detail = admin.get(f"/api/v1/instances/{body['items'][0]['id']}").get_json()
     assert detail["item"]["sqlite"] is True and detail["backups"] == []
     _error(admin.get("/api/v1/instances/999"), 404)

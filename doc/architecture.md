@@ -6,7 +6,7 @@
 compta-asso/
 │
 ├── run.py                        # Point d'entrée : charge .env, crée l'app Flask
-├── seed_accounts.py              # Charge le plan comptable (asso|sci, détecté si omis) + journaux
+├── seed_accounts.py              # Charge le plan comptable (asso|sci|societe, détecté si omis) + journaux
 ├── seed_meta.py                  # Méta-base : admin, instance par défaut, colonnes ajoutées
 ├── requirements.txt
 ├── Makefile                      # make check (typecheck, Vitest, build, pytest) ; make e2e (Playwright)
@@ -95,7 +95,7 @@ compta-asso/
 │   │
 │   ├── services/                 # Logique métier (sans dépendance Flask)
 │   │   ├── ledger.py             # Moteur comptable : validation, saisie, soldes
-│   │   ├── reports.py            # Bilan et Compte de résultat par plan comptable (asso|sci)
+│   │   ├── reports.py            # Bilan et Compte de résultat par plan comptable (asso|sci|societe)
 │   │   ├── instance_provisioning.py  # Création des bases d'instance (migrations + plan comptable)
 │   │   ├── reconciler.py         # Rapprochement bancaire
 │   │   ├── ofx_importer.py       # Import fichiers OFX
@@ -111,6 +111,7 @@ compta-asso/
 │   │   ├── catalog.py            # Catalogue : produit par défaut, taux de TVA
 │   │   ├── purchase_sync.py      # Synchro des factures d'achat Qonto, find_supplier, lignes par défaut
 │   │   ├── purchase_posting.py   # États, comptabilisation en engagement (AC), lignes saisies
+│   │   ├── vat_codes.py          # Codes de TVA des lignes, régime TVA des tiers (lot T2)
 │   │   ├── purchase_settlement.py # Règlements 401 / banque : Qonto, débits OFX (auto / choisis)
 │   │   ├── purchase_entry.py     # Saisie d'une facture : préremplissage, doublons, envoi à Qonto
 │   │   ├── invoice_reader.py     # Lecture : Factur-X, texte PDF, OCR Tesseract (PyMuPDF)
@@ -140,6 +141,7 @@ compta-asso/
 ├── data/
 │   ├── plan_comptable_asso.json  # 783 comptes PCA (source : fichier XLS)
 │   ├── plan_comptable_sci.json   # 576 comptes SCI (source : doc/plan-comptable-SCI.pdf)
+│   ├── plan_comptable_societe.json  # 837 comptes PCG 2026, SAS / SASU (scripts/build_pcg_chart.py)
 │   └── rules.yml                 # Règles de catégorisation (éditable sans redémarrage)
 │
 ├── migrations/                   # Migrations Alembic (versioning schéma)

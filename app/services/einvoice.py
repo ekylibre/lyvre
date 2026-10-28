@@ -43,6 +43,8 @@ class Line:
     vat_rate_bp: int = 0
     unit: str = "C62"                 # UN/ECE rec. 20 : C62 = unité, HUR = heure, MON = mois
     description: str | None = None
+    # Lot T2 : vente sans TVA française — catégorie (AE, K, G, O), code et motif d'exonération.
+    exemption: tuple[str, str, str] | None = None
 
 
 @dataclass
@@ -75,9 +77,11 @@ def _rate(bp: int) -> str:
     return str((Decimal(bp) / 100).quantize(Decimal("0.01")))
 
 
-def _category(doc: Document, rate_bp: int) -> str:
+def _category(doc: Document, rate_bp: int, exemption: tuple[str, str, str] | None = None) -> str:
     if doc.vat_exempt:
         return "E"
+    if exemption is not None and not rate_bp:
+        return exemption[0]
     return "S" if rate_bp else "Z"
 
 
@@ -94,17 +98,21 @@ def _party(p: Party) -> dict:
 
 def _breakdown(doc: Document) -> tuple[list[dict], int]:
     """Ventilation de la TVA par taux (BG-23) et TVA totale, arrondie par taux."""
-    bases: dict[int, int] = {}
+    bases: dict[tuple, int] = {}
     for line in doc.lines:
-        bases[line.vat_rate_bp] = bases.get(line.vat_rate_bp, 0) + line.untaxed_cents
+        exemption = line.exemption if not line.vat_rate_bp else None
+        key = (line.vat_rate_bp, exemption)
+        bases[key] = bases.get(key, 0) + line.untaxed_cents
     rows, total = [], 0
-    for rate_bp, base in sorted(bases.items()):
+    for (rate_bp, exemption), base in sorted(bases.items(), key=lambda item: (item[0][0], item[0][1] or ())):
         tax = 0 if doc.vat_exempt else round(base * rate_bp / 10000)
         total += tax
-        row = {"BT-116": _amount(base), "BT-117": _amount(tax), "BT-118": _category(doc, rate_bp),
+        row = {"BT-116": _amount(base), "BT-117": _amount(tax), "BT-118": _category(doc, rate_bp, exemption),
                "BT-119": _rate(0 if doc.vat_exempt else rate_bp)}
         if doc.vat_exempt:
             row["BT-121"], row["BT-120"] = FRANCHISE
+        elif exemption is not None:
+            row["BT-121"], row["BT-120"] = exemption[1], exemption[2]
         rows.append(row)
     return rows, total
 
@@ -125,7 +133,8 @@ def data_dict(doc: Document) -> dict:
         "BG-25": [{
             "BT-126": str(i), "BT-129": str((Decimal(line.quantity_milli) / 1000).normalize()), "BT-130": line.unit,
             "BT-131": _amount(line.untaxed_cents), "BT-146": _amount(line.unit_price_cents),
-            "BT-151": _category(doc, line.vat_rate_bp), "BT-152": _rate(0 if doc.vat_exempt else line.vat_rate_bp),
+            "BT-151": _category(doc, line.vat_rate_bp, line.exemption),
+            "BT-152": _rate(0 if doc.vat_exempt else line.vat_rate_bp),
             "BT-153": line.label[:200], **({"BT-154": line.description} if line.description else {}),
         } for i, line in enumerate(doc.lines, start=1)],
     }

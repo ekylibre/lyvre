@@ -12,10 +12,13 @@ Une transaction déjà passée par une règle (6xx / banque) avant l'arrivée de
 facture compterait la charge deux fois : elle est listée « à remplacer »
 (`to_replace`) et `replace_many` substitue un règlement à l'écriture de règle.
 
-Factures saisies payées hors Qonto (OFX) : `match_candidates` cherche les débits
-de même montant autour de la date ; `auto_match` lie un candidat **unique**
-(`origin = match`), `link_manual` un débit choisi sur la fiche (`origin = manual`),
-`unlink` défait un tel lien et son règlement.
+Factures saisies (sans lien Qonto) : `match_candidates` cherche les débits de même montant autour
+de la date, sur tous les comptes — relevés OFX, et transactions Qonto que Qonto ne rattache à aucune
+autre facture (abonnement Qonto, facture absente du module Factures fournisseurs) ; `auto_match` lie
+un candidat **unique** (`origin = match`, aussi après chaque synchronisation Qonto),
+`link_manual` un débit choisi sur la fiche (`origin = manual`), `unlink` défait un tel lien et son
+règlement. Si Qonto désigne plus tard la même transaction pour cette facture (facture envoyée à
+Qonto), le lien existant est gardé : pas de second règlement.
 """
 from __future__ import annotations
 
@@ -60,6 +63,9 @@ def link_invoice(p: Purchase) -> None:
             p.review_reason = ("Qonto ne rattache plus la transaction réglée "
                                f"{payment.qonto_transaction_id} à cette facture.")
     known = {payment.qonto_transaction_id for payment in p.payments}
+    # Transaction déjà liée à cette facture hors Qonto (rapprochement d'une facture saisie) : gardée telle quelle.
+    known |= {payment.bank_transaction.fitid for payment in p.payments
+              if payment.origin != "qonto" and payment.bank_transaction is not None}
     for qonto_id in wanted:
         if qonto_id not in known:
             p.payments.append(PurchasePayment(qonto_transaction_id=qonto_id, origin="qonto"))
@@ -290,18 +296,20 @@ def match_window(p: Purchase):
 
 
 def match_candidates(p: Purchase) -> list[BankTransaction]:
-    """Transactions hors Qonto pouvant payer la facture, même tiers puis date la plus proche."""
+    """Transactions pouvant payer la facture, même tiers puis date la plus proche : relevés OFX, et
+    transactions Qonto qu'aucune facture Qonto ne réclame."""
     if p.issue_date is None:
         return []
     reference = p.due_date or p.issue_date
     start, end = match_window(p)
     linked = db.session.query(PurchasePayment.bank_transaction_id).filter(
         PurchasePayment.bank_transaction_id.isnot(None))
-    rows = (BankTransaction.query.join(BankAccount, BankTransaction.bank_account_id == BankAccount.id)
-            .filter(BankAccount.qonto_account_id.is_(None),
-                    BankTransaction.amount_cents == _expected_amount(p),
+    claimed = db.session.query(PurchasePayment.qonto_transaction_id).filter(
+        PurchasePayment.qonto_transaction_id.isnot(None))
+    rows = (BankTransaction.query
+            .filter(BankTransaction.amount_cents == _expected_amount(p),
                     BankTransaction.transaction_date.between(start, end),
-                    BankTransaction.id.notin_(linked))
+                    BankTransaction.id.notin_(linked), BankTransaction.fitid.notin_(claimed))
             .all())
     rows = [t for t in rows if _free_for_matching(t)]
     return sorted(rows, key=lambda t: (t.entity_id != p.entity_id if p.entity_id else True,

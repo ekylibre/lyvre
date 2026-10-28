@@ -8,6 +8,9 @@ export interface Line {
   debit: string; // saisie brute en euros
   credit: string;
   projectId: string | null;
+  /** Lot T2 : code de TVA et base HT (saisie en euros) d'une ligne 445… */
+  vatCode: string | null;
+  vatBase: string;
 }
 
 export interface EntryState {
@@ -24,6 +27,8 @@ export interface InitialLine {
   debit_cents?: number;
   credit_cents?: number;
   project_id?: string | null;
+  vat_code?: string | null;
+  vat_base_cents?: number | null;
 }
 
 let nextKey = 1;
@@ -36,6 +41,8 @@ export function newLine(init: Partial<InitialLine> = {}): Line {
     debit: toInput(init.debit_cents ?? 0),
     credit: toInput(init.credit_cents ?? 0),
     projectId: init.project_id ?? null,
+    vatCode: init.vat_code ?? null,
+    vatBase: init.vat_base_cents != null ? toInput(init.vat_base_cents) : "",
   };
 }
 
@@ -132,6 +139,18 @@ export function isComplete(state: EntryState): boolean {
   });
 }
 
+/** Ligne de TVA (comptes 445…) ou ligne déjà codée : la saisie montre son code et sa base. */
+export function hasVatFields(line: Line): boolean {
+  return !!line.vatCode || (line.account?.code ?? "").startsWith("445");
+}
+
+/** Base HT proposée d'après le montant de la ligne et le taux du code (vide sans taux). */
+export function proposedBase(line: Line, rateBp: number): string {
+  const c = lineCents(line);
+  const amount = (c.debit ?? 0) || (c.credit ?? 0);
+  return rateBp && amount ? toInput(Math.round((amount * 10000) / rateBp)) : "";
+}
+
 export function toPayload(state: EntryState, bankTransactionId?: number): EntryPayload {
   const payload: EntryPayload = {
     fiscal_year_id: state.fiscalYearId,
@@ -148,6 +167,8 @@ export function toPayload(state: EntryState, bankTransactionId?: number): EntryP
         debit_cents: c.debit ?? 0,
         credit_cents: c.credit ?? 0,
         project_id: l.projectId ? Number(l.projectId) : null,
+        vat_code: l.vatCode,
+        vat_base_cents: l.vatCode && l.vatBase.trim() ? parseAmount(l.vatBase) : null,
       };
     }),
   };

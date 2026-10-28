@@ -127,6 +127,7 @@ Le formulaire de création propose un **plan comptable** (`chart`), mémorisé d
 |--------|-------------|-------|
 | `asso` (défaut) | `data/plan_comptable_asso.json` — 783 comptes | Association loi 1901 |
 | `sci` | `data/plan_comptable_sci.json` — 576 comptes | Société civile immobilière |
+| `societe` | `data/plan_comptable_societe.json` — 837 comptes (PCG 2026) | Société commerciale (SAS, SASU) |
 
 Le plan comptable de l'instance courante (`app.tenant.current_chart()`) pilote :
 
@@ -134,7 +135,7 @@ Le plan comptable de l'instance courante (`app.tenant.current_chart()`) pilote :
 - **les menus** : `app/menu_config.py` déclare tous les menus et sous-menus avec la liste des
   plans pour lesquels ils apparaissent (`charts`). Les fonctionnalités propres aux associations
   (Adhérents, Temps de travaux, Versements Stancer, menus Odoo et Indicateurs, Import de
-  tonnages) sont masquées pour une SCI. `build_nav(chart, is_admin)` filtre aussi par droits
+  tonnages) sont masquées pour une SCI ou une société. `build_nav(chart, is_admin)` filtre aussi par droits
   admin et masque les menus déroulants vides ; le résultat est injecté dans `base.html`
   (variable `nav_menus`) ;
 - **le Bilan et le Compte de résultat** (voir [reports.md](reports.md)) ;

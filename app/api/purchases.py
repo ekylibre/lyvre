@@ -7,13 +7,13 @@ from flask import current_app, jsonify, request, url_for
 
 from app.access import current_role, instance_admin_required
 from app.extensions import db
-from app.models import Account, Associate, Entity, Project, Purchase, PurchasePayment
+from app.models import Account, Associate, BankTransaction, Entity, Project, Purchase, PurchasePayment
 from app.models.instance_membership import ROLE_ACCOUNTANT
 from app.models.purchase import PURCHASE_SOURCES
 from app.services import (
     associate_operations, associates, attachments, catalog, counterparties, external_config, projects,
     purchase_entry, purchase_posting,
-    purchase_settlement, purchase_sync,
+    purchase_settlement, purchase_sync, vat_codes,
 )
 from app.services.attachments import AttachmentError
 from app.services.ledger import LedgerError
@@ -234,6 +234,7 @@ def purchase_detail(p: Purchase) -> dict:
         "item": {**purchase_row(p), "payment_date": _iso(p.payment_date), "untaxed_cents": p.untaxed_cents,
                  "tax_cents": p.tax_cents, "supplier_vat": p.supplier_vat, "supplier_siret": p.supplier_siret,
                  "supplier_iban": p.supplier_iban,
+                 "vat_regime": p.vat_regime, "effective_vat_regime": vat_codes.purchase_regime(p) if p.entity else None,
                  "supplier_account_code": p.entity.account_code if p.entity else None,
                  "attachment": ({"name": p.attachment_name, "size": p.attachment_size, "mime": p.attachment_mime,
                                  "url": url_for("purchases.attachment", purchase_id=p.id)} if p.attachment_path else None),
@@ -256,6 +257,7 @@ def purchase_detail(p: Purchase) -> dict:
         "can_send": purchase_entry.can_send_to_qonto(p),
         "associate_payment": _associate_payment(p),
         "meta": {"products": _products(), "charge_accounts": _charge_accounts(), "qonto": _qonto(),
+                 "vat_regimes": [{"value": k, "label": v} for k, v in vat_codes.regime_labels().items()],
                  "projects": projects.options([l.project_id for l in p.lines if l.project_id])},
     }
 
@@ -274,6 +276,23 @@ def purchases_save_lines(purchase_id):
         db.session.rollback()
         raise invalid(str(exc)) from None
     message = "Lignes enregistrées, facture comptabilisée." if outcome["posted"] else "Lignes enregistrées."
+    return jsonify(notices=[notice(message)] + [notice(e, "danger") for e in outcome["errors"]])
+
+
+@bp.route("/purchases/<int:purchase_id>/vat-regime", methods=["PUT"])
+def purchases_vat_regime(purchase_id):
+    """Lot T2 : régime TVA de la facture (vide : celui du fournisseur), tant qu'elle n'est pas comptabilisée."""
+    p = get_or_404(Purchase, purchase_id, "Facture introuvable.")
+    if p.journal_entry_id is not None:
+        raise ApiError("conflict", "Facture comptabilisée : défaites la comptabilisation pour changer son régime TVA.",
+                       status=409)
+    regime = json_body().get("vat_regime") or None
+    if regime is not None and regime not in vat_codes.REGIMES:
+        raise invalid("Régime TVA inconnu.", "vat_regime")
+    p.vat_regime = regime
+    db.session.commit()
+    outcome = purchase_posting.post_ready([p])
+    message = "Régime TVA enregistré, facture comptabilisée." if outcome["posted"] else "Régime TVA enregistré."
     return jsonify(notices=[notice(message)] + [notice(e, "danger") for e in outcome["errors"]])
 
 
@@ -395,6 +414,23 @@ def purchases_read():
                    form=_form_payload(form))
 
 
+@bp.route("/bank-transactions/<int:transaction_id>/purchase-draft", methods=["POST"])
+def purchases_from_transaction(transaction_id):
+    """Justificatif d'une transaction Qonto téléchargé et lu : formulaire de facture d'achat prérempli."""
+    from app.services import transaction_invoice
+    txn = get_or_404(BankTransaction, transaction_id, "Transaction introuvable.")
+    try:
+        token, meta, form = transaction_invoice.draft(txn)
+    except transaction_invoice.TransactionInvoiceError as exc:
+        db.session.rollback()
+        raise ApiError("conflict" if exc.status == 409 else "qonto_error", str(exc), exc.status) from None
+    db.session.commit()  # produit « Achats divers » créé au besoin pour les lignes proposées
+    return jsonify(token=token, preview={"url": url_for("purchases.staged", token=token), "mime": meta["mime"]},
+                   form=_form_payload(form),
+                   transaction={"id": txn.id, "date": txn.transaction_date.isoformat(), "label": txn.label or "",
+                                "amount_cents": txn.amount_cents, "bank_account": txn.bank_account.label})
+
+
 @bp.route("/purchases/stage", methods=["POST"])
 def purchases_stage():
     """Dépose une pièce sans la lire (remplacement de la pièce d'une facture saisie)."""
@@ -449,8 +485,13 @@ def _posted_notices(p, outcome, verb):
 def purchases_create():
     data = json_body()
     clean, token = _validated(data)
+    txn = None
+    if data.get("bank_transaction_id"):  # facture créée depuis un justificatif Qonto
+        txn = db.session.get(BankTransaction, int(data["bank_transaction_id"]))
+        if txn is None:
+            raise invalid("Transaction bancaire introuvable.", "bank_transaction_id")
     try:
-        p, outcome = purchase_entry.create(clean, _rows(data), token)
+        p, outcome = purchase_entry.create(clean, _rows(data), token, bank_transaction=txn)
     except (LedgerError, AttachmentError) as exc:
         db.session.rollback()
         raise invalid(str(exc)) from None
@@ -463,7 +504,7 @@ def purchases_create():
             notices.append(notice("Réglée par le compte courant de l'associé."))
         except associate_operations.OperationError as exc:
             notices.append(notice(f"Règlement par l'associé non passé : {exc}", "warning"))
-    if data.get("send_to_qonto") and token and purchase_entry.qonto_upload_available():
+    if txn is None and data.get("send_to_qonto") and token and purchase_entry.qonto_upload_available():
         notices.append(_upload_notice(p, purchase_entry.send_to_qonto(p)))
     return jsonify(item={"id": p.id, "url": url_for("purchases.detail", purchase_id=p.id)}, notices=notices), 201
 

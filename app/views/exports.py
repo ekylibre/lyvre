@@ -4,7 +4,7 @@ app/api/projects.py."""
 from datetime import date
 from io import BytesIO
 
-from flask import Blueprint, Response, abort, request
+from flask import Blueprint, Response, abort, render_template, request
 from flask_login import login_required
 from openpyxl import Workbook
 from openpyxl.styles import Font
@@ -161,3 +161,58 @@ def receipts_summary_xlsx():
     _sheet(wb, "Reçus", ["Numéro", "Émis le", "Donateur", "Type", "Mode", "Montant", "Statut", "Motif d'annulation",
                          "Envoyé le"], rows, (6,))
     return _response(wb, f"recus-fiscaux-{year}.xlsx")
+
+
+# ------------------------------------------------------------------ déclarations de TVA (lot T3)
+
+def _vat_return(period):
+    """Déclaration du mois `AAAA-MM` : figée si validée, sinon calculée (projet)."""
+    from app.services import organization, vat_return
+
+    try:
+        start, end = vat_return.parse_period(period)
+    except vat_return.VatReturnError:
+        abort(404)
+    ret = vat_return.return_for(start)
+    if ret is not None:
+        detail = ret.detail
+        rows, form_year, due, credit, deadline = (detail["rows"], detail["form_year"], ret.due_cents // 100,
+                                                  ret.credit_cents // 100, ret.deadline)
+    else:
+        result = vat_return.compute(start, end)
+        rows, form_year, due, credit, deadline = (result["rows"], result["form_year"], result["due_cents"] // 100,
+                                                  result["credit_cents"] // 100, vat_return.deadline(end))
+    return {"org": organization.get(), "period": vat_return.period_key(start), "start": f"{start:%d/%m/%Y}",
+            "end": f"{end:%d/%m/%Y}", "form": "3310-CA3-SD", "form_year": form_year, "rows": rows, "due": due,
+            "credit": credit, "deadline": f"{deadline:%d/%m/%Y}", "validated": ret is not None,
+            "declared_on": f"{ret.declared_on:%d/%m/%Y}" if ret is not None and ret.declared_on else None,
+            "reference": ret.declared_reference if ret is not None else None}
+
+
+@bp.route("/vat-returns/<period>.xlsx")
+@login_required
+def vat_return_xlsx(period):
+    data = _vat_return(period)
+    wb = Workbook()
+    wb.remove(wb.active)
+    rows = [[row.get("line", ""), row.get("code") or "", row["label"],
+             row["base"] if row.get("with_base") else None, row.get("amount")] if row["kind"] != "section"
+            else ["", "", row["label"], None, None] for row in data["rows"]]
+    ws = _sheet(wb, f"CA3 {data['period']}", ["Ligne", "Code", "Libellé", "Base HT (€)", "Montant (€)"], rows, [4, 5])
+    if not data["validated"]:
+        ws.append([])
+        ws.append(["", "", "Projet non validé : les montants peuvent encore changer."])
+    return _response(wb, f"CA3-{data['period']}.xlsx")
+
+
+@bp.route("/vat-returns/<period>.pdf")
+@login_required
+def vat_return_pdf(period):
+    from weasyprint import HTML
+
+    data = _vat_return(period)
+    html = render_template("vat_returns/ca3.html", euros=lambda v: f"{int(v or 0):,}".replace(",", "\u202f"), **data)
+    response = Response(HTML(string=html).write_pdf(), mimetype="application/pdf")
+    response.headers["Content-Disposition"] = f'inline; filename="CA3-{data["period"]}.pdf"'
+    return response
+

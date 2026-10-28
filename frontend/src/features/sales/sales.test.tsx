@@ -16,7 +16,9 @@ let calls: Call[];
 const json = (status: number, body: unknown) => Promise.resolve(new Response(JSON.stringify(body), { status }));
 
 const OPTIONS = {
-  clients: [{ value: "4", label: "Client SARL" }],
+  clients: [{ value: "4", label: "Client SARL", vat_regime: "fr", vat_number: "" },
+    { value: "5", label: "Agri GmbH", vat_regime: "eu", vat_number: "DE812871812" }],
+  vat_regimes: [{ value: "fr", label: "France" }, { value: "eu", label: "Union européenne" }, { value: "world", label: "Hors Union européenne" }],
   products: [{ value: "9", label: "Audit", account: "706", rate: "20", price: "500,00", unit: "jour", description: "Audit annuel", nature: "services" }],
   sale_accounts: [{ value: "706", label: "706 — Prestations" }], default_account: "706", projects: [], units: ["heure", "jour"],
   operation_types: [{ value: "services", label: "Prestation de services" }], vat_mode: "receipts", vat_liable: true, payment_terms_days: 30,
@@ -30,7 +32,7 @@ function detail(fields: Partial<SaleDetail> = {}): SaleDetail {
       country: "France", siren: "987654321", vat_number: null, email: "compta@client.example" },
     issue_date: "2026-10-23", due_date: "2026-11-22", untaxed_cents: 50000, tax_cents: 10000, total_cents: 60000, paid_cents: 0,
     sent_at: null, overdue: false, service_start: null, service_end: null, operation_type: "services", purchase_order: "",
-    terms: "", header: "", footer: "", vat_mode: "receipts", credit_reason: null,
+    terms: "", header: "", footer: "", vat_mode: "receipts", credit_reason: null, vat_regime: "fr", vat_exemptions: [],
     lines: [{ id: 1, ...EMPTY_SALE_LINE, label: "Audit", unit_price: "500,00", vat_rate: "20", account_code: "706",
       untaxed_cents: 50000, vat_cents: 10000, total_cents: 60000 }],
     vat_rows: [{ rate: 2000, base: 50000, tax: 10000 }], journal_entry: { id: 3, reference: "VE-0001" }, invoice: null,
@@ -91,6 +93,15 @@ describe("saisie d'une facture", () => {
     await user.click(screen.getByRole("button", { name: "Enregistrer le brouillon" }));
     await waitFor(() => expect(calls.find((c) => c.method === "POST")?.body).toMatchObject({
       entity_id: "4", qonto_emit: true, lines: [{ product_id: "9", label: "Audit", unit_price: "500,00", vat_rate: "20", account_code: "706", unit: "jour" }] }));
+  });
+
+  it("client de l'UE avec n° de TVA : pas de TVA française (lot T2)", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Routes><Route path="/sales/new" element={<SaleFormPage />} /></Routes>, { route: "/sales/new" });
+    await user.click(await screen.findByRole("combobox", { name: "Client" }));
+    await user.click(await screen.findByRole("option", { name: "Agri GmbH" }));
+    expect((screen.getByRole("combobox", { name: "Régime TVA du client" }) as HTMLInputElement).value).toBe("Union européenne");
+    expect(screen.getByText(/Pas de TVA française/)).toBeTruthy();
   });
 });
 
