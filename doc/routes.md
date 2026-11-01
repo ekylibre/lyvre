@@ -328,17 +328,22 @@ verrouillée aussi (409, code `period_locked`, `first_open_date`).
 ## Comptes bancaires (`/bank-accounts/`)
 
 Pages de la SPA : `/bank-accounts/`, `/bank-accounts/new`, `/bank-accounts/<id>/edit` (fenêtre),
-`/bank-accounts/<id>/transactions` (filtres : toutes, à rapprocher, justificatif manquant, débit
-sans facture ; mois ; carte Qonto avec synchronisation, date de début, détachement),
+`/bank-accounts/<id>/transactions` (légende-filtre des feux `light`, filtre « Débit sans facture », mois ;
+carte Qonto avec synchronisation, date de début, détachement ; carte Relevés de compte),
 `/bank-accounts/<id>/counterparties`, `/bank-accounts/qonto` (admin). API :
 
 | Méthode | URL | Description |
 |---------|-----|-------------|
 | GET | `/api/v1/bank-accounts` | Comptes (compte 512, Qonto, nombre de transactions et à rapprocher) ; `meta.gl_accounts` (51… hors regroupement), état de Qonto |
 | POST / PATCH | `/api/v1/bank-accounts[/<id>]` | `label`, `iban` (espaces retirés), `account_id` (compte 51…) |
-| DELETE | `/api/v1/bank-accounts/<id>` | 409 si des transactions y sont liées |
+| DELETE | `/api/v1/bank-accounts/<id>` | 409 si des transactions ou des relevés de compte y sont liés |
 | GET | `/api/v1/bank-accounts/<id>` | Compte, dernière synchronisation Qonto (`qonto_job`), nombre de contreparties à valider, transactions annulées encore rapprochées, mois de l'exercice |
-| GET | `/api/v1/bank-accounts/<id>/transactions` | `status` = `unreconciled` (défaut) / `reconciled` / `all`, `month`, `sort`, `missing=1`, `no_invoice=1` ; chaque transaction porte justificatif, tiers, écriture, factures d'achat payées |
+| GET | `/api/v1/bank-accounts/<id>/transactions` | `status` = `unreconciled` (défaut) / `reconciled` / `all`, `month`, `sort`, `missing=1`, `no_invoice=1`, `light=green\|orange\|red` ; chaque transaction porte justificatif, tiers, écriture, factures d'achat payées et de vente encaissées, `sale_proposals`, `light` / `light_reasons`, `category_display` ; `lights` = nombre de lignes par feu avant le filtre `light` |
+| GET | `/api/v1/bank-accounts/<id>/statements` | Relevés : mois de l'exercice en cours (manquants compris) et relevés stockés, état de Qonto, `upload_months` (comptes hors Qonto) |
+| POST | `/api/v1/bank-accounts/<id>/statements/fetch` | Récupère les relevés Qonto des mois terminés de l'exercice (écriture) |
+| POST | `/api/v1/bank-accounts/<id>/statements` | Dépôt d'un relevé PDF (multipart `period` AAAA-MM, `file`) pour un compte hors Qonto ; remplace celui du mois |
+| GET | `/bank-statements/<id>.pdf` | PDF du relevé (tous les rôles) |
+| GET | `/fiscal-years/<id>/accountant-archive.zip` | Archive pour l'expert-comptable : FEC (s'il peut être produit), relevés de l'exercice, LISEZMOI |
 | GET | `/api/v1/qonto/accounts` | (admin) Comptes Qonto de l'organisation (lecture seule) avec rattachement et compte proposé (même IBAN) ; `error` lisible, secrets masqués |
 | POST | `/api/v1/qonto/accounts/link` | (admin) `qonto_account_id`, `mode` = `existing` (+ `bank_account_id`) ou `new` (+ `label`, `gl_account_id`), `sync_from` |
 | PATCH / DELETE | `/api/v1/bank-accounts/<id>/qonto` | (admin) Date de début (reculer relance une synchronisation complète, sans doublon) / détacher (transactions conservées) |

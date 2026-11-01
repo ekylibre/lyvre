@@ -486,6 +486,23 @@ entry_id SET NULL)` : dotation ou utilisation d'un exercice, avec son écriture
 
 ---
 
+## BankStatement — Relevé de compte mensuel (PDF)
+
+**Table :** `bank_statements` — un relevé par compte et par mois (contrainte unique), jamais supprimé
+depuis l'interface ; fichier dans `uploads/<instance>/releves/<id du compte>/<AAAA-MM>.pdf`.
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| `id` | Integer PK | |
+| `bank_account_id` | Integer FK→bank_accounts RESTRICT | Compte du relevé |
+| `period` | Date NOT NULL | 1er jour du mois |
+| `source` | String(10) | `qonto` (récupéré) ou `upload` (déposé) |
+| `qonto_id` | String(36) nullable | Identifiant du relevé chez Qonto |
+| `file_path` | String(255) NOT NULL | Relatif au dossier de l'instance |
+| `file_name` / `file_size` / `sha256` | | Nom d'origine, taille, empreinte (remplacement si elle change) |
+| `fetched_at` / `replaced_at` | DateTime | Récupération ou dépôt / dernier remplacement |
+| `user_id` | Integer nullable | Auteur (nul pour la synchronisation automatique) |
+
 ## BankTransaction — Transaction bancaire importée
 
 **Table :** `bank_transactions`
@@ -512,6 +529,8 @@ entry_id SET NULL)` : dotation ou utilisation d'un exercice, avec son écriture
 | `attachment_count` | Integer nullable | Nombre de justificatifs dans Qonto (NULL pour l'OFX) |
 | `attachment_required` / `attachment_lost` | Boolean nullable | Justificatif exigé / déclaré perdu (Qonto) |
 | `source_updated_at` | DateTime nullable | `updated_at` Qonto de la dernière mise à jour reçue |
+| `qonto_category` | String(60) nullable | Code de catégorie Qonto (`online_service`…) ; NULL = jamais lue, `""` = lue vide |
+| `qonto_cashflow_category` / `qonto_cashflow_subcategory` | String(120) nullable | Catégorie et sous-catégorie de trésorerie Qonto (noms français) |
 
 **Contrainte unique :** `(bank_account_id, fitid)` — empêche les doublons à la réimportation et entre deux synchronisations Qonto.
 

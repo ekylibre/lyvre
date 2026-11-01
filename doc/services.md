@@ -985,12 +985,34 @@ contenir des `errors` → `QontoError` ; renvoie la facture créée (`id`).
 puis une fenêtre sur `updated_at` depuis le curseur − 10 min (`completed` + `reversed`) ; une fenêtre de
 plus de 9 000 résultats est coupée en deux (limite `page × per_page ≤ 10 000`). Pour chaque transaction
 (`upsert_transaction`) : création si absente, sinon mise à jour de libellé, contrepartie, type, note,
-justificatifs (jamais montant, date, rapprochement, tiers, catégorie ; un montant différent est
-signalé) ; `reversed` → `is_reversed`. Commit **par page**, puis règles et rattachement des tiers sur
-les nouvelles de la page ; le curseur n'avance qu'après un succès complet.
+justificatifs, catégories Qonto (`qonto_category`, `qonto_cashflow_category`, `qonto_cashflow_subcategory` ;
+`""` si absentes) — jamais montant, date, rapprochement, tiers, catégorie des règles ; un montant différent
+est signalé ; `reversed` → `is_reversed`. Des transactions Qonto aux catégories jamais lues (NULL)
+remettent le curseur à zéro : relecture complète unique. Commit **par page**, puis règlements d'achat,
+encaissements de vente, règles et rattachement des tiers sur les nouvelles de la page ; le curseur
+n'avance qu'après un succès complet. En fin de synchro, `bank_statements.fetch_qonto` (erreur ajoutée
+au résumé, sans échec).
 
 Résumé : `created`, `updated`, `unchanged`, `reversed`, `reversed_reconciled`, `skipped`, `conflicts`,
-`rules_matched`, `rules_posted`, `linked_entities`, `proposed_counterparties`, `read`, `errors`.
+`rules_matched`, `rules_posted`, `linked_entities`, `proposed_counterparties`, `settled`, `statements`,
+`read`, `errors`.
+
+## bank_statements.py — Relevés de compte (lots RQ1–RQ4)
+
+`current_fiscal_year`, `months(fy, today)` (mois terminés de l'exercice), `fetch_qonto(ba, client=None)`
+(liste `GET /v2/statements`, téléchargement aussitôt — lien de 30 min renouvelé une fois —, inchangé
+sans téléchargement si même identifiant et même taille, remplacement si l'empreinte change ;
+`{new, replaced, unchanged, errors}`), `save` (PDF vérifié, écriture atomique), `upload_months` /
+`store_upload` (comptes hors Qonto), `path_for` (chemin vérifié dans le dossier de l'instance),
+`overview`, `accountant_archive(fy, fec_file, fec_reason)` (ZIP : FEC, `releves/`, `LISEZMOI.txt`).
+
+## bank_lights.py — Feu et catégorie d'une transaction (lot TX1)
+
+`light(bt, rule_default_tiers=, has_invoice=)` → (`green` | `orange` | `red`, motifs) : facture liée et
+écriture → vert (sauf annulée encore rapprochée → rouge) ; rouge : annulée encore rapprochée,
+justificatif perdu ; orange : à rapprocher, justificatif manquant (sauf annulée), tiers par défaut ;
+vert sinon. `category_display(bt)` : catégorie des règles, sinon sous-catégorie, catégorie de trésorerie
+ou code Qonto traduit (`data/qonto_categories.json`).
 
 ---
 
@@ -1067,7 +1089,9 @@ Codes et mentions dans `data/vat_codes.json`. `guess_regime(vat_number, country)
 TVA, sinon pays), `sale_regime(sale)` / `purchase_regime(p)` (pièce, sinon facture de l'avoir, sinon
 tiers), `sale_tax_code(rate)` (`V20`…), `sale_exemption_code(sale, nature)` (`V_UE_S`, `V_UE_B`,
 `V_EXP`, `V_EXO`, ou None si la vente est imposable en France), `purchase_code(regime, nature, rate)`
-(`D20`… ou `AL_S` / `AL_B`), `exemption(code)` (mention de facture et catégorie Factur-X),
+(`D20`…, `AL_S` service, `AL_B` bien de l'UE, `AL_I…` bien importé hors UE selon le taux, `AL_FR` régime
+`fr_rc` art. 283-1), `due_account_code(code)` (4453 pour une importation, sinon 4452),
+`regime_labels(sales=False)` (sans `fr_rc` pour une vente), `exemption(code)` (mention de facture et catégorie Factur-X),
 `account(code)` (compte de TVA créé sous son regroupement s'il manque). Un écouteur `before_insert`
 propose le régime d'un tiers créé par une synchronisation avec un n° de TVA étranger. Utilisé par
 `purchase_posting`, `sale_posting`, `sale_settlement` (virement 44574 → 44571 par taux, base au
@@ -1079,7 +1103,9 @@ contrepassation).
 `form_spec(year)` (`data/ca3/<année>.json`, sinon le millésime antérieur), `parse_period`, `deadline`,
 `periods(fy)` (mois, statut, retard), `retained_lines(start, end)` (lignes codées non déclarées
 jusqu'à la fin du mois, hors 44574), `compute` (cases arrondies à l'euro, totaux 16 / 23, TD / 28 ou
-25 / 27, crédit reporté de la déclaration précédente ou de 44567 des à-nouveaux), `checks`
+25 / 27, crédit reporté de la déclaration précédente ou de 44567 des à-nouveaux ; TVA déduite des avoirs
+fournisseurs reversée ligne 15 — `credit_note_entries` ; importations A4, I1–I5, dont 24 ; mentions
+de TVA autoliquidée sous les lignes, `reverse_charge_notes`), `checks`
 (bloquant : exercice non déclarant ou clos, mois précédent non validé ; avertissements), `lines_for`
 (case → lignes), `validate` (brouillards validés, `VatReturn`, lignes rattachées, liquidation
 `liquidation_lines` : comptes soldés, 44551 / 44567, arrondi 658 / 758 par les rôles `vat_*`),

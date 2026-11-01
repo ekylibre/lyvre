@@ -75,7 +75,11 @@ encore ces motifs d'exonération.
   - **Chèque, espèces…** : montant, date, banque ou caisse.
 - **Rapprocher les encaissements** (liste) : une facture dont le restant dû est égal à un seul
   crédit bancaire, candidat d'elle seule, est encaissée — aussi après chaque import OFX et
-  synchronisation Qonto.
+  synchronisation Qonto, et **à l'émission** de la facture (ou d'un avoir) quand le relevé est arrivé
+  avant elle.
+- **Depuis le relevé** : Banque › Transactions propose « Encaisser F-… » sur un crédit libre pour les
+  factures ouvertes de même restant dû (même client d'abord), après confirmation ; la facture encaissée
+  s'affiche ensuite sur la transaction.
 - La facture passe **Payée en partie** puis **Payée** ; « Défaire » supprime l'encaissement et son
   écriture.
 - **Relancer** : facture échue non soldée, depuis sa fiche ou une sélection (filtre « Échues ») ;

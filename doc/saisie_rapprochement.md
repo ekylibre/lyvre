@@ -98,12 +98,34 @@ transmis à l'expert-comptable.
 
 ---
 
+## Liste des transactions d'un compte
+
+**Banque › Transactions** (un compte) : chaque ligne porte un **feu**, une icône de **type** et une
+icône de **pièce** ; l'infobulle de chacun donne son libellé.
+
+| Feu | Libellé | Quand |
+|---|---|---|
+| Vert | À jour | rapprochée avec son justificatif (ou sans justificatif exigé), **ou** facture liée et écriture passée (la facture tient lieu de justificatif), **ou** annulée par la banque et non rapprochée |
+| Orange | À traiter | à rapprocher, justificatif manquant, ou passée par une règle avec le tiers par défaut |
+| Rouge | Anomalie | annulée par la banque mais encore rapprochée, ou justificatif perdu |
+
+- **Légende des feux** au-dessus du tableau : nombre de lignes par couleur ; un clic filtre le tableau,
+  un second clic retire le filtre. Autre filtre : « Débit sans facture ».
+- **Type** : carte, prélèvement, virement émis ou reçu, frais bancaires, chèque, retrait d'espèces
+  (codes Qonto et OFX). **Pièce** : trombone (justificatif présent), fichier barré (manquant), point
+  d'interrogation (perdu), rien pour un relevé OFX.
+- **Catégorie** : celle de la règle de Lyvre, sinon celle de Qonto (en gris, infobulle « Catégorie Qonto »).
+- **Actions** : la première est visible, les autres dans le menu « … » — Encaisser F-… (facture de vente
+  ouverte de même montant), Créer la facture (justificatif Qonto), Attribuer / Changer le tiers,
+  Nouvelle écriture, Rapprocher. Aucune pour le comptable.
+
 ## Espace de rapprochement
 
 ### Écran
 
 - **À gauche** : les transactions non rapprochées du compte bancaire et du mois choisis (filtres
-  repris dans l'URL). `★` = la transaction a une suggestion unique.
+  repris dans l'URL), avec leur feu, leur type et leur pièce comme dans la
+  [liste des transactions](#liste-des-transactions-dun-compte). `★` = la transaction a une suggestion unique.
 - **À droite** : les écritures candidates pour la transaction active, numérotées `1`…`9`.
   Candidates = lignes sur le **compte comptable du compte bancaire**, de **même montant et même
   sens**, non rapprochées, datées à ±3 jours ; la meilleure (`★`) est celle de même date si elle
@@ -121,7 +143,7 @@ règle s'il a un compte, sinon le tiers par défaut **401000 « Fournisseurs div
 
 - la **facture** qui arrive (achat comptabilisé lié à la transaction, ou facture de vente encaissée
   par elle) **remplace automatiquement** les deux écritures par le règlement du vrai tiers ;
-- sans facture, **Banque › Transactions › Attribuer** (colonne Tiers) repasse les deux écritures
+- sans facture, **Banque › Transactions › Attribuer le tiers** (actions de la ligne) repasse les deux écritures
   sur le compte du tiers choisi (créé au besoin) ; validées, elles sont contrepassées.
 
 En comptabilité **simplifiée** (trésorerie), la règle passe une seule écriture banque / 6… ou 7….

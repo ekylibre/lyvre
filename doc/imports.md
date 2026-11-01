@@ -138,19 +138,42 @@ lecture seule). Guide d'utilisation :
    arrière-plan ; le résumé indique les transactions nouvelles, mises à jour, annulées et les erreurs.
    - Première synchro : toutes les transactions réglées depuis la date de début (lecture mois par mois).
    - Ensuite : seulement ce qui a changé dans Qonto (marge de 10 minutes, sans doublon).
-   - Une synchro relancée ne crée jamais de doublon ; une note ou un justificatif ajouté dans Qonto
-     est repris, mais jamais le montant, la date, le rapprochement, le tiers ni la catégorie.
+   - Une synchro relancée ne crée jamais de doublon ; une note, un justificatif ou une **catégorie
+     Qonto** (catégorie, catégorie et sous-catégorie de trésorerie) ajoutés dans Qonto sont repris, mais
+     jamais le montant, la date, le rapprochement, le tiers ni la catégorie posée par une règle de Lyvre.
+   - Transactions importées avant la lecture des catégories Qonto : la synchro suivante relit une fois
+     toute la période depuis la date de début pour les compléter.
    - Date : la date de règlement en heure de Paris. Montant : négatif pour un débit.
 4. **Après la synchro**, automatiquement : règlement des transactions qui paient une **facture
    d'achat** comptabilisée (401 / banque, voir [Factures d'achat](achats.md)), puis règles de
    catégorisation sur les autres nouvelles transactions (le type d'opération Qonto est dans « Type »,
-   utilisable par les règles), puis rattachement aux tiers de même nom.
+   utilisable par les règles), encaissement des factures de vente dont le restant dû égale un seul
+   crédit, puis rattachement aux tiers de même nom ; enfin récupération des **relevés de compte PDF**
+   nouveaux ou modifiés (voir ci-dessous).
 5. **Contreparties à valider** : les débits restés sans tiers sont regroupés ; créer le fournisseur,
    rattacher à un tiers existant ou ignorer. Les frais Qonto, rémunérations et encaissements ne sont
    pas proposés.
-6. **Contrôles** : filtres « Justificatif manquant » et « Débit sans facture » ; une transaction **annulée** par Qonto est
-   marquée « Annulée » et ne peut plus être rapprochée ; si elle l'était déjà, un bandeau rouge le signale
-   (rapprochement et écriture à revoir à la main).
+6. **Contrôles** : feux de la [liste des transactions](saisie_rapprochement.md#liste-des-transactions-dun-compte)
+   (« À traiter » regroupe les transactions à rapprocher et les justificatifs manquants) et filtre « Débit
+   sans facture » ; une transaction **annulée** par Qonto est marquée « Annulée » et ne peut plus être
+   rapprochée ; si elle l'était déjà, elle passe au feu rouge et un bandeau le signale (rapprochement et
+   écriture à revoir à la main).
+
+### Relevés de compte (PDF)
+
+Carte **Relevés de compte** de Banque › Transactions : les mois de l'exercice en cours, avec leur relevé
+ou « Manquant », et le PDF qui s'ouvre dans le navigateur.
+
+- **Compte Qonto** : « Récupérer les relevés » télécharge les relevés des mois **terminés** de l'exercice
+  en cours ; chaque synchronisation le fait aussi. Un relevé inchangé n'est pas retéléchargé ; un relevé
+  modifié par Qonto **remplace** le précédent. Lecture seule chez Qonto ; une erreur sur les relevés
+  n'empêche pas la synchronisation.
+- **Autre compte bancaire** : « Déposer un relevé » (mois d'un exercice ouvert, PDF de 10 Mo au plus) ;
+  un dépôt pour un mois déjà rempli le remplace.
+- Les relevés sont rangés dans le dossier de l'instance (`uploads/<instance>/releves/`), compris dans les
+  sauvegardes. **Personne ne les supprime** ; un compte qui a des relevés ne se supprime plus. Le
+  comptable les consulte, sans récupérer ni déposer.
+- L'[archive pour l'expert-comptable](cloture.md) les reprend avec le FEC.
 
 ## Après les imports : le rapprochement
 

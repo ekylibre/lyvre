@@ -9,7 +9,7 @@ inscrite dans son **historique**.
 |---|---|
 | Trésorier | Étapes 1 à 5, clôture provisoire, étapes 7 et 8 |
 | Administrateur de l'instance | Tout, plus la **clôture définitive** et la **réouverture** |
-| Expert-comptable | Consulter l'assistant, télécharger le FEC ; aucune action |
+| Expert-comptable | Consulter l'assistant, télécharger le FEC et l'archive (FEC + relevés) ; aucune action |
 
 ## Avant la clôture (exercice ouvert)
 
@@ -69,6 +69,10 @@ dernier jour, extournées le premier jour de l'exercice suivant. Une proposition
   déjà attribués ne changent jamais ; l'exercice est verrouillé jusqu'à son dernier jour (voir
   [Verrouillage des périodes](saisie_rapprochement.md#verrouillage-des-périodes)). Le FEC est alors téléchargeable (liste des exercices, colonne
   FEC) pour l'expert-comptable.
+- **Archive pour l'expert-comptable** (panneau FEC d'un exercice, tous les rôles) : un ZIP avec le FEC
+  s'il peut être produit, les [relevés de compte](imports.md#relevés-de-compte-pdf) des mois de
+  l'exercice (`releves/<compte>/<AAAA-MM>.pdf`) et un `LISEZMOI.txt` qui indique pourquoi le FEC manque
+  et, pour chaque compte bancaire, les mois terminés sans relevé.
 - **Réouverture** (administrateur, motif obligatoire) — Pour corriger un oubli : le lot de
   validation de la clôture est annulé (ses écritures repassent en brouillard ; celles validées
   avant la clôture le restent), la date de verrouillage d'avant la clôture est rétablie, les à-nouveaux et extournes de N+1 supprimés (à regénérer).

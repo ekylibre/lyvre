@@ -24,17 +24,20 @@ interface Domain { icon: ReactNode; title: string; items: string[] }
 
 const DOMAINS: Domain[] = [
   { icon: <BookOpen size={18} />, title: "Comptabilité", items: [
-    "Plan comptable associatif (règlement ANC 2018-06) ou SCI, choisi par structure",
+    "Plan comptable associatif (règlement ANC 2018-06), SCI ou société (PCG 2026, bilan et résultat de la liasse 2050), choisi par structure",
     "Partie double : saisie au clavier, journaux, grand livre, balance, bilan et compte de résultat N / N-1",
     "Comptabilité simplifiée : recettes et dépenses par catégorie, sans débit ni crédit, passage en partie double sans ressaisie",
     "Écritures validées par lots, intangibles ensuite (extourne pour corriger), historique ; verrouillage de période",
     "Lettrage automatique ou au clavier des comptes de tiers, à-nouveaux détaillés",
     "Immobilisations : composants, plans linéaire et dégressif, dotations à la clôture, cession ; charges et produits constatés d'avance",
     "Contributions volontaires en nature (86 / 87), TVA par exercice",
+    "TVA codée sur les écritures et déclaration CA3 mensuelle préparée (autoliquidation, importations, avoirs), PDF et tableur pour TeleDEC",
   ] },
   { icon: <Landmark size={18} />, title: "Banque et caisse", items: [
     "Import OFX et synchronisation Qonto, dédoublonnage",
     "Rapprochement au clavier avec suggestions, en masse, annulable ; règles de catégorisation",
+    "Transactions classées par feux (à jour, à traiter, anomalie), catégories Qonto, factures de vente encaissées depuis le relevé",
+    "Relevés de compte PDF récupérés de Qonto ou déposés, archive de l'exercice pour l'expert-comptable (FEC et relevés)",
     "Caisse en espèces (53x), dépôts en banque par virement interne (581)",
     "Prévisionnel de trésorerie sur 12 mois avec alerte de solde négatif",
   ] },
@@ -121,7 +124,7 @@ const OSS_ROWS: Row[] = [
   { key: "lettering", label: "Lettrage des comptes de tiers", lyvre: "yes" },
   { key: "entry_lock", label: "Écritures validées intangibles", lyvre: "yes" },
   { key: "fixed_assets", label: "Immobilisations, amortissements", lyvre: "yes" },
-  { key: "vat_return", label: "Déclaration de TVA préparée", lyvre: "no" },
+  { key: "vat_return", label: "Déclaration de TVA préparée", lyvre: "yes", note: "Lyvre : CA3 mensuelle, saisie sur TeleDEC" },
   { key: "einvoicing", label: "Facture électronique, plateforme agréée", lyvre: "partial", note: "Lyvre : Factur-X émis et lu, émission par Qonto" },
   { key: "sepa_online", label: "Prélèvement SEPA, paiement en ligne", lyvre: "no" },
 ];
@@ -129,7 +132,7 @@ const OSS_ROWS: Row[] = [
 const LIMITS = [
   "Pas d'application mobile native : l'interface s'adapte au téléphone.",
   "Pas de remise de chèques ni de billetterie ; la facture électronique (réforme 2026-2027) passe par Qonto.",
-  "Pas de déclaration de TVA préparée : les comptes de TVA sont tenus, la déclaration reste à remplir.",
+  "Déclaration de TVA préparée mais pas transmise : la CA3 se saisit sur TeleDEC (pas d'envoi EDI), pas de CA12 annuelle.",
   "Pas de paiement en ligne propre : les adhésions et dons en ligne passent par HelloAsso.",
   "Modèles de reçus fiscaux à faire relire face aux formulaires Cerfa en vigueur avant usage.",
 ];
