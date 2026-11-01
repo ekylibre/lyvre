@@ -11,6 +11,7 @@ from .lettering import AccountRole, Lettering
 from .asset import Asset, AssetDepreciation
 from .data_import import AccountMapping, ImportProfile
 from .bank_account import BankAccount
+from .bank_statement import BankStatement
 from .bank_transaction import BankTransaction
 from .odoo_import import OdooImportLine
 from .entity import Entity
@@ -76,6 +77,7 @@ __all__ = [
     "Lettering",
     "ValidationBatch",
     "BankAccount",
+    "BankStatement",
     "BankTransaction",
     "OdooImportLine",
     "Entity",

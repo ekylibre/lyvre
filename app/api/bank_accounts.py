@@ -121,6 +121,10 @@ def bank_accounts_delete(ba_id):
     if count:
         raise ApiError("conflict", f"Impossible de supprimer « {ba.label} » : {count} transaction(s) associée(s).",
                        status=409)
+    statements = ba.statements.count()
+    if statements:  # relevés conservés (personne ne les supprime)
+        raise ApiError("conflict", f"Impossible de supprimer « {ba.label} » : {statements} relevé(s) de compte conservé(s).",
+                       status=409)
     db.session.delete(ba)
     db.session.commit()
     return jsonify(notices=[notice(f"Compte bancaire « {ba.label} » supprimé.")])

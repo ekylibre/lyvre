@@ -181,7 +181,8 @@ def register_api(app):
 
 # Routes are attached to ``bp`` by these modules (import for side effects).
 from . import (  # noqa: E402,F401
-    access, activity_report, assets, brevo, data_import, associate_expenses, associates, bank_accounts, budgets, cash, cash_forecast, chart, entities, entries, fiscal_years,
+    access, activity_report, assets, brevo, data_import, associate_expenses, associates, bank_accounts, bank_statements,
+    budgets, cash, cash_forecast, chart, entities, entries, fiscal_years,
     impact, imports, lettering,
     instances, integrations, journals, leases, lookups, members, notifications, odoo, organization, payouts,
     products, projects, purchases, receipts, reconciliation, reports, rules, sales, search, session, share_movements,

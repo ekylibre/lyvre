@@ -3,7 +3,7 @@
 // `preview` (assistant de clôture) : essai à blanc sur l'exercice ouvert (…/fec/preview), sans fichier.
 import { Alert, Anchor, Button, Center, Group, List, Loader, SimpleGrid, Stack, Text } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
-import { Download } from "lucide-react";
+import { Archive, Download } from "lucide-react";
 import { api } from "../../api/client";
 import { MoneyText } from "../../components/Money";
 import { AppLink } from "../../app/navigation";
@@ -57,6 +57,14 @@ export function FecPanel({ fiscalYearId, preview = false }: { fiscalYearId: numb
           </Group>
           </>)}
         </>
+      )}
+      {!preview && (
+        <Group gap="sm">
+          <Button variant="default" component="a" href={`/fiscal-years/${fiscalYearId}/accountant-archive.zip`}
+            leftSection={<Archive size={16} />}>Archive pour l'expert-comptable (ZIP)</Button>
+          <Text size="xs" c="dimmed">FEC{data.errors.length > 0 ? " (s'il peut être produit)" : ""} et relevés de compte
+            de l'exercice, avec la liste des mois sans relevé.</Text>
+        </Group>
       )}
     </Stack>
   );

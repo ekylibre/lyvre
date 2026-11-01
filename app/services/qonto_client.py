@@ -247,6 +247,16 @@ class QontoClient:
         """Pièce jointe : `url` de téléchargement valable 30 minutes."""
         return self._get(f"/attachments/{attachment_id}").get("attachment") or {}
 
+    def list_statements(self, bank_account_id: str, period_from: str, period_to: str) -> list[dict]:
+        """Relevés mensuels d'un compte (périodes `MM-AAAA`, bornes comprises), toutes pages ; chaque
+        relevé porte `file.file_url`, valable 30 minutes."""
+        params = {"bank_account_ids[]": bank_account_id, "period_from": period_from, "period_to": period_to}
+        return [item for page in self.iter_pages("/statements", "statements", params=params) for item in page]
+
+    def statement(self, statement_id: str) -> dict:
+        """Un relevé, avec un lien de téléchargement renouvelé."""
+        return self._get(f"/statements/{statement_id}").get("statement") or {}
+
     def download(self, url: str) -> bytes:
         """Fichier d'une URL signée de pièce jointe (sans l'en-tête d'authentification Qonto)."""
         resp = requests.get(url, timeout=self.timeout)

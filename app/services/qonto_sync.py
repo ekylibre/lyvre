@@ -193,7 +193,7 @@ def signed_amount(tx: dict) -> int:
 def _new_result() -> dict:
     return {"created": 0, "updated": 0, "unchanged": 0, "reversed": 0, "reversed_reconciled": 0,
             "skipped": 0, "conflicts": 0, "rules_matched": 0, "rules_posted": 0,
-            "linked_entities": 0, "proposed_counterparties": 0, "settled": 0, "errors": []}
+            "linked_entities": 0, "proposed_counterparties": 0, "settled": 0, "statements": 0, "errors": []}
 
 
 def upsert_transaction(bank_account: BankAccount, tx: dict, result: dict, created: list) -> None:
@@ -339,7 +339,27 @@ def sync_bank_account(bank_account_id, client=None, progress_cb=None) -> dict:
     bank_account.qonto_synced_at = started
     db.session.commit()
     result["read"] = done
+    _fetch_statements(bank_account, client, result, progress_cb)
     return result
+
+
+def _fetch_statements(bank_account: BankAccount, client, result: dict, progress_cb=None) -> None:
+    """Relevés PDF de l'exercice en cours, nouveaux ou changés (lot RQ2) : après la synchronisation, déjà
+    enregistrée ; un échec s'ajoute aux erreurs sans la faire échouer."""
+    from app.services import bank_statements, integrations
+
+    if progress_cb:
+        progress_cb(result["read"], None, "Relevés de compte…")
+    try:
+        found = bank_statements.fetch_qonto(bank_account, client)
+    except Exception as exc:  # noqa: BLE001 — la synchronisation des transactions est déjà faite
+        db.session.rollback()
+        detail = str(exc) if isinstance(exc, bank_statements.StatementError) else \
+            integrations.mask_secrets("qonto", integrations.describe_error("qonto", exc))
+        result["errors"].append(f"Relevés de compte : {detail}")
+        return
+    result["statements"] = found["new"] + found["replaced"]
+    result["errors"].extend(found["errors"])
 
 
 def start_sync(app, bank_account_id):

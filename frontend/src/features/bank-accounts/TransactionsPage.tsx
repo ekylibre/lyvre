@@ -26,6 +26,7 @@ import type { BankTransaction } from "../../lib/types";
 import { AppLink } from "../../app/navigation";
 import { attachmentBadge } from "../reconciliation/logic";
 import { SALES_KEY } from "../sales/types";
+import { StatementsCard } from "./StatementsCard";
 import { BANK_ACCOUNTS_KEY, type BankAccount } from "./types";
 
 type Transaction = BankTransaction & {
@@ -54,7 +55,8 @@ function QontoResult({ r, baId }: { r: Record<string, number | string[] | undefi
       <Text size="sm">{n("created")} nouvelle(s), {n("updated")} mise(s) à jour, {n("reversed")} annulée(s) sur {n("read")} lue(s).
         {n("rules_matched") > 0 && ` Règles : ${n("rules_matched")} catégorisée(s), ${n("rules_posted")} écriture(s).`}
         {n("settled") > 0 && ` ${n("settled")} règlement(s) de facture d'achat passé(s).`}
-        {n("linked_entities") > 0 && ` ${n("linked_entities")} rattachée(s) à un tiers existant.`}</Text>
+        {n("linked_entities") > 0 && ` ${n("linked_entities")} rattachée(s) à un tiers existant.`}
+        {n("statements") > 0 && ` ${n("statements")} relevé(s) de compte récupéré(s).`}</Text>
       {n("proposed_counterparties") > 0 && <Anchor component={AppLink} href={`/bank-accounts/${baId}/counterparties`} size="sm">
         {n("proposed_counterparties")} contrepartie(s) à valider</Anchor>}
       {n("reversed_reconciled") > 0 && <Text size="sm" c="var(--lv-brique)">{n("reversed_reconciled")} transaction(s) annulée(s) par Qonto étai(en)t déjà rapprochée(s) : à revoir.</Text>}
@@ -203,6 +205,7 @@ export default function TransactionsPage() {
           <Can><Button component={AppLink} href={`/reconciliation/?bank_account_id=${ba.id}`}>Rapprocher</Button></Can>
         </>} />
       <QontoCard detail={detail} onSynced={() => void client.invalidateQueries({ queryKey: [...BANK_ACCOUNTS_KEY, baId] })} />
+      {ba.kind === "bank" && <StatementsCard bankAccountId={ba.id} />}
       {!ba.qonto && can.instanceAdmin && detail.meta.qonto.available && (
         <Text size="sm" mb="sm"><Anchor component={AppLink} href="/bank-accounts/qonto">Rattacher ce compte à Qonto</Anchor></Text>
       )}

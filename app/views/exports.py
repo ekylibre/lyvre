@@ -189,6 +189,28 @@ def _vat_return(period):
             "reference": ret.declared_reference if ret is not None else None}
 
 
+@bp.route("/bank-statements/<int:statement_id>.pdf")
+@login_required
+def bank_statement_pdf(statement_id):
+    """Relevé de compte stocké (lot RQ1), affiché dans le navigateur ; tous les rôles de l'instance."""
+    from flask import send_file
+
+    from app.models import BankStatement
+    from app.services import bank_statements
+
+    statement = db.session.get(BankStatement, statement_id)
+    if statement is None:
+        abort(404)
+    try:
+        path = bank_statements.path_for(statement)
+    except bank_statements.StatementError:
+        abort(404)
+    if not path.is_file():
+        abort(404)
+    name = statement.file_name or f"releve-{statement.period:%Y-%m}.pdf"
+    return send_file(path, mimetype="application/pdf", download_name=name, as_attachment=False)
+
+
 @bp.route("/vat-returns/<period>.xlsx")
 @login_required
 def vat_return_xlsx(period):

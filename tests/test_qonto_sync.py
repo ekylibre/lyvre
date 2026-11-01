@@ -37,6 +37,9 @@ class FakeClient:
         self.fail_on_page = fail_on_page
         self.total_override = total_override
 
+    def list_statements(self, account_id, period_from, period_to):
+        return []  # relevés de compte (lot RQ2) : aucun
+
     def list_transactions(self, account_id, *, statuses, page=1, per_page=100, **window):
         self.calls.append({"account": account_id, "statuses": statuses, "page": page, **window})
         if self.fail_on_page and len(self.calls) >= self.fail_on_page:
