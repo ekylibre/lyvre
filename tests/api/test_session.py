@@ -130,3 +130,36 @@ def test_job_status(app, login_as):
     body = client.get(f"/api/v1/jobs/{job.id}").get_json()["job"]
     assert body["status"] == "done" and body["result"] == {"created": 2} and body["progress_done"] == 3
     assert client.get("/api/v1/jobs/999").status_code == 404
+
+
+def test_vat_menu_reads_the_selected_instance_database(app, tmp_path):
+    """Le menu « Déclarations de TVA » suit les exercices de l'instance choisie, pas ceux de la
+    base par défaut : la session est une route sans instance (régression 2026.11.3, menu absent
+    en production)."""
+    from datetime import date
+
+    from sqlalchemy import create_engine, insert
+
+    from app.models import FiscalYear
+
+    url = f"sqlite:///{tmp_path / 'societe.db'}"
+    engine = create_engine(url)
+    FiscalYear.__table__.create(engine)
+    with engine.begin() as conn:
+        conn.execute(insert(FiscalYear.__table__).values(
+            label="2026-2027", start_date=date(2026, 7, 1), end_date=date(2027, 6, 30), vat_period="monthly"))
+    engine.dispose()
+    _user(is_admin=True)
+    _instance(slug="asso", label="Asso", chart="asso")  # base par défaut : aucun exercice avec TVA
+    societe = Instance(slug="soc", label="Société", chart="societe", database_url=url)
+    db.session.add(societe)
+    db.session.commit()
+
+    client = app.test_client()
+    body = _login(client).get_json()
+    labels = lambda b: [i.get("label") for m in b["nav"] for i in m.get("items", [])]  # noqa: E731
+    by_label = {i["label"]: i["id"] for i in body["instances"]}
+    body = client.post("/api/v1/session/instance", json={"instance_id": by_label["Société"]}).get_json()
+    assert "Déclarations de TVA" in labels(body)
+    body = client.post("/api/v1/session/instance", json={"instance_id": by_label["Asso"]}).get_json()
+    assert "Déclarations de TVA" not in labels(body)

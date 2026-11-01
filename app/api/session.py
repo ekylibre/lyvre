@@ -91,10 +91,28 @@ def _integrations(inst, role) -> dict:
 def _features(inst) -> set[str]:
     """Options de l'instance qui conditionnent des menus : module Associés, intégrations activées,
     déclarations de TVA (un exercice les prépare dans Lyvre, lot T3)."""
-    from app.models import FiscalYear
-    vat = db.session.query(FiscalYear.id).filter(FiscalYear.vat_period.isnot(None)).first() is not None
-    return {*(["associates"] if inst.has_associates else []), *(["vat_returns"] if vat else []),
+    return {*(["associates"] if inst.has_associates else []), *(["vat_returns"] if _vat_prepared(inst) else []),
             *_enabled_integrations(inst)}
+
+
+def _vat_prepared(inst) -> bool:
+    """Un exercice de l'instance prépare-t-il la TVA (période déclarative) ?
+
+    La session est une route « sans instance » (app.tenant) : `db.session` y vise la base par
+    défaut, pas celle de l'instance. On lit donc la base de l'instance par son propre moteur.
+    Base illisible : pas de menu, plutôt qu'une session en erreur."""
+    from sqlalchemy import select
+    from sqlalchemy.exc import SQLAlchemyError
+
+    from app.models import FiscalYear
+    from app.tenant import get_tenant_engine
+    try:
+        with get_tenant_engine(inst).connect() as conn:
+            query = select(FiscalYear.id).where(FiscalYear.vat_period.isnot(None)).limit(1)
+            return conn.execute(query).first() is not None
+    except SQLAlchemyError:
+        current_app.logger.warning("Instance %s : base illisible pour le menu TVA.", inst.slug, exc_info=True)
+        return False
 
 
 def session_payload() -> dict:
