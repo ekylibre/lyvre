@@ -20,6 +20,7 @@ export type VatRegime = "fr" | "eu" | "world";
 /** Régimes TVA d'un tiers, dans l'ordre de `data/vat_codes.json`. */
 export const VAT_REGIMES: Option[] = [
   { value: "fr", label: "France" }, { value: "eu", label: "Union européenne" }, { value: "world", label: "Hors Union européenne" },
+  { value: "fr_rc", label: "Non établi en France, TVA due par l'acheteur (art. 283-1)" },
 ];
 
 export interface EntitiesMeta {

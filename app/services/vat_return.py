@@ -34,7 +34,8 @@ FORM = "CA3"
 ON_RECEIPTS = "44574"          # TVA collectée en attente : déclarée à l'encaissement
 DEFAULT_DUE_DAY = 24           # dernier jour possible fixé par le SIE (du 15 au 24)
 RATE_TOLERANCE_CENTS = 100     # écart toléré entre la taxe et base × taux, par ligne
-VAT_ACCOUNTS = ("4452", "4456", "4457")
+VAT_ACCOUNTS = ("4452", "4453", "4456", "4457")
+REVERSAL_BOX = "15"            # TVA déduite à reverser : avoirs reçus des fournisseurs
 
 
 class VatReturnError(LedgerError):
@@ -123,7 +124,7 @@ def _role(code: str) -> str:
     """Rôle d'une ligne d'après son compte : taxe collectée, due (autoliquidation), déductible, ou base."""
     if code.startswith("4457"):
         return "collected"
-    if code.startswith("4452"):
+    if code.startswith(("4452", "4453")):
         return "due"
     if code.startswith("4456"):
         return "deductible"
@@ -153,13 +154,27 @@ def _euros(cents: int) -> int:
     return int((Decimal(cents) / 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
-def _box_targets(spec: dict, line: JournalLine) -> list[tuple[str, str, str]]:
+def credit_note_entries(lines) -> set[int]:
+    """Écritures d'avoirs reçus des fournisseurs parmi celles des lignes : leur TVA déductible est reversée
+    ligne 15 (notice de la CA3), au lieu de réduire les lignes 19-20."""
+    from app.models import Purchase
+    ids = {line.entry_id for line in lines}
+    if not ids:
+        return set()
+    return {row[0] for row in db.session.query(Purchase.journal_entry_id).filter(
+        Purchase.is_credit_note.is_(True), Purchase.journal_entry_id.in_(ids))}
+
+
+def _box_targets(spec: dict, line: JournalLine, credit_notes=frozenset()) -> list[tuple[str, str, str]]:
     """Cases alimentées par une ligne : [(case, colonne, valeur)] ; colonne `base`, `tax` ou `amount`
-    (case à un seul montant) ; valeur `base` (base HT) ou `amount` (taxe de la ligne)."""
+    (case à un seul montant) ; valeur `base` (base HT), `amount` (taxe de la ligne) ou `reversal` (taxe
+    déductible d'un avoir reçu, reversée : son opposé)."""
     mapping = spec["codes"].get(line.vat_code)
     if mapping is None:
         return []
     role = _role(line.account.code or "")
+    if role == "deductible" and mapping.get("deductible") and line.entry_id in credit_notes:
+        return [(REVERSAL_BOX, "amount", "reversal")]
     with_base = {box["line"] for section in spec["sections"] for box in section["boxes"] if box.get("with_base")}
     targets = []
     if role in ("collected", "due", "base"):
@@ -172,6 +187,7 @@ def _box_targets(spec: dict, line: JournalLine) -> list[tuple[str, str, str]]:
         lines = spec["deductible_lines"]
         box = lines.get("44562") if (line.account.code or "").startswith("44562") else lines["default"]
         targets.append((box, "amount", "amount"))
+        targets += [(box, "amount", "amount") for box in mapping.get("deductible_also", [])]
     return targets
 
 
@@ -198,8 +214,10 @@ def compute(start: date, end: date, lines=None) -> dict:
     formulaire), détail par code (centimes), crédit reporté, TVA due ou crédit."""
     spec = form_spec(end.year)
     lines = list(retained_lines(start, end)) if lines is None else lines
+    credit_notes = credit_note_entries(lines)
     cents: dict[str, dict[str, int]] = {}
     codes: dict[str, dict[str, int]] = {}
+    reverse_charge: dict[str, int] = {}   # case → TVA autoliquidée (due ou déduite), centimes
     for line in lines:
         role, amount, base = _signed(line)
         detail = codes.setdefault(line.vat_code, {"base": 0, "tax": 0, "deductible": 0})
@@ -210,14 +228,17 @@ def compute(start: date, end: date, lines=None) -> dict:
         else:
             detail["base"] += base
             detail["tax"] += amount
-        for box, column, source in _box_targets(spec, line):
-            value = base if source == "base" else amount
+        for box, column, source in _box_targets(spec, line, credit_notes):
+            value = base if source == "base" else -amount if source == "reversal" else amount
             cell = cents.setdefault(box, {})
             cell[column] = cell.get(column, 0) + value
+            if (line.vat_code or "").startswith("AL_") and source == "amount" and column in ("tax", "amount") \
+                    and box not in ("17", "24"):
+                reverse_charge[box] = reverse_charge.get(box, 0) + value
     boxes = {box: {column: _euros(value) for column, value in cell.items()} for box, cell in cents.items()}
     with_base = [box["line"] for section in spec["sections"] for box in section["boxes"] if box.get("with_base")]
     carried = _credit_carried(start)
-    gross = sum(boxes.get(box, {}).get("tax", 0) for box in with_base)
+    gross = sum(boxes.get(box, {}).get("tax", 0) for box in with_base) + boxes.get(REVERSAL_BOX, {}).get("amount", 0)
     boxes["16"] = {"amount": gross}
     boxes["22"] = {"amount": _euros(carried)}
     deductible = sum(boxes.get(box, {}).get("amount", 0) for box in ("19", "20", "22"))
@@ -225,18 +246,43 @@ def compute(start: date, end: date, lines=None) -> dict:
     due, credit = max(gross - deductible, 0), max(deductible - gross, 0)
     boxes.update({"TD": {"amount": due}, "28": {"amount": due}, "32": {"amount": due},
                   "25": {"amount": credit}, "26": {"amount": 0}, "27": {"amount": credit}})
+    notes = reverse_charge_notes(reverse_charge)
     rows = []
     for section in spec["sections"]:
         rows.append({"kind": "section", "label": section["title"]})
         for box in section["boxes"]:
             values = boxes.get(box["line"], {})
-            rows.append({"kind": "total" if box.get("total") else "box", "line": box["line"], "code": box["code"],
-                         "label": box["label"], "with_base": bool(box.get("with_base")),
-                         "base": values.get("base", 0) if box.get("with_base") else None,
-                         "amount": values.get("tax", 0) if box.get("with_base") else values.get("amount", 0)})
+            row = {"kind": "total" if box.get("total") else "box", "line": box["line"], "code": box["code"],
+                   "label": box["label"], "with_base": bool(box.get("with_base")),
+                   "base": values.get("base", 0) if box.get("with_base") else None,
+                   "amount": values.get("tax", 0) if box.get("with_base") else values.get("amount", 0)}
+            if box["line"] in notes:
+                row["note"] = notes[box["line"]]
+            rows.append(row)
     return {"period": period_key(start), "start": start, "end": end, "form": spec["form"], "form_year": spec["year"],
             "boxes": boxes, "rows": rows, "codes": codes, "credit_carried_cents": carried,
-            "due_cents": due * 100, "credit_cents": credit * 100, "lines_count": len(lines)}
+            "due_cents": due * 100, "credit_cents": credit * 100, "lines_count": len(lines),
+            "reverse_charge_cents": sum(v for b, v in reverse_charge.items() if b not in DEDUCTIBLE_BOXES)}
+
+
+DEDUCTIBLE_BOXES = ("19", "20")
+
+
+def _fmt(cents: int) -> str:
+    return f"{cents / 100:,.2f} €".replace(",", "\u202f").replace(".", ",")
+
+
+def reverse_charge_notes(reverse_charge: dict[str, int]) -> dict[str, str]:
+    """Mentions sous les lignes qui portent de la TVA autoliquidée : due d'un côté, déduite de l'autre,
+    sans effet sur la TVA nette (au droit à déduction près)."""
+    due = {b: v for b, v in reverse_charge.items() if b not in DEDUCTIBLE_BOXES and v}
+    deducted = {b: v for b, v in reverse_charge.items() if b in DEDUCTIBLE_BOXES and v}
+    notes = {}
+    for box, value in due.items():
+        notes[box] = f"dont {_fmt(value)} de TVA autoliquidée, déduite ligne {' / '.join(deducted) or '20'}"
+    for box, value in deducted.items():
+        notes[box] = f"dont {_fmt(value)} de TVA autoliquidée, due ligne {' / '.join(due) or '08'} : sans effet sur la TVA nette"
+    return notes
 
 
 def lines_for(start: date, end: date, box: str, vat_return: VatReturn | None = None) -> list[JournalLine]:
@@ -244,7 +290,9 @@ def lines_for(start: date, end: date, box: str, vat_return: VatReturn | None = N
     spec = form_spec(end.year)
     query = (JournalLine.query.filter(JournalLine.vat_return_id == vat_return.id) if vat_return is not None
              else retained_lines(start, end))
-    return [line for line in query if any(target == box for target, _c, _s in _box_targets(spec, line))]
+    lines = list(query)
+    credit_notes = credit_note_entries(lines)
+    return [line for line in lines if any(target == box for target, _c, _s in _box_targets(spec, line, credit_notes))]
 
 
 # ------------------------------------------------------------------ contrôles
@@ -302,6 +350,11 @@ def checks(start: date, end: date, lines=None, today: date | None = None) -> lis
     if inconsistent:
         add("warning", "Taxe différente de base × taux (plus d'un euro d'écart) : vérifiez la base ou le code.",
             inconsistent)
+    imports = {line.entry_id for line in lines if (line.vat_code or "").startswith("AL_I")}
+    if imports:
+        add("warning", "Importations : comparez les lignes A4 et I1 à I5 aux montants préremplis par la douane. La base "
+            "comprend les droits de douane et les frais jusqu'au premier lieu de destination (ligne à ajouter sur la "
+            "facture d'import s'ils manquent).", len(imports))
     earlier = sum(1 for line in lines if line.entry.entry_date < start)
     if earlier:
         add("warning", "Pièces de mois précédents saisies après leur déclaration : reprises dans ce mois.", earlier)

@@ -16,7 +16,8 @@ const PREVIEW: VatReturnPreview = {
   checks: [{ level: "error", message: "Validez d'abord la déclaration de 07/2026 : son crédit se reporte sur ce mois.", count: null }],
   rows: [
     { kind: "section", label: "B — Décompte de la TVA à payer : TVA brute" },
-    { kind: "box", line: "08", code: "0207", label: "Taux normal 20 %", with_base: true, base: 1902, amount: 380 },
+    { kind: "box", line: "08", code: "0207", label: "Taux normal 20 %", with_base: true, base: 1902, amount: 380,
+      note: "dont 18,00 € de TVA autoliquidée, déduite ligne 20" },
     { kind: "total", line: "16", code: null, label: "Total de la TVA brute due", with_base: false, base: null, amount: 380 },
   ],
 };
@@ -48,6 +49,7 @@ describe("déclaration d'un mois", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("07/2026");
     expect(screen.getByRole("button", { name: "Valider" })).toBeDisabled();
     expect(screen.getByText(/TVA nette due/)).toBeInTheDocument();
+    expect(screen.getByText("dont 18,00 € de TVA autoliquidée, déduite ligne 20")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Lignes de la case 08" }));
     expect(await screen.findByText("OD-2026-0009")).toBeInTheDocument();
     expect(urls.some((u) => u.includes("box=08"))).toBe(true);

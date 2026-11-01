@@ -143,7 +143,7 @@ export default function VatReturnPage() {
               <Table.Tr key={row.line} fw={row.kind === "total" ? 600 : undefined}>
                 <Table.Td className="lv-num">{row.line}</Table.Td>
                 <Table.Td className="lv-num"><Text size="sm" c="dimmed">{row.code ?? ""}</Text></Table.Td>
-                <Table.Td>{row.label}</Table.Td>
+                <Table.Td>{row.label}{row.note && <Text size="xs" c="dimmed">{row.note}</Text>}</Table.Td>
                 <Table.Td ta="right" className="lv-num">{row.with_base ? formatWholeEuros(row.base) : ""}</Table.Td>
                 <Table.Td ta="right" className="lv-num">
                   {row.kind === "box" && row.amount ? (

@@ -1,12 +1,14 @@
 {
-  "_comment": "Formulaire 3310-CA3-SD (cerfa 10963*31), millésime 2026 : cases utilisées par Lyvre, dans l'ordre du formulaire, avec le code de la case (saisie TeleDEC / EDI). Source : https://www.impots.gouv.fr/sites/default/files/formulaires/3310-ca3-sd/2026/3310-ca3-sd_5377.pdf (lot T3, claudedocs/design_societe_tva.md § 3.4).",
+  "_comment": "Formulaire 3310-CA3-SD (cerfa 10963*31), millésime 2026 : cases utilisées par Lyvre, dans l'ordre du formulaire, avec le code de la case (saisie TeleDEC / EDI). Source : https://www.impots.gouv.fr/sites/default/files/formulaires/3310-ca3-sd/2026/3310-ca3-sd_5377.pdf (lot T3, claudedocs/design_societe_tva.md § 3.4). Importations (A4, I1–I5, dont 24), achats de l'article 283-1 (B4) et TVA à reverser sur avoirs reçus (15) : notice 3310-NOT-CA3-SD, doc/ref_compta/3310-ca3-sd_5426.pdf.",
   "form": "3310-CA3-SD",
   "cerfa": "10963*31",
   "sections": [
     {"title": "A — Montant des opérations réalisées : opérations taxées (HT)", "boxes": [
       {"line": "A1", "code": "0979", "label": "Ventes, prestations de services"},
       {"line": "A3", "code": "0044", "label": "Achats de prestations de services réalisés auprès d'un assujetti non établi en France (article 283-2 du CGI)"},
-      {"line": "B2", "code": "0031", "label": "Acquisitions intracommunautaires"}
+      {"line": "A4", "code": "0056", "label": "Importations (autres que les produits pétroliers)"},
+      {"line": "B2", "code": "0031", "label": "Acquisitions intracommunautaires"},
+      {"line": "B4", "code": "0040", "label": "Achats de biens ou de prestations de services réalisés auprès d'un assujetti non établi en France (article 283-1 du CGI)"}
     ]},
     {"title": "A — Montant des opérations réalisées : opérations non taxées", "boxes": [
       {"line": "E1", "code": "0032", "label": "Exportations hors UE"},
@@ -18,6 +20,11 @@
       {"line": "09", "code": "0105", "label": "Taux réduit 5,5 %", "with_base": true},
       {"line": "9B", "code": "0151", "label": "Taux réduit 10 %", "with_base": true},
       {"line": "T6", "code": "1010", "label": "Opérations réalisées en France continentale au taux de 2,1 %", "with_base": true},
+      {"line": "I1", "code": "0210", "label": "Importations — taux normal 20 %", "with_base": true},
+      {"line": "I2", "code": "0211", "label": "Importations — taux réduit 10 %", "with_base": true},
+      {"line": "I4", "code": "0213", "label": "Importations — taux réduit 5,5 %", "with_base": true},
+      {"line": "I5", "code": "0214", "label": "Importations — taux réduit 2,1 %", "with_base": true},
+      {"line": "15", "code": "0600", "label": "TVA antérieurement déduite à reverser (avoirs reçus des fournisseurs)"},
       {"line": "16", "code": null, "label": "Total de la TVA brute due (lignes 08 à 5B)", "total": true},
       {"line": "17", "code": "0035", "label": "Dont TVA sur acquisitions intracommunautaires"}
     ]},
@@ -25,7 +32,8 @@
       {"line": "19", "code": "0703", "label": "Biens constituant des immobilisations"},
       {"line": "20", "code": "0702", "label": "Autres biens et services"},
       {"line": "22", "code": "8001", "label": "Report du crédit apparaissant ligne 27 de la précédente déclaration"},
-      {"line": "23", "code": null, "label": "Total TVA déductible (ligne 19 à 2C)", "total": true}
+      {"line": "23", "code": null, "label": "Total TVA déductible (ligne 19 à 2C)", "total": true},
+      {"line": "24", "code": "0710", "label": "Dont TVA déductible sur importations hors produits pétroliers"}
     ]},
     {"title": "TVA due ou crédit de TVA", "boxes": [
       {"line": "25", "code": "0705", "label": "Crédit de TVA (ligne 23 – ligne 16)"},
@@ -50,7 +58,12 @@
     "D55": {"deductible": true},
     "D21": {"deductible": true},
     "AL_S": {"base": ["A3", "08"], "tax": "08", "deductible": true},
-    "AL_B": {"base": ["B2", "08"], "tax": "08", "also": ["17"], "deductible": true}
+    "AL_B": {"base": ["B2", "08"], "tax": "08", "also": ["17"], "deductible": true},
+    "AL_FR": {"base": ["B4", "08"], "tax": "08", "deductible": true},
+    "AL_I": {"base": ["A4", "I1"], "tax": "I1", "deductible": true, "deductible_also": ["24"]},
+    "AL_I10": {"base": ["A4", "I2"], "tax": "I2", "deductible": true, "deductible_also": ["24"]},
+    "AL_I55": {"base": ["A4", "I4"], "tax": "I4", "deductible": true, "deductible_also": ["24"]},
+    "AL_I21": {"base": ["A4", "I5"], "tax": "I5", "deductible": true, "deductible_also": ["24"]}
   },
   "deductible_lines": {"44562": "19", "default": "20"}
 }

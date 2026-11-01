@@ -183,7 +183,7 @@ def parse_header(data: dict) -> Header:
 
 def _regime(data: dict) -> str | None:
     """Régime TVA choisi sur la pièce (lot T2) ; absent : celui du client."""
-    from app.services.vat_codes import REGIMES
+    from app.services.vat_codes import SALE_REGIMES as REGIMES
 
     value = data.get("vat_regime")
     if value in (None, ""):

@@ -13,6 +13,8 @@ Conception : `claudedocs/design_societe_tva.md` (lots T2 et T3).
    fixé par votre SIE, de 15 à 24 ; vide : le 24).
 3. **Tiers** : le **régime TVA** des fournisseurs et clients étrangers (Union européenne, hors UE) est
    proposé d'après leur n° de TVA ; vérifiez-le, il décide de l'autoliquidation et des ventes sans TVA.
+   Pour un fournisseur **non établi en France** dont vous devez la TVA française (article 283-1 du CGI,
+   par exemple un bien installé en France), choisissez « Non établi en France, TVA due par l'acheteur ».
 
 ## Ce que Lyvre déclare
 
@@ -28,7 +30,21 @@ comptabilisation (achats, ventes, encaissements) ou choisis dans la saisie (lign
 | `D20`… | TVA déductible | 19 (compte 44562, immobilisations) ou 20 |
 | `AL_S` | Achat de services à un prestataire non établi en France (autoliquidation) | A3 ; 08 ; 20 (ou 19) |
 | `AL_B` | Acquisition intracommunautaire de biens | B2 ; 08 dont 17 ; 20 (ou 19) |
+| `AL_I`, `AL_I10`, `AL_I55`, `AL_I21` | Bien importé hors UE : TVA à l'importation autoliquidée (compte 4453) | A4 ; I1, I2, I4 ou I5 ; 20 (ou 19) dont 24 |
+| `AL_FR` | Achat à un assujetti non établi en France, TVA due par l'acheteur (art. 283-1) | B4 ; 08 ; 20 (ou 19) |
 
+La nature de l'article (**bien** ou **service**) départage `AL_S`, `AL_B` et `AL_I` ; une ligne sans
+article est un service. Sous les lignes 08 / I… et 19 / 20, une mention rappelle la **TVA autoliquidée** :
+due d'un côté, déduite de l'autre, elle est sans effet sur la TVA nette.
+
+**Importations** : la douane préremplit A4 et I1 à I6 ; comparez-les aux montants de Lyvre (contrôle
+affiché). La base comprend la valeur en douane, les **droits de douane** et les frais jusqu'au premier
+lieu de destination : s'ils ne sont pas sur la facture du fournisseur, ajoutez-les en ligne de la
+facture d'import (compte d'achat ou 6353). Les droits eux-mêmes se paient à la douane (ou au
+transitaire), sans TVA.
+
+**Avoirs reçus des fournisseurs** : leur TVA déduite est **reversée en ligne 15** (comprise dans le
+total 16), comme le demande la notice, au lieu de réduire les lignes 19 / 20.
 La correspondance est dans `data/ca3/2026.json` (numéros et codes des cases du formulaire 2026) ;
 un nouveau millésime s'ajoute par un nouveau fichier.
 

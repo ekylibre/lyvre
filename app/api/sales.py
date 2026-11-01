@@ -191,7 +191,7 @@ def sales_form_options():
         default_account=default_account.code if default_account else "",
         projects=projects.options(), units=UNIT_OPTIONS,
         operation_types=[{"value": k, "label": v} for k, v in OPERATION_TYPES.items()],
-        vat_regimes=[{"value": k, "label": v} for k, v in vat_codes.regime_labels().items()],
+        vat_regimes=[{"value": k, "label": v} for k, v in vat_codes.regime_labels(sales=True).items()],
         vat_mode=sale_entry.vat_mode_for(date.today()), vat_liable=bool(fy and fy.vat_liable),
         qonto=external_config.scope_available("qonto", "sales"),
         payment_terms_days=settings.payment_terms_days)

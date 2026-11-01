@@ -24,6 +24,8 @@ export interface VatReturnsList {
 export interface FormRow {
   kind: "section" | "box" | "total"; label: string; line?: string; code?: string | null; with_base?: boolean;
   base?: number | null; amount?: number;
+  /** Mention sous la ligne (TVA autoliquidée : due d'un côté, déduite de l'autre). */
+  note?: string;
 }
 
 export interface Check { level: "error" | "warning"; message: string; count: number | null }

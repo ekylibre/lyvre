@@ -18,8 +18,8 @@ from app.services import vat_return
 from app.services.ledger import post_entry
 from app.services.ledger_errors import LedgerGuardError
 
-CODES = ("411", "401", "512", "706", "6061", "2183", "44562", "44566", "44571", "44574", "4452", "44551", "44567",
-         "658", "758")
+CODES = ("411", "401", "512", "706", "6061", "2183", "44562", "44566", "44571", "44574", "4452", "4453", "44551",
+         "44567", "658", "758")
 
 
 def _setup():
@@ -183,3 +183,51 @@ def test_accountant_reads_but_does_not_validate(app, login_as):
     _july(_setup())
     assert expert.get("/api/v1/vat-returns/preview?period=2026-07").status_code == 200
     assert expert.post("/api/v1/vat-returns", json={"period": "2026-07"}).status_code == 403
+
+
+def test_reverse_charge_notes(books):
+    """Autoliquidation (AL_S) : mention sous les lignes 08 et 20, la TVA due et déduite s'annulent."""
+    _july(books)
+    rows = {r["line"]: r for r in vat_return.preview(*vat_return.parse_period("2026-07"))["rows"] if r["kind"] != "section"}
+    assert rows["08"]["note"] == "dont 60,00 € de TVA autoliquidée, déduite ligne 20"
+    assert rows["20"]["note"].startswith("dont 60,00 € de TVA autoliquidée, due ligne 08")
+    assert "note" not in rows["19"] and "note" not in rows["A1"]
+
+
+def test_imports_and_article_283_1(books):
+    """Importation 1 000 € à 20 % et 200 € à 5,5 % : A4 et I1 / I4, déduction en 20 dont 24 ; achat art. 283-1
+    500 € : B4 et 08. Pas de ligne 17 (réservée aux acquisitions intracommunautaires)."""
+    _entry(books, date(2026, 7, 4), ("6061", 100000, 0), ("44566", 20000, 0, "AL_I", 100000),
+           ("4453", 0, 20000, "AL_I", 100000), ("401", 0, 100000))
+    _entry(books, date(2026, 7, 5), ("6061", 20000, 0), ("44566", 1100, 0, "AL_I55", 20000),
+           ("4453", 0, 1100, "AL_I55", 20000), ("401", 0, 20000))
+    _entry(books, date(2026, 7, 6), ("6061", 50000, 0), ("44566", 10000, 0, "AL_FR", 50000),
+           ("4452", 0, 10000, "AL_FR", 50000), ("401", 0, 50000))
+    result = vat_return.preview(*vat_return.parse_period("2026-07"))
+    boxes = _boxes(result["rows"])
+    assert boxes["A4"][1] == 1200 and boxes["I1"] == (1000, 200) and boxes["I4"] == (200, 11)
+    assert boxes["B4"][1] == 500 and boxes["08"] == (500, 100) and boxes["17"][1] == 0
+    assert boxes["16"][1] == 311 and boxes["20"][1] == 311 and boxes["24"][1] == 211 and boxes["23"][1] == 311
+    assert boxes["TD"][1] == 0 and boxes["25"][1] == 0
+    assert any("douane" in c["message"] for c in result["checks"])
+    assert {l.vat_code for l in vat_return.lines_for(date(2026, 7, 1), date(2026, 7, 31), "24")} == {"AL_I", "AL_I55"}
+    ret = vat_return.validate(*vat_return.parse_period("2026-07"))
+    entry = db.session.get(JournalEntry, ret.liquidation_entry_id)
+    assert sum(l.debit_cents for l in entry.lines if l.account.code == "4453") == 21100
+
+
+def test_supplier_credit_note_goes_to_line_15(books):
+    """Avoir reçu d'un fournisseur : TVA déduite à reverser ligne 15 (incluse dans 16), la ligne 20 n'est pas réduite."""
+    from app.models import Entity, Purchase
+    _entry(books, date(2026, 7, 8), ("6061", 50000, 0), ("44566", 10000, 0, "D20", 50000), ("401", 0, 60000))
+    note = _entry(books, date(2026, 7, 12), ("401", 12000, 0), ("6061", 0, 10000), ("44566", 0, 2000, "D20", 10000))
+    supplier = Entity(name="Fournisseur", entity_type="FOURNISSEUR")
+    db.session.add(supplier)
+    db.session.flush()
+    db.session.add(Purchase(entity_id=supplier.id, is_credit_note=True, journal_entry_id=note.id, invoice_number="AV1",
+                            issue_date=date(2026, 7, 12), total_cents=12000, untaxed_cents=10000, tax_cents=2000))
+    db.session.commit()
+    boxes = _boxes(vat_return.preview(*vat_return.parse_period("2026-07"))["rows"])
+    assert boxes["15"][1] == 20 and boxes["16"][1] == 20 and boxes["20"][1] == 100 and boxes["TD"][1] == 0
+    assert boxes["25"][1] == 80
+    assert [l.entry_id for l in vat_return.lines_for(date(2026, 7, 1), date(2026, 7, 31), "15")] == [note.id]

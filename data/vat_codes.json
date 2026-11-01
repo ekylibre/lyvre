@@ -14,12 +14,18 @@
     "D55": {"label": "TVA déductible 5,5 %", "side": "purchase", "on": "tax", "rate_bp": 550},
     "D21": {"label": "TVA déductible 2,1 %", "side": "purchase", "on": "tax", "rate_bp": 210},
     "AL_S": {"label": "Achat de services à un prestataire non établi en France (autoliquidation)", "side": "purchase", "on": "tax", "rate_bp": 2000},
-    "AL_B": {"label": "Acquisition intracommunautaire de biens (autoliquidation)", "side": "purchase", "on": "tax", "rate_bp": 2000}
+    "AL_B": {"label": "Acquisition intracommunautaire de biens (autoliquidation)", "side": "purchase", "on": "tax", "rate_bp": 2000},
+    "AL_FR": {"label": "Achat auprès d'un assujetti non établi en France, TVA due par l'acheteur (art. 283-1, autoliquidation)", "side": "purchase", "on": "tax", "rate_bp": 2000},
+    "AL_I": {"label": "Importation hors UE 20 % (TVA à l'importation autoliquidée)", "side": "purchase", "on": "tax", "rate_bp": 2000},
+    "AL_I10": {"label": "Importation hors UE 10 % (TVA à l'importation autoliquidée)", "side": "purchase", "on": "tax", "rate_bp": 1000},
+    "AL_I55": {"label": "Importation hors UE 5,5 % (TVA à l'importation autoliquidée)", "side": "purchase", "on": "tax", "rate_bp": 550},
+    "AL_I21": {"label": "Importation hors UE 2,1 % (TVA à l'importation autoliquidée)", "side": "purchase", "on": "tax", "rate_bp": 210}
   },
   "regimes": {
     "fr": "France",
     "eu": "Union européenne",
-    "world": "Hors Union européenne"
+    "world": "Hors Union européenne",
+    "fr_rc": "Non établi en France, TVA due par l'acheteur (art. 283-1)"
   },
   "sale_exemptions": {
     "V_UE_S": {"mention": "Autoliquidation — article 283-2 du CGI : TVA due par le preneur.", "category": "AE", "reason_code": "VATEX-EU-AE", "reason": "Autoliquidation"},

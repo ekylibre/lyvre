@@ -15,6 +15,7 @@
   th { text-align: left; font-size: 8.5pt; color: #555; }
   td.num { text-align: right; font-family: "IBM Plex Mono", "DejaVu Sans Mono", monospace; white-space: nowrap; }
   td.line { font-family: "IBM Plex Mono", "DejaVu Sans Mono", monospace; width: 10mm; }
+  .note { font-size: 7.5pt; color: #6b6b6b; margin-top: 1mm; }
   td.code { font-family: "IBM Plex Mono", "DejaVu Sans Mono", monospace; color: #555; width: 12mm; }
   tr.section td { background: #F6F4EE; font-weight: 600; padding-top: 3mm; }
   tr.total td { font-weight: 600; }
@@ -32,7 +33,7 @@
   {% for row in rows %}
     {% if row.kind == "section" %}<tr class="section"><td colspan="5">{{ row.label }}</td></tr>
     {% else %}<tr class="{{ row.kind }}"><td class="line">{{ row.line }}</td><td class="code">{{ row.code or "" }}</td>
-      <td>{{ row.label }}</td><td class="num">{{ euros(row.base) if row.with_base else "" }}</td>
+      <td>{{ row.label }}{% if row.note %}<div class="note">{{ row.note }}</div>{% endif %}</td><td class="num">{{ euros(row.base) if row.with_base else "" }}</td>
       <td class="num">{{ euros(row.amount) }}</td></tr>{% endif %}
   {% endfor %}
   </tbody>

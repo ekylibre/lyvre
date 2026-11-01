@@ -194,7 +194,8 @@ def _vat_lines(p: Purchase, label: str) -> list[tuple]:
     for (account_id, code), (tax, base) in groups.items():
         lines.append((account_id, f"TVA — {label}", tax, code, abs(base)))
         if regime != "fr":
-            lines.append((vat_codes.account("4452").id, f"TVA due (autoliquidation) — {label}", -tax, code, abs(base)))
+            lines.append((vat_codes.account(vat_codes.due_account_code(code)).id, f"TVA due (autoliquidation) — {label}",
+                          -tax, code, abs(base)))
     return lines
 
 

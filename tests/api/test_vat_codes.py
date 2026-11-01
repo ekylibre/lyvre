@@ -32,7 +32,14 @@ def test_code_choice():
     assert vat_codes.purchase_code("fr", "services", 1000) == "D10"
     assert vat_codes.purchase_code("eu", "goods", 0) == "AL_B"
     assert vat_codes.purchase_code("eu", "services", 0) == "AL_S"
-    assert vat_codes.purchase_code("world", "goods", 0) == "AL_S"
+    assert vat_codes.purchase_code("world", "services", 0) == "AL_S"
+    # Biens importés hors UE : TVA à l'importation autoliquidée (A4, I1–I5 selon le taux), due en 4453.
+    assert vat_codes.purchase_code("world", "goods", 2000) == "AL_I"
+    assert vat_codes.purchase_code("world", "goods", 550) == "AL_I55"
+    assert vat_codes.due_account_code("AL_I10") == "4453" and vat_codes.due_account_code("AL_S") == "4452"
+    # Fournisseur non établi, TVA due par l'acheteur (art. 283-1) : ligne B4.
+    assert vat_codes.purchase_code("fr_rc", "goods", 2000) == "AL_FR"
+    assert "fr_rc" in vat_codes.regime_labels() and "fr_rc" not in vat_codes.regime_labels(sales=True)
     assert all(spec["on"] in ("tax", "base") for spec in vat_codes.codes().values())
 
 
@@ -208,3 +215,30 @@ def test_product_nature_drives_goods_autoliquidation(books):  # noqa: F811
                      vat_cents=0, total_cents=5000)])
     purchase_posting.post(p)
     assert {l.vat_code for l in p.journal_entry.lines if l.vat_code} == {"AL_B"}
+
+
+def test_imported_goods_self_assess_import_vat_on_4453(books):  # noqa: F811
+    """Bien acheté hors UE : TVA à l'importation autoliquidée (AL_I), due en 4453 créé au besoin ; un service
+    du même fournisseur reste en A3 (AL_S, 4452)."""
+    books["fy"].vat_liable = True
+    supplier = Entity(name="Acme Inc", entity_type="FOURNISSEUR", vat_regime="world")
+    sensor = Product(name="Capteur US", kind="purchase", nature="goods")
+    db.session.add(sensor)
+    p = _purchase(books, entity=supplier, total=15000, lines=[
+        PurchaseLine(position=0, account=books["6061"], product=sensor, untaxed_cents=10000, vat_rate_bp=0,
+                     vat_cents=0, total_cents=10000),
+        PurchaseLine(position=1, account=books["6061"], untaxed_cents=5000, vat_rate_bp=0, vat_cents=0,
+                     total_cents=5000)])
+    purchase_posting.post(p)
+    assert _coded(p.journal_entry) == [("4452", 0, 1000, "AL_S", 5000), ("4453", 0, 2000, "AL_I", 10000),
+                                       ("44566", 1000, 0, "AL_S", 5000), ("44566", 2000, 0, "AL_I", 10000)]
+
+
+def test_article_283_1_regime_on_a_purchase(books):  # noqa: F811
+    books["fy"].vat_liable = True
+    supplier = Entity(name="Installateur NL", entity_type="FOURNISSEUR", vat_regime="fr_rc")
+    p = _purchase(books, entity=supplier, total=10000, lines=[
+        PurchaseLine(position=0, account=books["6061"], untaxed_cents=10000, vat_rate_bp=0, vat_cents=0,
+                     total_cents=10000)])
+    purchase_posting.post(p)
+    assert {l.vat_code for l in p.journal_entry.lines if l.vat_code} == {"AL_FR"}

@@ -196,9 +196,10 @@ def vat_return_xlsx(period):
     wb = Workbook()
     wb.remove(wb.active)
     rows = [[row.get("line", ""), row.get("code") or "", row["label"],
-             row["base"] if row.get("with_base") else None, row.get("amount")] if row["kind"] != "section"
-            else ["", "", row["label"], None, None] for row in data["rows"]]
-    ws = _sheet(wb, f"CA3 {data['period']}", ["Ligne", "Code", "Libellé", "Base HT (€)", "Montant (€)"], rows, [4, 5])
+             row["base"] if row.get("with_base") else None, row.get("amount"), row.get("note") or ""]
+            if row["kind"] != "section" else ["", "", row["label"], None, None, ""] for row in data["rows"]]
+    ws = _sheet(wb, f"CA3 {data['period']}", ["Ligne", "Code", "Libellé", "Base HT (€)", "Montant (€)", "Remarque"],
+                rows, [4, 5])
     if not data["validated"]:
         ws.append([])
         ws.append(["", "", "Projet non validé : les montants peuvent encore changer."])
