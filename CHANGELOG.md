@@ -6,6 +6,33 @@
 Versions au format calendaire `AAAA.MM.N` (année, mois, numéro dans le mois). Les mêmes
 nouveautés s'affichent dans l'application (menu utilisateur › Nouveautés).
 
+## 2026.11.1 — Société, déclarations de TVA et relevés de compte (01/11/2026)
+
+### ⚠️ Action requise
+
+- Pour les comptes Qonto : lancer une fois « Synchroniser Qonto » — elle relit toute la période pour reprendre les catégories Qonto des transactions déjà importées et récupère les relevés de compte de l'exercice.
+
+### Nouveautés
+
+- [Sociétés] Nouvelle structure « Société (SAS, SASU) » à la création d'une instance, avec le plan comptable général 2026, le bilan et le compte de résultat présentés comme la liasse 2050 et le statut de jeune entreprise innovante dans la Structure. — *Lot T1 : référentiel societe (data/plan_comptable_societe.json extrait du PCG 2026 par scripts/build_pcg_chart.py), rôles de comptes 657 / 757, organization.jei_since (migration b2d4f6a8c0e1).*
+- Codes de TVA sur les écritures (TVA par taux et par compte, base HT), régime TVA des tiers (France, Union européenne, hors UE) avec autoliquidation des achats auprès de fournisseurs étrangers, et factures de vente sans TVA française (autoliquidation, exportation) avec leur mention légale. — *Lot T2 : journal_lines.vat_code / vat_base_cents, entities / purchases / sales.vat_regime (migration c3e5a7b9d1f2), data/vat_codes.json, app/services/vat_codes.py, PUT /entries/<id>/lines/<line_id>/vat, PUT /purchases/<id>/vat-regime.*
+- Déclarations de TVA mensuelles (CA3) calculées depuis les écritures — cases du formulaire 2026 avec leur code de saisie, lignes de chaque case, contrôles, écriture de liquidation, crédit reporté d'un mois sur l'autre, PDF et tableur pour TeleDEC, mois verrouillé une fois la déclaration déposée. — *Lot T3 : vat_returns, journal_lines.vat_return_id, fiscal_years.vat_period, organization.vat_due_day (migration d4f6b8c0e2a3), data/ca3/2026.json, app/services/vat_return.py, /api/v1/vat-returns, source VAT_RETURN.*
+- Règles de catégorisation proposées depuis un mois, d'après les transactions réglées par une facture ou catégorisées à la main ; création des nouvelles et mise à jour de celles dont le tiers ou le compte a changé. — *app/services/rule_suggestions.py, GET / POST /api/v1/rules/suggestions, Tiers › Règles › « Proposer depuis un mois ».*
+- Facture d'achat créée depuis le justificatif d'un paiement Qonto (Banque › Transactions, « Créer la facture ») — pièce téléchargée de Qonto et lue, formulaire prérempli, facture réglée par ce paiement. — *app/services/transaction_invoice.py, POST /api/v1/bank-transactions/<id>/purchase-draft, qonto_client.transaction, attachments.stage_bytes, POST /purchases bank_transaction_id.*
+- Factures de vente encaissées depuis le relevé — à l'émission d'une facture, le crédit bancaire unique de même montant l'encaisse ; dans Banque › Transactions, « Encaisser F-… » propose les factures ouvertes de même montant. — *sale_settlement.auto_match_sale (émission), sale_settlement.proposals, champ sale_proposals de /bank-accounts/<id>/transactions.*
+- [Sociétés] Déclaration de TVA complétée — importations hors UE (TVA à l'importation autoliquidée, lignes A4, I1 à I5 et 24), achats auprès d'un fournisseur non établi dont vous devez la TVA (ligne B4), TVA des avoirs fournisseurs reversée ligne 15, et mention de la TVA autoliquidée sous les lignes concernées. — *Codes AL_I, AL_I10, AL_I55, AL_I21 (compte 4453) et AL_FR (régime fr_rc), data/ca3/2026.json, vérifié sur doc/ref_compta/3310-ca3-sd_5377.pdf et sa notice.*
+- Relevés de compte — récupérés de Qonto (au clic et à chaque synchronisation, remplacés s'ils changent) ou déposés en PDF pour les autres banques, consultables dans Banque › Transactions et jamais supprimés. — *Lots RQ1–RQ3 : table bank_statements (migration e5a7c9d1f3b4), app/services/bank_statements.py, /api/v1/bank-accounts/<id>/statements, /bank-statements/<id>.pdf.*
+- Archive de l'exercice pour l'expert-comptable (panneau FEC) — le FEC s'il peut être produit, les relevés de compte et la liste des mois sans relevé. — *Lot RQ4 : /fiscal-years/<id>/accountant-archive.zip, views/fec.fec_content.*
+
+### Améliorations
+
+- Banque › Transactions plus lisible — un feu par ligne (à jour, à traiter, anomalie) avec une légende qui filtre, une icône pour le type d'opération et pour le justificatif, la catégorie Qonto, une action principale et les autres dans le menu « … » ; mêmes feux et icônes dans le rapprochement. — *Lots TX1–TX3 : app/services/bank_lights.py, champs light / light_reasons / lights, paramètre light, colonnes qonto_category (migration f6b8d0e2a4c5), frontend/src/components/bank/.*
+
+### Corrections
+
+- Une facture d'achat saisie se règle aussi par une transaction Qonto que Qonto ne rattache à aucune facture (abonnement Qonto, facture absente du module Factures fournisseurs), automatiquement après la synchronisation.
+- [Sociétés] Un bien acheté hors de l'Union européenne n'est plus déclaré comme un achat de services (ligne A3) mais comme une importation.
+
 ## 2026.10.19 — Version et nouveautés (26/10/2026)
 
 ### Nouveautés
