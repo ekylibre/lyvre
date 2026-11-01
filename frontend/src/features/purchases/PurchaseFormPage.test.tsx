@@ -57,6 +57,14 @@ describe("saisie d'une facture d'achat", () => {
     expect(screen.getByRole("link", { name: "Saisir sans fichier" }).getAttribute("href")).toBe("/purchases/new?manual=1");
   });
 
+  it("« Saisir sans fichier » ouvre le formulaire vide sans recharger la page", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PurchaseFormPage />, { route: "/purchases/new" });
+    await user.click(await screen.findByRole("link", { name: "Saisir sans fichier" }));
+    expect(await screen.findByRole("combobox", { name: "Fournisseur" })).toBeTruthy();
+    expect(screen.queryByText("Déposer la facture ici ou cliquer pour la choisir")).toBeNull();
+  });
+
   it("affiche les erreurs, puis le doublon à confirmer", async () => {
     const user = userEvent.setup();
     renderWithProviders(<PurchaseFormPage />, { route: "/purchases/new?manual=1" });

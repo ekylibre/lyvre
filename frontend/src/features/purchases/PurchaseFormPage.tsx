@@ -51,6 +51,8 @@ function FileDrop({ onFile, loading, title, hint }: { onFile: (file: File) => vo
   );
 }
 
+const emptyForm = (): EntryForm => ({ values: {}, checks: [], rows: [EMPTY_LINE], warnings: [], source: "none" });
+
 function PurchaseFormPage() {
   const editId = Number(useParams().purchase_id) || null;
   const [search] = useSearchParams();
@@ -61,7 +63,8 @@ function PurchaseFormPage() {
   const header = useQuery({ queryKey: [...PURCHASES_KEY, editId, "header"], enabled: editId !== null, retry: false,
     queryFn: () => api.get<{ values: Values; can_replace_attachment: boolean; preview: Preview | null }>(`/api/v1/purchases/${editId}/header`) });
 
-  const [form, setForm] = useState<EntryForm | null>(search.get("manual") ? { values: {}, checks: [], rows: [EMPTY_LINE], warnings: [], source: "none" } : null);
+  const manual = !editId && !!search.get("manual");
+  const [form, setForm] = useState<EntryForm | null>(manual ? emptyForm() : null);
   const [token, setToken] = useState("");
   const [preview, setPreview] = useState<Preview | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
@@ -90,9 +93,12 @@ function PurchaseFormPage() {
       setPreview(header.data.preview);
     }
   }, [header.data]);
+  // L'adresse décide du mode (même écran, sans rechargement) : « Saisir sans fichier » (?manual=1) ouvre
+  // le formulaire vide ; revenir à /purchases/new rouvre le dépôt du fichier.
   useEffect(() => {
-    if (!editId && !search.get("manual") && !fromTransaction) { setForm(null); setToken(""); setPreview(null); }
-  }, [editId, search, fromTransaction]);
+    if (manual) setForm((current) => current ?? emptyForm());
+    else if (!editId && !fromTransaction) { setForm(null); setToken(""); setPreview(null); }
+  }, [manual, editId, fromTransaction]);
   useEffect(() => {
     if (!fromTransaction) return;
     let live = true;
