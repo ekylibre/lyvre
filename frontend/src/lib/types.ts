@@ -41,6 +41,8 @@ export type FieldErrors = Record<string, string>;
 
 export type AttachmentStatus = "ok" | "missing" | "lost" | null;
 
+export type Light = "green" | "orange" | "red";
+
 export interface BankTransaction {
   id: number;
   date: string;
@@ -52,6 +54,11 @@ export interface BankTransaction {
   /** Justificatif : null quand la source ne le connaît pas (OFX). */
   attachment_status: AttachmentStatus;
   category: string | null;
+  /** Feu (lot TX1) : couleur et motifs ; catégorie affichée (Lyvre d'abord, sinon Qonto). */
+  light?: Light;
+  light_reasons?: string[];
+  category_display?: { label: string; source: "lyvre" | "qonto" } | null;
+  raw_type?: string | null;
   entity: string | null;
   entry: { id: number; reference: string; url: string } | null;
   new_entry_url: string;

@@ -29,6 +29,11 @@ class BankTransaction(db.Model):
     attachment_required = db.Column(db.Boolean)
     attachment_lost = db.Column(db.Boolean)
     source_updated_at = db.Column(db.DateTime)
+    # Catégorie Qonto (lot TX1) : code (`online_service`), catégorie et sous-catégorie de trésorerie.
+    # NULL = jamais lue ; "" = lue mais vide. `category` reste celle des règles de Lyvre.
+    qonto_category = db.Column(db.String(60))
+    qonto_cashflow_category = db.Column(db.String(120))
+    qonto_cashflow_subcategory = db.Column(db.String(120))
 
     __table_args__ = (
         db.UniqueConstraint("bank_account_id", "fitid", name="uq_bank_transaction_fitid"),

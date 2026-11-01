@@ -182,6 +182,9 @@ def _fields(tx: dict) -> dict:
         "attachment_required": bool(tx.get("attachment_required")),
         "attachment_lost": bool(tx.get("attachment_lost")),
         "source_updated_at": _parse_utc(tx.get("updated_at")),
+        "qonto_category": (tx.get("category") or "")[:60],
+        "qonto_cashflow_category": ((tx.get("cashflow_category") or {}).get("name") or "")[:120],
+        "qonto_cashflow_subcategory": ((tx.get("cashflow_subcategory") or {}).get("name") or "")[:120],
     }
 
 
@@ -296,6 +299,9 @@ def sync_bank_account(bank_account_id, client=None, progress_cb=None) -> dict:
     if bank_account is None or not bank_account.qonto_account_id:
         raise RuntimeError("Ce compte bancaire n'est pas rattaché à Qonto.")
     client = client or qonto_client.from_app_config()
+    if bank_account.qonto_synced_at is not None and _categories_unread(bank_account):
+        # Catégories Qonto jamais lues (lot TX1) : une relecture complète les complète, sans doublon.
+        bank_account.qonto_synced_at = None
 
     started = datetime.utcnow()
     result = _new_result()
@@ -341,6 +347,12 @@ def sync_bank_account(bank_account_id, client=None, progress_cb=None) -> dict:
     result["read"] = done
     _fetch_statements(bank_account, client, result, progress_cb)
     return result
+
+
+def _categories_unread(bank_account: BankAccount) -> bool:
+    return db.session.query(BankTransaction.query.filter(
+        BankTransaction.bank_account_id == bank_account.id, BankTransaction.source == "qonto",
+        BankTransaction.qonto_category.is_(None)).exists()).scalar()
 
 
 def _fetch_statements(bank_account: BankAccount, client, result: dict, progress_cb=None) -> None:

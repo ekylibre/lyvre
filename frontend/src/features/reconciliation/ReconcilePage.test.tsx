@@ -176,13 +176,19 @@ describe("ReconcilePage", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("affiche l'état du justificatif", async () => {
-    server.transactions[0] = tx(1, "PRLV EDF", -100, { attachment_status: "missing" });
-    server.transactions[1] = tx(2, "CB LEROY", -250, { attachment_status: "ok" });
+  it("affiche le feu, le type et la pièce par des icônes nommées, avec la légende des feux", async () => {
+    server.transactions[0] = tx(1, "PRLV EDF", -100, { attachment_status: "missing", raw_type: "direct_debit",
+      light: "orange", light_reasons: ["À rapprocher", "Justificatif manquant"] });
+    server.transactions[1] = tx(2, "CB LEROY", -250, { attachment_status: "ok", raw_type: "card", light: "orange",
+      light_reasons: ["À rapprocher"] });
     renderWithProviders(<ReconcilePage />, { route: "/reconciliation/" });
     await waitFor(() => expect(rows()).toHaveLength(3));
-    expect(within(rows()[0]).getByText("Justificatif manquant")).toBeInTheDocument();
-    expect(within(rows()[1]).getByText("Justificatif")).toBeInTheDocument();
-    expect(within(rows()[2]).queryByText(/Justificatif/)).not.toBeInTheDocument();
+    expect(within(rows()[0]).getByRole("img", { name: "Justificatif manquant" })).toBeInTheDocument();
+    expect(within(rows()[0]).getByRole("img", { name: "Prélèvement" })).toBeInTheDocument();
+    expect(within(rows()[0]).getByRole("img", { name: "À traiter : À rapprocher, Justificatif manquant" })).toBeInTheDocument();
+    expect(within(rows()[1]).getByRole("img", { name: "Justificatif présent" })).toBeInTheDocument();
+    expect(within(rows()[1]).getByRole("img", { name: "Paiement par carte" })).toBeInTheDocument();
+    expect(within(rows()[2]).queryByRole("img", { name: /Justificatif/ })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Légende des feux")).toHaveTextContent("À traiter");
   });
 });

@@ -73,8 +73,16 @@ def _free_for_purchase(bt) -> bool:
 
 
 def serialize_transaction(bt, invoices=None, rule_fitids=(), sales=None, sale_proposals=None):
+    from app.services import bank_lights
+
     line = bt.journal_line
+    color, reasons = bank_lights.light(bt, rule_default_tiers=bt.fitid in rule_fitids and not bt.entity_id,
+                                       has_invoice=bool(invoices or sales))
     return {
+        # Feu (lot TX1) : green | orange | red, et ses motifs (infobulle) ; catégorie Lyvre, sinon Qonto.
+        "light": color,
+        "light_reasons": reasons,
+        "category_display": bank_lights.category_display(bt),
         "id": bt.id,
         "date": bt.transaction_date.isoformat(),
         "label": bt.label or "",
@@ -154,8 +162,15 @@ def bank_transactions(bank_account_id):
             if payment.sale not in sales.setdefault(payment.bank_transaction_id, []):
                 sales[payment.bank_transaction_id].append(payment.sale)
         proposals = sale_settlement.proposals(rows)
-    return jsonify(transactions=[serialize_transaction(bt, invoices.get(bt.id), rule_fitids, sales.get(bt.id),
-                                                       proposals.get(bt.id)) for bt in rows],
+    items = [serialize_transaction(bt, invoices.get(bt.id), rule_fitids, sales.get(bt.id), proposals.get(bt.id))
+             for bt in rows]
+    # Légende des feux (lot TX1) : comptes avant le filtre `light`, puis filtre.
+    from app.services import bank_lights
+    lights = {color: sum(1 for t in items if t["light"] == color) for color in bank_lights.LIGHTS}
+    wanted = request.args.get("light")
+    if wanted in bank_lights.LIGHTS:
+        items = [t for t in items if t["light"] == wanted]
+    return jsonify(transactions=items, lights=lights,
                    counters=counters(ba.id))
 
 

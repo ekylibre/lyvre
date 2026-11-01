@@ -29,8 +29,13 @@ beforeEach(() => {
         meta: { months: [], qonto: { available: false, message: null } } });
     }
     if (url.startsWith("/api/v1/bank-accounts/1/transactions")) {
-      return json(200, { transactions: [row(1, "PRLV EDF", { rule_tiers: true }), row(2, "CB DIVERS"),
-        row(3, "BZIIIT — EKYLIBRE-SIA-26", { amount_cents: 360000, reconciled: false, category: null,
+      return json(200, { lights: { green: 1, orange: 2, red: 0 }, transactions: [
+        row(1, "PRLV EDF", { rule_tiers: true, raw_type: "direct_debit", light: "orange", light_reasons: ["Tiers par défaut"],
+          attachment_status: "missing" }),
+        row(2, "CB DIVERS", { raw_type: "card", light: "green", light_reasons: ["Rapprochée"], attachment_status: "ok",
+          category_display: { label: "Licences logicielles", source: "qonto" } }),
+        row(3, "BZIIIT — EKYLIBRE-SIA-26", { amount_cents: 360000, reconciled: false, category: null, raw_type: "income",
+          light: "orange", light_reasons: ["À rapprocher"], new_entry_url: "/entries/new?bt_id=3",
           sale_proposals: [{ id: 9, number: "F-2026-0001", client: "bziiit", due_date: "2026-08-20" }] })] });
     }
     if (url.startsWith("/api/v1/entities?")) return json(200, { results: [{ id: 7, name: "EDF", type: "FOURNISSEUR", email: null }] });
@@ -53,9 +58,9 @@ describe("TransactionsPage — attribuer un tiers", () => {
       { route: "/bank-accounts/1/transactions" });
     await screen.findByText("PRLV EDF");
     expect(screen.getByText("Tiers par défaut")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Attribuer" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Attribuer le tiers" })).toHaveLength(1);
 
-    await userEvent.click(screen.getByRole("button", { name: "Attribuer" }));
+    await userEvent.click(screen.getByRole("button", { name: "Attribuer le tiers" }));
     const dialog = await screen.findByRole("dialog", { name: "Attribuer à un tiers" });
     await userEvent.click(within(dialog).getByRole("combobox", { name: "Tiers" }));
     await userEvent.click(await screen.findByRole("option", { name: "EDF" }));
@@ -77,5 +82,47 @@ describe("TransactionsPage — encaisser une facture de vente", () => {
     await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.url === "/api/v1/sales/match")).toBe(true));
     expect(calls.find((c) => c.url === "/api/v1/sales/match")?.body).toEqual(
       { bank_transaction_id: 3, allocations: [{ sale_id: 9, amount_cents: 360000 }] });
+  });
+});
+
+describe("TransactionsPage — feux, icônes, actions (lot TX2)", () => {
+  const render = (route = "/bank-accounts/1/transactions") =>
+    renderWithProviders(<Routes><Route path="/bank-accounts/:ba_id/transactions" element={<TransactionsPage />} /></Routes>, { route });
+
+  it("montre le feu, le type, la pièce et la catégorie Qonto par des icônes nommées", async () => {
+    render();
+    await screen.findByText("PRLV EDF");
+    expect(screen.getByRole("img", { name: "À traiter : Tiers par défaut" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Prélèvement" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Paiement par carte" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Virement reçu" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Justificatif manquant" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Justificatif présent" })).toBeInTheDocument();
+    expect(screen.getByText("Licences logicielles")).toBeInTheDocument();
+    expect(screen.queryByText("direct_debit")).not.toBeInTheDocument();
+  });
+
+  it("filtre par feu avec la légende (second clic : retiré)", async () => {
+    render();
+    const orange = await screen.findByRole("button", { name: /À traiter\s*2/ });
+    await userEvent.click(orange);
+    await waitFor(() => expect(calls.some((c) => c.url.includes("light=orange"))).toBe(true));
+    expect(screen.getByRole("button", { name: /À traiter/ })).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(screen.getByRole("button", { name: /À traiter/ }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /À traiter/ })).toHaveAttribute("aria-pressed", "false"));
+  });
+
+  it("ancienne adresse « À rapprocher » : feu orange", async () => {
+    render("/bank-accounts/1/transactions?filter=unreconciled");
+    await screen.findByText("PRLV EDF");
+    expect(calls.some((c) => c.url.includes("light=orange") && c.url.includes("status=all"))).toBe(true);
+  });
+
+  it("action principale visible, les autres dans le menu", async () => {
+    render();
+    await screen.findByRole("button", { name: "Encaisser F-2026-0001" });
+    await userEvent.click(screen.getByRole("button", { name: "Autres actions — BZIIIT — EKYLIBRE-SIA-26" }));
+    expect(await screen.findByRole("menuitem", { name: "Nouvelle écriture" })).toHaveAttribute("href", "/entries/new?bt_id=3");
+    expect(screen.getByRole("menuitem", { name: "Rapprocher" })).toHaveAttribute("href", "/reconciliation/?bank_account_id=1");
   });
 });

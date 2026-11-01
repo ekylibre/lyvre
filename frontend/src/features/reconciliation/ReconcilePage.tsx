@@ -19,7 +19,9 @@ import { formatDate, formatEuros } from "../../lib/format";
 import type { ApplyRulesResponse, BankTransaction, BatchResponse, Counters, Suggestion, UndoRequest } from "../../lib/types";
 import { AppLink } from "../../app/navigation";
 import { EntryEditor, type EntryFormData } from "../entries/EntryEditor";
-import { activeAfterRemoval, attachmentBadge, bestSuggestion, plural, rangeIds, REVERSED_MESSAGE } from "./logic";
+import { activeAfterRemoval, bestSuggestion, plural, rangeIds, REVERSED_MESSAGE } from "./logic";
+import { LightLegend } from "../../components/bank/LightLegend";
+import { AttachmentIcon, TransactionLight, TransactionTypeIcon } from "../../components/bank/TransactionIcons";
 import { writeOnly } from "../../components/ReadOnlyPage";
 import { useCurrentSession } from "../../api/session";
 import { ASSOCIATES_KEY, type Associate } from "../associates/types";
@@ -345,6 +347,7 @@ function ReconcilePage() {
               + (activeSuggestions ? `, ${plural(activeSuggestions.length, "suggestion", "suggestions")}` : "")
               + (selected.has(active.id) ? ", sélectionnée" : "")}
           </VisuallyHidden>
+          <Group justify="flex-end" mb={6}><LightLegend /></Group>
           <Paper p={0} ref={tableRef} tabIndex={0} style={{ overflow: "auto", maxHeight: "65vh" }} role="region"
             aria-label="Transactions à rapprocher (↑↓ pour naviguer, Entrée pour rapprocher)">
             <Table highlightOnHover stickyHeader verticalSpacing={6}>
@@ -352,13 +355,14 @@ function ReconcilePage() {
                 <Table.Tr>
                   <Table.Th w={40}><Checkbox aria-label="Tout sélectionner" checked={!!ids.length && selected.size === ids.length}
                     onChange={(e) => setSelected(e.currentTarget.checked ? new Set(ids) : new Set())} /></Table.Th>
-                  <Table.Th>Date</Table.Th><Table.Th>Libellé</Table.Th><Table.Th ta="right">Montant</Table.Th>
+                  <Table.Th w={28}><VisuallyHidden>Feu</VisuallyHidden></Table.Th>
+                  <Table.Th>Date</Table.Th><Table.Th w={44}>Type</Table.Th><Table.Th>Libellé</Table.Th>
+                  <Table.Th w={52} ta="center">Pièce</Table.Th><Table.Th ta="right">Montant</Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
                 {transactions.map((t) => {
                   const isActive = t.id === activeId;
-                  const attachment = attachmentBadge(t.attachment_status);
                   return (
                     <Table.Tr key={t.id} data-bt={t.id} aria-current={isActive || undefined} style={{ cursor: "pointer" }}
                       bg={isActive ? "var(--lv-sauge)" : selected.has(t.id) ? "var(--lv-ardoise-tint)" : undefined}
@@ -370,15 +374,17 @@ function ReconcilePage() {
                       <Table.Td onClick={(e) => e.stopPropagation()}>
                         <Checkbox tabIndex={-1} aria-label={`Sélectionner ${t.label}`} checked={selected.has(t.id)} onChange={() => toggle(t.id)} />
                       </Table.Td>
+                      <Table.Td><TransactionLight light={t.light} reasons={t.light_reasons} /></Table.Td>
                       <Table.Td className="lv-num" style={{ whiteSpace: "nowrap" }}>{formatDate(t.date)}</Table.Td>
+                      <Table.Td><TransactionTypeIcon rawType={t.raw_type} amountCents={t.amount_cents} /></Table.Td>
                       <Table.Td>
                         <Group gap={6} wrap="wrap">
                           <Text size="sm">{t.label}</Text>
                           {bestSuggestion(suggestions.get(t.id)) && <Star size={14} fill="var(--lv-paille)" color="var(--lv-paille)" aria-label="Suggestion unique" />}
                           {t.is_reversed && <StatusBadge tone="gap">Annulée</StatusBadge>}
-                          {attachment && <StatusBadge tone={attachment.tone}>{attachment.label}</StatusBadge>}
                         </Group>
                       </Table.Td>
+                      <Table.Td ta="center"><AttachmentIcon status={t.attachment_status} /></Table.Td>
                       <Table.Td ta="right"><MoneyText cents={t.amount_cents} plus /></Table.Td>
                     </Table.Tr>
                   );

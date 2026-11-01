@@ -3,7 +3,8 @@
 // contreparties à valider), attribution d'un vrai tiers aux transactions passées par une règle.
 import { useState } from "react";
 import { useParams } from "react-router";
-import { Alert, Anchor, Button, Center, Group, List, Loader, Paper, SegmentedControl, Stack, Text } from "@mantine/core";
+import { Alert, Anchor, Button, Center, Group, List, Loader, Paper, SegmentedControl, Stack, Text, Tooltip } from "@mantine/core";
+import { Ban, FileText } from "lucide-react";
 import { DateInput } from "@mantine/dates";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
@@ -22,9 +23,11 @@ import { EntitySelect } from "../../components/EntitySelect";
 import { FormModal } from "../../components/FormModal";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
-import type { BankTransaction } from "../../lib/types";
+import type { BankTransaction, Light } from "../../lib/types";
+import { LightLegend } from "../../components/bank/LightLegend";
+import { RowActions, type RowAction } from "../../components/bank/RowActions";
+import { AttachmentIcon, TransactionLight, TransactionTypeIcon } from "../../components/bank/TransactionIcons";
 import { AppLink } from "../../app/navigation";
-import { attachmentBadge } from "../reconciliation/logic";
 import { SALES_KEY } from "../sales/types";
 import { StatementsCard } from "./StatementsCard";
 import { BANK_ACCOUNTS_KEY, type BankAccount } from "./types";
@@ -43,10 +46,9 @@ interface Detail {
   meta: { months: MonthOption[]; qonto: { available: boolean; message: string | null } };
 }
 
-const FILTERS = [
-  { value: "all", label: "Toutes" }, { value: "unreconciled", label: "À rapprocher" },
-  { value: "missing", label: "Justificatif manquant" }, { value: "no_invoice", label: "Débit sans facture" },
-];
+// « À rapprocher » et « Justificatif manquant » sont portés par la légende des feux (orange) depuis le lot TX2.
+const FILTERS = [{ value: "all", label: "Toutes" }, { value: "no_invoice", label: "Débit sans facture" }];
+const LIGHTS: Light[] = ["green", "orange", "red"];
 
 function QontoResult({ r, baId }: { r: Record<string, number | string[] | undefined>; baId: number }) {
   const n = (k: string) => Number(r[k] ?? 0);
@@ -133,7 +135,11 @@ export default function TransactionsPage() {
   const baId = Number(useParams().ba_id);
   const client = useQueryClient();
   const can = useCan();
-  const [params, setParams] = useUrlParams({ filter: "all", month: "", sort: "desc" });
+  const [params, setParams] = useUrlParams({ filter: "all", month: "", sort: "desc", light: "" });
+  // Anciennes adresses (filtre « À rapprocher » / « Justificatif manquant ») : feu orange.
+  const legacy = params.filter === "unreconciled" || params.filter === "missing";
+  const light = (legacy ? "orange" : LIGHTS.find((l) => l === params.light) ?? null) as Light | null;
+  const filter = legacy ? "all" : params.filter;
   const [assigning, setAssigning] = useState<Transaction | null>(null);
   const cash = useAction((v: { txn: Transaction; saleId: number }) => api.post<{ notices: Notice[] }>("/api/v1/sales/match",
     { bank_transaction_id: v.txn.id, allocations: [{ sale_id: v.saleId, amount_cents: v.txn.amount_cents }] }),
@@ -141,58 +147,77 @@ export default function TransactionsPage() {
   const { data: detail } = useQuery({ queryKey: [...BANK_ACCOUNTS_KEY, baId],
     queryFn: () => api.get<Detail>(`/api/v1/bank-accounts/${baId}`) });
   const query = new URLSearchParams({
-    status: params.filter === "unreconciled" ? "unreconciled" : "all", sort: params.sort,
-    ...(params.month ? { month: params.month } : {}),
-    ...(params.filter === "missing" ? { missing: "1" } : {}), ...(params.filter === "no_invoice" ? { no_invoice: "1" } : {}),
+    status: "all", sort: params.sort, ...(params.month ? { month: params.month } : {}),
+    ...(filter === "no_invoice" ? { no_invoice: "1" } : {}), ...(light ? { light } : {}),
   }).toString();
   const { data, isFetching } = useQuery({
     queryKey: [...BANK_ACCOUNTS_KEY, baId, "transactions", query], placeholderData: (prev) => prev,
-    queryFn: () => api.get<{ transactions: Transaction[] }>(`/api/v1/bank-accounts/${baId}/transactions?${query}`),
+    queryFn: () => api.get<{ transactions: Transaction[]; lights?: Record<Light, number> }>(
+      `/api/v1/bank-accounts/${baId}/transactions?${query}`),
   });
   if (!detail) return <Center h={300}><Loader /></Center>;
   const ba = detail.item;
 
+  /** Actions d'une ligne, par priorité : la première est visible, les autres dans le menu « … ». */
+  const actionsOf = (t: Transaction): RowAction[] => {
+    if (!can.write) return [];
+    const out: RowAction[] = (t.sale_proposals ?? []).map((s) => ({
+      key: `sale-${s.id}`, label: `Encaisser ${s.number}`, loading: cash.isPending && cash.variables?.saleId === s.id,
+      title: `Encaisse la facture ${s.number}${s.client ? ` (${s.client})` : ""} par cette transaction : écriture de banque, TVA et rapprochement`,
+      onClick: () => confirmAction({
+        title: `Encaisser la facture ${s.number} ?`,
+        message: `${s.client ?? "Client"} — ${formatDate(t.date)} — l'écriture d'encaissement est passée au journal de banque et rapprochée de cette transaction.`,
+        confirmLabel: "Encaisser", onConfirm: () => cash.mutate({ txn: t, saleId: s.id }) }),
+    }));
+    if (t.purchase_from_attachment) {
+      out.push({ key: "purchase", label: "Créer la facture", href: `/purchases/new?bank_transaction_id=${t.id}`,
+        title: "Lit le justificatif Qonto et prépare la facture d'achat, réglée par cette transaction" });
+    }
+    if (t.rule_tiers) out.push({ key: "tiers", label: t.entity ? "Changer le tiers" : "Attribuer le tiers", onClick: () => setAssigning(t) });
+    if (!t.reconciled && !t.is_reversed) {
+      if (t.new_entry_url) out.push({ key: "entry", label: "Nouvelle écriture", href: t.new_entry_url });
+      out.push({ key: "reconcile", label: "Rapprocher", href: `/reconciliation/?bank_account_id=${ba.id}` });
+    }
+    return out;
+  };
+
   const columns: GridColumn<Transaction>[] = [
+    { accessor: "light", title: "", hideable: false, width: 36,
+      render: (t) => <TransactionLight light={t.light} reasons={t.light_reasons} /> },
     { accessor: "date", title: "Date", sortable: true, hideable: false, render: (t) => <span className="lv-num">{formatDate(t.date)}</span> },
-    { accessor: "label", title: "Libellé", hideable: false, render: (t) => {
-      const attachment = attachmentBadge(t.attachment_status);
-      return (
-        <Stack gap={2}>
-          <Group gap={6}><Text size="sm">{t.label || "—"}</Text>
-            {t.is_reversed && <StatusBadge tone="gap">Annulée</StatusBadge>}
-            {attachment && <StatusBadge tone={attachment.tone}>{attachment.label}</StatusBadge>}
-            {t.invoices.map((inv) => <Anchor key={inv.id} href={inv.url} size="xs"><StatusBadge tone="info">{inv.label}</StatusBadge></Anchor>)}
-            {t.purchase_from_attachment && can.write && (
-              <Button size="compact-xs" variant="light" component={AppLink} href={`/purchases/new?bank_transaction_id=${t.id}`}
-                title="Lit le justificatif Qonto et prépare la facture d'achat, réglée par cette transaction">
-                Créer la facture</Button>)}
-            {can.write && (t.sale_proposals ?? []).map((s) => (
-              <Button key={s.id} size="compact-xs" variant="light" loading={cash.isPending && cash.variables?.saleId === s.id}
-                title={`Encaisse la facture ${s.number}${s.client ? ` (${s.client})` : ""} par cette transaction : écriture de banque, TVA et rapprochement`}
-                onClick={() => confirmAction({
-                  title: `Encaisser la facture ${s.number} ?`,
-                  message: `${s.client ?? "Client"} — ${formatDate(t.date)} — l'écriture d'encaissement est passée au journal de banque et rapprochée de cette transaction.`,
-                  confirmLabel: "Encaisser", onConfirm: () => cash.mutate({ txn: t, saleId: s.id }) })}>
-                Encaisser {s.number}</Button>))}</Group>
-          {t.note && <Text size="xs" c="dimmed">{t.note}</Text>}
-        </Stack>
-      );
-    } },
-    { accessor: "raw_type", title: "Type", render: (t) => <Text size="sm" c="dimmed">{t.raw_type ?? "—"}</Text> },
-    { accessor: "amount_cents", title: "Montant", textAlign: "right", render: (t) => <MoneyText cents={t.amount_cents} plus /> },
-    { accessor: "entity", title: "Tiers", render: (t) => (
-      <Group gap={6} wrap="nowrap">
-        {t.entity && t.entity_id
-          ? <Anchor component={AppLink} href={`/entities/${t.entity_id}`} size="sm">{t.entity}</Anchor>
-          : <Text size="sm" c="dimmed">{t.rule_tiers ? "Tiers par défaut" : "—"}</Text>}
-        {t.rule_tiers && <Can><Button size="compact-xs" variant="subtle" onClick={() => setAssigning(t)}>
-          {t.entity ? "Changer" : "Attribuer"}</Button></Can>}
-      </Group>
+    { accessor: "raw_type", title: "Type", width: 56, textAlign: "center",
+      render: (t) => <TransactionTypeIcon rawType={t.raw_type} amountCents={t.amount_cents} /> },
+    { accessor: "label", title: "Libellé", hideable: false, render: (t) => (
+      <Stack gap={4}>
+        <Text size="sm">{t.label || "—"}</Text>
+        {(t.is_reversed || t.invoices.length > 0 || t.note) && (
+          <Group gap={8}>
+            {t.is_reversed && <Group gap={4} wrap="nowrap" c="var(--lv-brique-ink)"><Ban size={14} aria-hidden />
+              <Text size="xs" fw={600}>Annulée par la banque</Text></Group>}
+            {t.invoices.map((inv) => <Anchor key={inv.id} href={inv.url} size="xs" fw={600} c="var(--lv-ardoise)"
+              style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><FileText size={14} aria-hidden />{inv.label}</Anchor>)}
+            {t.note && <Text size="xs" c="dimmed">{t.note}</Text>}
+          </Group>
+        )}
+      </Stack>
     ) },
-    { accessor: "category", title: "Catégorie", render: (t) => t.category ?? <Text c="dimmed">—</Text> },
-    { accessor: "reconciled", title: "Statut", render: (t) => t.reconciled ? <StatusBadge tone="ok">Rapprochée</StatusBadge> : <StatusBadge tone="todo">À rapprocher</StatusBadge> },
+    { accessor: "attachment_status", title: "Pièce", width: 64, textAlign: "center",
+      render: (t) => <AttachmentIcon status={t.attachment_status} /> },
+    { accessor: "entity", title: "Tiers", render: (t) => t.entity && t.entity_id
+      ? <Anchor component={AppLink} href={`/entities/${t.entity_id}`} size="sm">{t.entity}</Anchor>
+      : <Text size="sm" c="dimmed">{t.rule_tiers ? "Tiers par défaut" : "—"}</Text> },
+    { accessor: "category", title: "Catégorie", render: (t) => {
+      const cat = t.category_display;
+      if (!cat) return <Text c="dimmed">—</Text>;
+      return cat.source === "qonto"
+        ? <Tooltip label="Catégorie Qonto" withArrow openDelay={150}><Text size="sm" c="var(--lv-ink-muted)">{cat.label}</Text></Tooltip>
+        : <Text size="sm">{cat.label}</Text>;
+    } },
+    { accessor: "amount_cents", title: "Montant", textAlign: "right", render: (t) => <MoneyText cents={t.amount_cents} plus /> },
     { accessor: "entry", title: "Écriture", render: (t) => t.entry
       ? <Anchor component={AppLink} href={t.entry.url} className="lv-num" size="sm">{t.entry.reference}</Anchor> : <Text c="dimmed">—</Text> },
+    { accessor: "actions", title: "Actions", hideable: false, textAlign: "right",
+      render: (t) => <RowActions actions={actionsOf(t)} label={t.label || formatDate(t.date)} /> },
   ];
 
   return (
@@ -224,8 +249,8 @@ export default function TransactionsPage() {
         </Alert>
       )}
       <FilterBar>
-        <SegmentedControl value={params.filter} onChange={(filter) => setParams({ filter })}
-          data={ba.qonto ? FILTERS : FILTERS.filter((f) => f.value !== "missing")} />
+        <LightLegend counts={data?.lights} value={light} onChange={(l) => setParams({ light: l ?? "", filter })} />
+        <SegmentedControl value={filter} onChange={(f) => setParams({ filter: f })} data={FILTERS} />
         <MonthSelect value={params.month} onChange={(month) => setParams({ month })} options={detail.meta.months} />
       </FilterBar>
       <DataGrid id="bank-transactions" records={data?.transactions} columns={columns} fetching={isFetching} perPage={100}
