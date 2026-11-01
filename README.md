@@ -12,7 +12,7 @@
 De la saisie au bilan : banque et caisse, achats et ventes, adhésions et reçus fiscaux, baux,
 budget, immobilisations, clôture et FEC pour l'expert-comptable. Hébergé chez vous.
 
-<!-- version -->[![Version 2026.11.1](https://img.shields.io/badge/version-2026.11.1-2f6b4f)](CHANGELOG.md)<!-- /version -->
+<!-- version -->[![Version 2026.11.2](https://img.shields.io/badge/version-2026.11.2-2f6b4f)](CHANGELOG.md)<!-- /version -->
 [![Licence AGPL-3.0](https://img.shields.io/badge/licence-AGPL--3.0-2f6b4f)](LICENSE)
 [![Auto-hébergé](https://img.shields.io/badge/auto--h%C3%A9berg%C3%A9-Docker-3a4440)](doc/docker.md)
 [![Factur-X](https://img.shields.io/badge/factures-Factur--X-a87b2c)](doc/ventes.md)

@@ -4,6 +4,21 @@
 # text : pour l'utilisateur ; tech : précision pour CHANGELOG.md seulement.
 next: []
 versions:
+- version: 2026.11.2
+  date: 2026-11-01
+  title: Factures réglées en plusieurs fois
+  entries:
+  - kind: new
+    text: Une facture se règle en plusieurs fois — acomptes, échéancier, virements échelonnés. Sur la fiche d'une
+      facture d'achat ou à l'encaissement d'une vente, on coche une ou plusieurs lignes de relevé (total sélectionné
+      face au restant) ; la fiche d'achat affiche le montant déjà réglé et le restant à régler.
+    tech: purchase_settlement.remaining_cents / paid_cents, link_manual(p, ids), POST /purchases/<id>/payments {bank_transaction_ids},
+      sale_settlement.match_transactions, POST /sales/<id>/match, TransactionPicker.
+  - kind: new
+    text: « Rattacher à une facture » dans Banque › Transactions — une ligne de relevé règle (ou encaisse) en tout
+      ou partie une facture d'achat ou de vente déjà saisie, avec le restant après rattachement ; l'écriture est
+      passée et rapprochée.
+    tech: GET /bank-transactions/<id>/open-invoices, can_link_invoice dans la liste des transactions, LinkInvoiceModal.
 - version: 2026.11.1
   date: 2026-11-01
   title: Société, déclarations de TVA et relevés de compte

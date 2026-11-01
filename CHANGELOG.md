@@ -6,6 +6,13 @@
 Versions au format calendaire `AAAA.MM.N` (année, mois, numéro dans le mois). Les mêmes
 nouveautés s'affichent dans l'application (menu utilisateur › Nouveautés).
 
+## 2026.11.2 — Factures réglées en plusieurs fois (01/11/2026)
+
+### Nouveautés
+
+- Une facture se règle en plusieurs fois — acomptes, échéancier, virements échelonnés. Sur la fiche d'une facture d'achat ou à l'encaissement d'une vente, on coche une ou plusieurs lignes de relevé (total sélectionné face au restant) ; la fiche d'achat affiche le montant déjà réglé et le restant à régler. — *purchase_settlement.remaining_cents / paid_cents, link_manual(p, ids), POST /purchases/<id>/payments {bank_transaction_ids}, sale_settlement.match_transactions, POST /sales/<id>/match, TransactionPicker.*
+- « Rattacher à une facture » dans Banque › Transactions — une ligne de relevé règle (ou encaisse) en tout ou partie une facture d'achat ou de vente déjà saisie, avec le restant après rattachement ; l'écriture est passée et rapprochée. — *GET /bank-transactions/<id>/open-invoices, can_link_invoice dans la liste des transactions, LinkInvoiceModal.*
+
 ## 2026.11.1 — Société, déclarations de TVA et relevés de compte (01/11/2026)
 
 ### ⚠️ Action requise
