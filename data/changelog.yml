@@ -4,6 +4,14 @@
 # text : pour l'utilisateur ; tech : précision pour CHANGELOG.md seulement.
 next: []
 versions:
+- version: 2026.11.3
+  date: 2026-11-01
+  title: 'Correctif : saisie d''une facture d''achat sans fichier'
+  entries:
+  - kind: fixed
+    text: Achats › Nouvelle facture — le lien « Saisir sans fichier » ouvre de nouveau le formulaire vide (il fallait
+      recharger la page).
+    tech: PurchaseFormPage, mode « manual » piloté par l'adresse.
 - version: 2026.11.2
   date: 2026-11-01
   title: Factures réglées en plusieurs fois

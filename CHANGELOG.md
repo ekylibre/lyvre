@@ -6,6 +6,12 @@
 Versions au format calendaire `AAAA.MM.N` (année, mois, numéro dans le mois). Les mêmes
 nouveautés s'affichent dans l'application (menu utilisateur › Nouveautés).
 
+## 2026.11.3 — Correctif : saisie d'une facture d'achat sans fichier (01/11/2026)
+
+### Corrections
+
+- Achats › Nouvelle facture — le lien « Saisir sans fichier » ouvre de nouveau le formulaire vide (il fallait recharger la page). — *PurchaseFormPage, mode « manual » piloté par l'adresse.*
+
 ## 2026.11.2 — Factures réglées en plusieurs fois (01/11/2026)
 
 ### Nouveautés
