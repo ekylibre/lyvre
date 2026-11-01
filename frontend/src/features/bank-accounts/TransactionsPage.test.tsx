@@ -29,12 +29,17 @@ beforeEach(() => {
         meta: { months: [], qonto: { available: false, message: null } } });
     }
     if (url.startsWith("/api/v1/bank-accounts/1/transactions")) {
-      return json(200, { transactions: [row(1, "PRLV EDF", { rule_tiers: true }), row(2, "CB DIVERS")] });
+      return json(200, { transactions: [row(1, "PRLV EDF", { rule_tiers: true }), row(2, "CB DIVERS"),
+        row(3, "BZIIIT — EKYLIBRE-SIA-26", { amount_cents: 360000, reconciled: false, category: null,
+          sale_proposals: [{ id: 9, number: "F-2026-0001", client: "bziiit", due_date: "2026-08-20" }] })] });
     }
     if (url.startsWith("/api/v1/entities?")) return json(200, { results: [{ id: 7, name: "EDF", type: "FOURNISSEUR", email: null }] });
     if (url === "/api/v1/bank-transactions/1/entity") {
       return json(200, { item: row(1, "PRLV EDF", { rule_tiers: true, entity: "EDF", entity_id: 7 }),
         notices: [{ level: "success", message: "Transaction attribuée à EDF." }] });
+    }
+    if (url === "/api/v1/sales/match") {
+      return json(200, { items: [], notices: [{ level: "success", message: "Encaissement rapproché (1 facture(s))." }] });
     }
     return json(404, { error: { code: "not_found", message: "?" } });
   }) as typeof fetch);
@@ -59,5 +64,18 @@ describe("TransactionsPage — attribuer un tiers", () => {
     await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.url === "/api/v1/bank-transactions/1/entity")).toBe(true));
     expect(calls.find((c) => c.method === "POST")?.body).toEqual({ entity_id: 7 });
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+});
+
+describe("TransactionsPage — encaisser une facture de vente", () => {
+  it("propose la facture ouverte de même montant et l'encaisse par la transaction après confirmation", async () => {
+    renderWithProviders(<Routes><Route path="/bank-accounts/:ba_id/transactions" element={<TransactionsPage />} /></Routes>,
+      { route: "/bank-accounts/1/transactions" });
+    await userEvent.click(await screen.findByRole("button", { name: "Encaisser F-2026-0001" }));
+    const dialog = await screen.findByRole("dialog", { name: "Encaisser la facture F-2026-0001 ?" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Encaisser" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.url === "/api/v1/sales/match")).toBe(true));
+    expect(calls.find((c) => c.url === "/api/v1/sales/match")?.body).toEqual(
+      { bank_transaction_id: 3, allocations: [{ sale_id: 9, amount_cents: 360000 }] });
   });
 });

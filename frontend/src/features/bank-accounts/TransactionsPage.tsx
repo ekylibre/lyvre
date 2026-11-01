@@ -25,11 +25,14 @@ import { formatDate } from "../../lib/format";
 import type { BankTransaction } from "../../lib/types";
 import { AppLink } from "../../app/navigation";
 import { attachmentBadge } from "../reconciliation/logic";
+import { SALES_KEY } from "../sales/types";
 import { BANK_ACCOUNTS_KEY, type BankAccount } from "./types";
 
 type Transaction = BankTransaction & {
   raw_type: string | null; note: string | null; entity_id: number | null;
   invoices: { id: number; label: string; url: string }[];
+  /** Crédit libre : factures de vente ouvertes de même restant dû, à encaisser par cette transaction. */
+  sale_proposals: { id: number; number: string; client: string | null; due_date: string | null }[];
   /** Passée par une règle (pièce + règlement par un compte de tiers) : un vrai tiers peut être attribué. */
   rule_tiers: boolean;
 };
@@ -130,6 +133,9 @@ export default function TransactionsPage() {
   const can = useCan();
   const [params, setParams] = useUrlParams({ filter: "all", month: "", sort: "desc" });
   const [assigning, setAssigning] = useState<Transaction | null>(null);
+  const cash = useAction((v: { txn: Transaction; saleId: number }) => api.post<{ notices: Notice[] }>("/api/v1/sales/match",
+    { bank_transaction_id: v.txn.id, allocations: [{ sale_id: v.saleId, amount_cents: v.txn.amount_cents }] }),
+  { invalidate: [BANK_ACCOUNTS_KEY, SALES_KEY] });
   const { data: detail } = useQuery({ queryKey: [...BANK_ACCOUNTS_KEY, baId],
     queryFn: () => api.get<Detail>(`/api/v1/bank-accounts/${baId}`) });
   const query = new URLSearchParams({
@@ -157,7 +163,15 @@ export default function TransactionsPage() {
             {t.purchase_from_attachment && can.write && (
               <Button size="compact-xs" variant="light" component={AppLink} href={`/purchases/new?bank_transaction_id=${t.id}`}
                 title="Lit le justificatif Qonto et prépare la facture d'achat, réglée par cette transaction">
-                Créer la facture</Button>)}</Group>
+                Créer la facture</Button>)}
+            {can.write && (t.sale_proposals ?? []).map((s) => (
+              <Button key={s.id} size="compact-xs" variant="light" loading={cash.isPending && cash.variables?.saleId === s.id}
+                title={`Encaisse la facture ${s.number}${s.client ? ` (${s.client})` : ""} par cette transaction : écriture de banque, TVA et rapprochement`}
+                onClick={() => confirmAction({
+                  title: `Encaisser la facture ${s.number} ?`,
+                  message: `${s.client ?? "Client"} — ${formatDate(t.date)} — l'écriture d'encaissement est passée au journal de banque et rapprochée de cette transaction.`,
+                  confirmLabel: "Encaisser", onConfirm: () => cash.mutate({ txn: t, saleId: s.id }) })}>
+                Encaisser {s.number}</Button>))}</Group>
           {t.note && <Text size="xs" c="dimmed">{t.note}</Text>}
         </Stack>
       );

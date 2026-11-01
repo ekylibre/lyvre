@@ -339,6 +339,54 @@ def auto_match() -> dict:
     return {"matched": matched, "errors": errors}
 
 
+def auto_match_sale(sale: Sale) -> BankTransaction | None:
+    """Après l'émission d'une facture (ou d'un avoir, pour sa facture) : même règle qu'`auto_match`,
+    limitée à cette facture — candidat unique de montant égal au restant dû, que nulle autre facture
+    ouverte ne réclame. Encaissée (commit) : la transaction ; sinon None, sans erreur."""
+    if sale.kind == "credit_note":
+        sale = sale.invoice
+    if sale is None or sale.kind != "invoice" or sale.status not in OPEN_STATUSES:
+        return None
+    due = due_cents(sale)
+    found = [t for t in candidates(sale) if t.amount_cents == due]
+    if len(found) != 1:
+        return None
+    txn = found[0]
+    others = Sale.query.filter(Sale.kind == "invoice", Sale.status.in_(OPEN_STATUSES), Sale.id != sale.id).all()
+    if any(due_cents(o) == due and txn in candidates(o) for o in others):
+        return None
+    try:
+        match(txn, [(sale, due)])
+    except SaleError:
+        db.session.rollback()
+        return None
+    return txn
+
+
+def proposals(transactions) -> dict[int, list[Sale]]:
+    """Factures ouvertes que chaque crédit libre peut encaisser seul (montant = restant dû, dans la
+    fenêtre de `candidates`) : même client d'abord, puis échéance la plus proche, 3 au plus."""
+    credits = [t for t in transactions if t.amount_cents > 0 and not t.is_reversed and _free(t)]
+    if not credits:
+        return {}
+    taken = linked_transaction_ids([t.id for t in credits])
+    credits = [t for t in credits if t.id not in taken]
+    by_amount: dict[int, list[tuple[Sale, date]]] = {}
+    for sale in Sale.query.filter(Sale.kind == "invoice", Sale.status.in_(OPEN_STATUSES)).all():
+        due = due_cents(sale)
+        if due and sale.issue_date is not None:
+            by_amount.setdefault(due, []).append((sale, sale.due_date or sale.issue_date))
+    result = {}
+    for txn in credits:
+        found = [(sale, ref) for sale, ref in by_amount.get(txn.amount_cents, [])
+                 if sale.issue_date - timedelta(days=MATCH_DAYS_BEFORE) <= txn.transaction_date
+                 <= max(ref, date.today()) + timedelta(days=MATCH_DAYS_AFTER)]
+        if found:
+            found.sort(key=lambda p: (p[0].entity_id != txn.entity_id, abs((txn.transaction_date - p[1]).days), p[0].id))
+            result[txn.id] = [sale for sale, _ in found[:3]]
+    return result
+
+
 def unlink(payment: SalePayment) -> None:
     """Défait un encaissement : son écriture (et celles des autres factures qu'elle encaisse) est
     supprimée, le rapprochement défait, les statuts recalculés."""

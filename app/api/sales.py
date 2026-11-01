@@ -241,7 +241,16 @@ def sales_issue(sale_id):
     messages = {"invoice": f"Facture {sale.number} émise et comptabilisée.",
                 "credit_note": f"Avoir {sale.number} émis et comptabilisé.",
                 "quote": f"Devis {sale.number} émis."}
-    return jsonify(item=sale_detail(sale), notices=[notice(messages[sale.kind])])
+    notices = [notice(messages[sale.kind])]
+    if sale.kind != "quote":
+        # Le relevé peut précéder la facture : crédit bancaire unique de même montant → encaissée.
+        txn = sale_settlement.auto_match_sale(sale)
+        if txn is not None:
+            paid = sale.invoice if sale.kind == "credit_note" else sale
+            notices.append(notice(f"Facture {paid.number} encaissée par la transaction du "
+                                  f"{txn.transaction_date.strftime('%d/%m/%Y')} ({txn.label or 'sans libellé'}).", "success"))
+            db.session.refresh(sale)
+    return jsonify(item=sale_detail(sale), notices=notices)
 
 
 @bp.route("/sales/<int:sale_id>/credit-note", methods=["POST"])

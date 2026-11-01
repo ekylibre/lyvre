@@ -9,7 +9,7 @@ from flask_login import login_required
 from sqlalchemy.orm import joinedload
 
 from app.extensions import db
-from app.models import BankAccount, BankTransaction, Entity, JournalEntry, JournalLine, PurchasePayment
+from app.models import BankAccount, BankTransaction, Entity, JournalEntry, JournalLine, PurchasePayment, SalePayment
 from app.services import rule_entries
 from app.services.ledger import LedgerError, delete_entries, reversed_entry_ids
 from app.services.reconciler import (
@@ -72,7 +72,7 @@ def _free_for_purchase(bt) -> bool:
     return purchase_settlement._free_for_matching(bt)  # noqa: SLF001 — même règle que le rapprochement
 
 
-def serialize_transaction(bt, invoices=None, rule_fitids=()):
+def serialize_transaction(bt, invoices=None, rule_fitids=(), sales=None, sale_proposals=None):
     line = bt.journal_line
     return {
         "id": bt.id,
@@ -90,7 +90,13 @@ def serialize_transaction(bt, invoices=None, rule_fitids=()):
         # Factures d'achat payées par cette transaction.
         "invoices": [{"id": p.id, "label": f"{'Avoir' if p.is_credit_note else 'Facture'} "
                       f"{p.invoice_number or 'sans numéro'}",
-                      "url": url_for("purchases.detail", purchase_id=p.id)} for p in (invoices or [])],
+                      "url": url_for("purchases.detail", purchase_id=p.id)} for p in (invoices or [])]
+        # … et factures de vente qu'elle encaisse.
+        + [{"id": s.id, "label": f"Facture {s.number}", "url": url_for("sales.detail", sale_id=s.id)} for s in (sales or [])],
+        # Crédit libre : factures de vente ouvertes de même restant dû, à encaisser par cette transaction.
+        "sale_proposals": [{"id": s.id, "number": s.number, "client": s.entity.name if s.entity else None,
+                            "due_date": s.due_date.isoformat() if s.due_date else None}
+                           for s in (sale_proposals or [])],
         "entry": (
             {"id": line.entry_id, "reference": line.entry.reference,
              "url": url_for("entries.detail", entry_id=line.entry_id)}
@@ -141,7 +147,15 @@ def bank_transactions(bank_account_id):
                 PurchasePayment.bank_transaction_id.in_([bt.id for bt in rows])):
             invoices.setdefault(payment.bank_transaction_id, []).append(payment.purchase)
     rule_fitids = _rule_fitids(rows)
-    return jsonify(transactions=[serialize_transaction(bt, invoices.get(bt.id), rule_fitids) for bt in rows],
+    sales, proposals = {}, {}
+    if rows:
+        from app.services import sale_settlement
+        for payment in SalePayment.query.filter(SalePayment.bank_transaction_id.in_([bt.id for bt in rows])):
+            if payment.sale not in sales.setdefault(payment.bank_transaction_id, []):
+                sales[payment.bank_transaction_id].append(payment.sale)
+        proposals = sale_settlement.proposals(rows)
+    return jsonify(transactions=[serialize_transaction(bt, invoices.get(bt.id), rule_fitids, sales.get(bt.id),
+                                                       proposals.get(bt.id)) for bt in rows],
                    counters=counters(ba.id))
 
 

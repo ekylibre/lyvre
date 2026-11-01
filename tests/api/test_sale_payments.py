@@ -234,3 +234,45 @@ def test_rule_pair_is_replaced_by_receipt(admin):
     assert resp.status_code == 200, resp.get_json()
     assert JournalEntry.query.filter(JournalEntry.source_ref.in_(["RULE:R2", "FITID:R2"])).count() == 0
     assert SalePayment.query.one().journal_entry.source == "SALE_PAYMENT"
+
+
+def test_issue_matches_earlier_bank_credit(admin):
+    """Relevé avant la facture : à l'émission, le crédit unique de même montant l'encaisse (écriture + rapprochement)."""
+    txn = _txn(120000, "EARLY")
+    resp = admin.post(API, json={"entity_id": Entity.query.filter_by(name="Client SARL").one().id,
+                                 "issue_date": TODAY.isoformat(),
+                                 "lines": [{"label": "Conseil", "unit_price": "1000", "vat_rate": "20"}]})
+    sale_id = resp.get_json()["item"]["id"]
+    body = admin.post(f"{API}/{sale_id}/issue").get_json()
+    assert body["item"]["status"] == "paid"
+    assert any("encaissée par la transaction" in n["message"] for n in body["notices"])
+    payment = SalePayment.query.one()
+    assert payment.bank_transaction_id == txn.id and db.session.get(BankTransaction, txn.id).reconciled
+    assert ("44571", 0, 20000) in _lines(payment.journal_entry_id)  # TVA virée à l'encaissement
+
+
+def test_issue_does_not_match_ambiguous_credit(admin):
+    """Deux factures ouvertes de même montant : le crédit n'est attribué à aucune à l'émission."""
+    first = _invoice(admin, "700")
+    _txn(84000, "AMB")
+    second = _invoice(admin, "700")
+    assert second["status"] == "issued" and SalePayment.query.count() == 0
+    assert db.session.get(Sale, first["id"]).status == "issued"
+
+
+def test_transactions_propose_open_invoices(admin):
+    """Banque › Transactions : un crédit libre propose les factures ouvertes de même restant dû ; encaissé, il les montre."""
+    inv = _invoice(admin)
+    other = _invoice(admin, client="Autre client")
+    txn = _txn(120000, "PROP", entity=Entity.query.filter_by(name="Autre client").one())
+    _txn(50000, "SMALL")
+    ba = BankAccount.query.filter_by(kind="bank").one()
+    rows = {t["id"]: t for t in admin.get(f"/api/v1/bank-accounts/{ba.id}/transactions?status=all").get_json()["transactions"]}
+    assert [p["id"] for p in rows[txn.id]["sale_proposals"]] == [other["id"], inv["id"]]  # même client d'abord
+    assert all(t["sale_proposals"] == [] for i, t in rows.items() if i != txn.id)
+    resp = admin.post(f"{API}/match", json={"bank_transaction_id": txn.id,
+                                            "allocations": [{"sale_id": other["id"], "amount_cents": 120000}]})
+    assert resp.status_code == 200
+    row = next(t for t in admin.get(f"/api/v1/bank-accounts/{ba.id}/transactions?status=all").get_json()["transactions"]
+               if t["id"] == txn.id)
+    assert row["sale_proposals"] == [] and row["invoices"][0]["label"] == f"Facture {other['number']}"
