@@ -116,8 +116,13 @@ icône de **pièce** ; l'infobulle de chacun donne son libellé.
   d'interrogation (perdu), rien pour un relevé OFX.
 - **Catégorie** : celle de la règle de Lyvre, sinon celle de Qonto (en gris, infobulle « Catégorie Qonto »).
 - **Actions** : la première est visible, les autres dans le menu « … » — Encaisser F-… (facture de vente
-  ouverte de même montant), Créer la facture (justificatif Qonto), Attribuer / Changer le tiers,
-  Nouvelle écriture, Rapprocher. Aucune pour le comptable.
+  ouverte de même montant), Créer la facture (justificatif Qonto), **Rattacher à une facture**,
+  Attribuer / Changer le tiers, Nouvelle écriture, Rapprocher. Aucune pour le comptable.
+- **Rattacher à une facture** (ligne libre ou passée par une règle, sans facture) : débit → factures
+  d'achat saisies et comptabilisées, crédit → factures de vente (à défaut avoirs fournisseurs), dont le
+  **restant** est au moins égal au montant de la ligne (solde exact et même tiers d'abord). Le restant
+  après rattachement est affiché ; le règlement (ou l'encaissement) est passé et rapproché, le feu passe
+  au vert. Plusieurs lignes peuvent ainsi régler une même facture, une à une.
 
 ## Espace de rapprochement
 

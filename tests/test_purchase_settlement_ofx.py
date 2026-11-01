@@ -201,9 +201,63 @@ def test_link_manual_then_unlink(books):
 
 
 def test_link_manual_refuses_foreign_transaction(books):
-    other = txn(books, date(2026, 9, 4), amount=-100)
-    with pytest.raises(LedgerError, match="ne peut pas"):
-        ps.link_manual(invoice(books), other.id)
+    too_big = txn(books, date(2026, 9, 4), amount=-4000)
+    refund = txn(books, date(2026, 9, 4), amount=3999)
+    too_early = txn(books, date(2026, 8, 20), amount=-100)
+    p = invoice(books)
+    for other in (too_big, refund, too_early):
+        with pytest.raises(LedgerError, match="ne peut pas"):
+            ps.link_manual(p, other.id)
+
+
+# ------------------------------------------------------------------ règlement en plusieurs fois
+
+def test_invoice_paid_by_several_transactions(books):
+    """Facture de 1 000 € payée en trois fois : un règlement par ligne, lettrage complet au dernier."""
+    p = invoice(books, total=100000)
+    first = txn(books, date(2026, 9, 5), amount=-30000)
+    second = txn(books, date(2026, 10, 5), amount=-30000)
+    third = txn(books, date(2026, 12, 20), amount=-40000)   # hors fenêtre de suggestion : choix manuel
+    assert ps.match_candidates(p) == [first, second]
+    assert ps.auto_match()["matched"] == 0                       # aucun montant égal au restant
+    assert ps.link_manual(p, [first.id, second.id])["settled"] == 2
+    assert ps.paid_cents(p) == 60000 and ps.remaining_cents(p) == 40000 and ps.awaiting_payment(p)
+    assert first.reconciled and second.reconciled
+    entries = {pay.journal_entry_id for pay in p.payments}
+    assert len(entries) == 2
+    assert all(lines(pay.journal_entry) == [("401001", 30000, 0), ("512", 0, 30000)] for pay in p.payments)
+
+    with pytest.raises(LedgerError, match="dépasse"):
+        ps.link_manual(p, [third.id, txn(books, date(2026, 12, 21), amount=-100).id])
+    assert ps.open_for_transaction(third) == [p]
+    assert ps.link_manual(p, third.id)["settled"] == 1
+    assert ps.remaining_cents(p) == 0 and not ps.awaiting_payment(p)
+    assert ps.open_for_transaction(txn(books, date(2026, 12, 22), amount=-100)) == []
+    supplier_lines = [l for e in [p.journal_entry, *(pay.journal_entry for pay in p.payments)]
+                      for l in e.lines if l.account.code.startswith("401")]
+    assert all(l.lettering_id is not None for l in supplier_lines)
+    assert len({l.lettering_id for l in supplier_lines}) == 1
+    assert not supplier_lines[0].lettering.partial
+
+
+def test_remaining_reaches_auto_match(books):
+    """Après un premier règlement partiel, la ligne de montant égal au restant se lie seule."""
+    p = invoice(books, total=10000)
+    part = txn(books, date(2026, 9, 5), amount=-4000)
+    ps.link_manual(p, [part.id])
+    rest = txn(books, date(2026, 9, 20), amount=-6000)
+    assert ps.exact_candidates(p) == [rest]
+    assert ps.auto_match()["matched"] == 1 and ps.remaining_cents(p) == 0
+
+
+def test_credit_note_refunded_in_two_credits(books):
+    p = invoice(books, total=5000, is_credit_note=True)
+    a = txn(books, date(2026, 9, 5), amount=2000)
+    b = txn(books, date(2026, 9, 6), amount=3000)
+    txn(books, date(2026, 9, 6), amount=-2000)                  # débit : jamais pour un avoir
+    assert set(ps.match_candidates(p)) == {a, b}
+    assert ps.open_for_transaction(a) == [p]
+    assert ps.link_manual(p, [a.id, b.id])["settled"] == 2 and ps.remaining_cents(p) == 0
 
 
 def test_qonto_payment_cannot_be_unlinked(books):
@@ -290,7 +344,7 @@ def test_detail_without_candidate(books, login_as):
 
 def test_payment_routes_errors_and_rule_warning(books, login_as):
     t = txn(books, date(2026, 9, 4))
-    other = txn(books, date(2026, 9, 5), amount=-1)
+    other = txn(books, date(2026, 9, 5), amount=-4000)
     entry = post_entry(fiscal_year_id=books["fy"].id, journal_id=Journal.query.filter_by(code="BQ").one().id,
                        entry_date=t.transaction_date, description="Règle",
                        lines=[{"account_id": books["6061"].id, "label": "x", "debit_cents": 3999, "credit_cents": 0},
@@ -312,3 +366,22 @@ def test_payment_routes_errors_and_rule_warning(books, login_as):
     db.session.commit()
     page = _notices(client.delete(_api(f"/{qonto_payment.purchase_id}/payments/{qonto_payment.id}")))
     assert "ne se défait pas ici" in page
+
+
+def test_routes_link_several_lines_from_invoice_and_from_transaction(books, login_as):
+    p = invoice(books, total=10000)
+    a = txn(books, date(2026, 9, 5), amount=-3000)
+    b = txn(books, date(2026, 9, 6), amount=-3000)
+    c = txn(books, date(2026, 12, 6), amount=-4000)
+    client = login_as()
+    detail = client.get(_api(f"/{p.id}")).get_json()
+    assert detail["remaining_cents"] == 10000 and [s["id"] for s in detail["suggestions"]] == [a.id, b.id]
+    resp = client.post(_api(f"/{p.id}/payments"), json={"bank_transaction_ids": [a.id, b.id]})
+    assert resp.status_code == 200 and "2 règlements passés et rapprochés." in _notices(resp)
+    assert "Restant à régler : 40,00 €" in _notices(resp)
+    found = client.get(f"/api/v1/bank-transactions/{c.id}/open-invoices").get_json()
+    assert found["kind"] == "purchase" and found["items"][0]["id"] == p.id
+    assert found["items"][0]["remaining_cents"] == 4000
+    assert client.post(_api(f"/{p.id}/payments"), json={"bank_transaction_ids": [c.id]}).status_code == 200
+    detail = client.get(_api(f"/{p.id}")).get_json()
+    assert detail["remaining_cents"] == 0 and not detail["awaiting_payment"] and len(detail["payments"]) == 3

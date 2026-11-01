@@ -529,7 +529,7 @@ Pages de la SPA : `/purchases/` (filtres `q`, `source` (`qonto` / `manual`), `st
 | GET (Flask) | `/vat-returns/<AAAA-MM>.pdf` · `.xlsx` | Déclaration à saisir sur TeleDEC (projet si non validée) |
 | POST | `/api/v1/bank-transactions/<id>/purchase-draft` | Justificatif d'une transaction Qonto (débit, pièce jointe, sans facture ni rapprochement) téléchargé et lu : `token`, `preview`, `form` prérempli, `transaction` ; 409 si la transaction ne s'y prête pas, 502 si Qonto refuse. `POST /purchases` accepte ensuite `bank_transaction_id` (facture reliée avant comptabilisation, pas d'envoi à Qonto) ; les transactions listées portent `purchase_from_attachment` |
 | PUT | `/api/v1/purchases/<id>/vat-regime` | `{vat_regime}` (`fr`, `eu`, `world`, vide : celui du fournisseur) d'une facture non comptabilisée (lot T2), puis comptabilisation si elle est prête ; 409 si comptabilisée |
-| GET | `/api/v1/purchases/<id>` | Fiche : `item` (état et motifs, montants, pièce, écriture, envoi Qonto), exercice, `lines` (saisie) et `lines_view`, `payments` (état), `awaiting_payment`, `suggestions` (transactions de même montant ; `rule` : déjà passée par une règle), `match_window`, `can_send` |
+| GET | `/api/v1/purchases/<id>` | Fiche : `item` (état et motifs, montants, pièce, écriture, envoi Qonto), exercice, `lines` (saisie) et `lines_view`, `payments` (état), `awaiting_payment` (restant à régler > 0), `paid_cents`, `remaining_cents`, `suggestions` (transactions d'un montant au plus égal au restant ; `exact` : égal au restant ; `rule` : déjà passée par une règle), `match_window`, `can_send` |
 | GET | `/api/v1/purchases/<id>/header` | En-tête d'une facture saisie non comptabilisée (sinon 409), aperçu de la pièce, `can_replace_attachment` |
 | PATCH | `/api/v1/purchases/<id>` | Modifie cet en-tête (mêmes champs et erreurs que la création ; `token` remplace la pièce, refusé si déjà envoyée à Qonto) |
 | PUT | `/api/v1/purchases/<id>/lines` | `rows` ; 422 si invalide ; comptabilise si complète |
@@ -537,7 +537,7 @@ Pages de la SPA : `/purchases/` (filtres `q`, `source` (`qonto` / `manual`), `st
 | POST | `/api/v1/purchases/<id>/unpost` | Supprime l'écriture d'achat et réapplique les données Qonto |
 | DELETE | `/api/v1/purchases/<id>` | Supprime la facture, son écriture d'achat et sa pièce ; 409 si elle est validée dans Qonto, liée à un paiement ou à un avoir, ou dans un exercice clôturé |
 | POST | `/api/v1/purchases/<id>/qonto` | **Écrit dans Qonto** : envoie (ou renvoie après échec) la pièce d'une facture saisie ; 409 si Qonto indisponible ou envoi impossible |
-| POST | `/api/v1/purchases/<id>/payments` | `bank_transaction_id` : règle une facture saisie par une transaction proposée |
+| POST | `/api/v1/purchases/<id>/payments` | `bank_transaction_ids` (ou `bank_transaction_id`) : règle une facture saisie par une ou plusieurs transactions (sens attendu, pas avant la date − 5 j, total ≤ restant) ; un règlement 401 / banque rapproché par transaction |
 | DELETE | `/api/v1/purchases/<id>/payments/<payment_id>` | Défait un règlement hors Qonto (écriture supprimée, rapprochement défait) |
 | GET | `/api/v1/purchases/settlements` | `replaceable` (écritures de règle) et `manual` (rapprochements manuels à vérifier) |
 | POST | `/api/v1/purchases/settlements/replace` | `transaction_ids` : remplace les écritures de règle par des règlements 401 / banque |
@@ -588,6 +588,7 @@ Structure, onglet Facturation (`/configuration/organization?tab=billing`). API :
 | POST / DELETE | `/api/v1/billing-settings/logo` | Logo PNG ou JPEG (500 Ko) |
 | GET | `/api/v1/sales/<id>/payment-options` | Restant dû, crédits bancaires candidats (montant exact, même client, écriture de règle à remplacer), banques et caisses |
 | POST | `/api/v1/sales/match` | `{bank_transaction_id, allocations: [{sale_id, amount_cents}]}` : une transaction encaisse des factures d'un seul client (somme = montant) ; écriture BQ 512 / 411 (+ 44574 → 44571), rapprochée |
+| POST | `/api/v1/sales/<id>/match` | `{bank_transaction_ids}` : la facture est encaissée par une ou plusieurs transactions, chacune entièrement (total ≤ restant dû) ; une écriture par transaction, tout ou rien |
 | POST | `/api/v1/sales/<id>/payments` | Encaissement saisi `{amount, paid_on, bank_account_id, method}` (BQ ou CA) |
 | DELETE | `/api/v1/sale-payments/<id>` | Défaire : écriture supprimée, rapprochement défait |
 | POST | `/api/v1/sales/auto-match` | Encaisse les factures au crédit candidat unique (aussi après un import OFX et une synchronisation Qonto) |
@@ -898,6 +899,7 @@ Codes : `bad_request` / `csrf_error` (400), `unauthenticated` (401, jamais de re
 | POST | `/api/v1/reconciliations/delete` | `{"bank_transaction_ids": [...]}` : défait des rapprochements |
 | POST | `/api/v1/reconciliations/auto` | `{bank_account_id, bank_transaction_ids?, dry_run?}` : paires sans ambiguïté (même date, même montant) |
 | POST | `/api/v1/bank-transactions/apply-rules` | `{"ids": [...]}` : applique les règles à la sélection |
+| GET | `/api/v1/bank-transactions/<id>/open-invoices` | `{kind: purchase\|sale, amount_cents, items}` : factures existantes que la transaction peut régler (débit : achats saisis comptabilisés) ou encaisser (crédit : ventes, à défaut avoirs fournisseurs), restant ≥ montant ; liste des transactions : `can_link_invoice` |
 | POST | `/api/v1/bank-transactions/<id>/entity` | `{"entity_id"}` : attribue un vrai tiers à une transaction passée par une règle (pièce et règlement repassés sur son compte) ; liste des transactions : `rule_tiers` |
 
 Les écritures groupées renvoient `{"results": [...], "counters": {...}, "undo": {...}}` : `results`

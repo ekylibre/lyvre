@@ -236,6 +236,43 @@ def candidates(sale: Sale, limit: int = 20) -> list[BankTransaction]:
 
 def match(txn: BankTransaction, allocations: list[tuple[Sale, int]]) -> JournalEntry:
     """Encaisse les factures par la transaction (sommes égales) ; commit ; SaleError sinon."""
+    try:
+        entry = _apply(txn, allocations)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+    entry.qonto_warnings = qonto_mark_paid([sale for sale, _ in allocations], txn.transaction_date)
+    return entry
+
+
+def match_transactions(sale: Sale, transaction_ids) -> list[JournalEntry]:
+    """Encaisse la facture par une ou plusieurs transactions (chacune entièrement affectée à la facture),
+    dont la somme ne dépasse pas le restant dû ; tout ou rien (un seul commit) ; SaleError sinon."""
+    ids = list(dict.fromkeys(transaction_ids or []))
+    if not ids or not all(isinstance(i, int) for i in ids):
+        raise SaleError("Choisissez au moins une transaction.", "bank_transaction_ids")
+    txns = [db.session.get(BankTransaction, i) for i in ids]
+    if None in txns:
+        raise SaleError("Transaction introuvable.", status=404)
+    if sum(t.amount_cents for t in txns) > due_cents(sale):
+        raise SaleError("Le montant des transactions choisies dépasse le restant dû.", "bank_transaction_ids")
+    entries = []
+    try:
+        for txn in sorted(txns, key=lambda t: (t.transaction_date, t.id)):
+            entries.append(_apply(txn, [(sale, txn.amount_cents)]))
+            db.session.flush()
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+    if entries:
+        entries[-1].qonto_warnings = qonto_mark_paid([sale], max(t.transaction_date for t in txns))
+    return entries
+
+
+def _apply(txn: BankTransaction, allocations: list[tuple[Sale, int]]) -> JournalEntry:
+    """Écriture d'encaissement rapprochée de la transaction (sans commit) ; SaleError sinon."""
     if txn.is_reversed:
         raise SaleError(REVERSED_MESSAGE, status=409)
     if txn.amount_cents <= 0:
@@ -247,31 +284,25 @@ def match(txn: BankTransaction, allocations: list[tuple[Sale, int]]) -> JournalE
     _check_allocations(allocations)
     if sum(amount for _, amount in allocations) != txn.amount_cents:
         raise SaleError("La somme encaissée doit être égale au montant de la transaction.", "allocations")
-    try:
-        if txn.journal_line is not None:  # écriture de règle remplacée
-            rule_entry = txn.journal_line.entry
-            if rule_entry.fiscal_year.closed:
-                raise SaleError("Exercice clôturé : l'écriture de règle ne peut pas être remplacée.", status=409)
-            from app.services import rule_entries
-            rule_entries.remove(txn, rule_entry)
-        entry = _post(allocations, txn.transaction_date, txn.bank_account, txn.label or "",
-                      SOURCE_SALE_PAYMENT, f"SALE_PAYMENT:{txn.fitid}", auto_date=True)
-        bank_line = next(line for line in entry.lines if line.account_id == txn.bank_account.account_id)
-        reconcile(txn.id, bank_line.id, commit=False)
-        for sale, amount, released in entry._releases:  # noqa: SLF001
-            db.session.add(SalePayment(sale=sale, amount_cents=amount, paid_on=txn.transaction_date, origin="bank",
-                                       method="transfer", bank_transaction_id=txn.id, bank_account_id=txn.bank_account_id,
-                                       journal_entry_id=entry.id, vat_released_cents=released))
-        if txn.entity_id is None:
-            txn.entity_id = allocations[0][0].entity_id
-        for sale, _ in allocations:
-            refresh_status(sale)
-        _letter([sale for sale, _ in allocations])
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        raise
-    entry.qonto_warnings = qonto_mark_paid([sale for sale, _ in allocations], txn.transaction_date)
+    if txn.journal_line is not None:  # écriture de règle remplacée
+        rule_entry = txn.journal_line.entry
+        if rule_entry.fiscal_year.closed:
+            raise SaleError("Exercice clôturé : l'écriture de règle ne peut pas être remplacée.", status=409)
+        from app.services import rule_entries
+        rule_entries.remove(txn, rule_entry)
+    entry = _post(allocations, txn.transaction_date, txn.bank_account, txn.label or "",
+                  SOURCE_SALE_PAYMENT, f"SALE_PAYMENT:{txn.fitid}", auto_date=True)
+    bank_line = next(line for line in entry.lines if line.account_id == txn.bank_account.account_id)
+    reconcile(txn.id, bank_line.id, commit=False)
+    for sale, amount, released in entry._releases:  # noqa: SLF001
+        db.session.add(SalePayment(sale=sale, amount_cents=amount, paid_on=txn.transaction_date, origin="bank",
+                                   method="transfer", bank_transaction_id=txn.id, bank_account_id=txn.bank_account_id,
+                                   journal_entry_id=entry.id, vat_released_cents=released))
+    if txn.entity_id is None:
+        txn.entity_id = allocations[0][0].entity_id
+    for sale, _ in allocations:
+        refresh_status(sale)
+    _letter([sale for sale, _ in allocations])
     return entry
 
 
@@ -385,6 +416,23 @@ def proposals(transactions) -> dict[int, list[Sale]]:
             found.sort(key=lambda p: (p[0].entity_id != txn.entity_id, abs((txn.transaction_date - p[1]).days), p[0].id))
             result[txn.id] = [sale for sale, _ in found[:3]]
     return result
+
+
+def open_for_transaction(txn: BankTransaction) -> list[Sale]:
+    """Factures ouvertes que le crédit libre peut (tout ou partie) encaisser : restant dû au moins égal
+    au montant ; montant égal au restant d'abord, puis même client, puis échéance la plus proche."""
+    if txn.amount_cents <= 0 or not _free(txn) or txn.id in linked_transaction_ids([txn.id]) \
+            or PurchasePayment.query.filter_by(bank_transaction_id=txn.id).first():
+        return []
+    found = []
+    for sale in Sale.query.filter(Sale.kind == "invoice", Sale.status.in_(OPEN_STATUSES)).all():
+        due = due_cents(sale)
+        if due >= txn.amount_cents and sale.issue_date is not None \
+                and txn.transaction_date >= sale.issue_date - timedelta(days=MATCH_DAYS_BEFORE):
+            found.append((sale, due))
+    found.sort(key=lambda p: (p[1] != txn.amount_cents, p[0].entity_id != txn.entity_id,
+                              abs((txn.transaction_date - (p[0].due_date or p[0].issue_date)).days), p[0].id))
+    return [sale for sale, _ in found]
 
 
 def unlink(payment: SalePayment) -> None:

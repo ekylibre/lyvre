@@ -17,6 +17,7 @@ import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink, useGoTo } from "../../app/navigation";
+import { selectedTotal, TransactionPicker } from "../../components/bank/TransactionPicker";
 import { AssociatePaymentForm } from "../associates/AssociatePaymentForm";
 import { AttachmentPreview } from "./AttachmentPreview";
 import { LinesEditor } from "./LinesEditor";
@@ -51,7 +52,8 @@ export default function PurchaseDetailPage() {
   const setRegime = useAction((regime: string | null) => api.put<{ notices: Notice[] }>(`/api/v1/purchases/${id}/vat-regime`,
     { vat_regime: regime }), opts);
   const sendToQonto = useAction(() => api.post<{ notices: Notice[] }>(`/api/v1/purchases/${id}/qonto`), opts);
-  const link = useAction((tid: number) => api.post<{ notices: Notice[] }>(`/api/v1/purchases/${id}/payments`, { bank_transaction_id: tid }), opts);
+  const link = useAction((ids: number[]) => api.post<{ notices: Notice[] }>(`/api/v1/purchases/${id}/payments`, { bank_transaction_ids: ids }), opts);
+  const [picked, setPicked] = useState<number[]>([]);
   const [payingByAssociate, setPayingByAssociate] = useState(false);
   const unlink = useAction((pid: number) => api.delete<{ notices: Notice[] }>(`/api/v1/purchases/${id}/payments/${pid}`), opts);
   const remove = useAction(() => api.delete<{ notices: Notice[] }>(`/api/v1/purchases/${id}`));
@@ -169,26 +171,32 @@ export default function PurchaseDetailPage() {
               <Can><Button size="compact-sm" variant="default" onClick={() => setPayingByAssociate(true)}>Réglée par un associé</Button></Can>
             )}
           </Group>
+          {data.paid_cents > 0 && (
+            <Text size="sm">Déjà réglé : <MoneyText cents={data.paid_cents} size="sm" /> — restant à régler : <MoneyText cents={data.remaining_cents} size="sm" fw={600} /></Text>
+          )}
           {data.suggestions.length ? (
             <>
-              <Text size="sm" c="dimmed">Transactions bancaires de même montant autour de la date de la facture :</Text>
-              <Table>
-                <Table.Thead><Table.Tr><Table.Th>Date</Table.Th><Table.Th>Compte bancaire</Table.Th><Table.Th>Libellé</Table.Th><Table.Th ta="right">Montant</Table.Th><Table.Th /></Table.Tr></Table.Thead>
-                <Table.Tbody>{data.suggestions.map((t) => (
-                  <Table.Tr key={t.id}>
-                    <Table.Td className="lv-num">{formatDate(t.date)}</Table.Td><Table.Td>{t.bank_account}</Table.Td>
-                    <Table.Td><Text size="sm">{t.label} {t.rule && <Badge size="xs" color="paille" variant="light" title="Déjà passée par une règle : son écriture sera à remplacer">règle</Badge>}</Text></Table.Td>
-                    <Table.Td ta="right"><MoneyText cents={t.amount_cents} /></Table.Td>
-                    <Table.Td ta="right"><Can><Button size="compact-sm" variant="default" loading={link.isPending && link.variables === t.id}
-                      onClick={() => link.mutate(t.id)}>Régler avec cette transaction</Button></Can></Table.Td>
-                  </Table.Tr>
-                ))}</Table.Tbody>
-              </Table>
+              <Text size="sm" c="dimmed">Transactions bancaires libres autour de la date de la facture, d'un montant au plus égal au
+                restant : cochez-en une ou plusieurs (règlement en plusieurs fois).</Text>
+              <TransactionPicker remainingCents={data.remaining_cents} selected={picked} onChange={setPicked} disabled={!can.write}
+                rows={data.suggestions.map((t) => ({ id: t.id, date: t.date, label: t.label, account: t.bank_account, amount_cents: t.amount_cents,
+                  badges: <>
+                    {t.exact && <Badge size="xs" color="lichen">montant exact</Badge>}
+                    {t.rule && <Badge size="xs" color="paille" variant="light" title="Déjà passée par une règle : son écriture sera à remplacer">règle</Badge>}
+                  </> }))} />
+              <Can><Group justify="flex-end">
+                <Button size="compact-md" loading={link.isPending}
+                  disabled={!picked.length || selectedTotal(data.suggestions.map((t) => ({ ...t, account: t.bank_account })), picked) > data.remaining_cents}
+                  onClick={() => link.mutate(picked, { onSuccess: () => setPicked([]) })}>
+                  {picked.length > 1 ? `Régler avec ces ${picked.length} transactions` : "Régler avec cette transaction"}
+                </Button>
+              </Group></Can>
             </>
           ) : data.match_window && (
-            <Text size="sm" c="dimmed">Non réglée : aucune transaction bancaire libre de <MoneyText cents={p.total_cents} size="sm" /> entre
+            <Text size="sm" c="dimmed">{data.paid_cents > 0 ? "Partiellement réglée" : "Non réglée"} : aucune transaction bancaire libre d'au plus <MoneyText cents={data.remaining_cents} size="sm" /> entre
               le {formatDate(data.match_window[0])} et le {formatDate(data.match_window[1])}. Le règlement sera passé automatiquement à la
-              synchronisation Qonto ou à l'import du relevé (OFX) qui la contient.</Text>
+              synchronisation Qonto ou à l'import du relevé (OFX) qui la contient ; une ligne plus tardive se rattache depuis
+              Banque › Transactions (« Rattacher à une facture »).</Text>
           )}
         </Stack>
       )}

@@ -74,7 +74,9 @@ export interface PurchaseDetail {
     vat_cents: number; total_cents: number }[];
   payments: Payment[];
   awaiting_payment: boolean;
-  suggestions: { id: number; date: string; bank_account: string; label: string; amount_cents: number; rule: boolean }[];
+  paid_cents: number;
+  remaining_cents: number;
+  suggestions: { id: number; date: string; bank_account: string; label: string; amount_cents: number; rule: boolean; exact: boolean }[];
   match_window: [string, string] | null;
   can_send: boolean;
   /** Module « Associés » actif : règlement par un associé possible si `blocker` est nul. */

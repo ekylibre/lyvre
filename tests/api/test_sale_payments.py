@@ -276,3 +276,36 @@ def test_transactions_propose_open_invoices(admin):
     row = next(t for t in admin.get(f"/api/v1/bank-accounts/{ba.id}/transactions?status=all").get_json()["transactions"]
                if t["id"] == txn.id)
     assert row["sale_proposals"] == [] and row["invoices"][0]["label"] == f"Facture {other['number']}"
+
+
+def test_invoice_received_in_several_transfers(admin):
+    """Facture de 1 200 € TTC encaissée par deux virements choisis ensemble : deux écritures, tout ou rien."""
+    inv = _invoice(admin)
+    first, second = _txn(50000, "P1"), _txn(70000, "P2")
+    big = _txn(130000, "P3")
+    resp = admin.post(f"{API}/{inv['id']}/match", json={"bank_transaction_ids": [first.id, big.id]})
+    assert resp.status_code == 422 and "dépasse le restant dû" in resp.get_json()["error"]["message"]
+    assert SalePayment.query.count() == 0
+    resp = admin.post(f"{API}/{inv['id']}/match", json={"bank_transaction_ids": [first.id]})
+    assert resp.status_code == 200, resp.get_json()
+    assert any("Restant dû" in n["message"] for n in resp.get_json()["notices"])
+    # Depuis la ligne de relevé : la facture partiellement encaissée est proposée au second virement.
+    found = admin.get(f"/api/v1/bank-transactions/{second.id}/open-invoices").get_json()
+    assert found["kind"] == "sale" and [i["id"] for i in found["items"]] == [inv["id"]]
+    assert found["items"][0]["remaining_cents"] == 70000
+    assert admin.get(f"/api/v1/bank-transactions/{big.id}/open-invoices").get_json()["items"] == []
+    resp = admin.post(f"{API}/{inv['id']}/match", json={"bank_transaction_ids": [second.id]})
+    assert resp.status_code == 200 and resp.get_json()["item"]["status"] == "paid"
+    assert {p.bank_transaction_id for p in SalePayment.query} == {first.id, second.id}
+    assert db.session.get(BankTransaction, second.id).reconciled
+    assert admin.get(f"/api/v1/bank-transactions/{first.id}/open-invoices").get_json()["items"] == []
+
+
+def test_several_transfers_at_once(admin):
+    inv = _invoice(admin)
+    a, b = _txn(60000, "Q1"), _txn(60000, "Q2")
+    resp = admin.post(f"{API}/{inv['id']}/match", json={"bank_transaction_ids": [a.id, b.id]})
+    assert resp.status_code == 200, resp.get_json()
+    assert resp.get_json()["item"]["status"] == "paid"
+    assert "2 encaissements rapprochés." in [n["message"] for n in resp.get_json()["notices"]]
+    assert SalePayment.query.count() == 2

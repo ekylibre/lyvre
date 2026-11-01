@@ -228,6 +228,7 @@ def _associate_payment(p: Purchase) -> dict | None:
 def purchase_detail(p: Purchase) -> dict:
     fy = purchase_posting.fiscal_year_for(p.issue_date)
     awaiting = purchase_settlement.awaiting_payment(p)
+    remaining = purchase_settlement.remaining_cents(p)
     window = purchase_settlement.match_window(p) if p.issue_date else None
     entry = p.journal_entry
     return {
@@ -250,8 +251,11 @@ def purchase_detail(p: Purchase) -> dict:
                        for l in p.lines],
         "payments": [_payment(pay) for pay in p.payments],
         "awaiting_payment": awaiting,
+        "paid_cents": purchase_settlement.paid_cents(p),
+        "remaining_cents": purchase_settlement.remaining_cents(p),
         "suggestions": [{"id": t.id, "date": t.transaction_date.isoformat(), "bank_account": t.bank_account.label,
-                         "label": t.label or "", "amount_cents": t.amount_cents, "rule": t.reconciled}
+                         "label": t.label or "", "amount_cents": t.amount_cents, "rule": t.reconciled,
+                         "exact": abs(t.amount_cents) == remaining}
                         for t in (purchase_settlement.match_candidates(p) if awaiting else [])],
         "match_window": [window[0].isoformat(), window[1].isoformat()] if window else None,
         "can_send": purchase_entry.can_send_to_qonto(p),
@@ -333,14 +337,21 @@ def purchases_delete(purchase_id):
 def purchases_link_payment(purchase_id):
     p = get_or_404(Purchase, purchase_id, "Facture introuvable.")
     try:
-        outcome = purchase_settlement.link_manual(p, json_body().get("bank_transaction_id"))
+        data = json_body()
+        ids = data.get("bank_transaction_ids")
+        outcome = purchase_settlement.link_manual(p, ids if ids is not None else data.get("bank_transaction_id"))
     except LedgerError as exc:
         db.session.rollback()
         raise invalid(str(exc)) from None
     notices = [notice(e, "danger") for e in outcome["errors"]]
     if outcome["settled"]:
-        notices.insert(0, notice("Règlement passé et rapproché" + (", écritures de règle remplacées."
-                                                                   if outcome["replaced"] else ".")))
+        count = outcome["settled"]
+        head = "Règlement passé et rapproché" if count == 1 else f"{count} règlements passés et rapprochés"
+        notices.insert(0, notice(head + (", écritures de règle remplacées." if outcome["replaced"] else ".")))
+        remaining = purchase_settlement.remaining_cents(p)
+        if remaining:
+            notices.append(notice(f"Restant à régler : {remaining / 100:,.2f} €".replace(",", "\u202f").replace(".", ","),
+                                  "info"))
     elif not outcome["errors"]:
         notices.insert(0, notice("Paiement rattaché : la transaction est déjà rapprochée d'une autre écriture, "
                                  "à reprendre à la main (Règlements à remplacer).", "warning"))

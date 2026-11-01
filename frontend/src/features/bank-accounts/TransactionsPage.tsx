@@ -29,6 +29,7 @@ import { RowActions, type RowAction } from "../../components/bank/RowActions";
 import { AttachmentIcon, TransactionLight, TransactionTypeIcon } from "../../components/bank/TransactionIcons";
 import { AppLink } from "../../app/navigation";
 import { SALES_KEY } from "../sales/types";
+import { LinkInvoiceModal } from "./LinkInvoiceModal";
 import { StatementsCard } from "./StatementsCard";
 import { BANK_ACCOUNTS_KEY, type BankAccount } from "./types";
 
@@ -39,6 +40,8 @@ type Transaction = BankTransaction & {
   sale_proposals: { id: number; number: string; client: string | null; due_date: string | null }[];
   /** Passée par une règle (pièce + règlement par un compte de tiers) : un vrai tiers peut être attribué. */
   rule_tiers: boolean;
+  /** Libre, sans facture : peut régler ou encaisser une facture existante, en tout ou partie. */
+  can_link_invoice?: boolean;
 };
 interface Detail {
   item: BankAccount; qonto_job: Job | null; proposal_count: number;
@@ -141,6 +144,7 @@ export default function TransactionsPage() {
   const light = (legacy ? "orange" : LIGHTS.find((l) => l === params.light) ?? null) as Light | null;
   const filter = legacy ? "all" : params.filter;
   const [assigning, setAssigning] = useState<Transaction | null>(null);
+  const [linking, setLinking] = useState<Transaction | null>(null);
   const cash = useAction((v: { txn: Transaction; saleId: number }) => api.post<{ notices: Notice[] }>("/api/v1/sales/match",
     { bank_transaction_id: v.txn.id, allocations: [{ sale_id: v.saleId, amount_cents: v.txn.amount_cents }] }),
   { invalidate: [BANK_ACCOUNTS_KEY, SALES_KEY] });
@@ -172,6 +176,11 @@ export default function TransactionsPage() {
     if (t.purchase_from_attachment) {
       out.push({ key: "purchase", label: "Créer la facture", href: `/purchases/new?bank_transaction_id=${t.id}`,
         title: "Lit le justificatif Qonto et prépare la facture d'achat, réglée par cette transaction" });
+    }
+    if (t.can_link_invoice) {
+      out.push({ key: "link", label: "Rattacher à une facture", onClick: () => setLinking(t),
+        title: t.amount_cents < 0 ? "Règle (tout ou partie) une facture d'achat existante par cette transaction"
+          : "Encaisse (tout ou partie) une facture de vente existante par cette transaction" });
     }
     if (t.rule_tiers) out.push({ key: "tiers", label: t.entity ? "Changer le tiers" : "Attribuer le tiers", onClick: () => setAssigning(t) });
     if (!t.reconciled && !t.is_reversed) {
@@ -257,6 +266,7 @@ export default function TransactionsPage() {
         sort={{ column: "date", direction: params.sort === "asc" ? "asc" : "desc" }} onSortChange={(s) => setParams({ sort: s.direction })}
         emptyText="Aucune transaction pour ces critères." />
       <AssignEntityModal txn={assigning} onClose={() => setAssigning(null)} />
+      <LinkInvoiceModal txn={linking} onClose={() => setLinking(null)} />
     </>
   );
 }

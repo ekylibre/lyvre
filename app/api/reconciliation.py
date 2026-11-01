@@ -116,6 +116,10 @@ def serialize_transaction(bt, invoices=None, rule_fitids=(), sales=None, sale_pr
                                          and not bt.is_reversed and not invoices and _free_for_purchase(bt)),
         # Passée par une règle (tiers par défaut ou tiers de la règle) : un vrai tiers peut être attribué.
         "rule_tiers": bt.fitid in rule_fitids,
+        # Libre (ou passée par une règle), sans facture : peut régler ou encaisser une facture existante,
+        # en tout ou partie (« Rattacher à une facture », liste via /open-invoices).
+        "can_link_invoice": bool(bt.amount_cents and not bt.is_reversed and not invoices and not sales
+                                 and ((not bt.reconciled and bt.journal_line_id is None) or bt.fitid in rule_fitids)),
     }
 
 
@@ -192,6 +196,36 @@ def bank_transaction_assign_entity(bt_id):
         raise invalid(str(exc)) from None
     return jsonify(item=serialize_transaction(bt, rule_fitids=_rule_fitids([bt])),
                    notices=[notice(f"Transaction attribuée à {entity.name} : écritures repassées sur son compte.")])
+
+
+@bp.route("/bank-transactions/<int:bt_id>/open-invoices")
+@login_required
+def bank_transaction_open_invoices(bt_id):
+    """Factures existantes que la transaction peut régler (débit : achats saisis) ou encaisser
+    (crédit : ventes), en tout ou partie ; une facture se règle par une ou plusieurs lignes de relevé."""
+    from app.services import purchase_settlement, sale_settlement
+
+    bt = get_or_404(BankTransaction, bt_id, "Transaction bancaire introuvable.")
+    if bt.amount_cents < 0 or (bt.amount_cents > 0 and not sale_settlement.open_for_transaction(bt)):
+        # Débit : facture d'achat ; crédit : vente d'abord, sinon avoir fournisseur remboursé.
+        kind = "purchase"
+        items = [{"id": p.id, "number": p.invoice_number or "sans numéro",
+                  "entity": p.entity.name if p.entity else None,
+                  "date": p.issue_date.isoformat() if p.issue_date else None,
+                  "total_cents": p.payable_cents or p.total_cents,
+                  "remaining_cents": purchase_settlement.remaining_cents(p),
+                  "credit_note": p.is_credit_note, "same_entity": bool(bt.entity_id) and p.entity_id == bt.entity_id,
+                  "url": url_for("purchases.detail", purchase_id=p.id)}
+                 for p in purchase_settlement.open_for_transaction(bt)]
+    else:
+        kind = "sale"
+        items = [{"id": s.id, "number": s.number, "entity": s.entity.name if s.entity else None,
+                  "date": s.issue_date.isoformat() if s.issue_date else None,
+                  "total_cents": s.total_cents, "remaining_cents": sale_settlement.due_cents(s),
+                  "credit_note": False, "same_entity": bool(bt.entity_id) and s.entity_id == bt.entity_id,
+                  "url": url_for("sales.detail", sale_id=s.id)}
+                 for s in sale_settlement.open_for_transaction(bt)]
+    return jsonify(kind=kind, amount_cents=bt.amount_cents, items=items[:30])
 
 
 @bp.route("/bank-transactions/<int:bt_id>/suggestions")

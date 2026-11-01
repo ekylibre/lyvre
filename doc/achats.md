@@ -178,6 +178,14 @@ propose, même fournisseur en premier — **Régler avec cette transaction**. Un
 **défait** depuis la fiche (écriture supprimée, transaction de nouveau à rapprocher). Un débit déjà
 passé par une règle peut être choisi : ses écritures de règle sont remplacées (ci-dessous).
 
+**Règlement en plusieurs fois** (acomptes, échéancier) : la fiche propose aussi les débits d'un montant
+**inférieur** au restant à régler ; on en coche **un ou plusieurs** (total sélectionné et restant
+affichés, un total supérieur au restant est refusé). Chaque débit reçoit son propre règlement 401 /
+banque, rapproché ; la fiche affiche « Déjà réglé » et le **restant à régler**, et le lettrage du
+fournisseur se complète au dernier règlement. Une ligne arrivée plus tard (hors de la fenêtre de
+recherche) se rattache depuis **Banque › Transactions → Rattacher à une facture**. Le lien automatique
+ne retient toujours qu'un débit **égal au restant**.
+
 ### Transactions déjà passées par une règle
 
 En partie double, une règle de catégorisation passe une dépense par un compte de tiers : une pièce

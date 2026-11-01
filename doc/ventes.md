@@ -70,7 +70,9 @@ encore ces motifs d'exonération.
 
 - **Encaisser** (fiche d'une facture) :
   - **Transaction bancaire** : crédits proposés autour de la facture (montant exact et même client
-    d'abord) ; les écritures de règle de catégorisation (pièce 411000 / 7… et règlement) sont
+    d'abord), à cocher : **un ou plusieurs** (virements échelonnés), chacun entièrement affecté à la
+    facture, leur total au plus égal au restant dû (une écriture d'encaissement par virement, tout ou
+    rien) ; les écritures de règle de catégorisation (pièce 411000 / 7… et règlement) sont
     remplacées ;
   - **Chèque, espèces…** : montant, date, banque ou caisse.
 - **Rapprocher les encaissements** (liste) : une facture dont le restant dû est égal à un seul
@@ -79,7 +81,8 @@ encore ces motifs d'exonération.
   avant elle.
 - **Depuis le relevé** : Banque › Transactions propose « Encaisser F-… » sur un crédit libre pour les
   factures ouvertes de même restant dû (même client d'abord), après confirmation ; la facture encaissée
-  s'affiche ensuite sur la transaction.
+  s'affiche ensuite sur la transaction. **Rattacher à une facture** (menu « … ») encaisse en partie une
+  facture dont le restant dû est supérieur au crédit : la facture reçoit ainsi ses virements un à un.
 - La facture passe **Payée en partie** puis **Payée** ; « Défaire » supprime l'encaissement et son
   écriture.
 - **Relancer** : facture échue non soldée, depuis sa fiche ou une sélection (filtre « Échues ») ;

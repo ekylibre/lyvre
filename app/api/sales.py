@@ -397,6 +397,27 @@ def sales_match():
                             *(notice(w, "warning") for w in getattr(entry, "qonto_warnings", []))])
 
 
+@bp.route("/sales/<int:sale_id>/match", methods=["POST"])
+def sales_match_transactions(sale_id):
+    """`{bank_transaction_ids: [...]}` : la facture est encaissée par une ou plusieurs transactions,
+    chacune entièrement, dont la somme ne dépasse pas le restant dû (tout ou rien)."""
+    sale = get_or_404(Sale, sale_id, "Pièce introuvable.")
+    ids = json_body().get("bank_transaction_ids")
+    if not isinstance(ids, list):
+        raise invalid("Choisissez au moins une transaction.", "bank_transaction_ids")
+    with _errors():
+        entries = sale_settlement.match_transactions(sale, ids)
+    db.session.refresh(sale)
+    due = sale_settlement.due_cents(sale)
+    count = len(entries)
+    message = ("Encaissement rapproché." if count == 1 else f"{count} encaissements rapprochés.")
+    notices = [notice(message)]
+    if due:
+        notices.append(notice(f"Restant dû : {due / 100:,.2f} €".replace(",", "\u202f").replace(".", ","), "info"))
+    notices += [notice(w, "warning") for e in entries for w in getattr(e, "qonto_warnings", [])]
+    return jsonify(item=sale_detail(sale), notices=notices)
+
+
 @bp.route("/sales/<int:sale_id>/payments", methods=["POST"])
 def sales_manual_payment(sale_id):
     """`{amount, paid_on, bank_account_id, method}` : encaissement saisi (chèque, espèces…)."""

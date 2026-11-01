@@ -36,7 +36,17 @@ beforeEach(() => {
           category_display: { label: "Licences logicielles", source: "qonto" } }),
         row(3, "BZIIIT — EKYLIBRE-SIA-26", { amount_cents: 360000, reconciled: false, category: null, raw_type: "income",
           light: "orange", light_reasons: ["À rapprocher"], new_entry_url: "/entries/new?bt_id=3",
-          sale_proposals: [{ id: 9, number: "F-2026-0001", client: "bziiit", due_date: "2026-08-20" }] })] });
+          sale_proposals: [{ id: 9, number: "F-2026-0001", client: "bziiit", due_date: "2026-08-20" }] }),
+        row(4, "VIR ATELIER ACOMPTE 2", { amount_cents: -30000, reconciled: false, light: "orange",
+          light_reasons: ["À rapprocher"], can_link_invoice: true })] });
+    }
+    if (url === "/api/v1/bank-transactions/4/open-invoices") {
+      return json(200, { kind: "purchase", amount_cents: -30000, items: [
+        { id: 12, number: "AT-77", entity: "Atelier", date: "2026-02-20", total_cents: 100000, remaining_cents: 70000,
+          credit_note: false, same_entity: true, url: "/purchases/12" }] });
+    }
+    if (url === "/api/v1/purchases/12/payments") {
+      return json(200, { notices: [{ level: "success", message: "Règlement passé et rapproché." }] });
     }
     if (url.startsWith("/api/v1/entities?")) return json(200, { results: [{ id: 7, name: "EDF", type: "FOURNISSEUR", email: null }] });
     if (url === "/api/v1/bank-transactions/1/entity") {
@@ -124,5 +134,20 @@ describe("TransactionsPage — feux, icônes, actions (lot TX2)", () => {
     await userEvent.click(screen.getByRole("button", { name: "Autres actions — BZIIIT — EKYLIBRE-SIA-26" }));
     expect(await screen.findByRole("menuitem", { name: "Nouvelle écriture" })).toHaveAttribute("href", "/entries/new?bt_id=3");
     expect(screen.getByRole("menuitem", { name: "Rapprocher" })).toHaveAttribute("href", "/reconciliation/?bank_account_id=1");
+  });
+});
+
+describe("TransactionsPage — rattacher une ligne à une facture existante", () => {
+  it("liste les factures ouvertes, montre le restant après rattachement et règle la facture", async () => {
+    renderWithProviders(<Routes><Route path="/bank-accounts/:ba_id/transactions" element={<TransactionsPage />} /></Routes>,
+      { route: "/bank-accounts/1/transactions" });
+    await userEvent.click(await screen.findByRole("button", { name: "Rattacher à une facture" }));
+    const dialog = await screen.findByRole("dialog", { name: "Rattacher à une facture" });
+    await userEvent.click(await within(dialog).findByRole("radio", { name: "Facture AT-77" }));
+    expect(within(dialog).getByText(/Après rattachement, restant à régler/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Rattacher" }));
+    await waitFor(() => expect(calls.find((c) => c.method === "POST" && c.url === "/api/v1/purchases/12/payments")?.body)
+      .toEqual({ bank_transaction_ids: [4] }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 });

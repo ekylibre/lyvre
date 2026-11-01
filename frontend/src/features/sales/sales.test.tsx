@@ -56,9 +56,13 @@ beforeEach(() => {
     if (url === "/api/v1/sales" && method === "POST") return json(201, { item: detail({ id: 8, status: "draft", number: null }), notices: [] });
     if (url === "/api/v1/sales/7" && method === "GET") return json(200, { item: current });
     if (url === "/api/v1/sales/7/payment-options") return json(200, { due_cents: 60000,
-      candidates: [{ id: 31, date: "2026-10-25", label: "VIR CLIENT SARL", amount_cents: 60000, account: "Compte courant", same_client: true, exact: true, rule: false }],
+      candidates: [{ id: 31, date: "2026-10-25", label: "VIR CLIENT SARL", amount_cents: 60000, account: "Compte courant", same_client: true, exact: true, rule: false },
+        { id: 32, date: "2026-10-26", label: "VIR ACOMPTE", amount_cents: 20000, account: "Compte courant", same_client: true, exact: false, rule: false },
+        { id: 33, date: "2026-10-27", label: "VIR SOLDE", amount_cents: 40000, account: "Compte courant", same_client: true, exact: false, rule: false },
+        { id: 34, date: "2026-10-28", label: "VIR TROP GROS", amount_cents: 90000, account: "Compte courant", same_client: false, exact: false, rule: false }],
       accounts: [{ value: "1", label: "Compte courant", kind: "bank" }], methods: [{ value: "check", label: "Chèque" }] });
     if (url === "/api/v1/sales/match") return json(200, { items: [detail({ status: "paid", due_cents: 0 })], notices: [] });
+    if (url === "/api/v1/sales/7/match") return json(200, { item: detail({ status: "paid", due_cents: 0 }), notices: [] });
     if (url === "/api/v1/sales/7/to-invoice") return json(201, { item: detail({ id: 12, status: "draft", number: null }), notices: [] });
     if (url === "/api/v1/sales/7/quote-status") return json(200, { item: detail({ kind: "quote", status: "accepted", number: "D-2026-0001" }), notices: [] });
     if (url === "/api/v1/sales/7/credit-note") return json(201, { item: detail({ id: 9, kind: "credit_note", status: "draft", number: null }), notices: [] });
@@ -137,10 +141,25 @@ describe("fiche d'une facture", () => {
     const user = userEvent.setup();
     page();
     await user.click(await screen.findByRole("button", { name: "Encaisser" }));
-    await user.click(await screen.findByRole("radio", { name: /VIR CLIENT SARL/ }));
+    expect(await screen.findByRole("checkbox", { name: /VIR CLIENT SARL/ })).toBeTruthy();
+    expect(screen.queryByRole("checkbox", { name: /VIR TROP GROS/ })).toBeNull(); // supérieur au restant dû
+    await user.click(screen.getByRole("checkbox", { name: /VIR CLIENT SARL/ }));
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Encaisser" }));
-    await waitFor(() => expect(calls.find((c) => c.url === "/api/v1/sales/match")?.body).toEqual({
-      bank_transaction_id: 31, allocations: [{ sale_id: 7, amount_cents: 60000 }] }));
+    await waitFor(() => expect(calls.find((c) => c.url === "/api/v1/sales/7/match")?.body).toEqual({ bank_transaction_ids: [31] }));
+  });
+
+  it("encaisser par plusieurs virements, sans dépasser le restant dû", async () => {
+    const user = userEvent.setup();
+    page();
+    await user.click(await screen.findByRole("button", { name: "Encaisser" }));
+    await user.click(await screen.findByRole("checkbox", { name: /VIR ACOMPTE/ }));
+    await user.click(screen.getByRole("checkbox", { name: /VIR CLIENT SARL/ }));
+    expect(screen.getByText("La sélection dépasse le restant : retirez une ligne.")).toBeTruthy();
+    await user.click(screen.getByRole("checkbox", { name: /VIR CLIENT SARL/ }));
+    await user.click(screen.getByRole("checkbox", { name: /VIR SOLDE/ }));
+    expect(screen.queryByText("La sélection dépasse le restant : retirez une ligne.")).toBeNull();
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Encaisser" }));
+    await waitFor(() => expect(calls.find((c) => c.url === "/api/v1/sales/7/match")?.body).toEqual({ bank_transaction_ids: [32, 33] }));
   });
 
   it("relancer une facture échue", async () => {

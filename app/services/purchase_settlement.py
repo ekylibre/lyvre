@@ -12,11 +12,11 @@ Une transaction déjà passée par une règle (6xx / banque) avant l'arrivée de
 facture compterait la charge deux fois : elle est listée « à remplacer »
 (`to_replace`) et `replace_many` substitue un règlement à l'écriture de règle.
 
-Factures saisies (sans lien Qonto) : `match_candidates` cherche les débits de même montant autour
-de la date, sur tous les comptes — relevés OFX, et transactions Qonto que Qonto ne rattache à aucune
+Factures saisies (sans lien Qonto) : `match_candidates` cherche les débits d'un montant au plus égal au
+restant à régler (`remaining_cents`, une facture se règle en une ou plusieurs fois) autour de la date, sur tous les comptes — relevés OFX, et transactions Qonto que Qonto ne rattache à aucune
 autre facture (abonnement Qonto, facture absente du module Factures fournisseurs) ; `auto_match` lie
-un candidat **unique** (`origin = match`, aussi après chaque synchronisation Qonto),
-`link_manual` un débit choisi sur la fiche (`origin = manual`), `unlink` défait un tel lien et son
+un candidat **unique** de montant égal au restant (`origin = match`, aussi après chaque synchronisation Qonto),
+`link_manual` un ou plusieurs débits choisis sur la fiche (`origin = manual`), `unlink` défait un tel lien et son
 règlement. Si Qonto désigne plus tard la même transaction pour cette facture (facture envoyée à
 Qonto), le lien existant est gardé : pas de second règlement.
 """
@@ -267,10 +267,28 @@ MATCH_DAYS_BEFORE = 5
 MATCH_DAYS_AFTER = 60
 
 
+def _sign(p: Purchase) -> int:
+    """Sens bancaire du règlement : débit (−1) pour une facture, crédit (+1) pour un avoir."""
+    return 1 if p.is_credit_note else -1
+
+
 def _expected_amount(p: Purchase) -> int:
     """Montant bancaire attendu : débit du TTC (net à payer s'il est connu), crédit pour un avoir."""
-    amount = p.payable_cents or p.total_cents
-    return amount if p.is_credit_note else -amount
+    return _sign(p) * (p.payable_cents or p.total_cents)
+
+
+def paid_cents(p: Purchase) -> int:
+    """Montant déjà réglé : transactions liées (dans le sens attendu) ; un règlement par l'associé
+    solde la facture."""
+    if any(pay.origin == "associate" for pay in p.payments):
+        return p.payable_cents or p.total_cents
+    return sum(_sign(p) * pay.bank_transaction.amount_cents
+               for pay in p.payments if pay.bank_transaction is not None)
+
+
+def remaining_cents(p: Purchase) -> int:
+    """Restant à régler (jamais négatif)."""
+    return max((p.payable_cents or p.total_cents or 0) - paid_cents(p), 0)
 
 
 def _free_for_matching(txn: BankTransaction) -> bool:
@@ -283,9 +301,12 @@ def _free_for_matching(txn: BankTransaction) -> bool:
 
 
 def awaiting_payment(p: Purchase) -> bool:
-    """Facture saisie, comptabilisée, sans aucun lien de paiement."""
-    return (p.source == "manual" and p.journal_entry_id is not None and not p.is_hidden
-            and not p.payments)
+    """Facture saisie, comptabilisée, avec un restant à régler (aucun lien, ou des règlements partiels)."""
+    if p.source != "manual" or p.journal_entry_id is None or p.is_hidden:
+        return False
+    if any(pay.bank_transaction_id is None for pay in p.payments):
+        return False  # lien Qonto pas encore résolu ou règlement par l'associé
+    return remaining_cents(p) > 0
 
 
 def match_window(p: Purchase):
@@ -296,38 +317,84 @@ def match_window(p: Purchase):
 
 
 def match_candidates(p: Purchase) -> list[BankTransaction]:
-    """Transactions pouvant payer la facture, même tiers puis date la plus proche : relevés OFX, et
-    transactions Qonto qu'aucune facture Qonto ne réclame."""
+    """Transactions pouvant (tout ou partie) régler la facture : dans le sens attendu, d'un montant au
+    plus égal au restant ; montant égal au restant d'abord, puis même tiers, puis date la plus proche.
+    Relevés OFX, et transactions Qonto qu'aucune facture Qonto ne réclame."""
     if p.issue_date is None:
         return []
+    remaining = remaining_cents(p)
+    if not remaining:
+        return []
+    sign = _sign(p)
     reference = p.due_date or p.issue_date
     start, end = match_window(p)
     linked = db.session.query(PurchasePayment.bank_transaction_id).filter(
         PurchasePayment.bank_transaction_id.isnot(None))
     claimed = db.session.query(PurchasePayment.qonto_transaction_id).filter(
         PurchasePayment.qonto_transaction_id.isnot(None))
+    amount = BankTransaction.amount_cents
+    in_range = (amount.between(-remaining, -1) if sign < 0 else amount.between(1, remaining))
     rows = (BankTransaction.query
-            .filter(BankTransaction.amount_cents == _expected_amount(p),
-                    BankTransaction.transaction_date.between(start, end),
+            .filter(in_range, BankTransaction.transaction_date.between(start, end),
                     BankTransaction.id.notin_(linked), BankTransaction.fitid.notin_(claimed))
             .all())
     rows = [t for t in rows if _free_for_matching(t)]
-    return sorted(rows, key=lambda t: (t.entity_id != p.entity_id if p.entity_id else True,
+    return sorted(rows, key=lambda t: (sign * t.amount_cents != remaining,
+                                       t.entity_id != p.entity_id if p.entity_id else True,
                                        abs((t.transaction_date - reference).days), t.id))
+
+
+def exact_candidates(p: Purchase) -> list[BankTransaction]:
+    """Candidats d'un montant égal au restant à régler (lien automatique)."""
+    remaining = remaining_cents(p)
+    return [t for t in match_candidates(p) if _sign(p) * t.amount_cents == remaining]
+
+
+def _taken(txn: BankTransaction) -> bool:
+    """Déjà liée à une facture (achat ou vente) ou réclamée par une facture Qonto."""
+    from app.models import SalePayment
+    return (PurchasePayment.query.filter(
+                (PurchasePayment.bank_transaction_id == txn.id)
+                | (PurchasePayment.qonto_transaction_id == txn.fitid)).first() is not None
+            or SalePayment.query.filter_by(bank_transaction_id=txn.id).first() is not None)
+
+
+def _linkable(p: Purchase, txn: BankTransaction) -> bool:
+    """Choix manuel (fiche ou ligne de relevé) : sens attendu, montant au plus égal au restant, pas avant
+    la date de la facture − 5 jours (sans limite après : règlement en plusieurs échéances), libre."""
+    amount = _sign(p) * txn.amount_cents
+    return (p.issue_date is not None and 0 < amount <= remaining_cents(p)
+            and txn.transaction_date >= p.issue_date - timedelta(days=MATCH_DAYS_BEFORE)
+            and _free_for_matching(txn) and not _taken(txn))
+
+
+def open_for_transaction(txn: BankTransaction) -> list[Purchase]:
+    """Factures saisies en attente de règlement que la transaction peut (tout ou partie) régler :
+    montant égal au restant d'abord, puis même fournisseur, puis date la plus proche."""
+    if txn.amount_cents == 0 or not _free_for_matching(txn) or _taken(txn):
+        return []
+    pending = (Purchase.query.filter(Purchase.source == "manual", Purchase.journal_entry_id.isnot(None),
+                                     Purchase.is_hidden.is_(False),
+                                     Purchase.is_credit_note == (txn.amount_cents > 0)).all())
+    found = [p for p in pending if awaiting_payment(p) and _linkable(p, txn)]
+    return sorted(found, key=lambda p: (abs(txn.amount_cents) != remaining_cents(p),
+                                        p.entity_id != txn.entity_id if txn.entity_id else True,
+                                        abs((txn.transaction_date - (p.due_date or p.issue_date)).days), p.id))
 
 
 def auto_match(purchases=None) -> dict:
     """Lie chaque facture en attente à son candidat s'il est unique, et unique à elle seule.
 
-    `purchases` : factures à traiter (défaut : toutes celles en attente). Un débit candidat de
-    plusieurs factures en attente n'est jamais lié automatiquement (choix sur la fiche).
+    `purchases` : factures à traiter (défaut : toutes celles en attente). Seul un montant égal au
+    restant est lié automatiquement ; un débit candidat de plusieurs factures en attente ne l'est
+    jamais (choix sur la fiche).
     """
     pending = [p for p in Purchase.query.filter(Purchase.source == "manual",
                                                 Purchase.journal_entry_id.isnot(None),
                                                 Purchase.is_hidden.is_(False))
                if awaiting_payment(p)]
     targets = {p.id for p in (purchases if purchases is not None else pending) if awaiting_payment(p)}
-    candidates = {p.id: match_candidates(p) for p in pending}
+    candidates = {p.id: exact_candidates(p) for p in pending}
     claims: dict[int, int] = {}
     for found in candidates.values():
         for txn in found:
@@ -343,14 +410,25 @@ def auto_match(purchases=None) -> dict:
     return {"matched": len(linked), "settled": result["settled"], "errors": result["errors"]}
 
 
-def link_manual(p: Purchase, bank_transaction_id: int) -> dict:
-    """Règle la facture par une transaction choisie parmi ses candidats ; LedgerError sinon."""
+def link_manual(p: Purchase, bank_transaction_ids) -> dict:
+    """Règle la facture par une ou plusieurs transactions choisies parmi ses candidats, dont la somme ne
+    dépasse pas le restant à régler ; LedgerError sinon."""
+    if isinstance(bank_transaction_ids, int):
+        bank_transaction_ids = [bank_transaction_ids]
+    if not isinstance(bank_transaction_ids, list):
+        raise LedgerError("Choisissez au moins une transaction.")
+    ids = list(dict.fromkeys(bank_transaction_ids))
+    if not ids or not all(isinstance(i, int) for i in ids):
+        raise LedgerError("Choisissez au moins une transaction.")
     if not awaiting_payment(p):
         raise LedgerError("Cette facture n'attend pas de règlement.")
-    txn = next((t for t in match_candidates(p) if t.id == bank_transaction_id), None)
-    if txn is None:
+    chosen = [db.session.get(BankTransaction, i) for i in ids]
+    if None in chosen or not all(_linkable(p, t) for t in chosen):
         raise LedgerError("Cette transaction ne peut pas régler la facture.")
-    p.payments.append(PurchasePayment(bank_transaction=txn, origin="manual"))
+    if sum(abs(t.amount_cents) for t in chosen) > remaining_cents(p):
+        raise LedgerError("Le montant des transactions choisies dépasse le restant à régler.")
+    for t in chosen:
+        p.payments.append(PurchasePayment(bank_transaction=t, origin="manual"))
     db.session.commit()
     return settle(purchases=[p])
 
