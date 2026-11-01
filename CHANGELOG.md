@@ -6,6 +6,12 @@
 Versions au format calendaire `AAAA.MM.N` (année, mois, numéro dans le mois). Les mêmes
 nouveautés s'affichent dans l'application (menu utilisateur › Nouveautés).
 
+## 2026.11.4 — Correctif : menu des déclarations de TVA (01/11/2026)
+
+### Corrections
+
+- Compta › Déclarations de TVA — le menu réapparaît pour les instances dont un exercice prépare la TVA (il était masqué en production). — *session._vat_prepared lit la base de l'instance (moteur tenant) ; la route de session est sans instance.*
+
 ## 2026.11.3 — Correctif : saisie d'une facture d'achat sans fichier (01/11/2026)
 
 ### Corrections

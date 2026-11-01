@@ -4,6 +4,14 @@
 # text : pour l'utilisateur ; tech : précision pour CHANGELOG.md seulement.
 next: []
 versions:
+- version: 2026.11.4
+  date: 2026-11-01
+  title: 'Correctif : menu des déclarations de TVA'
+  entries:
+  - kind: fixed
+    text: Compta › Déclarations de TVA — le menu réapparaît pour les instances dont un exercice prépare la TVA (il
+      était masqué en production).
+    tech: session._vat_prepared lit la base de l'instance (moteur tenant) ; la route de session est sans instance.
 - version: 2026.11.3
   date: 2026-11-01
   title: 'Correctif : saisie d''une facture d''achat sans fichier'
