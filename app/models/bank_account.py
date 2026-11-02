@@ -16,6 +16,12 @@ class BankAccount(db.Model):
     qonto_account_id = db.Column(db.String(36), unique=True, nullable=True)
     qonto_sync_from = db.Column(db.Date, nullable=True)
     qonto_synced_at = db.Column(db.DateTime, nullable=True)
+    # Solde bancaire d'ouverture (relevé) au début de la journée `opening_balance_date`, saisi par
+    # l'utilisateur : le solde bancaire affiché en ajoute les transactions importées (hors annulées).
+    # `opening_entry_id` : écriture d'apport initial (512 contre 101 / 102 / 103 / 108) passée à la saisie.
+    opening_balance_cents = db.Column(db.Integer, nullable=True)
+    opening_balance_date = db.Column(db.Date, nullable=True)
+    opening_entry_id = db.Column(db.Integer, db.ForeignKey("journal_entries.id", ondelete="SET NULL"), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     account = db.relationship("Account", back_populates="bank_accounts")

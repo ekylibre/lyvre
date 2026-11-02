@@ -8,7 +8,8 @@ from flask import current_app, jsonify, request, url_for
 from app.access import instance_admin_required
 from app.extensions import db
 from app.models import Account, BankAccount, Entity, Journal
-from app.services import cash, counterparties, external_config, qonto_sync
+from app.services import bank_balance, cash, counterparties, external_config, qonto_sync
+from app.tenant import current_chart
 from app.utils.list_filters import month_options_for_fy
 
 from . import ApiError, bp, get_or_404, invalid, json_body, notice, require_integration
@@ -19,7 +20,8 @@ def _iso(value):
     return value.isoformat() if value else None
 
 
-def bank_account_payload(ba: BankAccount, stats=True) -> dict:
+def bank_account_payload(ba: BankAccount, stats=True, fy=False) -> dict:
+    """`fy` : exercice du solde bancaire (False : exercice affiché, recherché ici)."""
     payload = {
         "id": ba.id, "label": ba.label, "iban": ba.iban, "kind": ba.kind,
         "account": {"id": ba.account.id, "code": ba.account.code, "label": ba.account.label},
@@ -30,6 +32,9 @@ def bank_account_payload(ba: BankAccount, stats=True) -> dict:
         payload["transactions"] = ba.transactions.count()
         payload["unreconciled"] = ba.transactions.filter_by(reconciled=False).count()
         payload["balance_cents"] = cash.ledger_balance(ba.account_id, date.today())
+        if ba.kind == "bank":
+            fy = bank_balance.display_fiscal_year() if fy is False else fy
+            payload["bank_balance"] = bank_balance.bank_balance(ba, fy)
     return payload
 
 
@@ -45,7 +50,8 @@ def _options(prefix="51"):
 @bp.route("/bank-accounts")
 def bank_accounts_list():
     accounts = BankAccount.query.order_by(BankAccount.label).all()
-    return jsonify(items=[bank_account_payload(ba) for ba in accounts], meta={
+    fy = bank_balance.display_fiscal_year()
+    return jsonify(items=[bank_account_payload(ba, fy=fy) for ba in accounts], meta={
         "gl_accounts": _options(), "cash_accounts": _options("53"),
         "qonto": external_config.state("qonto", "transactions"),
     })
@@ -128,6 +134,36 @@ def bank_accounts_delete(ba_id):
     db.session.delete(ba)
     db.session.commit()
     return jsonify(notices=[notice(f"Compte bancaire « {ba.label} » supprimé.")])
+
+
+# ------------------------------------------------------------------ solde bancaire d'ouverture
+
+
+@bp.route("/bank-accounts/<int:ba_id>/opening")
+def bank_accounts_opening(ba_id):
+    """Solde bancaire d'ouverture, date proposée et contreparties de l'écriture d'apport initial."""
+    ba = get_or_404(BankAccount, ba_id, "Compte bancaire introuvable.")
+    return jsonify(item=bank_balance.opening_payload(ba),
+                   meta={"counterparts": bank_balance.counterpart_options(current_chart())})
+
+
+@bp.route("/bank-accounts/<int:ba_id>/opening", methods=["PUT"])
+def bank_accounts_opening_set(ba_id):
+    """Saisit le solde d'ouverture (`amount_cents`, `date`), et l'écriture d'apport si `post_entry`
+    (`counterpart` : id du compte, ou `new:<code>`) ; `amount_cents` nul : solde retiré."""
+    ba = get_or_404(BankAccount, ba_id, "Compte bancaire introuvable.")
+    try:
+        entry = bank_balance.set_opening(ba, json_body(), current_chart())
+    except bank_balance.BankBalanceError as exc:
+        if exc.field and exc.status == 422:
+            raise invalid(exc.message, exc.field) from None
+        raise ApiError("conflict" if exc.status == 409 else "validation_error", exc.message,
+                       status=exc.status) from None
+    notices = [notice("Solde bancaire d'ouverture enregistré." if ba.opening_balance_date
+                      else "Solde bancaire d'ouverture retiré.")]
+    if entry is not None:
+        notices.append(notice(f"Écriture d'apport initial {entry.reference} passée."))
+    return jsonify(item=bank_account_payload(ba), opening=bank_balance.opening_payload(ba), notices=notices)
 
 
 # ------------------------------------------------------------------ Qonto
