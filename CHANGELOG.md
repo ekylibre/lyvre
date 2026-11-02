@@ -6,6 +6,16 @@
 Versions au format calendaire `AAAA.MM.N` (année, mois, numéro dans le mois). Les mêmes
 nouveautés s'affichent dans l'application (menu utilisateur › Nouveautés).
 
+## 2026.11.5 — Solde bancaire des comptes (03/11/2026)
+
+### Nouveautés
+
+- Banque › Comptes bancaires — colonne « Solde bancaire » à côté du solde comptable, calculée depuis le solde d'ouverture du relevé et les transactions importées. Un clic sur le solde (ou sur « Solde d'ouverture à saisir ») permet de saisir ce solde d'ouverture et, si rien n'est encore passé au compte de banque, l'écriture d'apport initial contre les fonds propres (102 ou 103 pour une association, 101 pour une société ou une SCI, 108 pour une entreprise individuelle). — *bank_accounts.opening_balance_cents / opening_balance_date / opening_entry_id (migration a7c9e1b3d5f2), app/services/bank_balance.py, GET / PUT /api/v1/bank-accounts/<id>/opening, source BANK_OPENING, OpeningBalanceForm.*
+
+### Corrections
+
+- Connexion — après une mise à jour de l'application, la page ne s'arrête plus sur « La page n'a pas pu s'afficher » (fichier de la page introuvable) ; elle se recharge d'elle-même. — *frontend/src/app/chunkReload.ts, loadWithReload sur les routes paresseuses (un rechargement, garde de 10 s).*
+
 ## 2026.11.4 — Correctif : menu des déclarations de TVA (01/11/2026)
 
 ### Corrections
