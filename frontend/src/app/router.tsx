@@ -5,6 +5,7 @@ import { createBrowserRouter, useLocation, useRouteError } from "react-router";
 import { Alert, Button, Center, Loader, Stack } from "@mantine/core";
 import { BARE_PAGES, PAGES, SPA_ROUTES, toRouterPath } from "./routes";
 import { RootLayout } from "./RootLayout";
+import { isChunkLoadError, loadWithReload } from "./chunkReload";
 
 export interface RouteHandle {
   bare: boolean;
@@ -21,7 +22,9 @@ function LegacyPage() {
 
 function RouteError() {
   const error = useRouteError();
-  const message = error instanceof Error ? error.message : "Erreur inattendue.";
+  const message = isChunkLoadError(error)
+    ? "Les fichiers de cette page n'ont pas pu être chargés : l'application vient sans doute d'être mise à jour, ou la connexion a été interrompue."
+    : error instanceof Error ? error.message : "Erreur inattendue.";
   return (
     <Center h="60vh">
       <Stack maw={480}>
@@ -36,7 +39,7 @@ export function createRouter() {
   const pages = SPA_ROUTES.map((route) => ({
     path: toRouterPath(route.rule),
     handle: { bare: BARE_PAGES.has(route.endpoint) } satisfies RouteHandle,
-    lazy: async () => ({ Component: (await PAGES[route.endpoint]()).default }),
+    lazy: async () => ({ Component: (await loadWithReload(PAGES[route.endpoint])).default }),
   }));
   return createBrowserRouter([
     {
