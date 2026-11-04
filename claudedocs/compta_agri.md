@@ -278,10 +278,9 @@ Numérotation **AGn.m**. La priorité est donnée par la colonne « Lot » du §
   - montant demandé, notifié et versé (avance en octobre, solde en décembre) ;
   - **date limite de demande de paiement** (investissements).
 - **AG3.2 Classement comptable proposé** : 742 à 748 selon la nature, **131/139 pour les subventions d'investissement** avec reprise au rythme de l'amortissement. **Ventilation de la DJA mixte** (part exploitation, part investissement, prorata). Correspondance « à valider » par un expert-comptable.
-- **AG3.3 Rattachement à l'exercice** :
-  - au réel en engagement, en produit à recevoir à la **date limite de dépôt** de la demande (PCG art. 618-6) ;
-  - au réel simplifié en trésorerie, aide acquise non encaissée → **441** à la clôture (AG1.7) ;
-  - au micro-BA, à l'encaissement.
+- **AG3.3 Rattachement à l'exercice** (AGD19) :
+  - au réel, simplifié ou normal (toujours en engagement, AGD10) : produit acquis à la **date limite de dépôt** de la demande de la campagne (PCG art. 618-6) ; à la clôture, la quote-part non encaissée passe en produit à recevoir, **débit 441, crédit 745** ; la règle fiscale suit (CGI art. 38 et 72), et la méthode est permanente ;
+  - au micro-BA, à l'encaissement, sans produit à recevoir.
 - **AG3.4 Rapprochement bancaire** : un virement ASP, DRFIP ou FranceAgriMer est reconnu (libellé), proposé contre la créance ou le dossier, et le dossier est mis à jour.
 - **AG3.5 Contrôle** : montants versés selon le jeu public `cap_beneficiaries` (Lexicon) par SIREN et par année, comparés aux comptes 74x. Information seulement, sans cumul entre années.
 - **AG3.6 (option, plus tard)** : import de la déclaration Telepac (îlots, parcelles, cultures) pour l'assolement et l'analytique (modèle des imports Ekylibre v2015 à v2025).
@@ -656,7 +655,8 @@ Les réponses de l'expert sont visibles via "=>"
     • Compte 745 (Subventions d'exploitation versées par les organismes internationaux) : C'est le compte historique et privilégié pour la majorité des aides PAC. L'Union Européenne étant un organisme international, les comptables subdivisent ce compte (ex: 7451 pour le découplé, 7454 pour le couplé) pour isoler les différents flux Télépac.
     • Compte 748 (Autres subventions d'exploitation) : Utilisé pour des aides n'entrant pas strictement dans les autres catégories. Il peut servir pour des subventions d'exploitation purement locales, régionales, ou certaines aides d'urgence de l'État (comme le fonds d'urgence en cas de crise sanitaire ou climatique) si elles ne transitent pas par les enveloppes internationales de la PAC.
    - rattachement fiscal (droit acquis).
-   => je ne comprends pas la question ?
+   => (question reformulée le 04/11/2026 : une aide découplée de la campagne N, soldée en N+1, se constate-t-elle en produit à recevoir à la clôture de N, et la règle fiscale suit-elle ?)
+   => Oui. Comptable (PCG) : produit acquis à la date limite de dépôt de la demande (campagne N), quelle que soit la date d'encaissement ; à la clôture de N, débit 441 (ou créance rattachée), crédit 745 pour la quote-part non encaissée. Fiscal (réel normal ou simplifié) : le résultat fiscal suit le résultat comptable (CGI art. 38 et 72), la doctrine rattache l'aide à l'exercice où le droit est acquis ; méthode à tenir de façon permanente. Micro-BA : imposition à l'encaissement, pas de produit à recevoir.
    - *Tranché par le PCG 2026* (art. 618-1 à 618-6, constat de la conception du 03/11/2026) :
      - DPB en immobilisations incorporelles, à valeur nulle s'ils sont attribués, au coût s'ils sont acquis, amortis, avec une comptabilité matière hors bilan ;
      - aides annuelles en **produit à recevoir à la date limite de dépôt** de la demande.
@@ -713,9 +713,12 @@ Les réponses de l'expert sont visibles via "=>"
 - **AGD14** : calculettes réservées aux utilisateurs connectés.
 - **AGD15** : pas de données en direct (cours, GNR, météo) ; valeurs saisies.
 - **AGD16** : PDF de tiers hors git ; synthèses et audits versionnés.
+- **AGD19 (expert-comptable, 04/11/2026) Rattachement des aides PAC** : au réel, l'aide de la campagne N est un produit de N, acquis à la date limite de dépôt de la demande ; la part non encaissée à la clôture passe en 441 / 745 ; la règle fiscale suit (CGI art. 38 et 72) et la méthode est permanente. Au micro-BA, à l'encaissement (AG3.3).
+- **AGD18 (conception AG9a, 04/11/2026)** : `claudedocs/design_echeancier_agricole.md`, validée. Base d'échéances en YAML (`data/deadlines/`), règles déclaratives sans expression évaluée, occurrences calculées et états stockés, TVA et 3520 lus dans le moteur d'AG2 ; résumé du lundi par le SMTP du serveur réglé sur le relais Brevo, commande lancée par un timer du serveur ; paiement reconnu coché automatiquement ; iCal dans AG9a ; destinataires : utilisateurs qui écrivent, abonnés par défaut.
 - **AGD17 (conception AG2, 04/11/2026)** : `claudedocs/design_tva_agricole.md`, validée. Créance du remboursement forfaitaire en 44583 ; secteur non agricole (AG2.7) après AG8 ; ligne 31 de la CA12A en saisie libre ; 3520 en état récapitulatif ; prestations intracommunautaires en ligne 02.
 - **AGD11 (conception, Q-A2) 757 / 657 subdivisés** : 7571 / 6571 pour les biens vivants, 7578 / 6578 pour les autres immobilisations ; en-tête 234 pour les biens vivants en cours. Source du plan : Recueil PCG 2026, titre 5.
 - Conception : `claudedocs/design_compta_agricole.md` (lot AG1, validée le 03/11/2026).
+- **AGD20 (conception AG3, 04/11/2026)** : `claudedocs/design_aides_pac.md`, validée (réponses Q-P1 à Q-P7). Registre des dossiers d'aide ; versements comptabilisés par la banque puis rattachés (proposé, confirmé) ; produit à recevoir 441 par dossier à la clôture ; comptes du plan agricole (couplées 743, découplées 745, ICHN/MAEC/bio 744, assurance récolte 742, part d'exploitation de la DJA 744, ventilation saisie) ; reprise 139 / 747 au rythme des amortissements, saisie pour un bien non amortissable, solde repris à la cession ; contrôle Lexicon avec la clé OSFarm du serveur (`LEXICON_API_KEY`).
 
 Il ne reste aucune question ouverte. Les points du § 8 sont à valider par l'utilisateur, en tant qu'expert-comptable, avant la mise en production des valeurs.
 
