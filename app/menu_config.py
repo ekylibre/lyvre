@@ -68,7 +68,7 @@ MENUS = [
         "key": "compta",
         "label": "Compta",
         "charts": _ALL,
-        "active": ["accounts", "journals", "fiscal_years", "vat_returns", "rfa", "agenda", "products", "entries", "reports", "projects", "budgets", "budget_tracking",
+        "active": ["accounts", "journals", "fiscal_years", "vat_returns", "rfa", "aids", "agenda", "products", "entries", "reports", "projects", "budgets", "budget_tracking",
                    "lettering", "assets"],
         "items": [
             {"key": "entries", "label": "Écritures", "endpoint": "entries.index", "charts": _ALL, "bookkeeping": _DOUBLE},
@@ -91,6 +91,7 @@ MENUS = [
              "feature": "vat_returns", "bookkeeping": _DOUBLE},
             {"key": "agenda", "label": "Échéancier", "endpoint": "agenda.index", "charts": ["agri"]},
             {"key": "rfa", "label": "Remboursement forfaitaire", "endpoint": "rfa.index", "charts": ["agri"]},
+            {"key": "aids", "label": "Aides et subventions", "endpoint": "aids.index", "charts": ["agri"]},
             {"key": "products", "label": "Catalogue", "endpoint": "products.index", "charts": _ALL, "bookkeeping": _DOUBLE},
         ],
     },

@@ -56,6 +56,11 @@ class Config:
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD", "")
     MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", "")
 
+    # Lexicon (OSFarm, lot AG3.e) : aides PAC publiées par l'ASP, lues par SIREN (route réservée aux membres). Clé du
+    # serveur (`Authorization: Bearer`), jamais envoyée au navigateur ; vide : contrôle des aides publiées masqué.
+    LEXICON_API_KEY = os.environ.get("LEXICON_API_KEY", "")
+    LEXICON_URL = os.environ.get("LEXICON_URL", "https://lexicon.osfarm.org")
+
     # API Sirene v4 (INSEE) : pré-remplissage de la Structure et des tiers. Clé du serveur (en-tête
     # X-INSEE-Api-Key-Integration), jamais envoyée au navigateur ; vide : fonctions Sirene masquées.
     SIRENE_API_URL = os.environ.get("SIRENE_API_URL") or "https://api.insee.fr/api-sirene/4"

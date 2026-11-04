@@ -81,6 +81,15 @@ def _lyvre(rule: dict, start: date, end: date, today: date) -> list[dict]:
             out.append({"date": date(year + 1, 12, 31), "period": f"ventes {year}",
                         "lyvre_status": "declared" if claim is not None else None,
                         "amount_cents": claim.amount_cents if claim is not None else None, "link": f"/rfa/?year={year}"})
+    elif source == "aids":
+        # Lot AG3.c : date limite de la demande de paiement de chaque dossier ouvert (registre des aides).
+        from app.models import Aid
+        rows = Aid.query.filter(Aid.payment_request_deadline.isnot(None), Aid.status.notin_(("refused", "closed")),
+                                Aid.payment_request_deadline.between(start, end))
+        for aid in rows:
+            out.append({"date": aid.payment_request_deadline, "period": f"{aid.label} {aid.campaign}",
+                        "lyvre_status": "declared" if aid.payment_requested_on else None,
+                        "link": f"/aids/?campaign={aid.campaign}"})
     seen, unique = set(), []
     for occ in out:  # une période civile peut être lue depuis deux exercices décalés
         key = (occ["date"], occ["period"])

@@ -72,7 +72,7 @@ def _free_for_purchase(bt) -> bool:
     return purchase_settlement._free_for_matching(bt)  # noqa: SLF001 — même règle que le rapprochement
 
 
-def serialize_transaction(bt, invoices=None, rule_fitids=(), sales=None, sale_proposals=None):
+def serialize_transaction(bt, invoices=None, rule_fitids=(), sales=None, sale_proposals=None, aid_info=None):
     from app.services import bank_lights
 
     line = bt.journal_line
@@ -120,7 +120,34 @@ def serialize_transaction(bt, invoices=None, rule_fitids=(), sales=None, sale_pr
         # en tout ou partie (« Rattacher à une facture », liste via /open-invoices).
         "can_link_invoice": bool(bt.amount_cents and not bt.is_reversed and not invoices and not sales
                                  and ((not bt.reconciled and bt.journal_line_id is None) or bt.fitid in rule_fitids)),
+        # Exploitation agricole (lot AG3.b) : virement reçu d'un payeur d'aides et dossiers auxquels il est rattaché.
+        "aid": aid_info,
     }
+
+
+def _aid_infos(rows) -> dict:
+    """Virements reçus rattachables à une aide (plan agricole) : payeur reconnu, dossiers rattachés."""
+    from app.tenant import is_agri
+
+    if not rows or not is_agri():
+        return {}
+    from app.models import AidPayment
+    from app.services import aid_payments
+
+    links: dict[int, list] = {}
+    for payment in AidPayment.query.filter(AidPayment.bank_transaction_id.in_([bt.id for bt in rows])):
+        links.setdefault(payment.bank_transaction_id, []).append(
+            {"aid_id": payment.aid_id, "label": f"{payment.aid.label} {payment.aid.campaign}", "amount_cents": payment.amount_cents})
+    out = {}
+    for bt in rows:
+        if bt.amount_cents <= 0 or bt.is_reversed:
+            continue
+        payer = aid_payments.payer_of(bt)
+        linked = links.get(bt.id, [])
+        if payer or linked:
+            out[bt.id] = {"payer": payer, "links": linked,
+                          "free_cents": bt.amount_cents - sum(l["amount_cents"] for l in linked)}
+    return out
 
 
 @bp.route("/bank-accounts/<int:bank_account_id>/transactions")
@@ -166,7 +193,9 @@ def bank_transactions(bank_account_id):
             if payment.sale not in sales.setdefault(payment.bank_transaction_id, []):
                 sales[payment.bank_transaction_id].append(payment.sale)
         proposals = sale_settlement.proposals(rows)
-    items = [serialize_transaction(bt, invoices.get(bt.id), rule_fitids, sales.get(bt.id), proposals.get(bt.id))
+    aid_infos = _aid_infos(rows)
+    items = [serialize_transaction(bt, invoices.get(bt.id), rule_fitids, sales.get(bt.id), proposals.get(bt.id),
+                                   aid_infos.get(bt.id))
              for bt in rows]
     # Légende des feux (lot TX1) : comptes avant le filtre `light`, puis filtre.
     from app.services import bank_lights

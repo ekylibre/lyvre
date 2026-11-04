@@ -54,9 +54,11 @@
     - label: Avance des aides PAC
       rule: {type: annual_param, key: agenda.pac.advance_payment, fallback: {type: fixed, days: ["10-16"], shift: none}}
       quiet: true
+      action: {label: Rattacher les virements, route: /aids/}
     - label: Solde des aides PAC
       rule: {type: fixed, days: ["12-01"], shift: none}
       quiet: true
+      action: {label: Rattacher les virements, route: /aids/}
   lyvre_data: Produits à recevoir des aides PAC (441, 745) ; virements de l'ASP rapprochés des relevés.
   links:
     - https://www.terre-net.fr/aides-pac/article/904926/les-premiers-versements-de-la-pac-2026-arrivent-sur-les-comptes-des-agriculteurs
@@ -107,7 +109,11 @@
   organism: FranceAgriMer, Région
   reminder_only: true
   summary: Appels à projets ponctuels ; demande de paiement dans le délai fixé par la décision d'attribution (registre des aides, lot AG3).
-  events: []
+  events:
+    - label: Date limite de la demande de paiement
+      rule: {type: lyvre, source: aids}
+      reminders: [60, 15]
+      action: {label: Voir le dossier, route: /aids/}
   links:
     - https://www.franceagrimer.fr
   reliability: A

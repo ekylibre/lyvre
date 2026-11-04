@@ -5,6 +5,41 @@
 next:
 - kind: new
   structure: agri
+  text: Montants PAC publiés — l'écran des aides compare, pour une année, les aides publiées par l'ASP pour votre SIREN
+    (FEAGA, FEADER) aux versements rattachés et aux comptes de subventions, à titre d'information.
+  tech: app/services/lexicon.py (GET /links/enterprises/<siren>.json, LEXICON_API_KEY), app/services/aid_cap.py,
+    table cap_published (migration a3b5c7d9e1f2), GET/POST /api/v1/aids/cap-check (lot AG3.e).
+- kind: new
+  structure: agri
+  text: Subventions d'investissement — octroi en 441 / 131 à la décision, immobilisations financées par la subvention,
+    reprise en 139 / 747 calculée à la clôture au rythme de leur amortissement (le reste à leur cession), reprise saisie
+    pour un terrain, et tableau des subventions pour l'annexe ; la DJA suit ces règles pour sa part d'investissement.
+  tech: app/services/aid_grants.py, aids.grant_entry_id, tables aid_assets et aid_releases (migration f2a4b6c8d0e1),
+    sources AID_GRANT / AID_RELEASE, /api/v1/aids/<id>/grant|assets, /api/v1/fiscal-years/<id>/closing/aid-releases
+    (lot AG3.d).
+- kind: new
+  structure: agri
+  text: Aides à la clôture — à l'inventaire, Lyvre propose pour chaque dossier l'aide acquise et non encore versée
+    (produit à recevoir, 441) ou versée d'avance (487), extournée à l'ouverture ; la clôture signale celles qui
+    manquent, et l'échéancier rappelle la date limite de demande de paiement de chaque dossier.
+  tech: app/services/aid_closing.py, table aid_accruals (migration e1f3a5b7c9d0), /api/v1/fiscal-years/<id>/closing/aids,
+    règle lyvre « aids » de la fiche PAC-07 (lot AG3.c).
+- kind: new
+  structure: agri
+  text: Virements d'aides rapprochés — dans les transactions, un virement de l'ASP, de FranceAgriMer ou de la Région
+    se rattache à un ou plusieurs dossiers d'aide, ventilé et, s'il n'est pas encore comptabilisé, passé sur les comptes
+    des dossiers ; la clôture signale les virements d'aides non rattachés.
+  tech: data/aids/payers.yml, app/services/aid_payments.py, GET /api/v1/aids/candidates, POST /api/v1/aids/link,
+    contrôle de clôture aid_unlinked (lot AG3.b).
+- kind: new
+  structure: agri
+  text: Aides et subventions — un registre des dossiers d'aide par campagne (PAC, ICHN, MAEC, DJA, aides régionales,
+    investissements) avec les montants demandés, notifiés et versés, le reste à percevoir et le compte proposé ; la
+    campagne PAC se crée en une fois d'après le profil de l'exploitation.
+  tech: data/aids/schemes.yml, app/services/aids.py, tables aids et aid_payments (migration d0e2f4a6b8c9),
+    /api/v1/aids (lot AG3.a).
+- kind: new
+  structure: agri
   text: Échéancier dans votre agenda — une adresse iCal personnelle (Google Agenda, Outlook, Calendrier d'Apple)
     affiche les échéances de l'exploitation et se met à jour d'elle-même ; elle se régénère ou se révoque.
   tech: app/services/agenda_ical.py (RFC 5545), /agenda/ical/<instance>/<jeton>.ics, GET/POST/DELETE /api/v1/agenda/ical

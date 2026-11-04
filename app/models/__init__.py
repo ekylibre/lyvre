@@ -59,6 +59,7 @@ from .tax_profile import TaxOption, TaxProfile
 from .regulatory_value import RegulatoryValue
 from .micro_receipts import MicroReceiptsYear
 from .rfa import RfaAttestation, RfaClaim
+from .aid import Aid, AidAccrual, AidAsset, AidPayment, AidRelease, CapPublished
 from .deadline_state import DeadlineState
 from .agenda_subscription import AgendaSubscription
 
@@ -67,6 +68,12 @@ __all__ = [
     "AgendaSubscription",
     "RfaAttestation",
     "RfaClaim",
+    "Aid",
+    "AidPayment",
+    "AidAccrual",
+    "AidAsset",
+    "AidRelease",
+    "CapPublished",
     "MicroReceiptsYear",
     "TaxOption",
     "TaxProfile",

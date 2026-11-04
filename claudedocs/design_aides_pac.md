@@ -9,6 +9,100 @@
 > - Q-P6 : rattachement proposé puis confirmé ;
 > - Q-P7 : reprise saisie pour un bien non amortissable, reprise du solde à la cession.
 >
+> **AG3.a réalisé (04/11/2026, non commité)**. Contenu :
+> - `data/aids/schemes.yml` : 16 dispositifs (comptes AGD20, fait générateur, payeur, versements types, proposition en campagne PAC), contrôlés au chargement ;
+> - tables `aids` et `aid_payments` (migration `d0e2f4a6b8c9`), `app/models/aid.py` ;
+> - `app/services/aids.py` :
+>   - sous-compte proposé (7451…) créé sous son parent à la création du dossier, ou parent gardé ;
+>   - fait générateur : date limite PAC de l'année (`agenda.pac.deadline`, `cattle_deadline` pour les aides animales), sinon 15/05 « à confirmer » ; décision saisie ;
+>   - montant acquis = notifié, sinon demandé ; reste à percevoir ; statut « attribuée » à la saisie du notifié ;
+>   - versements saisis à la main, reversement en négatif ;
+>   - alertes : versé au-delà de l'acquis, décision à saisir, ventilation d'une aide mixte, date limite de demande de paiement dépassée ;
+>   - nouvelle campagne PAC proposée d'après le profil (drapeaux PAC et JA, productions) ;
+> - API `/aids`, `/aids/<id>`, `/aids/<id>/payments`, `/aids/schemes`, `/aids/pac-campaign` (plan agricole, partie double et mode simple) ;
+> - écran Compta › **Aides et subventions** (`/aids/`) : liste par campagne, totaux, fiche en tiroir (montants, dates, versements), nouveau dossier, nouvelle campagne PAC.
+>
+> Écarts avec la conception :
+> - tables `aid_assets` et `aid_accruals` créées avec leurs sous-lots (AG3.d et AG3.c), pas dans cette migration ;
+> - le compte se modifie par son numéro (pas de sélecteur), le financeur (`funder_entity_id`) par l'API seulement ;
+> - la règle bancaire « Aides PAC (ASP) » comptabilise toujours en 745 : le compte du dossier sera proposé au rattachement (AG3.b).
+>
+> Tests : `tests/api/test_aids.py` (8 tests), `frontend/src/features/aids/aids.test.tsx` (3 tests).
+>
+> **AG3.b réalisé (04/11/2026, non commité)**. Contenu :
+> - `data/aids/payers.yml` (ASP, FranceAgriMer, Région, DDT), mots entiers du libellé ou de la contrepartie, normalisés comme l'échéancier ;
+> - `app/services/aid_payments.py` :
+>   - candidats d'un crédit : dossiers ouverts avec un reste à percevoir, ceux du payeur reconnu d'abord, puis le reste égal au virement, l'écart, la proximité de l'avance (16/10) ou du solde (1/12) de la campagne ;
+>   - rattachement **confirmé par l'utilisateur** (Q-P6), ventilé sur plusieurs dossiers, sans dépasser le montant restant du virement ;
+>   - virement libre **comptabilisé** au rattachement s'il est entièrement ventilé : journal BQ, banque au débit, une ligne par compte de dossier ; aide mixte au prorata de la part d'investissement (131 / 744) ; en comptabilité simplifiée, sur la catégorie de recette du compte ou d'un parent (7451 → 745) ;
+>   - virement déjà comptabilisé : jamais réécrit, compte différent du dossier signalé ;
+>   - détacher un virement (depuis la fiche du dossier) garde son écriture ;
+> - API `GET /aids/candidates?bank_transaction_id=`, `POST /aids/link` ;
+> - Banque › Transactions : action « Rattacher à une aide » sur un crédit d'un payeur connu ou déjà en partie rattaché, dossiers rattachés sous le libellé ; fenêtre de ventilation (`LinkAidModal`) ;
+> - clôture (plan agricole) : contrôle d'information « virements reçus d'un payeur d'aides rattachés à aucun dossier ».
+>
+> Écarts avec la conception :
+> - **DGFiP absente des payeurs** : ses virements sont surtout des remboursements de TVA (44583) ; un virement d'aide de la DGFiP se rattache depuis un autre payeur ou à la main ;
+> - un virement d'un payeur inconnu ne montre pas l'action dans Transactions ; il reste rattachable par l'API ;
+> - pas de règle bancaire modifiée : la règle « Aides PAC (ASP) » comptabilise toujours en 745 ; dans ce cas l'écart de compte avec le dossier est signalé.
+>
+> Tests : `tests/api/test_aid_payments.py` (6 tests), `frontend/src/features/aids/linkAid.test.tsx` (1 test).
+>
+> **AG3.c réalisé (05/11/2026, non commité)**. Contenu :
+> - table `aid_accruals` (migration `e1f3a5b7c9d0`) : décision de clôture par dossier et par exercice (montant passé et motif d'écart, ou proposition écartée et son motif) ;
+> - `app/services/aid_closing.py` (plan agricole, partie double seulement) :
+>   - fait générateur au plus tard à la clôture → **aide à recevoir** = acquis − versé à la clôture, D 441 / C compte du dossier ;
+>   - versé avant un fait générateur postérieur à la clôture → **produit constaté d'avance**, D compte du dossier / C 487 ;
+>   - aide mixte (DJA) : part d'exploitation seulement (acquis et versé au prorata de la ventilation), sur le compte d'exploitation (744) ;
+>   - écritures d'inventaire (`add_inventory`, `source_ref` `aid:<id>` / `aid-deferred:<id>`), donc extournées à l'ouverture ; supprimée depuis la clôture, la proposition revient ; un montant différent du calcul et une proposition écartée demandent un motif (5 caractères) ;
+>   - signalés sans écriture : décision non datée, ventilation manquante, versé au-delà de l'acquis ; dossiers soldés ou refusés ignorés ;
+> - contrôles de clôture : aides à recevoir non passées ni écartées (**anomalie**), produits perçus d'avance proposés, dossiers à compléter, solde du 441 différent des aides à recevoir passées (**informations**) ;
+> - API `GET/POST /fiscal-years/<id>/closing/aids`, `POST /fiscal-years/<id>/closing/aids/dismissed`, `DELETE …/dismissed/<aid_id>` ;
+> - Clôture › Inventaire : panneau « Aides et subventions à la clôture » (`AidAccrualPanel`) ;
+> - échéancier : règle `lyvre` de source `aids` sur PAC-07 (date limite de la demande de paiement de chaque dossier ouvert, rappels J-60 et J-15, « fait » quand la demande est notée, lien vers la campagne) ; PAC-03 (avance, solde) renvoie vers `/aids/` ;
+> - un dossier dont une aide à recevoir est passée ne se supprime plus.
+>
+> Écarts avec la conception :
+> - seuls les dossiers dont la campagne précède ou égale l'année de clôture sont examinés ;
+> - le contrôle du 441 compare au total des aides à recevoir passées : l'octroi d'une subvention d'investissement en 441 (AG3.d) le fera apparaître tant que le contrôle n'en tient pas compte (à ajuster en AG3.d).
+>
+> Tests : `tests/api/test_aid_closing.py` (7 tests), `frontend/src/features/aids/aidAccrual.test.tsx` (2 tests).
+>
+> **AG3.d réalisé (05/11/2026, non commité)**. Contenu :
+> - migration `f2a4b6c8d0e1` : `aids.grant_entry_id`, tables `aid_assets` (immobilisations financées, montant affecté) et `aid_releases` (reprises figées par exercice, reprises saisies) ; sources d'écriture gérées `AID_GRANT` et `AID_RELEASE` (hors livres de TVA) ;
+> - `app/services/aid_grants.py` (partie double seulement) :
+>   - **octroi** D 441 / C 131 à la date de la décision, avant le premier versement ; les virements rattachés ensuite soldent le 441 (AG3.b adapté) ; annulable tant qu'aucun versement n'est rattaché ;
+>   - **immobilisations financées** : total affecté ≤ part d'investissement ; figées dès qu'une reprise est passée ;
+>   - **reprise** = affecté × dotation de l'exercice ÷ base amortissable (`assets.schedule`), la dernière solde l'arrondi ; à la cession ou mise au rebut, le reste sur l'exercice de sortie ; écriture OD unique D 139 / C 747 au dernier jour, non extournée, repassable tant que l'exercice est ouvert ;
+>   - **bien non amortissable** : pas de reprise calculée ; reprise saisie avec un motif, passée avec l'écriture (Q-P7) ;
+>   - **DJA** : sa part d'investissement suit ces règles (octroi, affectation, reprise) ;
+>   - annexe : montant, reprises antérieures et de l'exercice, reste (131 − 139), part non affectée signalée ;
+> - contrôles : reprise de l'exercice non passée (information) ; le contrôle du 441 compte les octrois restant à percevoir ;
+> - API `POST/DELETE /aids/<id>/grant`, `PUT /aids/<id>/assets`, `GET/POST/DELETE /fiscal-years/<id>/closing/aid-releases`, `POST /…/aid-releases/manual`, `DELETE /…/manual/<id>` ;
+> - écrans : section « Subvention d'investissement » de la fiche du dossier (octroi, immobilisations financées) ; panneau « Reprise des subventions d'investissement » et annexe dans Clôture › Inventaire.
+>
+> Écarts avec la conception :
+> - l'annexe est dans le panneau de clôture, pas encore dans l'export des états agricoles (XLSX) ni à côté de l'annexe des biens vivants ;
+> - pas de rattrapage : une subvention liée à un bien déjà en partie amorti n'est reprise qu'à partir de l'exercice ouvert, et la dernière reprise solde le reste ;
+> - octroi refusé si des versements existent déjà : on garde alors la pratique « versement directement en 131 ».
+>
+> Tests : `tests/api/test_aid_grants.py` (4 tests), `frontend/src/features/aids/grants.test.tsx` (2 tests).
+>
+> **AG3.e réalisé (05/11/2026, non commité) — lot AG3 terminé (a à e)**. Contenu :
+> - API Lexicon lue dans le code de `lexicon-rest-api` (v1.6.2) : `GET /links/enterprises/<siren>.json`, réservée aux membres, clé en `Authorization: Bearer` ; champ `cap-by-year` (FEAGA, FEADER, cofinancé, total, en euros) ; ni filtre par année ni détail par intervention par HTTP. Clé du serveur vérifiée le 05/11/2026 avec un SIREN fictif (404 avec la clé, 401 sans) ;
+> - `app/services/lexicon.py` : client (délai 15 s, erreurs 401/403/429/réseau traduites, montants convertis en centimes), configuration `LEXICON_API_KEY` / `LEXICON_URL` (`.env.example`, `doc/docker.md`) ;
+> - table `cap_published` (migration `a3b5c7d9e1f2`) : cache par SIREN et par année dans l'instance, jamais cumulé entre années, relu à la demande ;
+> - `app/services/aid_cap.py` : pour une année civile, publié contre versements rattachés aux dossiers et mouvements des comptes 74 (sauf 741 et 747) et 131, hors écritures de clôture (inventaire, extournes, à-nouveaux, octrois, reprises) ; écarts en information ;
+> - API `GET /aids/cap-check?year=` (cache, lecture de Lexicon au premier appel), `POST /aids/cap-check` (relecture, refusée à l'expert-comptable) ;
+> - carte « Montants publiés par l'ASP » sous la liste des dossiers (année de la campagne affichée), masquée sans clé.
+>
+> Écarts avec la conception :
+> - comparaison par **année civile** de paiement côté Lyvre ; l'exercice budgétaire de l'UE (mi-octobre à mi-octobre) n'est pas reconstitué ;
+> - pas de détail par aide : Lexicon ne publie par HTTP que les totaux par année et par fonds ;
+> - le SIREN de l'exploitation part chez Lexicon (OSFarm) à chaque relecture ; aucune autre donnée n'est envoyée.
+>
+> Tests : `tests/api/test_aid_cap.py` (4 tests, Lexicon simulé), `frontend/src/features/aids/capCheck.test.tsx` (2 tests).
+>
 > **Besoins** : `claudedocs/compta_agri.md`, lot AG3 (AG3.1 à AG3.6), décision AGD19 (rattachement), réponses d'expert du § 8 (comptes 742 à 748).
 > **Socle** :
 > - lot AG1 : plan `agri` (titre 5 du Recueil PCG 2026), mode simple du micro-BA, écritures d'inventaire de la clôture ;

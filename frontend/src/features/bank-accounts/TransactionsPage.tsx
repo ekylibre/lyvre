@@ -30,6 +30,7 @@ import { AttachmentIcon, TransactionLight, TransactionTypeIcon } from "../../com
 import { AppLink } from "../../app/navigation";
 import { SALES_KEY } from "../sales/types";
 import { LinkInvoiceModal } from "./LinkInvoiceModal";
+import { LinkAidModal } from "../aids/LinkAidModal";
 import { StatementsCard } from "./StatementsCard";
 import { BANK_ACCOUNTS_KEY, type BankAccount } from "./types";
 
@@ -42,6 +43,8 @@ type Transaction = BankTransaction & {
   rule_tiers: boolean;
   /** Libre, sans facture : peut régler ou encaisser une facture existante, en tout ou partie. */
   can_link_invoice?: boolean;
+  /** Exploitation agricole (lot AG3.b) : virement reçu d'un payeur d'aides, dossiers rattachés. */
+  aid?: { payer: string | null; links: { aid_id: number; label: string; amount_cents: number }[]; free_cents: number } | null;
 };
 interface Detail {
   item: BankAccount; qonto_job: Job | null; proposal_count: number;
@@ -145,6 +148,7 @@ export default function TransactionsPage() {
   const filter = legacy ? "all" : params.filter;
   const [assigning, setAssigning] = useState<Transaction | null>(null);
   const [linking, setLinking] = useState<Transaction | null>(null);
+  const [linkingAid, setLinkingAid] = useState<number | null>(null);
   const cash = useAction((v: { txn: Transaction; saleId: number }) => api.post<{ notices: Notice[] }>("/api/v1/sales/match",
     { bank_transaction_id: v.txn.id, allocations: [{ sale_id: v.saleId, amount_cents: v.txn.amount_cents }] }),
   { invalidate: [BANK_ACCOUNTS_KEY, SALES_KEY] });
@@ -182,6 +186,11 @@ export default function TransactionsPage() {
         title: t.amount_cents < 0 ? "Règle (tout ou partie) une facture d'achat existante par cette transaction"
           : "Encaisse (tout ou partie) une facture de vente existante par cette transaction" });
     }
+    if (t.aid && t.aid.free_cents > 0) {
+      const aidAction: RowAction = { key: "aid", label: "Rattacher à une aide", onClick: () => setLinkingAid(t.id),
+        title: `Virement${t.aid.payer ? ` de ${t.aid.payer}` : ""} : à ventiler sur les dossiers d'aide (Compta › Aides et subventions)` };
+      if (t.aid.payer && !t.reconciled) out.unshift(aidAction); else out.push(aidAction);
+    }
     if (t.rule_tiers) out.push({ key: "tiers", label: t.entity ? "Changer le tiers" : "Attribuer le tiers", onClick: () => setAssigning(t) });
     if (!t.reconciled && !t.is_reversed) {
       if (t.new_entry_url) out.push({ key: "entry", label: "Nouvelle écriture", href: t.new_entry_url });
@@ -199,12 +208,13 @@ export default function TransactionsPage() {
     { accessor: "label", title: "Libellé", hideable: false, render: (t) => (
       <Stack gap={4}>
         <Text size="sm">{t.label || "—"}</Text>
-        {(t.is_reversed || t.invoices.length > 0 || t.note) && (
+        {(t.is_reversed || t.invoices.length > 0 || t.note || (t.aid?.links.length ?? 0) > 0) && (
           <Group gap={8}>
             {t.is_reversed && <Group gap={4} wrap="nowrap" c="var(--lv-brique-ink)"><Ban size={14} aria-hidden />
               <Text size="xs" fw={600}>Annulée par la banque</Text></Group>}
             {t.invoices.map((inv) => <Anchor key={inv.id} href={inv.url} size="xs" fw={600} c="var(--lv-ardoise)"
               style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><FileText size={14} aria-hidden />{inv.label}</Anchor>)}
+            {t.aid?.links.map((l) => <Anchor key={l.aid_id} component={AppLink} href="/aids/" size="xs" fw={600} c="var(--lv-ardoise)">{l.label}</Anchor>)}
             {t.note && <Text size="xs" c="dimmed">{t.note}</Text>}
           </Group>
         )}
@@ -267,6 +277,7 @@ export default function TransactionsPage() {
         emptyText="Aucune transaction pour ces critères." />
       <AssignEntityModal txn={assigning} onClose={() => setAssigning(null)} />
       <LinkInvoiceModal txn={linking} onClose={() => setLinking(null)} />
+      <LinkAidModal txId={linkingAid} invalidate={[BANK_ACCOUNTS_KEY]} onClose={() => setLinkingAid(null)} />
     </>
   );
 }

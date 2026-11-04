@@ -20,14 +20,14 @@ from datetime import date
 from app.extensions import db
 from app.models import Account, Entity, JournalEntry, JournalLine
 from app.models.journal_entry import (
-    SOURCE_ALLOCATION, SOURCE_CLOSING, SOURCE_DEPRECIATION, SOURCE_INVENTORY, SOURCE_OPENING, SOURCE_REVERSAL,
-    SOURCE_VAT_RETURN,
+    SOURCE_AID_GRANT, SOURCE_AID_RELEASE, SOURCE_ALLOCATION, SOURCE_CLOSING, SOURCE_DEPRECIATION, SOURCE_INVENTORY,
+    SOURCE_OPENING, SOURCE_REVERSAL, SOURCE_VAT_RETURN,
 )
 from app.services import vat_codes
 from app.services import vat_return as vr
 
 EXCLUDED_SOURCES = (SOURCE_OPENING, SOURCE_CLOSING, SOURCE_ALLOCATION, SOURCE_VAT_RETURN, SOURCE_DEPRECIATION,
-                    SOURCE_INVENTORY, SOURCE_REVERSAL)
+                    SOURCE_INVENTORY, SOURCE_REVERSAL, SOURCE_AID_GRANT, SOURCE_AID_RELEASE)
 SALES_LINES = ("01", "02", "03", "04", "5A", "5C", "09")
 SALES_CATEGORIES = {"01": "Exportations hors UE", "02": "Exonérées ou non imposables",
                     "03": "Livraisons intracommunautaires", "04": "Taxables à 20 %", "5A": "Taxables à 10 %",

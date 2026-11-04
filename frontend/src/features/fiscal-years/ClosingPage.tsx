@@ -28,6 +28,8 @@ import { AppLink } from "../../app/navigation";
 import { FecPanel } from "./FecPanel";
 import { PrepaidPanel } from "./PrepaidPanel";
 import { DepreciationPanel } from "./DepreciationPanel";
+import { AidAccrualPanel } from "../aids/AidAccrualPanel";
+import { GrantReleasePanel } from "../aids/GrantReleasePanel";
 import { FISCAL_YEARS_KEY, type FiscalYear } from "./FiscalYearsPage";
 
 type StepState = "todo" | "done" | "skipped" | "provisional";
@@ -242,6 +244,8 @@ function Inventory({ view }: { view: ClosingView }) {
       ) : <Text size="sm" c="dimmed">Aucune écriture d'inventaire.</Text>}
       <DepreciationPanel fyId={fyId} editable={editable} />
       <PrepaidPanel fyId={fyId} editable={editable} />
+      <AidAccrualPanel fyId={fyId} editable={editable} />
+      <GrantReleasePanel fyId={fyId} editable={editable} />
       {editable && <InventoryForm view={view} />}
       {withAssociates && <InterestPanel fyId={fyId} open={view.fiscal_year.status === "open"} />}
     </Stack>

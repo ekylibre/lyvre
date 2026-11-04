@@ -1,0 +1,170 @@
+# Dispositifs d'aide (lot AG3, claudedocs/design_aides_pac.md § 3, décision AGD20).
+#
+# Les comptes sont des propositions validées par l'expert-comptable (AGD20) ; un dossier garde le compte choisi
+# à sa création, même si ce fichier change. Un sous-compte absent du plan se crée sous `parent`, ou l'on garde
+# le parent.
+#
+# Champs :
+# - nature : operating (subvention d'exploitation) | investment (131) | mixed (DJA : part d'exploitation + 131)
+# - trigger : fait générateur du rattachement (§ 4) — pac_deadline (date limite de la demande PAC, `trigger_key`
+#   pour un autre paramètre de l'échéancier), decision (décision d'attribution), payment (encaissement)
+# - payer : organisme qui verse (rapprochement bancaire, AG3.b)
+# - campaign : proposé par « Nouvelle campagne PAC » ; `default` = coché d'office, `when` = condition du profil
+#   (flags / productions de l'échéancier, une seule suffit)
+# - payments : versements types (avance d'octobre, solde de décembre…)
+schemes:
+  - key: basic_income
+    label: Aide de base au revenu (DPB)
+    pillar: 1
+    nature: operating
+    account: "7451"
+    parent: "745"
+    trigger: pac_deadline
+    payer: ASP
+    payments: [advance, balance]
+    campaign: {default: true}
+
+  - key: redistributive
+    label: Paiement redistributif
+    pillar: 1
+    nature: operating
+    account: "7452"
+    parent: "745"
+    trigger: pac_deadline
+    payer: ASP
+    payments: [advance, balance]
+    campaign: {default: true}
+
+  - key: eco_scheme
+    label: Écorégime
+    pillar: 1
+    nature: operating
+    account: "7453"
+    parent: "745"
+    trigger: pac_deadline
+    payer: ASP
+    payments: [advance, balance]
+    campaign: {default: true}
+
+  - key: young_farmer_income
+    label: Aide complémentaire au revenu des jeunes agriculteurs
+    pillar: 1
+    nature: operating
+    account: "7454"
+    parent: "745"
+    trigger: pac_deadline
+    payer: ASP
+    payments: [advance, balance]
+    campaign: {when: {flags: [young_farmer]}}
+
+  - key: coupled_animal
+    label: Aides couplées animales
+    pillar: 1
+    nature: operating
+    account: "7431"
+    parent: "743"
+    trigger: pac_deadline
+    trigger_key: agenda.pac.cattle_deadline
+    payer: ASP
+    payments: [advance, balance]
+    campaign: {when: {productions: [cattle, sheep_goats]}}
+
+  - key: coupled_crop
+    label: Aides couplées végétales
+    pillar: 1
+    nature: operating
+    account: "7432"
+    parent: "743"
+    trigger: pac_deadline
+    payer: ASP
+    payments: [balance]
+    campaign: {}
+
+  - key: ichn
+    label: Indemnité compensatoire de handicaps naturels (ICHN)
+    pillar: 2
+    nature: operating
+    account: "7441"
+    parent: "744"
+    trigger: pac_deadline
+    payer: ASP
+    payments: [advance, balance]
+    campaign: {}
+
+  - key: maec
+    label: Mesures agro-environnementales et climatiques (MAEC)
+    pillar: 2
+    nature: operating
+    account: "7442"
+    parent: "744"
+    trigger: pac_deadline
+    payer: ASP
+    payments: [balance]
+    campaign: {}
+
+  - key: organic
+    label: Aide à la conversion à l'agriculture biologique
+    pillar: 2
+    nature: operating
+    account: "7443"
+    parent: "744"
+    trigger: pac_deadline
+    payer: ASP
+    payments: [balance]
+    campaign: {when: {productions: [organic]}}
+
+  - key: crop_insurance
+    label: Aide à l'assurance récolte
+    pillar: 2
+    nature: operating
+    account: "7421"
+    parent: "742"
+    trigger: pac_deadline
+    payer: ASP
+    payments: [balance]
+    campaign: {}
+
+  - key: calamity
+    label: Calamités agricoles, indemnités de crise
+    nature: operating
+    account: "742"
+    trigger: decision
+    payer: DDT
+
+  - key: franceagrimer_operating
+    label: Aide FranceAgriMer d'exploitation
+    nature: operating
+    account: "748"
+    trigger: decision
+    payer: FranceAgriMer
+
+  - key: region_operating
+    label: Aide régionale d'exploitation
+    nature: operating
+    account: "748"
+    trigger: decision
+    payer: Région
+
+  - key: investment
+    label: Subvention d'investissement (PCAE, FEADER, Région, FranceAgriMer)
+    pillar: 2
+    nature: investment
+    account: "131"
+    trigger: decision
+    payer: ASP
+
+  - key: dja
+    label: Dotation jeunes agriculteurs (DJA)
+    pillar: 2
+    nature: mixed
+    account: "131"
+    operating_account: "744"
+    trigger: decision
+    payer: ASP
+    payments: [installment, installment]
+
+  - key: other
+    label: Autre aide
+    nature: operating
+    account: "748"
+    trigger: decision

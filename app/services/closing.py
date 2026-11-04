@@ -208,6 +208,17 @@ def _agri_checks(fy) -> list[Check]:
     if missing:
         found.append(Check("living_register", f"Biens vivants immobilisés sans fiche au registre des immobilisations "
                            f"({', '.join(missing)})", len(missing), "info", "/assets/"))
+    from app.services import aid_payments    # lot AG3.b
+
+    unlinked = aid_payments.unlinked_credits(fy.start_date, fy.end_date)
+    if unlinked:
+        found.append(Check("aid_unlinked", "Virements reçus d'un payeur d'aides (ASP, FranceAgriMer, Région…) rattachés "
+                           "à aucun dossier d'aide", len(unlinked), "info", "/aids/"))
+    from app.services import aid_closing    # lot AG3.c
+
+    for key, label, count, severity in aid_closing.checks(fy):
+        url = "/aids/" if key == "aid_issues" else f"/fiscal-years/{fy.id}/closing"
+        found.append(Check(key, label, count, severity, url))
     return found
 
 
