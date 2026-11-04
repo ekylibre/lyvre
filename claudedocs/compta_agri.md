@@ -621,6 +621,8 @@ La colonne « Lot Lyvre lié » est une proposition. **Décision AGD12 (04/11/20
 
 Ils viennent des rapports, où ils sont marqués [À VALIDER] ou [I]. Ils ne bloquent pas le design, car ce sont des paramètres, mais **ils bloquent la mise en production des valeurs**.
 
+Les réponses de l'expert sont visibles via "=>"
+
 1. **Seuils** :
    - millésime d'application des seuils BA (129 200 / 421 000 / 517 000 € contre 120 000 / 391 000 €);
    => 129 200 / 421 000 / 517 000 € à partir du 01/01/2026 - https://chambres-agriculture.fr/actualites/actualite/benefices-agricoles-lactualisation-des-commentaires-fiscaux
@@ -630,17 +632,40 @@ Ils viennent des rapports, où ils sont marqués [À VALIDER] ou [I]. Ils ne blo
    => fin 31/12/2028 - source : https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000051765352
 2. **Stocks et biens vivants** :
    - taux de décote de la méthode forfaitaire des stocks ;
+   => Taux général de 20 % : S'applique à la généralité des produits finis, des produits en cours de fabrication et des animaux. Taux majoré de 30 % : S'applique spécifiquement aux bovins ainsi qu'aux produits de la viticulture (vins, eaux-de-vie)
    - classement fiscal des reproducteurs (stock ou immobilisation) face à l'obligation comptable ;
+   => 
+   1. La règle comptable : Le critère d'affectation durableLe Plan Comptable Agricole impose une distinction claire basée sur la destination de l'animal :
+    • Immobilisation corporelle (Classe 24) : Un animal reproducteur doit être immobilisé s'il est certain ou quasi-certain qu'il restera durablement dans l'exploitation (plus de 12 mois) pour servir de moyen de production (ex. : taureaux, béliers, étalons, vaches allaitantes, juments poulinières).
+    • Stock (Classe 3) : Les animaux destinés à être vendus dans le cycle normal de l'activité (veaux, agneaux, animaux à l'engraissement) ou ceux dont la destination future reste incertaine à la clôture restent en stock.
+
+   2. Comparatif fiscal : Stock vs Immobilisation
+
+
+    Critère fiscal	Option Stock 🌾	Option Immobilisation 🐂
+    Impact sur le résultat annuel	Aucune déduction annuelle. La valeur du stock entre dans le calcul du résultat net fiscal.	Amortissement annuel déductible (linéaire sur 4 à 8 ans selon l'espèce), ce qui réduit directement le bénéfice imposable.
+    Valorisation au bilan	Évalué au coût de revient ou via une décote forfaitaire (selon le régime fiscal).	Enregistré à sa valeur d'entrée (prix d'achat + frais) ou à son coût de production (animal né sur l'exploitation).
+    Régime fiscal à la revente	Le prix de vente est traité comme un produit d'exploitation classique, imposable à 100 %.	La vente génère une plus-value professionnelle, ouvrant droit à d'importants dispositifs d'exonération.
+
    - racine 231 ou 234 des en-cours de biens vivants.
+   => Pour enregistrer les en-cours de biens vivants (actifs biologiques), c'est le compte 234 « Immobilisations corporelles en cours (biens vivants) » qu'il faut utiliser
+   => Le compte 231 est quant à lui réservé exclusivement aux immobilisations corporelles en cours hors biens vivants (par exemple, un bâtiment agricole ou une machine en cours de construction)
 3. **Aides et droits** :
    - correspondance entre aides PAC et comptes 742-748 ;
+   => • Compte 742 (Subventions d'équilibre) : Il n'est généralement pas utilisé pour les aides PAC courantes. Ce compte sert à éponger un déficit global constaté, une situation plus fréquente dans le monde associatif ou pour des structures publiques locales que dans les exploitations agricoles pour les aides du premier et second pilier. Note : Depuis la réforme comptable, ce compte intègre les anciennes subventions d'équilibre qui étaient logées au compte 7715.
+    • Compte 745 (Subventions d'exploitation versées par les organismes internationaux) : C'est le compte historique et privilégié pour la majorité des aides PAC. L'Union Européenne étant un organisme international, les comptables subdivisent ce compte (ex: 7451 pour le découplé, 7454 pour le couplé) pour isoler les différents flux Télépac.
+    • Compte 748 (Autres subventions d'exploitation) : Utilisé pour des aides n'entrant pas strictement dans les autres catégories. Il peut servir pour des subventions d'exploitation purement locales, régionales, ou certaines aides d'urgence de l'État (comme le fonds d'urgence en cas de crise sanitaire ou climatique) si elles ne transitent pas par les enveloppes internationales de la PAC.
    - rattachement fiscal (droit acquis).
+   => je ne comprends pas la question ?
    - *Tranché par le PCG 2026* (art. 618-1 à 618-6, constat de la conception du 03/11/2026) :
      - DPB en immobilisations incorporelles, à valeur nulle s'ils sont attribués, au coût s'ils sont acquis, amortis, avec une comptabilité matière hors bilan ;
      - aides annuelles en **produit à recevoir à la date limite de dépôt** de la demande.
    - Source du plan agricole retenue : Recueil PCG 2026, titre 5 (ANC 2020-04 modifié par l'ANC 2024-07).
 4. **Taux de TVA** :
    - animaux de boucherie (5,5 % ou 10 %) ;
+   => Le taux de TVA applicable aux animaux de boucherie et de charcuterie dépend de leur destination :
+    • Taux réduit de 5,5 % : s'applique aux animaux vivants vendus en vue de la consommation humaine (par exemple, lors de la vente à un abattoir, à une boucherie ou à un industriel de l'agroalimentaire).
+    • Taux de 10 % : s'applique lorsque les animaux sont cédés dans le cadre de la production agricole (par exemple, les ventes d'animaux vivants entre exploitants agricoles ou pour l'élevage/reproduction).
    - engrais et phytos utilisables en agriculture biologique ;
    - travaux agricoles ;
    - bois de chauffage ;
@@ -688,6 +713,7 @@ Ils viennent des rapports, où ils sont marqués [À VALIDER] ou [I]. Ils ne blo
 - **AGD14** : calculettes réservées aux utilisateurs connectés.
 - **AGD15** : pas de données en direct (cours, GNR, météo) ; valeurs saisies.
 - **AGD16** : PDF de tiers hors git ; synthèses et audits versionnés.
+- **AGD17 (conception AG2, 04/11/2026)** : `claudedocs/design_tva_agricole.md`, validée. Créance du remboursement forfaitaire en 44583 ; secteur non agricole (AG2.7) après AG8 ; ligne 31 de la CA12A en saisie libre ; 3520 en état récapitulatif ; prestations intracommunautaires en ligne 02.
 - **AGD11 (conception, Q-A2) 757 / 657 subdivisés** : 7571 / 6571 pour les biens vivants, 7578 / 6578 pour les autres immobilisations ; en-tête 234 pour les biens vivants en cours. Source du plan : Recueil PCG 2026, titre 5.
 - Conception : `claudedocs/design_compta_agricole.md` (lot AG1, validée le 03/11/2026).
 
