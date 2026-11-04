@@ -97,6 +97,57 @@ def project_statement_xlsx(project_id):
     return _response(wb, f"projet-{project.name}-{data['start']}-{data['end']}.xlsx".replace(" ", "-"))
 
 
+@bp.route("/simple/reports/receipts-book.xlsx")
+@login_required
+def receipts_book_xlsx():
+    """Livre des recettes du micro-BA (lot AG1.d) : une ligne par recette, totaux par trimestre et pour l'année."""
+    from app.services import micro_ba
+    from app.tenant import current_chart
+
+    if current_chart() != "agri":
+        abort(404)
+    year = request.args.get("year", type=int) or date.today().year
+    book = micro_ba.receipts_book(year, group_small=request.args.get("group_small", "1") != "0")
+    wb = Workbook()
+    wb.remove(wb.active)
+    rows = [[i["date"], i["label"], i["entity"] or "", i["category"], "Exclue" if i["excluded"] else "",
+             i["amount_cents"] / 100] for i in book["items"]]
+    rows += [[]] + [[f"Trimestre {q['quarter']}", "", "", "Recettes retenues", "", q["retained_cents"] / 100]
+                    for q in book["quarters"]]
+    rows += [["Année", "", "", "Recettes retenues", "", book["total"]["retained_cents"] / 100],
+             ["Année", "", "", "Recettes exclues du micro-BA", "", book["total"]["excluded_cents"] / 100]]
+    _sheet(wb, f"Livre des recettes {year}", ["Date", "Libellé", "Client", "Catégorie", "Micro-BA", "Montant"], rows, (6,))
+    return _response(wb, f"livre-des-recettes-{year}.xlsx")
+
+
+@bp.route("/reports/agri-statements.xlsx")
+@login_required
+def agri_statements_xlsx():
+    """Soldes intermédiaires de gestion et tableau des biens vivants d'une exploitation (lot AG1.c)."""
+    from app.services import agri_reports
+    from app.tenant import current_chart
+
+    if current_chart() != "agri":
+        abort(404)
+    fy = db.session.get(FiscalYear, request.args.get("fy_id", type=int) or 0) or abort(404)
+    prev = (FiscalYear.query.filter(FiscalYear.start_date < fy.start_date)
+            .order_by(FiscalYear.start_date.desc()).first())
+    wb = Workbook()
+    wb.remove(wb.active)
+    euros = lambda cents: None if cents is None else cents / 100  # noqa: E731
+    _sheet(wb, "Soldes intermédiaires", ["Solde", fy.label, prev.label if prev else "N-1"],
+           [[r["label"], euros(r["n"]), euros(r["p"])] for r in agri_reports.sig(fy, prev)], (2, 3))
+    table = agri_reports.living_assets_table(fy, prev)
+    rows = []
+    for group in table["groups"]:
+        rows.append([group["label"], None, None])
+        rows += [[f"  {r['label']}", euros(r["opening"]), euros(r["closing"])] for r in group["rows"]]
+        rows.append([f"Total {group['label'].lower()}", euros(group["total"]["opening"]), euros(group["total"]["closing"])])
+    rows.append(["TOTAL GÉNÉRAL", euros(table["total"]["opening"]), euros(table["total"]["closing"])])
+    _sheet(wb, "Biens vivants", ["Nature", "Valeur nette à l'ouverture", "Valeur nette à la clôture"], rows, (2, 3))
+    return _response(wb, f"etats-agricoles-{fy.label}.xlsx".replace(" ", "-"))
+
+
 @bp.route("/receipts/signature")
 @login_required
 def receipts_signature():

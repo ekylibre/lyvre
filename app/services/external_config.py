@@ -78,6 +78,7 @@ DEFAULT_SCOPES: dict[str, set[str]] = {"qonto": {"transactions", "purchases"}}
 RECOMMENDED: dict[str, list[str]] = {
     "sci":  ["qonto"],
     "societe": ["qonto"],
+    "agri": ["qonto"],
     "asso": ["helloasso"],
 }
 

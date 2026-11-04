@@ -30,6 +30,7 @@ COUNTERPARTS = {
     "asso": [("102", "Fonds propres sans droit de reprise"), ("103", "Fonds propres avec droit de reprise")],
     "sci": [("101", "Capital"), ("108", "Compte de l'exploitant")],
     "societe": [("101", "Capital"), ("108", "Compte de l'exploitant")],
+    "agri": [("101", "Capital"), ("108", "Compte de l'exploitant"), ("455", "Associés - Comptes courants")],
 }
 
 

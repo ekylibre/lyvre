@@ -1,6 +1,7 @@
 // Administration › Instances : bases comptables (une par structure) ; création, modification.
 import { useState } from "react";
-import { Anchor, Button, Checkbox, Code, Group, SegmentedControl, Select, Stack, Switch, Text, TextInput } from "@mantine/core";
+import { Anchor, Button, Checkbox, Code, Fieldset, Group, SegmentedControl, Select, SimpleGrid, Stack, Switch, Text, TextInput } from "@mantine/core";
+import { DateInput } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { api } from "../../api/client";
 import { useAction, useList, type Notice } from "../../api/resources";
@@ -16,8 +17,13 @@ import { memberRowErrors, toMembersPayload, type MemberRow, type RoleOption, typ
 import { INSTANCES_KEY, type Instance } from "./types";
 
 interface IntegrationOption { value: string; label: string; recommended: boolean }
-interface Meta { charts: { value: string; label: string }[]; default_chart: string;
-  integrations_by_chart?: Record<string, IntegrationOption[]> }
+type Option = { value: string; label: string };
+/** Lot AG1.b : profil d'une exploitation agricole saisi à la création. */
+interface AgriMeta { legal_forms: Option[]; is_only_forms: string[]; income_tax: Option[]; ba_regimes: Option[] }
+interface Meta { charts: Option[]; default_chart: string;
+  integrations_by_chart?: Record<string, IntegrationOption[]>; agri?: AgriMeta }
+const COMPANY_FORMS = ["EARL", "GAEC", "SCEA", "GFA", "SARL", "SAS", "SA"];
+const iso = (value: unknown) => (value ? String(value).slice(0, 10) : null);
 
 /** Intégrations activées d'office : les recommandées de la structure. */
 const recommendedFor = (meta: Meta | undefined, chart: string) =>
@@ -29,11 +35,18 @@ function CreateForm({ meta, onDone }: { meta: Meta | undefined; onDone: () => vo
   const { data: users } = useList<UserOption, UsersMeta>(["users"], "/api/v1/users");
   const form = useForm({ initialValues: { slug: "", label: "", provisioning_mode: "auto", chart: meta?.default_chart ?? "asso",
     bookkeeping: "double", database_url: "", members: [] as MemberRow[],
-    integrations: recommendedFor(meta, meta?.default_chart ?? "asso") },
+    integrations: recommendedFor(meta, meta?.default_chart ?? "asso"),
+    legal_form_code: "", created_on: null as string | null, income_tax: "IR", ba_regime: "",
+    fy_start: null as string | null, fy_end: null as string | null },
   validate: (values) => memberRowErrors(values.members) });
   const save = useAction((values: typeof form.values) => api.post<{ notices: Notice[] }>("/api/v1/instances",
-    { ...values, members: toMembersPayload(values.members) }), { invalidate: [INSTANCES_KEY, ["users"]], silent: true });
+    { ...values, members: toMembersPayload(values.members), created_on: iso(values.created_on), fy_start: iso(values.fy_start),
+      fy_end: iso(values.fy_end) }), { invalidate: [INSTANCES_KEY, ["users"]], silent: true });
   const auto = form.values.provisioning_mode === "auto";
+  const agri = auto && form.values.chart === "agri";
+  const isOnly = (meta?.agri?.is_only_forms ?? []).includes(form.values.legal_form_code);
+  const income = isOnly ? "IS" : form.values.income_tax;
+  const micro = income === "IR" && form.values.ba_regime === "micro";
   return (
     <form onSubmit={form.onSubmit((values) => save.mutate(values, { onSuccess: onDone, onError: (e) => setError(applyApiError(form, e)) }))}>
       <FormBody error={error} submitLabel="Créer l'instance" onCancel={onDone} loading={save.isPending}>
@@ -57,6 +70,43 @@ function CreateForm({ meta, onDone }: { meta: Meta | undefined; onDone: () => vo
                 form.setFieldValue("integrations", recommendedFor(meta, chart));
                 if (chart !== "asso") form.setFieldValue("bookkeeping", "double");
               }} />
+            {agri && meta?.agri && <>
+              <Fieldset legend="1. Forme juridique">
+                <Stack>
+                  <Select label="Forme" required data={meta.agri.legal_forms} {...form.getInputProps("legal_form_code")} />
+                  {COMPANY_FORMS.includes(form.values.legal_form_code) && (
+                    <DateInput label="Date de création" clearable valueFormat="DD/MM/YYYY"
+                      description="Société créée depuis 1997 : micro-BA impossible (sauf EARL unipersonnelle)."
+                      {...form.getInputProps("created_on")} />)}
+                </Stack>
+              </Fieldset>
+              <Fieldset legend="2. Impôt et régime">
+                <SimpleGrid cols={2}>
+                  <Select label="Impôt sur les bénéfices" data={meta.agri.income_tax} allowDeselect={false} disabled={isOnly}
+                    {...form.getInputProps("income_tax")} value={income} />
+                  {income === "IR" && (
+                    <Select label="Régime des bénéfices agricoles" required data={meta.agri.ba_regimes}
+                      {...form.getInputProps("ba_regime")} onChange={(v) => {
+                        form.setFieldValue("ba_regime", v ?? "");
+                        if (v === "micro") { // micro-BA : exercice civil
+                          const year = new Date().getFullYear();
+                          form.setFieldValue("fy_start", `${year}-01-01`);
+                          form.setFieldValue("fy_end", `${year}-12-31`);
+                        }
+                      }} />)}
+                </SimpleGrid>
+                <Text size="xs" c="dimmed" mt={6}>{micro
+                  ? "Micro-BA : comptabilité simplifiée (recettes et dépenses), exercice civil."
+                  : "Réel : partie double en engagement ; le régime se change ensuite dans Structure › Fiscalité."}</Text>
+              </Fieldset>
+              <Fieldset legend="3. Premier exercice">
+                <SimpleGrid cols={2}>
+                  <DateInput label="Début" required valueFormat="DD/MM/YYYY" {...form.getInputProps("fy_start")} />
+                  <DateInput label="Clôture" required valueFormat="DD/MM/YYYY" {...form.getInputProps("fy_end")}
+                    description="Les exercices décalés sont courants (31/01, 30/04, 30/06…)." />
+                </SimpleGrid>
+              </Fieldset>
+            </>}
             {form.values.chart === "asso" && (
               <Select label="Tenue de la comptabilité" allowDeselect={false} {...form.getInputProps("bookkeeping")}
                 description="Simplifiée : recettes et dépenses par catégorie, sans débit ni crédit (passage en partie double possible ensuite)."

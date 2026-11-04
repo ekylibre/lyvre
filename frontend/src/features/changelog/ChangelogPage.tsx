@@ -10,14 +10,14 @@ import { PageHeader } from "../../components/PageHeader";
 import { formatDate } from "../../lib/format";
 
 type Kind = "action" | "new" | "improved" | "fixed";
-interface Entry { kind: Kind; structure?: "asso" | "sci" | "societe"; text: string }
+interface Entry { kind: Kind; structure?: "asso" | "sci" | "societe" | "agri"; text: string }
 interface Release { version: string; date: string; title: string; entries: Entry[] }
 
 const SECTIONS: { kind: Exclude<Kind, "action">; label: string }[] = [
   { kind: "new", label: "Nouveautés" }, { kind: "improved", label: "Améliorations" }, { kind: "fixed", label: "Corrections" },
 ];
-const STRUCTURES = { asso: "Associations", sci: "SCI", societe: "Sociétés" };
-const STRUCTURE_COLORS = { asso: "lichen", sci: "ardoise", societe: "gray" };
+const STRUCTURES = { asso: "Associations", sci: "SCI", societe: "Sociétés", agri: "Exploitations agricoles" };
+const STRUCTURE_COLORS = { asso: "lichen", sci: "ardoise", societe: "gray", agri: "paille" };
 
 function Item({ entry }: { entry: Entry }) {
   return (

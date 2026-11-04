@@ -1,0 +1,1239 @@
+JournalCode	JournalLib	EcritureNum	EcritureDate	CompteNum	CompteLib	CompAuxNum	CompAuxLib	PieceRef	PieceDate	EcritureLib	Debit	Credit	EcritureLet	DateLet	ValidDate	Montantdevise	Idevise
+AN	À-nouveaux	AN000001	20240201	411	Clients	C001	Client 001	AN000001	20240201	À-nouveau	4336,54	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F001	Fournisseur 001	AN000001	20240201	À-nouveau	0,00	199,26					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F001	Fournisseur 001	AN000001	20240201	À-nouveau	0,00	199,26					EUR
+AN	À-nouveaux	AN000001	20240201	438	Organismes sociaux - Charges à payer			AN000001	20240201	À-nouveau	11501,42	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	438	Organismes sociaux - Charges à payer			AN000001	20240201	À-nouveau	294,73	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	438	Organismes sociaux - Charges à payer			AN000001	20240201	À-nouveau	0,00	294,73					EUR
+AN	À-nouveaux	AN000001	20240201	438	Organismes sociaux - Charges à payer			AN000001	20240201	À-nouveau	0,00	11501,42					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F002	Fournisseur 002	AN000001	20240201	À-nouveau	0,00	25682,40					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F002	Fournisseur 002	AN000001	20240201	À-nouveau	2796,28	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F003	Fournisseur 003	AN000001	20240201	À-nouveau	2414,51	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F003	Fournisseur 003	AN000001	20240201	À-nouveau	0,00	27896,40					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F003	Fournisseur 003	AN000001	20240201	À-nouveau	21234,80	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F003	Fournisseur 003	AN000001	20240201	À-nouveau	742,80	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	4386	Autres charges à payer			AN000001	20240201	À-nouveau	0,00	3236,87					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F004	Fournisseur 004	AN000001	20240201	À-nouveau	0,00	4,94					EUR
+AN	À-nouveaux	AN000001	20240201	441	État - Subventions et aides à recevoir			AN000001	20240201	À-nouveau	38537,32	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F005	Fournisseur 005	AN000001	20240201	À-nouveau	44410,63	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F005	Fournisseur 005	AN000001	20240201	À-nouveau	0,00	53160,35					EUR
+AN	À-nouveaux	AN000001	20240201	411	Clients	C002	Client 002	AN000001	20240201	À-nouveau	76037,80	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	411	Clients	C002	Client 002	AN000001	20240201	À-nouveau	0,00	76037,80					EUR
+AN	À-nouveaux	AN000001	20240201	411	Clients	C003	Client 003	AN000001	20240201	À-nouveau	253530,32	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	411	Clients	C003	Client 003	AN000001	20240201	À-nouveau	58394,25	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F006	Fournisseur 006	AN000001	20240201	À-nouveau	0,00	55350,00					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F006	Fournisseur 006	AN000001	20240201	À-nouveau	91,22	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F006	Fournisseur 006	AN000001	20240201	À-nouveau	0,00	106171,68					EUR
+AN	À-nouveaux	AN000001	20240201	44587	Taxes sur le chiffre d'affaires sur factures à établir			AN000001	20240201	À-nouveau	0,00	13217,23					EUR
+AN	À-nouveaux	AN000001	20240201	44587	Taxes sur le chiffre d'affaires sur factures à établir			AN000001	20240201	À-nouveau	0,00	3044,25					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F007	Fournisseur 007	AN000001	20240201	À-nouveau	0,00	110,70					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F007	Fournisseur 007	AN000001	20240201	À-nouveau	0,00	793,72					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F007	Fournisseur 007	AN000001	20240201	À-nouveau	0,00	2448,58					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F007	Fournisseur 007	AN000001	20240201	À-nouveau	0,00	117606,02					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F007	Fournisseur 007	AN000001	20240201	À-nouveau	0,00	6258,98					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F007	Fournisseur 007	AN000001	20240201	À-nouveau	0,00	248,41					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F007	Fournisseur 007	AN000001	20240201	À-nouveau	0,00	2796,28					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F007	Fournisseur 007	AN000001	20240201	À-nouveau	0,00	2077,47					EUR
+AN	À-nouveaux	AN000001	20240201	411	Clients	C004	Client 004	AN000001	20240201	À-nouveau	0,00	752,28					EUR
+AN	À-nouveaux	AN000001	20240201	411	Clients	C004	Client 004	AN000001	20240201	À-nouveau	4097,88	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	411	Clients	C004	Client 004	AN000001	20240201	À-nouveau	21560,26	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	411	Clients	C004	Client 004	AN000001	20240201	À-nouveau	44279,10	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F008	Fournisseur 008	AN000001	20240201	À-nouveau	4758,13	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F008	Fournisseur 008	AN000001	20240201	À-nouveau	0,00	371,21					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F008	Fournisseur 008	AN000001	20240201	À-nouveau	0,00	29725,95					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F008	Fournisseur 008	AN000001	20240201	À-nouveau	0,00	36485,92					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F008	Fournisseur 008	AN000001	20240201	À-nouveau	33210,00	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F009	Fournisseur 009	AN000001	20240201	À-nouveau	0,00	121874,64					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F009	Fournisseur 009	AN000001	20240201	À-nouveau	0,00	108262,94					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F009	Fournisseur 009	AN000001	20240201	À-nouveau	254609,97	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F009	Fournisseur 009	AN000001	20240201	À-nouveau	0,00	97284,82					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F009	Fournisseur 009	AN000001	20240201	À-nouveau	0,00	97745,66					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F009	Fournisseur 009	AN000001	20240201	À-nouveau	0,00	113284,85					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F009	Fournisseur 009	AN000001	20240201	À-nouveau	44280,00	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F009	Fournisseur 009	AN000001	20240201	À-nouveau	63099,00	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F009	Fournisseur 009	AN000001	20240201	À-nouveau	0,00	4758,13					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F009	Fournisseur 009	AN000001	20240201	À-nouveau	138978,32	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F009	Fournisseur 009	AN000001	20240201	À-nouveau	77490,00	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F009	Fournisseur 009	AN000001	20240201	À-nouveau	22140,00	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F009	Fournisseur 009	AN000001	20240201	À-nouveau	0,00	5255,48					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F009	Fournisseur 009	AN000001	20240201	À-nouveau	0,00	138978,32					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F009	Fournisseur 009	AN000001	20240201	À-nouveau	0,00	34265,75					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F009	Fournisseur 009	AN000001	20240201	À-nouveau	0,00	10324,46					EUR
+AN	À-nouveaux	AN000001	20240201	401	Fournisseurs	F009	Fournisseur 009	AN000001	20240201	À-nouveau	5535,00	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	467	Divers comptes débiteurs et produits à recevoir	D001	Débiteur divers 001	AN000001	20240201	À-nouveau	846,86	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	411	Clients	C005	Client 005	AN000001	20240201	À-nouveau	0,00	6504,02					EUR
+AN	À-nouveaux	AN000001	20240201	411	Clients	C005	Client 005	AN000001	20240201	À-nouveau	6504,02	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	101	Capital			AN000001	20240201	À-nouveau	0,00	8856,00					EUR
+AN	À-nouveaux	AN000001	20240201	2154	Matériels industriels			AN000001	20240201	À-nouveau	2313,08	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	262	Participations à des organismes professionnels agricoles (autres que les établissements de crédit)			AN000001	20240201	À-nouveau	1938,36	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	2815	Installations, matériel et outillage industriels (même ventilation que celle du compte 215)			AN000001	20240201	À-nouveau	0,00	348,25					EUR
+AN	À-nouveaux	AN000001	20240201	44583	Remboursement de taxes sur le chiffre d'affaires demandé			AN000001	20240201	À-nouveau	37331,36	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	44586	Taxes sur le chiffre d'affaires sur factures non parvenues			AN000001	20240201	À-nouveau	6172,52	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	4551	Principal	A001	Associé 1	AN000001	20240201	À-nouveau	39,52	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	4551	Principal	A002	Associé 2	AN000001	20240201	À-nouveau	0,00	969,60					EUR
+AN	À-nouveaux	AN000001	20240201	4551	Principal	A003	Associé 3	AN000001	20240201	À-nouveau	99,70	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	5121	Comptes en euros			AN000001	20240201	À-nouveau	30902,24	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	519	Concours bancaires courants			AN000001	20240201	À-nouveau	0,00	116128,11					EUR
+AN	À-nouveaux	AN000001	20240201	110	Report à nouveau - solde créditeur			AN000001	20240201	À-nouveau	0,00	301,68					EUR
+AN	À-nouveaux	AN000001	20240201	44551	TVA à décaisser			AN000001	20240201	À-nouveau	0,00	1048,33					EUR
+AN	À-nouveaux	AN000001	20240201	44566	TVA sur autres biens et services			AN000001	20240201	À-nouveau	15613,05	0,00					EUR
+AN	À-nouveaux	AN000001	20240201	44571	TVA collectée			AN000001	20240201	À-nouveau	0,00	55,34					EUR
+AN	À-nouveaux	AN000001	20240201	129	Résultat de l'exercice – perte			AN000001	20240201	À-nouveau	111797,50	0,00					EUR
+AC	Achats	AC000001	20240201	627	Services bancaires et assimilés			AC000001	20240201	Services bancaires et assimilés	46,66	0,00					EUR
+AC	Achats	AC000001	20240201	627	Services bancaires et assimilés			AC000001	20240201	Services bancaires et assimilés	1,49	0,00					EUR
+AC	Achats	AC000001	20240201	44566	TVA sur autres biens et services			AC000001	20240201	Services bancaires et assimilés	0,30	0,00					EUR
+AC	Achats	AC000001	20240201	401	Fournisseurs	F010	Fournisseur 010	AC000001	20240201	Services bancaires et assimilés	0,00	48,45					EUR
+AC	Achats	AC000002	20240201	6617	Intérêts des obligations cautionnées			AC000002	20240201	Intérêts des obligations cautionnées	80,58	0,00					EUR
+AC	Achats	AC000002	20240201	401	Fournisseurs	F011	Fournisseur 011	AC000002	20240201	Intérêts des obligations cautionnées	0,00	80,58					EUR
+AC	Achats	AC000003	20240201	6617	Intérêts des obligations cautionnées			AC000003	20240201	Intérêts des obligations cautionnées	142,50	0,00					EUR
+AC	Achats	AC000003	20240201	401	Fournisseurs	F011	Fournisseur 011	AC000003	20240201	Intérêts des obligations cautionnées	0,00	142,50					EUR
+EX	Extournes	EX000001	20240201	401	Fournisseurs	F002	Fournisseur 002	EX000001	20240201	Fermages et loyers du foncier	25682,40	0,00					EUR
+EX	Extournes	EX000001	20240201	6131	Fermages et loyers du foncier			EX000001	20240201	Fermages et loyers du foncier	0,00	25682,40					EUR
+EX	Extournes	EX000002	20240201	616	Primes d'assurances			EX000002	20240201	Primes d'assurances	0,00	2077,47					EUR
+EX	Extournes	EX000002	20240201	401	Fournisseurs	F007	Fournisseur 007	EX000002	20240201	Primes d'assurances	2077,47	0,00					EUR
+EX	Extournes	EX000003	20240201	6226	Honoraires			EX000003	20240201	Honoraires	0,00	207,01					EUR
+EX	Extournes	EX000003	20240201	401	Fournisseurs	F007	Fournisseur 007	EX000003	20240201	Honoraires	248,41	0,00					EUR
+EX	Extournes	EX000003	20240201	44586	Taxes sur le chiffre d'affaires sur factures non parvenues			EX000003	20240201	Honoraires	0,00	41,40					EUR
+EX	Extournes	EX000004	20240201	6131	Fermages et loyers du foncier			EX000004	20240201	Fermages et loyers du foncier	0,00	793,72					EUR
+EX	Extournes	EX000004	20240201	401	Fournisseurs	F007	Fournisseur 007	EX000004	20240201	Fermages et loyers du foncier	793,72	0,00					EUR
+EX	Extournes	EX000005	20240201	6131	Fermages et loyers du foncier			EX000005	20240201	Fermages et loyers du foncier	0,00	2796,28					EUR
+EX	Extournes	EX000005	20240201	401	Fournisseurs	F007	Fournisseur 007	EX000005	20240201	Fermages et loyers du foncier	2796,28	0,00					EUR
+EX	Extournes	EX000006	20240201	401	Fournisseurs	F007	Fournisseur 007	EX000006	20240201	Concours divers (cotisations)	6258,98	0,00					EUR
+EX	Extournes	EX000006	20240201	6281	Concours divers (cotisations)			EX000006	20240201	Concours divers (cotisations)	0,00	6258,98					EUR
+EX	Extournes	EX000007	20240201	401	Fournisseurs	F007	Fournisseur 007	EX000007	20240201	Fermages et loyers du foncier	110,70	0,00					EUR
+EX	Extournes	EX000007	20240201	6131	Fermages et loyers du foncier			EX000007	20240201	Fermages et loyers du foncier	0,00	110,70					EUR
+EX	Extournes	EX000008	20240201	411	Clients	C004	Client 004	EX000008	20240201	Opération	44279,10	0,00					EUR
+EX	Extournes	EX000008	20240201	411	Clients	C004	Client 004	EX000008	20240201	Opération	0,00	44279,10					EUR
+EX	Extournes	EX000009	20240201	411	Clients	C003	Client 003	EX000009	20240201	Ventes de produits végétaux — maïs semence	0,00	253530,33					EUR
+EX	Extournes	EX000009	20240201	44587	Taxes sur le chiffre d'affaires sur factures à établir			EX000009	20240201	Ventes de produits végétaux — maïs semence	13217,23	0,00					EUR
+EX	Extournes	EX000009	20240201	7011	Ventes de produits végétaux			EX000009	20240201	Ventes de produits végétaux — maïs semence	240313,10	0,00					EUR
+EX	Extournes	EX000010	20240201	7011	Ventes de produits végétaux			EX000010	20240201	Ventes de produits végétaux — maïs	55350,00	0,00					EUR
+EX	Extournes	EX000010	20240201	44587	Taxes sur le chiffre d'affaires sur factures à établir			EX000010	20240201	Ventes de produits végétaux — maïs	3044,25	0,00					EUR
+EX	Extournes	EX000010	20240201	411	Clients	C003	Client 003	EX000010	20240201	Ventes de produits végétaux — maïs	0,00	58394,25					EUR
+EX	Extournes	EX000011	20240201	441	État - Subventions et aides à recevoir			EX000011	20240201	Primes d'assurances	0,00	38537,32					EUR
+EX	Extournes	EX000011	20240201	616	Primes d'assurances			EX000011	20240201	Primes d'assurances	38537,32	0,00					EUR
+EX	Extournes	EX000012	20240201	6131	Fermages et loyers du foncier			EX000012	20240201	Fermages et loyers du foncier	0,00	2448,58					EUR
+EX	Extournes	EX000012	20240201	401	Fournisseurs	F007	Fournisseur 007	EX000012	20240201	Fermages et loyers du foncier	2448,58	0,00					EUR
+EX	Extournes	EX000013	20240201	44586	Taxes sur le chiffre d'affaires sur factures non parvenues			EX000013	20240201	Achats d'études et prestations de services	0,00	24,35					EUR
+EX	Extournes	EX000013	20240201	401	Fournisseurs	F007	Fournisseur 007	EX000013	20240201	Achats d'études et prestations de services	117606,02	0,00					EUR
+EX	Extournes	EX000013	20240201	44586	Taxes sur le chiffre d'affaires sur factures non parvenues			EX000013	20240201	Achats d'études et prestations de services	0,00	6106,77					EUR
+EX	Extournes	EX000013	20240201	604	Achats d'études et prestations de services			EX000013	20240201	Achats d'études et prestations de services	0,00	111032,10					EUR
+EX	Extournes	EX000013	20240201	604	Achats d'études et prestations de services			EX000013	20240201	Achats d'études et prestations de services	0,00	442,80					EUR
+EX	Extournes	EX000014	20240201	616	Primes d'assurances			EX000014	20240201	Cotisations sociales personnelles de l'exploitant	0,00	221,40					EUR
+EX	Extournes	EX000014	20240201	616	Primes d'assurances			EX000014	20240201	Cotisations sociales personnelles de l'exploitant	0,00	577,85					EUR
+EX	Extournes	EX000014	20240201	646	Cotisations sociales personnelles de l'exploitant			EX000014	20240201	Cotisations sociales personnelles de l'exploitant	0,00	2332,45					EUR
+EX	Extournes	EX000014	20240201	6333	Contribution unique des employeurs à la formation professionnelle			EX000014	20240201	Cotisations sociales personnelles de l'exploitant	0,00	83,03					EUR
+EX	Extournes	EX000014	20240201	628	Divers			EX000014	20240201	Cotisations sociales personnelles de l'exploitant	0,00	22,14					EUR
+EX	Extournes	EX000014	20240201	4386	Autres charges à payer			EX000014	20240201	Cotisations sociales personnelles de l'exploitant	3236,87	0,00					EUR
+OD	Opérations diverses	OD000001	20240201	411	Clients	C001	Client 001	OD000001	20240201	Opération	0,00	4336,54					EUR
+OD	Opérations diverses	OD000001	20240201	4551	Principal	A002	Associé 2	OD000001	20240201	Opération	4336,54	0,00					EUR
+OD	Opérations diverses	OD000002	20240201	401	Fournisseurs	F009	Fournisseur 009	OD000002	20240201	Opération	0,00	77490,00					EUR
+OD	Opérations diverses	OD000002	20240201	401	Fournisseurs	F009	Fournisseur 009	OD000002	20240201	Opération	77490,00	0,00					EUR
+OD	Opérations diverses	OD000003	20240201	401	Fournisseurs	F008	Fournisseur 008	OD000003	20240201	Opération	0,00	33210,00					EUR
+OD	Opérations diverses	OD000003	20240201	401	Fournisseurs	F009	Fournisseur 009	OD000003	20240201	Opération	33210,00	0,00					EUR
+OD	Opérations diverses	OD000004	20240201	401	Fournisseurs	F008	Fournisseur 008	OD000004	20240201	Opération	33210,00	0,00					EUR
+OD	Opérations diverses	OD000004	20240201	401	Fournisseurs	F009	Fournisseur 009	OD000004	20240201	Opération	0,00	33210,00					EUR
+OD	Opérations diverses	OD000005	20240201	6226	Honoraires			OD000005	20240201	Honoraires	0,00	166,05					EUR
+OD	Opérations diverses	OD000005	20240201	44566	TVA sur autres biens et services			OD000005	20240201	Honoraires	0,00	33,21					EUR
+OD	Opérations diverses	OD000005	20240201	401	Fournisseurs	F001	Fournisseur 001	OD000005	20240201	Honoraires	199,26	0,00					EUR
+OD	Opérations diverses	OD000006	20240201	401	Fournisseurs	F002	Fournisseur 002	OD000006	20240201	Fermages et loyers du foncier	0,00	2796,28					EUR
+OD	Opérations diverses	OD000006	20240201	6131	Fermages et loyers du foncier			OD000006	20240201	Fermages et loyers du foncier	2796,28	0,00					EUR
+OD	Opérations diverses	OD000007	20240201	129	Résultat de l'exercice – perte			OD000007	20240201	Opération	0,00	111797,50					EUR
+OD	Opérations diverses	OD000007	20240201	119	Report à nouveau - solde débiteur			OD000007	20240201	Opération	111797,50	0,00					EUR
+OD	Opérations diverses	OD000008	20240201	401	Fournisseurs	F005	Fournisseur 005	OD000008	20240201	Primes d'assurances	8749,73	0,00					EUR
+OD	Opérations diverses	OD000008	20240201	616	Primes d'assurances			OD000008	20240201	Primes d'assurances	0,00	8749,73					EUR
+VE	Ventes	VE000001	20240201	761	Produits de participations			VE000001	20240201	Produits de participations	0,00	2,52					EUR
+VE	Ventes	VE000001	20240201	401	Fournisseurs	F006	Fournisseur 006	VE000001	20240201	Produits de participations	2,52	0,00					EUR
+VE	Ventes	VE000002	20240201	7011	Ventes de produits végétaux			VE000002	20240201	Ventes de produits végétaux — maïs	0,00	17362,80					EUR
+VE	Ventes	VE000002	20240201	44571	TVA collectée			VE000002	20240201	Ventes de produits végétaux — maïs	0,00	1736,29					EUR
+VE	Ventes	VE000002	20240201	411	Clients	C004	Client 004	VE000002	20240201	Ventes de produits végétaux — maïs	19099,09	0,00					EUR
+VE	Ventes	VE000003	20240201	7011	Ventes de produits végétaux			VE000003	20240201	Ventes de produits végétaux — maïs semence	0,00	97,16					EUR
+VE	Ventes	VE000003	20240201	44571	TVA collectée			VE000003	20240201	Ventes de produits végétaux — maïs semence	0,00	5,35					EUR
+VE	Ventes	VE000003	20240201	401	Fournisseurs	F006	Fournisseur 006	VE000003	20240201	Ventes de produits végétaux — maïs semence	102,51	0,00					EUR
+VE	Ventes	VE000004	20240201	7011	Ventes de produits végétaux			VE000004	20240201	Ventes de produits végétaux — maïs semence	0,00	3719,52					EUR
+VE	Ventes	VE000004	20240201	44571	TVA collectée			VE000004	20240201	Ventes de produits végétaux — maïs semence	0,00	204,57					EUR
+VE	Ventes	VE000004	20240201	401	Fournisseurs	F006	Fournisseur 006	VE000004	20240201	Ventes de produits végétaux — maïs semence	3924,09	0,00					EUR
+VE	Ventes	VE000005	20240201	7011	Ventes de produits végétaux			VE000005	20240201	Ventes de produits végétaux — maïs semence	0,00	1354,97					EUR
+VE	Ventes	VE000005	20240201	44571	TVA collectée			VE000005	20240201	Ventes de produits végétaux — maïs semence	0,00	74,52					EUR
+VE	Ventes	VE000005	20240201	401	Fournisseurs	F006	Fournisseur 006	VE000005	20240201	Ventes de produits végétaux — maïs semence	1429,49	0,00					EUR
+VE	Ventes	VE000006	20240201	7011	Ventes de produits végétaux			VE000006	20240201	Ventes de produits végétaux — maïs semence	0,00	846,86					EUR
+VE	Ventes	VE000006	20240201	44571	TVA collectée			VE000006	20240201	Ventes de produits végétaux — maïs semence	0,00	46,58					EUR
+VE	Ventes	VE000006	20240201	401	Fournisseurs	F006	Fournisseur 006	VE000006	20240201	Ventes de produits végétaux — maïs semence	893,44	0,00					EUR
+VE	Ventes	VE000007	20240201	7011	Ventes de produits végétaux			VE000007	20240201	Ventes de produits végétaux — maïs semence	0,00	420,66					EUR
+VE	Ventes	VE000007	20240201	44571	TVA collectée			VE000007	20240201	Ventes de produits végétaux — maïs semence	0,00	23,14					EUR
+VE	Ventes	VE000007	20240201	401	Fournisseurs	F006	Fournisseur 006	VE000007	20240201	Ventes de produits végétaux — maïs semence	443,80	0,00					EUR
+VE	Ventes	VE000008	20240201	7011	Ventes de produits végétaux			VE000008	20240201	Ventes de produits végétaux — maïs semence	0,00	1072,68					EUR
+VE	Ventes	VE000008	20240201	44571	TVA collectée			VE000008	20240201	Ventes de produits végétaux — maïs semence	0,00	59,00					EUR
+VE	Ventes	VE000008	20240201	401	Fournisseurs	F006	Fournisseur 006	VE000008	20240201	Ventes de produits végétaux — maïs semence	1131,68	0,00					EUR
+VE	Ventes	VE000009	20240201	7011	Ventes de produits végétaux			VE000009	20240201	Ventes de produits végétaux — maïs semence	0,00	487,08					EUR
+VE	Ventes	VE000009	20240201	44571	TVA collectée			VE000009	20240201	Ventes de produits végétaux — maïs semence	0,00	26,79					EUR
+VE	Ventes	VE000009	20240201	401	Fournisseurs	F006	Fournisseur 006	VE000009	20240201	Ventes de produits végétaux — maïs semence	513,87	0,00					EUR
+VE	Ventes	VE000010	20240201	7011	Ventes de produits végétaux			VE000010	20240201	Ventes de produits végétaux — maïs semence	0,00	18162,54					EUR
+VE	Ventes	VE000010	20240201	44571	TVA collectée			VE000010	20240201	Ventes de produits végétaux — maïs semence	0,00	998,93					EUR
+VE	Ventes	VE000010	20240201	6281	Concours divers (cotisations)			VE000010	20240201	Ventes de produits végétaux — maïs semence	20,17	0,00					EUR
+VE	Ventes	VE000010	20240201	6281	Concours divers (cotisations)			VE000010	20240201	Ventes de produits végétaux — maïs semence	315,50	0,00					EUR
+VE	Ventes	VE000010	20240201	6281	Concours divers (cotisations)			VE000010	20240201	Ventes de produits végétaux — maïs semence	77,46	0,00					EUR
+VE	Ventes	VE000010	20240201	401	Fournisseurs	F006	Fournisseur 006	VE000010	20240201	Ventes de produits végétaux — maïs semence	18748,34	0,00					EUR
+VE	Ventes	VE000011	20240201	7011	Ventes de produits végétaux			VE000011	20240201	Ventes de produits végétaux — maïs semence	0,00	26476,48					EUR
+VE	Ventes	VE000011	20240201	44571	TVA collectée			VE000011	20240201	Ventes de produits végétaux — maïs semence	0,00	1456,20					EUR
+VE	Ventes	VE000011	20240201	6281	Concours divers (cotisations)			VE000011	20240201	Ventes de produits végétaux — maïs semence	30,93	0,00					EUR
+VE	Ventes	VE000011	20240201	6281	Concours divers (cotisations)			VE000011	20240201	Ventes de produits végétaux — maïs semence	365,31	0,00					EUR
+VE	Ventes	VE000011	20240201	6281	Concours divers (cotisations)			VE000011	20240201	Ventes de produits végétaux — maïs semence	118,79	0,00					EUR
+VE	Ventes	VE000011	20240201	401	Fournisseurs	F006	Fournisseur 006	VE000011	20240201	Ventes de produits végétaux — maïs semence	27417,65	0,00					EUR
+VE	Ventes	VE000012	20240201	7011	Ventes de produits végétaux			VE000012	20240201	Ventes de produits végétaux — maïs semence	0,00	35808,33					EUR
+VE	Ventes	VE000012	20240201	44571	TVA collectée			VE000012	20240201	Ventes de produits végétaux — maïs semence	0,00	1969,45					EUR
+VE	Ventes	VE000012	20240201	6281	Concours divers (cotisations)			VE000012	20240201	Ventes de produits végétaux — maïs semence	34,44	0,00					EUR
+VE	Ventes	VE000012	20240201	6281	Concours divers (cotisations)			VE000012	20240201	Ventes de produits végétaux — maïs semence	1328,40	0,00					EUR
+VE	Ventes	VE000012	20240201	6281	Concours divers (cotisations)			VE000012	20240201	Ventes de produits végétaux — maïs semence	132,29	0,00					EUR
+VE	Ventes	VE000012	20240201	401	Fournisseurs	F006	Fournisseur 006	VE000012	20240201	Ventes de produits végétaux — maïs semence	36282,65	0,00					EUR
+VE	Ventes	VE000013	20240201	7011	Ventes de produits végétaux			VE000013	20240201	Ventes de produits végétaux — maïs semence	0,00	34319,10					EUR
+VE	Ventes	VE000013	20240201	44571	TVA collectée			VE000013	20240201	Ventes de produits végétaux — maïs semence	0,00	1887,55					EUR
+VE	Ventes	VE000013	20240201	6281	Concours divers (cotisations)			VE000013	20240201	Ventes de produits végétaux — maïs semence	33,09	0,00					EUR
+VE	Ventes	VE000013	20240201	6281	Concours divers (cotisations)			VE000013	20240201	Ventes de produits végétaux — maïs semence	1051,65	0,00					EUR
+VE	Ventes	VE000013	20240201	6281	Concours divers (cotisations)			VE000013	20240201	Ventes de produits végétaux — maïs semence	127,09	0,00					EUR
+VE	Ventes	VE000013	20240201	401	Fournisseurs	F006	Fournisseur 006	VE000013	20240201	Ventes de produits végétaux — maïs semence	34994,82	0,00					EUR
+VE	Ventes	VE000014	20240201	7011	Ventes de produits végétaux			VE000014	20240201	Ventes de produits végétaux — maïs semence	0,00	38572,95					EUR
+VE	Ventes	VE000014	20240201	44571	TVA collectée			VE000014	20240201	Ventes de produits végétaux — maïs semence	0,00	2121,51					EUR
+VE	Ventes	VE000014	20240201	6281	Concours divers (cotisations)			VE000014	20240201	Ventes de produits végétaux — maïs semence	41,48	0,00					EUR
+VE	Ventes	VE000014	20240201	6281	Concours divers (cotisations)			VE000014	20240201	Ventes de produits végétaux — maïs semence	830,25	0,00					EUR
+VE	Ventes	VE000014	20240201	6281	Concours divers (cotisations)			VE000014	20240201	Ventes de produits végétaux — maïs semence	159,33	0,00					EUR
+VE	Ventes	VE000014	20240201	401	Fournisseurs	F006	Fournisseur 006	VE000014	20240201	Ventes de produits végétaux — maïs semence	39663,40	0,00					EUR
+VE	Ventes	VE000015	20240201	7011	Ventes de produits végétaux			VE000015	20240201	Ventes de produits végétaux — maïs semence	0,00	2583,74					EUR
+VE	Ventes	VE000015	20240201	44571	TVA collectée			VE000015	20240201	Ventes de produits végétaux — maïs semence	0,00	142,11					EUR
+VE	Ventes	VE000015	20240201	401	Fournisseurs	F006	Fournisseur 006	VE000015	20240201	Ventes de produits végétaux — maïs semence	2725,85	0,00					EUR
+VE	Ventes	VE000016	20240201	7011	Ventes de produits végétaux			VE000016	20240201	Ventes de produits végétaux — maïs semence	0,00	20170,65					EUR
+VE	Ventes	VE000016	20240201	44571	TVA collectée			VE000016	20240201	Ventes de produits végétaux — maïs semence	0,00	1109,39					EUR
+VE	Ventes	VE000016	20240201	401	Fournisseurs	F006	Fournisseur 006	VE000016	20240201	Ventes de produits végétaux — maïs semence	21280,04	0,00					EUR
+B1	Banque 1	B1000001	20240204	618	Divers			B1000001	20240204	Divers	72,35	0,00					EUR
+B1	Banque 1	B1000001	20240204	5121	Comptes en euros			B1000001	20240204	Divers	0,00	72,35					EUR
+B1	Banque 1	B1000002	20240205	4551	Principal	A001	Associé 1	B1000002	20240205	Règlement	0,00	353,44					EUR
+B1	Banque 1	B1000002	20240205	5121	Comptes en euros			B1000002	20240205	Règlement	353,44	0,00					EUR
+B1	Banque 1	B1000003	20240207	401	Fournisseurs	F008	Fournisseur 008	B1000003	20240207	Règlement	27018,96	0,00					EUR
+B1	Banque 1	B1000003	20240207	5121	Comptes en euros			B1000003	20240207	Règlement	0,00	27018,96					EUR
+OD	Opérations diverses	OD000009	20240207	401	Fournisseurs	F008	Fournisseur 008	OD000009	20240207	Opération	1596,00	0,00					EUR
+OD	Opérations diverses	OD000009	20240207	4551	Principal	A004	Associé 4	OD000009	20240207	Opération	0,00	1596,00					EUR
+KA	Coopérative ou négoce A	KA000001	20240217	6226	Honoraires			KA000001	20240217	Honoraires — blé	60,89	0,00					EUR
+KA	Coopérative ou négoce A	KA000001	20240217	6226	Honoraires			KA000001	20240217	Honoraires — blé	276,20	0,00					EUR
+KA	Coopérative ou négoce A	KA000001	20240217	44566	TVA sur autres biens et services			KA000001	20240217	Honoraires — blé	67,42	0,00					EUR
+KA	Coopérative ou négoce A	KA000001	20240217	401	Fournisseurs	F012	Fournisseur 012	KA000001	20240217	Honoraires — blé	0,00	404,51					EUR
+B1	Banque 1	B1000004	20240220	6131	Fermages et loyers du foncier			B1000004	20240220	Fermages et loyers du foncier	110,70	0,00					EUR
+B1	Banque 1	B1000004	20240220	5121	Comptes en euros			B1000004	20240220	Fermages et loyers du foncier	0,00	110,70					EUR
+B1	Banque 1	B1000005	20240220	6131	Fermages et loyers du foncier			B1000005	20240220	Fermages et loyers du foncier	793,72	0,00					EUR
+B1	Banque 1	B1000005	20240220	5121	Comptes en euros			B1000005	20240220	Fermages et loyers du foncier	0,00	793,72					EUR
+B1	Banque 1	B1000006	20240224	401	Fournisseurs	F010	Fournisseur 010	B1000006	20240224	Règlement	48,45	0,00					EUR
+B1	Banque 1	B1000006	20240224	5121	Comptes en euros			B1000006	20240224	Règlement	0,00	48,45					EUR
+AC	Achats	AC000004	20240228	761	Produits de participations			AC000004	20240228	Produits de participations — maïs	0,00	75,26					EUR
+AC	Achats	AC000004	20240228	401	Fournisseurs	F006	Fournisseur 006	AC000004	20240228	Produits de participations — maïs	75,26	0,00					EUR
+AC	Achats	AC000005	20240228	604	Achats d'études et prestations de services			AC000005	20240228	Achats d'études et prestations de services	197,05	0,00					EUR
+AC	Achats	AC000005	20240228	44566	TVA sur autres biens et services			AC000005	20240228	Achats d'études et prestations de services	39,41	0,00					EUR
+AC	Achats	AC000005	20240228	609	Rabais, remises et ristournes obtenus sur achats (même ventilation que celle du compte 60)			AC000005	20240228	Achats d'études et prestations de services	0,00	26,57					EUR
+AC	Achats	AC000005	20240228	44566	TVA sur autres biens et services			AC000005	20240228	Achats d'études et prestations de services	0,00	5,31					EUR
+AC	Achats	AC000005	20240228	401	Fournisseurs	F013	Fournisseur 013	AC000005	20240228	Achats d'études et prestations de services	0,00	204,58					EUR
+B1	Banque 1	B1000007	20240304	618	Divers			B1000007	20240304	Divers	72,35	0,00					EUR
+B1	Banque 1	B1000007	20240304	5121	Comptes en euros			B1000007	20240304	Divers	0,00	72,35					EUR
+B1	Banque 1	B1000008	20240305	411	Clients	C006	Client 006	B1000008	20240305	Encaissement	0,00	38537,32					EUR
+B1	Banque 1	B1000008	20240305	5121	Comptes en euros			B1000008	20240305	Encaissement	38537,32	0,00					EUR
+VE	Ventes	VE000017	20240305	616	Primes d'assurances			VE000017	20240305	Primes d'assurances	0,00	38537,32					EUR
+VE	Ventes	VE000017	20240305	411	Clients	C006	Client 006	VE000017	20240305	Primes d'assurances	38537,32	0,00					EUR
+AC	Achats	AC000006	20240310	6341	Produits végétaux			AC000006	20240310	Engrais et amendements — engrais	119,56	0,00					EUR
+AC	Achats	AC000006	20240310	6341	Produits végétaux			AC000006	20240310	Engrais et amendements — engrais	31,66	0,00					EUR
+AC	Achats	AC000006	20240310	6341	Produits végétaux			AC000006	20240310	Engrais et amendements — engrais	143,47	0,00					EUR
+AC	Achats	AC000006	20240310	6341	Produits végétaux			AC000006	20240310	Engrais et amendements — engrais	112,91	0,00					EUR
+AC	Achats	AC000006	20240310	6341	Produits végétaux			AC000006	20240310	Engrais et amendements — engrais	104,01	0,00					EUR
+AC	Achats	AC000006	20240310	6341	Produits végétaux			AC000006	20240310	Engrais et amendements — engrais	50,70	0,00					EUR
+AC	Achats	AC000006	20240310	6341	Produits végétaux			AC000006	20240310	Engrais et amendements — engrais	24,91	0,00					EUR
+AC	Achats	AC000006	20240310	60111	Engrais et amendements			AC000006	20240310	Engrais et amendements — engrais	11437,52	0,00					EUR
+AC	Achats	AC000006	20240310	658	Pénalités et autres charges			AC000006	20240310	Engrais et amendements — engrais	27,90	0,00					EUR
+AC	Achats	AC000006	20240310	60111	Engrais et amendements			AC000006	20240310	Engrais et amendements — engrais	1361,61	0,00					EUR
+AC	Achats	AC000006	20240310	658	Pénalités et autres charges			AC000006	20240310	Engrais et amendements — engrais	3,32	0,00					EUR
+AC	Achats	AC000006	20240310	60111	Engrais et amendements			AC000006	20240310	Engrais et amendements — engrais	11955,60	0,00					EUR
+AC	Achats	AC000006	20240310	658	Pénalités et autres charges			AC000006	20240310	Engrais et amendements — engrais	23,91	0,00					EUR
+AC	Achats	AC000006	20240310	60113	Produits de défense des végétaux			AC000006	20240310	Engrais et amendements — engrais	2523,96	0,00					EUR
+AC	Achats	AC000006	20240310	60113	Produits de défense des végétaux			AC000006	20240310	Engrais et amendements — engrais	2518,43	0,00					EUR
+AC	Achats	AC000006	20240310	60113	Produits de défense des végétaux			AC000006	20240310	Engrais et amendements — engrais	2291,49	0,00					EUR
+AC	Achats	AC000006	20240310	60113	Produits de défense des végétaux			AC000006	20240310	Engrais et amendements — engrais	1713,64	0,00					EUR
+AC	Achats	AC000006	20240310	60113	Produits de défense des végétaux			AC000006	20240310	Engrais et amendements — engrais	1102,57	0,00					EUR
+AC	Achats	AC000006	20240310	60113	Produits de défense des végétaux			AC000006	20240310	Engrais et amendements — engrais	773,79	0,00					EUR
+AC	Achats	AC000006	20240310	60113	Produits de défense des végétaux			AC000006	20240310	Engrais et amendements — engrais	968,63	0,00					EUR
+AC	Achats	AC000006	20240310	44566	TVA sur autres biens et services			AC000006	20240310	Engrais et amendements — engrais	7457,91	0,00					EUR
+AC	Achats	AC000006	20240310	60113	Produits de défense des végétaux			AC000006	20240310	Engrais et amendements — engrais	86,35	0,00					EUR
+AC	Achats	AC000006	20240310	60113	Produits de défense des végétaux			AC000006	20240310	Engrais et amendements — engrais	66,42	0,00					EUR
+AC	Achats	AC000006	20240310	60111	Engrais et amendements			AC000006	20240310	Engrais et amendements — engrais	619,92	0,00					EUR
+AC	Achats	AC000006	20240310	658	Pénalités et autres charges			AC000006	20240310	Engrais et amendements — engrais	0,77	0,00					EUR
+AC	Achats	AC000006	20240310	44566	TVA sur autres biens et services			AC000006	20240310	Engrais et amendements — engrais	77,35	0,00					EUR
+AC	Achats	AC000006	20240310	401	Fournisseurs	F014	Fournisseur 014	AC000006	20240310	Engrais et amendements — engrais	0,00	45598,31					EUR
+B1	Banque 1	B1000009	20240310	401	Fournisseurs	F009	Fournisseur 009	B1000009	20240310	Règlement	33210,00	0,00					EUR
+B1	Banque 1	B1000009	20240310	5121	Comptes en euros			B1000009	20240310	Règlement	0,00	33210,00					EUR
+B1	Banque 1	B1000010	20240313	44583	Remboursement de taxes sur le chiffre d'affaires demandé			B1000010	20240313	Règlement	0,00	36235,43					EUR
+B1	Banque 1	B1000010	20240313	5121	Comptes en euros			B1000010	20240313	Règlement	36235,43	0,00					EUR
+B1	Banque 1	B1000011	20240317	401	Fournisseurs	F012	Fournisseur 012	B1000011	20240317	Règlement	404,50	0,00					EUR
+B1	Banque 1	B1000011	20240317	5121	Comptes en euros			B1000011	20240317	Règlement	0,00	404,50					EUR
+KA	Coopérative ou négoce A	KA000002	20240318	6226	Honoraires			KA000002	20240318	Honoraires — blé	243,54	0,00					EUR
+KA	Coopérative ou négoce A	KA000002	20240318	6226	Honoraires			KA000002	20240318	Honoraires — blé	110,70	0,00					EUR
+KA	Coopérative ou négoce A	KA000002	20240318	6226	Honoraires			KA000002	20240318	Honoraires — blé	276,20	0,00					EUR
+KA	Coopérative ou négoce A	KA000002	20240318	44566	TVA sur autres biens et services			KA000002	20240318	Honoraires — blé	126,09	0,00					EUR
+KA	Coopérative ou négoce A	KA000002	20240318	401	Fournisseurs	F012	Fournisseur 012	KA000002	20240318	Honoraires — blé	0,00	756,53					EUR
+B1	Banque 1	B1000012	20240319	401	Fournisseurs	F009	Fournisseur 009	B1000012	20240319	Règlement	22140,00	0,00					EUR
+B1	Banque 1	B1000012	20240319	5121	Comptes en euros			B1000012	20240319	Règlement	0,00	22140,00					EUR
+AC	Achats	AC000007	20240320	60111	Engrais et amendements			AC000007	20240320	Engrais et amendements — engrais	1999,68	0,00					EUR
+AC	Achats	AC000007	20240320	44566	TVA sur autres biens et services			AC000007	20240320	Engrais et amendements — engrais	399,94	0,00					EUR
+AC	Achats	AC000007	20240320	401	Fournisseurs	F014	Fournisseur 014	AC000007	20240320	Engrais et amendements — engrais	0,00	2399,62					EUR
+AC	Achats	AC000008	20240320	60113	Produits de défense des végétaux			AC000008	20240320	Produits de défense des végétaux — blé	228,32	0,00					EUR
+AC	Achats	AC000008	20240320	6341	Produits végétaux			AC000008	20240320	Produits de défense des végétaux — blé	24,91	0,00					EUR
+AC	Achats	AC000008	20240320	60113	Produits de défense des végétaux			AC000008	20240320	Produits de défense des végétaux — blé	173,58	0,00					EUR
+AC	Achats	AC000008	20240320	6341	Produits végétaux			AC000008	20240320	Produits de défense des végétaux — blé	17,93	0,00					EUR
+AC	Achats	AC000008	20240320	60113	Produits de défense des végétaux			AC000008	20240320	Produits de défense des végétaux — blé	752,21	0,00					EUR
+AC	Achats	AC000008	20240320	6341	Produits végétaux			AC000008	20240320	Produits de défense des végétaux — blé	5,31	0,00					EUR
+AC	Achats	AC000008	20240320	60113	Produits de défense des végétaux			AC000008	20240320	Produits de défense des végétaux — blé	371,95	0,00					EUR
+AC	Achats	AC000008	20240320	6341	Produits végétaux			AC000008	20240320	Produits de défense des végétaux — blé	3,59	0,00					EUR
+AC	Achats	AC000008	20240320	60113	Produits de défense des végétaux			AC000008	20240320	Produits de défense des végétaux — blé	643,72	0,00					EUR
+AC	Achats	AC000008	20240320	6341	Produits végétaux			AC000008	20240320	Produits de défense des végétaux — blé	33,21	0,00					EUR
+AC	Achats	AC000008	20240320	60113	Produits de défense des végétaux			AC000008	20240320	Produits de défense des végétaux — blé	1037,81	0,00					EUR
+AC	Achats	AC000008	20240320	6341	Produits végétaux			AC000008	20240320	Produits de défense des végétaux — blé	149,45	0,00					EUR
+AC	Achats	AC000008	20240320	60113	Produits de défense des végétaux			AC000008	20240320	Produits de défense des végétaux — blé	873,42	0,00					EUR
+AC	Achats	AC000008	20240320	6341	Produits végétaux			AC000008	20240320	Produits de défense des végétaux — blé	33,21	0,00					EUR
+AC	Achats	AC000008	20240320	60113	Produits de défense des végétaux			AC000008	20240320	Produits de défense des végétaux — blé	628,78	0,00					EUR
+AC	Achats	AC000008	20240320	6341	Produits végétaux			AC000008	20240320	Produits de défense des végétaux — blé	7,97	0,00					EUR
+AC	Achats	AC000008	20240320	60113	Produits de défense des végétaux			AC000008	20240320	Produits de défense des végétaux — blé	464,94	0,00					EUR
+AC	Achats	AC000008	20240320	6341	Produits végétaux			AC000008	20240320	Produits de défense des végétaux — blé	106,27	0,00					EUR
+AC	Achats	AC000008	20240320	44566	TVA sur autres biens et services			AC000008	20240320	Produits de défense des végétaux — blé	1111,32	0,00					EUR
+AC	Achats	AC000008	20240320	401	Fournisseurs	F014	Fournisseur 014	AC000008	20240320	Produits de défense des végétaux — blé	0,00	6667,90					EUR
+B1	Banque 1	B1000013	20240321	401	Fournisseurs	F001	Fournisseur 001	B1000013	20240321	Règlement	199,26	0,00					EUR
+B1	Banque 1	B1000013	20240321	5121	Comptes en euros			B1000013	20240321	Règlement	0,00	199,26					EUR
+B1	Banque 1	B1000014	20240321	6278	Autres frais et commissions sur prestations de services			B1000014	20240321	Autres frais et commissions sur prestations de services	0,39	0,00					EUR
+B1	Banque 1	B1000014	20240321	5121	Comptes en euros			B1000014	20240321	Autres frais et commissions sur prestations de services	0,00	0,39					EUR
+AC	Achats	AC000009	20240322	60111	Engrais et amendements			AC000009	20240322	Engrais et amendements — engrais	1277,26	0,00					EUR
+AC	Achats	AC000009	20240322	60111	Engrais et amendements			AC000009	20240322	Engrais et amendements — engrais	1038,81	0,00					EUR
+AC	Achats	AC000009	20240322	60111	Engrais et amendements			AC000009	20240322	Engrais et amendements — engrais	6167,10	0,00					EUR
+AC	Achats	AC000009	20240322	44566	TVA sur autres biens et services			AC000009	20240322	Engrais et amendements — engrais	1488,87	0,00					EUR
+AC	Achats	AC000009	20240322	44566	TVA sur autres biens et services			AC000009	20240322	Engrais et amendements — engrais	103,88	0,00					EUR
+AC	Achats	AC000009	20240322	401	Fournisseurs	F015	Fournisseur 015	AC000009	20240322	Engrais et amendements — engrais	0,00	10075,92					EUR
+B1	Banque 1	B1000015	20240324	431	Sécurité sociale			B1000015	20240324	Règlement	1644,24	0,00					EUR
+B1	Banque 1	B1000015	20240324	5121	Comptes en euros			B1000015	20240324	Règlement	0,00	1644,24					EUR
+B1	Banque 1	B1000016	20240324	627	Services bancaires et assimilés			B1000016	20240324	Services bancaires et assimilés	48,45	0,00					EUR
+B1	Banque 1	B1000016	20240324	5121	Comptes en euros			B1000016	20240324	Services bancaires et assimilés	0,00	48,45					EUR
+AC	Achats	AC000010	20240331	761	Produits de participations			AC000010	20240331	Produits de participations	0,00	83,33					EUR
+AC	Achats	AC000010	20240331	401	Fournisseurs	F006	Fournisseur 006	AC000010	20240331	Produits de participations	83,33	0,00					EUR
+AC	Achats	AC000011	20240331	6281	Concours divers (cotisations)			AC000011	20240331	Concours divers (cotisations) — blé	299,72	0,00					EUR
+AC	Achats	AC000011	20240331	6281	Concours divers (cotisations)			AC000011	20240331	Concours divers (cotisations) — blé	182,66	0,00					EUR
+AC	Achats	AC000011	20240331	44566	TVA sur autres biens et services			AC000011	20240331	Concours divers (cotisations) — blé	96,48	0,00					EUR
+AC	Achats	AC000011	20240331	401	Fournisseurs	F006	Fournisseur 006	AC000011	20240331	Concours divers (cotisations) — blé	0,00	578,86					EUR
+AC	Achats	AC000012	20240331	6281	Concours divers (cotisations)			AC000012	20240331	Concours divers (cotisations) — blé	379,65	0,00					EUR
+AC	Achats	AC000012	20240331	6281	Concours divers (cotisations)			AC000012	20240331	Concours divers (cotisations) — blé	231,36	0,00					EUR
+AC	Achats	AC000012	20240331	44566	TVA sur autres biens et services			AC000012	20240331	Concours divers (cotisations) — blé	122,20	0,00					EUR
+AC	Achats	AC000012	20240331	401	Fournisseurs	F006	Fournisseur 006	AC000012	20240331	Concours divers (cotisations) — blé	0,00	733,21					EUR
+AC	Achats	AC000013	20240331	60111	Engrais et amendements			AC000013	20240331	Engrais et amendements — engrais	1578,74	0,00					EUR
+AC	Achats	AC000013	20240331	60111	Engrais et amendements			AC000013	20240331	Engrais et amendements — engrais	1646,88	0,00					EUR
+AC	Achats	AC000013	20240331	60111	Engrais et amendements			AC000013	20240331	Engrais et amendements — engrais	1703,67	0,00					EUR
+AC	Achats	AC000013	20240331	44566	TVA sur autres biens et services			AC000013	20240331	Engrais et amendements — engrais	492,92	0,00					EUR
+AC	Achats	AC000013	20240331	401	Fournisseurs	F014	Fournisseur 014	AC000013	20240331	Engrais et amendements — engrais	0,00	5422,21					EUR
+AC	Achats	AC000014	20240331	6281	Concours divers (cotisations)			AC000014	20240331	Concours divers (cotisations)	189,83	0,00					EUR
+AC	Achats	AC000014	20240331	6281	Concours divers (cotisations)			AC000014	20240331	Concours divers (cotisations)	115,68	0,00					EUR
+AC	Achats	AC000014	20240331	44566	TVA sur autres biens et services			AC000014	20240331	Concours divers (cotisations)	61,11	0,00					EUR
+AC	Achats	AC000014	20240331	401	Fournisseurs	F006	Fournisseur 006	AC000014	20240331	Concours divers (cotisations)	0,00	366,62					EUR
+AC	Achats	AC000015	20240331	6281	Concours divers (cotisations)			AC000015	20240331	Concours divers (cotisations)	292,25	0,00					EUR
+AC	Achats	AC000015	20240331	6281	Concours divers (cotisations)			AC000015	20240331	Concours divers (cotisations)	479,55	0,00					EUR
+AC	Achats	AC000015	20240331	44566	TVA sur autres biens et services			AC000015	20240331	Concours divers (cotisations)	154,36	0,00					EUR
+AC	Achats	AC000015	20240331	401	Fournisseurs	F006	Fournisseur 006	AC000015	20240331	Concours divers (cotisations)	0,00	926,16					EUR
+AC	Achats	AC000016	20240331	6281	Concours divers (cotisations)			AC000016	20240331	Concours divers (cotisations)	219,79	0,00					EUR
+AC	Achats	AC000016	20240331	6281	Concours divers (cotisations)			AC000016	20240331	Concours divers (cotisations)	133,95	0,00					EUR
+AC	Achats	AC000016	20240331	44566	TVA sur autres biens et services			AC000016	20240331	Concours divers (cotisations)	70,75	0,00					EUR
+AC	Achats	AC000016	20240331	401	Fournisseurs	F006	Fournisseur 006	AC000016	20240331	Concours divers (cotisations)	0,00	424,49					EUR
+OD	Opérations diverses	OD000010	20240331	7011	Ventes de produits végétaux			OD000010	20240331	Ventes de produits végétaux — maïs semence	0,00	183143,49					EUR
+OD	Opérations diverses	OD000010	20240331	44571	TVA collectée			OD000010	20240331	Ventes de produits végétaux — maïs semence	0,00	10072,89					EUR
+OD	Opérations diverses	OD000010	20240331	401	Fournisseurs	F006	Fournisseur 006	OD000010	20240331	Ventes de produits végétaux — maïs semence	193216,38	0,00					EUR
+OD	Opérations diverses	OD000011	20240331	60	Achats (sauf 603)			OD000011	20240331	Achats (sauf 603)	24568,54	0,00					EUR
+OD	Opérations diverses	OD000011	20240331	44566	TVA sur autres biens et services			OD000011	20240331	Achats (sauf 603)	2456,85	0,00					EUR
+OD	Opérations diverses	OD000011	20240331	60	Achats (sauf 603)			OD000011	20240331	Achats (sauf 603)	0,00	24568,54					EUR
+OD	Opérations diverses	OD000011	20240331	44566	TVA sur autres biens et services			OD000011	20240331	Achats (sauf 603)	0,00	2456,85					EUR
+OD	Opérations diverses	OD000012	20240331	44566	TVA sur autres biens et services			OD000012	20240331	TVA	0,00	9825,02					EUR
+OD	Opérations diverses	OD000012	20240331	44566	TVA sur autres biens et services			OD000012	20240331	TVA	5562,18	0,00					EUR
+OD	Opérations diverses	OD000012	20240331	44566	TVA sur autres biens et services			OD000012	20240331	TVA	639,39	0,00					EUR
+OD	Opérations diverses	OD000012	20240331	44566	TVA sur autres biens et services			OD000012	20240331	TVA	126,09	0,00					EUR
+OD	Opérations diverses	OD000012	20240331	44566	TVA sur autres biens et services			OD000012	20240331	TVA	34,10	0,00					EUR
+OD	Opérations diverses	OD000012	20240331	44566	TVA sur autres biens et services			OD000012	20240331	TVA	33,21	0,00					EUR
+OD	Opérations diverses	OD000012	20240331	44566	TVA sur autres biens et services			OD000012	20240331	TVA	3430,05	0,00					EUR
+OD	Opérations diverses	OD000013	20240331	44566	TVA sur autres biens et services			OD000013	20240331	TVA	0,00	9825,02					EUR
+OD	Opérations diverses	OD000013	20240331	44566	TVA sur autres biens et services			OD000013	20240331	TVA	3430,05	0,00					EUR
+OD	Opérations diverses	OD000013	20240331	44566	TVA sur autres biens et services			OD000013	20240331	TVA	5562,18	0,00					EUR
+OD	Opérations diverses	OD000013	20240331	44566	TVA sur autres biens et services			OD000013	20240331	TVA	639,39	0,00					EUR
+OD	Opérations diverses	OD000013	20240331	44566	TVA sur autres biens et services			OD000013	20240331	TVA	126,09	0,00					EUR
+OD	Opérations diverses	OD000013	20240331	44566	TVA sur autres biens et services			OD000013	20240331	TVA	34,10	0,00					EUR
+OD	Opérations diverses	OD000013	20240331	44566	TVA sur autres biens et services			OD000013	20240331	TVA	33,21	0,00					EUR
+TV	OD TVA	TV000001	20240331	44566	TVA sur autres biens et services			TV000001	20240331	Autres droits — blé	0,00	9474,36					EUR
+TV	OD TVA	TV000001	20240331	44566	TVA sur autres biens et services			TV000001	20240331	Autres droits — blé	0,00	570,27					EUR
+TV	OD TVA	TV000001	20240331	44566	TVA sur autres biens et services			TV000001	20240331	Autres droits — blé	0,00	8666,25					EUR
+TV	OD TVA	TV000001	20240331	44566	TVA sur autres biens et services			TV000001	20240331	Autres droits — blé	2650,61	0,00					EUR
+TV	OD TVA	TV000001	20240331	44571	TVA collectée			TV000001	20240331	Autres droits — blé	13844,72	0,00					EUR
+TV	OD TVA	TV000001	20240331	44583	Remboursement de taxes sur le chiffre d'affaires demandé			TV000001	20240331	Autres droits — blé	2216,21	0,00					EUR
+TV	OD TVA	TV000001	20240331	6358	Autres droits			TV000001	20240331	Autres droits — blé	1088,18	0,00					EUR
+TV	OD TVA	TV000001	20240331	44551	TVA à décaisser			TV000001	20240331	Autres droits — blé	0,00	1088,18					EUR
+TV	OD TVA	TV000001	20240331	758	Indemnités et autres produits			TV000001	20240331	Autres droits — blé	0,00	0,66					EUR
+VE	Ventes	VE000018	20240331	7011	Ventes de produits végétaux			VE000018	20240331	Ventes de produits végétaux — maïs semence	0,00	664,20					EUR
+VE	Ventes	VE000018	20240331	401	Fournisseurs	F006	Fournisseur 006	VE000018	20240331	Ventes de produits végétaux — maïs semence	664,20	0,00					EUR
+VE	Ventes	VE000019	20240331	7011	Ventes de produits végétaux			VE000019	20240331	Ventes de produits végétaux — maïs semence	0,00	84436,40					EUR
+VE	Ventes	VE000019	20240331	44571	TVA collectée			VE000019	20240331	Ventes de produits végétaux — maïs semence	0,00	4644,00					EUR
+VE	Ventes	VE000019	20240331	6281	Concours divers (cotisations)			VE000019	20240331	Ventes de produits végétaux — maïs semence	233,71	0,00					EUR
+VE	Ventes	VE000019	20240331	262	Participations à des organismes professionnels agricoles (autres que les établissements de crédit)			VE000019	20240331	Ventes de produits végétaux — maïs semence	844,64	0,00					EUR
+VE	Ventes	VE000019	20240331	7011	Ventes de produits végétaux			VE000019	20240331	Ventes de produits végétaux — maïs semence	67551,24	0,00					EUR
+VE	Ventes	VE000019	20240331	44571	TVA collectée			VE000019	20240331	Ventes de produits végétaux — maïs semence	3715,31	0,00					EUR
+VE	Ventes	VE000019	20240331	401	Fournisseurs	F006	Fournisseur 006	VE000019	20240331	Ventes de produits végétaux — maïs semence	16735,50	0,00					EUR
+VE	Ventes	VE000020	20240331	7011	Ventes de produits végétaux			VE000020	20240331	Ventes de produits végétaux — maïs semence	0,00	81014,34					EUR
+VE	Ventes	VE000020	20240331	44571	TVA collectée			VE000020	20240331	Ventes de produits végétaux — maïs semence	0,00	4455,79					EUR
+VE	Ventes	VE000020	20240331	7011	Ventes de produits végétaux			VE000020	20240331	Ventes de produits végétaux — maïs semence	64808,85	0,00					EUR
+VE	Ventes	VE000020	20240331	44571	TVA collectée			VE000020	20240331	Ventes de produits végétaux — maïs semence	3564,48	0,00					EUR
+VE	Ventes	VE000020	20240331	6281	Concours divers (cotisations)			VE000020	20240331	Ventes de produits végétaux — maïs semence	292,98	0,00					EUR
+VE	Ventes	VE000020	20240331	262	Participations à des organismes professionnels agricoles (autres que les établissements de crédit)			VE000020	20240331	Ventes de produits végétaux — maïs semence	810,32	0,00					EUR
+VE	Ventes	VE000020	20240331	401	Fournisseurs	F006	Fournisseur 006	VE000020	20240331	Ventes de produits végétaux — maïs semence	15993,50	0,00					EUR
+VE	Ventes	VE000021	20240331	7011	Ventes de produits végétaux			VE000021	20240331	Ventes de produits végétaux — maïs semence	0,00	34010,02					EUR
+VE	Ventes	VE000021	20240331	44571	TVA collectée			VE000021	20240331	Ventes de produits végétaux — maïs semence	0,00	1870,55					EUR
+VE	Ventes	VE000021	20240331	7011	Ventes de produits végétaux			VE000021	20240331	Ventes de produits végétaux — maïs semence	27206,73	0,00					EUR
+VE	Ventes	VE000021	20240331	44571	TVA collectée			VE000021	20240331	Ventes de produits végétaux — maïs semence	1496,38	0,00					EUR
+VE	Ventes	VE000021	20240331	6281	Concours divers (cotisations)			VE000021	20240331	Ventes de produits végétaux — maïs semence	142,44	0,00					EUR
+VE	Ventes	VE000021	20240331	262	Participations à des organismes professionnels agricoles (autres que les établissements de crédit)			VE000021	20240331	Ventes de produits végétaux — maïs semence	340,96	0,00					EUR
+VE	Ventes	VE000021	20240331	401	Fournisseurs	F006	Fournisseur 006	VE000021	20240331	Ventes de produits végétaux — maïs semence	6694,06	0,00					EUR
+VE	Ventes	VE000022	20240331	7011	Ventes de produits végétaux			VE000022	20240331	Ventes de produits végétaux — maïs semence	0,00	97232,20					EUR
+VE	Ventes	VE000022	20240331	44571	TVA collectée			VE000022	20240331	Ventes de produits végétaux — maïs semence	0,00	1069,55					EUR
+VE	Ventes	VE000022	20240331	6281	Concours divers (cotisations)			VE000022	20240331	Ventes de produits végétaux — maïs semence	243,25	0,00					EUR
+VE	Ventes	VE000022	20240331	262	Participations à des organismes professionnels agricoles (autres que les établissements de crédit)			VE000022	20240331	Ventes de produits végétaux — maïs semence	973,05	0,00					EUR
+VE	Ventes	VE000022	20240331	401	Fournisseurs	F006	Fournisseur 006	VE000022	20240331	Ventes de produits végétaux — maïs semence	19299,68	0,00					EUR
+VE	Ventes	VE000022	20240331	7011	Ventes de produits végétaux			VE000022	20240331	Ventes de produits végétaux — maïs semence	77785,77	0,00					EUR
+VE	Ventes	VE000023	20240331	7011	Ventes de produits végétaux			VE000023	20240331	Ventes de produits végétaux — maïs semence	0,00	46187,09					EUR
+VE	Ventes	VE000023	20240331	44571	TVA collectée			VE000023	20240331	Ventes de produits végétaux — maïs semence	0,00	508,11					EUR
+VE	Ventes	VE000023	20240331	6281	Concours divers (cotisations)			VE000023	20240331	Ventes de produits végétaux — maïs semence	218,44	0,00					EUR
+VE	Ventes	VE000023	20240331	262	Participations à des organismes professionnels agricoles (autres que les établissements de crédit)			VE000023	20240331	Ventes de produits végétaux — maïs semence	462,73	0,00					EUR
+VE	Ventes	VE000023	20240331	401	Fournisseurs	F006	Fournisseur 006	VE000023	20240331	Ventes de produits végétaux — maïs semence	9065,33	0,00					EUR
+VE	Ventes	VE000023	20240331	7011	Ventes de produits végétaux			VE000023	20240331	Ventes de produits végétaux — maïs semence	36948,70	0,00					EUR
+VE	Ventes	VE000024	20240331	7011	Ventes de produits végétaux			VE000024	20240331	Ventes de produits végétaux — maïs semence	0,00	664,20					EUR
+VE	Ventes	VE000024	20240331	616	Primes d'assurances			VE000024	20240331	Ventes de produits végétaux — maïs semence	664,20	0,00					EUR
+OD	Opérations diverses	OD000014	20240401	7011	Ventes de produits végétaux			OD000014	20240401	Ventes de produits végétaux — maïs semence	183143,49	0,00					EUR
+OD	Opérations diverses	OD000014	20240401	44571	TVA collectée			OD000014	20240401	Ventes de produits végétaux — maïs semence	10072,89	0,00					EUR
+OD	Opérations diverses	OD000014	20240401	401	Fournisseurs	F006	Fournisseur 006	OD000014	20240401	Ventes de produits végétaux — maïs semence	0,00	193216,38					EUR
+B1	Banque 1	B1000017	20240402	618	Divers			B1000017	20240402	Divers	72,35	0,00					EUR
+B1	Banque 1	B1000017	20240402	5121	Comptes en euros			B1000017	20240402	Divers	0,00	72,35					EUR
+B1	Banque 1	B1000018	20240407	66181	Intérêts des dettes commerciales			B1000018	20240407	Intérêts des dettes commerciales	1636,57	0,00					EUR
+B1	Banque 1	B1000018	20240407	5121	Comptes en euros			B1000018	20240407	Intérêts des dettes commerciales	0,00	1636,57					EUR
+OD	Opérations diverses	OD000015	20240407	401	Fournisseurs	F013	Fournisseur 013	OD000015	20240407	Opération	204,57	0,00					EUR
+OD	Opérations diverses	OD000015	20240407	401	Fournisseurs	F006	Fournisseur 006	OD000015	20240407	Opération	0,00	204,57					EUR
+B1	Banque 1	B1000019	20240408	401	Fournisseurs	F006	Fournisseur 006	B1000019	20240408	Règlement	0,00	93500,68					EUR
+B1	Banque 1	B1000019	20240408	5121	Comptes en euros			B1000019	20240408	Règlement	93500,68	0,00					EUR
+AC	Achats	AC000017	20240410	60113	Produits de défense des végétaux			AC000017	20240410	Engrais et amendements — engrais	581,18	0,00					EUR
+AC	Achats	AC000017	20240410	6341	Produits végétaux			AC000017	20240410	Engrais et amendements — engrais	14,94	0,00					EUR
+AC	Achats	AC000017	20240410	60111	Engrais et amendements			AC000017	20240410	Engrais et amendements — engrais	14360,00	0,00					EUR
+AC	Achats	AC000017	20240410	658	Pénalités et autres charges			AC000017	20240410	Engrais et amendements — engrais	31,22	0,00					EUR
+AC	Achats	AC000017	20240410	44566	TVA sur autres biens et services			AC000017	20240410	Engrais et amendements — engrais	2997,47	0,00					EUR
+AC	Achats	AC000017	20240410	401	Fournisseurs	F014	Fournisseur 014	AC000017	20240410	Engrais et amendements — engrais	0,00	17984,81					EUR
+B1	Banque 1	B1000020	20240412	401	Fournisseurs	F009	Fournisseur 009	B1000020	20240412	Règlement	22140,00	0,00					EUR
+B1	Banque 1	B1000020	20240412	5121	Comptes en euros			B1000020	20240412	Règlement	0,00	22140,00					EUR
+B1	Banque 1	B1000021	20240414	401	Fournisseurs	F009	Fournisseur 009	B1000021	20240414	Règlement	33210,00	0,00					EUR
+B1	Banque 1	B1000021	20240414	5121	Comptes en euros			B1000021	20240414	Règlement	0,00	33210,00					EUR
+AC	Achats	AC000018	20240415	604	Achats d'études et prestations de services			AC000018	20240415	Achats d'études et prestations de services	622,69	0,00					EUR
+AC	Achats	AC000018	20240415	604	Achats d'études et prestations de services			AC000018	20240415	Achats d'études et prestations de services	1640,57	0,00					EUR
+AC	Achats	AC000018	20240415	604	Achats d'études et prestations de services			AC000018	20240415	Achats d'études et prestations de services	371,95	0,00					EUR
+AC	Achats	AC000018	20240415	604	Achats d'études et prestations de services			AC000018	20240415	Achats d'études et prestations de services	508,11	0,00					EUR
+AC	Achats	AC000018	20240415	44566	TVA sur autres biens et services			AC000018	20240415	Achats d'études et prestations de services	628,67	0,00					EUR
+AC	Achats	AC000018	20240415	401	Fournisseurs	F016	Fournisseur 016	AC000018	20240415	Achats d'études et prestations de services	0,00	3771,99					EUR
+B1	Banque 1	B1000022	20240415	401	Fournisseurs	F012	Fournisseur 012	B1000022	20240415	Règlement	756,52	0,00					EUR
+B1	Banque 1	B1000022	20240415	5121	Comptes en euros			B1000022	20240415	Règlement	0,00	756,52					EUR
+B1	Banque 1	B1000023	20240424	627	Services bancaires et assimilés			B1000023	20240424	Services bancaires et assimilés	48,45	0,00					EUR
+B1	Banque 1	B1000023	20240424	5121	Comptes en euros			B1000023	20240424	Services bancaires et assimilés	0,00	48,45					EUR
+B1	Banque 1	B1000024	20240425	401	Fournisseurs	F014	Fournisseur 014	B1000024	20240425	Règlement	9067,51	0,00					EUR
+B1	Banque 1	B1000024	20240425	5121	Comptes en euros			B1000024	20240425	Règlement	0,00	9067,51					EUR
+B1	Banque 1	B1000025	20240425	401	Fournisseurs	F016	Fournisseur 016	B1000025	20240425	Règlement	4758,33	0,00					EUR
+B1	Banque 1	B1000025	20240425	5121	Comptes en euros			B1000025	20240425	Règlement	0,00	4758,33					EUR
+B1	Banque 1	B1000026	20240425	58	Virements internes			B1000026	20240425	Règlement	0,00	45598,30					EUR
+B1	Banque 1	B1000026	20240425	5121	Comptes en euros			B1000026	20240425	Règlement	45598,30	0,00					EUR
+B1	Banque 1	B1000027	20240425	401	Fournisseurs	F014	Fournisseur 014	B1000027	20240425	Règlement	45598,30	0,00					EUR
+B1	Banque 1	B1000027	20240425	5121	Comptes en euros			B1000027	20240425	Règlement	0,00	45598,30					EUR
+B1	Banque 1	B1000028	20240425	6278	Autres frais et commissions sur prestations de services			B1000028	20240425	Autres frais et commissions sur prestations de services	0,39	0,00					EUR
+B1	Banque 1	B1000028	20240425	5121	Comptes en euros			B1000028	20240425	Autres frais et commissions sur prestations de services	0,00	0,39					EUR
+B1	Banque 1	B1000029	20240425	6278	Autres frais et commissions sur prestations de services			B1000029	20240425	Autres frais et commissions sur prestations de services	7,20	0,00					EUR
+B1	Banque 1	B1000029	20240425	5121	Comptes en euros			B1000029	20240425	Autres frais et commissions sur prestations de services	0,00	7,20					EUR
+KB	Coopérative ou négoce B	KB000001	20240425	519	Concours bancaires courants			KB000001	20240425	Opération	0,00	45598,30					EUR
+KB	Coopérative ou négoce B	KB000001	20240425	58	Virements internes			KB000001	20240425	Opération	45598,30	0,00					EUR
+AC	Achats	AC000019	20240429	6341	Produits végétaux			AC000019	20240429	Produits de défense des végétaux — blé	5,31	0,00					EUR
+AC	Achats	AC000019	20240429	6341	Produits végétaux			AC000019	20240429	Produits de défense des végétaux — blé	9,30	0,00					EUR
+AC	Achats	AC000019	20240429	6341	Produits végétaux			AC000019	20240429	Produits de défense des végétaux — blé	49,82	0,00					EUR
+AC	Achats	AC000019	20240429	60113	Produits de défense des végétaux			AC000019	20240429	Produits de défense des végétaux — blé	752,21	0,00					EUR
+AC	Achats	AC000019	20240429	60113	Produits de défense des végétaux			AC000019	20240429	Produits de défense des végétaux — blé	473,24	0,00					EUR
+AC	Achats	AC000019	20240429	60113	Produits de défense des végétaux			AC000019	20240429	Produits de défense des végétaux — blé	379,70	0,00					EUR
+AC	Achats	AC000019	20240429	44566	TVA sur autres biens et services			AC000019	20240429	Produits de défense des végétaux — blé	333,92	0,00					EUR
+AC	Achats	AC000019	20240429	401	Fournisseurs	F014	Fournisseur 014	AC000019	20240429	Produits de défense des végétaux — blé	0,00	2003,50					EUR
+AC	Achats	AC000020	20240430	60113	Produits de défense des végétaux			AC000020	20240430	Produits de défense des végétaux — maïs	391,32	0,00					EUR
+AC	Achats	AC000020	20240430	6341	Produits végétaux			AC000020	20240430	Produits de défense des végétaux — maïs	37,20	0,00					EUR
+AC	Achats	AC000020	20240430	60113	Produits de défense des végétaux			AC000020	20240430	Produits de défense des végétaux — maïs	677,48	0,00					EUR
+AC	Achats	AC000020	20240430	6341	Produits végétaux			AC000020	20240430	Produits de défense des végétaux — maïs	95,64	0,00					EUR
+AC	Achats	AC000020	20240430	44566	TVA sur autres biens et services			AC000020	20240430	Produits de défense des végétaux — maïs	240,33	0,00					EUR
+AC	Achats	AC000020	20240430	401	Fournisseurs	F004	Fournisseur 004	AC000020	20240430	Produits de défense des végétaux — maïs	0,00	1441,97					EUR
+AC	Achats	AC000021	20240430	761	Produits de participations			AC000021	20240430	Produits de participations	0,00	21,51					EUR
+AC	Achats	AC000021	20240430	401	Fournisseurs	F006	Fournisseur 006	AC000021	20240430	Produits de participations	21,51	0,00					EUR
+AC	Achats	AC000022	20240430	6132	Locations de matériel			AC000022	20240430	Locations de matériel	2313,08	0,00					EUR
+AC	Achats	AC000022	20240430	44566	TVA sur autres biens et services			AC000022	20240430	Locations de matériel	462,62	0,00					EUR
+AC	Achats	AC000022	20240430	401	Fournisseurs	F016	Fournisseur 016	AC000022	20240430	Locations de matériel	0,00	2775,70					EUR
+AC	Achats	AC000023	20240430	604	Achats d'études et prestations de services			AC000023	20240430	Achats d'études et prestations de services	1129,14	0,00					EUR
+AC	Achats	AC000023	20240430	44566	TVA sur autres biens et services			AC000023	20240430	Achats d'études et prestations de services	225,83	0,00					EUR
+AC	Achats	AC000023	20240430	401	Fournisseurs	F016	Fournisseur 016	AC000023	20240430	Achats d'études et prestations de services	0,00	1354,97					EUR
+AC	Achats	AC000024	20240430	604	Achats d'études et prestations de services			AC000024	20240430	Achats d'études et prestations de services — pois	288,93	0,00					EUR
+AC	Achats	AC000024	20240430	44566	TVA sur autres biens et services			AC000024	20240430	Achats d'études et prestations de services — pois	57,79	0,00					EUR
+AC	Achats	AC000024	20240430	401	Fournisseurs	F016	Fournisseur 016	AC000024	20240430	Achats d'études et prestations de services — pois	0,00	346,72					EUR
+OD	Opérations diverses	OD000016	20240501	604	Achats d'études et prestations de services			OD000016	20240501	Achats d'études et prestations de services	0,00	1129,14					EUR
+OD	Opérations diverses	OD000016	20240501	44566	TVA sur autres biens et services			OD000016	20240501	Achats d'études et prestations de services	0,00	225,83					EUR
+OD	Opérations diverses	OD000016	20240501	401	Fournisseurs	F016	Fournisseur 016	OD000016	20240501	Achats d'études et prestations de services	1354,97	0,00					EUR
+OD	Opérations diverses	OD000017	20240501	604	Achats d'études et prestations de services			OD000017	20240501	Achats d'études et prestations de services	0,00	288,93					EUR
+OD	Opérations diverses	OD000017	20240501	44566	TVA sur autres biens et services			OD000017	20240501	Achats d'études et prestations de services	0,00	57,79					EUR
+OD	Opérations diverses	OD000017	20240501	401	Fournisseurs	F016	Fournisseur 016	OD000017	20240501	Achats d'études et prestations de services	346,72	0,00					EUR
+B1	Banque 1	B1000030	20240504	401	Fournisseurs	F009	Fournisseur 009	B1000030	20240504	Règlement	22140,00	0,00					EUR
+B1	Banque 1	B1000030	20240504	5121	Comptes en euros			B1000030	20240504	Règlement	0,00	22140,00					EUR
+B1	Banque 1	B1000031	20240505	618	Divers			B1000031	20240505	Divers	72,35	0,00					EUR
+B1	Banque 1	B1000031	20240505	5121	Comptes en euros			B1000031	20240505	Divers	0,00	72,35					EUR
+B1	Banque 1	B1000032	20240507	44551	TVA à décaisser			B1000032	20240507	Règlement	948,70	0,00					EUR
+B1	Banque 1	B1000032	20240507	5121	Comptes en euros			B1000032	20240507	Règlement	0,00	948,70					EUR
+B1	Banque 1	B1000033	20240508	44551	TVA à décaisser			B1000033	20240508	Règlement	1088,18	0,00					EUR
+B1	Banque 1	B1000033	20240508	5121	Comptes en euros			B1000033	20240508	Règlement	0,00	1088,18					EUR
+AC	Achats	AC000025	20240509	6226	Honoraires			AC000025	20240509	Honoraires	278,96	0,00					EUR
+AC	Achats	AC000025	20240509	44566	TVA sur autres biens et services			AC000025	20240509	Honoraires	55,79	0,00					EUR
+AC	Achats	AC000025	20240509	401	Fournisseurs	F017	Fournisseur 017	AC000025	20240509	Honoraires	0,00	334,75					EUR
+VE	Ventes	VE000025	20240510	604	Achats d'études et prestations de services			VE000025	20240510	Achats d'études et prestations de services	111032,10	0,00					EUR
+VE	Ventes	VE000025	20240510	44566	TVA sur autres biens et services			VE000025	20240510	Achats d'études et prestations de services	6106,77	0,00					EUR
+VE	Ventes	VE000025	20240510	604	Achats d'études et prestations de services			VE000025	20240510	Achats d'études et prestations de services	442,80	0,00					EUR
+VE	Ventes	VE000025	20240510	44566	TVA sur autres biens et services			VE000025	20240510	Achats d'études et prestations de services	24,35	0,00					EUR
+VE	Ventes	VE000025	20240510	401	Fournisseurs	F009	Fournisseur 009	VE000025	20240510	Achats d'études et prestations de services	0,00	117606,02					EUR
+B1	Banque 1	B1000034	20240519	626	Frais postaux et de télécommunications			B1000034	20240519	Frais postaux et de télécommunications	209,69	0,00					EUR
+B1	Banque 1	B1000034	20240519	5121	Comptes en euros			B1000034	20240519	Frais postaux et de télécommunications	0,00	209,69					EUR
+B1	Banque 1	B1000035	20240519	44583	Remboursement de taxes sur le chiffre d'affaires demandé			B1000035	20240519	Règlement	0,00	2216,21					EUR
+B1	Banque 1	B1000035	20240519	5121	Comptes en euros			B1000035	20240519	Règlement	2216,21	0,00					EUR
+B1	Banque 1	B1000036	20240526	627	Services bancaires et assimilés			B1000036	20240526	Services bancaires et assimilés	48,45	0,00					EUR
+B1	Banque 1	B1000036	20240526	5121	Comptes en euros			B1000036	20240526	Services bancaires et assimilés	0,00	48,45					EUR
+B1	Banque 1	B1000037	20240529	401	Fournisseurs	F009	Fournisseur 009	B1000037	20240529	Règlement	16605,00	0,00					EUR
+B1	Banque 1	B1000037	20240529	5121	Comptes en euros			B1000037	20240529	Règlement	0,00	16605,00					EUR
+AC	Achats	AC000026	20240531	6617	Intérêts des obligations cautionnées			AC000026	20240531	Intérêts des obligations cautionnées	167,64	0,00					EUR
+AC	Achats	AC000026	20240531	401	Fournisseurs	F014	Fournisseur 014	AC000026	20240531	Intérêts des obligations cautionnées	0,00	167,64					EUR
+AC	Achats	AC000027	20240531	658	Pénalités et autres charges			AC000027	20240531	Engrais et amendements — engrais	7,97	0,00					EUR
+AC	Achats	AC000027	20240531	658	Pénalités et autres charges			AC000027	20240531	Engrais et amendements — engrais	5,98	0,00					EUR
+AC	Achats	AC000027	20240531	6341	Produits végétaux			AC000027	20240531	Engrais et amendements — engrais	9,96	0,00					EUR
+AC	Achats	AC000027	20240531	60111	Engrais et amendements			AC000027	20240531	Engrais et amendements — engrais	4104,76	0,00					EUR
+AC	Achats	AC000027	20240531	60111	Engrais et amendements			AC000027	20240531	Engrais et amendements — engrais	2158,65	0,00					EUR
+AC	Achats	AC000027	20240531	60111	Engrais et amendements			AC000027	20240531	Engrais et amendements — engrais	4842,02	0,00					EUR
+AC	Achats	AC000027	20240531	60113	Produits de défense des végétaux			AC000027	20240531	Engrais et amendements — engrais	476,67	0,00					EUR
+AC	Achats	AC000027	20240531	44566	TVA sur autres biens et services			AC000027	20240531	Engrais et amendements — engrais	2321,20	0,00					EUR
+AC	Achats	AC000027	20240531	401	Fournisseurs	F014	Fournisseur 014	AC000027	20240531	Engrais et amendements — engrais	0,00	13927,21					EUR
+B1	Banque 1	B1000038	20240603	401	Fournisseurs	F009	Fournisseur 009	B1000038	20240603	Règlement	541,18	0,00					EUR
+B1	Banque 1	B1000038	20240603	401	Fournisseurs	F011	Fournisseur 011	B1000038	20240603	Règlement	1143,66	0,00					EUR
+B1	Banque 1	B1000038	20240603	5121	Comptes en euros			B1000038	20240603	Règlement	0,00	1684,84					EUR
+B1	Banque 1	B1000039	20240603	618	Divers			B1000039	20240603	Divers	72,35	0,00					EUR
+B1	Banque 1	B1000039	20240603	5121	Comptes en euros			B1000039	20240603	Divers	0,00	72,35					EUR
+OD	Opérations diverses	OD000018	20240603	401	Fournisseurs	F011	Fournisseur 011	OD000018	20240603	Opération	0,00	920,58					EUR
+OD	Opérations diverses	OD000018	20240603	4551	Principal	A004	Associé 4	OD000018	20240603	Opération	920,58	0,00					EUR
+AC	Achats	AC000028	20240604	60113	Produits de défense des végétaux			AC000028	20240604	Produits de défense des végétaux	236,90	0,00					EUR
+AC	Achats	AC000028	20240604	44566	TVA sur autres biens et services			AC000028	20240604	Produits de défense des végétaux	47,38	0,00					EUR
+AC	Achats	AC000028	20240604	401	Fournisseurs	F014	Fournisseur 014	AC000028	20240604	Produits de défense des végétaux	0,00	284,28					EUR
+AC	Achats	AC000029	20240605	6226	Honoraires			AC000029	20240605	Honoraires	442,80	0,00					EUR
+AC	Achats	AC000029	20240605	6227	Frais d'actes et de contentieux			AC000029	20240605	Honoraires	66,42	0,00					EUR
+AC	Achats	AC000029	20240605	6227	Frais d'actes et de contentieux			AC000029	20240605	Honoraires	276,75	0,00					EUR
+AC	Achats	AC000029	20240605	6226	Honoraires			AC000029	20240605	Honoraires	0,00	442,80					EUR
+AC	Achats	AC000029	20240605	6227	Frais d'actes et de contentieux			AC000029	20240605	Honoraires	31,00	0,00					EUR
+AC	Achats	AC000029	20240605	6227	Frais d'actes et de contentieux			AC000029	20240605	Honoraires	50,83	0,00					EUR
+AC	Achats	AC000029	20240605	6227	Frais d'actes et de contentieux			AC000029	20240605	Honoraires	6,53	0,00					EUR
+AC	Achats	AC000029	20240605	6227	Frais d'actes et de contentieux			AC000029	20240605	Honoraires	0,00	22,14					EUR
+AC	Achats	AC000029	20240605	44566	TVA sur autres biens et services			AC000029	20240605	Honoraires	68,63	0,00					EUR
+AC	Achats	AC000029	20240605	401	Fournisseurs	F012	Fournisseur 012	AC000029	20240605	Honoraires	0,00	478,02					EUR
+AC	Achats	AC000030	20240612	60113	Produits de défense des végétaux			AC000030	20240612	Produits de défense des végétaux	501,64	0,00					EUR
+AC	Achats	AC000030	20240612	6341	Produits végétaux			AC000030	20240612	Produits de défense des végétaux	9,30	0,00					EUR
+AC	Achats	AC000030	20240612	44566	TVA sur autres biens et services			AC000030	20240612	Produits de défense des végétaux	102,19	0,00					EUR
+AC	Achats	AC000030	20240612	401	Fournisseurs	F014	Fournisseur 014	AC000030	20240612	Produits de défense des végétaux	0,00	613,13					EUR
+B1	Banque 1	B1000040	20240613	401	Fournisseurs	F006	Fournisseur 006	B1000040	20240613	Règlement	0,00	33188,49					EUR
+B1	Banque 1	B1000040	20240613	5121	Comptes en euros			B1000040	20240613	Règlement	33210,00	0,00					EUR
+B1	Banque 1	B1000040	20240613	401	Fournisseurs	F006	Fournisseur 006	B1000040	20240613	Règlement	0,00	21,51					EUR
+AC	Achats	AC000031	20240615	60113	Produits de défense des végétaux			AC000031	20240615	Produits de défense des végétaux — maïs	323,24	0,00					EUR
+AC	Achats	AC000031	20240615	6341	Produits végétaux			AC000031	20240615	Produits de défense des végétaux — maïs	9,96	0,00					EUR
+AC	Achats	AC000031	20240615	60113	Produits de défense des végétaux			AC000031	20240615	Produits de défense des végétaux — maïs	161,62	0,00					EUR
+AC	Achats	AC000031	20240615	6341	Produits végétaux			AC000031	20240615	Produits de défense des végétaux — maïs	4,98	0,00					EUR
+AC	Achats	AC000031	20240615	44566	TVA sur autres biens et services			AC000031	20240615	Produits de défense des végétaux — maïs	99,96	0,00					EUR
+AC	Achats	AC000031	20240615	401	Fournisseurs	F004	Fournisseur 004	AC000031	20240615	Produits de défense des végétaux — maïs	0,00	599,76					EUR
+KA	Coopérative ou négoce A	KA000003	20240617	6226	Honoraires			KA000003	20240617	Honoraires — blé	60,89	0,00					EUR
+KA	Coopérative ou négoce A	KA000003	20240617	6226	Honoraires			KA000003	20240617	Honoraires — blé	276,20	0,00					EUR
+KA	Coopérative ou négoce A	KA000003	20240617	44566	TVA sur autres biens et services			KA000003	20240617	Honoraires — blé	67,42	0,00					EUR
+KA	Coopérative ou négoce A	KA000003	20240617	401	Fournisseurs	F012	Fournisseur 012	KA000003	20240617	Honoraires — blé	0,00	404,51					EUR
+B1	Banque 1	B1000041	20240619	411	Clients	C006	Client 006	B1000041	20240619	Encaissement	0,00	417,12					EUR
+B1	Banque 1	B1000041	20240619	5121	Comptes en euros			B1000041	20240619	Encaissement	417,12	0,00					EUR
+VE	Ventes	VE000026	20240619	745	Subventions au revenu			VE000026	20240619	Subventions au revenu	6,55	0,00					EUR
+VE	Ventes	VE000026	20240619	745	Subventions au revenu			VE000026	20240619	Subventions au revenu	0,00	49,51					EUR
+VE	Ventes	VE000026	20240619	745	Subventions au revenu			VE000026	20240619	Subventions au revenu	0,00	374,17					EUR
+VE	Ventes	VE000026	20240619	411	Clients	C006	Client 006	VE000026	20240619	Subventions au revenu	417,13	0,00					EUR
+B1	Banque 1	B1000042	20240623	431	Sécurité sociale			B1000042	20240623	Règlement	1441,92	0,00					EUR
+B1	Banque 1	B1000042	20240623	5121	Comptes en euros			B1000042	20240623	Règlement	0,00	1441,92					EUR
+B1	Banque 1	B1000043	20240623	401	Fournisseurs	F018	Fournisseur 018	B1000043	20240623	Règlement	2214,00	0,00					EUR
+B1	Banque 1	B1000043	20240623	5121	Comptes en euros			B1000043	20240623	Règlement	0,00	2214,00					EUR
+B1	Banque 1	B1000044	20240623	401	Fournisseurs	F009	Fournisseur 009	B1000044	20240623	Règlement	19926,00	0,00					EUR
+B1	Banque 1	B1000044	20240623	5121	Comptes en euros			B1000044	20240623	Règlement	0,00	19926,00					EUR
+B1	Banque 1	B1000045	20240624	401	Fournisseurs	F018	Fournisseur 018	B1000045	20240624	Règlement	594,46	0,00					EUR
+B1	Banque 1	B1000045	20240624	5121	Comptes en euros			B1000045	20240624	Règlement	0,00	594,46					EUR
+B1	Banque 1	B1000046	20240624	44551	TVA à décaisser			B1000046	20240624	Règlement	104,06	0,00					EUR
+B1	Banque 1	B1000046	20240624	5121	Comptes en euros			B1000046	20240624	Règlement	0,00	104,06					EUR
+B1	Banque 1	B1000047	20240624	6278	Autres frais et commissions sur prestations de services			B1000047	20240624	Autres frais et commissions sur prestations de services	0,39	0,00					EUR
+B1	Banque 1	B1000047	20240624	5121	Comptes en euros			B1000047	20240624	Autres frais et commissions sur prestations de services	0,00	0,39					EUR
+B1	Banque 1	B1000048	20240624	627	Services bancaires et assimilés			B1000048	20240624	Services bancaires et assimilés	48,45	0,00					EUR
+B1	Banque 1	B1000048	20240624	5121	Comptes en euros			B1000048	20240624	Services bancaires et assimilés	0,00	48,45					EUR
+OD	Opérations diverses	OD000019	20240624	44551	TVA à décaisser			OD000019	20240624	Intérêts des obligations cautionnées	0,00	4,43					EUR
+OD	Opérations diverses	OD000019	20240624	6617	Intérêts des obligations cautionnées			OD000019	20240624	Intérêts des obligations cautionnées	4,43	0,00					EUR
+B1	Banque 1	B1000049	20240625	401	Fournisseurs	F019	Fournisseur 019	B1000049	20240625	Règlement	334,76	0,00					EUR
+B1	Banque 1	B1000049	20240625	5121	Comptes en euros			B1000049	20240625	Règlement	0,00	334,76					EUR
+AC	Achats	AC000032	20240630	60113	Produits de défense des végétaux			AC000032	20240630	Produits de défense des végétaux — maïs	490,18	0,00					EUR
+AC	Achats	AC000032	20240630	60113	Produits de défense des végétaux			AC000032	20240630	Produits de défense des végétaux — maïs	191,29	0,00					EUR
+AC	Achats	AC000032	20240630	6341	Produits végétaux			AC000032	20240630	Produits de défense des végétaux — maïs	2,91	0,00					EUR
+AC	Achats	AC000032	20240630	44566	TVA sur autres biens et services			AC000032	20240630	Produits de défense des végétaux — maïs	38,84	0,00					EUR
+AC	Achats	AC000032	20240630	44566	TVA sur autres biens et services			AC000032	20240630	Produits de défense des végétaux — maïs	49,02	0,00					EUR
+AC	Achats	AC000032	20240630	401	Fournisseurs	F004	Fournisseur 004	AC000032	20240630	Produits de défense des végétaux — maïs	0,00	772,24					EUR
+AC	Achats	AC000033	20240630	60113	Produits de défense des végétaux			AC000033	20240630	Produits de défense des végétaux — maïs	0,00	323,24					EUR
+AC	Achats	AC000033	20240630	6341	Produits végétaux			AC000033	20240630	Produits de défense des végétaux — maïs	0,00	9,96					EUR
+AC	Achats	AC000033	20240630	44566	TVA sur autres biens et services			AC000033	20240630	Produits de défense des végétaux — maïs	0,00	66,64					EUR
+AC	Achats	AC000033	20240630	401	Fournisseurs	F004	Fournisseur 004	AC000033	20240630	Produits de défense des végétaux — maïs	399,84	0,00					EUR
+AC	Achats	AC000034	20240630	60113	Produits de défense des végétaux			AC000034	20240630	Produits de défense des végétaux — maïs	336,53	0,00					EUR
+AC	Achats	AC000034	20240630	6341	Produits végétaux			AC000034	20240630	Produits de défense des végétaux — maïs	35,96	0,00					EUR
+AC	Achats	AC000034	20240630	44566	TVA sur autres biens et services			AC000034	20240630	Produits de défense des végétaux — maïs	74,50	0,00					EUR
+AC	Achats	AC000034	20240630	401	Fournisseurs	F004	Fournisseur 004	AC000034	20240630	Produits de défense des végétaux — maïs	0,00	446,99					EUR
+AC	Achats	AC000035	20240630	6241	Transports sur achats			AC000035	20240630	Transports sur achats	55,35	0,00					EUR
+AC	Achats	AC000035	20240630	44566	TVA sur autres biens et services			AC000035	20240630	Transports sur achats	11,07	0,00					EUR
+AC	Achats	AC000035	20240630	401	Fournisseurs	F014	Fournisseur 014	AC000035	20240630	Transports sur achats	0,00	66,42					EUR
+AC	Achats	AC000036	20240630	6617	Intérêts des obligations cautionnées			AC000036	20240630	Intérêts des obligations cautionnées	232,46	0,00					EUR
+AC	Achats	AC000036	20240630	401	Fournisseurs	F014	Fournisseur 014	AC000036	20240630	Intérêts des obligations cautionnées	0,00	232,46					EUR
+AC	Achats	AC000037	20240630	604	Achats d'études et prestations de services			AC000037	20240630	Achats d'études et prestations de services — pois	1705,33	0,00					EUR
+AC	Achats	AC000037	20240630	44566	TVA sur autres biens et services			AC000037	20240630	Achats d'études et prestations de services — pois	341,07	0,00					EUR
+AC	Achats	AC000037	20240630	401	Fournisseurs	F016	Fournisseur 016	AC000037	20240630	Achats d'études et prestations de services — pois	0,00	2046,40					EUR
+OD	Opérations diverses	OD000020	20240630	6617	Intérêts des obligations cautionnées			OD000020	20240630	Intérêts des obligations cautionnées — maïs	11,53	0,00					EUR
+OD	Opérations diverses	OD000020	20240630	401	Fournisseurs	F004	Fournisseur 004	OD000020	20240630	Intérêts des obligations cautionnées — maïs	0,00	11,53					EUR
+OD	Opérations diverses	OD000021	20240630	44566	TVA sur autres biens et services			OD000021	20240630	TVA	420,89	0,00					EUR
+OD	Opérations diverses	OD000021	20240630	44566	TVA sur autres biens et services			OD000021	20240630	TVA	0,00	420,89					EUR
+TV	OD TVA	TV000002	20240630	44566	TVA sur autres biens et services			TV000002	20240630	Indemnités et autres produits — blé	0,00	6200,22					EUR
+TV	OD TVA	TV000002	20240630	44566	TVA sur autres biens et services			TV000002	20240630	Indemnités et autres produits — blé	0,00	49,02					EUR
+TV	OD TVA	TV000002	20240630	44566	TVA sur autres biens et services			TV000002	20240630	Indemnités et autres produits — blé	0,00	5944,22					EUR
+TV	OD TVA	TV000002	20240630	44566	TVA sur autres biens et services			TV000002	20240630	Indemnités et autres produits — blé	0,00	5456,39					EUR
+TV	OD TVA	TV000002	20240630	44571	TVA collectée			TV000002	20240630	Indemnités et autres produits — blé	52,21	0,00					EUR
+TV	OD TVA	TV000002	20240630	44583	Remboursement de taxes sur le chiffre d'affaires demandé			TV000002	20240630	Indemnités et autres produits — blé	17597,97	0,00					EUR
+TV	OD TVA	TV000002	20240630	758	Indemnités et autres produits			TV000002	20240630	Indemnités et autres produits — blé	0,00	0,33					EUR
+OD	Opérations diverses	OD000022	20240701	604	Achats d'études et prestations de services			OD000022	20240701	Achats d'études et prestations de services	0,00	1705,33					EUR
+OD	Opérations diverses	OD000022	20240701	44566	TVA sur autres biens et services			OD000022	20240701	Achats d'études et prestations de services	0,00	341,07					EUR
+OD	Opérations diverses	OD000022	20240701	401	Fournisseurs	F016	Fournisseur 016	OD000022	20240701	Achats d'études et prestations de services	2046,40	0,00					EUR
+B1	Banque 1	B1000050	20240702	618	Divers			B1000050	20240702	Divers	72,35	0,00					EUR
+B1	Banque 1	B1000050	20240702	5121	Comptes en euros			B1000050	20240702	Divers	0,00	72,35					EUR
+AC	Achats	AC000038	20240707	60113	Produits de défense des végétaux			AC000038	20240707	Produits de défense des végétaux — phytos	0,00	2324,70					EUR
+AC	Achats	AC000038	20240707	60113	Produits de défense des végétaux			AC000038	20240707	Produits de défense des végétaux — phytos	0,00	856,82					EUR
+AC	Achats	AC000038	20240707	60113	Produits de défense des végétaux			AC000038	20240707	Produits de défense des végétaux — phytos	0,00	518,91					EUR
+AC	Achats	AC000038	20240707	6341	Produits végétaux			AC000038	20240707	Produits de défense des végétaux — phytos	0,00	160,40					EUR
+AC	Achats	AC000038	20240707	44566	TVA sur autres biens et services			AC000038	20240707	Produits de défense des végétaux — phytos	0,00	772,17					EUR
+AC	Achats	AC000038	20240707	401	Fournisseurs	F014	Fournisseur 014	AC000038	20240707	Produits de défense des végétaux — phytos	4633,00	0,00					EUR
+B1	Banque 1	B1000051	20240707	401	Fournisseurs	F010	Fournisseur 010	B1000051	20240707	Règlement	1827,46	0,00					EUR
+B1	Banque 1	B1000051	20240707	5121	Comptes en euros			B1000051	20240707	Règlement	0,00	1827,46					EUR
+B1	Banque 1	B1000052	20240707	401	Fournisseurs	F010	Fournisseur 010	B1000052	20240707	Règlement	121,77	0,00					EUR
+B1	Banque 1	B1000052	20240707	5121	Comptes en euros			B1000052	20240707	Règlement	0,00	121,77					EUR
+B1	Banque 1	B1000053	20240715	401	Fournisseurs	F012	Fournisseur 012	B1000053	20240715	Règlement	404,50	0,00					EUR
+B1	Banque 1	B1000053	20240715	5121	Comptes en euros			B1000053	20240715	Règlement	0,00	404,50					EUR
+AC	Achats	AC000039	20240717	60113	Produits de défense des végétaux			AC000039	20240717	Produits de défense des végétaux — phytos	551,51	0,00					EUR
+AC	Achats	AC000039	20240717	60113	Produits de défense des végétaux			AC000039	20240717	Produits de défense des végétaux — phytos	758,24	0,00					EUR
+AC	Achats	AC000039	20240717	6341	Produits végétaux			AC000039	20240717	Produits de défense des végétaux — phytos	9,00	0,00					EUR
+AC	Achats	AC000039	20240717	44566	TVA sur autres biens et services			AC000039	20240717	Produits de défense des végétaux — phytos	263,75	0,00					EUR
+AC	Achats	AC000039	20240717	401	Fournisseurs	F014	Fournisseur 014	AC000039	20240717	Produits de défense des végétaux — phytos	0,00	1582,50					EUR
+B1	Banque 1	B1000054	20240724	401	Fournisseurs	F010	Fournisseur 010	B1000054	20240724	Règlement	48,45	0,00					EUR
+B1	Banque 1	B1000054	20240724	5121	Comptes en euros			B1000054	20240724	Règlement	0,00	48,45					EUR
+B1	Banque 1	B1000055	20240724	401	Fournisseurs	F018	Fournisseur 018	B1000055	20240724	Règlement	594,46	0,00					EUR
+B1	Banque 1	B1000055	20240724	5121	Comptes en euros			B1000055	20240724	Règlement	0,00	594,46					EUR
+AC	Achats	AC000040	20240729	6068	Autres matières et fournitures			AC000040	20240729	Autres matières et fournitures	11,07	0,00					EUR
+AC	Achats	AC000040	20240729	44566	TVA sur autres biens et services			AC000040	20240729	Autres matières et fournitures	2,21	0,00					EUR
+AC	Achats	AC000040	20240729	401	Fournisseurs	F020	Fournisseur 020	AC000040	20240729	Autres matières et fournitures	0,00	13,28					EUR
+AC	Achats	AC000041	20240731	6617	Intérêts des obligations cautionnées			AC000041	20240731	Intérêts des obligations cautionnées	333,98	0,00					EUR
+AC	Achats	AC000041	20240731	401	Fournisseurs	F014	Fournisseur 014	AC000041	20240731	Intérêts des obligations cautionnées	0,00	333,98					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	35,17	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	35,17	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	35,17	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	365,29	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	422,03	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	885,10	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	554,97	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	189,44	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	722,85	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	463,07	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	463,07	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	390,85	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	554,97	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	722,85	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	550,99	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	550,99	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	390,85	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	885,10	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	885,10	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	554,97	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	187,57	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	189,44	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	35,17	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	463,07	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	240,33	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	179,83	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	179,83	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	257,91	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	484,63	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	885,10	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	390,85	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	275,50	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	240,33	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	463,07	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	885,10	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	550,99	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	463,07	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	240,33	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	187,57	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	179,83	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	427,90	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	240,33	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	1125,42	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	484,63	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	484,63	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	554,97	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	885,10	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	885,10	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	722,85	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	722,85	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	722,85	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	463,07	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	177,72	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	550,99	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	1150,74	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	39,15	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	42,91	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	189,44	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	1125,42	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	1125,42	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	1125,42	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	463,07	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	463,07	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	35,17	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	240,33	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	240,33	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	189,44	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	189,44	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	515,82	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	377,01	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	1125,42	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	451,35	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	177,72	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	404,45	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	1125,42	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	404,45	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	87,93	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	189,44	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	377,01	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	189,44	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	158,27	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	189,44	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	240,33	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	347,71	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	35,17	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	189,44	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	390,85	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	240,33	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	515,82	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	179,83	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	885,10	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	189,44	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	189,44	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	463,07	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	189,44	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	240,33	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	253,92	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	39,15	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	1125,42	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	240,33	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	722,85	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	189,44	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	87,93	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	275,50	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	1125,42	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	189,44	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	722,85	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	463,07	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	463,07	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	1125,42	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	722,85	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	89,80	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	240,33	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	187,57	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	187,57	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	187,57	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	554,97	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	253,92	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	463,07	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	463,07	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	1644,26	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	2103,60	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	3985,20	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	1261,98	0,00					EUR
+AC	Achats	AC000042	20240731	621	Personnel extérieur à l'entité			AC000042	20240731	Personnel extérieur à l'entité — orge	332,10	0,00					EUR
+AC	Achats	AC000042	20240731	44566	TVA sur autres biens et services			AC000042	20240731	Personnel extérieur à l'entité — orge	12941,85	0,00					EUR
+AC	Achats	AC000042	20240731	401	Fournisseurs	F008	Fournisseur 008	AC000042	20240731	Personnel extérieur à l'entité — orge	0,00	77651,07					EUR
+AC	Achats	AC000043	20240731	627	Services bancaires et assimilés			AC000043	20240731	Intérêts des dettes commerciales	46,66	0,00					EUR
+AC	Achats	AC000043	20240731	66181	Intérêts des dettes commerciales			AC000043	20240731	Intérêts des dettes commerciales	1827,46	0,00					EUR
+AC	Achats	AC000043	20240731	6272	Commissions et frais sur émission d'emprunts			AC000043	20240731	Intérêts des dettes commerciales	121,77	0,00					EUR
+AC	Achats	AC000043	20240731	627	Services bancaires et assimilés			AC000043	20240731	Intérêts des dettes commerciales	1,49	0,00					EUR
+AC	Achats	AC000043	20240731	44566	TVA sur autres biens et services			AC000043	20240731	Intérêts des dettes commerciales	0,30	0,00					EUR
+AC	Achats	AC000043	20240731	401	Fournisseurs	F010	Fournisseur 010	AC000043	20240731	Intérêts des dettes commerciales	0,00	1997,68					EUR
+OD	Opérations diverses	OD000023	20240731	6617	Intérêts des obligations cautionnées			OD000023	20240731	Intérêts des obligations cautionnées — maïs	11,53	0,00					EUR
+OD	Opérations diverses	OD000023	20240731	401	Fournisseurs	F004	Fournisseur 004	OD000023	20240731	Intérêts des obligations cautionnées — maïs	0,00	11,53					EUR
+VE	Ventes	VE000027	20240731	7011	Ventes de produits végétaux			VE000027	20240731	Ventes de produits végétaux — maïs semence	0,00	46,49					EUR
+VE	Ventes	VE000027	20240731	44571	TVA collectée			VE000027	20240731	Ventes de produits végétaux — maïs semence	0,00	9,30					EUR
+VE	Ventes	VE000027	20240731	401	Fournisseurs	F006	Fournisseur 006	VE000027	20240731	Ventes de produits végétaux — maïs semence	55,79	0,00					EUR
+VE	Ventes	VE000028	20240731	7011	Ventes de produits végétaux			VE000028	20240731	Ventes de produits végétaux — maïs semence	0,00	12232,35					EUR
+VE	Ventes	VE000028	20240731	44571	TVA collectée			VE000028	20240731	Ventes de produits végétaux — maïs semence	0,00	672,78					EUR
+VE	Ventes	VE000028	20240731	401	Fournisseurs	F006	Fournisseur 006	VE000028	20240731	Ventes de produits végétaux — maïs semence	12905,13	0,00					EUR
+VE	Ventes	VE000029	20240731	7011	Ventes de produits végétaux			VE000029	20240731	Ventes de produits végétaux — maïs semence	0,00	12232,35					EUR
+VE	Ventes	VE000029	20240731	44571	TVA collectée			VE000029	20240731	Ventes de produits végétaux — maïs semence	0,00	672,78					EUR
+VE	Ventes	VE000029	20240731	401	Fournisseurs	F006	Fournisseur 006	VE000029	20240731	Ventes de produits végétaux — maïs semence	12905,13	0,00					EUR
+VE	Ventes	VE000030	20240731	7011	Ventes de produits végétaux			VE000030	20240731	Ventes de produits végétaux — maïs semence	0,00	32379,75					EUR
+VE	Ventes	VE000030	20240731	44571	TVA collectée			VE000030	20240731	Ventes de produits végétaux — maïs semence	0,00	1780,89					EUR
+VE	Ventes	VE000030	20240731	401	Fournisseurs	F006	Fournisseur 006	VE000030	20240731	Ventes de produits végétaux — maïs semence	34160,64	0,00					EUR
+VE	Ventes	VE000031	20240731	7011	Ventes de produits végétaux			VE000031	20240731	Ventes de produits végétaux — maïs semence	0,00	263,47					EUR
+VE	Ventes	VE000031	20240731	44571	TVA collectée			VE000031	20240731	Ventes de produits végétaux — maïs semence	0,00	52,69					EUR
+VE	Ventes	VE000031	20240731	401	Fournisseurs	F006	Fournisseur 006	VE000031	20240731	Ventes de produits végétaux — maïs semence	316,16	0,00					EUR
+B1	Banque 1	B1000056	20240804	618	Divers			B1000056	20240804	Divers	72,35	0,00					EUR
+B1	Banque 1	B1000056	20240804	5121	Comptes en euros			B1000056	20240804	Divers	0,00	72,35					EUR
+B1	Banque 1	B1000057	20240808	401	Fournisseurs	F006	Fournisseur 006	B1000057	20240808	Règlement	0,00	22140,00					EUR
+B1	Banque 1	B1000057	20240808	5121	Comptes en euros			B1000057	20240808	Règlement	22140,00	0,00					EUR
+B1	Banque 1	B1000058	20240808	401	Fournisseurs	F006	Fournisseur 006	B1000058	20240808	Règlement	0,00	27154,36					EUR
+B1	Banque 1	B1000058	20240808	5121	Comptes en euros			B1000058	20240808	Règlement	27154,36	0,00					EUR
+B1	Banque 1	B1000059	20240808	401	Fournisseurs	F009	Fournisseur 009	B1000059	20240808	Règlement	48708,00	0,00					EUR
+B1	Banque 1	B1000059	20240808	5121	Comptes en euros			B1000059	20240808	Règlement	0,00	48708,00					EUR
+AC	Achats	AC000044	20240810	6281	Concours divers (cotisations)			AC000044	20240810	Achats d'études et prestations de services — semences	128,51	0,00					EUR
+AC	Achats	AC000044	20240810	6281	Concours divers (cotisations)			AC000044	20240810	Achats d'études et prestations de services — semences	54,24	0,00					EUR
+AC	Achats	AC000044	20240810	6281	Concours divers (cotisations)			AC000044	20240810	Achats d'études et prestations de services — semences	171,25	0,00					EUR
+AC	Achats	AC000044	20240810	604	Achats d'études et prestations de services			AC000044	20240810	Achats d'études et prestations de services — semences	3874,50	0,00					EUR
+AC	Achats	AC000044	20240810	44566	TVA sur autres biens et services			AC000044	20240810	Achats d'études et prestations de services — semences	7,06	0,00					EUR
+AC	Achats	AC000044	20240810	44566	TVA sur autres biens et services			AC000044	20240810	Achats d'études et prestations de services — semences	34,25	0,00					EUR
+AC	Achats	AC000044	20240810	44566	TVA sur autres biens et services			AC000044	20240810	Achats d'études et prestations de services — semences	774,90	0,00					EUR
+AC	Achats	AC000044	20240810	401	Fournisseurs	F006	Fournisseur 006	AC000044	20240810	Achats d'études et prestations de services — semences	0,00	5044,71					EUR
+VE	Ventes	VE000032	20240810	7011	Ventes de produits végétaux			VE000032	20240810	Ventes de produits végétaux — haricots verts	0,00	25701,22					EUR
+VE	Ventes	VE000032	20240810	6281	Concours divers (cotisations)			VE000032	20240810	Ventes de produits végétaux — haricots verts	514,02	0,00					EUR
+VE	Ventes	VE000032	20240810	262	Participations à des organismes professionnels agricoles (autres que les établissements de crédit)			VE000032	20240810	Ventes de produits végétaux — haricots verts	193,73	0,00					EUR
+VE	Ventes	VE000032	20240810	44571	TVA collectée			VE000032	20240810	Ventes de produits végétaux — haricots verts	0,00	1413,57					EUR
+VE	Ventes	VE000032	20240810	44566	TVA sur autres biens et services			VE000032	20240810	Ventes de produits végétaux — haricots verts	28,27	0,00					EUR
+VE	Ventes	VE000032	20240810	401	Fournisseurs	F006	Fournisseur 006	VE000032	20240810	Ventes de produits végétaux — haricots verts	26378,77	0,00					EUR
+VE	Ventes	VE000033	20240810	7011	Ventes de produits végétaux			VE000033	20240810	Ventes de produits végétaux — pommes de terre	0,00	82597,90					EUR
+VE	Ventes	VE000033	20240810	44571	TVA collectée			VE000033	20240810	Ventes de produits végétaux — pommes de terre	0,00	4542,88					EUR
+VE	Ventes	VE000033	20240810	401	Fournisseurs	F006	Fournisseur 006	VE000033	20240810	Ventes de produits végétaux — pommes de terre	87140,78	0,00					EUR
+B1	Banque 1	B1000060	20240811	44583	Remboursement de taxes sur le chiffre d'affaires demandé			B1000060	20240811	Règlement	0,00	17597,98					EUR
+B1	Banque 1	B1000060	20240811	5121	Comptes en euros			B1000060	20240811	Règlement	17597,98	0,00					EUR
+OD	Opérations diverses	OD000024	20240823	411	Clients	C004	Client 004	OD000024	20240823	Opération	0,00	16221,07					EUR
+OD	Opérations diverses	OD000024	20240823	411	Clients	C004	Client 004	OD000024	20240823	Opération	0,00	1491,83					EUR
+OD	Opérations diverses	OD000024	20240823	411	Clients	C004	Client 004	OD000024	20240823	Opération	33210,00	0,00					EUR
+OD	Opérations diverses	OD000024	20240823	411	Clients	C004	Client 004	OD000024	20240823	Opération	28782,00	0,00					EUR
+OD	Opérations diverses	OD000024	20240823	411	Clients	C004	Client 004	OD000024	20240823	Opération	0,00	44279,10					EUR
+AC	Achats	AC000045	20240824	60112	Semences et plants			AC000045	20240824	Semences et plants — semences	17712,00	0,00					EUR
+AC	Achats	AC000045	20240824	44566	TVA sur autres biens et services			AC000045	20240824	Semences et plants — semences	974,16	0,00					EUR
+AC	Achats	AC000045	20240824	401	Fournisseurs	F006	Fournisseur 006	AC000045	20240824	Semences et plants — semences	0,00	18686,16					EUR
+B1	Banque 1	B1000061	20240825	401	Fournisseurs	F010	Fournisseur 010	B1000061	20240825	Règlement	48,45	0,00					EUR
+B1	Banque 1	B1000061	20240825	5121	Comptes en euros			B1000061	20240825	Règlement	0,00	48,45					EUR
+B1	Banque 1	B1000062	20240825	401	Fournisseurs	F018	Fournisseur 018	B1000062	20240825	Règlement	594,46	0,00					EUR
+B1	Banque 1	B1000062	20240825	5121	Comptes en euros			B1000062	20240825	Règlement	0,00	594,46					EUR
+AC	Achats	AC000046	20240831	6617	Intérêts des obligations cautionnées			AC000046	20240831	Intérêts des obligations cautionnées	344,43	0,00					EUR
+AC	Achats	AC000046	20240831	401	Fournisseurs	F014	Fournisseur 014	AC000046	20240831	Intérêts des obligations cautionnées	0,00	344,43					EUR
+AC	Achats	AC000047	20240831	627	Services bancaires et assimilés			AC000047	20240831	Services bancaires et assimilés	46,66	0,00					EUR
+AC	Achats	AC000047	20240831	627	Services bancaires et assimilés			AC000047	20240831	Services bancaires et assimilés	1,49	0,00					EUR
+AC	Achats	AC000047	20240831	44566	TVA sur autres biens et services			AC000047	20240831	Services bancaires et assimilés	0,30	0,00					EUR
+AC	Achats	AC000047	20240831	401	Fournisseurs	F010	Fournisseur 010	AC000047	20240831	Services bancaires et assimilés	0,00	48,45					EUR
+OD	Opérations diverses	OD000025	20240831	6617	Intérêts des obligations cautionnées			OD000025	20240831	Intérêts des obligations cautionnées — maïs	22,88	0,00					EUR
+OD	Opérations diverses	OD000025	20240831	401	Fournisseurs	F004	Fournisseur 004	OD000025	20240831	Intérêts des obligations cautionnées — maïs	0,00	22,88					EUR
+B1	Banque 1	B1000063	20240902	618	Divers			B1000063	20240902	Divers	72,35	0,00					EUR
+B1	Banque 1	B1000063	20240902	5121	Comptes en euros			B1000063	20240902	Divers	0,00	72,35					EUR
+AC	Achats	AC000048	20240915	616	Primes d'assurances			AC000048	20240915	Primes d'assurances	66473,14	0,00					EUR
+AC	Achats	AC000048	20240915	401	Fournisseurs	F005	Fournisseur 005	AC000048	20240915	Primes d'assurances	0,00	66473,14					EUR
+AC	Achats	AC000049	20240918	60112	Semences et plants			AC000049	20240918	Semences et plants — semences	1718,62	0,00					EUR
+AC	Achats	AC000049	20240918	60112	Semences et plants			AC000049	20240918	Semences et plants — semences	2944,62	0,00					EUR
+AC	Achats	AC000049	20240918	658	Pénalités et autres charges			AC000049	20240918	Semences et plants — semences	7,75	0,00					EUR
+AC	Achats	AC000049	20240918	44566	TVA sur autres biens et services			AC000049	20240918	Semences et plants — semences	256,90	0,00					EUR
+AC	Achats	AC000049	20240918	401	Fournisseurs	F014	Fournisseur 014	AC000049	20240918	Semences et plants — semences	0,00	4927,89					EUR
+KA	Coopérative ou négoce A	KA000004	20240918	6226	Honoraires			KA000004	20240918	Honoraires — blé	60,89	0,00					EUR
+KA	Coopérative ou négoce A	KA000004	20240918	6226	Honoraires			KA000004	20240918	Honoraires — blé	609,40	0,00					EUR
+KA	Coopérative ou négoce A	KA000004	20240918	44566	TVA sur autres biens et services			KA000004	20240918	Honoraires — blé	134,06	0,00					EUR
+KA	Coopérative ou négoce A	KA000004	20240918	401	Fournisseurs	F012	Fournisseur 012	KA000004	20240918	Honoraires — blé	0,00	804,35					EUR
+AC	Achats	AC000050	20240919	6132	Locations de matériel			AC000050	20240919	Locations de matériel	2214,00	0,00					EUR
+AC	Achats	AC000050	20240919	44566	TVA sur autres biens et services			AC000050	20240919	Locations de matériel	442,80	0,00					EUR
+AC	Achats	AC000050	20240919	401	Fournisseurs	F021	Fournisseur 021	AC000050	20240919	Locations de matériel	0,00	2656,80					EUR
+B1	Banque 1	B1000064	20240923	401	Fournisseurs	F009	Fournisseur 009	B1000064	20240923	Règlement	5535,00	0,00					EUR
+B1	Banque 1	B1000064	20240923	5121	Comptes en euros			B1000064	20240923	Règlement	0,00	5535,00					EUR
+B1	Banque 1	B1000065	20240924	401	Fournisseurs	F018	Fournisseur 018	B1000065	20240924	Règlement	594,46	0,00					EUR
+B1	Banque 1	B1000065	20240924	5121	Comptes en euros			B1000065	20240924	Règlement	0,00	594,46					EUR
+B1	Banque 1	B1000066	20240924	401	Fournisseurs	F010	Fournisseur 010	B1000066	20240924	Règlement	48,45	0,00					EUR
+B1	Banque 1	B1000066	20240924	5121	Comptes en euros			B1000066	20240924	Règlement	0,00	48,45					EUR
+AC	Achats	AC000051	20240925	6132	Locations de matériel			AC000051	20240925	Locations de matériel	7011,30	0,00					EUR
+AC	Achats	AC000051	20240925	44566	TVA sur autres biens et services			AC000051	20240925	Locations de matériel	1402,26	0,00					EUR
+AC	Achats	AC000051	20240925	401	Fournisseurs	F018	Fournisseur 018	AC000051	20240925	Locations de matériel	0,00	8413,56					EUR
+B1	Banque 1	B1000067	20240925	401	Fournisseurs	F018	Fournisseur 018	B1000067	20240925	Règlement	8413,55	0,00					EUR
+B1	Banque 1	B1000067	20240925	5121	Comptes en euros			B1000067	20240925	Règlement	0,00	8413,55					EUR
+B1	Banque 1	B1000068	20240925	401	Fournisseurs	F004	Fournisseur 004	B1000068	20240925	Règlement	2912,02	0,00					EUR
+B1	Banque 1	B1000068	20240925	5121	Comptes en euros			B1000068	20240925	Règlement	0,00	2912,02					EUR
+B1	Banque 1	B1000069	20240925	401	Fournisseurs	F010	Fournisseur 010	B1000069	20240925	Règlement	0,39	0,00					EUR
+B1	Banque 1	B1000069	20240925	5121	Comptes en euros			B1000069	20240925	Règlement	0,00	0,39					EUR
+AC	Achats	AC000052	20240929	60112	Semences et plants			AC000052	20240929	Semences et plants — semences	1444,64	0,00					EUR
+AC	Achats	AC000052	20240929	44566	TVA sur autres biens et services			AC000052	20240929	Semences et plants — semences	79,46	0,00					EUR
+AC	Achats	AC000052	20240929	401	Fournisseurs	F014	Fournisseur 014	AC000052	20240929	Semences et plants — semences	0,00	1524,10					EUR
+AC	Achats	AC000053	20240930	761	Produits de participations			AC000053	20240930	Produits de participations	0,00	41,59					EUR
+AC	Achats	AC000053	20240930	401	Fournisseurs	F006	Fournisseur 006	AC000053	20240930	Produits de participations	41,59	0,00					EUR
+AC	Achats	AC000054	20240930	6617	Intérêts des obligations cautionnées			AC000054	20240930	Intérêts des obligations cautionnées	340,78	0,00					EUR
+AC	Achats	AC000054	20240930	401	Fournisseurs	F014	Fournisseur 014	AC000054	20240930	Intérêts des obligations cautionnées	0,00	340,78					EUR
+AC	Achats	AC000055	20240930	627	Services bancaires et assimilés			AC000055	20240930	Services bancaires et assimilés	46,66	0,00					EUR
+AC	Achats	AC000055	20240930	627	Services bancaires et assimilés			AC000055	20240930	Services bancaires et assimilés	1,49	0,00					EUR
+AC	Achats	AC000055	20240930	6278	Autres frais et commissions sur prestations de services			AC000055	20240930	Services bancaires et assimilés	0,39	0,00					EUR
+AC	Achats	AC000055	20240930	44566	TVA sur autres biens et services			AC000055	20240930	Services bancaires et assimilés	0,30	0,00					EUR
+AC	Achats	AC000055	20240930	401	Fournisseurs	F010	Fournisseur 010	AC000055	20240930	Services bancaires et assimilés	0,00	48,84					EUR
+OD	Opérations diverses	OD000026	20240930	44566	TVA sur autres biens et services			OD000026	20240930	TVA	3258,43	0,00					EUR
+OD	Opérations diverses	OD000026	20240930	44566	TVA sur autres biens et services			OD000026	20240930	TVA	0,00	639,39					EUR
+OD	Opérations diverses	OD000026	20240930	44566	TVA sur autres biens et services			OD000026	20240930	TVA	0,00	294,24					EUR
+OD	Opérations diverses	OD000026	20240930	44566	TVA sur autres biens et services			OD000026	20240930	TVA	0,00	1059,02					EUR
+OD	Opérations diverses	OD000026	20240930	44566	TVA sur autres biens et services			OD000026	20240930	TVA	0,00	33,21					EUR
+OD	Opérations diverses	OD000026	20240930	44566	TVA sur autres biens et services			OD000026	20240930	TVA	0,00	1232,57					EUR
+OD	Opérations diverses	OD000027	20240930	6617	Intérêts des obligations cautionnées			OD000027	20240930	Intérêts des obligations cautionnées — maïs	17,55	0,00					EUR
+OD	Opérations diverses	OD000027	20240930	401	Fournisseurs	F004	Fournisseur 004	OD000027	20240930	Intérêts des obligations cautionnées — maïs	0,00	17,55					EUR
+TV	OD TVA	TV000003	20240930	44566	TVA sur autres biens et services			TV000003	20240930	Indemnités et autres produits — blé	0,00	1345,86					EUR
+TV	OD TVA	TV000003	20240930	44566	TVA sur autres biens et services			TV000003	20240930	Indemnités et autres produits — blé	474,16	0,00					EUR
+TV	OD TVA	TV000003	20240930	44566	TVA sur autres biens et services			TV000003	20240930	Indemnités et autres produits — blé	0,00	2693,60					EUR
+TV	OD TVA	TV000003	20240930	44566	TVA sur autres biens et services			TV000003	20240930	Indemnités et autres produits — blé	0,00	2763,90					EUR
+TV	OD TVA	TV000003	20240930	44571	TVA collectée			TV000003	20240930	Indemnités et autres produits — blé	9082,91	0,00					EUR
+TV	OD TVA	TV000003	20240930	44571	TVA collectée			TV000003	20240930	Indemnités et autres produits — blé	61,99	0,00					EUR
+TV	OD TVA	TV000003	20240930	44551	TVA à décaisser			TV000003	20240930	Indemnités et autres produits — blé	0,00	2815,10					EUR
+TV	OD TVA	TV000003	20240930	758	Indemnités et autres produits			TV000003	20240930	Indemnités et autres produits — blé	0,00	0,60					EUR
+B1	Banque 1	B1000070	20241001	401	Fournisseurs	F006	Fournisseur 006	B1000070	20241001	Règlement	0,00	61955,65					EUR
+B1	Banque 1	B1000070	20241001	5121	Comptes en euros			B1000070	20241001	Règlement	61955,65	0,00					EUR
+B1	Banque 1	B1000071	20241002	618	Divers			B1000071	20241002	Divers	72,35	0,00					EUR
+B1	Banque 1	B1000071	20241002	5121	Comptes en euros			B1000071	20241002	Divers	0,00	72,35					EUR
+B1	Banque 1	B1000072	20241006	401	Fournisseurs	F009	Fournisseur 009	B1000072	20241006	Règlement	33210,00	0,00					EUR
+B1	Banque 1	B1000072	20241006	5121	Comptes en euros			B1000072	20241006	Règlement	0,00	33210,00					EUR
+B1	Banque 1	B1000073	20241007	401	Fournisseurs	F009	Fournisseur 009	B1000073	20241007	Règlement	22140,00	0,00					EUR
+B1	Banque 1	B1000073	20241007	5121	Comptes en euros			B1000073	20241007	Règlement	0,00	22140,00					EUR
+B1	Banque 1	B1000074	20241007	401	Fournisseurs	F010	Fournisseur 010	B1000074	20241007	Règlement	2005,51	0,00					EUR
+B1	Banque 1	B1000074	20241007	5121	Comptes en euros			B1000074	20241007	Règlement	0,00	2005,51					EUR
+OD	Opérations diverses	OD000028	20241008	44583	Remboursement de taxes sur le chiffre d'affaires demandé			OD000028	20241008	Intérêts des obligations cautionnées	0,00	1095,93					EUR
+OD	Opérations diverses	OD000028	20241008	6617	Intérêts des obligations cautionnées			OD000028	20241008	Intérêts des obligations cautionnées	996,30	0,00					EUR
+OD	Opérations diverses	OD000028	20241008	6358	Autres droits			OD000028	20241008	Intérêts des obligations cautionnées	99,63	0,00					EUR
+B1	Banque 1	B1000075	20241015	401	Fournisseurs	F012	Fournisseur 012	B1000075	20241015	Règlement	804,35	0,00					EUR
+B1	Banque 1	B1000075	20241015	5121	Comptes en euros			B1000075	20241015	Règlement	0,00	804,35					EUR
+VE	Ventes	VE000034	20241015	7011	Ventes de produits végétaux			VE000034	20241015	Ventes de produits végétaux — maïs semence	0,00	17501,67					EUR
+VE	Ventes	VE000034	20241015	44571	TVA collectée			VE000034	20241015	Ventes de produits végétaux — maïs semence	0,00	962,59					EUR
+VE	Ventes	VE000034	20241015	401	Fournisseurs	F006	Fournisseur 006	VE000034	20241015	Ventes de produits végétaux — maïs semence	18464,26	0,00					EUR
+VE	Ventes	VE000035	20241015	7011	Ventes de produits végétaux			VE000035	20241015	Ventes de produits végétaux — maïs semence	0,00	17501,67					EUR
+VE	Ventes	VE000035	20241015	44571	TVA collectée			VE000035	20241015	Ventes de produits végétaux — maïs semence	0,00	962,59					EUR
+VE	Ventes	VE000035	20241015	401	Fournisseurs	F006	Fournisseur 006	VE000035	20241015	Ventes de produits végétaux — maïs semence	18464,26	0,00					EUR
+VE	Ventes	VE000036	20241015	7011	Ventes de produits végétaux			VE000036	20241015	Ventes de produits végétaux — maïs semence	0,00	46327,95					EUR
+VE	Ventes	VE000036	20241015	44571	TVA collectée			VE000036	20241015	Ventes de produits végétaux — maïs semence	0,00	2548,04					EUR
+VE	Ventes	VE000036	20241015	401	Fournisseurs	F006	Fournisseur 006	VE000036	20241015	Ventes de produits végétaux — maïs semence	48875,99	0,00					EUR
+VE	Ventes	VE000037	20241015	7011	Ventes de produits végétaux			VE000037	20241015	Ventes de produits végétaux — maïs semence	0,00	13328,28					EUR
+VE	Ventes	VE000037	20241015	44571	TVA collectée			VE000037	20241015	Ventes de produits végétaux — maïs semence	0,00	733,06					EUR
+VE	Ventes	VE000037	20241015	401	Fournisseurs	F006	Fournisseur 006	VE000037	20241015	Ventes de produits végétaux — maïs semence	14061,34	0,00					EUR
+B1	Banque 1	B1000076	20241017	411	Clients	C006	Client 006	B1000076	20241017	Encaissement	0,00	23085,00					EUR
+B1	Banque 1	B1000076	20241017	5121	Comptes en euros			B1000076	20241017	Encaissement	23085,00	0,00					EUR
+B1	Banque 1	B1000077	20241024	401	Fournisseurs	F018	Fournisseur 018	B1000077	20241024	Règlement	594,46	0,00					EUR
+B1	Banque 1	B1000077	20241024	5121	Comptes en euros			B1000077	20241024	Règlement	0,00	594,46					EUR
+B1	Banque 1	B1000078	20241024	401	Fournisseurs	F004	Fournisseur 004	B1000078	20241024	Règlement	2889,14	0,00					EUR
+B1	Banque 1	B1000078	20241024	5121	Comptes en euros			B1000078	20241024	Règlement	0,00	2889,14					EUR
+B1	Banque 1	B1000079	20241024	401	Fournisseurs	F022	Fournisseur 022	B1000079	20241024	Règlement	737,26	0,00					EUR
+B1	Banque 1	B1000079	20241024	5121	Comptes en euros			B1000079	20241024	Règlement	0,00	737,26					EUR
+B1	Banque 1	B1000080	20241024	401	Fournisseurs	F017	Fournisseur 017	B1000080	20241024	Règlement	334,76	0,00					EUR
+B1	Banque 1	B1000080	20241024	5121	Comptes en euros			B1000080	20241024	Règlement	0,00	334,76					EUR
+B1	Banque 1	B1000081	20241024	401	Fournisseurs	F010	Fournisseur 010	B1000081	20241024	Règlement	0,39	0,00					EUR
+B1	Banque 1	B1000081	20241024	5121	Comptes en euros			B1000081	20241024	Règlement	0,00	0,39					EUR
+B1	Banque 1	B1000082	20241024	401	Fournisseurs	F010	Fournisseur 010	B1000082	20241024	Règlement	0,39	0,00					EUR
+B1	Banque 1	B1000082	20241024	5121	Comptes en euros			B1000082	20241024	Règlement	0,00	0,39					EUR
+B1	Banque 1	B1000083	20241024	401	Fournisseurs	F010	Fournisseur 010	B1000083	20241024	Règlement	0,39	0,00					EUR
+B1	Banque 1	B1000083	20241024	5121	Comptes en euros			B1000083	20241024	Règlement	0,00	0,39					EUR
+B1	Banque 1	B1000084	20241024	401	Fournisseurs	F010	Fournisseur 010	B1000084	20241024	Règlement	48,45	0,00					EUR
+B1	Banque 1	B1000084	20241024	5121	Comptes en euros			B1000084	20241024	Règlement	0,00	48,45					EUR
+AC	Achats	AC000056	20241025	616	Primes d'assurances			AC000056	20241025	Cotisations sociales personnelles de l'exploitant — blé	276,75	0,00					EUR
+AC	Achats	AC000056	20241025	616	Primes d'assurances			AC000056	20241025	Cotisations sociales personnelles de l'exploitant — blé	619,92	0,00					EUR
+AC	Achats	AC000056	20241025	646	Cotisations sociales personnelles de l'exploitant			AC000056	20241025	Cotisations sociales personnelles de l'exploitant — blé	2461,97	0,00					EUR
+AC	Achats	AC000056	20241025	6333	Contribution unique des employeurs à la formation professionnelle			AC000056	20241025	Cotisations sociales personnelles de l'exploitant — blé	88,56	0,00					EUR
+AC	Achats	AC000056	20241025	628	Divers			AC000056	20241025	Cotisations sociales personnelles de l'exploitant — blé	22,14	0,00					EUR
+AC	Achats	AC000056	20241025	431	Sécurité sociale			AC000056	20241025	Cotisations sociales personnelles de l'exploitant — blé	0,00	3789,26					EUR
+AC	Achats	AC000056	20241025	6378	Taxes diverses			AC000056	20241025	Cotisations sociales personnelles de l'exploitant — blé	224,72	0,00					EUR
+AC	Achats	AC000056	20241025	4551	Principal	A001	Associé 1	AC000056	20241025	Cotisations sociales personnelles de l'exploitant — blé	95,20	0,00					EUR
+AC	Achats	AC000057	20241031	761	Produits de participations			AC000057	20241031	Produits de participations — semences	0,00	9,58					EUR
+AC	Achats	AC000057	20241031	401	Fournisseurs	F006	Fournisseur 006	AC000057	20241031	Produits de participations — semences	9,58	0,00					EUR
+AC	Achats	AC000058	20241031	6617	Intérêts des obligations cautionnées			AC000058	20241031	Intérêts des obligations cautionnées	372,62	0,00					EUR
+AC	Achats	AC000058	20241031	401	Fournisseurs	F014	Fournisseur 014	AC000058	20241031	Intérêts des obligations cautionnées	0,00	372,62					EUR
+AC	Achats	AC000059	20241031	627	Services bancaires et assimilés			AC000059	20241031	Intérêts des dettes commerciales	46,66	0,00					EUR
+AC	Achats	AC000059	20241031	66181	Intérêts des dettes commerciales			AC000059	20241031	Intérêts des dettes commerciales	2005,51	0,00					EUR
+AC	Achats	AC000059	20241031	6278	Autres frais et commissions sur prestations de services			AC000059	20241031	Intérêts des dettes commerciales	1,16	0,00					EUR
+AC	Achats	AC000059	20241031	627	Services bancaires et assimilés			AC000059	20241031	Intérêts des dettes commerciales	1,49	0,00					EUR
+AC	Achats	AC000059	20241031	44566	TVA sur autres biens et services			AC000059	20241031	Intérêts des dettes commerciales	0,30	0,00					EUR
+AC	Achats	AC000059	20241031	401	Fournisseurs	F010	Fournisseur 010	AC000059	20241031	Intérêts des dettes commerciales	0,00	2055,12					EUR
+B1	Banque 1	B1000085	20241031	401	Fournisseurs	F004	Fournisseur 004	B1000085	20241031	Règlement	0,00	2889,14					EUR
+B1	Banque 1	B1000085	20241031	5121	Comptes en euros			B1000085	20241031	Règlement	2889,14	0,00					EUR
+B1	Banque 1	B1000086	20241031	401	Fournisseurs	F023	Fournisseur 023	B1000086	20241031	Règlement	132,84	0,00					EUR
+B1	Banque 1	B1000086	20241031	5121	Comptes en euros			B1000086	20241031	Règlement	0,00	132,84					EUR
+B1	Banque 1	B1000087	20241104	618	Divers			B1000087	20241104	Divers	72,35	0,00					EUR
+B1	Banque 1	B1000087	20241104	5121	Comptes en euros			B1000087	20241104	Divers	0,00	72,35					EUR
+B1	Banque 1	B1000088	20241105	44551	TVA à décaisser			B1000088	20241105	Règlement	2815,10	0,00					EUR
+B1	Banque 1	B1000088	20241105	5121	Comptes en euros			B1000088	20241105	Règlement	0,00	2815,10					EUR
+B1	Banque 1	B1000089	20241113	401	Fournisseurs	F006	Fournisseur 006	B1000089	20241113	Règlement	0,00	99917,01					EUR
+B1	Banque 1	B1000089	20241113	5121	Comptes en euros			B1000089	20241113	Règlement	99917,01	0,00					EUR
+B1	Banque 1	B1000090	20241114	401	Fournisseurs	F008	Fournisseur 008	B1000090	20241114	Règlement	86346,00	0,00					EUR
+B1	Banque 1	B1000090	20241114	5121	Comptes en euros			B1000090	20241114	Règlement	0,00	86346,00					EUR
+AC	Achats	AC000060	20241120	604	Achats d'études et prestations de services			AC000060	20241120	Achats d'études et prestations de services — maïs semence	18471,40	0,00					EUR
+AC	Achats	AC000060	20241120	44566	TVA sur autres biens et services			AC000060	20241120	Achats d'études et prestations de services — maïs semence	1015,93	0,00					EUR
+AC	Achats	AC000060	20241120	401	Fournisseurs	F024	Fournisseur 024	AC000060	20241120	Achats d'études et prestations de services — maïs semence	0,00	19487,33					EUR
+B1	Banque 1	B1000091	20241120	401	Fournisseurs	F008	Fournisseur 008	B1000091	20241120	Règlement	0,00	8694,92					EUR
+B1	Banque 1	B1000091	20241120	5121	Comptes en euros			B1000091	20241120	Règlement	8694,92	0,00					EUR
+B1	Banque 1	B1000092	20241124	401	Fournisseurs	F018	Fournisseur 018	B1000092	20241124	Règlement	594,46	0,00					EUR
+B1	Banque 1	B1000092	20241124	5121	Comptes en euros			B1000092	20241124	Règlement	0,00	594,46					EUR
+B1	Banque 1	B1000093	20241124	401	Fournisseurs	F010	Fournisseur 010	B1000093	20241124	Règlement	48,45	0,00					EUR
+B1	Banque 1	B1000093	20241124	5121	Comptes en euros			B1000093	20241124	Règlement	0,00	48,45					EUR
+AC	Achats	AC000061	20241125	44566	TVA sur autres biens et services			AC000061	20241125	Honoraires	0,00	11,07					EUR
+AC	Achats	AC000061	20241125	44566	TVA sur autres biens et services			AC000061	20241125	Honoraires	33,21	0,00					EUR
+AC	Achats	AC000061	20241125	401	Fournisseurs	F023	Fournisseur 023	AC000061	20241125	Honoraires	0,00	132,84					EUR
+AC	Achats	AC000061	20241125	6226	Honoraires			AC000061	20241125	Honoraires	166,05	0,00					EUR
+AC	Achats	AC000061	20241125	609	Rabais, remises et ristournes obtenus sur achats (même ventilation que celle du compte 60)			AC000061	20241125	Honoraires	0,00	55,35					EUR
+AC	Achats	AC000062	20241130	761	Produits de participations			AC000062	20241130	Produits de participations — semences	0,00	124,48					EUR
+AC	Achats	AC000062	20241130	401	Fournisseurs	F006	Fournisseur 006	AC000062	20241130	Produits de participations — semences	124,48	0,00					EUR
+AC	Achats	AC000063	20241130	6617	Intérêts des obligations cautionnées			AC000063	20241130	Intérêts des obligations cautionnées	399,80	0,00					EUR
+AC	Achats	AC000063	20241130	401	Fournisseurs	F014	Fournisseur 014	AC000063	20241130	Intérêts des obligations cautionnées	0,00	399,80					EUR
+AC	Achats	AC000064	20241130	627	Services bancaires et assimilés			AC000064	20241130	Services bancaires et assimilés	46,66	0,00					EUR
+AC	Achats	AC000064	20241130	627	Services bancaires et assimilés			AC000064	20241130	Services bancaires et assimilés	1,49	0,00					EUR
+AC	Achats	AC000064	20241130	44566	TVA sur autres biens et services			AC000064	20241130	Services bancaires et assimilés	0,30	0,00					EUR
+AC	Achats	AC000064	20241130	401	Fournisseurs	F010	Fournisseur 010	AC000064	20241130	Services bancaires et assimilés	0,00	48,45					EUR
+B1	Banque 1	B1000094	20241202	618	Divers			B1000094	20241202	Divers	72,35	0,00					EUR
+B1	Banque 1	B1000094	20241202	5121	Comptes en euros			B1000094	20241202	Divers	0,00	72,35					EUR
+VE	Ventes	VE000038	20241203	745	Subventions au revenu			VE000038	20241203	Subventions au revenu	0,00	18904,38					EUR
+VE	Ventes	VE000038	20241203	745	Subventions au revenu			VE000038	20241203	Subventions au revenu	0,00	2796,46					EUR
+VE	Ventes	VE000038	20241203	745	Subventions au revenu			VE000038	20241203	Subventions au revenu	0,00	11566,57					EUR
+VE	Ventes	VE000038	20241203	411	Clients	C006	Client 006	VE000038	20241203	Subventions au revenu	33267,41	0,00					EUR
+B1	Banque 1	B1000095	20241204	411	Clients	C006	Client 006	B1000095	20241204	Encaissement	0,00	10182,41					EUR
+B1	Banque 1	B1000095	20241204	5121	Comptes en euros			B1000095	20241204	Encaissement	10182,41	0,00					EUR
+B1	Banque 1	B1000096	20241204	401	Fournisseurs	F009	Fournisseur 009	B1000096	20241204	Règlement	11070,00	0,00					EUR
+B1	Banque 1	B1000096	20241204	5121	Comptes en euros			B1000096	20241204	Règlement	0,00	11070,00					EUR
+B1	Banque 1	B1000097	20241208	742	Indemnités liées à la production agricole			B1000097	20241208	Indemnités liées à la production agricole	0,00	12653,01					EUR
+B1	Banque 1	B1000097	20241208	5121	Comptes en euros			B1000097	20241208	Indemnités liées à la production agricole	12653,01	0,00					EUR
+OD	Opérations diverses	OD000029	20241208	4551	Principal	A001	Associé 1	OD000029	20241208	Opération	0,00	703,03					EUR
+OD	Opérations diverses	OD000029	20241208	431	Sécurité sociale			OD000029	20241208	Opération	703,03	0,00					EUR
+OD	Opérations diverses	OD000030	20241208	431	Sécurité sociale			OD000030	20241208	Indemnités et autres produits	0,07	0,00					EUR
+OD	Opérations diverses	OD000030	20241208	758	Indemnités et autres produits			OD000030	20241208	Indemnités et autres produits	0,00	0,07					EUR
+KA	Coopérative ou négoce A	KA000005	20241215	6226	Honoraires			KA000005	20241215	Honoraires — blé	609,40	0,00					EUR
+KA	Coopérative ou négoce A	KA000005	20241215	6226	Honoraires			KA000005	20241215	Honoraires — blé	60,89	0,00					EUR
+KA	Coopérative ou négoce A	KA000005	20241215	44566	TVA sur autres biens et services			KA000005	20241215	Honoraires — blé	134,06	0,00					EUR
+KA	Coopérative ou négoce A	KA000005	20241215	401	Fournisseurs	F012	Fournisseur 012	KA000005	20241215	Honoraires — blé	0,00	804,35					EUR
+B1	Banque 1	B1000098	20241217	401	Fournisseurs	F006	Fournisseur 006	B1000098	20241217	Règlement	0,00	5817,51					EUR
+B1	Banque 1	B1000098	20241217	5121	Comptes en euros			B1000098	20241217	Règlement	5817,51	0,00					EUR
+B1	Banque 1	B1000099	20241218	401	Fournisseurs	F015	Fournisseur 015	B1000099	20241218	Règlement	10075,91	0,00					EUR
+B1	Banque 1	B1000099	20241218	5121	Comptes en euros			B1000099	20241218	Règlement	0,00	10075,91					EUR
+B1	Banque 1	B1000100	20241218	401	Fournisseurs	F025	Fournisseur 025	B1000100	20241218	Règlement	1107,00	0,00					EUR
+B1	Banque 1	B1000100	20241218	5121	Comptes en euros			B1000100	20241218	Règlement	0,00	1107,00					EUR
+B1	Banque 1	B1000101	20241218	401	Fournisseurs	F025	Fournisseur 025	B1000101	20241218	Règlement	1660,50	0,00					EUR
+B1	Banque 1	B1000101	20241218	5121	Comptes en euros			B1000101	20241218	Règlement	0,00	1660,50					EUR
+B1	Banque 1	B1000102	20241218	401	Fournisseurs	F010	Fournisseur 010	B1000102	20241218	Règlement	0,39	0,00					EUR
+B1	Banque 1	B1000102	20241218	5121	Comptes en euros			B1000102	20241218	Règlement	0,00	0,39					EUR
+AC	Achats	AC000065	20241220	604	Achats d'études et prestations de services			AC000065	20241220	Achats d'études et prestations de services	1018,44	0,00					EUR
+AC	Achats	AC000065	20241220	44566	TVA sur autres biens et services			AC000065	20241220	Achats d'études et prestations de services	203,69	0,00					EUR
+AC	Achats	AC000065	20241220	401	Fournisseurs	F026	Fournisseur 026	AC000065	20241220	Achats d'études et prestations de services	0,00	1222,13					EUR
+B1	Banque 1	B1000103	20241223	401	Fournisseurs	F019	Fournisseur 019	B1000103	20241223	Règlement	0,00	334,76					EUR
+B1	Banque 1	B1000103	20241223	5121	Comptes en euros			B1000103	20241223	Règlement	334,76	0,00					EUR
+B1	Banque 1	B1000104	20241224	401	Fournisseurs	F018	Fournisseur 018	B1000104	20241224	Règlement	594,46	0,00					EUR
+B1	Banque 1	B1000104	20241224	5121	Comptes en euros			B1000104	20241224	Règlement	0,00	594,46					EUR
+B1	Banque 1	B1000105	20241224	401	Fournisseurs	F010	Fournisseur 010	B1000105	20241224	Règlement	48,45	0,00					EUR
+B1	Banque 1	B1000105	20241224	5121	Comptes en euros			B1000105	20241224	Règlement	0,00	48,45					EUR
+B1	Banque 1	B1000106	20241229	401	Fournisseurs	F005	Fournisseur 005	B1000106	20241229	Règlement	66473,14	0,00					EUR
+B1	Banque 1	B1000106	20241229	5121	Comptes en euros			B1000106	20241229	Règlement	0,00	66473,14					EUR
+B1	Banque 1	B1000107	20241230	401	Fournisseurs	F010	Fournisseur 010	B1000107	20241230	Règlement	9,96	0,00					EUR
+B1	Banque 1	B1000107	20241230	5121	Comptes en euros			B1000107	20241230	Règlement	0,00	9,96					EUR
+AC	Achats	AC000066	20241231	6617	Intérêts des obligations cautionnées			AC000066	20241231	Intérêts des obligations cautionnées	413,14	0,00					EUR
+AC	Achats	AC000066	20241231	401	Fournisseurs	F014	Fournisseur 014	AC000066	20241231	Intérêts des obligations cautionnées	0,00	413,14					EUR
+AC	Achats	AC000067	20241231	6131	Fermages et loyers du foncier			AC000067	20241231	Fermages et loyers du foncier	755,42	0,00					EUR
+AC	Achats	AC000067	20241231	401	Fournisseurs	F002	Fournisseur 002	AC000067	20241231	Fermages et loyers du foncier	0,00	755,42					EUR
+AC	Achats	AC000068	20241231	60615	Eau d'irrigation			AC000068	20241231	Eau d'irrigation	737,26	0,00					EUR
+AC	Achats	AC000068	20241231	401	Fournisseurs	F022	Fournisseur 022	AC000068	20241231	Eau d'irrigation	0,00	737,26					EUR
+AC	Achats	AC000069	20241231	627	Services bancaires et assimilés			AC000069	20241231	Services bancaires et assimilés	46,66	0,00					EUR
+AC	Achats	AC000069	20241231	627	Services bancaires et assimilés			AC000069	20241231	Services bancaires et assimilés	1,49	0,00					EUR
+AC	Achats	AC000069	20241231	44566	TVA sur autres biens et services			AC000069	20241231	Services bancaires et assimilés	0,30	0,00					EUR
+AC	Achats	AC000069	20241231	6278	Autres frais et commissions sur prestations de services			AC000069	20241231	Services bancaires et assimilés	0,39	0,00					EUR
+AC	Achats	AC000069	20241231	6278	Autres frais et commissions sur prestations de services			AC000069	20241231	Services bancaires et assimilés	9,96	0,00					EUR
+AC	Achats	AC000069	20241231	401	Fournisseurs	F010	Fournisseur 010	AC000069	20241231	Services bancaires et assimilés	0,00	58,80					EUR
+OD	Opérations diverses	OD000031	20241231	44566	TVA sur autres biens et services			OD000031	20241231	TVA	0,00	8418,91					EUR
+OD	Opérations diverses	OD000031	20241231	44566	TVA sur autres biens et services			OD000031	20241231	TVA	7667,16	0,00					EUR
+OD	Opérations diverses	OD000031	20241231	44566	TVA sur autres biens et services			OD000031	20241231	TVA	442,80	0,00					EUR
+OD	Opérations diverses	OD000031	20241231	44566	TVA sur autres biens et services			OD000031	20241231	TVA	639,39	0,00					EUR
+OD	Opérations diverses	OD000031	20241231	44566	TVA sur autres biens et services			OD000031	20241231	TVA	0,00	330,44					EUR
+OD	Opérations diverses	OD000032	20241231	6251	Voyages et déplacements			OD000032	20241231	Voyages et déplacements	1043,17	0,00					EUR
+OD	Opérations diverses	OD000032	20241231	4551	Principal	A002	Associé 2	OD000032	20241231	Voyages et déplacements	0,00	1043,17					EUR
+TV	OD TVA	TV000004	20241231	44566	TVA sur autres biens et services			TV000004	20241231	Indemnités et autres produits — blé	0,00	14421,87					EUR
+TV	OD TVA	TV000004	20241231	44566	TVA sur autres biens et services			TV000004	20241231	Indemnités et autres produits — blé	0,00	103,88					EUR
+TV	OD TVA	TV000004	20241231	44566	TVA sur autres biens et services			TV000004	20241231	Indemnités et autres produits — blé	5629,62	0,00					EUR
+TV	OD TVA	TV000004	20241231	44566	TVA sur autres biens et services			TV000004	20241231	Indemnités et autres produits — blé	0,00	762,76					EUR
+TV	OD TVA	TV000004	20241231	44571	TVA collectée			TV000004	20241231	Indemnités et autres produits — blé	5206,28	0,00					EUR
+TV	OD TVA	TV000004	20241231	44583	Remboursement de taxes sur le chiffre d'affaires demandé			TV000004	20241231	Indemnités et autres produits — blé	4453,46	0,00					EUR
+TV	OD TVA	TV000004	20241231	758	Indemnités et autres produits			TV000004	20241231	Indemnités et autres produits — blé	0,00	0,85					EUR
+OD	Opérations diverses	OD000033	20250101	401	Fournisseurs	F014	Fournisseur 014	OD000033	20250101	Opération	45894,76	0,00					EUR
+OD	Opérations diverses	OD000033	20250101	401	Fournisseurs	F006	Fournisseur 006	OD000033	20250101	Opération	0,00	45894,76					EUR
+VE	Ventes	VE000039	20250101	7011	Ventes de produits végétaux			VE000039	20250101	Ventes de produits végétaux — maïs semence	0,00	959,77					EUR
+VE	Ventes	VE000039	20250101	44571	TVA collectée			VE000039	20250101	Ventes de produits végétaux — maïs semence	0,00	52,79					EUR
+VE	Ventes	VE000039	20250101	401	Fournisseurs	F006	Fournisseur 006	VE000039	20250101	Ventes de produits végétaux — maïs semence	1012,56	0,00					EUR
+VE	Ventes	VE000040	20250101	7011	Ventes de produits végétaux			VE000040	20250101	Ventes de produits végétaux — maïs semence	0,00	2540,57					EUR
+VE	Ventes	VE000040	20250101	44571	TVA collectée			VE000040	20250101	Ventes de produits végétaux — maïs semence	0,00	139,74					EUR
+VE	Ventes	VE000040	20250101	401	Fournisseurs	F006	Fournisseur 006	VE000040	20250101	Ventes de produits végétaux — maïs semence	2680,31	0,00					EUR
+VE	Ventes	VE000041	20250101	7011	Ventes de produits végétaux			VE000041	20250101	Ventes de produits végétaux — maïs semence	0,00	959,77					EUR
+VE	Ventes	VE000041	20250101	44571	TVA collectée			VE000041	20250101	Ventes de produits végétaux — maïs semence	0,00	52,79					EUR
+VE	Ventes	VE000041	20250101	401	Fournisseurs	F006	Fournisseur 006	VE000041	20250101	Ventes de produits végétaux — maïs semence	1012,56	0,00					EUR
+VE	Ventes	VE000042	20250101	7011	Ventes de produits végétaux			VE000042	20250101	Ventes de produits végétaux — maïs semence	0,00	1594,08					EUR
+VE	Ventes	VE000042	20250101	44571	TVA collectée			VE000042	20250101	Ventes de produits végétaux — maïs semence	0,00	87,67					EUR
+VE	Ventes	VE000042	20250101	401	Fournisseurs	F006	Fournisseur 006	VE000042	20250101	Ventes de produits végétaux — maïs semence	1681,75	0,00					EUR
+VE	Ventes	VE000043	20250101	7011	Ventes de produits végétaux			VE000043	20250101	Ventes de produits végétaux — maïs semence	0,00	39072,17					EUR
+VE	Ventes	VE000043	20250101	44571	TVA collectée			VE000043	20250101	Ventes de produits végétaux — maïs semence	0,00	2148,97					EUR
+VE	Ventes	VE000043	20250101	6281	Concours divers (cotisations)			VE000043	20250101	Ventes de produits végétaux — maïs semence	42,20	0,00					EUR
+VE	Ventes	VE000043	20250101	6281	Concours divers (cotisations)			VE000043	20250101	Ventes de produits végétaux — maïs semence	940,95	0,00					EUR
+VE	Ventes	VE000043	20250101	6281	Concours divers (cotisations)			VE000043	20250101	Ventes de produits végétaux — maïs semence	162,10	0,00					EUR
+VE	Ventes	VE000043	20250101	401	Fournisseurs	F006	Fournisseur 006	VE000043	20250101	Ventes de produits végétaux — maïs semence	40075,89	0,00					EUR
+VE	Ventes	VE000044	20250101	7011	Ventes de produits végétaux			VE000044	20250101	Ventes de produits végétaux — maïs semence	0,00	46425,41					EUR
+VE	Ventes	VE000044	20250101	44571	TVA collectée			VE000044	20250101	Ventes de produits végétaux — maïs semence	0,00	2553,40					EUR
+VE	Ventes	VE000044	20250101	6281	Concours divers (cotisations)			VE000044	20250101	Ventes de produits végétaux — maïs semence	42,04	0,00					EUR
+VE	Ventes	VE000044	20250101	6281	Concours divers (cotisations)			VE000044	20250101	Ventes de produits végétaux — maïs semence	161,49	0,00					EUR
+VE	Ventes	VE000044	20250101	6281	Concours divers (cotisations)			VE000044	20250101	Ventes de produits végétaux — maïs semence	940,95	0,00					EUR
+VE	Ventes	VE000044	20250101	401	Fournisseurs	F006	Fournisseur 006	VE000044	20250101	Ventes de produits végétaux — maïs semence	47834,33	0,00					EUR
+VE	Ventes	VE000045	20250101	7011	Ventes de produits végétaux			VE000045	20250101	Ventes de produits végétaux — maïs semence	0,00	27529,25					EUR
+VE	Ventes	VE000045	20250101	44571	TVA collectée			VE000045	20250101	Ventes de produits végétaux — maïs semence	0,00	1514,11					EUR
+VE	Ventes	VE000045	20250101	6281	Concours divers (cotisations)			VE000045	20250101	Ventes de produits végétaux — maïs semence	29,49	0,00					EUR
+VE	Ventes	VE000045	20250101	6281	Concours divers (cotisations)			VE000045	20250101	Ventes de produits végétaux — maïs semence	464,94	0,00					EUR
+VE	Ventes	VE000045	20250101	6281	Concours divers (cotisations)			VE000045	20250101	Ventes de produits végétaux — maïs semence	113,29	0,00					EUR
+VE	Ventes	VE000045	20250101	401	Fournisseurs	F006	Fournisseur 006	VE000045	20250101	Ventes de produits végétaux — maïs semence	28435,64	0,00					EUR
+VE	Ventes	VE000046	20250101	7011	Ventes de produits végétaux			VE000046	20250101	Ventes de produits végétaux — maïs semence	0,00	116802,17					EUR
+VE	Ventes	VE000046	20250101	44571	TVA collectée			VE000046	20250101	Ventes de produits végétaux — maïs semence	0,00	6424,12					EUR
+VE	Ventes	VE000046	20250101	6281	Concours divers (cotisations)			VE000046	20250101	Ventes de produits végétaux — maïs semence	140,77	0,00					EUR
+VE	Ventes	VE000046	20250101	6281	Concours divers (cotisations)			VE000046	20250101	Ventes de produits végétaux — maïs semence	2490,75	0,00					EUR
+VE	Ventes	VE000046	20250101	6281	Concours divers (cotisations)			VE000046	20250101	Ventes de produits végétaux — maïs semence	540,70	0,00					EUR
+VE	Ventes	VE000046	20250101	401	Fournisseurs	F006	Fournisseur 006	VE000046	20250101	Ventes de produits végétaux — maïs semence	120054,07	0,00					EUR
+B1	Banque 1	B1000108	20250105	401	Fournisseurs	F010	Fournisseur 010	B1000108	20250105	Règlement	15,50	0,00					EUR
+B1	Banque 1	B1000108	20250105	5121	Comptes en euros			B1000108	20250105	Règlement	0,00	15,50					EUR
+B1	Banque 1	B1000109	20250105	618	Divers			B1000109	20250105	Divers	72,35	0,00					EUR
+B1	Banque 1	B1000109	20250105	5121	Comptes en euros			B1000109	20250105	Divers	0,00	72,35					EUR
+B1	Banque 1	B1000110	20250107	401	Fournisseurs	F006	Fournisseur 006	B1000110	20250107	Règlement	0,00	192186,93					EUR
+B1	Banque 1	B1000110	20250107	5121	Comptes en euros			B1000110	20250107	Règlement	192186,93	0,00					EUR
+B1	Banque 1	B1000111	20250107	401	Fournisseurs	F010	Fournisseur 010	B1000111	20250107	Règlement	17,32	0,00					EUR
+B1	Banque 1	B1000111	20250107	5121	Comptes en euros			B1000111	20250107	Règlement	0,00	17,32					EUR
+B1	Banque 1	B1000112	20250107	401	Fournisseurs	F010	Fournisseur 010	B1000112	20250107	Règlement	0,08	0,00					EUR
+B1	Banque 1	B1000112	20250107	5121	Comptes en euros			B1000112	20250107	Règlement	0,00	0,08					EUR
+B1	Banque 1	B1000113	20250107	401	Fournisseurs	F010	Fournisseur 010	B1000113	20250107	Règlement	2047,74	0,00					EUR
+B1	Banque 1	B1000113	20250107	5121	Comptes en euros			B1000113	20250107	Règlement	0,00	2047,74					EUR
+B1	Banque 1	B1000114	20250108	401	Fournisseurs	F009	Fournisseur 009	B1000114	20250108	Règlement	16605,00	0,00					EUR
+B1	Banque 1	B1000114	20250108	5121	Comptes en euros			B1000114	20250108	Règlement	0,00	16605,00					EUR
+B1	Banque 1	B1000115	20250108	411	Clients	C004	Client 004	B1000115	20250108	Encaissement	5535,00	0,00					EUR
+B1	Banque 1	B1000115	20250108	5121	Comptes en euros			B1000115	20250108	Encaissement	0,00	5535,00					EUR
+B1	Banque 1	B1000116	20250109	401	Fournisseurs	F026	Fournisseur 026	B1000116	20250109	Règlement	1222,13	0,00					EUR
+B1	Banque 1	B1000116	20250109	5121	Comptes en euros			B1000116	20250109	Règlement	0,00	1222,13					EUR
+B1	Banque 1	B1000117	20250113	58	Virements internes			B1000117	20250113	Règlement	80811,00	0,00					EUR
+B1	Banque 1	B1000117	20250113	5121	Comptes en euros			B1000117	20250113	Règlement	0,00	80811,00					EUR
+KB	Coopérative ou négoce B	KB000002	20250113	519	Concours bancaires courants			KB000002	20250113	Opération	80811,00	0,00					EUR
+KB	Coopérative ou négoce B	KB000002	20250113	58	Virements internes			KB000002	20250113	Opération	0,00	80811,00					EUR
+B1	Banque 1	B1000118	20250114	411	Clients	C004	Client 004	B1000118	20250114	Encaissement	22140,00	0,00					EUR
+B1	Banque 1	B1000118	20250114	5121	Comptes en euros			B1000118	20250114	Encaissement	0,00	22140,00					EUR
+B1	Banque 1	B1000119	20250115	616	Primes d'assurances			B1000119	20250115	Primes d'assurances	284,58	0,00					EUR
+B1	Banque 1	B1000119	20250115	5121	Comptes en euros			B1000119	20250115	Primes d'assurances	0,00	284,58					EUR
+B1	Banque 1	B1000120	20250115	401	Fournisseurs	F012	Fournisseur 012	B1000120	20250115	Règlement	804,35	0,00					EUR
+B1	Banque 1	B1000120	20250115	5121	Comptes en euros			B1000120	20250115	Règlement	0,00	804,35					EUR
+B1	Banque 1	B1000121	20250119	411	Clients	C004	Client 004	B1000121	20250119	Encaissement	0,00	22140,00					EUR
+B1	Banque 1	B1000121	20250119	5121	Comptes en euros			B1000121	20250119	Encaissement	22140,00	0,00					EUR
+B1	Banque 1	B1000122	20250119	401	Fournisseurs	F009	Fournisseur 009	B1000122	20250119	Règlement	16605,00	0,00					EUR
+B1	Banque 1	B1000122	20250119	5121	Comptes en euros			B1000122	20250119	Règlement	0,00	16605,00					EUR
+KA	Coopérative ou négoce A	KA000006	20250119	6226	Honoraires			KA000006	20250119	Honoraires	121,77	0,00					EUR
+KA	Coopérative ou négoce A	KA000006	20250119	44566	TVA sur autres biens et services			KA000006	20250119	Honoraires	24,35	0,00					EUR
+KA	Coopérative ou négoce A	KA000006	20250119	401	Fournisseurs	F012	Fournisseur 012	KA000006	20250119	Honoraires	0,00	146,12					EUR
+B1	Banque 1	B1000123	20250126	401	Fournisseurs	F018	Fournisseur 018	B1000123	20250126	Règlement	594,46	0,00					EUR
+B1	Banque 1	B1000123	20250126	5121	Comptes en euros			B1000123	20250126	Règlement	0,00	594,46					EUR
+B1	Banque 1	B1000124	20250126	401	Fournisseurs	F010	Fournisseur 010	B1000124	20250126	Règlement	48,45	0,00					EUR
+B1	Banque 1	B1000124	20250126	5121	Comptes en euros			B1000124	20250126	Règlement	0,00	48,45					EUR
+B1	Banque 1	B1000125	20250127	401	Fournisseurs	F025	Fournisseur 025	B1000125	20250127	Règlement	46494,00	0,00					EUR
+B1	Banque 1	B1000125	20250127	5121	Comptes en euros			B1000125	20250127	Règlement	0,00	46494,00					EUR
+AC	Achats	AC000070	20250129	6132	Locations de matériel			AC000070	20250129	Locations de matériel	5808,06	0,00					EUR
+AC	Achats	AC000070	20250129	44566	TVA sur autres biens et services			AC000070	20250129	Locations de matériel	1161,61	0,00					EUR
+AC	Achats	AC000070	20250129	401	Fournisseurs	F018	Fournisseur 018	AC000070	20250129	Locations de matériel	0,00	6969,67					EUR
+AC	Achats	AC000071	20250131	604	Achats d'études et prestations de services			AC000071	20250131	Achats d'études et prestations de services	394534,80	0,00					EUR
+AC	Achats	AC000071	20250131	44566	TVA sur autres biens et services			AC000071	20250131	Achats d'études et prestations de services	21699,41	0,00					EUR
+AC	Achats	AC000071	20250131	401	Fournisseurs	F009	Fournisseur 009	AC000071	20250131	Achats d'études et prestations de services	0,00	416234,21					EUR
+AC	Achats	AC000072	20250131	627	Services bancaires et assimilés			AC000072	20250131	Intérêts des dettes commerciales	46,66	0,00					EUR
+AC	Achats	AC000072	20250131	66181	Intérêts des dettes commerciales			AC000072	20250131	Intérêts des dettes commerciales	2065,06	0,00					EUR
+AC	Achats	AC000072	20250131	6278	Autres frais et commissions sur prestations de services			AC000072	20250131	Intérêts des dettes commerciales	15,50	0,00					EUR
+AC	Achats	AC000072	20250131	6278	Autres frais et commissions sur prestations de services			AC000072	20250131	Intérêts des dettes commerciales	0,08	0,00					EUR
+AC	Achats	AC000072	20250131	627	Services bancaires et assimilés			AC000072	20250131	Intérêts des dettes commerciales	1,49	0,00					EUR
+AC	Achats	AC000072	20250131	44566	TVA sur autres biens et services			AC000072	20250131	Intérêts des dettes commerciales	0,30	0,00					EUR
+AC	Achats	AC000072	20250131	401	Fournisseurs	F010	Fournisseur 010	AC000072	20250131	Intérêts des dettes commerciales	0,00	2129,09					EUR
+AC	Achats	AC000073	20250131	761	Produits de participations			AC000073	20250131	Produits de participations — semences	0,00	6,77					EUR
+AC	Achats	AC000073	20250131	401	Fournisseurs	F006	Fournisseur 006	AC000073	20250131	Produits de participations — semences	6,77	0,00					EUR
+AC	Achats	AC000074	20250131	604	Achats d'études et prestations de services			AC000074	20250131	Achats stockés - Matières premières et fournitures — maïs	11457,45	0,00					EUR
+AC	Achats	AC000074	20250131	601	Achats stockés - Matières premières et fournitures			AC000074	20250131	Achats stockés - Matières premières et fournitures — maïs	17676,11	0,00					EUR
+AC	Achats	AC000074	20250131	44566	TVA sur autres biens et services			AC000074	20250131	Achats stockés - Matières premières et fournitures — maïs	3535,23	0,00					EUR
+AC	Achats	AC000074	20250131	401	Fournisseurs	F027	Fournisseur 027	AC000074	20250131	Achats stockés - Matières premières et fournitures — maïs	0,00	32668,79					EUR
+EX	Extournes	EX000015	20250131	6131	Fermages et loyers du foncier			EX000015	20250131	Fermages et loyers du foncier	25239,60	0,00					EUR
+EX	Extournes	EX000015	20250131	401	Fournisseurs	F007	Fournisseur 007	EX000015	20250131	Fermages et loyers du foncier	0,00	25239,60					EUR
+EX	Extournes	EX000016	20250131	6131	Fermages et loyers du foncier			EX000016	20250131	Fermages et loyers du foncier	25239,60	0,00					EUR
+EX	Extournes	EX000016	20250131	401	Fournisseurs	F007	Fournisseur 007	EX000016	20250131	Fermages et loyers du foncier	0,00	25239,60					EUR
+EX	Extournes	EX000017	20250131	616	Primes d'assurances			EX000017	20250131	Primes d'assurances	0,00	36717,43					EUR
+EX	Extournes	EX000017	20250131	441	État - Subventions et aides à recevoir			EX000017	20250131	Primes d'assurances	36717,43	0,00					EUR
+EX	Extournes	EX000018	20250131	44586	Taxes sur le chiffre d'affaires sur factures non parvenues			EX000018	20250131	Achats d'études et prestations de services	144,28	0,00					EUR
+EX	Extournes	EX000018	20250131	604	Achats d'études et prestations de services			EX000018	20250131	Achats d'études et prestations de services	2623,22	0,00					EUR
+EX	Extournes	EX000018	20250131	401	Fournisseurs	F007	Fournisseur 007	EX000018	20250131	Achats d'études et prestations de services	0,00	2767,50					EUR
+EX	Extournes	EX000019	20250131	401	Fournisseurs	F025	Fournisseur 025	EX000019	20250131	Opération	0,00	49261,50					EUR
+EX	Extournes	EX000019	20250131	401	Fournisseurs	F028	Fournisseur 028	EX000019	20250131	Opération	49261,50	0,00					EUR
+EX	Extournes	EX000020	20250131	6131	Fermages et loyers du foncier			EX000020	20250131	Fermages et loyers du foncier	2796,28	0,00					EUR
+EX	Extournes	EX000020	20250131	6131	Fermages et loyers du foncier			EX000020	20250131	Fermages et loyers du foncier	2796,28	0,00					EUR
+EX	Extournes	EX000020	20250131	401	Fournisseurs	F007	Fournisseur 007	EX000020	20250131	Fermages et loyers du foncier	0,00	5592,56					EUR
+EX	Extournes	EX000021	20250131	6131	Fermages et loyers du foncier			EX000021	20250131	Fermages et loyers du foncier	110,70	0,00					EUR
+EX	Extournes	EX000021	20250131	401	Fournisseurs	F007	Fournisseur 007	EX000021	20250131	Fermages et loyers du foncier	0,00	110,70					EUR
+EX	Extournes	EX000022	20250131	6131	Fermages et loyers du foncier			EX000022	20250131	Fermages et loyers du foncier	793,72	0,00					EUR
+EX	Extournes	EX000022	20250131	401	Fournisseurs	F007	Fournisseur 007	EX000022	20250131	Fermages et loyers du foncier	0,00	793,72					EUR
+EX	Extournes	EX000023	20250131	7011	Ventes de produits végétaux			EX000023	20250131	Ventes de produits végétaux — maïs semence	0,00	17202,00					EUR
+EX	Extournes	EX000023	20250131	6281	Concours divers (cotisations)			EX000023	20250131	Ventes de produits végétaux — maïs semence	844,86	0,00					EUR
+EX	Extournes	EX000023	20250131	411	Clients	C007	Client 007	EX000023	20250131	Ventes de produits végétaux — maïs semence	16357,14	0,00					EUR
+EX	Extournes	EX000024	20250131	7011	Ventes de produits végétaux			EX000024	20250131	Ventes de produits végétaux — maïs semence	0,00	19040,95					EUR
+EX	Extournes	EX000024	20250131	411	Clients	C007	Client 007	EX000024	20250131	Ventes de produits végétaux — maïs semence	18197,31	0,00					EUR
+EX	Extournes	EX000024	20250131	6281	Concours divers (cotisations)			EX000024	20250131	Ventes de produits végétaux — maïs semence	843,64	0,00					EUR
+EX	Extournes	EX000025	20250131	7011	Ventes de produits végétaux			EX000025	20250131	Ventes de produits végétaux — maïs semence	0,00	48880,25					EUR
+EX	Extournes	EX000025	20250131	411	Clients	C007	Client 007	EX000025	20250131	Ventes de produits végétaux — maïs semence	46438,76	0,00					EUR
+EX	Extournes	EX000025	20250131	6281	Concours divers (cotisations)			EX000025	20250131	Ventes de produits végétaux — maïs semence	2441,49	0,00					EUR
+EX	Extournes	EX000026	20250131	7011	Ventes de produits végétaux			EX000026	20250131	Ventes de produits végétaux — maïs semence	0,00	10212,62					EUR
+EX	Extournes	EX000026	20250131	411	Clients	C007	Client 007	EX000026	20250131	Ventes de produits végétaux — maïs semence	9554,07	0,00					EUR
+EX	Extournes	EX000026	20250131	6281	Concours divers (cotisations)			EX000026	20250131	Ventes de produits végétaux — maïs semence	658,55	0,00					EUR
+EX	Extournes	EX000027	20250131	401	Fournisseurs	F006	Fournisseur 006	EX000027	20250131	Opération	0,00	4712,20					EUR
+EX	Extournes	EX000027	20250131	411	Clients	C002	Client 002	EX000027	20250131	Opération	4712,20	0,00					EUR
+EX	Extournes	EX000028	20250131	745	Subventions au revenu			EX000028	20250131	Subventions au revenu	0,00	301,99					EUR
+EX	Extournes	EX000028	20250131	441	État - Subventions et aides à recevoir			EX000028	20250131	Subventions au revenu	301,99	0,00					EUR
+OD	Opérations diverses	OD000034	20250131	68112	Immobilisations corporelles			OD000034	20250131	Immobilisations corporelles	462,62	0,00					EUR
+OD	Opérations diverses	OD000034	20250131	2815	Installations, matériel et outillage industriels (même ventilation que celle du compte 215)			OD000034	20250131	Immobilisations corporelles	0,00	462,62					EUR
+VE	Ventes	VE000047	20250131	7011	Ventes de produits végétaux			VE000047	20250131	Ventes de produits végétaux — maïs	0,00	29152,98					EUR
+VE	Ventes	VE000047	20250131	44571	TVA collectée			VE000047	20250131	Ventes de produits végétaux — maïs	0,00	2915,30					EUR
+VE	Ventes	VE000047	20250131	411	Clients	C004	Client 004	VE000047	20250131	Ventes de produits végétaux — maïs	32068,28	0,00					EUR

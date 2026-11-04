@@ -141,7 +141,8 @@ def session_payload() -> dict:
         if inst else [],
         # Menu de l'utilisateur (en-tête) : administration réservée aux admins.
         "admin_links": ([{"label": "Utilisateurs", "url": url_for("users.index")},
-                         {"label": "Instances", "url": url_for("instances.index")}] if is_admin else []),
+                         {"label": "Instances", "url": url_for("instances.index")},
+                         {"label": "Paramètres réglementaires", "url": url_for("regulatory.index")}] if is_admin else []),
         "preferences": _initial_changelog_seen(current_user),
         # Services du serveur (pas d'interrupteur par instance) : Sirene si la clé est configurée.
         "services": {"sirene": sirene.available()},

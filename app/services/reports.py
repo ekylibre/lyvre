@@ -5,6 +5,8 @@ Build Bilan and Compte de Résultat structures for each chart of accounts.
 - ``sci``  : plan comptable général adapté aux SCI (doc/plan-comptable-SCI.pdf).
 - ``societe`` : PCG 2026 d'une société commerciale, postes de la liasse 2050 (bilan) et 2052-2053
   (compte de résultat).
+- ``agri`` / ``agri_ei`` : exploitation agricole (titre 5 du Recueil PCG 2026, art. 121-2 et 121-3) ; passif
+  « sociétés » ou « entreprises individuelles » selon la forme juridique (``bilan_layout_key``).
 
 Each line aggregates account codes by prefix using database sums. The SCI
 layouts use disjoint prefixes (with exclusions) so that totals never count
@@ -363,7 +365,7 @@ def build_bilan(fy, fy_prev=None, chart="asso"):
     Each line is a dict: ``kind`` (section/row/total), ``label`` and, for
     rows and totals, ``n`` / ``p`` amounts in cents (``p`` is None without N-1).
     """
-    layout = BILAN_LAYOUTS.get(chart) or BILAN_LAYOUTS["asso"]
+    layout = BILAN_LAYOUTS.get(chart) or BILAN_LAYOUTS["asso"]  # chart : clé de bilan_layout_key()
     return {
         "actif": _build_bilan_side(layout["actif"], "debit", fy, fy_prev),
         "passif": _build_bilan_side(layout["passif"], "credit", fy, fy_prev),
@@ -554,7 +556,186 @@ SOCIETE_CDR_SECTIONS = [
 PARTICIPATION = (["691"], [])
 IMPOTS_BENEFICES = (["69"], ["691"])
 
-CDR_SECTIONS = {"asso": ASSO_CDR_SECTIONS, "sci": SCI_CDR_SECTIONS, "societe": SOCIETE_CDR_SECTIONS}
+# ---------------------------------------------------------------------------
+# EXPLOITATION AGRICOLE (lot AG1.c) : modèles des art. 121-2 et 121-3 du titre 5 du Recueil PCG 2026
+# (règlement ANC 2020-04 modifié), claudedocs/design_compta_agricole.md § 5. Cessions : 7571 / 6571 biens vivants,
+# 7578 / 6578 autres immobilisations (décision AGD11).
+# ---------------------------------------------------------------------------
+
+_AGRI_LIVING_STOCKS = ["3112", "3113", "3114", "3115"]
+_AGRI_ACTIF = [
+    ("row", "Capital souscrit non appelé", ["109"], 1),
+    ("row", "Frais d'établissement", ["201"], 1),
+    ("section", "ACTIF IMMOBILISÉ"),
+    ("section", "Immobilisations incorporelles"),
+    ("row", "Frais de recherche et de développement", ["203"], 2),
+    ("row", "Concessions, brevets, droits similaires (dont droits à paiement de base)", ["205"], 2),
+    ("row", "Fonds commercial et fonds agricole résiduel", ["206", "207"], 2),
+    ("row", "Autres immobilisations incorporelles", ["20", "232", "237"], 2, "debit", ["201", "203", "205", "206", "207"]),
+    ("section", "Immobilisations corporelles (hors biens vivants)"),
+    ("row", "Terrains", ["211"], 2),
+    ("row", "Aménagements fonciers", ["212"], 2),
+    ("row", "Améliorations des sols et des milieux", ["217"], 2),
+    ("row", "Constructions", ["213", "214"], 2),
+    ("row", "Installations techniques, matériel et outillage", ["215"], 2),
+    ("row", "Autres", ["21", "22"], 2, "debit", ["211", "212", "213", "214", "215", "217", "229"]),
+    ("section", "Immobilisations corporelles (biens vivants)"),
+    ("row", "Animaux reproducteurs", ["241"], 2),
+    ("row", "Animaux de service", ["243"], 2),
+    ("row", "Plantations pérennes", ["246"], 2),
+    ("row", "Autres végétaux immobilisés", ["24"], 2, "debit", ["241", "243", "246"]),
+    ("row", "Immobilisations corporelles en cours (dont biens vivants)", ["23"], 1, "debit", ["232", "237", "238"]),
+    ("row", "Avances et acomptes", ["238"], 1),
+    ("section", "Immobilisations financières"),
+    ("row", "Participations (dont organismes professionnels agricoles)", ["26"], 2, "debit", ["267", "268"]),
+    ("row", "Créances rattachées à des participations", ["267", "268"], 2),
+    ("row", "Autres immobilisations financières", ["27"], 2),
+    ("row", "Amortissements et dépréciations des immobilisations", ["28", "29"], 1),
+    ("section", "ACTIF CIRCULANT"),
+    ("section", "Biens vivants et en-cours (cycle long)"),
+    ("row", "Animaux", ["3112"], 2),
+    ("row", "Avances aux cultures", ["31141"], 2),
+    ("row", "Autres végétaux", ["3114"], 2, "debit", ["31141"]),
+    ("row", "Vins et alcools", ["3311"], 2),
+    ("section", "Biens vivants et en-cours (cycle court)"),
+    ("row", "Animaux", ["3113"], 2),
+    ("row", "Avances aux cultures", ["31151"], 2),
+    ("row", "Autres végétaux", ["3115"], 2, "debit", ["31151"]),
+    ("row", "En-cours (biens et services)", ["33", "34"], 2, "debit", ["3311"]),
+    ("section", "Stocks"),
+    ("row", "Approvisionnements et marchandises", ["31", "32", "37", "38"], 2, "debit", _AGRI_LIVING_STOCKS),
+    ("row", "Produits", ["35", "36"], 2),
+    ("row", "Dépréciations des stocks", ["39"], 1),
+    ("row", "Avances et acomptes versés sur commandes", ["4091"], 1, "debit_only"),
+    ("section", "Créances"),
+    ("row", "Créances clients et comptes rattachés", ["41"], 2, "debit_only", ["412"]),
+    ("row", "Créances autres clients (soldes après compensation)", ["412"], 2, "debit_only"),
+    ("row", "Autres", ["40", "42", "43", "44", "45", "46", "47"], 2, "debit_only", ["4091", "476", "477"]),
+    ("row", "Dépréciations des comptes de tiers", ["49"], 1),
+    ("row", "Charges constatées d'avance", ["486"], 1),
+    ("row", "Valeurs mobilières de placement", ["50", "59"], 1),
+    ("row", "Disponibilités", ["51", "52", "53", "54", "58"], 1, "debit_only"),
+    ("section", "COMPTES DE RÉGULARISATION"),
+    ("row", "Frais d'émission d'emprunt à étaler", ["48"], 1, "debit", ["486", "487"]),
+    ("row", "Primes de remboursement des emprunts", ["169"], 1),
+    ("row", "Écarts de conversion et différences d'évaluation - Actif", ["476"], 1),
+    ("total", "TOTAL GÉNÉRAL DE L'ACTIF"),
+]
+_AGRI_DETTES = [
+    ("section", "DETTES"),
+    ("section", "Dettes financières"),
+    ("row", "Emprunts et dettes auprès des établissements de crédit", ["164"], 2),
+    ("row", "Concours bancaires courants et découverts bancaires", ["51", "52", "53", "54", "58"], 2, "credit_only"),
+    ("row", "Autres", ["16", "17", "18"], 2, "credit", ["164", "169", "1671", "1674"]),
+    ("row", "Associés - comptes courants", ["455"], 2, "credit_only"),
+    ("row", "Avances et acomptes reçus sur commandes", ["4191"], 1, "credit_only"),
+    ("section", "Autres dettes"),
+    ("row", "Dettes fournisseurs et comptes rattachés", ["40"], 2, "credit_only", ["402", "404", "405"]),
+    ("row", "Dettes autres fournisseurs et comptes rattachés (conventions de compte courant)", ["402"], 2,
+     "credit_only"),
+    ("row", "Dettes fiscales et sociales", ["42", "43", "44"], 2, "credit_only"),
+    ("row", "Dettes sur immobilisations et comptes rattachés", ["404", "405"], 2, "credit_only"),
+    ("row", "Autres dettes", ["41", "45", "46", "47"], 2, "credit_only", ["4191", "455", "476", "477"]),
+    ("row", "Produits constatés d'avance", ["487"], 1),
+    ("row", "Écarts de conversion et différences d'évaluation - Passif", ["477"], 1),
+    ("total", "TOTAL GÉNÉRAL DU PASSIF"),
+]
+BILAN_LAYOUTS["agri"] = {  # passif « sociétés » (art. 121-2)
+    "actif": _AGRI_ACTIF,
+    "passif": [
+        ("section", "CAPITAUX PROPRES"),
+        ("row", "Capital social", ["101", "108"], 1),
+        ("row", "Primes d'émission, de fusion, d'apport", ["104"], 1),
+        ("row", "Écarts de réévaluation", ["105"], 1),
+        ("row", "Réserves", ["10"], 1, "credit", ["101", "104", "105", "108", "109"]),
+        ("row", "Report à nouveau", ["11"], 1),
+        ("row", "Résultat de l'exercice (bénéfice ou perte)", ["12", "6", "7"], 1),
+        ("row", "Subventions d'investissement", ["13"], 1),
+        ("row", "Provisions réglementées", ["14"], 1),
+        ("section", "AUTRES FONDS PROPRES"),
+        ("row", "Fonds non remboursables", ["1671"], 1),
+        ("row", "Avances conditionnées", ["1674"], 1),
+        ("row", "Droits du concédant", ["229"], 1),
+        ("section", "PROVISIONS"),
+        ("row", "Provisions pour risques et charges", ["15"], 1),
+        *_AGRI_DETTES,
+    ],
+}
+BILAN_LAYOUTS["agri_ei"] = {  # passif « entreprises individuelles » (art. 121-2)
+    "actif": _AGRI_ACTIF,
+    "passif": [
+        ("section", "CAPITAUX PROPRES"),
+        ("row", "Capital individuel", ["10", "11"], 1, "credit", ["105", "109"]),
+        ("row", "Écart de réévaluation", ["105"], 1),
+        ("row", "Résultat de l'exercice (bénéfice ou perte)", ["12", "6", "7"], 1),
+        ("row", "Subventions d'investissement", ["13"], 1),
+        ("row", "Provisions réglementées", ["14"], 1),
+        ("section", "PROVISIONS"),
+        ("row", "Provisions pour risques et charges", ["15"], 1),
+        ("row", "Autres fonds propres", ["1671", "1674", "229"], 1),
+        *_AGRI_DETTES,
+    ],
+}
+
+_AGRI_APPROS = ["601", "602", "6091", "6092"]
+_AGRI_MARCHANDISES = ["607", "6097"]
+_AGRI_REMUNERATIONS = ["641", "644", "648", "649"]
+AGRI_CDR_SECTIONS = [
+    ("produits_exploitation", "credit", [
+        ("ventes_marchandises", "Ventes de marchandises", ["707", "7097"], []),
+        ("ventes_animaux", "Ventes d'animaux (hors biens vivants immobilisés)", ["7014"], []),
+        ("autre_production", "Autre production vendue (biens et services)", ["70"], ["707", "7097", "7014"]),
+        ("cessions_biens_vivants", "Produits de cession sur biens vivants immobilisés", ["7571"], []),
+        ("production_stockee", "Production stockée (biens vivants non immobilisés, en-cours, produits)", ["71"], []),
+        ("production_immobilisee_vivants", "Production immobilisée - biens vivants immobilisés", ["7222", "724"], []),
+        ("production_immobilisee_autres", "Production immobilisée - hors biens vivants", ["72"], ["7222", "724"]),
+        ("autoconsommation", "Production autoconsommée", ["73"], []),
+        ("subventions", "Indemnités et subventions d'exploitation", ["74"], []),
+        ("dont_rfa", "dont remboursement forfaitaire de TVA", ["741"], []),
+        ("reprises", "Reprises sur provisions, dépréciations (et amortissements), transferts de charges", ["78"],
+         ["786", "787"]),
+        ("cessions_autres", "Produits des cessions des autres immobilisations", ["757"], ["7571"]),
+        ("autres_produits", "Autres produits", ["75"], ["757"]),
+        ("dont_communs_produits", "dont quotes-parts de résultat sur opérations faites en commun", ["755"], []),
+    ]),
+    ("charges_exploitation", "debit", [
+        ("achats_marchandises", "Achats de marchandises", _AGRI_MARCHANDISES, []),
+        ("variation_marchandises", "Variation de stock (marchandises)", ["6037"], []),
+        ("achats_approvisionnements", "Achats d'approvisionnements", _AGRI_APPROS, ["60117"]),
+        ("variation_approvisionnements", "Variation de stock (approvisionnements)", ["603"], ["6037"]),
+        ("achats_animaux", "Achats d'animaux", ["60117"], []),
+        ("valeurs_biens_vivants", "Valeur comptable des biens vivants immobilisés cédés", ["6571"], []),
+        ("autres_achats", "Autres achats et charges externes", ["60", "61", "62"],
+         ["603", *_AGRI_MARCHANDISES, *_AGRI_APPROS]),
+        ("impots_taxes", "Impôts, taxes et versements assimilés", ["63"], []),
+        ("remunerations", "Rémunérations", _AGRI_REMUNERATIONS, []),
+        ("dont_exploitant", "dont rémunération du travail de l'exploitant", ["644"], []),
+        ("cotisations", "Cotisations sociales", ["64"], _AGRI_REMUNERATIONS),
+        ("dotations_amortissements", "Dotations aux amortissements sur immobilisations", ["6811"], []),
+        ("dotations_depreciations_immo", "Dotations aux dépréciations sur immobilisations", ["6816"], []),
+        ("dotations_actif_circulant", "Dotations aux dépréciations sur actif circulant", ["6817"], []),
+        ("dotations_provisions", "Dotations aux provisions", ["68"], ["6811", "6816", "6817", "686", "687"]),
+        ("valeurs_cedees_autres", "Valeur comptable des autres immobilisations cédées", ["657"], ["6571"]),
+        ("autres_charges", "Autres charges", ["65"], ["657"]),
+        ("dont_communs_charges", "dont quotes-parts de résultat sur opérations faites en commun", ["655"], []),
+    ]),
+    # Financier, exceptionnel : modèle commun au PCG 2026.
+    *SOCIETE_CDR_SECTIONS[2:],
+]
+
+CDR_SECTIONS = {"asso": ASSO_CDR_SECTIONS, "sci": SCI_CDR_SECTIONS, "societe": SOCIETE_CDR_SECTIONS,
+                "agri": AGRI_CDR_SECTIONS}
+AGRI_TURNOVER_KEYS = ("ventes_marchandises", "ventes_animaux", "autre_production")
+
+
+def bilan_layout_key(chart: str) -> str:
+    """Modèle de bilan : une exploitation en entreprise individuelle a son propre passif (art. 121-2)."""
+    if chart != "agri":
+        return chart
+    from app.models import Organization
+
+    org = Organization.query.first()
+    return "agri_ei" if org is not None and org.legal_form_code == "EI" else "agri"
 
 
 def _cdr_labels(chart):
@@ -633,12 +814,25 @@ def compte_resultat_rows(data, chart="asso"):
     yield ("section", "PRODUITS D'EXPLOITATION", None, None)
     if chart == "asso":
         yield from _asso_produits_exploitation(data["produits_exploitation"], labels["produits_exploitation"])
+    elif chart == "agri":
+        pe = data["produits_exploitation"]
+        for key, label in labels["produits_exploitation"].items():
+            yield ("row", ("  " + label) if key.startswith("dont_") else label, *pe[key])
+            if key == AGRI_TURNOVER_KEYS[-1]:
+                turnover = [pe[k] for k in AGRI_TURNOVER_KEYS]
+                yield ("total", "Montant net du chiffre d'affaires", sum(v[0] for v in turnover),
+                       _sum_opt([v[1] for v in turnover]))
     else:
         yield from lines("produits_exploitation")
     yield ("total", "TOTAL I — Produits d'exploitation", *t["produits_exploitation"])
 
     yield ("section", "CHARGES D'EXPLOITATION", None, None)
-    yield from lines("charges_exploitation")
+    if chart == "agri":
+        ce = data["charges_exploitation"]
+        for key, label in labels["charges_exploitation"].items():
+            yield ("row", ("  " + label) if key.startswith("dont_") else label, *ce[key])
+    else:
+        yield from lines("charges_exploitation")
     yield ("total", "TOTAL II — Charges d'exploitation", *t["charges_exploitation"])
     r1 = result("produits_exploitation", "charges_exploitation")
     yield ("result", "1 — RÉSULTAT D'EXPLOITATION (I - II)", *r1)

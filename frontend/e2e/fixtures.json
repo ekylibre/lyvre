@@ -8,7 +8,9 @@
     {"slug": "dons-e2e", "label": "Asso Dons E2E", "chart": "asso", "donations": true},
     {"slug": "simple-e2e", "label": "Asso Simple E2E", "chart": "asso", "bookkeeping": "simple", "simple": true},
     {"slug": "associes-e2e", "label": "SCI Associés E2E", "chart": "sci", "books": true},
-    {"slug": "ventes-e2e", "label": "SCI Ventes E2E", "chart": "sci", "sales": true}
+    {"slug": "ventes-e2e", "label": "SCI Ventes E2E", "chart": "sci", "sales": true},
+    {"slug": "agri-a-e2e", "label": "Exploitation A E2E", "chart": "agri", "agri_fixture": "A_earl_porcs_rs"},
+    {"slug": "agri-d-e2e", "label": "Exploitation D E2E", "chart": "agri", "bookkeeping": "simple", "agri_fixture": "D_micro_rfa"}
   ],
   "_spare_comment": "Bases prêtes sans instance : créées par les tests en mode « Base existante » (sqlite:///<nom>.db).",
   "spare_databases": ["membres-e2e"]

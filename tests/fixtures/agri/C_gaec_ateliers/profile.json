@@ -1,0 +1,18 @@
+{
+  "label": "GAEC des Trois Chênes (fictif)",
+  "legal_form_code": "GAEC",
+  "income_tax": "IR",
+  "ba_regime": "simplified",
+  "description": "Grandes cultures et légumes, 3 associés, ateliers analytiques (export Isacompta)",
+  "fiscal_years": [
+    {
+      "file": "C_FEC20250131.txt",
+      "start": "2024-02-01",
+      "end": "2025-01-31",
+      "first_entry": "2024-02-01"
+    }
+  ],
+  "associates": 4,
+  "coefficient": "1.107",
+  "unmapped": {}
+}

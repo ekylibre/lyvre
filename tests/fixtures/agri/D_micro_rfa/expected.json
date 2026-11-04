@@ -1,0 +1,8 @@
+{
+  "_comment": "Totaux de l'année civile (centimes), à relire par l'expert-comptable.",
+  "receipts_cents": 3309220,
+  "micro_receipts_cents": 3159220,
+  "excluded_cents": 150000,
+  "expenses_cents": 954448,
+  "operations": 91
+}

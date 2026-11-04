@@ -1,6 +1,6 @@
 """
 Load a plan comptable from JSON into the database, plus the default journals.
-Usage: python seed_accounts.py [asso|sci]
+Usage: python seed_accounts.py [asso|sci|societe|agri]
 
 Idempotent: accounts already present are kept. Without an argument, the chart
 is detected from the accounts already in the database (so an SCI database is
@@ -18,6 +18,7 @@ CHARTS = {
     "asso": "plan_comptable_asso.json",
     "sci": "plan_comptable_sci.json",
     "societe": "plan_comptable_societe.json",
+    "agri": "plan_comptable_agri.json",
 }
 DEFAULT_CHART = "asso"
 DATA_DIR = Path(__file__).parent / "data"
@@ -31,12 +32,16 @@ def detect_chart(existing_codes):
     """Chart whose own codes (absent from the other charts) are in the
     database, or None when the database has none of them (e.g. empty)."""
     codes = {chart: {a["code"] for a in load_chart(chart)} for chart in CHARTS}
+    existing = set(existing_codes)
     hits = {}
     for chart, own in codes.items():
-        others = set().union(*(c for k, c in codes.items() if k != chart))
-        hits[chart] = len((own - others) & set(existing_codes))
-    best = max(hits, key=hits.get)
-    return best if hits[best] else None
+        # Le plan agri contient le plan société : les comptes propres d'un plan se comptent hors des plans
+        # qui le contiennent, et un plan qui en contient un autre l'emporte s'il a lui-même des comptes repérés.
+        others = set().union(*(c for k, c in codes.items() if k != chart and not own <= c))
+        hits[chart] = len((own - others) & existing)
+    found = {chart for chart, count in hits.items() if count}
+    found -= {chart for chart in found if any(chart != other and codes[chart] < codes[other] for other in found)}
+    return max(found, key=hits.get) if found else None
 
 
 def resolve_chart(requested, existing_codes, default=None):

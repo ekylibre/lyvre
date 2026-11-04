@@ -1,0 +1,35 @@
+# Règles bancaires d'une exploitation agricole (lot AG1.e, claudedocs/design_compta_agricole.md § 7.2) : gabarit de
+# seed_rules.py pour une instance au plan « agri » (provisionnement). Libellés d'organismes publics ou
+# professionnels seulement (aucun tiers privé) ; chaque instance modifie ensuite ses règles dans /rules/.
+# Les impôts (DGFiP) ne sont pas proposés : TVA ou impôt, le compte dépend de l'opération.
+
+rules:
+  - name: "Cotisations MSA"
+    label_regex: "(?i)\\bMSA\\b|MUTUALITE SOCIALE AGRICOLE"
+    amount_max: 0
+    entity: "MSA"
+    entity_type: ORGANISME
+    category: "Cotisations MSA"
+    account: "646"
+
+  - name: "Aides PAC (ASP)"
+    label_regex: "(?i)\\bASP\\b|AGENCE DE SERVICES ET DE PAIEMENT"
+    amount_min: 0
+    entity: "ASP"
+    entity_type: ORGANISME
+    category: "Aides PAC"
+    account: "745"
+
+  - name: "Aides FranceAgriMer"
+    label_regex: "(?i)FRANCE\\s*AGRI\\s*MER"
+    amount_min: 0
+    entity: "FranceAgriMer"
+    entity_type: ORGANISME
+    category: "Aides"
+    account: "748"
+
+  - name: "Fermage"
+    label_regex: "(?i)FERMAGE"
+    amount_max: 0
+    category: "Fermages"
+    account: "6131"

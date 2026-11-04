@@ -1,0 +1,26 @@
+{
+  "label": "SCEA du Ruisseau (fictive)",
+  "legal_form_code": "SCEA",
+  "income_tax": "IR",
+  "ba_regime": "normal",
+  "description": "Légumes de plein champ et semences sous contrat, réel normal, deux exercices consécutifs",
+  "fiscal_years": [
+    {
+      "file": "B_FEC20250131.txt",
+      "start": "2024-02-01",
+      "end": "2025-01-31",
+      "first_entry": "2024-02-01"
+    },
+    {
+      "file": "B_FEC20260131.txt",
+      "start": "2025-02-01",
+      "end": "2026-01-31",
+      "first_entry": "2025-02-01"
+    }
+  ],
+  "associates": 2,
+  "coefficient": "1.216",
+  "unmapped": {
+    "791": 1
+  }
+}

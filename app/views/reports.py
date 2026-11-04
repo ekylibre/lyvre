@@ -274,7 +274,12 @@ def _build_cdr_ods(data, fy, fy_prev, chart="asso"):
             else:
                 # Non-section totals: "Total des produits", "Total des charges",
                 # contributions totals
-                if "Total des produits" in label:
+                if label.startswith("Montant net du chiffre d'affaires"):
+                    # Sous-total agricole (AG1.c) : somme des ventes, sans clore la section (TOTAL I).
+                    n_formula, p_formula = sum_formulas()
+                    emit_data(label, n_val, p_val, value_style=total_style, label_style=total_style,
+                              n_formula=n_formula, p_formula=p_formula)
+                elif "Total des produits" in label:
                     n_formula = (
                         f"=[.B{state['totals']['I']}]+[.B{state['totals']['III']}]"
                         f"+[.B{state['totals']['V']}]"

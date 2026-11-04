@@ -33,6 +33,53 @@ DEFAULTS = (
 )
 
 
+# Exploitation agricole au micro-BA (lot AG1.b, claudedocs/design_compta_agricole.md § 3.5) : comptes du titre 5 ;
+# (code, libellé, sens, comptes, exclue des recettes du micro-BA). Liste à relire par l'expert-comptable (AGD5).
+AGRI_DEFAULTS = (
+    ("ventes_vegetaux", "Ventes de produits végétaux", "income", ("7011",), False),
+    ("ventes_produits_animaux", "Ventes de produits animaux (lait, œufs…)", "income", ("7012",), False),
+    ("ventes_animaux", "Ventes d'animaux", "income", ("7014",), False),
+    ("ventes_transformes", "Ventes de produits transformés", "income", ("7013",), False),
+    ("travaux_facon", "Travaux à façon", "income", ("7041",), False),
+    ("aides_pac", "Aides PAC découplées", "income", ("745",), False),
+    ("aides_couplees", "Aides couplées", "income", ("743",), False),
+    ("ichn", "ICHN", "income", ("744",), True),
+    ("indemnites", "Indemnités d'assurance et de calamités", "income", ("742",), False),
+    ("cessions", "Cessions de matériel", "income", ("7578", "757"), True),
+    ("entraide", "Remboursements d'entraide", "income", ("7088", "708"), True),
+    ("autres_recettes", "Autres recettes", "income", ("758", "75"), False),
+    ("engrais", "Engrais et amendements", "expense", ("60111",), False),
+    ("semences", "Semences et plants", "expense", ("60112",), False),
+    ("phytos", "Produits de défense des végétaux", "expense", ("60113",), False),
+    ("aliments", "Aliments du bétail", "expense", ("60114",), False),
+    ("veterinaire", "Produits vétérinaires", "expense", ("60115",), False),
+    ("achats_animaux", "Achats d'animaux", "expense", ("60117",), False),
+    ("carburant", "Carburants et lubrifiants", "expense", ("60614",), False),
+    ("travaux_tiers", "Travaux par des tiers", "expense", ("6051",), False),
+    ("fermages", "Fermages", "expense", ("6131",), False),
+    ("locations_materiel", "Locations de matériel", "expense", ("6132",), False),
+    ("entretien", "Entretien et réparations", "expense", ("615",), False),
+    ("assurances", "Assurances", "expense", ("616",), False),
+    ("msa_exploitant", "Cotisations MSA de l'exploitant", "expense", ("646",), False),
+    ("impots", "Impôts et taxes", "expense", ("63",), False),
+    ("frais_bancaires", "Frais bancaires", "expense", ("627",), False),
+    ("autres_depenses", "Autres dépenses", "expense", ("658", "65"), False),
+)
+
+
+def defaults() -> tuple[tuple, ...]:
+    """Catégories par défaut du plan de l'instance : (code, libellé, sens, comptes, exclue du micro-BA)."""
+    from app.tenant import current_chart
+
+    try:
+        chart = current_chart()
+    except RuntimeError:
+        chart = "asso"
+    if chart == "agri":
+        return AGRI_DEFAULTS
+    return tuple((*item, False) for item in DEFAULTS)
+
+
 class CategoryError(Exception):
     def __init__(self, message, field=None, status=422):
         super().__init__(message)
@@ -57,7 +104,7 @@ def ensure_defaults() -> None:
     taken = {c.account_id for c in SimpleCategory.query}
     position = db.session.query(db.func.max(SimpleCategory.position)).scalar() or 0
     added = False
-    for code, label, kind, accounts in DEFAULTS:
+    for code, label, kind, accounts, excluded in defaults():
         if code in existing:
             continue
         account = _account_for(accounts, taken)
@@ -65,7 +112,8 @@ def ensure_defaults() -> None:
             continue
         taken.add(account.id)
         position += 10
-        db.session.add(SimpleCategory(code=code, label=label, kind=kind, account_id=account.id, position=position))
+        db.session.add(SimpleCategory(code=code, label=label, kind=kind, account_id=account.id, position=position,
+                                      excluded_from_micro=excluded))
         added = True
     if added:
         db.session.commit()
@@ -83,6 +131,7 @@ def payload(category: SimpleCategory, usage: int | None = None) -> dict:
     return {"id": category.id, "code": category.code, "label": category.label, "kind": category.kind,
             "account": {"id": category.account.id, "code": category.account.code, "label": category.account.label},
             "position": category.position, "active": category.active,
+            "excluded_from_micro": category.excluded_from_micro,
             **({"usage": usage} if usage is not None else {})}
 
 
@@ -115,6 +164,8 @@ def save(category: SimpleCategory | None, data: dict) -> SimpleCategory:
         db.session.add(category)
     category.label, category.account_id = label, account.id
     category.active = bool(data.get("active", True))
+    if "excluded_from_micro" in data:  # lot AG1.b : recette exclue du micro-BA (exploitation agricole)
+        category.excluded_from_micro = bool(data["excluded_from_micro"]) and kind == "income"
     db.session.commit()
     return category
 

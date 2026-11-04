@@ -1,0 +1,30 @@
+{
+  "A_FEC20250131.txt": {
+    "_comment": "Agrégats du FEC fictif (centimes), calculés directement sur le fichier, à relire par l'expert-comptable.",
+    "lines": 6992,
+    "total_debit_cents": 1323540364,
+    "total_credit_cents": 1323540364,
+    "class_net_debit_cents": {
+      "1": -96158371,
+      "2": 97145447,
+      "3": 39997077,
+      "4": -23512141,
+      "5": -17119125,
+      "6": 152506442,
+      "7": -152859329
+    },
+    "result_cents": 352887,
+    "lines_cents": {
+      "ventes_animaux_7014": 72567639,
+      "ventes_70": 143945672,
+      "subventions_74": 6803607,
+      "production_stockee_71": -3316198,
+      "achats_animaux_60117": 8451754,
+      "fermages_6131": 2078013,
+      "msa_646": 1785484,
+      "dotations_6811": 10162638,
+      "biens_vivants_24": 5029639,
+      "stocks_3": 39997077
+    }
+  }
+}

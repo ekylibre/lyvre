@@ -45,6 +45,11 @@ def fiscal_years_create():
     start, end = _date(data, "start_date", "Début"), _date(data, "end_date", "Fin")
     if end < start:
         raise invalid("La fin de l'exercice doit suivre son début.", "end_date")
+    from app.tenant import current_chart, current_instance
+    instance = current_instance()
+    if current_chart() == "agri" and instance is not None and instance.bookkeeping == "simple" and \
+            ((start.month, start.day, end.month, end.day) != (1, 1, 12, 31) or start.year != end.year):
+        raise invalid("Micro-BA : l'exercice est l'année civile (du 01/01 au 31/12).", "end_date")  # lot AG1.d
     fy = FiscalYear(label=label[:50], start_date=start, end_date=end,
                     vat_liable=bool(data.get("vat_liable")))
     db.session.add(fy)

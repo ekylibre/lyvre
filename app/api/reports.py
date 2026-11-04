@@ -5,7 +5,8 @@ from flask import jsonify, request, url_for
 from app.models import Account, FiscalYear
 from app.queries.dashboard import dashboard_data
 from app.services.ledger import general_ledger, trial_balance
-from app.services.reports import build_bilan, build_compte_resultat, compte_resultat_rows
+from app.services import agri_reports
+from app.services.reports import bilan_layout_key, build_bilan, build_compte_resultat, compte_resultat_rows
 
 from . import ApiError, bp
 
@@ -86,8 +87,37 @@ def report_bilan():
     years = _fiscal_years()
     fy = _selected(years)
     prev = _previous(fy)
-    data = build_bilan(fy, prev, current_chart()) if fy else {"actif": [], "passif": []}
-    return jsonify(actif=data["actif"], passif=data["passif"], meta=_meta(years, fy, prev))
+    layout = bilan_layout_key(current_chart())
+    data = build_bilan(fy, prev, layout) if fy else {"actif": [], "passif": []}
+    return jsonify(actif=data["actif"], passif=data["passif"], meta={**_meta(years, fy, prev), "layout": layout})
+
+
+def _agri_only():
+    if current_chart() != "agri":
+        raise ApiError("not_found", "État réservé aux exploitations agricoles.", 404)
+
+
+@bp.route("/reports/sig")
+def report_sig():
+    """Soldes intermédiaires de gestion d'une exploitation agricole (lot AG1.c)."""
+    _agri_only()
+    years = _fiscal_years()
+    fy = _selected(years)
+    prev = _previous(fy)
+    rows = agri_reports.sig(fy, prev) if fy else []
+    return jsonify(items=rows, meta={**_meta(years, fy, prev), "export_url": url_for(
+        "exports.agri_statements_xlsx", fy_id=fy.id) if fy else None})
+
+
+@bp.route("/reports/living-assets")
+def report_living_assets():
+    """Tableau des biens vivants et en-cours (annexe, art. 121-4 du titre 5)."""
+    _agri_only()
+    years = _fiscal_years()
+    fy = _selected(years)
+    prev = _previous(fy)
+    data = agri_reports.living_assets_table(fy, prev) if fy else {"groups": [], "total": {"opening": 0, "closing": 0}}
+    return jsonify(item=data, meta=_meta(years, fy, prev))
 
 
 @bp.route("/reports/compte-de-resultat")

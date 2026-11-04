@@ -1,0 +1,20 @@
+{
+  "label": "EARL des Pins (fictive)",
+  "legal_form_code": "EARL",
+  "income_tax": "IR",
+  "ba_regime": "simplified",
+  "description": "Élevage porcin et maïs, réel simplifié, exercice 01/02 → 31/01",
+  "fiscal_years": [
+    {
+      "file": "A_FEC20250131.txt",
+      "start": "2024-02-01",
+      "end": "2025-01-31",
+      "first_entry": "2024-02-01"
+    }
+  ],
+  "associates": 2,
+  "coefficient": "1.004",
+  "unmapped": {
+    "791": 1
+  }
+}

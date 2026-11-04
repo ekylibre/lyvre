@@ -1,0 +1,168 @@
+{
+ "_comment": "Options fiscales : durée et règle de renonciation (lot AG1.a, § 3.3). `renounce` : {month_day: MM-JJ, year: 'last' (dernière année de la période) | 'after_end' (année qui suit la période)} ; null : pas de date calculée (la renonciation se fait avec la déclaration, voir la note).",
+ "values": [
+  {
+   "key": "option.vat_quarterly.duration_years",
+   "value": 5,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/node/10637",
+   "source_label": "BOI-TVA-SECT-80-30-60-20",
+   "verified_on": "2026-11-03",
+   "reliability": "R",
+   "note": "CA3 trimestrielle au RSA, reconduction tacite."
+  },
+  {
+   "key": "option.vat_quarterly.renounce",
+   "value": {
+    "month_day": "02-05",
+    "year": "after_end"
+   },
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/node/10637",
+   "source_label": "BOI-TVA-SECT-80-30-60-20",
+   "verified_on": "2026-11-03",
+   "reliability": "R",
+   "note": "Avant le 5 février de l'année du retour au régime des acomptes."
+  },
+  {
+   "key": "option.vat_monthly.duration_years",
+   "value": 5,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/node/10637",
+   "source_label": "BOI-TVA-SECT-80-30-60-20",
+   "verified_on": "2026-11-03",
+   "reliability": "R",
+   "note": ""
+  },
+  {
+   "key": "option.vat_monthly.renounce",
+   "value": {
+    "month_day": "01-31",
+    "year": "after_end"
+   },
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/node/10637",
+   "source_label": "BOI-TVA-SECT-80-30-60-20",
+   "verified_on": "2026-11-03",
+   "reliability": "R",
+   "note": "Avant le 31 janvier de l'année du retour."
+  },
+  {
+   "key": "option.rsa_option.duration_years",
+   "value": 5,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 298 bis",
+   "verified_on": "2026-11-03",
+   "reliability": "I",
+   "note": "Option pour le RSA sous le seuil du remboursement forfaitaire : durée à valider (3 ou 5 ans)."
+  },
+  {
+   "key": "option.rsa_option.renounce",
+   "value": null,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "",
+   "source_label": "",
+   "verified_on": "2026-11-03",
+   "reliability": "I",
+   "note": "À préciser."
+  },
+  {
+   "key": "option.is_option.duration_years",
+   "value": null,
+   "valid_from": "2019-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 239",
+   "verified_on": "2026-11-03",
+   "reliability": "I",
+   "note": "Option IS d'une société de personnes : révocable jusqu'à la fin du 5e exercice suivant."
+  },
+  {
+   "key": "option.is_option.renounce",
+   "value": {
+    "month_day": "02-28",
+    "year": "fifth"
+   },
+   "valid_from": "2019-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 239",
+   "verified_on": "2026-11-03",
+   "reliability": "I",
+   "note": "Renonciation avant la fin du 2e mois du 5e exercice suivant celui de l'option ; règle à valider."
+  },
+  {
+   "key": "option.ba_simplified_option.duration_years",
+   "value": 1,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 69 IV",
+   "verified_on": "2026-11-03",
+   "reliability": "R",
+   "note": "Option pour le réel simplifié d'un exploitant au micro-BA, reconduite tacitement."
+  },
+  {
+   "key": "option.ba_simplified_option.renounce",
+   "value": null,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 69 IV",
+   "verified_on": "2026-11-03",
+   "reliability": "R",
+   "note": "Renonciation dans le délai de déclaration des résultats de l'année précédente."
+  },
+  {
+   "key": "option.ba_normal_option.duration_years",
+   "value": 1,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 69 III",
+   "verified_on": "2026-11-03",
+   "reliability": "I",
+   "note": "Durée à valider."
+  },
+  {
+   "key": "option.averaging_75_0_b.duration_years",
+   "value": 3,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 75-0 B",
+   "verified_on": "2026-11-03",
+   "reliability": "R",
+   "note": "Moyenne triennale : 3 ans, reconduction tacite ; 3 ans d'attente après renonciation."
+  },
+  {
+   "key": "option.stock_freeze_72_b_bis.duration_years",
+   "value": 5,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 72 B bis",
+   "verified_on": "2026-11-03",
+   "reliability": "R",
+   "note": "Blocage des stocks à rotation lente."
+  },
+  {
+   "key": "option.flat_stock_method.duration_years",
+   "value": null,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 74 b",
+   "verified_on": "2026-11-03",
+   "reliability": "I",
+   "note": "Méthode forfaitaire des stocks (réel simplifié)."
+  }
+ ]
+}

@@ -21,7 +21,8 @@ def organization_payload(org) -> dict:
             "has_associates": associates.enabled(),
             "associate_interest_rate": format_rate(org.associate_interest_rate_bp).replace(" %", ""),
             "jei_since": org.jei_since.isoformat() if org.jei_since else None,
-            "vat_due_day": str(org.vat_due_day) if org.vat_due_day else ""}
+            "vat_due_day": str(org.vat_due_day) if org.vat_due_day else "",
+            "legal_form_code": org.legal_form_code, "created_on": org.created_on.isoformat() if org.created_on else None}
 
 
 @bp.route("/organization")

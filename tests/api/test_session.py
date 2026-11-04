@@ -69,7 +69,7 @@ def test_nav_follows_chart_and_admin(app):
     client = app.test_client()
     body = _login(client).get_json()
     assert body["instance"] is None and body["nav"] == [] and len(body["instances"]) == 2
-    assert [l["url"] for l in body["admin_links"]] == ["/users/", "/instances/"]
+    assert [l["url"] for l in body["admin_links"]] == ["/users/", "/instances/", "/regulatory-values/"]
     asso = next(i for i in body["instances"] if i["label"] == "Asso")
     body = client.post("/api/v1/session/instance", json={"instance_id": asso["id"]}).get_json()
     urls = [i.get("url") for m in body["nav"] for i in m.get("items", [])]

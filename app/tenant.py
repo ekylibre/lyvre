@@ -108,13 +108,20 @@ def is_association() -> bool:
     return current_chart() == "asso"
 
 
+def is_agri() -> bool:
+    """Instance courante tenue au plan « Exploitation agricole » (lot AG1.b)."""
+    return current_chart() == "agri"
+
+
 def _is_tenant_free_endpoint() -> bool:
     if request.endpoint is None:
         return True
     if request.endpoint in _TENANT_FREE_ENDPOINTS:
         return True
     # /users/* and /instances/* admin pages (and their API) run on meta only.
-    return request.endpoint.startswith(("users.", "instances.", "api.users_", "api.instances_"))
+    # Paramètres réglementaires (lot AG1.a) : communs à toutes les instances, méta-base seulement.
+    return request.endpoint.startswith(("users.", "instances.", "api.users_", "api.instances_",
+                                        "regulatory.", "api.regulatory_values"))
 
 
 def _relative_next():

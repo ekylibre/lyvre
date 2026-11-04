@@ -1,0 +1,14 @@
+{
+  "label": "Les Jardins du Coteau (fictifs)",
+  "legal_form_code": "EI",
+  "income_tax": "IR",
+  "ba_regime": "micro",
+  "vat_regime": "rfa",
+  "description": "Maraîchage en vente directe, micro-BA, remboursement forfaitaire agricole (synthétique)",
+  "fiscal_years": [
+    {
+      "start": "2025-01-01",
+      "end": "2025-12-31"
+    }
+  ]
+}

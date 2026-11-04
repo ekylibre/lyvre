@@ -2,7 +2,49 @@
 # « Nouveautés ». Ajouter les entrées sous « next », puis `python scripts/release.py publish`.
 # kind : new | improved | fixed | action ; structure : asso | sci (absent : toutes) ;
 # text : pour l'utilisateur ; tech : précision pour CHANGELOG.md seulement.
-next: []
+next:
+- kind: new
+  structure: agri
+  text: Nouveau plan « Exploitation agricole » (EI, EARL, GAEC, SCEA…) — plan comptable agricole du Recueil PCG 2026
+    (titre 5), création de l'instance en trois blocs (forme, impôt et régime des bénéfices agricoles, premier
+    exercice), micro-BA en recettes et dépenses, réel simplifié et réel normal en partie double.
+  tech: Instance.chart « agri », data/plan_comptable_agri.json (scripts/build_agri_chart.py), data/agri_pcga1986_map.json,
+    app/services/agri_setup.py, agri_chart.py.
+- kind: new
+  structure: agri
+  text: Compta — bilan et compte de résultat agricoles (biens vivants, avances aux cultures, production
+    autoconsommée, cessions de biens vivants), soldes intermédiaires de gestion et annexe des biens vivants ; export
+    tableur.
+  tech: reports.BILAN_LAYOUTS agri / agri_ei, AGRI_CDR_SECTIONS, app/services/agri_reports.py, /api/v1/reports/sig,
+    /api/v1/reports/living-assets, /reports/agri-statements.xlsx.
+- kind: new
+  structure: agri
+  text: États simplifiés — livre des recettes du micro-BA (petites ventes regroupées par jour, recettes exclues
+    repérées) et récapitulatif des recettes sur trois ans avec le bénéfice forfaitaire ; recettes des années
+    antérieures saisissables.
+  tech: app/services/micro_ba.py, micro_receipts_years (migration c3d5f7a9b1e2), /api/v1/simple/reports/receipts-book,
+    /micro-ba, /micro-ba/carryover.
+- kind: new
+  structure: agri
+  text: Clôture — conventions d'entraide (472) soldées en 412 ou 402, cotisations MSA à payer en 4311, contrôles propres
+    aux exploitations (472 non soldé, cession d'un bien vivant hors 7571 / 6571, biens vivants sans fiche au registre).
+  tech: closing.INVENTORY_KINDS compensation_debit / compensation_credit, closing._agri_checks.
+- kind: new
+  structure: agri
+  text: Catalogue — « Ajouter les articles agricoles » (engrais, semences, aliments, animaux, produits…) avec compte et
+    taux de TVA proposés ; règles bancaires MSA, ASP, FranceAgriMer et fermage ; alerte quand le taux d'une vente
+    diffère de celui de l'article.
+  tech: data/agri_purchase_categories.json (scripts/build_agri_categories.py, Lexicon CC-BY-SA), app/services/agri_catalog.py,
+    data/rules_agri.yml.
+- kind: new
+  text: Configuration › Structure — onglet « Fiscalité » (sauf associations) — forme juridique (proposée par Sirene),
+    régimes datés (impôt, bénéfices agricoles, TVA) et options fiscales avec la date limite de renonciation.
+  tech: tax_profiles, tax_options, organization.legal_form_code / created_on (migration b2c4e6a8f0d1),
+    app/services/tax_profile.py.
+- kind: new
+  text: Administration › Paramètres réglementaires — seuils, taux et dates datés et sourcés, avec leur fiabilité ;
+    surcharge datée par l'administrateur de la plateforme.
+  tech: data/regulatory/*.json, regulatory_values (méta-base), app/services/reg_params.py, /api/v1/regulatory-values.
 versions:
 - version: 2026.11.5
   date: 2026-11-03

@@ -1,0 +1,505 @@
+{
+  "_comment": "Catégories d'articles agricoles (lot AG1.e) : compte d'achat (60 à 62) et/ou de vente (70) du plan agri, taux de TVA proposé par Lexicon (vat_to_validate : à valider, AGD5). Généré par scripts/build_agri_categories.py.",
+  "_attribution": "Catégories d'articles de référence d'Ekylibre SAS (jeu « variants » de Lexicon, https://lexicon.osfarm.org) et nomenclature onoma (https://github.com/ekylibre/onoma), licence CC-BY-SA 4.0 ; comptes rattachés au plan agri de Lyvre.",
+  "categories": [
+    {
+      "key": "additional_activity",
+      "label": "Activité annexe",
+      "family": "service",
+      "purchase_account": null,
+      "sale_account": "708",
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "animal_food",
+      "label": "Aliment pour animal",
+      "family": "article",
+      "purchase_account": "60114",
+      "sale_account": null,
+      "vat_rate_bp": 1000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "short_cycle_animal",
+      "label": "Animal à cycle court",
+      "family": "animal",
+      "purchase_account": "60117",
+      "sale_account": "7014",
+      "vat_rate_bp": 1000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "long_cycle_animal",
+      "label": "Animal à cycle long",
+      "family": "animal",
+      "purchase_account": "60117",
+      "sale_account": "7014",
+      "vat_rate_bp": 1000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "fuel",
+      "label": "Carburant et lubrifiant",
+      "family": "article",
+      "purchase_account": "60614",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "co_ownership_and_locative_charge",
+      "label": "Charge locative et de copropriété",
+      "family": "service",
+      "purchase_account": "614",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "congress",
+      "label": "Colloque, séminaire et conférence",
+      "family": "service",
+      "purchase_account": "6185",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "packaging",
+      "label": "Conditionnement et emballage",
+      "family": "article",
+      "purchase_account": "6026",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "other_external_service",
+      "label": "Cotisation professionnelle",
+      "family": "service",
+      "purchase_account": "628",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "documentation",
+      "label": "Documentation",
+      "family": "service",
+      "purchase_account": "618",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "trip",
+      "label": "Déplacement, mission et réception",
+      "family": "service",
+      "purchase_account": "625",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "running_water",
+      "label": "Eau courante",
+      "family": "service",
+      "purchase_account": "60611",
+      "sale_account": null,
+      "vat_rate_bp": 550,
+      "vat_to_validate": true
+    },
+    {
+      "key": "irrigation_water",
+      "label": "Eau d'irrigation",
+      "family": "article",
+      "purchase_account": "60615",
+      "sale_account": null,
+      "vat_rate_bp": 550,
+      "vat_to_validate": true
+    },
+    {
+      "key": "fertilizer",
+      "label": "Engrais et amendement",
+      "family": "article",
+      "purchase_account": "60111",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "maintenance_and_repair_service",
+      "label": "Entretien et réparation",
+      "family": "service",
+      "purchase_account": "615",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "land_rent",
+      "label": "Fermage et location de terrain",
+      "family": "service",
+      "purchase_account": "6131",
+      "sale_account": "708",
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true,
+      "corrected_by_lyvre": true
+    },
+    {
+      "key": "other_consumable",
+      "label": "Fourniture consommable",
+      "family": "article",
+      "purchase_account": "602",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "workshop_supply",
+      "label": "Fourniture d'atelier",
+      "family": "article",
+      "purchase_account": "602",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "office_supply",
+      "label": "Fourniture de bureau",
+      "family": "article",
+      "purchase_account": "602",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "staff_supply",
+      "label": "Fourniture pour le personnel",
+      "family": "article",
+      "purchase_account": "602",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "fruit_and_vegetable",
+      "label": "Fruit et légume",
+      "family": "article",
+      "purchase_account": null,
+      "sale_account": "7011",
+      "vat_rate_bp": 550,
+      "vat_to_validate": true
+    },
+    {
+      "key": "gas",
+      "label": "Gaz",
+      "family": "article",
+      "purchase_account": "60612",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "other_rent",
+      "label": "Location",
+      "family": "service",
+      "purchase_account": "613",
+      "sale_account": "708",
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "animal_rent",
+      "label": "Location d'animal",
+      "family": "service",
+      "purchase_account": "6134",
+      "sale_account": "708",
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "equipment_rent",
+      "label": "Location d'équipement",
+      "family": "service",
+      "purchase_account": "6132",
+      "sale_account": "708",
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "packaging_rent",
+      "label": "Malus sur emballage",
+      "family": "service",
+      "purchase_account": "613",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "raw_material",
+      "label": "Matière première",
+      "family": "article",
+      "purchase_account": "6021",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "packaging_wine_dry_material",
+      "label": "Matière sèche (vin)",
+      "family": "article",
+      "purchase_account": "6026",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "material",
+      "label": "Matériau",
+      "family": "article",
+      "purchase_account": "6026",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "tool",
+      "label": "Outillage",
+      "family": "equipment",
+      "purchase_account": "6063",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "external_staff",
+      "label": "Personnel extérieur",
+      "family": "worker",
+      "purchase_account": "621",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "animal_service",
+      "label": "Prestation de service animal",
+      "family": "service",
+      "purchase_account": "6051",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "vegetal_service",
+      "label": "Prestation de service végétal",
+      "family": "service",
+      "purchase_account": "6051",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "insurance",
+      "label": "Prime d'assurance",
+      "family": "service",
+      "purchase_account": "616",
+      "sale_account": null,
+      "vat_rate_bp": null,
+      "vat_to_validate": true,
+      "corrected_by_lyvre": true
+    },
+    {
+      "key": "animal_derivative",
+      "label": "Produit animal",
+      "family": "article",
+      "purchase_account": null,
+      "sale_account": "7012",
+      "vat_rate_bp": 550,
+      "vat_to_validate": true
+    },
+    {
+      "key": "maintenance_consumable",
+      "label": "Produit d'entretien",
+      "family": "article",
+      "purchase_account": "6022",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "animal_medicine",
+      "label": "Produit de défense animal",
+      "family": "article",
+      "purchase_account": "60115",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "animal_reproduction",
+      "label": "Produit de reproduction animal",
+      "family": "article",
+      "purchase_account": "60116",
+      "sale_account": null,
+      "vat_rate_bp": 1000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "plant_medicine",
+      "label": "Produit phytosanitaire",
+      "family": "article",
+      "purchase_account": "60113",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "processed_product",
+      "label": "Produit transformé",
+      "family": "article",
+      "purchase_account": null,
+      "sale_account": "7013",
+      "vat_rate_bp": 550,
+      "vat_to_validate": true
+    },
+    {
+      "key": "plant_derivative",
+      "label": "Produit végétal",
+      "family": "article",
+      "purchase_account": null,
+      "sale_account": "7011",
+      "vat_rate_bp": 1000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "advertising_and_public_relation",
+      "label": "Publicité et relation publique",
+      "family": "service",
+      "purchase_account": "623",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "purchase_discount_and_reduction",
+      "label": "Rabais, remise et ristourne sur produit",
+      "family": "service",
+      "purchase_account": "609",
+      "sale_account": "709",
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "service_discount_and_reduction",
+      "label": "Rabais, remise et ristourne sur service",
+      "family": "service",
+      "purchase_account": "619",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "leasing",
+      "label": "Redevance de crédit-bail",
+      "family": "service",
+      "purchase_account": "612",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "licence",
+      "label": "Redevance pour brevet et licence",
+      "family": "service",
+      "purchase_account": null,
+      "sale_account": "708",
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "fee",
+      "label": "Rémunération d'intermédiaire et honoraires",
+      "family": "service",
+      "purchase_account": "622",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true,
+      "corrected_by_lyvre": true
+    },
+    {
+      "key": "seed_and_plant",
+      "label": "Semence et plant",
+      "family": "article",
+      "purchase_account": "60112",
+      "sale_account": "7011",
+      "vat_rate_bp": 1000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "bank_service",
+      "label": "Service bancaire",
+      "family": "service",
+      "purchase_account": "627",
+      "sale_account": null,
+      "vat_rate_bp": null,
+      "vat_to_validate": true,
+      "corrected_by_lyvre": true
+    },
+    {
+      "key": "subcontracting",
+      "label": "Sous-traitance",
+      "family": "service",
+      "purchase_account": "611",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "transportation",
+      "label": "Transport de biens et de personnel",
+      "family": "service",
+      "purchase_account": "624",
+      "sale_account": "708",
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "telecommunication",
+      "label": "Télécommunication",
+      "family": "service",
+      "purchase_account": "626",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "veterinary",
+      "label": "Vétérinaire",
+      "family": "service",
+      "purchase_account": "6225",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "electricity",
+      "label": "Électricité",
+      "family": "service",
+      "purchase_account": "60613",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    },
+    {
+      "key": "study_and_research",
+      "label": "Étude et recherche",
+      "family": "service",
+      "purchase_account": "617",
+      "sale_account": null,
+      "vat_rate_bp": 2000,
+      "vat_to_validate": true
+    }
+  ]
+}

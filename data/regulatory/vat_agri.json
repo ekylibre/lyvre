@@ -1,0 +1,82 @@
+{
+ "_comment": "TVA agricole : paramètres datés (lot AG1.a ; utilisés à partir d'AG2). Même format que ba.json.",
+ "values": [
+  {
+   "key": "vat.rfa.threshold_cents",
+   "value": 4600000,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.impots.gouv.fr/professionnel/questions/comment-obtenir-un-remboursement-forfaitaire-agricole",
+   "source_label": "CGI art. 298 bis, 298 quater",
+   "verified_on": "2026-11-03",
+   "reliability": "V",
+   "note": "Moyenne des recettes sur 2 années civiles consécutives ; au-delà, RSA obligatoire (× associés en GAEC)."
+  },
+  {
+   "key": "vat.rfa.rate_high_bp",
+   "value": 559,
+   "valid_from": "2026-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 298 quater",
+   "verified_on": "2026-11-03",
+   "reliability": "A",
+   "note": "Lait, animaux de basse-cour, œufs, animaux de boucherie et de charcuterie, céréales, oléo-protéagineux."
+  },
+  {
+   "key": "vat.rfa.rate_low_bp",
+   "value": 443,
+   "valid_from": "2026-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 298 quater",
+   "verified_on": "2026-11-03",
+   "reliability": "A",
+   "note": "Autres produits."
+  },
+  {
+   "key": "vat.rsa.installment_exemption_cents",
+   "value": 100000,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/node/10637",
+   "source_label": "CGI art. 1693 bis I",
+   "verified_on": "2026-11-03",
+   "reliability": "R",
+   "note": "Pas d'acomptes si la TVA de l'année précédente est inférieure."
+  },
+  {
+   "key": "vat.rsa.installment_share_bp",
+   "value": 2000,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/node/10637",
+   "source_label": "CGI art. 1693 bis I",
+   "verified_on": "2026-11-03",
+   "reliability": "R",
+   "note": "Chaque acompte : au moins 1/5 de la TVA de l'année précédente."
+  },
+  {
+   "key": "vat.rsa.refund_min_annual_cents",
+   "value": 15000,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.impots.gouv.fr/formulaire/3517-agr-sd/tva-regime-simplifie-de-lagriculture",
+   "source_label": "Notice 3517-AGR-SD (remboursement de crédit)",
+   "verified_on": "2026-11-03",
+   "reliability": "V",
+   "note": ""
+  },
+  {
+   "key": "vat.rsa.refund_min_period_cents",
+   "value": 76000,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.impots.gouv.fr/formulaire/3517-agr-sd/tva-regime-simplifie-de-lagriculture",
+   "source_label": "Notice 3517-AGR-SD (remboursement de crédit)",
+   "verified_on": "2026-11-03",
+   "reliability": "V",
+   "note": "Option trimestrielle ou mensuelle seulement : aucun remboursement infra-annuel au régime des acomptes."
+  }
+ ]
+}

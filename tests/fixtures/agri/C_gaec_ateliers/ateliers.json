@@ -1,0 +1,86 @@
+[
+  {
+    "code": "1",
+    "label": "grandes cultures",
+    "level": 1,
+    "unit": "ha",
+    "quantity": 59.391
+  },
+  {
+    "code": "11",
+    "label": "céréales",
+    "level": 2,
+    "unit": null,
+    "quantity": null
+  },
+  {
+    "code": "11151",
+    "label": "avoine",
+    "level": 5,
+    "unit": "ha",
+    "quantity": 19.12
+  },
+  {
+    "code": "11171",
+    "label": "maïs",
+    "level": 5,
+    "unit": "ha",
+    "quantity": 40.27
+  },
+  {
+    "code": "11200",
+    "label": "sarrasin",
+    "level": 5,
+    "unit": null,
+    "quantity": null
+  },
+  {
+    "code": "3",
+    "label": "fourrages",
+    "level": 1,
+    "unit": null,
+    "quantity": null
+  },
+  {
+    "code": "341",
+    "label": "luzerne",
+    "level": 3,
+    "unit": "ha",
+    "quantity": 51.83
+  },
+  {
+    "code": "344",
+    "label": "trèfle",
+    "level": 3,
+    "unit": "ha",
+    "quantity": 18.84
+  },
+  {
+    "code": "352",
+    "label": "mélanges",
+    "level": 3,
+    "unit": "ha",
+    "quantity": 58.14
+  },
+  {
+    "code": "361",
+    "label": "prairie",
+    "level": 3,
+    "unit": null,
+    "quantity": null
+  },
+  {
+    "code": "6",
+    "label": "animaux",
+    "level": 1,
+    "unit": null,
+    "quantity": null
+  },
+  {
+    "code": "999",
+    "label": "produits et charges non affectés",
+    "level": 3,
+    "unit": null,
+    "quantity": null
+  }
+]

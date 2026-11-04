@@ -4,7 +4,7 @@ Ce fichier décrit **l'intégralité** des menus et sous-menus de l'application.
 L'affichage de chaque menu / sous-menu est piloté par le **plan comptable de
 l'instance courante** (``Instance.chart``) via la clé ``charts`` :
 
-    "charts": ["asso", "sci", "societe"]  # visible pour tous les plans comptables
+    "charts": ["asso", "sci", "societe", "agri"]  # visible pour tous les plans comptables
     "charts": ["asso"]                    # visible uniquement pour une association
     "charts": ["sci"]                     # visible uniquement pour une SCI
 
@@ -37,7 +37,7 @@ from __future__ import annotations
 
 # Tous les plans comptables connus (doit rester cohérent avec
 # app.services.instance_provisioning.CHARTS et seed_accounts.CHARTS).
-ALL_CHARTS = ("asso", "sci", "societe")
+ALL_CHARTS = ("asso", "sci", "societe", "agri")
 DEFAULT_CHART = "asso"
 
 # Raccourci : visible pour tous les plans comptables.
@@ -45,6 +45,8 @@ _ALL = list(ALL_CHARTS)
 # Raccourci : fonctionnalités propres à une association (adhérents, bénévolat,
 # boutique/POS, indicateurs d'impact…), masquées pour une SCI ou une société.
 _ASSO = ["asso"]
+# Comptabilité simplifiée (recettes et dépenses) : associations et exploitations au micro-BA (lot AG1.b).
+_SIMPLE_CHARTS = ["asso", "agri"]
 
 
 BOOKKEEPING_MODES = ("double", "simple")
@@ -76,6 +78,7 @@ MENUS = [
             {"key": "lettering", "label": "Lettrage", "endpoint": "lettering.index", "charts": _ALL, "bookkeeping": _DOUBLE},
             {"key": "bilan", "label": "Bilan", "endpoint": "reports.bilan", "charts": _ALL, "bookkeeping": _DOUBLE},
             {"key": "compte_resultat", "label": "Compte de résultat", "endpoint": "reports.compte_resultat", "charts": _ALL, "bookkeeping": _DOUBLE},
+            {"key": "sig", "label": "Soldes intermédiaires", "endpoint": "reports.sig", "charts": ["agri"], "bookkeeping": _DOUBLE},
             {"key": "assets", "label": "Immobilisations", "endpoint": "assets.index", "charts": _ALL},
             {"key": "projects", "label": "Projets", "endpoint": "projects.index", "charts": _ALL},
             {"key": "budgets", "label": "Budget", "endpoint": "budgets.index", "charts": _ALL},
@@ -109,7 +112,7 @@ MENUS = [
     {
         "key": "simple_operations",
         "label": "Recettes et dépenses",
-        "charts": _ASSO,
+        "charts": _SIMPLE_CHARTS,
         "bookkeeping": _SIMPLE,
         "endpoint": "simple_operations.index",
         "active": ["simple_operations"],
@@ -117,7 +120,7 @@ MENUS = [
     {
         "key": "simple_reports",
         "label": "États",
-        "charts": _ASSO,
+        "charts": _SIMPLE_CHARTS,
         "bookkeeping": _SIMPLE,
         "endpoint": "simple_reports.index",
         "active": ["simple_reports"],
@@ -238,7 +241,7 @@ MENUS = [
         "items": [
             {"key": "organization", "label": "Structure", "endpoint": "organization.index", "charts": _ALL},
             {"key": "receipts_settings", "label": "Reçus fiscaux", "endpoint": "receipts.settings", "charts": _ASSO},
-            {"key": "simple_categories", "label": "Catégories", "endpoint": "simple_categories.index", "charts": _ASSO,
+            {"key": "simple_categories", "label": "Catégories", "endpoint": "simple_categories.index", "charts": _SIMPLE_CHARTS,
              "bookkeeping": _SIMPLE},
             {"key": "account_roles", "label": "Comptes par défaut", "endpoint": "account_roles.index", "charts": _ALL,
              "bookkeeping": _DOUBLE},

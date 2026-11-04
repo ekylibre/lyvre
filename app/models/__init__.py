@@ -55,8 +55,15 @@ from .report_asset import ReportAsset
 from .report_archive import ReportArchive
 from .associate import Associate, AssociateExpense, ShareMovement, ShareMovementLine
 from .brevo_link import BrevoLink
+from .tax_profile import TaxOption, TaxProfile
+from .regulatory_value import RegulatoryValue
+from .micro_receipts import MicroReceiptsYear
 
 __all__ = [
+    "MicroReceiptsYear",
+    "TaxOption",
+    "TaxProfile",
+    "RegulatoryValue",
     "Associate",
     "AssociateExpense",
     "ShareMovement",

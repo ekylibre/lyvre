@@ -17,6 +17,7 @@ import { SireneProposalModal } from "../../components/sirene/SireneProposalModal
 import { isValidSiren, sireneMessage, useSireneAvailable, useSireneProposal } from "../../components/sirene/useSirene";
 import { BillingSettings } from "../sales/BillingSettings";
 import { BILLING_KEY } from "../sales/types";
+import { FiscalProfile, TAX_PROFILE_KEY } from "./FiscalProfile";
 
 export interface Organization {
   name: string; siren: string | null; rna: string | null; address_line1: string | null; address_line2: string | null;
@@ -35,6 +36,8 @@ export interface Organization {
   jei_since: string | null;
   /** Lot T3 : jour d'échéance de la CA3 (15 à 24), vide : 24. */
   vat_due_day: string;
+  /** Lot AG1.a : forme juridique codée (EI, EARL, GAEC…) et date de création (onglet Fiscalité). */
+  legal_form_code: string | null; created_on: string | null;
 }
 export const ORGANIZATION_KEY = ["organization"];
 const FIELDS = ["name", "siren", "rna", "address_line1", "address_line2", "postal_code", "city", "country", "purpose",
@@ -84,9 +87,11 @@ export default function OrganizationPage() {
         <Tabs.List>
           <Tabs.Tab value="identity">Identité</Tabs.Tab>
           <Tabs.Tab value="billing">Facturation</Tabs.Tab>
+          {!association && <Tabs.Tab value="tax">Fiscalité</Tabs.Tab>}
         </Tabs.List>
       </Tabs>
-      {params.tab === "billing" ? <BillingSettings organization={data.item} onEditLegal={() => setParams({ tab: "" })} /> : <>
+      {params.tab === "tax" && !association ? <FiscalProfile siren={data.item.siren} />
+        : params.tab === "billing" ? <BillingSettings organization={data.item} onEditLegal={() => setParams({ tab: "" })} /> : <>
       {!data.item.fec_ready && <Alert color="paille" mb="md">Renseignez le SIREN : il nomme le fichier des écritures comptables (FEC).</Alert>}
       <form onSubmit={form.onSubmit((values) => {
         setError(null);
@@ -179,7 +184,19 @@ export default function OrganizationPage() {
         </Stack>
       </form>
       <SireneProposalModal opened={proposalOpen} onClose={() => setProposalOpen(false)} result={sirene.data ?? null}
-        current={form.values} onApply={(values) => form.setValues(values as Partial<Values>)}
+        current={form.values} onApply={(values) => {
+          form.setValues(values as Partial<Values>);
+          // Lot AG1.a : forme codée et date de création (onglet Fiscalité) reprises seulement si elles sont vides.
+          const proposal = sirene.data?.proposal ?? {};
+          const fill = {
+            ...(proposal.legal_form_code && !data.item.legal_form_code ? { legal_form_code: proposal.legal_form_code } : {}),
+            ...(proposal.created_on && !data.item.created_on ? { created_on: proposal.created_on } : {}),
+          };
+          if (!association && Object.keys(fill).length) {
+            // Pas d'invalidation de l'identité : elle réinitialiserait les champs proposés, pas encore enregistrés.
+            void api.put("/api/v1/tax-profile", fill).then(() => client.invalidateQueries({ queryKey: TAX_PROFILE_KEY }));
+          }
+        }}
         fields={association ? SIRENE_FIELDS : Object.fromEntries(Object.entries(SIRENE_FIELDS).filter(([k]) => k !== "rna"))}
         note="Le greffe du RCS et le capital ne figurent pas dans Sirene : ils restent à saisir. Pensez à enregistrer." />
       </>}
