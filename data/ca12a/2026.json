@@ -1,0 +1,393 @@
+{
+  "_comment": "Formulaire 3517-AGR-SD (CA12A / CA12AE, régime simplifié de l'agriculture), cerfa 10968*28, millésime 2026 : lignes utilisées par Lyvre dans l'ordre du formulaire, avec le code de case (saisie TeleDEC / EDI). Source : https://www.impots.gouv.fr/sites/default/files/formulaires/3517-agr-sd/2026/3517-agr-sd_5292.pdf ; notice 3517-AGR-NOT-SD : https://www.impots.gouv.fr/sites/default/files/formulaires/3517-agr-sd/2026/3517-agr-sd_5406.pdf (lot AG2.b, claudedocs/design_tva_agricole.md § 3). Non repris : DOM (06, 07), anciens taux (08), énergie (3B, 9B), cadre IV hors ligne 31, cadre V (accise sur les énergies). Ligne 10 (cessions d'immobilisations) non alimentée : une cession taxée est portée ligne 04 à son taux, à reclasser sur TeleDEC (écart AG2.b).",
+  "form": "3517-AGR-SD",
+  "cerfa": "10968*28",
+  "reversal_line": "14",
+  "sections": [
+    {
+      "title": "I — Décompte de l'impôt brut : opérations non taxées (base HT)",
+      "boxes": [
+        {
+          "line": "00",
+          "code": "0037",
+          "label": "Achats en franchise"
+        },
+        {
+          "line": "01",
+          "code": "0032",
+          "label": "Exportations hors Union européenne"
+        },
+        {
+          "line": "02",
+          "code": "0033",
+          "label": "Autres opérations non imposables"
+        },
+        {
+          "line": "03",
+          "code": "0034",
+          "label": "Livraisons intracommunautaires à destination d'une personne assujettie"
+        },
+        {
+          "line": "3C",
+          "code": "0052",
+          "label": "Importations (autres que les produits pétroliers)"
+        },
+        {
+          "line": "3D",
+          "code": "0055",
+          "label": "Acquisitions intracommunautaires"
+        }
+      ]
+    },
+    {
+      "title": "I — Décompte de l'impôt brut : opérations taxées (base HT et taxe due)",
+      "boxes": [
+        {
+          "line": "04",
+          "code": "0207",
+          "label": "Taux normal 20 %",
+          "with_base": true
+        },
+        {
+          "line": "5A",
+          "code": "0151",
+          "label": "Taux réduit 10 %",
+          "with_base": true
+        },
+        {
+          "line": "5C",
+          "code": "0105",
+          "label": "Taux réduit 5,5 %",
+          "with_base": true
+        },
+        {
+          "line": "09",
+          "code": "0950",
+          "label": "Taux particuliers",
+          "with_base": true
+        },
+        {
+          "line": "I1",
+          "code": "0210",
+          "label": "Importations — taux normal 20 %",
+          "with_base": true
+        },
+        {
+          "line": "I2",
+          "code": "0211",
+          "label": "Importations — taux réduit 10 %",
+          "with_base": true
+        },
+        {
+          "line": "I4",
+          "code": "0213",
+          "label": "Importations — taux réduit 5,5 %",
+          "with_base": true
+        },
+        {
+          "line": "I5",
+          "code": "0214",
+          "label": "Importations — taux réduit 2,1 %",
+          "with_base": true
+        },
+        {
+          "line": "9C",
+          "code": "0044",
+          "label": "Achats de prestations de services auprès d'un assujetti non établi en France",
+          "with_base": true
+        },
+        {
+          "line": "12",
+          "code": "0981",
+          "label": "Autres opérations imposables",
+          "with_base": true
+        },
+        {
+          "line": "13",
+          "code": "0031",
+          "label": "Acquisitions intracommunautaires",
+          "with_base": true
+        },
+        {
+          "line": "14",
+          "code": "0600",
+          "label": "TVA antérieurement déduite à reverser"
+        },
+        {
+          "line": "4B",
+          "code": "0602",
+          "label": "Sommes à ajouter"
+        },
+        {
+          "line": "15",
+          "code": null,
+          "label": "Total TVA brute due (lignes 04 à 4B)",
+          "total": true
+        }
+      ]
+    },
+    {
+      "title": "II — Décompte de l'impôt déductible",
+      "boxes": [
+        {
+          "line": "17",
+          "code": "0703",
+          "label": "Biens constituant des immobilisations"
+        },
+        {
+          "line": "18",
+          "code": "0702",
+          "label": "Autres biens et services"
+        },
+        {
+          "line": "19",
+          "code": "0058",
+          "label": "Crédit antérieur non imputé et non remboursé"
+        },
+        {
+          "line": "20",
+          "code": "0059",
+          "label": "Omissions ou compléments de déductions"
+        },
+        {
+          "line": "2B",
+          "code": "0603",
+          "label": "Sommes à imputer"
+        },
+        {
+          "line": "21",
+          "code": null,
+          "label": "Total TVA déductible (17 + 18 + 19 + 20 + 2B)",
+          "total": true
+        }
+      ]
+    },
+    {
+      "title": "III — Décompte de l'impôt net",
+      "boxes": [
+        {
+          "line": "23",
+          "code": "8900",
+          "label": "TVA due (ligne 15 − ligne 21)"
+        },
+        {
+          "line": "24",
+          "code": "0705",
+          "label": "Ou crédit (ligne 21 − ligne 15)"
+        },
+        {
+          "line": "25",
+          "code": "0018",
+          "label": "Total des acomptes versés (pénalités de retard exclues)"
+        },
+        {
+          "line": "28",
+          "code": null,
+          "label": "Solde dû : si ligne 23 − (lignes 24 + 25) ≥ 0"
+        },
+        {
+          "line": "29",
+          "code": null,
+          "label": "Ou excédent de versement : si ligne 25 − ligne 23 ≥ 0"
+        },
+        {
+          "line": "30",
+          "code": "0020",
+          "label": "Solde excédentaire (lignes 24 + 29)"
+        }
+      ]
+    },
+    {
+      "title": "IV — Taxes assimilées",
+      "boxes": [
+        {
+          "line": "31",
+          "code": "4220",
+          "label": "Taxe sur le chiffre d'affaires des exploitants agricoles (CGI, art. 302 bis MB) — saisie"
+        }
+      ]
+    },
+    {
+      "title": "VI — Récapitulation",
+      "boxes": [
+        {
+          "line": "36",
+          "code": null,
+          "label": "Crédit de TVA (report de la ligne 30)"
+        },
+        {
+          "line": "37",
+          "code": "8002",
+          "label": "Remboursement de crédit de TVA demandé au cadre VII"
+        },
+        {
+          "line": "38",
+          "code": "8003",
+          "label": "Crédit à reporter (lignes 36 − 37), à reporter ligne 19 de la prochaine déclaration"
+        },
+        {
+          "line": "39",
+          "code": "8901",
+          "label": "TVA nette due"
+        },
+        {
+          "line": "40",
+          "code": null,
+          "label": "Taxes assimilées (total des lignes 31 à 68)"
+        },
+        {
+          "line": "41",
+          "code": "9992",
+          "label": "Total à payer (lignes 39 + 40)",
+          "total": true
+        }
+      ]
+    },
+    {
+      "title": "VII — Demande de remboursement des crédits de TVA",
+      "boxes": [
+        {
+          "line": "42",
+          "code": null,
+          "label": "Crédit remboursable dégagé à la clôture (ligne 24, au moins 150 €)"
+        },
+        {
+          "line": "43",
+          "code": null,
+          "label": "Excédent de versement dégagé (ligne 29)"
+        },
+        {
+          "line": "44",
+          "code": null,
+          "label": "Maximum remboursable (lignes 42 + 43)"
+        },
+        {
+          "line": "45",
+          "code": null,
+          "label": "Remboursement demandé"
+        },
+        {
+          "line": "46",
+          "code": null,
+          "label": "Crédit reportable (lignes 44 − 45)"
+        }
+      ]
+    }
+  ],
+  "codes": {
+    "V20": {
+      "base": [
+        "04"
+      ],
+      "tax": "04"
+    },
+    "V10": {
+      "base": [
+        "5A"
+      ],
+      "tax": "5A"
+    },
+    "V55": {
+      "base": [
+        "5C"
+      ],
+      "tax": "5C"
+    },
+    "V21": {
+      "base": [
+        "09"
+      ],
+      "tax": "09"
+    },
+    "V_UE_S": {
+      "base": [
+        "02"
+      ]
+    },
+    "V_UE_B": {
+      "base": [
+        "03"
+      ]
+    },
+    "V_EXP": {
+      "base": [
+        "01"
+      ]
+    },
+    "V_EXO": {
+      "base": [
+        "02"
+      ]
+    },
+    "D20": {
+      "deductible": true
+    },
+    "D10": {
+      "deductible": true
+    },
+    "D55": {
+      "deductible": true
+    },
+    "D21": {
+      "deductible": true
+    },
+    "AL_S": {
+      "base": [
+        "9C"
+      ],
+      "tax": "9C",
+      "deductible": true
+    },
+    "AL_B": {
+      "base": [
+        "3D",
+        "13"
+      ],
+      "tax": "13",
+      "deductible": true
+    },
+    "AL_FR": {
+      "base": [
+        "12"
+      ],
+      "tax": "12",
+      "deductible": true
+    },
+    "AL_I": {
+      "base": [
+        "3C",
+        "I1"
+      ],
+      "tax": "I1",
+      "deductible": true
+    },
+    "AL_I10": {
+      "base": [
+        "3C",
+        "I2"
+      ],
+      "tax": "I2",
+      "deductible": true
+    },
+    "AL_I55": {
+      "base": [
+        "3C",
+        "I4"
+      ],
+      "tax": "I4",
+      "deductible": true
+    },
+    "AL_I21": {
+      "base": [
+        "3C",
+        "I5"
+      ],
+      "tax": "I5",
+      "deductible": true
+    }
+  },
+  "deductible_lines": {
+    "44562": "17",
+    "default": "18"
+  }
+}

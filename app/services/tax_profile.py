@@ -54,6 +54,7 @@ OPTIONS = {
     "rsa_option": "Option pour le régime simplifié agricole (TVA)",
     "vat_quarterly": "Option CA3 trimestrielle (RSA)",
     "vat_monthly": "Option CA3 mensuelle (RSA)",
+    "rsa_fiscal_year": "Déclaration annuelle de TVA sur l'exercice (CA12AE)",
 }
 
 

@@ -1,0 +1,74 @@
+{#- Livres de TVA du régime simplifié agricole (lot AG2.d) : livre des ventes ou des achats de la période. -#}
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>{{ title }} — {{ org.name }}</title>
+<style>
+  @page { size: A4 landscape; margin: 14mm 12mm; @bottom-right { content: "page " counter(page) " / " counter(pages); font-size: 8pt; color: #666; } }
+  body { font-family: "IBM Plex Sans", "DejaVu Sans", sans-serif; font-size: 8.5pt; color: #1E2421; }
+  h1 { font-size: 14pt; margin: 0 0 2mm; }
+  h2 { font-size: 11pt; margin: 6mm 0 2mm; }
+  .meta { color: #555; margin-bottom: 4mm; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 1.2mm 1.6mm; border-bottom: 0.3mm solid #ddd; vertical-align: top; }
+  th { text-align: left; font-size: 7.5pt; color: #555; }
+  td.num, th.num { text-align: right; font-family: "IBM Plex Mono", "DejaVu Sans Mono", monospace; white-space: nowrap; }
+  td.mono { font-family: "IBM Plex Mono", "DejaVu Sans Mono", monospace; white-space: nowrap; }
+  tr.total td { font-weight: 600; background: #F6F4EE; }
+  .ko { color: #b5502b; }
+</style>
+</head>
+<body>
+<h1>{{ title }} du {{ book.start.strftime("%d/%m/%Y") }} au {{ book.end.strftime("%d/%m/%Y") }}</h1>
+<div class="meta">{{ org.name }}{% if org.siren %} — SIREN {{ org.siren }}{% endif %}{% if org.vat_number %} — TVA {{ org.vat_number }}{% endif %} — montants en euros</div>
+{% if kind == "sales" %}
+<table>
+  <thead><tr><th>Date</th><th>Pièce</th><th>Libellé</th><th>Client</th><th>Code</th><th>Catégorie</th><th class="num">Base HT</th><th class="num">TVA</th></tr></thead>
+  <tbody>
+  {% for i in book["items"] %}<tr><td class="mono">{{ i.date.strftime("%d/%m/%Y") }}</td><td class="mono">{{ i.reference or "" }}</td><td>{{ i.label }}</td>
+    <td>{{ i.entity }}</td><td class="mono">{{ i.code }}</td><td>{{ i.category }}</td><td class="num">{{ money(i.base_cents) }}</td><td class="num">{{ money(i.tax_cents) }}</td></tr>{% endfor %}
+  </tbody>
+</table>
+<h2>Totaux par ligne de la CA12A</h2>
+<table>
+  <thead><tr><th>Ligne</th><th>Catégorie</th><th class="num">Base HT</th><th class="num">TVA</th></tr></thead>
+  <tbody>
+  {% for t in book.totals %}<tr><td class="mono">{{ t.line or "" }}</td><td>{{ t.category }}</td><td class="num">{{ money(t.base_cents) }}</td><td class="num">{{ money(t.tax_cents) }}</td></tr>{% endfor %}
+  <tr class="total"><td></td><td>Total</td><td class="num">{{ money(book.total.base_cents) }}</td><td class="num">{{ money(book.total.tax_cents) }}</td></tr>
+  </tbody>
+</table>
+{% else %}
+<table>
+  <thead><tr><th>Date</th><th>Pièce</th><th>Libellé</th><th>Fournisseur</th><th>Nature</th><th>Codes</th><th class="num">Montant HT</th><th class="num">TVA déductible</th><th class="num">TVA autoliquidée</th></tr></thead>
+  <tbody>
+  {% for i in book["items"] %}<tr><td class="mono">{{ i.date.strftime("%d/%m/%Y") }}</td><td class="mono">{{ i.reference or "" }}</td><td>{{ i.label }}</td>
+    <td>{{ i.entity }}</td><td>{{ i.group_label }}</td><td class="mono">{{ i.codes|join(", ") }}</td><td class="num">{{ money(i.ht_cents) }}</td>
+    <td class="num">{{ "non déductible" if i.non_deductible else money(i.deductible_cents) }}</td><td class="num">{{ money(i.reverse_charge_cents) if i.reverse_charge_cents else "" }}</td></tr>{% endfor %}
+  </tbody>
+</table>
+<h2>Totaux</h2>
+<table>
+  <thead><tr><th>Nature</th><th class="num">Montant HT</th><th class="num">TVA déductible</th><th class="num">TVA autoliquidée</th><th class="num">HT sans TVA déductible</th></tr></thead>
+  <tbody>
+  {% for t in book.totals %}<tr><td>{{ t.label }}</td><td class="num">{{ money(t.ht_cents) }}</td><td class="num">{{ money(t.deductible_cents) }}</td><td class="num">{{ money(t.reverse_charge_cents) }}</td><td class="num">{{ money(t.non_deductible_ht_cents) }}</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% if book.control %}
+<h2>Contrôle avec la CA12A{% if not book.control.validated %} (projet non validé){% endif %}</h2>
+{% if kind == "sales" %}
+<table>
+  <thead><tr><th>Ligne</th><th>Libellé</th><th class="num">Livre : base</th><th class="num">CA12A : base</th><th class="num">Livre : TVA</th><th class="num">CA12A : TVA</th><th></th></tr></thead>
+  <tbody>
+  {% for l in book.control.lines %}<tr><td class="mono">{{ l.line }}</td><td>{{ l.label }}</td><td class="num">{{ l.book_base }}</td><td class="num">{{ l.return_base }}</td>
+    <td class="num">{{ l.book_tax }}</td><td class="num">{{ l.return_tax }}</td><td class="{{ '' if l.ok else 'ko' }}">{{ "égal" if l.ok else "écart" }}</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="{{ '' if book.control.ok else 'ko' }}">TVA déductible du livre : {{ book.control.book_total }} € (immobilisations {{ book.control.book_assets }} €, autres {{ book.control.book_other }} €) —
+  CA12A, lignes 17 + 18 − 14 : {{ book.control.return_17 }} + {{ book.control.return_18 }} − {{ book.control.return_14 }} = {{ book.control.return_total }} € : {{ "égal" if book.control.ok else "écart" }}.</p>
+{% endif %}
+{% endif %}
+</body>
+</html>

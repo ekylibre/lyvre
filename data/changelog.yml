@@ -5,6 +5,41 @@
 next:
 - kind: new
   structure: agri
+  text: Compta › Remboursement forfaitaire — demande 3520 des exploitations au remboursement forfaitaire agricole
+    calculée depuis les ventes de l'année (taux de 5,59 % et 4,43 % par compte de vente, clients assujettis), avec
+    les attestations d'achats à joindre, le seuil de 46 000 €, le dépôt et la créance de remboursement ; état
+    récapitulatif PDF et XLSX.
+  tech: app/services/rfa.py, tables rfa_attestations et rfa_claims, rfa_rate des catégories et produits, rfa_buyer
+    des tiers (migration f6a8c0e2d4b5), écriture 44583 / 741 en partie double.
+- kind: new
+  structure: agri
+  text: Compta › Déclarations de TVA › Livres — livre des ventes (par catégorie et par taux) et livre des achats (y
+    compris les achats sans TVA déductible, immobilisations à part), contrôlés avec la CA12A de l'année ; exports
+    XLSX et PDF.
+  tech: app/services/vat_books.py, GET /api/v1/vat-books/sales|purchases, /vat-books/<kind>.xlsx|.pdf, page
+    /vat-returns/books ; contrôle ventes = lignes 01 à 09, déductible = 17 + 18 − 14.
+- kind: new
+  structure: agri
+  text: Compta › Déclarations de TVA — acomptes trimestriels du régime simplifié agricole (bulletin 3525 bis) aux
+    5 mai, 5 août, 5 novembre et 5 février ; acompte calculé (1/5 de la TVA due l'année précédente), dispense sous
+    1 000 €, modulation motivée avec alerte au-delà de 30 %, écriture 44581 / 44551 et imputation sur la CA12A.
+  tech: app/services/vat_installments.py, déclarations ACOMPTE, fiscal_years.vat_reference_cents /
+    vat_reference_assets_cents (migration e5f7b9d1c3a4), paramètres vat.rsa.installment_calendar et installment_tolerance_bp.
+- kind: new
+  structure: agri
+  text: Compta › Déclarations de TVA — déclaration annuelle du régime simplifié agricole (CA12A, ou CA12AE sur
+    l'exercice) préparée depuis la comptabilité, dans l'ordre du formulaire 3517-AGR-SD 2026 avec ses codes de case ;
+    crédit antérieur, acomptes versés, remboursement du cadre VII ; échéance au 2e jour ouvré après le 1er mai.
+  tech: fiscal_years.vat_period annual, data/ca12a/2026.json, vat_return.form_spec(année, formulaire), clés AAAA-A /
+    AAAA-MM-A, option rsa_fiscal_year, 44581 / 44583 dans la liquidation.
+- kind: new
+  text: Compta › Déclarations de TVA — déclaration trimestrielle (CA3 du régime simplifié agricole sur option), échéance
+    le 5 du deuxième mois après le trimestre ; demande de remboursement du crédit de TVA (formulaire 3519, à partir de
+    760 € en cours d'année, de 150 € sur la dernière période) portée case 26.
+  tech: fiscal_years.vat_period quarterly, clés AAAA-Tn, vat_returns.refund_cents (migration d4e6a8c0b2f3), débit 44583,
+    app/services/fr_calendar.py (jours ouvrés).
+- kind: new
+  structure: agri
   text: Nouveau plan « Exploitation agricole » (EI, EARL, GAEC, SCEA…) — plan comptable agricole du Recueil PCG 2026
     (titre 5), création de l'instance en trois blocs (forme, impôt et régime des bénéfices agricoles, premier
     exercice), micro-BA en recettes et dépenses, réel simplifié et réel normal en partie double.

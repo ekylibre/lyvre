@@ -15,5 +15,7 @@ class SimpleCategory(db.Model):
     active = db.Column(db.Boolean, nullable=False, default=True)
     # Lot AG1.a : recette exclue du micro-BA (cessions, ICHN, primes d'équipement, entraide ; CGI art. 64 bis).
     excluded_from_micro = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
+    # Lot AG2.e : classe de taux du remboursement forfaitaire (high, low, excluded ; nul : à choisir).
+    rfa_rate = db.Column(db.String(10))
 
     account = db.relationship("Account")

@@ -1,6 +1,6 @@
 // Compta › Déclarations de TVA (lot T3) : mois de l'exercice déclarant, statut, échéance, retard, TVA à
 // payer ou crédit ; ouvrir un mois pour préparer, valider et déposer sa CA3.
-import { Alert, Center, Loader, Select, Text } from "@mantine/core";
+import { Alert, Button, Center, Loader, Select, Text } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { FilterBar, useUrlParams } from "../../components/FilterBar";
@@ -10,6 +10,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { DataGrid } from "../../components/DataGrid";
 import { AppLink } from "../../app/navigation";
 import { formatDate } from "../../lib/format";
+import { InstallmentsPanel } from "./InstallmentsPanel";
 import { STATUS_TONES, VAT_RETURNS_KEY, monthLabel, type PeriodRow, type VatReturnsList } from "./types";
 
 export default function VatReturnsPage() {
@@ -21,7 +22,12 @@ export default function VatReturnsPage() {
   return (
     <>
       <PageHeader title="Déclarations de TVA"
-        description="CA3 mensuelle calculée depuis les écritures, à saisir sur TeleDEC puis à marquer déposée." />
+        description={data.fiscal_year?.vat_period === "annual"
+          ? "CA12A annuelle et acomptes trimestriels (3525 bis) calculés depuis les écritures, à saisir sur l'espace professionnel puis à marquer déposés."
+          : "CA3 calculée depuis les écritures, à saisir sur TeleDEC puis à marquer déposée."}
+        actions={data.fiscal_year && <Button variant="default" component={AppLink}
+          href={data.fiscal_year.vat_period === "annual" ? `/vat-returns/books?period=${data.items[0]?.period ?? ""}` : "/vat-returns/books"}>
+          Livres de TVA</Button>} />
       {data.fiscal_year === null ? (
         <Alert color="paille">Aucun exercice ne prépare sa déclaration de TVA dans Lyvre : activez « Déclaration mensuelle
           (CA3) » sur l'exercice (Compta › Exercices), après l'avoir déclaré soumis à la TVA.</Alert>
@@ -35,7 +41,7 @@ export default function VatReturnsPage() {
           {late > 0 && <Alert color="brique" mb="md">{late} déclaration{late > 1 ? "s" : ""} en retard : préparez-les dans
             l'ordre des mois, le crédit de chaque mois se reporte sur le suivant.</Alert>}
           <DataGrid<PeriodRow> id="vat-returns" records={data.items} idAccessor="period" columns={[
-            { accessor: "period", title: "Mois", render: (row) => <AppLink href={`/vat-returns/${row.period}`}>{monthLabel(row.period)}</AppLink> },
+            { accessor: "period", title: "Période", render: (row) => <AppLink href={`/vat-returns/${row.period}`}>{monthLabel(row.period)}</AppLink> },
             { accessor: "status", title: "Statut", render: (row) => (
               <StatusBadge tone={row.late ? "gap" : STATUS_TONES[row.status]}>{row.late ? `${row.status_label} — en retard` : row.status_label}</StatusBadge>) },
             { accessor: "deadline", title: "Échéance", render: (row) => <span className="lv-num">{formatDate(row.deadline)}</span> },
@@ -47,6 +53,8 @@ export default function VatReturnsPage() {
             { accessor: "declared", title: "Dépôt", render: (row) => row.return?.declared_on
               ? <span className="lv-num">{formatDate(row.return.declared_on)}</span> : <Text size="sm" c="dimmed">—</Text> },
           ]} />
+          {data.fiscal_year.vat_period === "annual" && data.items.map((row) => (
+            <InstallmentsPanel key={row.period} period={row.period} />))}
         </>
       )}
     </>

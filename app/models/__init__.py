@@ -58,8 +58,11 @@ from .brevo_link import BrevoLink
 from .tax_profile import TaxOption, TaxProfile
 from .regulatory_value import RegulatoryValue
 from .micro_receipts import MicroReceiptsYear
+from .rfa import RfaAttestation, RfaClaim
 
 __all__ = [
+    "RfaAttestation",
+    "RfaClaim",
     "MicroReceiptsYear",
     "TaxOption",
     "TaxProfile",

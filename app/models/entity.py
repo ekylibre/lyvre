@@ -36,6 +36,8 @@ class Entity(db.Model):
     vat_number = db.Column(db.String(30), index=True)
     # Lot T2 : régime TVA (fr | eu | world) : autoliquidation des achats, ventes sans TVA française.
     vat_regime = db.Column(db.String(8), nullable=False, default="fr", server_default="fr")
+    # Lot AG2.e : client du remboursement forfaitaire (professional, eu, export, none ; nul : déduit de la fiche).
+    rfa_buyer = db.Column(db.String(12))
     siret = db.Column(db.String(14), index=True)
     # SIREN : 9 premiers chiffres du SIRET (tenu à jour avec lui), ou seul (unité légale sans
     # établissement connu). Rapprochement des fournisseurs et mise à jour depuis Sirene (lot G).

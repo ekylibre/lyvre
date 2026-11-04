@@ -225,16 +225,19 @@ def _vat_return(period):
     except vat_return.VatReturnError:
         abort(404)
     ret = vat_return.return_for(start)
+    form = "3310-CA3-SD"
     if ret is not None:
         detail = ret.detail
+        form = detail.get("form", form)
         rows, form_year, due, credit, deadline = (detail["rows"], detail["form_year"], ret.due_cents // 100,
                                                   ret.credit_cents // 100, ret.deadline)
     else:
         result = vat_return.compute(start, end)
+        form = result["form"]
         rows, form_year, due, credit, deadline = (result["rows"], result["form_year"], result["due_cents"] // 100,
                                                   result["credit_cents"] // 100, vat_return.deadline(end))
-    return {"org": organization.get(), "period": vat_return.period_key(start), "start": f"{start:%d/%m/%Y}",
-            "end": f"{end:%d/%m/%Y}", "form": "3310-CA3-SD", "form_year": form_year, "rows": rows, "due": due,
+    return {"org": organization.get(), "period": vat_return.period_key(start, end), "start": f"{start:%d/%m/%Y}",
+            "end": f"{end:%d/%m/%Y}", "form": form, "form_year": form_year, "rows": rows, "due": due,
             "credit": credit, "deadline": f"{deadline:%d/%m/%Y}", "validated": ret is not None,
             "declared_on": f"{ret.declared_on:%d/%m/%Y}" if ret is not None and ret.declared_on else None,
             "reference": ret.declared_reference if ret is not None else None}
@@ -290,3 +293,103 @@ def vat_return_pdf(period):
     response.headers["Content-Disposition"] = f'inline; filename="CA3-{data["period"]}.pdf"'
     return response
 
+
+
+# ------------------------------------------------------------------ livres de TVA (lot AG2.d)
+
+def _vat_book(kind):
+    from app.services import organization, vat_books
+
+    if kind not in ("sales", "purchases"):
+        abort(404)
+    try:
+        start, end = vat_books.parse_bounds(request.args.get("start"), request.args.get("end"), request.args.get("period"))
+    except vat_books.BookError:
+        abort(400)
+    book = vat_books.sales_book(start, end) if kind == "sales" else vat_books.purchases_book(start, end)
+    title = "Livre des ventes" if kind == "sales" else "Livre des achats"
+    return book, title, organization.get(), f"{'livre-des-ventes' if kind == 'sales' else 'livre-des-achats'}-{start}-{end}"
+
+
+@bp.route("/vat-books/<kind>.xlsx")
+@login_required
+def vat_book_xlsx(kind):
+    book, title, _, name = _vat_book(kind)
+    wb = Workbook()
+    wb.remove(wb.active)
+    if kind == "sales":
+        rows = [[i["date"], i["reference"] or "", i["label"], i["entity"], i["code"], i["line"] or "", i["category"],
+                 i["base_cents"] / 100, i["tax_cents"] / 100] for i in book["items"]]
+        _sheet(wb, title, ["Date", "Pièce", "Libellé", "Client", "Code TVA", "Ligne CA12A", "Catégorie", "Base HT",
+                           "TVA"], rows, (8, 9))
+        _sheet(wb, "Totaux", ["Ligne CA12A", "Catégorie", "Base HT", "TVA"],
+               [[t["line"] or "", t["category"], t["base_cents"] / 100, t["tax_cents"] / 100] for t in book["totals"]],
+               (3, 4))
+    else:
+        rows = [[i["date"], i["reference"] or "", i["label"], i["entity"], i["group_label"], ", ".join(i["codes"]),
+                 i["ht_cents"] / 100, i["deductible_cents"] / 100, i["reverse_charge_cents"] / 100,
+                 "Non déductible" if i["non_deductible"] else ""] for i in book["items"]]
+        _sheet(wb, title, ["Date", "Pièce", "Libellé", "Fournisseur", "Nature", "Codes TVA", "Montant HT",
+                           "TVA déductible", "TVA autoliquidée", "Mention"], rows, (7, 8, 9))
+        _sheet(wb, "Totaux", ["Nature", "Montant HT", "TVA déductible", "TVA autoliquidée", "HT sans TVA déductible"],
+               [[t["label"], t["ht_cents"] / 100, t["deductible_cents"] / 100, t["reverse_charge_cents"] / 100,
+                 t["non_deductible_ht_cents"] / 100] for t in book["totals"]], (2, 3, 4, 5))
+    return _response(wb, f"{name}.xlsx")
+
+
+@bp.route("/vat-books/<kind>.pdf")
+@login_required
+def vat_book_pdf(kind):
+    from weasyprint import HTML
+
+    book, title, org, name = _vat_book(kind)
+    money = lambda cents: f"{(cents or 0) / 100:,.2f}".replace(",", " ").replace(".", ",")  # noqa: E731
+    html = render_template("vat_returns/book.html", kind=kind, book=book, title=title, org=org, money=money)
+    response = Response(HTML(string=html).write_pdf(), mimetype="application/pdf")
+    response.headers["Content-Disposition"] = f'inline; filename="{name}.pdf"'
+    return response
+
+
+# ------------------------------------------------------------------ remboursement forfaitaire (lot AG2.e)
+
+def _rfa(year):
+    from app.services import organization, rfa
+    from app.tenant import current_chart
+
+    if current_chart() != "agri":
+        abort(404)
+    return rfa.compute(year), rfa, organization.get()
+
+
+@bp.route("/rfa/<int:year>.xlsx")
+@login_required
+def rfa_xlsx(year):
+    data, rfa, _ = _rfa(year)
+    wb = Workbook()
+    wb.remove(wb.active)
+    rows = [[c["name"], rfa.BUYERS.get(c["buyer"], "Inconnu"), "oui" if c["eligible"] else "non", c["high_cents"] / 100,
+             c["low_cents"] / 100, c["excluded_cents"] / 100, c["unclassified_cents"] / 100,
+             (c["attestation"] or {}).get("amount_cents", 0) / 100 if c["attestation"] else None, "; ".join(c["issues"])]
+            for c in data["clients"]]
+    _sheet(wb, f"Clients {year}", ["Client", "Type", "Éligible", "Taux 5,59 %", "Taux 4,43 %", "Exclues", "Sans classe",
+                                   "Attesté", "Contrôles"], rows, (4, 5, 6, 7, 8))
+    summary = [["Base au taux de 5,59 %", data["high_base_cents"] / 100],
+               ["Base au taux de 4,43 %", data["low_base_cents"] / 100],
+               ["Ventes exclues (classe)", data["excluded_cents"] / 100],
+               ["Ventes à des non-assujettis", data["non_eligible_cents"] / 100],
+               ["Remboursement forfaitaire", data["amount_cents"] / 100]]
+    _sheet(wb, "Forfait", ["Élément", "Montant"], summary, (2,))
+    return _response(wb, f"remboursement-forfaitaire-{year}.xlsx")
+
+
+@bp.route("/rfa/<int:year>.pdf")
+@login_required
+def rfa_pdf(year):
+    from weasyprint import HTML
+
+    data, rfa, org = _rfa(year)
+    money = lambda cents: f"{(cents or 0) / 100:,.2f}".replace(",", " ").replace(".", ",")  # noqa: E731
+    html = render_template("vat_returns/rfa.html", data=data, org=org, money=money, buyers=rfa.BUYERS)
+    response = Response(HTML(string=html).write_pdf(), mimetype="application/pdf")
+    response.headers["Content-Disposition"] = f'inline; filename="remboursement-forfaitaire-{year}.pdf"'
+    return response

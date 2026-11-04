@@ -11,7 +11,7 @@ import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { FormModal } from "../../components/FormModal";
 import { PageHeader } from "../../components/PageHeader";
 import { Can } from "../../components/Can";
-import { SESSION_KEY, useBookkeeping, useCan } from "../../api/session";
+import { SESSION_KEY, useBookkeeping, useCan, useCurrentSession } from "../../api/session";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { useRouteModal } from "../../app/useRouteModal";
@@ -23,7 +23,7 @@ import { LockForm, UnlockForm } from "./PeriodLock";
 export interface FiscalYear {
   id: number; label: string; start_date: string; end_date: string; closed: boolean; vat_liable: boolean; vat_on_receipts?: boolean;
   /** Lot T3 : déclaration de TVA préparée dans Lyvre (`monthly` : CA3 mensuelle). */
-  vat_period?: "monthly" | null;
+  vat_period?: "monthly" | "quarterly" | "annual" | null;
   status: "open" | "provisional" | "closed"; status_label: string;
   /** Lot F2 : date de verrouillage, première date où l'on peut écrire. */
   locked_until?: string | null; first_open_date?: string | null;
@@ -84,10 +84,11 @@ export default function FiscalYearsPage() {
   const setVatMode = useAction((fy: FiscalYear) =>
     api.patch<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}`, { vat_on_receipts: !fy.vat_on_receipts }),
     { invalidate: [FISCAL_YEARS_KEY] });
-  const setVatPeriod = useAction((fy: FiscalYear) =>
-    api.patch<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}`, { vat_period: fy.vat_period ? null : "monthly" }),
+  const setVatPeriod = useAction(({ fy, period }: { fy: FiscalYear; period: "monthly" | "quarterly" | "annual" | null }) =>
+    api.patch<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}`, { vat_period: period }),
     { invalidate: [FISCAL_YEARS_KEY, SESSION_KEY] });  // menu « Déclarations de TVA »
   const simple = useBookkeeping() === "simple";
+  const agri = useCurrentSession().instance?.chart === "agri";
   const can = useCan();
   const lock = useAction((fy: FiscalYear) => api.post<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fy.id}/lock`,
     { locked: fy.status === "open" }), { invalidate: [FISCAL_YEARS_KEY] });
@@ -135,7 +136,7 @@ export default function FiscalYearsPage() {
       render: (fy) => <Group gap={6} wrap="nowrap">
         <StatusBadge tone={fy.vat_liable ? "info" : "neutral"}>{fy.vat_liable ? "Soumis" : "Non soumis"}</StatusBadge>
         {fy.vat_liable && <Text size="xs" c="dimmed">{fy.vat_on_receipts === false ? "services : sur les débits" : "services : à l'encaissement"}
-          {fy.vat_period === "monthly" && " · CA3 mensuelle"}</Text>}
+          {fy.vat_period === "monthly" && " · CA3 mensuelle"}{fy.vat_period === "quarterly" && " · CA3 trimestrielle"}{fy.vat_period === "annual" && " · CA12A annuelle"}</Text>}
       </Group> },
     ...closingColumns,
     { accessor: "actions", title: "", hideable: false, textAlign: "right",
@@ -151,12 +152,20 @@ export default function FiscalYearsPage() {
             onClick={() => setVatMode.mutate(fy)}>
             {fy.vat_on_receipts === false ? "TVA à l'encaissement" : "Option TVA sur les débits"}
           </Button>}
-          {fy.vat_liable && !simple && <Button variant="subtle" size="compact-sm"
-            loading={setVatPeriod.isPending && setVatPeriod.variables?.id === fy.id}
-            title="Prépare la déclaration de TVA de chaque mois (Compta › Déclarations de TVA)"
-            onClick={() => setVatPeriod.mutate(fy)}>
-            {fy.vat_period ? "Ne plus préparer la CA3" : "Déclaration mensuelle (CA3)"}
-          </Button>}
+          {fy.vat_liable && !simple && (fy.vat_period
+            ? <Button variant="subtle" size="compact-sm" loading={setVatPeriod.isPending && setVatPeriod.variables?.fy.id === fy.id}
+              onClick={() => setVatPeriod.mutate({ fy, period: null })}>Ne plus préparer la CA3</Button>
+            : <>
+              <Button variant="subtle" size="compact-sm" loading={setVatPeriod.isPending && setVatPeriod.variables?.fy.id === fy.id}
+                title="Prépare la déclaration de TVA de chaque mois (Compta › Déclarations de TVA)"
+                onClick={() => setVatPeriod.mutate({ fy, period: "monthly" })}>Déclaration mensuelle (CA3)</Button>
+              <Button variant="subtle" size="compact-sm" loading={setVatPeriod.isPending && setVatPeriod.variables?.fy.id === fy.id}
+                title="Régime simplifié agricole sur option : CA3 de chaque trimestre, remboursement de crédit possible"
+                onClick={() => setVatPeriod.mutate({ fy, period: "quarterly" })}>Trimestrielle (CA3)</Button>
+              {agri && <Button variant="subtle" size="compact-sm" loading={setVatPeriod.isPending && setVatPeriod.variables?.fy.id === fy.id}
+                title="Régime simplifié agricole : déclaration annuelle CA12A et acomptes trimestriels"
+                onClick={() => setVatPeriod.mutate({ fy, period: "annual" })}>Annuelle (CA12A)</Button>}
+            </>)}
         </Group>
       ) },
   ];

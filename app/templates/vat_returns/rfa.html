@@ -1,0 +1,48 @@
+{#- État récapitulatif du remboursement forfaitaire agricole (lot AG2.e) : sert à remplir le 3520 (Q-V4). -#}
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Remboursement forfaitaire {{ data.year }} — {{ org.name }}</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm; @bottom-right { content: "page " counter(page) " / " counter(pages); font-size: 8pt; color: #666; } }
+  body { font-family: "IBM Plex Sans", "DejaVu Sans", sans-serif; font-size: 9pt; color: #1E2421; }
+  h1 { font-size: 14pt; margin: 0 0 2mm; }
+  h2 { font-size: 11pt; margin: 6mm 0 2mm; }
+  .meta { color: #555; margin-bottom: 4mm; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 1.4mm 1.8mm; border-bottom: 0.3mm solid #ddd; vertical-align: top; }
+  th { text-align: left; font-size: 8pt; color: #555; }
+  td.num, th.num { text-align: right; font-family: "IBM Plex Mono", "DejaVu Sans Mono", monospace; white-space: nowrap; }
+  tr.total td { font-weight: 600; background: #F6F4EE; }
+  .issue { color: #b5502b; font-size: 7.5pt; }
+  .box { border: 1px solid #b5502b; color: #b5502b; padding: 2mm 3mm; margin-bottom: 3mm; }
+</style>
+</head>
+<body>
+<h1>Remboursement forfaitaire agricole — ventes {{ data.year }}</h1>
+<div class="meta">{{ org.name }}{% if org.siren %} — SIREN {{ org.siren }}{% endif %} — état récapitulatif pour le formulaire 3520-SD
+  — à déposer au plus tard le {{ data.deadline.strftime("%d/%m/%Y") }}{% if data.claim %} — déposée le {{ data.claim.declared_on.strftime("%d/%m/%Y") }}{% endif %}</div>
+{% for p in data.problems %}<div class="box">{{ p }}</div>{% endfor %}
+{% for w in data.warnings %}<div class="box">{{ w }}</div>{% endfor %}
+<h2>Forfait</h2>
+<table>
+  <tbody>
+  <tr><td>Ventes éligibles au taux de {{ (data.high_bp or 0) / 100 }} %</td><td class="num">{{ money(data.high_base_cents) }} €</td></tr>
+  <tr><td>Ventes éligibles au taux de {{ (data.low_bp or 0) / 100 }} %</td><td class="num">{{ money(data.low_base_cents) }} €</td></tr>
+  <tr><td>Ventes exclues par nature</td><td class="num">{{ money(data.excluded_cents) }} €</td></tr>
+  <tr><td>Ventes à des clients non assujettis</td><td class="num">{{ money(data.non_eligible_cents) }} €</td></tr>
+  <tr class="total"><td>Remboursement forfaitaire demandé</td><td class="num">{{ money(data.amount_cents) }} €</td></tr>
+  </tbody>
+</table>
+<h2>Clients et attestations à joindre</h2>
+<table>
+  <thead><tr><th>Client</th><th>Type</th><th class="num">5,59 %</th><th class="num">4,43 %</th><th class="num">Attesté</th></tr></thead>
+  <tbody>
+  {% for c in data.clients if c.eligible %}<tr><td>{{ c.name }}{% for i in c.issues %}<div class="issue">{{ i }}</div>{% endfor %}</td>
+    <td>{{ buyers.get(c.buyer, "") }}</td><td class="num">{{ money(c.high_cents) }}</td><td class="num">{{ money(c.low_cents) }}</td>
+    <td class="num">{{ money(c.attestation.amount_cents) if c.attestation else "—" }}</td></tr>{% endfor %}
+  </tbody>
+</table>
+</body>
+</html>

@@ -13,6 +13,8 @@
     {"rule": "/fiscal-years/", "endpoint": "fiscal_years.index"},
     {"rule": "/vat-returns/", "endpoint": "vat_returns.index"},
     {"rule": "/reports/sig", "endpoint": "reports.sig"},
+    {"rule": "/vat-returns/books", "endpoint": "vat_returns.books"},
+    {"rule": "/rfa/", "endpoint": "rfa.index"},
     {"rule": "/vat-returns/<period>", "endpoint": "vat_returns.detail"},
     {"rule": "/fiscal-years/new", "endpoint": "fiscal_years.new"},
     {"rule": "/fiscal-years/<int:fy_id>/closing", "endpoint": "fiscal_years.closing"},
