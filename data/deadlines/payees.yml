@@ -1,0 +1,13 @@
+# Payeurs reconnus sur les relevés (lot AG9a.c, claudedocs/design_echeancier_agricole.md § 6.1).
+# Un débit est rattaché à une échéance de paiement (`payment: true`) quand son libellé ou sa contrepartie
+# contient un des motifs de l'organisme de la fiche, que sa date tombe à J-10/J+10 et, si Lyvre estime le
+# montant, qu'il est égal à 5 % près.
+# Motifs comparés en majuscules, sans accents ni ponctuation, mot entier (« SIE » ne reconnaît pas « SIEMENS »).
+- organisms: [SIE, SIP, DGFiP]
+  patterns: [DGFIP, IMPOT, IMPOTS, SIE, SIP, TRESOR PUBLIC, FINANCES PUBLIQUES, DIRECTION GENERALE DES FINANCES]
+- organisms: [MSA]
+  patterns: [MSA, MUTUALITE SOCIALE AGRICOLE]
+- organisms: [Douane]
+  patterns: [DOUANE, DOUANES, DGDDI]
+- organisms: [Agence de l'eau]
+  patterns: [AGENCE DE L EAU, AGENCE EAU]

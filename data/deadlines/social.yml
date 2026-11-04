@@ -1,0 +1,62 @@
+# Social, MSA (audit_calendrier.md § 2.3).
+- id: SOC-01
+  title: Déclaration des revenus professionnels (DRP)
+  domain: social
+  organism: MSA
+  summary: Le plus souvent fusionnée avec la déclaration de revenus ; DRP propre à la MSA pour les associés de sociétés à l'IS et des cas particuliers, à la date fixée par la caisse (en général début juin). Dépôt dématérialisé ; majoration de 5 % en cas de retard.
+  applies: {income_tax: [IS]}
+  events:
+    - label: DRP à la MSA
+      rule: {type: annual_param, key: agenda.msa.drp_deadline, fallback: {type: fixed, days: ["06-01"]}}
+      reminders: [30, 7]
+  lyvre_data: BA fiscal, cotisations personnelles (646), DJA, plus-values exonérées.
+  reliability: A
+
+- id: SOC-02
+  title: Appels de cotisations des exploitants (NSA)
+  domain: social
+  organism: MSA
+  summary: Premier appel provisionnel (mars-avril), deuxième appel (juin ou octobre selon la caisse), solde (fin novembre à mi-décembre) ; prélèvement mensuel sur option.
+  events:
+    - label: Appel de cotisations MSA
+      rule: {type: annual_param, key: "agenda.msa.calls.{msa_fund}", fallback: {type: fixed, days: ["04-30", "10-15", "12-10"]}}
+      payment: true
+      reminders: [15, 5]
+  lyvre_data: Compte 646 (cotisations de l'exploitant).
+  links:
+    - https://nord-pasdecalais.msa.fr/lfp/documents/98870/427241435/Exploitants+calendrier+des+%C3%A9ch%C3%A9ances+2026
+    - https://cotesnormandes.msa.fr/lfp/documents/98930/2199260/CALENDRIER+2026+exploitants+MSA+CN.pdf
+  reliability: A
+
+- id: SOC-03
+  title: Option pour l'assiette annuelle des cotisations
+  domain: social
+  organism: MSA
+  summary: Assiette triennale par défaut ; option pour l'assiette annuelle pour 5 ans. Date limite souvent citée au 30 juin de l'année de cotisation, à confirmer auprès de la caisse (réforme de 2026).
+  events:
+    - label: Date limite de l'option pour l'assiette annuelle
+      rule: {type: fixed, days: ["06-30"], shift: none}
+      reminders: [30]
+      quiet: true
+  reliability: I
+
+- id: SOC-04
+  title: Cotisants de solidarité
+  domain: social
+  organism: MSA
+  summary: Exploitation entre 1/4 et 1 SMA, ou entre 150 et 1 200 heures de travail ; appel annuel, revenus déclarés avec la DRP ou la 2042.
+  events: []
+  reliability: R
+
+- id: SOC-05
+  title: Salariés (DPAE, DSN, TESA)
+  domain: social
+  organism: MSA
+  summary: DPAE avant toute embauche ; DSN le 15 du mois suivant (le 5 à partir de 50 salariés) ; TESA simplifié pour les contrats courts ; régularisations dans la DSN de décembre.
+  applies: {flags: [employer]}
+  events:
+    - label: DSN
+      rule: {type: monthly, day: 15}
+      reminders: [3]
+  lyvre_data: Comptes 641, 645, 421, 431.
+  reliability: R

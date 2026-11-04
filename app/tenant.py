@@ -41,6 +41,10 @@ _TENANT_FREE_ENDPOINTS = {
     # Version de Lyvre (page À propos, publique) et nouveautés (méta-base seulement).
     "api.app_version",
     "api.changelog",
+    # Désabonnement du résumé de l'échéancier par le lien de l'e-mail : instance lue dans le jeton.
+    "agenda_mail.unsubscribe",
+    # Calendrier iCal de l'échéancier (URL secrète) : instance lue dans l'URL.
+    "agenda_mail.ical",
 }
 
 # Seules routes ouvertes à un compte dont le mot de passe est à changer (F5.4) : la session,

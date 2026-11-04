@@ -5,6 +5,40 @@
 next:
 - kind: new
   structure: agri
+  text: Échéancier dans votre agenda — une adresse iCal personnelle (Google Agenda, Outlook, Calendrier d'Apple)
+    affiche les échéances de l'exploitation et se met à jour d'elle-même ; elle se régénère ou se révoque.
+  tech: app/services/agenda_ical.py (RFC 5545), /agenda/ical/<instance>/<jeton>.ics, GET/POST/DELETE /api/v1/agenda/ical
+    (lot AG9a.e).
+- kind: new
+  structure: agri
+  text: Résumé du lundi de l'échéancier — en tête du tableau de bord, en notification et par e-mail aux
+    administrateurs et trésoriers (en retard, cette semaine, à préparer, à vérifier), avec un lien de
+    désabonnement ; l'abonnement se règle dans l'échéancier.
+  tech: app/services/agenda_summary.py, table agenda_subscriptions (migration c9d1f3b5e7a8), commande flask agenda
+    send-weekly (timer systemd, doc/agenda.md), GET /api/v1/agenda/summary, GET/PUT /api/v1/agenda/subscription,
+    /agenda/unsubscribe (lot AG9a.d).
+- kind: new
+  structure: agri
+  text: Échéancier — les prélèvements DGFiP et MSA reconnus sur les relevés cochent l'échéance payée (paiement
+    détachable, ou rattaché à la main), et un bloc « À vérifier » signale le passage au RSA ou au réel, un crédit
+    de TVA remboursable, une option à dénoncer, des attestations RFA manquantes, des relevés non rapprochés, le
+    Certiphyto, la fin du plan JA et l'avis de fermage.
+  tech: data/deadlines/payees.yml, événements payment, agenda.match_payments, état unlinked, GET /api/v1/agenda/candidates,
+    app/services/agenda_checks.py (lot AG9a.c).
+- kind: new
+  structure: agri
+  text: Compta › Échéancier — déclarations, paiements et démarches de l'exploitation en liste (en retard, cette
+    semaine, à préparer, à venir) ou en calendrier, avec la fiche de chaque échéance (organisme, pièces, pénalités,
+    lien officiel), le montant calculé par Lyvre pour la TVA, et « faite » ou « ignorée ».
+  tech: app/services/agenda.py, table deadline_states (migration b8c0e2a4f6d7), GET /api/v1/agenda, page /agenda/.
+- kind: new
+  structure: agri
+  text: Structure › Activités et démarches — profil des démarches de l'exploitation (PAC, caisse MSA, employeur,
+    productions, phyto, irrigation, zone vulnérable, JA, baux ruraux) qui prépare l'échéancier.
+  tech: organization.agri_profile (migration a7b9d1f3e5c6), base d'échéances data/deadlines/*.yml (38 fiches),
+    app/services/deadlines.py, data/regulatory/agenda.json, GET /api/v1/deadlines.
+- kind: new
+  structure: agri
   text: Compta › Remboursement forfaitaire — demande 3520 des exploitations au remboursement forfaitaire agricole
     calculée depuis les ventes de l'année (taux de 5,59 % et 4,43 % par compte de vente, clients assujettis), avec
     les attestations d'achats à joindre, le seuil de 46 000 €, le dépôt et la créance de remboursement ; état

@@ -1,0 +1,99 @@
+{
+ "_comment": "Échéancier de l'exploitation (lot AG9a) : dates annuelles, une valeur par année (valid_from / valid_to). Sans valeur pour l'année, l'échéance prend sa date de repli (data/deadlines) avec la mention « date à confirmer ».",
+ "values": [
+  {
+   "key": "agenda.pac.deadline",
+   "value": [
+    "2026-05-18"
+   ],
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://agriculture.gouv.fr/telepac-2026",
+   "source_label": "Ministère de l'Agriculture, Telepac 2026",
+   "verified_on": "2026-11-03",
+   "reliability": "V",
+   "note": "Date limite de la demande PAC sans pénalité (éligibilité au 15/5). Dépôt tardif jusqu'au 9/6 avec 1 % par jour ouvré."
+  },
+  {
+   "key": "agenda.pac.late_deadline",
+   "value": [
+    "2026-06-09"
+   ],
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://agriculture.gouv.fr/telepac-2026",
+   "source_label": "Ministère de l'Agriculture, Telepac 2026",
+   "verified_on": "2026-11-03",
+   "reliability": "V",
+   "note": "Fin du dépôt tardif de la demande PAC (pénalité de 1 % par jour ouvré)."
+  },
+  {
+   "key": "agenda.pac.small_ruminants_deadline",
+   "value": [
+    "2026-02-02"
+   ],
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www2.telepac.agriculture.gouv.fr/telepac/pdf/taa/2026/AO-2026_notice.pdf",
+   "source_label": "Notice telepac 2026, aides ovines et caprines",
+   "verified_on": "2026-11-03",
+   "reliability": "V",
+   "note": "Fin de la demande d'aides ovines et caprines (ouverte le 1/1)."
+  },
+  {
+   "key": "agenda.pac.cattle_deadline",
+   "value": [
+    "2026-05-15"
+   ],
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://agriculture.gouv.fr/telepac-2026",
+   "source_label": "Ministère de l'Agriculture, Telepac 2026",
+   "verified_on": "2026-11-03",
+   "reliability": "V",
+   "note": "Fin de la demande d'aides bovines, maintenue au 15/5 même si la demande de surfaces est reportée."
+  },
+  {
+   "key": "agenda.pac.advance_payment",
+   "value": [
+    "2026-10-16"
+   ],
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.terre-net.fr/aides-pac/article/904926/les-premiers-versements-de-la-pac-2026-arrivent-sur-les-comptes-des-agriculteurs",
+   "source_label": "Terre-net, avances PAC 2026",
+   "verified_on": "2026-11-03",
+   "reliability": "V",
+   "note": "Premier versement de l'avance PAC (75 % du 1er pilier, 85 % de l'ICHN)."
+  },
+  {
+   "key": "agenda.msa.calls.nord_pas_de_calais",
+   "value": [
+    "2026-04-28",
+    "2026-10-13",
+    "2026-12-08"
+   ],
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://nord-pasdecalais.msa.fr/lfp/documents/98870/427241435/Exploitants+calendrier+des+%C3%A9ch%C3%A9ances+2026",
+   "source_label": "MSA Nord-Pas-de-Calais, calendrier des échéances 2026",
+   "verified_on": "2026-11-03",
+   "reliability": "V",
+   "note": "Appels de cotisations des exploitants : 1er appel, 2e appel, solde."
+  },
+  {
+   "key": "agenda.msa.calls.cotes_normandes",
+   "value": [
+    "2026-06-25",
+    "2026-11-25"
+   ],
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://cotesnormandes.msa.fr/lfp/documents/98930/2199260/CALENDRIER+2026+exploitants+MSA+CN.pdf",
+   "source_label": "MSA Côtes normandes, calendrier 2026 des exploitants",
+   "verified_on": "2026-11-03",
+   "reliability": "V",
+   "note": "2e appel et solde des cotisations des exploitants (1er appel non relevé dans l'audit)."
+  }
+ ]
+}

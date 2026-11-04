@@ -17,6 +17,7 @@ import { SireneProposalModal } from "../../components/sirene/SireneProposalModal
 import { isValidSiren, sireneMessage, useSireneAvailable, useSireneProposal } from "../../components/sirene/useSirene";
 import { BillingSettings } from "../sales/BillingSettings";
 import { BILLING_KEY } from "../sales/types";
+import { AgriActivities } from "./AgriActivities";
 import { FiscalProfile, TAX_PROFILE_KEY } from "./FiscalProfile";
 
 export interface Organization {
@@ -55,6 +56,7 @@ export default function OrganizationPage() {
   const can = useCan();
   const association = useIsAssociation();
   const company = useCurrentSession().instance?.chart === "societe";
+  const farm = useCurrentSession().instance?.chart === "agri";
   const client = useQueryClient();
   const [params, setParams] = useUrlParams({ tab: "identity" });
   const { data } = useQuery({ queryKey: ORGANIZATION_KEY,
@@ -88,9 +90,11 @@ export default function OrganizationPage() {
           <Tabs.Tab value="identity">Identité</Tabs.Tab>
           <Tabs.Tab value="billing">Facturation</Tabs.Tab>
           {!association && <Tabs.Tab value="tax">Fiscalité</Tabs.Tab>}
+          {farm && <Tabs.Tab value="activities">Activités et démarches</Tabs.Tab>}
         </Tabs.List>
       </Tabs>
       {params.tab === "tax" && !association ? <FiscalProfile siren={data.item.siren} />
+        : params.tab === "activities" && farm ? <AgriActivities />
         : params.tab === "billing" ? <BillingSettings organization={data.item} onEditLegal={() => setParams({ tab: "" })} /> : <>
       {!data.item.fec_ready && <Alert color="paille" mb="md">Renseignez le SIREN : il nomme le fichier des écritures comptables (FEC).</Alert>}
       <form onSubmit={form.onSubmit((values) => {

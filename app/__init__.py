@@ -44,6 +44,7 @@ def create_app(config_name=None):
     from .views.purchases import bp as purchases_bp
     from .views.exports import bp as exports_bp
     from .views.integrations import legacy_bp as external_connections_bp
+    from .views.agenda_mail import bp as agenda_mail_bp
 
     # Pages migrées vers la SPA : avant les blueprints (un doublon d'endpoint échoue).
     from .spa import register_spa
@@ -59,6 +60,7 @@ def create_app(config_name=None):
     app.register_blueprint(purchases_bp)
     app.register_blueprint(exports_bp)
     app.register_blueprint(external_connections_bp)
+    app.register_blueprint(agenda_mail_bp)
 
     _register_template_filters(app)
 
@@ -67,6 +69,9 @@ def create_app(config_name=None):
 
     from .api import register_api
     register_api(app)
+
+    from .commands import register_commands
+    register_commands(app)
 
     return app
 

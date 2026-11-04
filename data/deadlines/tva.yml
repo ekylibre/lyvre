@@ -1,0 +1,122 @@
+# TVA (audit_calendrier.md § 2.1). Les déclarations préparées par Lyvre (CA3, CA12A, acomptes, 3520) prennent
+# leurs dates, montants et statuts dans le moteur de TVA (règle `lyvre`).
+- id: TVA-01
+  title: Déclaration annuelle de TVA (CA12A, 3517-AGR-SD)
+  domain: tva
+  organism: SIE
+  summary: Déclaration annuelle du régime simplifié agricole ; régularise les acomptes versés.
+  applies: {vat_regime: [rsa_installments]}
+  events:
+    - label: CA12A
+      rule: {type: lyvre, source: vat_returns, form: CA12A}
+      payment: true
+      reminders: [30, 7]
+      action: {label: Ouvrir la CA12A, route: /vat-returns/}
+  prepare:
+    - Chiffre d'affaires HT par taux (5,5 %, 10 %, 20 %)
+    - TVA sur immobilisations et sur autres biens et services, régularisations
+    - Acomptes versés, crédit antérieur, référence des acomptes suivants
+  lyvre_data: Soldes 4457 (collectée), 44562 et 44566 (déductible), 44581 (acomptes), 44567 (crédit) ; ventes 70 par taux.
+  penalties: Intérêt de retard de 0,20 % par mois (CGI art. 1727) ; majoration de 10 % (art. 1731) ; de 10 % à 40 % après mise en demeure (art. 1728).
+  links:
+    - https://www.impots.gouv.fr/formulaire/3517-agr-sd/tva-regime-simplifie-de-lagriculture
+  reliability: R
+
+- id: TVA-02
+  title: Acomptes trimestriels de TVA (3525 bis)
+  domain: tva
+  organism: SIE
+  summary: Au moins 1/5 de la TVA due l'année précédente, sauf dispense sous 1 000 € ; modulation possible.
+  applies: {vat_regime: [rsa_installments]}
+  events:
+    - label: Acompte de TVA
+      rule: {type: lyvre, source: vat_installments}
+      payment: true
+      reminders: [15, 5]
+      action: {label: Préparer le 3525 bis, route: /vat-returns/}
+  prepare:
+    - TVA due de la dernière CA12A (ligne 23)
+    - Estimation de la TVA de l'année en cours (modulation)
+  lyvre_data: TVA nette de la dernière CA12A, acomptes déjà versés (44581).
+  penalties: Si la TVA réelle dépasse de plus de 30 % les acomptes réduits, intérêt de retard et majoration de 10 %.
+  links:
+    - https://bofip.impots.gouv.fr/node/10637
+  reliability: R
+
+- id: TVA-03
+  title: Option pour la CA3 trimestrielle ou mensuelle (RSA)
+  domain: tva
+  organism: SIE
+  summary: CA3 trimestrielle avant les 5/2, 5/5, 5/8 et 5/11 ; option de 5 ans, dénonciation avant le 5/2.
+  applies: {vat_regime: [rsa_quarterly, rsa_monthly]}
+  events:
+    - label: CA3
+      rule: {type: lyvre, source: vat_returns, form: CA3}
+      payment: true
+      reminders: [10, 3]
+      action: {label: Ouvrir la déclaration, route: /vat-returns/}
+  lyvre_data: Lignes codées du grand livre (CA3 de Lyvre).
+  links:
+    - https://bofip.impots.gouv.fr/node/10637
+  reliability: R
+
+- id: TVA-04
+  title: Remboursement de crédit de TVA (3519)
+  domain: tva
+  organism: SIE
+  summary: Sur la CA12A si le crédit atteint 150 € ; en CA3, demande à partir de 760 € en cours d'année. Seuil infra-annuel en RSA à confirmer.
+  applies: {vat_regime: [rsa_installments, rsa_quarterly, rsa_monthly, normal]}
+  events: []
+  lyvre_data: Crédit de TVA (44567), investissements de la période (21).
+  links:
+    - https://bofip.impots.gouv.fr/node/10637
+  reliability: I
+
+- id: TVA-05
+  title: Remboursement forfaitaire agricole (3520-SD)
+  domain: tva
+  organism: SIE
+  summary: Ventes de l'année à des assujettis, à déposer avant le 31 décembre de l'année suivante ; dépôt conseillé avant le 1er mars.
+  applies: {vat_regime: [rfa]}
+  events:
+    - label: Demande 3520
+      rule: {type: lyvre, source: rfa}
+      reminders: [60, 15]
+      action: {label: Préparer le 3520, route: /rfa/}
+  prepare:
+    - Liste des acheteurs assujettis et ventes encaissées par taux
+    - Attestations d'achats des clients
+  links:
+    - https://www.impots.gouv.fr/professionnel/questions/comment-obtenir-un-remboursement-forfaitaire-agricole
+  reliability: V
+
+- id: TVA-06
+  title: Régime réel normal (CA3 mensuelle)
+  domain: tva
+  organism: SIE
+  summary: CA3 mensuelle ; remboursement mensuel possible à partir de 760 €. Seuil du réel normal agricole à vérifier.
+  applies: {vat_regime: [normal]}
+  events:
+    - label: CA3 mensuelle
+      rule: {type: lyvre, source: vat_returns, form: CA3}
+      payment: true
+      reminders: [7, 2]
+      action: {label: Ouvrir la CA3, route: /vat-returns/}
+  reliability: I
+
+- id: TVA-07
+  title: Facturation électronique
+  domain: tva
+  organism: DGFiP
+  summary: Réception obligatoire depuis le 1/9/2026 ; émission et e-reporting au 1/9/2027 pour les PME, TPE et micro-entreprises. Situation des exploitants au remboursement forfaitaire à confirmer.
+  applies: {vat_regime: [rsa_installments, rsa_quarterly, rsa_monthly, normal]}
+  events:
+    - label: Émission de factures électroniques et e-reporting (PME)
+      rule: {type: once, date: "2027-09-01"}
+      reminders: [90, 30]
+  prepare:
+    - Plateforme agréée choisie
+    - Mentions des factures (SIREN du client, nature des opérations)
+  links:
+    - https://www.impots.gouv.fr
+  reliability: V

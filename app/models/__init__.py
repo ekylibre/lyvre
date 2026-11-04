@@ -59,8 +59,12 @@ from .tax_profile import TaxOption, TaxProfile
 from .regulatory_value import RegulatoryValue
 from .micro_receipts import MicroReceiptsYear
 from .rfa import RfaAttestation, RfaClaim
+from .deadline_state import DeadlineState
+from .agenda_subscription import AgendaSubscription
 
 __all__ = [
+    "DeadlineState",
+    "AgendaSubscription",
     "RfaAttestation",
     "RfaClaim",
     "MicroReceiptsYear",

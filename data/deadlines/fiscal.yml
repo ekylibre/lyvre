@@ -1,0 +1,120 @@
+# Fiscal (audit_calendrier.md § 2.2). C = date de clôture de l'exercice.
+- id: FIS-01
+  title: Déclaration de résultats BA au réel (2139, 2143)
+  domain: fiscal
+  organism: SIE
+  summary: Liasse BA ; clôture au 31/12 le 2e jour ouvré après le 1er mai, sinon dans les 3 mois de la clôture ; +15 jours en EDI.
+  applies: {income_tax: [IR], ba_regime: [simplified, normal]}
+  events:
+    - label: Liasse BA
+      rule: {type: after_close, months: 3, day: end, edi_days: 15, civil: {type: nth_working_day_after, day: "05-01", n: 2}}
+      reminders: [60, 30, 7]
+      action: {label: Préparer la clôture, route: /fiscal-years/}
+  prepare:
+    - Bilan, compte de résultat, immobilisations et amortissements, provisions
+    - Stocks (méthode, cours du jour), avances aux cultures, DEP, subventions (DJA à étaler)
+  lyvre_data: Balance de clôture, états agricoles, tableau des immobilisations.
+  penalties: Majoration de 10 % (CGI art. 1728) ; amende de 150 € par document manquant (art. 1729 B) ; 0,2 % des droits si la télétransmission n'est pas respectée (art. 1738).
+  links:
+    - https://www.impots.gouv.fr
+  reliability: R
+
+- id: FIS-02
+  title: Micro-BA (2042-C-PRO)
+  domain: fiscal
+  organism: SIE
+  summary: Recettes de l'année et des deux précédentes reportées sur la 2042-C-PRO ; date de la déclaration de revenus, selon le département.
+  applies: {ba_regime: [micro]}
+  events:
+    - label: Déclaration 2042-C-PRO
+      rule: {type: annual_param, key: agenda.ir.return_deadline, fallback: {type: fixed, days: ["05-31"]}}
+      reminders: [30, 7]
+      action: {label: Ouvrir le récapitulatif du micro-BA, route: /simple/reports}
+  lyvre_data: Livre des recettes par année civile ; les aides PAC encaissées sont des recettes.
+  links:
+    - https://www.impots.gouv.fr
+  reliability: A
+
+- id: FIS-03
+  title: Impôt sur les sociétés (2065, 2571, 2572)
+  domain: fiscal
+  organism: SIE
+  summary: Liasse 2065 aux dates de la liasse BA ; acomptes le 15 des 3e, 6e, 9e et 12e mois de l'exercice (dispense si l'IS de l'exercice précédent est inférieur à 3 000 €) ; solde le 15 du 4e mois après la clôture (15/5 pour une clôture au 31/12).
+  applies: {income_tax: [IS]}
+  events:
+    - label: Liasse 2065
+      rule: {type: after_close, months: 3, day: end, edi_days: 15, civil: {type: nth_working_day_after, day: "05-01", n: 2}}
+      reminders: [60, 30, 7]
+    - label: Acompte d'IS (2571)
+      rule: {type: in_fiscal_year, months: [3, 6, 9, 12], day: 15}
+      payment: true
+      reminders: [10, 3]
+    - label: Solde d'IS (2572)
+      rule: {type: after_close, months: 4, day: 15, civil: {type: fixed, days: ["05-15"]}}
+      payment: true
+      reminders: [15, 5]
+  lyvre_data: Résultat fiscal, taux réduit de 15 %, compte 444.
+  penalties: Majoration de 5 % en cas de modulation excessive des acomptes (CGI art. 1731 A) ; 10 % pour retard.
+  reliability: R
+
+- id: FIS-04
+  title: BIC accessoires (2031)
+  domain: fiscal
+  organism: SIE
+  summary: Recettes accessoires rattachables aux BA jusqu'à 50 % des recettes agricoles et 100 000 € (art. 75) ; au-delà, déclaration BIC séparée. Seuils à vérifier.
+  applies: {flags: [non_agricultural]}
+  events:
+    - label: Déclaration 2031
+      rule: {type: after_close, months: 3, day: end, edi_days: 15, civil: {type: nth_working_day_after, day: "05-01", n: 2}}
+      reminders: [30, 7]
+  reliability: R
+
+- id: FIS-05
+  title: CFE, IFER et CVAE
+  domain: fiscal
+  organism: SIE
+  summary: Activités agricoles exonérées de CFE (art. 1450, 1451) ; restent imposables le gîte, la transformation commerciale, le négoce, la méthanisation sous conditions. 1447-M en cas de changement. CVAE en extinction (calendrier à vérifier).
+  applies: {flags: [non_agricultural]}
+  events:
+    - label: Solde de CFE
+      rule: {type: fixed, days: ["12-15"]}
+      payment: true
+      reminders: [15, 5]
+  reliability: R
+
+- id: FIS-06
+  title: Taxe foncière sur les propriétés non bâties (TFNB)
+  domain: fiscal
+  organism: SIP
+  summary: Paiement le 15/10 (20/10 en ligne). Exonération de 20 % automatique pour les terres agricoles ; dégrèvement JA à demander avant le 1er janvier qui suit l'installation. Le preneur rembourse au bailleur une part de la taxe (art. L.415-3 du code rural).
+  events:
+    - label: Taxe foncière non bâtie
+      rule: {type: fixed, days: ["10-15"]}
+      payment: true
+      reminders: [15, 5]
+  lyvre_data: Compte 635 ; refacturation au preneur.
+  reliability: A
+
+- id: FIS-07
+  title: Déduction pour épargne de précaution (DEP)
+  domain: fiscal
+  organism: SIE
+  summary: Déduction plafonnée selon le bénéfice ; épargne monétaire d'au moins 50 % à constituer au plus tard à la date limite de déclaration (modalités à vérifier) ; réintégration dans les 10 ans.
+  applies: {income_tax: [IR], ba_regime: [simplified, normal]}
+  events: []
+  reliability: I
+
+- id: FIS-08
+  title: Déclaration de revenus (2042) et prélèvement à la source
+  domain: fiscal
+  organism: SIP
+  summary: 2042 de mi-mai à début juin selon le département (date publiée en avril). Acompte du PAS sur les BA le 15 de chaque mois, ou les 15/2, 15/5, 15/8 et 15/11 ; modulation à la hausse obligatoire au-delà de 10 % d'écart.
+  applies: {income_tax: [IR]}
+  events:
+    - label: Déclaration de revenus 2042
+      rule: {type: annual_param, key: agenda.ir.return_deadline, fallback: {type: fixed, days: ["05-31"]}}
+      reminders: [30, 7]
+    - label: Acompte du prélèvement à la source
+      rule: {type: monthly, day: 15, shift: none}
+      quiet: true
+  reliability: A

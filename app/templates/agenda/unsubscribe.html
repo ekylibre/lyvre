@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Lyvre — résumé de l'échéancier</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #f6f4ee; color: #1f2a24; margin: 0; }
+    main { max-width: 480px; margin: 12vh auto; background: #fff; border: 1px solid #e2ded2; border-radius: 8px; padding: 32px; }
+    h1 { font-size: 1.25rem; margin-top: 0; }
+    button { background: #3f6b4f; color: #fff; border: 0; border-radius: 6px; padding: 10px 18px; font-size: 1rem; cursor: pointer; }
+    a { color: #3f6b4f; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Résumé du lundi de l'échéancier</h1>
+    {% if state == "invalid" %}
+      <p>Ce lien de désabonnement n'est pas valable.</p>
+    {% elif state == "done" %}
+      <p>C'est fait : vous ne recevrez plus le résumé de l'échéancier de <b>{{ label }}</b>.</p>
+      <p>Pour le recevoir à nouveau, ouvrez l'échéancier dans Lyvre et cochez « Résumé du lundi par e-mail ».</p>
+    {% else %}
+      <p>Ne plus recevoir le résumé hebdomadaire de l'échéancier de <b>{{ label }}</b> ?</p>
+      <form method="post">
+        <input type="hidden" name="token" value="{{ token }}">
+        <button type="submit">Me désabonner</button>
+      </form>
+    {% endif %}
+  </main>
+</body>
+</html>

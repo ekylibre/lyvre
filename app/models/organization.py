@@ -40,6 +40,8 @@ class Organization(db.Model):
     # choisit le modèle de bilan et porte les contrôles de régime ; date de création (micro-BA, art. 69 D).
     legal_form_code = db.Column(db.String(10))
     created_on = db.Column(db.Date)
+    # Lot AG9a : profil des démarches d'une exploitation (JSON, schéma dans app/services/agri_profile.py).
+    agri_profile = db.Column(db.Text)
     # Lot T3 : jour d'échéance de la CA3 (fixé par le SIE, du 15 au 24 du mois suivant) ; nul : 24.
     vat_due_day = db.Column(db.Integer)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
