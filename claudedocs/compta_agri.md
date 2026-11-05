@@ -718,6 +718,16 @@ Les réponses de l'expert sont visibles via "=>"
 - **AGD17 (conception AG2, 04/11/2026)** : `claudedocs/design_tva_agricole.md`, validée. Créance du remboursement forfaitaire en 44583 ; secteur non agricole (AG2.7) après AG8 ; ligne 31 de la CA12A en saisie libre ; 3520 en état récapitulatif ; prestations intracommunautaires en ligne 02.
 - **AGD11 (conception, Q-A2) 757 / 657 subdivisés** : 7571 / 6571 pour les biens vivants, 7578 / 6578 pour les autres immobilisations ; en-tête 234 pour les biens vivants en cours. Source du plan : Recueil PCG 2026, titre 5.
 - Conception : `claudedocs/design_compta_agricole.md` (lot AG1, validée le 03/11/2026).
+- **AGD26 (conception AG9b, 06/11/2026)** : `claudedocs/design_assistant_agricole.md`, validée (Q-C1 à Q-C9).
+  - Intégration « Assistant Claude » : clé saisie dans l'intégration ou `ANTHROPIC_API_KEY` du `.env` ; avec la clé du `.env`, la clé de l'intégration est en lecture seule.
+  - Modèle `claude-haiku-5-5` par défaut, modifiable par instance.
+  - Corpus de départ en contexte : fiches d'échéances, paramètres datés, carte des écrans.
+  - Brouillons : écriture, appel MSA, échéance, navigation.
+  - Données : celles utiles à la question.
+  - Lexicon MCP en option (AGD15 assouplie).
+  - Listes de contrôle AG9.6 sans IA.
+  - Réponses au fil de l'eau (SSE).
+  - Admin et treasurer avec propositions ; les autres rôles en lecture seule.
 - **AGD25 (conception AG8, 06/11/2026)** : `claudedocs/design_analytique_agricole.md`, validée (Q-A1 à Q-A9). Atelier → activité (production Lexicon et dates théoriques de cycle) → production (activité × campagne, mesure) ; campagne déduite des dates de l'activité ; ventilation des lignes dans une table à part, sur une activité ou une clé de répartition (surface, effectif, pourcentage, marge brute ; clés Ekylibre plus tard) ; classes de charges du RICA ; toutes les aides par activité ; aussi en comptabilité simplifiée et au micro-BA ; références plus tard.
 - **AGD24 (conception AG7, 05/11/2026)** : `claudedocs/design_msa.md`, validée (Q-M1 à Q-M8). Assiette sociale d'après les textes de 2026 : DEP déductible, JA / 72 B bis / 72 F réintégrés, cotisations et CSG non déduites, DJA exclue, pas de réintégration des anciennes DPI / DPA. Abattement de 26 %, montant borné entre 1,76 % et 130 % du PASS ; le plancher s'applique aussi en cas de déficit. Cotisations des associés de société débitées de leur 455. Rente du sol en rappel seulement. Estimation indicative des cotisations dans AG7. CSG non déductible sur les appels exigibles dans l'exercice. Assiettes antérieures saisies.
 - **AGD23 (conception AG6, 05/11/2026)** : `claudedocs/design_fiscalite_ba.md`, validée. Résultat fiscal et tableau de passage extra-comptable ; répartition sur la pleine propriété et l'usufruit (rien sur la nue-propriété) ; CSG non déductible saisie ; DEP extra-comptable avec compte d'épargne repéré ; barèmes DEP, JA et 73 A de l'audit confirmés ; provision 73 A en 1483 / 6873 / 7873 ; liasse construite depuis les formulaires 2026 fournis (hors git) ; plus-values et crédits d'impôt dans AG6.
