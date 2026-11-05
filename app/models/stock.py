@@ -73,6 +73,7 @@ class StockLine(db.Model):
     heads = db.Column(db.Integer)                                         # effectif compté du lot
     gap_reason = db.Column(db.String(300))                                # motif d'un écart avec l'effectif théorique
     fiscal_method = db.Column(db.String(8), nullable=False, default="none", server_default="none")   # AG4.e
+    cow_category = db.Column(db.String(8))                                # AG6.d : dairy | suckler (art. 73 A)
     fiscal_value_cents = db.Column(db.Integer)                            # valeur fiscale saisie (méthode « manual »)
     fiscal_reason = db.Column(db.String(300))
     notes = db.Column(db.Text)

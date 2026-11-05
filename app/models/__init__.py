@@ -60,6 +60,8 @@ from .regulatory_value import RegulatoryValue
 from .micro_receipts import MicroReceiptsYear
 from .rfa import RfaAttestation, RfaClaim
 from .stock import CropAdvance, CropAdvanceCost, CropStandard, CropStandardRow, StockCountFile, StockLine, StockLot, StockLotMovement, StockSettings, StockStandard
+from .tax_result import (BaHistoryYear, CapitalGainChoice, TaxCredit, CowProvision, CowProvisionRelease, DepEntry, DepMovement, DepSubstitute, IncomeSpread,
+                         TaxResult, TaxResultLine)
 from .aid import Aid, AidAccrual, AidAsset, AidPayment, AidRelease, CapPublished
 from .deadline_state import DeadlineState
 from .agenda_subscription import AgendaSubscription
@@ -75,6 +77,17 @@ __all__ = [
     "AidAsset",
     "AidRelease",
     "CapPublished",
+    "TaxResult",
+    "TaxResultLine",
+    "DepEntry",
+    "DepMovement",
+    "DepSubstitute",
+    "CowProvision",
+    "CowProvisionRelease",
+    "BaHistoryYear",
+    "IncomeSpread",
+    "CapitalGainChoice",
+    "TaxCredit",
     "CropAdvance",
     "CropAdvanceCost",
     "CropStandard",

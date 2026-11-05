@@ -110,6 +110,9 @@ def create(data: dict) -> Associate:
                                   notes=(str(data.get("notes") or "").strip() or None),
                                   is_manager=bool(data.get("is_manager")))
             db.session.add(associate)
+        extra = {k: data[k] for k in ("is_operator", "young_farmer_since", "profit_share") if k in data}
+        if extra:                                               # lot AG6.a : champs agricoles (commit inclus)
+            _update(associate, extra)
         db.session.commit()
     except AssociateError:
         db.session.rollback()
@@ -138,6 +141,23 @@ def _update(associate: Associate, data: dict) -> None:
         associate.notes = str(data.get("notes") or "").strip() or None
     if "is_manager" in data:
         associate.is_manager = bool(data.get("is_manager"))
+    if "is_operator" in data:                                # lot AG6.a : associé exploitant
+        associate.is_operator = bool(data.get("is_operator"))
+    if "young_farmer_since" in data:
+        value = data.get("young_farmer_since")
+        try:
+            associate.young_farmer_since = date.fromisoformat(str(value)[:10]) if value else None
+        except ValueError:
+            raise AssociateError("Date de la première aide JA : AAAA-MM-JJ.", "young_farmer_since") from None
+    if "profit_share" in data:                               # % des droits aux bénéfices (statuts), vide : parts
+        raw = str(data.get("profit_share") or "").strip().replace(",", ".").replace("%", "")
+        try:
+            share = round(float(raw) * 100) if raw else None
+        except ValueError:
+            raise AssociateError("Part des droits aux bénéfices : pourcentage attendu.", "profit_share") from None
+        if share is not None and not 0 <= share <= 10000:
+            raise AssociateError("Part des droits aux bénéfices entre 0 et 100 %.", "profit_share")
+        associate.profit_share_bp = share
     db.session.commit()
 
 
@@ -207,6 +227,9 @@ def summary(associate: Associate, held: dict[int, dict[str, int]], total_parts: 
         "interest_rate": format_rate(rate).replace(" %", "") if rate is not None else "",
         "notes": associate.notes,
         "is_manager": associate.is_manager,
+        "is_operator": associate.is_operator,
+        "young_farmer_since": associate.young_farmer_since.isoformat() if associate.young_farmer_since else None,
+        "profit_share": str(associate.profit_share_bp / 100).replace(".", ",") if associate.profit_share_bp is not None else "",
         "email": associate.entity.email,
         "is_out": not any(parts.values()),
     }

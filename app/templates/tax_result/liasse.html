@@ -1,0 +1,44 @@
+{#- Aide à la liasse BA 2139 / 2143 (lot AG6.f) : cases et montants en euros à recopier, par tableau. -#}
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Liasse {{ data.form }} {{ data.fiscal_year.label }} — {{ org.name }}</title>
+<style>
+  @page { size: A4; margin: 14mm 12mm; @bottom-right { content: "page " counter(page) " / " counter(pages); font-size: 8pt; color: #666; } }
+  body { font-family: "IBM Plex Sans", "DejaVu Sans", sans-serif; font-size: 8.5pt; color: #1E2421; }
+  h1 { font-size: 14pt; margin: 0 0 2mm; }
+  h2 { font-size: 11pt; margin: 6mm 0 2mm; break-after: avoid; }
+  .meta { color: #555; margin-bottom: 3mm; }
+  .warn { color: #b5502b; margin: 1mm 0; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 1mm 1.6mm; border-bottom: 0.3mm solid #ddd; vertical-align: top; }
+  th { text-align: left; font-size: 7.5pt; color: #555; }
+  td.case { font-family: "IBM Plex Mono", "DejaVu Sans Mono", monospace; font-weight: 600; width: 14mm; }
+  td.num { text-align: right; font-family: "IBM Plex Mono", "DejaVu Sans Mono", monospace; white-space: nowrap; width: 30mm; }
+  td.origin { color: #777; font-size: 7.5pt; width: 45mm; }
+  tr.total td { font-weight: 600; background: #F6F4EE; }
+  tr.detail td.label { padding-left: 6mm; color: #555; }
+  tr.manual td.num { color: #999; }
+</style>
+</head>
+<body>
+<h1>Aide à la liasse {{ data.form }} — exercice {{ data.fiscal_year.label }}</h1>
+<div class="meta">{{ org.name }}{% if org.siren %} — SIREN {{ org.siren }}{% endif %} — {{ data.title }}, millésime {{ data.millesime }} — montants en euros, à recopier sur les formulaires officiels.
+  Correspondance comptes → cases proposée par Lyvre, à valider par l'expert-comptable.</div>
+{% for w in data.warnings %}<div class="warn">{{ w }}</div>{% endfor %}
+{% for t in data.tables %}
+<h2>{{ t.code }} — {{ t.title }}</h2>
+<table>
+  <thead><tr><th>Case</th><th>Libellé</th><th class="num">Montant</th><th>Origine</th></tr></thead>
+  <tbody>
+  {% for r in t.rows %}<tr class="{{ 'total' if r.kind == 'total' else '' }} {{ 'detail' if r.detail else '' }} {{ 'manual' if r.kind == 'manual' else '' }}">
+    <td class="case">{{ r.case }}</td><td class="label">{{ r.label }}</td>
+    <td class="num">{{ 'à saisir' if r.kind == 'manual' else euros(r.amount_cents) }}</td>
+    <td class="origin">{% if r.kind == 'accounts' %}{{ r.accounts | join(', ') }}{% if r.exclude %} (sauf {{ r.exclude | join(', ') }}){% endif %}{% elif r.kind == 'tax' %}résultat fiscal{% elif r.kind == 'total' %}total{% endif %}</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endfor %}
+{% if data.not_covered %}<h2>Non couvert</h2>{% for n in data.not_covered %}<div>{{ n }}</div>{% endfor %}{% endif %}
+</body>
+</html>

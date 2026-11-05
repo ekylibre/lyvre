@@ -52,6 +52,7 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
   "rfa.index": () => import("../features/rfa/RfaPage"),
   "aids.index": () => import("../features/aids/AidsPage"),
   "stock.index": () => import("../features/stock/InventoryPage"),
+  "tax_result.index": () => import("../features/tax-result/TaxResultPage"),
   "agenda.index": () => import("../features/agenda/AgendaPage"),
   "projects.statement": () => import("../features/projects/ProjectStatementPage"),
   ...pages(["rules.index", "rules.new", "rules.edit"], () => import("../features/rules/RulesPage")),

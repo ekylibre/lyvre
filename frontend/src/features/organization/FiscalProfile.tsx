@@ -13,6 +13,7 @@ import { applyApiError, FormBody } from "../../components/ApiForm";
 import { confirmAction } from "../../components/ConfirmButton";
 import { FormModal } from "../../components/FormModal";
 import { formatDate } from "../../lib/format";
+import { BaRegimePanel } from "./BaRegimePanel";
 
 type Option = { value: string; label: string };
 export interface TaxPeriod {
@@ -111,7 +112,7 @@ function OptionForm({ meta, option, onDone }: { meta: TaxMeta; option: TaxOption
   );
 }
 
-export function FiscalProfile({ siren }: { siren: string | null }) {
+export function FiscalProfile({ siren, farm = false }: { siren: string | null; farm?: boolean }) {
   const can = useCan();
   const readOnly = !can.instanceAdmin;
   const client = useQueryClient();
@@ -224,6 +225,8 @@ export function FiscalProfile({ siren }: { siren: string | null }) {
           {!readOnly && <Group><Button variant="light" onClick={() => setOptionModal("new")}>Ajouter une option</Button></Group>}
         </Stack>
       </Fieldset>
+
+      {farm && <BaRegimePanel editable={can.write} />}
 
       <FormModal opened={periodModal !== null} onClose={() => setPeriodModal(null)}
         title={periodModal === "new" ? "Nouvelle période de régime" : "Modifier la période"}>

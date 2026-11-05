@@ -361,6 +361,76 @@ def _rfa(year):
     return rfa.compute(year), rfa, organization.get()
 
 
+@bp.route("/fiscal-years/<int:fy_id>/tax-result.xlsx")
+@login_required
+def tax_result_xlsx(fy_id):
+    """Tableau de passage du résultat comptable au résultat fiscal et répartition par associé (lot AG6.a)."""
+    from app.models import FiscalYear
+    from app.services import tax_result
+
+    if not tax_result.enabled():
+        abort(404)
+    fy = db.session.get(FiscalYear, fy_id) or abort(404)
+    data = tax_result.view(fy)
+    wb = Workbook()
+    wb.remove(wb.active)
+    rows = [["Résultat comptable", data["accounting_result_cents"] / 100, ""]]
+    rows += [[l["label"], l["amount_cents"] / 100, l.get("reason") or ""] for l in data["lines"]]
+    rows.append(["Résultat fiscal", data["fiscal_result_cents"] / 100, "figé" if data["frozen"] else ""])
+    _sheet(wb, f"Passage {fy.label}", ["Ligne", "Montant", "Motif"], rows, (2,))
+    if data["associates"]:
+        _sheet(wb, "Associés", ["Associé", "Exploitant", "Quote-part (%)", "Base", "Résultat fiscal"],
+               [[a["name"], "oui" if a["is_operator"] else "non", a["share_bp"] / 100, a["basis"],
+                 a["fiscal_result_cents"] / 100] for a in data["associates"]], (3, 5))
+    return _response(wb, f"resultat-fiscal-{fy.label}.xlsx")
+
+
+def _liasse(fy_id):
+    from app.models import FiscalYear
+    from app.services import liasse, organization, tax_result
+
+    if not tax_result.enabled():
+        abort(404)
+    fy = db.session.get(FiscalYear, fy_id) or abort(404)
+    try:
+        data = liasse.compute(fy)
+    except liasse.LiasseError:
+        abort(404)
+    if not data["form"]:
+        abort(404)
+    return data, organization.get()
+
+
+@bp.route("/fiscal-years/<int:fy_id>/liasse.xlsx")
+@login_required
+def liasse_xlsx(fy_id):
+    """Aide à la liasse 2139 / 2143 : une feuille par tableau, case → montant (lot AG6.f)."""
+    data, _org = _liasse(fy_id)
+    wb = Workbook()
+    wb.remove(wb.active)
+    for table in data["tables"]:
+        rows = [[r["case"], ("    dont " if r["detail"] and not r["label"].startswith("dont") else "") + r["label"],
+                 None if r["amount_cents"] is None else r["amount_cents"] / 100,
+                 "à saisir" if r["kind"] == "manual" else ", ".join(r["accounts"] or []) if r["kind"] == "accounts"
+                 else "résultat fiscal" if r["kind"] == "tax" else "total"] for r in table["rows"]]
+        _sheet(wb, table["code"], ["Case", "Libellé", "Montant", "Origine"], rows, (3,))
+    _sheet(wb, "Avertissements", ["Avertissement"], [[w] for w in data["warnings"] + data["not_covered"]], ())
+    return _response(wb, f"liasse-{data['form']}-{data['fiscal_year']['label']}.xlsx")
+
+
+@bp.route("/fiscal-years/<int:fy_id>/liasse.pdf")
+@login_required
+def liasse_pdf(fy_id):
+    from weasyprint import HTML
+
+    data, org = _liasse(fy_id)
+    euros = lambda cents: "" if cents is None else f"{round(cents / 100):,}".replace(",", "\u202f")  # noqa: E731
+    html = render_template("tax_result/liasse.html", data=data, org=org, euros=euros)
+    response = Response(HTML(string=html).write_pdf(), mimetype="application/pdf")
+    response.headers["Content-Disposition"] = f'inline; filename="liasse-{data["form"]}-{data["fiscal_year"]["label"]}.pdf"'
+    return response
+
+
 @bp.route("/fiscal-years/<int:fy_id>/stock.xlsx")
 @login_required
 def stock_xlsx(fy_id):

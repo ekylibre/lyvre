@@ -224,6 +224,17 @@ def _agri_checks(fy) -> list[Check]:
 
     from app.services import living_exits    # lot AG5.c
 
+    from app.services import dep    # lot AG6.c
+
+    from app.services import cow_provision    # lot AG6.d
+
+    for key, label, count, severity in [*dep.checks(fy), *cow_provision.checks(fy)]:
+        found.append(Check(key, label, count, severity, f"/tax-result/?fiscal_year={fy.id}"))
+    from app.services import ba_regimes    # lot AG6.e
+
+    for key, label, count, severity in ba_regimes.checks(fy):
+        url = f"/tax-result/?fiscal_year={fy.id}" if key == "income_spread" else "/configuration/organization/?tab=tax"
+        found.append(Check(key, label, count, severity, url))
     from app.services import stock_lots    # lot AG5.d
 
     for key, label, count, severity in stock_lots.checks(fy):

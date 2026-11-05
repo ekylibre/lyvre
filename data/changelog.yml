@@ -3,6 +3,55 @@
 # kind : new | improved | fixed | action ; structure : asso | sci (absent : toutes) ;
 # text : pour l'utilisateur ; tech : précision pour CHANGELOG.md seulement.
 next:
+- kind: new
+  structure: agri
+  text: Plus-values et crédits d'impôt — plus-values des immobilisations cédées réparties en court et long terme,
+    simulation de l'exonération de l'art. 151 septies (par associé en société) reportée dans le résultat fiscal, et
+    crédits d'impôt bio, HVE et remplacement pour congés calculés et répartis par associé (montants à valider).
+  tech: app/services/capital_gains.py, tables capital_gain_choices / tax_credits (migration a5b7c9d1e3f5), paramètres
+    ba.pv.* et ba.credit.*, /api/v1/fiscal-years/<id>/capital-gains et /tax-credits (lot AG6.g).
+- kind: new
+  structure: agri
+  text: Aide à la liasse BA — cases et montants de la 2139 (réel simplifié) ou de la 2143 (réel normal) calculés depuis
+    la comptabilité et le résultat fiscal, avec contrôles d'équilibre, à recopier sur les formulaires ; exports XLSX et
+    PDF. Correspondance comptes → cases à valider par l'expert-comptable.
+  tech: app/services/liasse.py, data/liasse/2139_2026.json et 2143_2026.json, /api/v1/fiscal-years/<id>/liasse,
+    /fiscal-years/<id>/liasse.xlsx|pdf (lot AG6.f).
+- kind: new
+  structure: agri
+  text: Régime des bénéfices agricoles — moyenne triennale des recettes (façon × 3, GAEC) et alerte de changement de
+    régime, simulation micro-BA ou réel, contrôle des revenus accessoires (50 % et 100 000 €, alerte d'IS de plein droit
+    en société civile), réintégration des créances au passage au réel (72 E bis), étalement des revenus exceptionnels
+    par septièmes (75-0 A) et historique des bénéfices pour la moyenne triennale (75-0 B).
+  tech: app/services/ba_regimes.py, tables ba_history_years / income_spreads, accounts.ba_income_class (migration
+    f4a6b8c0d2e4), paramètres ba.spread.*, /api/v1/fiscal-years/<id>/ba-regime et /income-spreads (lot AG6.e).
+- kind: new
+  structure: agri
+  text: Provision 73 A des vaches — hausse de valeur des vaches laitières et allaitantes proposée par catégorie (sans
+    compensation), plafonnée par exploitant et minorée sans contrat pluriannuel, écriture de dotation et de reprises
+    (sorties, 6e exercice avec exonération définitive dans le résultat fiscal) et registre par exercice d'origine.
+  tech: app/services/cow_provision.py, tables cow_provisions / cow_provision_releases, stock_lines.cow_category,
+    fiscal_years.egalim_contract (migration e3f5a7b9c1d2), paramètres ba.cow.*, source COW_PROVISION (lot AG6.d).
+- kind: new
+  structure: agri
+  text: DEP — plafond calculé sur le bénéfice après l'abattement JA, déduction de l'exercice dans le résultat fiscal,
+    registre des déductions (et anciennes DPI/DPA) avec utilisations, aléas et réintégration au 10e exercice, épargne
+    suivie sur le compte bancaire repéré et ses substituts, et valeur ajoutée pour l'aléa économique.
+  tech: app/services/dep.py, tables dep_entries / dep_movements / dep_substitutes, bank_accounts.dep_savings (migration
+    d2e4f6a8b0c1), paramètres ba.dep.*, /api/v1/fiscal-years/<id>/dep (lot AG6.c).
+- kind: new
+  structure: agri
+  text: Abattement jeune agriculteur — calculé dans le résultat fiscal pendant les 60 mois suivant l'installation aidée
+    (75 %, ou 50 % et 30 % par tranches ; 100 % puis 60 % et au moins la DJA l'exercice de son inscription), pour
+    l'exploitant individuel ou l'associé exploitant JA.
+  tech: app/services/young_farmer.py, paramètres ba.ja.* (lot AG6.b).
+- kind: new
+  structure: agri
+  text: Résultat fiscal — passage du résultat comptable au résultat fiscal des bénéfices agricoles, avec l'écart de valeur
+    fiscale des stocks et l'abattage sanitaire proposés, la CSG non déductible et les retraitements saisis, puis la
+    répartition par associé (pleine propriété et usufruit, ou droits aux bénéfices des statuts) ; export XLSX.
+  tech: app/services/tax_result.py, tables tax_results / tax_result_lines, associates.is_operator / young_farmer_since /
+    profit_share_bp (migration c1d3e5f7a9b0), /api/v1/fiscal-years/<id>/tax-result (lot AG6.a).
 - kind: improved
   structure: agri
   text: Contrôles des biens vivants — un reproducteur laissé en stock est signalé à l'inventaire et à la clôture (sauf

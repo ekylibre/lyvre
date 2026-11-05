@@ -17,6 +17,7 @@
     {"rule": "/rfa/", "endpoint": "rfa.index"},
     {"rule": "/aids/", "endpoint": "aids.index"},
     {"rule": "/inventory/", "endpoint": "stock.index"},
+    {"rule": "/tax-result/", "endpoint": "tax_result.index"},
     {"rule": "/agenda/", "endpoint": "agenda.index"},
     {"rule": "/vat-returns/<period>", "endpoint": "vat_returns.detail"},
     {"rule": "/fiscal-years/new", "endpoint": "fiscal_years.new"},

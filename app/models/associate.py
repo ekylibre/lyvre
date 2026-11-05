@@ -26,6 +26,10 @@ class Associate(db.Model):
                            unique=True, nullable=False)
     interest_rate_bp = db.Column(db.Integer)  # None : taux de la structure
     is_manager = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())  # gérant
+    # Exploitation agricole (lot AG6.a) : associé exploitant, première aide JA, part des droits aux bénéfices (statuts).
+    is_operator = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
+    young_farmer_since = db.Column(db.Date)
+    profit_share_bp = db.Column(db.Integer)
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

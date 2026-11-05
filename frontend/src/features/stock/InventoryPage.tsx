@@ -32,7 +32,7 @@ export interface StockLineItem {
   market_price_cents: number | null; price_source: string | null; price_reference: string | null; flat_rate: string | null;
   unit_value_cents: number | null; value_cents: number | null; depreciation_cents: number | null;
   depreciation_reason: string | null; notes: string | null; warnings: string[]; purchase_account: string | null;
-  lot_id: number | null; heads: number | null; gap_reason: string | null; crop_advance_id: number | null;
+  lot_id: number | null; heads: number | null; gap_reason: string | null; crop_advance_id: number | null; cow_category?: string | null;
   fiscal: { fiscal_method: string; fiscal_value_cents: number | null; gap_cents: number | null; warnings: string[]; allowed: string[];
     fiscal_reason: string | null; manual_cents: number | null;
     frozen?: { reference_year?: string; reference_unit_cents?: number; blocked_quantity?: string; surplus_quantity?: string; error?: string } };
@@ -70,7 +70,7 @@ function LineForm({ view, line, onDone }: { view: StockView; line: StockLineItem
     standard_id: line.standard_id, market_price_cents: line.market_price_cents, price_source: line.price_source,
     price_reference: line.price_reference, flat_rate: line.flat_rate, unit_value_cents: line.unit_value_cents,
     depreciation_cents: line.depreciation_cents, depreciation_reason: line.depreciation_reason, notes: line.notes,
-    lot_id: line.lot_id, heads: line.heads, gap_reason: line.gap_reason,
+    lot_id: line.lot_id, heads: line.heads, gap_reason: line.gap_reason, cow_category: line.cow_category ?? null,
     fiscal_method: line.fiscal.fiscal_method, fiscal_value_cents: line.fiscal.manual_cents, fiscal_reason: line.fiscal.fiscal_reason,
   } : { account_code: "", label: "", quantity: "0", unit: "unit", method: "actual" });
   const [error, setError] = useState<string | null>(null);
@@ -103,6 +103,10 @@ function LineForm({ view, line, onDone }: { view: StockView; line: StockLineItem
             {d.lot_id ? <NumberInput label="Effectif compté (têtes)" min={0} value={(d.heads as number | null) ?? ""}
               onChange={(v) => set({ heads: typeof v === "number" ? v : null })} /> : null}
           </Group>)}
+        {cat?.group === "animals" && (
+          <Select label="Vaches (provision 73 A)" clearable placeholder="autres animaux" w={260}
+            data={[{ value: "dairy", label: "Vaches laitières" }, { value: "suckler", label: "Vaches allaitantes" }]}
+            value={d.cow_category ? String(d.cow_category) : null} onChange={(v) => set({ cow_category: v })} />)}
         {d.lot_id ? <TextInput label="Motif d'un écart avec l'effectif théorique" value={String(d.gap_reason ?? "")}
           onChange={(e) => set({ gap_reason: e.currentTarget.value })} /> : null}
         <TextInput label="Libellé" required value={String(d.label ?? "")} onChange={(e) => set({ label: e.currentTarget.value })} />

@@ -93,7 +93,7 @@ export default function OrganizationPage() {
           {farm && <Tabs.Tab value="activities">Activités et démarches</Tabs.Tab>}
         </Tabs.List>
       </Tabs>
-      {params.tab === "tax" && !association ? <FiscalProfile siren={data.item.siren} />
+      {params.tab === "tax" && !association ? <FiscalProfile siren={data.item.siren} farm={farm} />
         : params.tab === "activities" && farm ? <AgriActivities />
         : params.tab === "billing" ? <BillingSettings organization={data.item} onEditLegal={() => setParams({ tab: "" })} /> : <>
       {!data.item.fec_ready && <Alert color="paille" mb="md">Renseignez le SIREN : il nomme le fichier des écritures comptables (FEC).</Alert>}

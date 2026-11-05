@@ -252,7 +252,7 @@ def _account(code, field, label) -> Account:
 FIELDS = {"account_code", "variation_account_code", "label", "production", "quantity", "unit", "method", "standard_id",
           "market_price_cents", "price_source", "price_reference", "flat_rate", "unit_value_cents",
           "depreciation_cents", "depreciation_reason", "notes", "lot_id", "heads", "gap_reason", "fiscal_method",
-          "fiscal_value_cents", "fiscal_reason"}
+          "fiscal_value_cents", "fiscal_reason", "cow_category"}
 
 
 def _apply(line: StockLine, data: dict, fy: FiscalYear, creating: bool) -> None:
@@ -361,6 +361,12 @@ def _apply(line: StockLine, data: dict, fy: FiscalYear, creating: bool) -> None:
             raise StockError("Ligne d'un lot : unité tête ou kg.", "unit")
     from app.services import stock_tax
     stock_tax.apply(line, data, fy)
+    if "cow_category" in data:                                   # lot AG6.d : vaches laitières ou allaitantes (73 A)
+        from app.models.tax_result import COW_CATEGORIES
+        value = data["cow_category"] or None
+        if value is not None and (value not in COW_CATEGORIES or line.category not in ("animals_long", "animals_short")):
+            raise StockError("Catégorie de vaches (laitières, allaitantes) réservée aux animaux en stock.", "cow_category")
+        line.cow_category = value
     if line.depreciation_cents and not line.depreciation_reason:
         raise StockError("Motif de la dépréciation obligatoire (prix, intempéries, maladie…).", "depreciation_reason")
     if line.depreciation_cents and line.depreciation_cents > (evaluate(line, fy)[1] or 0):
@@ -568,7 +574,7 @@ def line_payload(line: StockLine, fy: FiscalYear, discount_map: dict) -> dict:
             "unit_value_cents": unit if line.method != "actual" else line.unit_value_cents, "value_cents": value,
             "depreciation_cents": line.depreciation_cents, "depreciation_reason": line.depreciation_reason,
             "notes": line.notes, "warnings": warnings, "lot_id": line.lot_id, "heads": line.heads,
-            "crop_advance_id": line.crop_advance_id, "fiscal": _fiscal(line, fy),
+            "crop_advance_id": line.crop_advance_id, "fiscal": _fiscal(line, fy), "cow_category": line.cow_category,
             "gap_reason": line.gap_reason,
             "purchase_account": found[1].get("purchase") if found else None}
 
