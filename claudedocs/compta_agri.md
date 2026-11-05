@@ -422,7 +422,7 @@ Il s'inscrit dans le cadrage `doc/base_documentaire/` : API Claude, outils qui a
 - **AG10.1 Autofactures reçues** (coopérative, laiterie, négoce) via la plateforme agréée :
   - enregistrées comme **ventes** du producteur, avec acceptation ou contestation ;
   - **décomptes de coopérative** : apports, acomptes, compléments de prix, ristournes, parts sociales retenues (2621).
-- **AG10.2 Codes TVA agricoles dans Factur-X** : mention « non assujetti, remboursement forfaitaire » pour le RFA.
+- **AG10.2 Codes TVA agricoles dans Factur-X** : mention « non assujetti, remboursement forfaitaire » pour le RFA. Code et libellé à sourcer (AGD27).
 - **AG10.3 E-reporting B2C** (vente directe, marchés) agrégé par jour et par taux, à préparer pour le 01/09/2027.
 - **AG10.4 Reprise de dossiers** : import de FEC Isacompta, Agrigest ou ISTEA par l'import FEC existant, avec une table de correspondance de comptes agricoles.
 - **AG10.5 ~~FEC « trésorerie » BA~~** : sans objet (AGD10), le FEC standard suffit.
@@ -718,6 +718,13 @@ Les réponses de l'expert sont visibles via "=>"
 - **AGD17 (conception AG2, 04/11/2026)** : `claudedocs/design_tva_agricole.md`, validée. Créance du remboursement forfaitaire en 44583 ; secteur non agricole (AG2.7) après AG8 ; ligne 31 de la CA12A en saisie libre ; 3520 en état récapitulatif ; prestations intracommunautaires en ligne 02.
 - **AGD11 (conception, Q-A2) 757 / 657 subdivisés** : 7571 / 6571 pour les biens vivants, 7578 / 6578 pour les autres immobilisations ; en-tête 234 pour les biens vivants en cours. Source du plan : Recueil PCG 2026, titre 5.
 - Conception : `claudedocs/design_compta_agricole.md` (lot AG1, validée le 03/11/2026).
+- **AGD27 (conception AG10, 06/11/2026)** : `claudedocs/design_efacturation_agricole.md`, validée (Q-E1 à Q-E6).
+  - Dépôt de fichiers d'abord (Factur-X, CII, UBL) ; PA de référence SUPER PDP, connecteur plus tard.
+  - Autofacture reçue = vente (type 389, mandat de facturation), statuts `fr:205` / `fr:207` / `fr:210` à reporter dans la PA.
+  - Décomptes de coopérative : apports, ristournes et compléments de prix au compte de vente habituel (70x) dans l'exercice du décompte ; acomptes sur le 411, parts sociales en 2621, frais en 62x / 63x.
+  - RFA dans le Factur-X : non traité par SUPER PDP ; code et mention en paramètre daté vide tant qu'ils ne sont pas sourcés, sans Factur-X RFA en attendant.
+  - E-reporting B2C : ventes sans facture agrégées par jour, catégorie (TLB1, TPS1) et taux, export JSON au format `b2c_transactions` ; ventes facturées B2C transmises comme factures (note BAR) ; calendrier tenu par la PA selon le régime de TVA.
+  - Import `.ISA` construit sur les exports réels lus sans copie ; ordre a → b, c → d, e.
 - **AGD26 (conception AG9b, 06/11/2026)** : `claudedocs/design_assistant_agricole.md`, validée (Q-C1 à Q-C9).
   - Intégration « Assistant Claude » : clé saisie dans l'intégration ou `ANTHROPIC_API_KEY` du `.env` ; avec la clé du `.env`, la clé de l'intégration est en lecture seule.
   - Modèle `claude-haiku-5-5` par défaut, modifiable par instance.
