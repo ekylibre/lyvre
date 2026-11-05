@@ -357,13 +357,13 @@ Numérotation **AGn.m**. La priorité est donnée par la colonne « Lot » du §
 ### AG7 MSA (cotisations des non-salariés)
 
 - **AG7.1 État « assiette sociale »** :
-  - résultat fiscal BA, plus les réintégrations (DEP, abattement JA, blocage des stocks, à-valoir) ;
+  - résultat fiscal BA, plus les réintégrations (abattement JA, blocage des stocks, à-valoir, cotisations personnelles) ; la **DEP reste déductible** (corrigé par AGD24, CSS R.136-2) ;
   - abattement de 26 % entre un plancher et un plafond (paramètres datés) ;
   - par associé exploitant ;
   - **comparaison entre moyenne triennale et revenus N-1** pour éclairer l'option.
 - **AG7.2 Échéancier MSA paramétré par caisse** : appels provisionnels, solde, mensualisation. Le prélèvement est rapproché de l'échéance.
 - **AG7.3 Ventilation des cotisations payées** : part déductible et CSG/CRDS non déductible, comptes 646 ou 6451 et 4311.
-- **Hors périmètre** : calcul définitif des cotisations (barème de la caisse) et paie MSA (§ 6).
+- **Hors périmètre** : paie MSA (§ 6). Une estimation indicative des cotisations est faite (AGD24, AG7.e).
 
 ### AG8 Analytique par atelier et marges
 
@@ -718,6 +718,7 @@ Les réponses de l'expert sont visibles via "=>"
 - **AGD17 (conception AG2, 04/11/2026)** : `claudedocs/design_tva_agricole.md`, validée. Créance du remboursement forfaitaire en 44583 ; secteur non agricole (AG2.7) après AG8 ; ligne 31 de la CA12A en saisie libre ; 3520 en état récapitulatif ; prestations intracommunautaires en ligne 02.
 - **AGD11 (conception, Q-A2) 757 / 657 subdivisés** : 7571 / 6571 pour les biens vivants, 7578 / 6578 pour les autres immobilisations ; en-tête 234 pour les biens vivants en cours. Source du plan : Recueil PCG 2026, titre 5.
 - Conception : `claudedocs/design_compta_agricole.md` (lot AG1, validée le 03/11/2026).
+- **AGD24 (conception AG7, 05/11/2026)** : `claudedocs/design_msa.md`, validée (Q-M1 à Q-M8). Assiette sociale d'après les textes de 2026 : DEP déductible, JA / 72 B bis / 72 F réintégrés, cotisations et CSG non déduites, DJA exclue, pas de réintégration des anciennes DPI / DPA. Abattement de 26 %, montant borné entre 1,76 % et 130 % du PASS ; le plancher s'applique aussi en cas de déficit. Cotisations des associés de société débitées de leur 455. Rente du sol en rappel seulement. Estimation indicative des cotisations dans AG7. CSG non déductible sur les appels exigibles dans l'exercice. Assiettes antérieures saisies.
 - **AGD23 (conception AG6, 05/11/2026)** : `claudedocs/design_fiscalite_ba.md`, validée. Résultat fiscal et tableau de passage extra-comptable ; répartition sur la pleine propriété et l'usufruit (rien sur la nue-propriété) ; CSG non déductible saisie ; DEP extra-comptable avec compte d'épargne repéré ; barèmes DEP, JA et 73 A de l'audit confirmés ; provision 73 A en 1483 / 6873 / 7873 ; liasse construite depuis les formulaires 2026 fournis (hors git) ; plus-values et crédits d'impôt dans AG6.
 - **AGD22 (conception AG5, 05/11/2026)** : `claudedocs/design_biens_vivants.md`, validée. Biens vivants = immobilisations 24x / 234x par lots (composants), sortie partielle au coût moyen ; production immobilisée 7222 (en-cours) et 724 (animal du stock devenu reproducteur) ; dépréciation 294 / 68164 / 78164 par fiche ; mort, sinistre, abattage : valeur nette en 6571, indemnité en 7571 ; durée d'amortissement libre par fiche ; option du profil « reproducteurs maintenus en stock » qui coupe l'alerte.
 - **AGD21 (conception AG4, 05/11/2026)** : `claudedocs/design_inventaire_agricole.md`, validée. Écriture de stock à la clôture sans extourne (annulation du stock initial, constatation du stock final) ; animaux achetés en charge puis en stock sur 713551 / 713552 ; cours saisis contrôlés par des fourchettes tirées des cotations de la viande ; méthode forfaitaire admise comme valeur comptable au réel simplifié ; avances aux cultures au coût standard (barème CEGARA, variantes F, M1, M2, cumul au mois de clôture) ou au coût réel 72 A ; coût réel saisi ; lots d'animaux avec entrées et sorties ; aide de Lexicon reportée. Reste à confirmer : stock bloqué 72 B bis (Q-S5), main-d'œuvre de l'exploitant dans le coût standard.
