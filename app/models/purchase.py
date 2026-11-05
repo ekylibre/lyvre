@@ -85,6 +85,7 @@ class PurchaseLine(db.Model):
     __tablename__ = "purchase_lines"
 
     id = db.Column(db.Integer, primary_key=True)
+    analytic_target = db.Column(db.String(24))                       # lot AG8.c : « activity:ID » ou « key:ID »
     purchase_id = db.Column(
         db.Integer, db.ForeignKey("purchases.id", ondelete="CASCADE"), nullable=False, index=True
     )

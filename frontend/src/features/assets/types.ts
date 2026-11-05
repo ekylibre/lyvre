@@ -7,6 +7,8 @@ export interface ScheduleRow {
   amount_cents: number; cumulative_cents: number; net_cents: number; posted: boolean;
 }
 export interface AssetItem {
+  /** Lot AG8.c : activité de la fiche (analytique agricole). */
+  activity_id?: number | null; activity?: string | null;
   id: number; parent_id: number | null; label: string; account: { id: number; code: string; label: string };
   depreciation_account_code: string | null; acquired_on: string; in_service_date: string | null;
   acquisition_cents: number; residual_cents: number; method: "linear" | "regressive" | "none"; method_label: string;

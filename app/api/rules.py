@@ -18,6 +18,7 @@ def rule_payload(r: Rule) -> dict:
         "raw_type": r.raw_type, "entity_name": r.entity_name, "entity_type": r.entity_type,
         "category": r.category, "account_code": r.account_code, "is_active": r.is_active,
         "project_id": r.project_id, "project": r.project.name if r.project else None,
+        "analytic": r.analytic_target,
     }
 
 
@@ -25,7 +26,7 @@ def _form(data: dict) -> dict:
     """Champs JSON (montants en centimes) → formulaire de rules_engine.validate_rule_data."""
     form = {key: "" if data.get(key) is None else str(data.get(key))
             for key in ("name", "label_contains", "label_regex", "raw_type", "entity_name",
-                        "entity_type", "category", "account_code", "project_id")}
+                        "entity_type", "category", "account_code", "project_id", "analytic")}
     for key in ("amount_min", "amount_max"):
         cents = data.get(f"{key}_cents")
         if cents in (None, ""):

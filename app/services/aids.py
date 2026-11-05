@@ -167,6 +167,13 @@ def payment_payload(payment: AidPayment) -> dict:
                                  "amount_cents": tx.amount_cents} if tx is not None else None}
 
 
+def _analytic_label(target):
+    if not target:
+        return None
+    from app.services.analytic_allocation import target_label
+    return target_label(target)
+
+
 def payload(aid: Aid, with_payments: bool = True) -> dict:
     when, provisional = trigger_date(aid)
     acquired, paid = acquired_cents(aid), paid_cents(aid)
@@ -187,6 +194,7 @@ def payload(aid: Aid, with_payments: bool = True) -> dict:
         "payment_request_deadline": _iso(aid.payment_request_deadline),
         "payment_requested_on": _iso(aid.payment_requested_on), "commitment_end_on": _iso(aid.commitment_end_on),
         "status": aid.status, "status_label": AID_STATUSES[aid.status], "notes": aid.notes,
+        "analytic": aid.analytic_target, "analytic_label": _analytic_label(aid.analytic_target),
         "warnings": warnings(aid, acquired, paid),
     }
     if aid.nature in ("investment", "mixed"):
@@ -283,7 +291,7 @@ DATES = {"decision_on": "Décision", "notified_on": "Notification", "payment_req
 AMOUNTS = {"requested_cents": "Montant demandé", "notified_cents": "Montant notifié",
            "investment_share_cents": "Part d'investissement"}
 FIELDS = {"scheme", "label", "campaign", "payer", "funder_entity_id", "nature", "account_code", "operating_account_code",
-          "trigger", "status", "notes", *DATES, *AMOUNTS}
+          "trigger", "status", "notes", "analytic", *DATES, *AMOUNTS}
 
 
 def _apply(aid: Aid, data: dict, creating: bool) -> None:
@@ -344,6 +352,13 @@ def _apply(aid: Aid, data: dict, creating: bool) -> None:
             setattr(aid, field, _day(data[field], field, label))
     if "notes" in data:
         aid.notes = _text(data.get("notes"), 5000)
+    if "analytic" in data:                                        # lot AG8.c : activité ou clé (Q-A5)
+        from app.services.analytic import AnalyticError
+        from app.services.analytic_allocation import parse_target
+        try:
+            aid.analytic_target = parse_target(data.get("analytic"), "analytic")
+        except AnalyticError as exc:
+            raise AidError(exc.message, "analytic") from None
     if "status" in data:
         if data["status"] not in AID_STATUSES:
             raise AidError("Statut inconnu.", "status")

@@ -14,6 +14,7 @@ class Asset(db.Model):
     __tablename__ = "assets"
 
     id = db.Column(db.Integer, primary_key=True)
+    activity_id = db.Column(db.Integer, db.ForeignKey("activities.id", ondelete="SET NULL"))      # lot AG8.c
     parent_id = db.Column(db.Integer, db.ForeignKey("assets.id", ondelete="CASCADE"), index=True)
     label = db.Column(db.String(200), nullable=False)
     account_id = db.Column(db.Integer, db.ForeignKey("accounts.id", ondelete="RESTRICT"), nullable=False)

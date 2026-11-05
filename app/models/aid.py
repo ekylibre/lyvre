@@ -22,6 +22,7 @@ class Aid(db.Model):
     __tablename__ = "aids"
 
     id = db.Column(db.Integer, primary_key=True)
+    analytic_target = db.Column(db.String(24))                       # lot AG8.c : « activity:ID » ou « key:ID »
     scheme = db.Column(db.String(40), nullable=False)
     label = db.Column(db.String(200), nullable=False)
     campaign = db.Column(db.Integer, nullable=False, index=True)

@@ -49,6 +49,7 @@ class StockLine(db.Model):
     __tablename__ = "stock_lines"
 
     id = db.Column(db.Integer, primary_key=True)
+    activity_id = db.Column(db.Integer, db.ForeignKey("activities.id", ondelete="SET NULL"))      # lot AG8.c
     fiscal_year_id = db.Column(db.Integer, db.ForeignKey("fiscal_years.id", ondelete="CASCADE"), nullable=False,
                                index=True)
     category = db.Column(db.String(20), nullable=False)
@@ -117,6 +118,7 @@ class StockLot(db.Model):
     __tablename__ = "stock_lots"
 
     id = db.Column(db.Integer, primary_key=True)
+    activity_id = db.Column(db.Integer, db.ForeignKey("activities.id", ondelete="SET NULL"))      # lot AG8.c
     label = db.Column(db.String(200), nullable=False)
     species = db.Column(db.String(80), nullable=False)
     age_class = db.Column(db.String(80))
@@ -201,6 +203,7 @@ class CropAdvance(db.Model):
     __tablename__ = "crop_advances"
 
     id = db.Column(db.Integer, primary_key=True)
+    activity_id = db.Column(db.Integer, db.ForeignKey("activities.id", ondelete="SET NULL"))      # lot AG8.c
     fiscal_year_id = db.Column(db.Integer, db.ForeignKey("fiscal_years.id", ondelete="CASCADE"), nullable=False, index=True)
     production = db.Column(db.String(120), nullable=False)
     surface_ha = db.Column(db.Numeric(10, 4), nullable=False)

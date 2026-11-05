@@ -116,6 +116,7 @@ def line_rows(lines) -> list[dict]:
         if line.vat_rate_bp is not None else "",
         "vat": fmt_cents(line.vat_cents),
         "project_id": str(line.project_id or ""),
+        "analytic": line.analytic_target or "",
     } for line in lines]
 
 

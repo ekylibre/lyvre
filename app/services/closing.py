@@ -246,6 +246,11 @@ def _agri_checks(fy) -> list[Check]:
     for key, label, count, severity in aid_closing.checks(fy):
         url = "/aids/" if key == "aid_issues" else f"/fiscal-years/{fy.id}/closing"
         found.append(Check(key, label, count, severity, url))
+    from app.services import analytic_margins    # lot AG8.e
+
+    for key, label, count, severity in analytic_margins.checks(fy):
+        url = "/activities/" if key in ("analytic_measures", "analytic_keys", "analytic_auxiliaries") else f"/analytic/?fiscal_year={fy.id}"
+        found.append(Check(key, label, count, severity, url))
     from app.services import msa_ventilation    # lot AG7.d
 
     for key, label, count, severity in msa_ventilation.checks(fy):

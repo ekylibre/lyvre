@@ -34,6 +34,20 @@ def api_base_url():
     return url_for("api.session_info").rsplit("/", 1)[0]
 
 
+def _analytic_targets():
+    from app.services import analytic
+    if not analytic.enabled():
+        return []
+    from app.services.analytic_allocation import targets_options
+    return targets_options()
+
+
+def _line_analytic(line):
+    from app.services.analytic_allocation import line_target, target_label
+    target = line_target(line)
+    return target, target_label(target)
+
+
 def entry_form_options(project_ids=()):
     """Exercices ouverts, journaux, projets et portée des comptes récents du formulaire de saisie."""
     fiscal_years = FiscalYear.query.filter_by(closed=False).order_by(FiscalYear.start_date.desc()).all()
@@ -45,6 +59,7 @@ def entry_form_options(project_ids=()):
                      for j in Journal.query.order_by(Journal.code).all()],
         "recentsScope": instance.slug if instance else "default",
         "projects": projects.options(project_ids),
+        "analyticTargets": _analytic_targets(),                       # lot AG8.c : activités et clés (agricole)
         # Lot T2 : codes de TVA des lignes 445… (saisie manuelle).
         "vatCodes": [{"value": code, "label": f"{code} — {spec['label']}", "on": spec["on"], "rate_bp": spec["rate_bp"]}
                      for code, spec in vat_codes.codes().items()],
@@ -96,6 +111,7 @@ def serialize_entry(entry):
              "account_label": l.account.label, "label": l.label or "",
              "debit_cents": l.debit_cents, "credit_cents": l.credit_cents,
              "project_id": l.project_id, "project": l.project.name if l.project else None,
+             "analytic": _line_analytic(l)[0], "analytic_label": _line_analytic(l)[1],
              "service_start": l.service_start.isoformat() if l.service_start else None,
              "service_end": l.service_end.isoformat() if l.service_end else None,
              "vat_code": l.vat_code, "vat_label": vat_codes.label(l.vat_code) or None,
@@ -276,6 +292,7 @@ def entries_form():
             "lines": [{"account": _account_json(l.account), "label": l.label or "",
                        "debit_cents": l.debit_cents, "credit_cents": l.credit_cents,
                        "project_id": str(l.project_id) if l.project_id else None,
+                       "analytic": _line_analytic(l)[0],
                        "vat_code": l.vat_code, "vat_base_cents": l.vat_base_cents} for l in entry.lines]})
     if bt_id:
         bt = db.session.get(BankTransaction, bt_id)

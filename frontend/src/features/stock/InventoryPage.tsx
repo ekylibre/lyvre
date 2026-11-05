@@ -22,12 +22,13 @@ import type { FiscalYear } from "../fiscal-years/FiscalYearsPage";
 import { LotsPanel, type StockLotItem } from "./LotsPanel";
 import { CropAdvancesPanel, type CropAdvanceItem } from "./CropAdvancesPanel";
 import { StockEntryBar, type StockEntryStatus } from "./StockEntryBar";
+import { ActivitySelect, useAnalyticTargets } from "../../components/AnalyticSelect";
 
 export const STOCK_KEY = ["stock"];
 type Option = { value: string; label: string };
 export interface StockLineItem {
   id: number; category: string; account: { id: number; code: string; label: string }; variation_account: { id: number; code: string };
-  label: string; production: string | null; quantity: string; unit: string; method: string; standard_id: number | null;
+  label: string; production: string | null; activity_id?: number | null; activity?: string | null; quantity: string; unit: string; method: string; standard_id: number | null;
   standard: { id: number; label: string; value_cents: number; unit: string; year: number } | null;
   market_price_cents: number | null; price_source: string | null; price_reference: string | null; flat_rate: string | null;
   unit_value_cents: number | null; value_cents: number | null; depreciation_cents: number | null;
@@ -66,7 +67,7 @@ function LineForm({ view, line, onDone }: { view: StockView; line: StockLineItem
   const fyId = view.item.fiscal_year.id;
   const [d, setD] = useState<Draft>((): Draft => line ? {
     account_code: line.account.code, variation_account_code: line.variation_account.code, label: line.label,
-    production: line.production, quantity: line.quantity, unit: line.unit, method: line.method,
+    production: line.production, activity_id: line.activity_id ?? null, quantity: line.quantity, unit: line.unit, method: line.method,
     standard_id: line.standard_id, market_price_cents: line.market_price_cents, price_source: line.price_source,
     price_reference: line.price_reference, flat_rate: line.flat_rate, unit_value_cents: line.unit_value_cents,
     depreciation_cents: line.depreciation_cents, depreciation_reason: line.depreciation_reason, notes: line.notes,
@@ -74,6 +75,7 @@ function LineForm({ view, line, onDone }: { view: StockView; line: StockLineItem
     fiscal_method: line.fiscal.fiscal_method, fiscal_value_cents: line.fiscal.manual_cents, fiscal_reason: line.fiscal.fiscal_reason,
   } : { account_code: "", label: "", quantity: "0", unit: "unit", method: "actual" });
   const [error, setError] = useState<string | null>(null);
+  const targets = useAnalyticTargets();
   const opts = { invalidate: [STOCK_KEY] };
   const save = useAction((body: Draft) => (line ? api.put<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fyId}/stock/lines/${line.id}`, body)
     : api.post<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fyId}/stock/lines`, body)), opts);
@@ -111,6 +113,8 @@ function LineForm({ view, line, onDone }: { view: StockView; line: StockLineItem
           onChange={(e) => set({ gap_reason: e.currentTarget.value })} /> : null}
         <TextInput label="Libellé" required value={String(d.label ?? "")} onChange={(e) => set({ label: e.currentTarget.value })} />
         <TextInput label="Production" value={String(d.production ?? "")} onChange={(e) => set({ production: e.currentTarget.value })} />
+        <ActivitySelect label="Activité" description="Variation de stock reprise dans la marge de l'activité." targets={targets}
+          value={typeof d.activity_id === "number" ? d.activity_id : null} onChange={(v) => set({ activity_id: v })} />
         <Group grow>
           <TextInput label="Quantité" value={String(d.quantity ?? "")} onChange={(e) => set({ quantity: e.currentTarget.value.replace(",", ".") })} />
           <Select label="Unité" data={view.meta.units} value={String(d.unit ?? "unit")} allowDeselect={false} onChange={(v) => set({ unit: v })} />

@@ -1,0 +1,55 @@
+{#- Marges par activité et par atelier (lot AG8.d) : production, charges opérationnelles, marge brute, structure. -#}
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Marges par activité {{ data.fiscal_year.label }} — {{ org.name }}</title>
+<style>
+  @page { size: A4 landscape; margin: 12mm 10mm; @bottom-right { content: "page " counter(page) " / " counter(pages); font-size: 8pt; color: #666; } }
+  body { font-family: "IBM Plex Sans", "DejaVu Sans", sans-serif; font-size: 8pt; color: #1E2421; }
+  h1 { font-size: 14pt; margin: 0 0 2mm; }
+  h2 { font-size: 11pt; margin: 6mm 0 2mm; }
+  .meta { color: #555; margin-bottom: 3mm; }
+  .warn { color: #b5502b; margin: 1mm 0; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 1mm 1.4mm; border-bottom: 0.3mm solid #ddd; }
+  th { text-align: right; font-size: 7pt; color: #555; }
+  th.l, td.l { text-align: left; }
+  td { text-align: right; font-family: "IBM Plex Mono", "DejaVu Sans Mono", monospace; white-space: nowrap; }
+  td.l { font-family: inherit; white-space: normal; }
+  tr.ws td { font-weight: 600; background: #F6F4EE; }
+  td.gm { font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>Marges par activité — exercice {{ data.fiscal_year.label }}</h1>
+<div class="meta">{{ org.name }} — montants en euros{% if data.campaign %}, campagne {{ data.campaign }}{% endif %} — production nette des achats d'animaux, charges opérationnelles au sens du RICA.</div>
+{% for w in data.warnings %}<div class="warn">{{ w }}</div>{% endfor %}
+<table>
+  <tr><th class="l">Atelier / activité</th><th>Campagne</th><th>Mesure</th><th>Production</th><th>Charges opér.</th><th>Marge brute</th><th>MB / unité</th><th>Structure</th><th>Auxiliaires</th><th>Résultat</th></tr>
+  {% for w in data.workshops %}
+    <tr class="ws"><td class="l">{{ w.workshop }}</td><td></td><td>{{ w.measure or "" }} {{ w.unit_label or "" }}</td><td>{{ euros(w.production_cents) }}</td>
+      <td>{{ euros(w.operational_cents) }}</td><td class="gm">{{ euros(w.gross_margin_cents) }}</td><td>{{ euros(w.gross_margin_per_unit_cents) }}</td>
+      <td>{{ euros(w.structure_cents) }}</td><td>{{ euros(w.auxiliary_cents) }}</td><td>{{ euros(w.result_after_cents) }}</td></tr>
+    {% for p in data.productions if p.workshop_id == w.workshop_id %}
+    <tr><td class="l">&nbsp;&nbsp;{{ p.activity }}</td><td>{{ p.campaign_year }}</td><td>{{ p.measure or "" }} {{ p.unit_label }}</td><td>{{ euros(p.production_cents) }}</td>
+      <td>{{ euros(p.operational_cents) }}</td><td class="gm">{{ euros(p.gross_margin_cents) }}</td><td>{{ euros(p.gross_margin_per_unit_cents) }}</td>
+      <td>{{ euros(p.structure_cents) }}</td><td>{{ euros(p.auxiliary_cents) }}</td><td>{{ euros(p.result_after_cents) }}</td></tr>
+    {% endfor %}
+  {% endfor %}
+  <tr class="ws"><td class="l">Non affecté</td><td></td><td></td><td>{{ euros(data.unallocated.production_cents) }}</td><td>{{ euros(data.unallocated.operational_cents) }}</td>
+    <td>{{ euros(data.unallocated.gross_margin_cents) }}</td><td></td><td>{{ euros(data.unallocated.structure_cents) }}</td><td></td><td>{{ euros(data.unallocated.result_cents) }}</td></tr>
+</table>
+{% if data.reconciliation %}{% set r = data.reconciliation %}
+<h2>Rapprochement avec le résultat comptable</h2>
+<table style="width: 60%">
+  <tr><td class="l">Résultat des activités (après auxiliaires)</td><td>{{ euros(r.activities_cents) }}</td></tr>
+  <tr><td class="l">Non affecté</td><td>{{ euros(r.unallocated_cents) }}</td></tr>
+  <tr><td class="l">Hors analytique</td><td>{{ euros(r.excluded_cents) }}</td></tr>
+  <tr><td class="l">Écart de méthode</td><td>{{ euros(r.method_gap_cents) }}</td></tr>
+  <tr class="ws"><td class="l">Résultat comptable</td><td>{{ euros(r.accounting_result_cents) }}</td></tr>
+</table>
+<div class="meta">{{ r.note }}</div>
+{% endif %}
+</body>
+</html>

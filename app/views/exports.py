@@ -412,6 +412,70 @@ def msa_xlsx(fy_id):
         _sheet(wb, "MSA", ["Information"], [[data.get("reason") or "Aucun exploitant."]], ())
     return _response(wb, f"assiette-msa-{fy.label}.xlsx")
 
+
+def _margins(fy_id):
+    from app.models import FiscalYear
+    from app.services import analytic, analytic_margins, organization
+
+    if not analytic.enabled():
+        abort(404)
+    fy = db.session.get(FiscalYear, fy_id) or abort(404)
+    raw = request.args.get("campaign")
+    campaign = int(raw) if raw and raw.isdigit() else None
+    return analytic_margins.view(fy, campaign), organization.get()
+
+
+@bp.route("/fiscal-years/<int:fy_id>/activity-margins.xlsx")
+@login_required
+def activity_margins_xlsx(fy_id):
+    """Marges par activité et par atelier (lot AG8.d)."""
+    data, _org = _margins(fy_id)
+    wb = Workbook()
+    wb.remove(wb.active)
+    classes = data["classes"]
+    head = ["Atelier", "Activité", "Campagne", "Mesure", "Unité", *[c["label"] for c in classes], "Production",
+            "Charges opérationnelles", "Marge brute", "Marge brute / unité", "Structure directe", "Résultat",
+            "Auxiliaires", "Résultat après répartition"]
+    rows = [[p["workshop"], p["activity"], p["campaign_year"], float(p["measure"]) if p["measure"] else None, p["unit_label"],
+             *[p["classes"][c["key"]] / 100 for c in classes], p["production_cents"] / 100, p["operational_cents"] / 100,
+             p["gross_margin_cents"] / 100,
+             p["gross_margin_per_unit_cents"] / 100 if p["gross_margin_per_unit_cents"] is not None else None,
+             p["structure_cents"] / 100, p["result_cents"] / 100, p.get("auxiliary_cents", 0) / 100,
+             p.get("result_after_cents", p["result_cents"]) / 100] for p in data["productions"]]
+    u = data["unallocated"]
+    rows.append(["Non affecté", "", "", None, "", *[u["classes"][c["key"]] / 100 for c in classes], u["production_cents"] / 100,
+                 u["operational_cents"] / 100, u["gross_margin_cents"] / 100, None, u["structure_cents"] / 100,
+                 u["result_cents"] / 100, 0, u["result_cents"] / 100])
+    rec = data.get("reconciliation")
+    if rec:
+        rows.append([])
+        rows += [[label, "", "", None, "", *[None] * len(classes), None, None, None, None, None, None, None, value / 100]
+                 for label, value in (("Rapprochement — résultat des activités", rec["activities_cents"]),
+                                      ("Non affecté", rec["unallocated_cents"]), ("Hors analytique", rec["excluded_cents"]),
+                                      ("Écart de méthode", rec["method_gap_cents"]),
+                                      ("Résultat comptable", rec["accounting_result_cents"]))]
+    money_cols = tuple(range(6, len(head) + 1))
+    _sheet(wb, f"Activités {data['fiscal_year']['label']}"[:31], head, rows, money_cols)
+    _sheet(wb, "Ateliers", ["Atelier", "Production", "Charges opérationnelles", "Marge brute", "Mesure", "Marge brute / unité",
+                            "Structure directe", "Résultat"],
+           [[w["workshop"], w["production_cents"] / 100, w["operational_cents"] / 100, w["gross_margin_cents"] / 100,
+             float(w["measure"]) if w["measure"] else None,
+             w["gross_margin_per_unit_cents"] / 100 if w["gross_margin_per_unit_cents"] is not None else None,
+             w["structure_cents"] / 100, w["result_cents"] / 100] for w in data["workshops"]], (2, 3, 4, 6, 7, 8))
+    return _response(wb, f"marges-activites-{data['fiscal_year']['label']}.xlsx")
+
+
+@bp.route("/fiscal-years/<int:fy_id>/activity-margins.pdf")
+@login_required
+def activity_margins_pdf(fy_id):
+    from weasyprint import HTML
+    data, org = _margins(fy_id)
+    euros = lambda cents: "" if cents is None else f"{round(cents / 100):,}".replace(",", "\u202f")  # noqa: E731
+    html = render_template("analytic/margins.html", data=data, org=org, euros=euros)
+    response = Response(HTML(string=html).write_pdf(), mimetype="application/pdf")
+    response.headers["Content-Disposition"] = f'inline; filename="marges-activites-{data["fiscal_year"]["label"]}.pdf"'
+    return response
+
 def _liasse(fy_id):
     from app.models import FiscalYear
     from app.services import liasse, organization, tax_result

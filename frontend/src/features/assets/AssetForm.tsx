@@ -9,12 +9,14 @@ import { applyApiError, FormBody } from "../../components/ApiForm";
 import { MoneyInput } from "../../components/Money";
 import { useProjectOptions } from "../projects/LineProjectModal";
 import { ASSETS_KEY, isLivingAccount, type AssetItem, type AssetsMeta } from "./types";
+import { ActivitySelect, useAnalyticTargets } from "../../components/AnalyticSelect";
 
 export function AssetForm({ asset, meta, parentId, onDone }: {
   asset: AssetItem | null; meta: AssetsMeta; parentId?: number; onDone: (item?: AssetItem) => void;
 }) {
   const [error, setError] = useState<string | null>(null);
   const projects = useProjectOptions().data?.items ?? [];
+  const targets = useAnalyticTargets();
   const form = useForm({ initialValues: {
     label: asset?.label ?? "", account_id: asset ? String(asset.account.id) : "",
     acquired_on: asset?.acquired_on ?? new Date().toISOString().slice(0, 10), in_service_date: asset?.in_service_date ?? "",
@@ -22,7 +24,7 @@ export function AssetForm({ asset, meta, parentId, onDone }: {
     method: asset?.method ?? "linear", duration_months: asset?.duration_months ? String(asset.duration_months) : "60",
     fiscal_coefficient: asset?.fiscal_coefficient ?? "", prior_depreciation_cents: asset?.prior_depreciation_cents ?? 0,
     prior_as_of: asset?.prior_as_of ?? "", project_id: asset?.project_id ? String(asset.project_id) : "",
-    notes: asset?.notes ?? "", waiting: asset ? asset.status === "waiting" : false,
+    notes: asset?.notes ?? "", activity_id: asset?.activity_id ?? (null as number | null), waiting: asset ? asset.status === "waiting" : false,
     living_kind: asset?.living?.kind ?? "", species: asset?.living?.species ?? "", age_class: asset?.living?.age_class ?? "",
     units: asset?.living?.units != null ? String(asset.living.units) : "", origin: asset?.living?.origin ?? "",
   } });
@@ -72,6 +74,8 @@ export function AssetForm({ asset, meta, parentId, onDone }: {
           <TextInput label="Au" type="date" {...form.getInputProps("prior_as_of")} />
           <Select label="Projet" clearable searchable data={projects} {...form.getInputProps("project_id")} />
         </SimpleGrid>
+        <ActivitySelect label="Activité" description="Dotations et résultat de cession dans la marge de l'activité." targets={targets}
+          value={form.values.activity_id} onChange={(v) => form.setFieldValue("activity_id", v)} />
         <Textarea label="Notes" autosize minRows={2} {...form.getInputProps("notes")} />
       </FormBody>
     </form>

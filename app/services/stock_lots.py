@@ -42,9 +42,11 @@ def _text(value, limit, required=False, field=None, label=None):
 # ------------------------------------------------------------------ lots
 
 def _apply(lot: StockLot, data: dict, creating: bool) -> None:
-    unknown = set(data) - {"label", "species", "age_class", "destination", "account_code", "average_weight_kg", "active"}
+    unknown = set(data) - {"label", "species", "age_class", "destination", "account_code", "average_weight_kg", "active", "activity_id"}
     if unknown:
         raise StockError(f"Champ inconnu : {sorted(unknown)[0]}.", sorted(unknown)[0])
+    from app.services import analytic                     # lot AG8.c
+    analytic.apply_activity(lot, data, StockError)
     if creating or "species" in data:
         lot.species = _text(data.get("species"), 80, True, "species", "Espèce")
     if "age_class" in data:
@@ -191,12 +193,17 @@ def summary(lot: StockLot, fy: FiscalYear) -> dict:
             "line_id": line.id if line is not None else None}
 
 
+def _activity(activity_id) -> dict:
+    from app.services import analytic
+    return analytic.activity_fields(activity_id)
+
+
 def lot_payload(lot: StockLot, fy: FiscalYear | None = None, with_movements: bool = False) -> dict:
     data = {"id": lot.id, "label": lot.label, "species": lot.species, "age_class": lot.age_class,
             "destination": lot.destination, "destination_label": LOT_DESTINATIONS[lot.destination],
             "account": {"id": lot.account_id, "code": lot.account.code, "label": lot.account.label},
             "average_weight_kg": str(lot.average_weight_kg) if lot.average_weight_kg is not None else None,
-            "active": lot.active}
+            "active": lot.active, **_activity(lot.activity_id)}
     if fy is not None:
         data["summary"] = summary(lot, fy)
         if with_movements:

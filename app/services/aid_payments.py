@@ -154,14 +154,16 @@ def _book(tx: BankTransaction, parts: list[tuple[Aid, int]]) -> None:
                        "bank_transaction_id", 409)
     simple = simple_mode()
     label = (tx.label or "Versement d'aide")[:300]
-    credits: dict[int, int] = {}
+    credits: dict[tuple[int, str | None], int] = {}
     for aid, amount in parts:
         for account, cents in _lines_for(aid, amount):
             account = _simple_account(account) if simple else account
-            credits[account.id] = credits.get(account.id, 0) + cents
+            key = (account.id, aid.analytic_target)                 # lot AG8.c : affectation du dossier
+            credits[key] = credits.get(key, 0) + cents
     bank_id = tx.bank_account.account_id
     lines = [{"account_id": bank_id, "label": label, "debit_cents": tx.amount_cents, "credit_cents": 0}]
-    lines += [{"account_id": acc, "label": label, "debit_cents": 0, "credit_cents": cents} for acc, cents in credits.items()]
+    lines += [{"account_id": acc, "label": label, "debit_cents": 0, "credit_cents": cents,
+               "analytic": target, "analytic_origin": "aid"} for (acc, target), cents in credits.items()]
     if simple:
         entry = post_entry(fy.id, simple_operations._journal("bank").id, tx.transaction_date, label, lines,  # noqa: SLF001
                            source=simple_operations.SOURCE_SIMPLE, commit=False)

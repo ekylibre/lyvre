@@ -68,7 +68,7 @@ MENUS = [
         "key": "compta",
         "label": "Compta",
         "charts": _ALL,
-        "active": ["accounts", "journals", "fiscal_years", "vat_returns", "rfa", "aids", "stock", "tax_result", "msa", "agenda", "products", "entries", "reports", "projects", "budgets", "budget_tracking",
+        "active": ["accounts", "journals", "fiscal_years", "vat_returns", "rfa", "aids", "stock", "tax_result", "msa", "activities", "analytic", "activity_margins", "agenda", "products", "entries", "reports", "projects", "budgets", "budget_tracking",
                    "lettering", "assets"],
         "items": [
             {"key": "entries", "label": "Écritures", "endpoint": "entries.index", "charts": _ALL, "bookkeeping": _DOUBLE},
@@ -92,6 +92,9 @@ MENUS = [
             {"key": "agenda", "label": "Échéancier", "endpoint": "agenda.index", "charts": ["agri"]},
             {"key": "rfa", "label": "Remboursement forfaitaire", "endpoint": "rfa.index", "charts": ["agri"]},
             {"key": "aids", "label": "Aides et subventions", "endpoint": "aids.index", "charts": ["agri"]},
+            {"key": "activities", "label": "Activités", "endpoint": "activities.index", "charts": ["agri"]},
+            {"key": "analytic", "label": "Ventilation analytique", "endpoint": "analytic.index", "charts": ["agri"]},
+            {"key": "activity_margins", "label": "Marges par activité", "endpoint": "activities.margins", "charts": ["agri"]},
             {"key": "stock", "label": "Inventaire de clôture", "endpoint": "stock.index", "charts": ["agri"], "bookkeeping": _DOUBLE},
             {"key": "tax_result", "label": "Résultat fiscal", "endpoint": "tax_result.index", "charts": ["agri"], "bookkeeping": _DOUBLE},
             {"key": "msa", "label": "Cotisations MSA", "endpoint": "msa.index", "charts": ["agri"], "bookkeeping": _DOUBLE},

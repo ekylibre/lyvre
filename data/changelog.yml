@@ -5,6 +5,17 @@
 next:
 - kind: new
   structure: agri
+  text: Activités — ateliers et activités de l'exploitation (productions de Lexicon et leurs dates de cycle, qui
+    déterminent la campagne), surfaces et effectifs par campagne ; ventilation des charges et produits sur les activités,
+    directement ou par clé de répartition (surface, effectif), règles par compte et taux de couverture ; champ
+    « Affectation analytique » dans la saisie d'écriture, les achats, les règles bancaires, les opérations, les aides,
+    les immobilisations et l'inventaire ; marges par activité et par atelier (production nette des achats d'animaux,
+    charges opérationnelles du RICA, marge brute par hectare ou par tête), activités auxiliaires réparties, rapprochement
+    avec le résultat comptable, état figé à la clôture, exports XLSX et PDF.
+  tech: app/services/analytic.py, tables workshops / activities / campaigns / activity_productions (migration
+    e9f1a3b5c7d9), data/analytic/lexicon_productions.json (scripts/build_lexicon_productions.py), pages /activities/ et /analytic/ (lots AG8.a à AG8.e, migration b2c4d6e8f0a2, analytic_allocation.py, analytic_margins.py, data/analytic/margin_classes.yml, migrations f0a2b4c6d8e0 et a1b3c5d7e9f1).
+- kind: new
+  structure: agri
   text: Cotisations MSA — assiette sociale de l'exercice par exploitant, du résultat fiscal à l'assiette des cotisations
     (réintégrations, DJA, abattement de 26 % borné), avec export ; historique des assiettes, comparaison entre moyenne
     triennale et assiette annuelle, délais d'option et de dénonciation ; registre des appels avec détail de la CSG,

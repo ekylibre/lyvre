@@ -120,10 +120,12 @@ def _account(cycle: str) -> tuple[Account, Account]:
 
 
 def _apply(advance: CropAdvance, data: dict, creating: bool) -> None:
-    unknown = set(data) - {"production", "surface_ha", "planted_on", "campaign", "cycle", "plots", "method",
+    unknown = set(data) - {"activity_id", "production", "surface_ha", "planted_on", "campaign", "cycle", "plots", "method",
                            "crop_standard_id", "notes"}
     if unknown:
         raise StockError(f"Champ inconnu : {sorted(unknown)[0]}.", sorted(unknown)[0])
+    from app.services import analytic                     # lot AG8.c
+    analytic.apply_activity(advance, data, StockError)
     if creating or "production" in data:
         production = str(data.get("production") or "").strip()[:120]
         if not production:
@@ -419,11 +421,16 @@ def standard_payload(s: CropStandard) -> dict:
             "rows": [{"component": r.component, "month": r.month, "amount_cents": r.amount_cents} for r in s.rows]}
 
 
+def _activity(activity_id) -> dict:
+    from app.services import analytic
+    return analytic.activity_fields(activity_id)
+
+
 def payload(advance: CropAdvance, with_proposals: bool = False) -> dict:
     fy = db.session.get(FiscalYear, advance.fiscal_year_id)
     total, detail, warnings = value(advance, fy)
     line = line_of(advance)
-    data = {"id": advance.id, "production": advance.production, "surface_ha": str(advance.surface_ha),
+    data = {"id": advance.id, **_activity(advance.activity_id), "production": advance.production, "surface_ha": str(advance.surface_ha),
             "planted_on": advance.planted_on.isoformat(), "campaign": advance.campaign, "cycle": advance.cycle,
             "account_code": ACCOUNTS[advance.cycle], "plots": advance.plots, "method": advance.method,
             "method_label": CROP_METHODS[advance.method], "crop_standard_id": advance.crop_standard_id,

@@ -26,7 +26,22 @@ from .session import job_payload
 
 KEY_FIELDS = ("entity_id", "new_name", "supplier_name", "supplier_vat", "supplier_siret", "supplier_iban",
               "invoice_number", "issue_date", "due_date", "is_credit_note", "total", "untaxed", "tax")
-ROW_FIELDS = ("product_id", "account_code", "label", "untaxed", "vat_rate", "vat", "project_id")
+ROW_FIELDS = ("product_id", "account_code", "label", "untaxed", "vat_rate", "vat", "project_id", "analytic")
+
+
+def _analytic_targets():
+    from app.services import analytic
+    if not analytic.enabled():
+        return []
+    from app.services.analytic_allocation import targets_options
+    return targets_options()
+
+
+def _analytic_label(target):
+    if not target:
+        return None
+    from app.services.analytic_allocation import target_label
+    return target_label(target)
 
 
 def _iso(value):
@@ -247,7 +262,8 @@ def purchase_detail(p: Purchase) -> dict:
                         "account": l.account.code if l.account else None, "label": l.label or "",
                         "untaxed_cents": l.untaxed_cents, "vat_rate": catalog.format_rate(l.vat_rate_bp) or None,
                         "vat_cents": l.vat_cents, "total_cents": l.total_cents,
-                        "project": db.session.get(Project, l.project_id).name if l.project_id else None}
+                        "project": db.session.get(Project, l.project_id).name if l.project_id else None,
+                        "analytic": _analytic_label(l.analytic_target)}
                        for l in p.lines],
         "payments": [_payment(pay) for pay in p.payments],
         "awaiting_payment": awaiting,
@@ -262,7 +278,8 @@ def purchase_detail(p: Purchase) -> dict:
         "associate_payment": _associate_payment(p),
         "meta": {"products": _products(), "charge_accounts": _charge_accounts(), "qonto": _qonto(),
                  "vat_regimes": [{"value": k, "label": v} for k, v in vat_codes.regime_labels().items()],
-                 "projects": projects.options([l.project_id for l in p.lines if l.project_id])},
+                 "projects": projects.options([l.project_id for l in p.lines if l.project_id]),
+                 "analytic_targets": _analytic_targets()},
     }
 
 

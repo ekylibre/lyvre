@@ -20,6 +20,7 @@ import { StatusBadge, type Tone } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { InvestmentSection, type AidInvestment } from "./InvestmentSection";
 import { CapCheckCard } from "./CapCheckCard";
+import { AnalyticSelect, useAnalyticTargets } from "../../components/AnalyticSelect";
 
 export const AIDS_KEY = ["aids"];
 
@@ -37,6 +38,7 @@ export interface Aid {
   notified_on: string | null; acquired_cents: number; paid_cents: number; remaining_cents: number;
   payment_request_deadline: string | null; payment_requested_on: string | null; commitment_end_on: string | null;
   status: "requested" | "granted" | "closed" | "refused"; status_label: string; notes: string | null; warnings: string[];
+  analytic?: string | null; analytic_label?: string | null;
   payments?: AidPayment[];
   investment?: AidInvestment;
 }
@@ -142,7 +144,7 @@ function PaymentForm({ aid, kinds }: { aid: Aid; kinds: Option[] }) {
   );
 }
 
-type Draft = Partial<Record<"label" | "notes" | "account_code" | "operating_account_code" | "status", string | null>>
+type Draft = Partial<Record<"label" | "notes" | "account_code" | "operating_account_code" | "status" | "analytic", string | null>>
   & Partial<Record<"requested_cents" | "notified_cents" | "investment_share_cents", number | null>>
   & Partial<Record<"decision_on" | "notified_on" | "payment_request_deadline" | "payment_requested_on" | "commitment_end_on", string | null>>;
 
@@ -152,6 +154,7 @@ function AidDrawer({ aidId, meta, onClose }: { aidId: number | null; meta: AidLi
     queryFn: () => api.get<{ item: Aid }>(`/api/v1/aids/${aidId}`) });
   const [draft, setDraft] = useState<Draft>({});
   const [error, setError] = useState<string | null>(null);
+  const targets = useAnalyticTargets();
   const save = useAction((body: Draft) => api.put<Saved>(`/api/v1/aids/${aidId}`, body), opts);
   const remove = useAction(() => api.delete<{ notices: Notice[] }>(`/api/v1/aids/${aidId}`), opts);
   const removePayment = useAction((id: number) => api.delete<Saved>(`/api/v1/aids/${aidId}/payments/${id}`), opts);
@@ -207,6 +210,9 @@ function AidDrawer({ aidId, meta, onClose }: { aidId: number | null; meta: AidLi
               </Group>
               <DateInput label="Fin d'engagement" clearable disabled={readOnly} valueFormat="DD/MM/YYYY"
                 value={val("commitment_end_on", aid.commitment_end_on) ?? null} onChange={(v) => set({ commitment_end_on: v })} />
+              <AnalyticSelect label="Affectation analytique" disabled={readOnly} targets={targets}
+                description="Activité ou clé des versements et produits à recevoir de ce dossier."
+                value={val("analytic", aid.analytic ?? null) ?? null} onChange={(v) => set({ analytic: v })} />
               <Textarea label="Notes" disabled={readOnly} autosize minRows={2} value={val("notes", aid.notes) ?? ""}
                 onChange={(e) => set({ notes: e.currentTarget.value })} />
               {error && <Alert color="brique">{error}</Alert>}

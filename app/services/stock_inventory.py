@@ -249,7 +249,7 @@ def _account(code, field, label) -> Account:
     return account
 
 
-FIELDS = {"account_code", "variation_account_code", "label", "production", "quantity", "unit", "method", "standard_id",
+FIELDS = {"activity_id", "account_code", "variation_account_code", "label", "production", "quantity", "unit", "method", "standard_id",
           "market_price_cents", "price_source", "price_reference", "flat_rate", "unit_value_cents",
           "depreciation_cents", "depreciation_reason", "notes", "lot_id", "heads", "gap_reason", "fiscal_method",
           "fiscal_value_cents", "fiscal_reason", "cow_category"}
@@ -259,6 +259,8 @@ def _apply(line: StockLine, data: dict, fy: FiscalYear, creating: bool) -> None:
     unknown = set(data) - FIELDS
     if unknown:
         raise StockError(f"Champ inconnu : {sorted(unknown)[0]}.", sorted(unknown)[0])
+    from app.services import analytic                     # lot AG8.c
+    analytic.apply_activity(line, data, StockError)
     lot = None
     if data.get("lot_id") is not None:
         from app.models import StockLot
@@ -559,6 +561,11 @@ def purchases_cents(fy: FiscalYear, prefix: str | None) -> int | None:
     return int(total or 0)
 
 
+def _activity(activity_id) -> dict:
+    from app.services import analytic
+    return analytic.activity_fields(activity_id)
+
+
 def line_payload(line: StockLine, fy: FiscalYear, discount_map: dict) -> dict:
     unit, value, warnings = evaluate(line, fy, discount_map)
     found = classify(line.account.code)
@@ -566,6 +573,7 @@ def line_payload(line: StockLine, fy: FiscalYear, discount_map: dict) -> dict:
                                                                   "label": line.account.label},
             "variation_account": {"id": line.variation_account_id, "code": line.variation_account.code},
             "label": line.label, "production": line.production, "quantity": str(line.quantity), "unit": line.unit,
+            **_activity(line.activity_id),
             "method": line.method, "standard_id": line.standard_id,
             "standard": {"id": line.standard.id, "label": line.standard.label, "value_cents": line.standard.value_cents,
                          "unit": line.standard.unit, "year": line.standard.year} if line.standard else None,

@@ -41,6 +41,8 @@ export interface PurchasesMeta {
 /** Ligne de saisie : champs texte, comme le formulaire (montants « 33,33 »). */
 export interface LineRow {
   product_id: string; account_code: string; label: string; untaxed: string; vat_rate: string; vat: string; project_id?: string;
+  /** Lot AG8.c : affectation analytique (« activity:ID » ou « key:ID »). */
+  analytic?: string;
 }
 
 export interface ProductOption extends Option { account: string; rate: string }

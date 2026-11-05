@@ -13,6 +13,7 @@ import { AccountSelect, rememberAccount } from "../../components/AccountSelect";
 import { formatEuros, formatDate } from "../../lib/format";
 import { toInput } from "../../lib/money";
 import type { EntryResponse, FieldErrors } from "../../lib/types";
+import { AnalyticSelect, type AnalyticTarget } from "../../components/AnalyticSelect";
 import {
   balancingAmount, balancingLine, computeTotals, hasVatFields, isComplete, isEmptyLine, newLine, proposedBase, reducer,
   toPayload, withMinimumLines, type EntryState, type InitialLine,
@@ -29,6 +30,8 @@ export interface EntryFormData {
     journals: { id: number; code: string; label: string }[];
     recentsScope: string;
     projects?: { value: string; label: string }[];
+    /** Lot AG8.c : activités et clés de l'analytique agricole. */
+    analyticTargets?: AnalyticTarget[];
     /** Lot T2 : codes de TVA (`on` : ligne de taxe ou de base). */
     vatCodes?: { value: string; label: string; on: "tax" | "base"; rate_bp: number }[];
   };
@@ -75,6 +78,7 @@ export function EntryEditor({ data, onSaved, onCancel, focusAccountOfLine }: {
   const fiscalYear = options.fiscalYears.find((f) => f.id === state.fiscalYearId);
   // Colonne « Projet » seulement si l'instance a des projets (ou si l'écriture en porte).
   const withProjects = (options.projects?.length ?? 0) > 0;
+  const withAnalytic = (options.analyticTargets?.length ?? 0) > 0;
   const dateOutside = !!(fiscalYear && state.date && (state.date < fiscalYear.start_date || state.date > fiscalYear.end_date));
   const filledLines = state.lines.filter((l) => !isEmptyLine(l));
 
@@ -213,6 +217,7 @@ export function EntryEditor({ data, onSaved, onCancel, focusAccountOfLine }: {
                 <Table.Tr>
                   <Table.Th w="34%">Compte</Table.Th><Table.Th w="30%">Libellé</Table.Th>
                   {withProjects && <Table.Th w="16%">Projet</Table.Th>}
+                  {withAnalytic && <Table.Th w="16%">Analytique</Table.Th>}
                   <Table.Th w="15%" ta="right">Débit</Table.Th><Table.Th w="15%" ta="right">Crédit</Table.Th>
                   <Table.Th w="6%"><VisuallyHidden>Actions</VisuallyHidden></Table.Th>
                 </Table.Tr>
@@ -260,6 +265,13 @@ export function EntryEditor({ data, onSaved, onCancel, focusAccountOfLine }: {
                             onChange={(projectId) => dispatch({ type: "line", index: i, patch: { projectId } })} />
                         </Table.Td>
                       )}
+                      {withAnalytic && (
+                        <Table.Td>
+                          {/^[67]/.test(line.account?.code ?? "") && (
+                            <AnalyticSelect aria-label={`Analytique, ligne ${i + 1}`} targets={options.analyticTargets ?? []} value={line.analytic}
+                              error={err(`lines[${i}].analytic`)} onChange={(analytic) => dispatch({ type: "line", index: i, patch: { analytic } })} />)}
+                        </Table.Td>
+                      )}
                       {(["debit", "credit"] as Column[]).map((column) => (
                         <Table.Td key={column}>
                           <TextInput ref={fieldRef(line.key, column)} inputMode="decimal" data-line={i} data-field={column}
@@ -281,7 +293,7 @@ export function EntryEditor({ data, onSaved, onCancel, focusAccountOfLine }: {
               </Table.Tbody>
               <Table.Tfoot>
                 <Table.Tr>
-                  <Table.Td colSpan={withProjects ? 3 : 2}><Button variant="default" size="compact-md" onClick={addBalancingLine}>Ajouter une ligne</Button></Table.Td>
+                  <Table.Td colSpan={2 + (withProjects ? 1 : 0) + (withAnalytic ? 1 : 0)}><Button variant="default" size="compact-md" onClick={addBalancingLine}>Ajouter une ligne</Button></Table.Td>
                   <Table.Td ta="right" className="lv-num" fw={600}>{formatEuros(totals.debit)}</Table.Td>
                   <Table.Td ta="right" className="lv-num" fw={600}>{formatEuros(totals.credit)}</Table.Td>
                   <Table.Td />

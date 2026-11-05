@@ -66,7 +66,7 @@ def simple_mode() -> bool:
 
 
 def post(txn: BankTransaction, counterpart: Account, description: str, project_id=None,
-         entity: Entity | None = None) -> tuple[JournalEntry, JournalEntry]:
+         entity: Entity | None = None, analytic: str | None = None) -> tuple[JournalEntry, JournalEntry]:
     """Pièce et règlement d'une transaction catégorisée (sans commit) ; le règlement est rapproché."""
     from app.services import lettering
     from app.services.ledger import post_entry
@@ -82,7 +82,8 @@ def post(txn: BankTransaction, counterpart: Account, description: str, project_i
     text = (description or label)[:500]
     document_lines = [
         {"account_id": counterpart.id, "label": label[:300], "debit_cents": amount if expense else 0,
-         "credit_cents": 0 if expense else amount, "project_id": project_id},
+         "credit_cents": 0 if expense else amount, "project_id": project_id,
+         "analytic": analytic, "analytic_origin": "rule"},
         {"account_id": tiers.id, "label": label[:300], "debit_cents": 0 if expense else amount,
          "credit_cents": amount if expense else 0},
     ]

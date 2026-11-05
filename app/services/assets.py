@@ -298,6 +298,8 @@ def save(asset: Asset | None, data: dict) -> Asset:
     except ValueError as exc:
         raise AssetError(str(exc), "project_id", 422) from None
     asset.project_id = project.id if project else None
+    from app.services import analytic                       # lot AG8.c : activité de la fiche
+    analytic.apply_activity(asset, data, lambda message, field: AssetError(message, field, 422))
     asset.notes = (data.get("notes") or "").strip() or None
     _living(asset, account, data)
     if isinstance(data.get("parent_id"), int):
@@ -625,6 +627,11 @@ def living_exit(asset: Asset, on: date, units: int | None, kind: str, price_cent
 # ------------------------------------------------------------------ états
 
 
+def _activity(activity_id) -> dict:
+    from app.services import analytic
+    return analytic.activity_fields(activity_id)
+
+
 def payload(asset: Asset, with_schedule: bool = False) -> dict:
     accum = sum(accumulated(leaf) for leaf in leaves(asset))
     data = {
@@ -640,6 +647,7 @@ def payload(asset: Asset, with_schedule: bool = False) -> dict:
         "prior_depreciation_cents": asset.prior_depreciation_cents,
         "prior_as_of": asset.prior_as_of.isoformat() if asset.prior_as_of else None,
         "project_id": asset.project_id, "project": asset.project.name if asset.project else None,
+        **_activity(asset.activity_id),
         "status": asset.status, "status_label": STATUS_LABELS[asset.status],
         "accumulated_cents": accum,
         "net_cents": (sum(l.acquisition_cents for l in leaves(asset)) if asset.components else asset.acquisition_cents) - accum,
