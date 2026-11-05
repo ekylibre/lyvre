@@ -66,5 +66,5 @@ ENV PYTHONUNBUFFERED=1 \
 EXPOSE 5000
 
 ENTRYPOINT ["/app/docker/entrypoint.sh"]
-CMD ["gunicorn", "-w", "1", "-k", "gthread", "--threads", "4", \
+CMD ["gunicorn", "-w", "1", "-k", "gthread", "--threads", "8", \
      "-b", "0.0.0.0:5000", "--timeout", "120", "app:create_app()"]

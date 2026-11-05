@@ -17,6 +17,7 @@ import { DepPanel } from "./DepPanel";
 import { GainsCreditsPanel } from "./GainsCreditsPanel";
 import { LiassePanel } from "./LiassePanel";
 import { SpreadPanel } from "./SpreadPanel";
+import { ExplainButton } from "../assistant/AssistantDrawer";
 
 export interface TaxLine { key: string; id?: number; kind?: string; label: string; amount_cents: number; reason?: string | null;
   source: string; link?: string; to_validate?: boolean }
@@ -54,7 +55,8 @@ export default function TaxResultPage() {
           data={years.items.map((y) => ({ value: String(y.id), label: `Exercice ${y.label}` }))} onChange={(x) => setParams({ fiscal_year: x ?? "" })} />
         {r.frozen && <Badge color="gray">Figé à la clôture</Badge>}
       </FilterBar>
-      {r.warnings.map((w) => <Alert key={w} color="paille" mb="xs">{w}</Alert>)}
+      {r.warnings.map((w) => <Alert key={w} color="paille" mb="xs">{w}
+        <ExplainButton question={`Résultat fiscal de l'exercice ${r.fiscal_year.label} : explique cette alerte et ce que je dois faire : « ${w} »`} /></Alert>)}
       <SimpleGrid cols={{ base: 2, sm: 4 }} mb="md">
         <Paper withBorder p="sm"><Text size="xs" c="dimmed">Résultat comptable</Text><MoneyText cents={r.accounting_result_cents} /></Paper>
         <Paper withBorder p="sm"><Text size="xs" c="dimmed">Réintégrations</Text><MoneyText cents={r.additions_cents} /></Paper>

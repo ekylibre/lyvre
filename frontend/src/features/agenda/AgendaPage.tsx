@@ -19,6 +19,8 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { AppLink } from "../../app/navigation";
 import { formatDate } from "../../lib/format";
 import { RELIABILITY_COLORS } from "../organization/FiscalProfile";
+import { ExplainButton } from "../assistant/AssistantDrawer";
+import { ChecklistsPanel } from "./ChecklistsPanel";
 import {
   AGENDA_KEY, BLOCKS, DOMAIN_COLORS, STATUS_TONES, type AgendaResponse, type AgendaSubscription, type BankDebit, type Detection,
   type Occurrence,
@@ -97,6 +99,7 @@ function OccurrenceDrawer({ occ, data, onClose }: { occ: Occurrence | null; data
           {fiche.links?.map((l) => <Anchor key={l} size="sm" href={l} target="_blank" rel="noreferrer">{l}</Anchor>)}
           {fiche.reminder_only && <Text size="xs" c="dimmed">Démarche hors comptabilité : Lyvre la rappelle seulement.</Text>}
           <Group>
+            {occ.status === "late" && <ExplainButton label="Que faire ?" question={`Échéance en retard : ${occ.title} — ${occ.label} du ${formatDate(occ.date)} (${occ.organism}). Que dois-je faire maintenant, avec quelle pénalité ?`} />}
             {occ.action?.route && <Button component={AppLink} href={occ.link ?? occ.action.route}>{occ.action.label}</Button>}
             {occ.action?.url && <Button component="a" href={occ.action.url} target="_blank" rel="noreferrer">{occ.action.label}</Button>}
           </Group>
@@ -286,6 +289,7 @@ export default function AgendaPage() {
         description="Déclarations, paiements et démarches de l'exploitation, calculés depuis son profil et sa comptabilité. Lyvre ne télédéclare pas : il rappelle et prépare."
         actions={<Group><IcalButton /><SubscriptionSwitch /></Group>} />
       <Detections items={data.detections ?? []} />
+      <ChecklistsPanel />
       {data.questions.length > 0 && (
         <Alert color="paille" mb="md" title={`${data.questions.length} démarche${data.questions.length > 1 ? "s" : ""} à préciser`}>
           Êtes-vous concerné par : {data.questions.map((id) => data.fiches[id]?.title).filter(Boolean).join(" ; ")} ?{" "}

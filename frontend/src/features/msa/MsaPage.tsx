@@ -16,6 +16,7 @@ import { MsaCallsPanel } from "./MsaCallsPanel";
 import { MsaEstimatePanel, type MsaEstimate } from "./MsaEstimatePanel";
 import { MsaVentilationPanel } from "./MsaVentilationPanel";
 import { MsaOptionPanel, type MsaBaseRow, type MsaComparison } from "./MsaOptionPanel";
+import { ExplainButton } from "../assistant/AssistantDrawer";
 
 type Option = { value: string; label: string };
 interface MsaLine { key: string; id?: number; kind?: string; label: string; amount_cents: number; basis?: string; reason?: string | null }
@@ -64,7 +65,8 @@ export default function MsaPage() {
         <Text size="sm" c="dimmed">Revenus {v.year} : cotisations {v.year + 1} en assiette annuelle, moyenne triennale sinon.</Text>
       </FilterBar>
       {v.reason && <Alert color="gray" mb="md">{v.reason}</Alert>}
-      {v.warnings.map((w) => <Alert key={w} color="paille" mb="xs">{w}</Alert>)}
+      {v.warnings.map((w) => <Alert key={w} color="paille" mb="xs">{w}
+        <ExplainButton question={`Cotisations MSA (revenus ${v.year}) : explique cette alerte et ce que je dois faire : « ${w} »`} /></Alert>)}
       {v.people.map((p) => (
         <Paper key={p.person.id} withBorder p="md" mb="md">
           <Group justify="space-between" mb="xs">

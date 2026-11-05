@@ -1,7 +1,8 @@
 // Cotisations MSA › appels (lot AG7.c, claudedocs/design_msa.md § 5) : registre des appels par exploitant et par année
 // de cotisation, détail (cotisations, CSG déductible, CSG non déductible et CRDS, tiers) saisi ou estimé, paiement
 // rapproché d'un débit bancaire, mensualités proposées, rappels de modulation.
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import { Alert, Badge, Button, Group, NumberInput, Paper, Select, Table, Text, TextInput, Title } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { ApiError, api } from "../../api/client";
@@ -31,6 +32,20 @@ export function MsaCallsPanel({ defaultYear, editable }: { defaultYear: number; 
   const [draft, setDraft] = useState<{ person: string | null; kind: string; due: string; amount: number | null; base: number | null;
     contributions: number | null; csgD: number | null; csgN: number | null }>({ person: null, kind: "first", due: "", amount: null, base: null, contributions: null, csgD: null, csgN: null });
   const [picking, setPicking] = useState<number | null>(null);
+  // Lot AG9b.c : appel proposé par l'assistant (?proposal_id=) → formulaire prérempli, enregistré par l'utilisateur.
+  const [search] = useSearchParams();
+  const proposalId = Number(search.get("proposal_id")) || null;
+  const { data: proposal } = useQuery({ queryKey: ["assistant", "proposal", proposalId], enabled: proposalId !== null,
+    queryFn: () => api.get<{ item: { id: number; kind: string; status: string; payload: Record<string, unknown> } }>(`/api/v1/assistant/proposals/${proposalId}`) });
+  useEffect(() => {
+    const p = proposal?.item;
+    if (!p || p.kind !== "msa_call" || p.status !== "open") return;
+    const cents = (v: unknown) => (typeof v === "number" ? v : null);
+    setYear(Number(p.payload.year) || year);
+    setDraft((d) => ({ ...d, person: String(p.payload.person_id), kind: String(p.payload.kind), due: String(p.payload.due_on),
+      amount: cents(p.payload.amount_cents), csgD: cents(p.payload.csg_deductible_cents), csgN: cents(p.payload.csg_crds_non_deductible_cents) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [proposal]);
   const [error, setError] = useState<string | null>(null);
   const opts = { invalidate: [["msa"]] };
   const create = useAction((b: object) => api.post<{ notices: Notice[] }>("/api/v1/msa/calls", b), opts);
@@ -106,7 +121,10 @@ export function MsaCallsPanel({ defaultYear, editable }: { defaultYear: number; 
           <Button variant="light" loading={create.isPending} disabled={!draft.due || draft.amount === null}
             onClick={() => run(create.mutateAsync({ person_id: Number(personId), year, kind: draft.kind, due_on: draft.due, amount_cents: draft.amount,
               base_cents: draft.base, ...(draft.csgD !== null || draft.csgN !== null ? { csg_deductible_cents: draft.csgD ?? 0, csg_crds_non_deductible_cents: draft.csgN ?? 0 } : {}) }),
-              () => setDraft({ ...draft, due: "", amount: null, base: null, csgD: null, csgN: null }))}>Enregistrer l'appel</Button>
+              () => {
+                setDraft({ ...draft, due: "", amount: null, base: null, csgD: null, csgN: null });
+                if (proposal?.item.status === "open") void api.patch(`/api/v1/assistant/proposals/${proposal.item.id}`, { status: "accepted" }).catch(() => undefined);
+              })}>Enregistrer l'appel</Button>
         </Group>)}
       {error && <Alert color="brique" mt="sm">{error}</Alert>}
       <Text size="xs" c="dimmed" mt="xs">Détail laissé vide : « Estimer » répartit la CSG (6,8 % déductible, 2,4 % non déductible) et la CRDS (0,5 %) de l'assiette

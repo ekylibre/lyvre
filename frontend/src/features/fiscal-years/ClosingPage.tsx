@@ -34,6 +34,7 @@ import { ClosingStockPanel } from "../stock/StockEntryBar";
 import { LivingWipPanel } from "../assets/LivingWipPanel";
 import { LivingImpairmentPanel } from "../assets/LivingImpairmentPanel";
 import { FISCAL_YEARS_KEY, type FiscalYear } from "./FiscalYearsPage";
+import { ExplainButton } from "../assistant/AssistantDrawer";
 
 type StepState = "todo" | "done" | "skipped" | "provisional";
 
@@ -207,7 +208,8 @@ function Checks({ checks }: { checks: Check[] }) {
             <Table.Td><StatusBadge tone={c.severity === "anomaly" ? "gap" : "info"}>{c.severity === "anomaly" ? "Anomalie" : "Info"}</StatusBadge></Table.Td>
             <Table.Td>{c.label}</Table.Td>
             <Table.Td className="lv-num" ta="right">{c.count}</Table.Td>
-            <Table.Td ta="right">{c.url && <Anchor component={AppLink} href={c.url} size="sm">Voir</Anchor>}</Table.Td>
+            <Table.Td ta="right">{c.url && <Anchor component={AppLink} href={c.url} size="sm">Voir</Anchor>}
+              <ExplainButton question={`Clôture de l'exercice : explique ce contrôle et comment le résoudre : « ${c.label} » (${c.count}).`} /></Table.Td>
           </Table.Tr>
         ))}
       </Table.Tbody>

@@ -75,6 +75,9 @@ class Config:
     # Brevo : repli de développement seulement (INTEGRATIONS_ENV_FALLBACK) ; en production, la clé se
     # saisit dans Configuration › Intégrations.
     BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "")
+    # Assistant Claude (lot AG9b, AGD26) : clé du serveur ; présente, elle prime sur la clé des instances
+    # et l'intégration est active, son réglage de clé en lecture seule.
+    ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
 
 def _flag(name: str, default: bool) -> bool:

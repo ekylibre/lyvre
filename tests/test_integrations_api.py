@@ -37,8 +37,8 @@ def test_spa_pages(client):
 
 def test_list_without_fields_or_checks(client, probes):
     items = {i["slug"]: i for i in client.get(API).get_json()["items"]}
-    assert set(items) == set(external_config.SERVICE_KEYS)
-    assert {i["label"] for i in items.values()} == set(external_config.SERVICE_LABELS.values())
+    assert set(items) == set(external_config.applicable())          # assistant : instances agricoles seulement
+    assert {i["label"] for i in items.values()} == {external_config.SERVICE_LABELS[s] for s in external_config.applicable()}
     assert "fields" not in items["odoo"]
     assert items["smtp"]["status_label"] == "Non testée"  # SMTP via .env
     assert items["odoo"]["status_label"] == "À configurer"
@@ -59,7 +59,8 @@ def test_list_shows_disabled_and_error(client, monkeypatch):
     assert items["odoo"]["last_check"]["message"] == "Erreur inattendue : RuntimeError — panne"
 
 
-@pytest.mark.parametrize("service", list(external_config.SERVICE_KEYS))
+@pytest.mark.parametrize("service", [s for s in external_config.SERVICE_KEYS
+                                     if "asso" in external_config.SERVICE_CHARTS.get(s, {"asso"})])
 def test_detail(client, service):
     body = client.get(f"{API}/{service}").get_json()
     assert body["item"]["label"] == external_config.SERVICE_LABELS[service]

@@ -12,6 +12,7 @@ import { SESSION_KEY } from "../../api/session";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { AppLink } from "../../app/navigation";
+import { AssistantUsage } from "./AssistantUsage";
 import { BrevoAttributes, BrevoListField } from "./BrevoSettings";
 import { IntegrationLogo } from "./IntegrationLogo";
 import { INTEGRATIONS_KEY, STATUS_TONES, checkSummary, localDateTime, type Field, type IntegrationDetail } from "./types";
@@ -19,11 +20,13 @@ import { INTEGRATIONS_KEY, STATUS_TONES, checkSummary, localDateTime, type Field
 const SYNC_LABELS: Record<string, string> = { done: "Terminée", failed: "En échec", running: "En cours" };
 
 function placeholder(f: Field) {
+  if (f.source === "server") return "•••••••• (clé du serveur)";
   if (f.secret && f.source !== "none") return "•••••••• (enregistré)";
   return f.env_value ?? f.help;
 }
 
 function hint(f: Field) {
+  if (f.source === "server") return "Fournie par la configuration du serveur (.env) : non modifiable ici.";
   if (f.secret && f.source === "db") return "Laisser vide pour garder la valeur enregistrée.";
   if (f.secret && f.source === "env") return "Repli .env actif : laisser vide pour le garder.";
   if (f.env_value) return "Valeur du .env utilisée tant que ce champ est vide.";
@@ -78,9 +81,10 @@ export default function IntegrationDetailPage() {
                 {data.fields.map((f) => {
                   const common = {
                     label: <>{f.label}{f.source === "db" && <Text span size="xs" c="var(--lv-lichen)"> (en base)</Text>}
-                      {f.source === "env" && <Text span size="xs" c="dimmed"> (repli .env)</Text>}</>,
+                      {f.source === "env" && <Text span size="xs" c="dimmed"> (repli .env)</Text>}
+                      {f.source === "server" && <Text span size="xs" c="dimmed"> (serveur)</Text>}</>,
                     withAsterisk: f.required, placeholder: placeholder(f), description: hint(f),
-                    value: values[f.key] ?? "", disabled: clear.includes(f.key),
+                    value: values[f.key] ?? "", disabled: clear.includes(f.key) || f.source === "server",
                     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setValues({ ...values, [f.key]: e.currentTarget.value }),
                   };
                   return (
@@ -110,7 +114,8 @@ export default function IntegrationDetailPage() {
             <Title order={3} mb="sm">État</Title>
             <Group justify="space-between" mb="sm">
               <Text>Intégration <b>{v.enabled ? "activée" : "désactivée"}</b></Text>
-              <Button size="compact-md" variant="default" loading={toggle.isPending}
+              <Button size="compact-md" variant="default" loading={toggle.isPending} disabled={data.item.server_locked}
+                title={data.item.server_locked ? "Activée par la configuration du serveur (.env)" : undefined}
                 onClick={() => toggle.mutate(!v.enabled, { onSuccess: toggled })}>{v.enabled ? "Désactiver" : "Activer"}</Button>
             </Group>
             {v.last_check ? (
@@ -130,6 +135,7 @@ export default function IntegrationDetailPage() {
           {v.slug === "brevo" && data.fields.some((x) => x.key === "api_key" && x.source !== "none") && (
             <BrevoAttributes admin />
           )}
+          {v.slug === "assistant" && v.enabled && <AssistantUsage />}
           {!!v.scopes?.length && (
             <Paper p="md" mb="md">
               <Title order={3} mb="sm">Périmètre</Title>

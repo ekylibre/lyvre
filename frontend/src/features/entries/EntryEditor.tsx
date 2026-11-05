@@ -24,6 +24,8 @@ const VALIDATE_DELAY_MS = 400;
 export interface EntryFormData {
   mode: "create" | "edit";
   entry_id?: number;
+  /** Lot AG9b.c : brouillon proposé par l'assistant (statut mis à jour à l'enregistrement). */
+  proposal?: { id: number; status: string };
   reference?: string;
   options: {
     fiscalYears: { id: number; label: string; start_date: string; end_date: string }[];

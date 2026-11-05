@@ -16,6 +16,7 @@ import {
 } from "../../api/session";
 import { AppLink } from "../navigation";
 import { useChangelogUnseen } from "../../features/changelog/useChangelog";
+import { AssistantButton } from "../../features/assistant/AssistantDrawer";
 import { NotificationBell } from "./NotificationBell";
 import { Wordmark } from "./Wordmark";
 
@@ -191,6 +192,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 <Search />
               </ActionIcon>
             </Tooltip>
+            {session.instance && <AssistantButton />}
             {session.instance && <NotificationBell />}
             <ColorSchemeToggle />
             <UserMenu />

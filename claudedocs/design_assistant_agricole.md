@@ -22,6 +22,138 @@
 > - Effort `medium` par défaut sur Haiku 5.5, `high` pour « Expliquer ».
 > - Préfixe en cache : vérifier qu'il dépasse le minimum mis en cache par le modèle.
 >
+> **AG9b.e réalisé (06/11/2026, non commité) — AG9b terminé (a à e)**. Contenu :
+> - **4 listes** dans `data/checklists/checklists.yml` (schéma validé au chargement) :
+>   - clôture (J - 30 à J + 60 autour de chaque clôture) ;
+>   - campagne PAC (avril et mai, profil PAC) ;
+>   - mois fiscal de mai (IR) ;
+>   - automne (septembre à novembre) ;
+>   
+>   L'applicabilité suit les conditions des fiches d'échéances (`deadlines.applies`) ; une donnée de profil manquante laisse la liste visible avec « profil à compléter » ;
+> - **étapes** : lien vers l'écran Lyvre (`{fy}` remplacé par l'exercice), fiche liée, et **13 contrôles automatiques** tirés du dossier :
+>   - relevés rapprochés ;
+>   - inventaire saisi ; écriture de stock passée ;
+>   - appels MSA de l'exercice ; solde MSA de l'année ;
+>   - contrôles de clôture sans anomalie ; exercice clôturé ;
+>   - CA12A de l'exercice ; CA12A de l'année précédente ;
+>   - mesures des activités ;
+>   - aides de la campagne précédente soldées ; dossier de l'année ouvert ;
+>   - régimes renseignés ;
+>   
+>   Les autres étapes se cochent à la main (table `checklist_marks`, migration `d4e6f8a0b2c4`) ;
+> - API `GET /checklists?on=` et `PUT /checklists/<liste>/<période>/steps/<étape>` (refusé à l'expert-comptable) ;
+> - panneau en tête de l'échéancier : progression, liens, cases (une étape constatée par Lyvre ne se décoche pas).
+>
+> Écart : les listes sont visibles 15 jours avant leur fenêtre (« à venir »). Pas encore de rappel dans le résumé du lundi.
+>
+> Tests : `tests/api/test_checklists.py` (3), `checklists.test.tsx` (1).
+>
+> **AG9b.d réalisé (06/11/2026, non commité)**. Contenu :
+> - **usage du mois** (`loop.month_report`, `GET /assistant/usage`, réservé à l'administrateur) : tokens par modèle (entrée, sortie, cache lu et écrit), quota, **coût estimé** d'après les prix publics (lecture du cache ≈ 10 %, écriture ≈ 125 % de l'entrée) ; panneau « Usage du mois » dans la fiche de l'intégration ;
+> - **2 réponses simultanées** au plus par instance (`loop.acquire` / `release`, compteur en mémoire du processus), 409 au-delà ;
+> - **Lexicon (option)** : avec le réglage `lexicon = oui`, la requête ajoute :
+>   - `mcp_servers` : le serveur `https://lexicon.osfarm.org/mcp`, nommé `lexicon` ;
+>   - le `mcp_toolset` ;
+>   - la bêta `mcp-client-2025-11-20` ;
+>   
+>   Le contexte de page signale la source « Lexicon », et les appels MCP s'affichent comme outils consultés ;
+> - **jeu d'évaluation** (hors CI) :
+>   - `tests/assistant_evals/cases.yaml` : 15 cas (échéances, seuils sourcés, MSA, crédit HVE « à valider », résultat fiscal, clôture, marges, soldes, brouillon d'écriture, expert-comptable sans proposition, injection, télédéclaration, PAC) ;
+>   - `app/services/assistant/evals.py` : contrôles déterministes, exécution dans une conversation jetable ;
+>   - `scripts/run_assistant_evals.py --instance <slug> [--repeat 3] [--out]` : taux de réussite (seuil 90 %) et coût estimé.
+>
+> Écarts :
+> - la notation par un modèle (grille courte) n'est pas faite, seulement les contrôles déterministes ;
+> - le compteur de réponses simultanées vaut par processus (gunicorn n'a qu'un processus).
+>
+> Tests : `tests/api/test_assistant.py` (+2), `assistantUsage.test.tsx` (1).
+>
+> **AG9b.c réalisé (06/11/2026, non commité)**. Contenu :
+> - **4 outils de proposition** (admin et treasurer seulement ; refusés à l'exécution pour les autres rôles), qui enregistrent une `AssistantProposal` sans rien écrire en comptabilité :
+>   - `propose_entry` : comptes et équilibre contrôlés, montants en euros ;
+>   - `propose_msa_call` : exploitant, nature, exigibilité, montant et détail de CSG ;
+>   - `propose_deadline` : occurrence vérifiée par `agenda.find_occurrence` ; faite, ou ignorée avec une note ; refusée pour les échéances suivies par leur déclaration ;
+>   - `navigate` : routes de la carte des écrans seulement ;
+> - **événement SSE `action`** : la carte s'affiche pendant la réponse et reste attachée au message de l'historique ;
+> - **API** : `GET` et `PATCH /assistant/proposals/<id>` (statut `accepted` / `ignored`, référence du résultat) ;
+> - **saisie d'écriture préremplie** depuis un brouillon (`/entries/new?proposal_id=`, `GET /entries/form?proposal_id=`), avec un bandeau « brouillon préparé par l'assistant ». La proposition est marquée acceptée à l'enregistrement par l'utilisateur ;
+> - **appel MSA prérempli** (`/msa/?proposal_id=`), marqué accepté à l'enregistrement ;
+> - **carte d'échéance** : « Confirmer » appelle l'échéancier (`POST /agenda/states`), sur action explicite de l'utilisateur ;
+> - **boutons « Expliquer »** (`ExplainButton`, `askAssistant`) : ils ouvrent le tiroir et envoient la question aussitôt avec l'effort `high`. Ils sont posés sur :
+>   - les alertes du résultat fiscal et de la MSA ;
+>   - les contrôles de clôture ;
+>   - les échéances en retard (« Que faire ? »).
+>
+> Écart : l'écriture enregistrée ne porte pas la référence de la proposition dans `source_ref`. Le lien est tenu par `result_ref` de la proposition.
+>
+> Tests : `tests/api/test_assistant.py` (+1), `assistant.test.tsx` (+2).
+>
+> **AG9b.b réalisé (06/11/2026, non commité)**. Contenu :
+> - **10 outils de lecture** ajoutés, soit 12 au total, triés et stricts. Ils prennent l'exercice par son libellé, sinon celui en cours :
+>   - `get_balances` (préfixes de comptes) ;
+>   - `search_entries` (20 lignes au plus, par compte, texte ou dates) ;
+>   - `get_vat` (déclarations de l'exercice) ;
+>   - `get_tax_result` ;
+>   - `get_msa` (assiette, option, estimation, appels) ;
+>   - `get_margins` ;
+>   - `get_aids` ;
+>   - `get_closing_checks` ;
+>   - `get_parameter` (valeur en vigueur, surcharges comprises, source et fiabilité ; clés voisines si inconnue) ;
+>   - `get_deadline_fiche` ;
+> - **corpus** `app/services/assistant/corpus.py` : environ 41 000 caractères, déterministe, mis en cache comme dernier bloc du préfixe. Il contient :
+>   - les 39 fiches d'échéances (identifiant, organisme, résumé, applicabilité, événements, pénalités, sources, fiabilité) ;
+>   - les paramètres réglementaires des fichiers (valeur, période, fiabilité, source, note) ;
+>   - la carte des écrans ;
+> - **consignes** : vérifier par les outils même quand le modèle croit savoir, et citer `[FIS-03]` ou `[clé.du.paramètre]` ;
+> - **contexte de page** : ligne « À compléter » (forme juridique, régime BA, régime de TVA, caisse MSA) ;
+> - **tiroir** : citations en badges (une fiche renvoie à l'échéancier), libellés des outils consultés.
+>
+> Écarts :
+> - les paramètres du corpus sont les valeurs de référence des fichiers ; la valeur en vigueur, avec les surcharges de l'administrateur, passe par `get_parameter` ;
+> - le schéma strict des outils à propriétés facultatives reste à vérifier sur l'API réelle (jeu d'évaluation, AG9b.d).
+>
+> Tests : `tests/api/test_assistant.py` (+1), `assistant.test.tsx` (complété).
+>
+> **AG9b.a réalisé (06/11/2026, non commité)**. Contenu :
+> - **dépendances** :
+>   - `anthropic>=2.5,<3` (SDK 2.x, version d'API 2026-10-21 : sans paramètres d'échantillonnage, ce qui ne nous concerne pas) ;
+>   - gunicorn passe à 8 threads ;
+> - **intégration `assistant`** (instances agricoles) :
+>   - réglages : clé, modèle, quota mensuel de tokens, Lexicon ;
+>   - `ANTHROPIC_API_KEY` du `.env` (`app/config.py`) **prioritaire** (`external_config.SERVER_LOCKED`, source `server`) : l'intégration est active, sa clé est en lecture seule et l'interrupteur ne la désactive pas (409) ;
+>   - sonde : `models.retrieve` du modèle réglé ;
+>   - erreurs du SDK traduites en français ;
+> - **tables** `assistant_conversations`, `assistant_messages` (blocs de l'API conservés tels quels, usage) et `assistant_proposals` (migration `c3d5e7f9a1b3`) ;
+> - **`app/services/assistant/`** :
+>   - `settings` : clé, modèle (Haiku 5.5 par défaut), quota, client ;
+>   - `prompt` : consignes figées, contexte de page recalculé par le serveur ;
+>   - `tools` : `get_context` et `get_agenda`, définitions strictes, liste triée, filtrage par rôle, arguments contrôlés, résultat tronqué au-delà de 20 000 caractères ;
+>   - `loop` : boucle manuelle `client.beta.messages.stream`, avec :
+>     - consignes en cache, effort `medium` ;
+>     - `fallbacks: "default"` avec Sonnet 5.5 ou Opus 5.5 seulement ;
+>     - contexte de page en message `system` après la question ;
+>     - historique en ajout seulement ;
+>     - refus, `pause_turn` et `max_tokens` traités ;
+>     - 8 tours d'outils au plus ;
+>     - quota mensuel ;
+> - **API** :
+>   - `/assistant/status` ;
+>   - `/assistant/conversations` (GET, POST, détail, DELETE), réservées à leur auteur ;
+>   - `/assistant/conversations/<id>/messages` en **SSE** (événements `text`, `tool`, `error`, `done`) ;
+>   - l'expert-comptable converse (`READ_ONLY_ALLOWED`), sans outil de proposition ;
+> - **interface** :
+>   - bouton « IA » dans l'en-tête quand l'intégration est active ;
+>   - tiroir de conversation : liste des conversations, réponse au fil de l'eau, outils consultés, erreurs, modèle et quota restant ;
+>   - lecture du flux `postEventStream` ;
+>   - clé « serveur » en lecture seule dans la fiche d'intégration.
+>
+> Écarts :
+> - pas de limite de 2 conversations simultanées par instance (à ajouter si la charge l'exige) ;
+> - `eager_input_streaming` non activé, les entrées d'outils étant courtes ; les arguments sont contrôlés avant exécution ;
+> - le préfixe en cache (consignes et 2 outils) reste sous le minimum mis en cache tant que le corpus (AG9b.b) n'est pas ajouté.
+>
+> Tests : `tests/api/test_assistant.py` (5, sans appel réel à l'API), `assistant.test.tsx` (2).
+>
 > **Cadrage** : `compta_agri.md` § AG9.7 à AG9.9.
 > - AGD6 : intégration activée par instance, avec son propre réglage (clé, modèle, quota) ; l'échéancier et le résumé du lundi n'en dépendent pas.
 > - AGD9 : rappels seulement pour les démarches hors comptabilité.

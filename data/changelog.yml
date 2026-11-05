@@ -5,6 +5,21 @@
 next:
 - kind: new
   structure: agri
+  text: Listes de contrôle dans l'échéancier — clôture, campagne PAC, mois fiscal de mai et automne, avec un lien vers
+    chaque écran et des étapes cochées d'après le dossier (relevés rapprochés, inventaire, écriture de stock…).
+  tech: app/services/checklists.py, data/checklists/checklists.yml, table checklist_marks (migration d4e6f8a0b2c4),
+    /api/v1/checklists (lot AG9b.e).
+- kind: new
+  structure: agri
+  text: Assistant Claude (intégration à activer) — questions sur le dossier depuis l'en-tête, réponse au fil de l'eau,
+    lecture de l'échéancier, des comptes, de la TVA, du résultat fiscal, de la MSA, des marges, des aides et des
+    contrôles de clôture, réponses sourcées par les fiches d'échéances et les paramètres datés ; brouillons à ouvrir
+    (écriture, appel MSA, échéance, écran) et boutons « Expliquer » ; usage et coût du mois, Lexicon en option ;
+    aucune écriture passée par l'assistant.
+  tech: app/services/assistant/ (settings, prompt, tools, loop), app/api/assistant.py (SSE), tables assistant_* (migration
+    c3d5e7f9a1b3), intégration « assistant » avec clé ANTHROPIC_API_KEY du serveur prioritaire, SDK anthropic 2.x (lots AG9b.a à AG9b.d, jeu d'évaluation tests/assistant_evals + scripts/run_assistant_evals.py, propositions assistant_proposals, corpus en cache app/services/assistant/corpus.py).
+- kind: new
+  structure: agri
   text: Activités — ateliers et activités de l'exploitation (productions de Lexicon et leurs dates de cycle, qui
     déterminent la campagne), surfaces et effectifs par campagne ; ventilation des charges et produits sur les activités,
     directement ou par clé de répartition (surface, effectif), règles par compte et taux de couverture ; champ

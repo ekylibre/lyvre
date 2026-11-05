@@ -24,6 +24,10 @@ FIELD_META = {
     ("brevo", "api_key"):       ("Clé API", "password", "Brevo › Paramètres › SMTP et API › Clés API (xkeysib-…)"),
     ("brevo", "list_id"):       ("Liste des adhérents", "brevo_list",
                                  "Liste de contacts Brevo qui reçoit les adhérents (enregistrez d'abord la clé)"),
+    ("assistant", "api_key"):   ("Clé de l'API Claude", "password", "console.anthropic.com › API keys (sk-ant-…)"),
+    ("assistant", "model"):     ("Modèle", "text", "claude-haiku-5-5 par défaut ; claude-sonnet-5-5 ou claude-opus-5-5"),
+    ("assistant", "monthly_tokens"): ("Quota mensuel (tokens)", "text", "2000000 par défaut ; 0 = sans limite"),
+    ("assistant", "lexicon"):   ("Lexicon (MCP)", "text", "oui pour interroger Lexicon (prix, rendements, communes)"),
     "secret_key":       ("Clé secrète", "password", "Format sk_xxx, stest_xxx ou sprod_xxx"),
     "mode":             ("Mode", "text", "live ou test"),
     "url":              ("URL", "text", "https://erp.example.org"),
@@ -104,6 +108,7 @@ def _detail(service) -> dict:
     s = v.last_sync
     scope_labels = external_config.SCOPES.get(service, {})
     return {"item": {**_view(v), "sync_tracked": v.sync_tracked,
+                     "server_locked": external_config.server_locked(service),
                      "scopes": [{"value": key, "label": label, "checked": key in external_config.scopes(service)}
                                 for key, label in scope_labels.items()],
                      "last_sync": ({
@@ -165,7 +170,10 @@ def integrations_save(service):
 def integrations_toggle(service):
     _service(service)
     enabled = bool(json_body().get("enabled"))
-    external_config.set_enabled(service, enabled)
+    try:
+        external_config.set_enabled(service, enabled)
+    except ValueError as exc:
+        raise ApiError("conflict", str(exc), status=409) from None
     label = external_config.SERVICE_LABELS[service]
     return jsonify(**_detail(service),
                    notices=[notice(f"Intégration {label} {'activée' if enabled else 'désactivée'}.")])

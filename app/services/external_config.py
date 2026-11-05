@@ -33,6 +33,7 @@ SERVICE_KEYS: dict[str, list[str]] = {
     "qonto":     ["login", "secret_key", "staging_token"],
     "documenso": ["url", "api_key"],
     "brevo":     ["api_key", "list_id"],
+    "assistant": ["api_key", "model", "monthly_tokens", "lexicon"],
 }
 
 SERVICE_LABELS: dict[str, str] = {
@@ -45,6 +46,7 @@ SERVICE_LABELS: dict[str, str] = {
     "qonto":     "Qonto",
     "documenso": "Documenso",
     "brevo":     "Brevo",
+    "assistant": "Assistant Claude",
 }
 
 # Usage de chaque intégration dans l'application (page index des intégrations).
@@ -58,6 +60,7 @@ SERVICE_DESCRIPTIONS: dict[str, str] = {
     "qonto":     "Comptes, transactions bancaires et factures d'achat",
     "documenso": "Signature électronique des baux",
     "brevo":     "Liste de contacts des adhérents (synchronisée depuis Lyvre)",
+    "assistant": "Questions sur le dossier (échéances, TVA, fiscal, MSA, marges) et brouillons à valider (API Claude)",
 }
 
 # Structures (Instance.chart) pour lesquelles l'intégration existe ; absente = toutes.
@@ -66,6 +69,7 @@ SERVICE_CHARTS: dict[str, set[str]] = {
     "ga4":       {"asso"},
     "facebook":  {"asso"},
     "brevo":     {"asso"},
+    "assistant": {"agri"},
 }
 
 # Périmètre d'une intégration (cases de sa fiche) ; défaut quand rien n'est enregistré.
@@ -95,6 +99,7 @@ SECRET_KEYS: set[tuple[str, str]] = {
     ("qonto",     "staging_token"),
     ("documenso", "api_key"),
     ("brevo",     "api_key"),
+    ("assistant", "api_key"),
 }
 
 # Champs à rendre en <textarea> (valeurs longues / secrets multilignes).
@@ -113,6 +118,7 @@ SERVICE_REQUIRED_KEYS: dict[str, list[str]] = {
     "qonto":     ["login", "secret_key"],
     "documenso": ["url", "api_key"],
     "brevo":     ["api_key", "list_id"],
+    "assistant": ["api_key"],
 }
 
 ENV_FALLBACK: dict[tuple[str, str], str] = {
@@ -154,11 +160,29 @@ def _cache() -> dict:
     return cache
 
 
+# Réglages imposés par le serveur (.env), en production comme en développement : ils priment sur la
+# base de l'instance, qui les affiche en lecture seule (Assistant Claude, AGD26).
+SERVER_LOCKED: dict[tuple[str, str], str] = {
+    ("assistant", "api_key"): "ANTHROPIC_API_KEY",
+}
+
+
+def server_locked(service: str, key: str | None = None) -> bool:
+    """Réglage (ou, sans `key`, au moins un réglage du service) fourni par le .env du serveur."""
+    if not has_app_context():
+        return False
+    keys = [key] if key else [k for (s, k) in SERVER_LOCKED if s == service]
+    return any(current_app.config.get(SERVER_LOCKED.get((service, k), "")) for k in keys)
+
+
 def get(service: str, key: str) -> str | None:
     """Return the configured value, or fall back to .env, or None."""
     cache = _cache()
     cache_key = (service, key)
     if cache_key in cache:
+        return cache[cache_key]
+    if server_locked(service, key):
+        cache[cache_key] = current_app.config.get(SERVER_LOCKED[cache_key])
         return cache[cache_key]
 
     value = None
@@ -190,7 +214,9 @@ def is_configured(service: str) -> bool:
 
 
 def source(service: str, key: str) -> str:
-    """Return 'db', 'env', or 'none' for diagnostics in the UI."""
+    """Return 'server' (imposé par le .env), 'db', 'env', or 'none' for diagnostics in the UI."""
+    if server_locked(service, key):
+        return "server"
     row = (
         db.session.query(ExternalConnection)
         .filter_by(service=service, key=key)
@@ -214,6 +240,8 @@ def set_many(service: str, values: dict[str, str | None]) -> None:
     if service not in SERVICE_KEYS:
         raise ValueError(f"Unknown service: {service}")
     for key in SERVICE_KEYS[service]:
+        if server_locked(service, key):
+            continue                                     # réglage imposé par le serveur : intouchable
         new_val = (values.get(key) or "").strip() or None
         row = (
             db.session.query(ExternalConnection)
@@ -272,6 +300,8 @@ def is_enabled(service: str) -> bool:
     inst = current_instance()
     if inst is None:
         return service in SERVICE_KEYS
+    if applies(service, inst.chart) and server_locked(service):
+        return True                                         # clé du serveur : intégration active (AGD26)
     return applies(service, inst.chart) and service in inst.enabled_integrations()
 
 
@@ -286,6 +316,8 @@ def set_enabled(service: str, enabled: bool) -> None:
     if service not in SERVICE_KEYS:
         raise ValueError(f"Unknown service: {service}")
     inst = _instance_or_fail()
+    if not enabled and server_locked(service):
+        raise ValueError("Intégration imposée par la configuration du serveur (.env) : elle ne se désactive pas ici.")
     if enabled and not applies(service, inst.chart):
         raise ValueError(f"Service not available for this structure: {service}")
     inst.set_integration(service, enabled)

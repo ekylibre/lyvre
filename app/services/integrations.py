@@ -304,6 +304,15 @@ def _probe_documenso() -> str:
     return f"Serveur Documenso {documenso.base_url()} accessible, jeton d'API accepté."
 
 
+def _probe_assistant() -> str:
+    """Assistant Claude (lot AG9b) : le modèle réglé est accessible avec la clé."""
+    from app.services.assistant import settings
+    model = settings.model()
+    info = settings.client(timeout=CHECK_TIMEOUT).models.retrieve(model)
+    origin = " (clé du serveur)" if external_config.server_locked("assistant") else ""
+    return f"Modèle {getattr(info, 'display_name', None) or model} accessible{origin}."
+
+
 def _probe_brevo() -> str:
     from app.services import brevo_attributes, brevo_client
 
@@ -336,6 +345,7 @@ PROBES: dict[str, Callable[[], str]] = {
     "qonto": _probe_qonto,
     "documenso": _probe_documenso,
     "brevo": _probe_brevo,
+    "assistant": _probe_assistant,
 }
 
 
@@ -392,6 +402,9 @@ def describe_error(service: str, exc: BaseException) -> str:
 
     if isinstance(exc, BrevoError):  # déjà en français (IP non autorisée, clé refusée…)
         return exc.message
+    if service == "assistant":                       # lot AG9b : erreurs du SDK anthropic
+        from app.services.assistant.settings import describe_error as assistant_error
+        return assistant_error(exc)
     name = type(exc).__name__
     timeout_msg = f"Délai dépassé ({CHECK_TIMEOUT} s) : le service ne répond pas."
 

@@ -33,6 +33,7 @@ def app():
     app.config.update(
         TESTING=True,
         WTF_CSRF_ENABLED=False,
+        ANTHROPIC_API_KEY="",          # clé du serveur absente des tests (Assistant Claude, AG9b)
     )
 
     ctx = app.app_context()

@@ -16,7 +16,9 @@ function EntryFormPage() {
   const client = useQueryClient();
   const entryId = params.entry_id ? Number(params.entry_id) : null;
   const btId = search.get("bt_id");
-  const url = entryId ? `/api/v1/entries/form?entry_id=${entryId}` : `/api/v1/entries/form${btId ? `?bt_id=${btId}` : ""}`;
+  const proposalId = search.get("proposal_id");                // lot AG9b.c : brouillon proposé par l'assistant
+  const url = entryId ? `/api/v1/entries/form?entry_id=${entryId}`
+    : `/api/v1/entries/form${btId ? `?bt_id=${btId}` : proposalId ? `?proposal_id=${proposalId}` : ""}`;
   const { data, error, isPending } = useQuery({
     queryKey: [...ENTRIES_KEY, "form", url], queryFn: () => api.get<EntryFormData>(url), gcTime: 0, retry: false,
   });
@@ -36,11 +38,15 @@ function EntryFormPage() {
     <>
       <PageHeader title={data.mode === "edit" ? `Modifier l'écriture ${data.reference ?? ""}` : "Saisir une écriture"}
         description="Débit = crédit : l'écriture s'enregistre quand elle est équilibrée." />
+      {data.proposal && <Alert color="gray" mb="sm">Brouillon préparé par l'assistant : relisez-le, il n'est enregistré qu'à votre validation.</Alert>}
       <EntryEditor data={data} onCancel={() => goTo(back)}
         onSaved={(entry, after) => {
           void client.invalidateQueries({ queryKey: [...ENTRIES_KEY, "list"] });
           void client.invalidateQueries({ queryKey: [...ENTRIES_KEY, entry.id] });
           void client.invalidateQueries({ queryKey: ["dashboard"] });
+          if (data.proposal) {
+            void api.patch(`/api/v1/assistant/proposals/${data.proposal.id}`, { status: "accepted", result_ref: String(entry.id) }).catch(() => undefined);
+          }
           if (after === "continue" && data.mode === "create" && !data.bank_transaction) return;
           goTo(data.bank_transaction?.return_url ?? `/entries/${entry.id}`);
         }} />

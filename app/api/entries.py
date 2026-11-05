@@ -6,7 +6,7 @@ from flask import g, jsonify, request, url_for
 from flask_login import login_required
 
 from app.extensions import db
-from app.models import BankTransaction, FiscalYear, Journal, JournalEntry
+from app.models import Account, BankTransaction, FiscalYear, Journal, JournalEntry
 import json
 
 from flask_login import current_user
@@ -294,6 +294,25 @@ def entries_form():
                        "project_id": str(l.project_id) if l.project_id else None,
                        "analytic": _line_analytic(l)[0],
                        "vat_code": l.vat_code, "vat_base_cents": l.vat_base_cents} for l in entry.lines]})
+    proposal_id = request.args.get("proposal_id", type=int)
+    if proposal_id:
+        # Lot AG9b.c : brouillon proposé par l'assistant ; l'utilisateur le relit et l'enregistre lui-même.
+        from app.api.assistant import proposal_of_user
+        proposal = proposal_of_user(proposal_id)
+        if proposal.kind != "entry":
+            raise ApiError("not_found", "Brouillon d'écriture introuvable.", 404)
+        draft = json.loads(proposal.payload_json)
+        journal = next((j for j in journals if j.code == draft.get("journal")), journals[0] if journals else None)
+        fy = _default_fiscal_year(date.fromisoformat(draft["date"]))
+        lines = []
+        for line in draft.get("lines", []):
+            account = Account.query.filter_by(code=line["account"]).first()
+            if account is not None:
+                lines.append({"account": _account_json(account), "label": line.get("label") or draft.get("label") or "",
+                              "debit_cents": line.get("debit_cents", 0), "credit_cents": line.get("credit_cents", 0)})
+        return jsonify(mode="create", options=options, proposal={"id": proposal.id, "status": proposal.status}, initial={
+            "fiscal_year_id": fy.id if fy else None, "journal_id": journal.id if journal else None,
+            "entry_date": draft["date"], "description": draft.get("label") or "", "lines": lines})
     if bt_id:
         bt = db.session.get(BankTransaction, bt_id)
         if bt is None:

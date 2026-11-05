@@ -12,6 +12,7 @@ export const INTEGRATION_LOGOS: Record<string, string> = { facebook, ga4, helloa
 export const INTEGRATION_LABELS: Record<string, string> = {
   stancer: "Stancer", odoo: "Odoo", helloasso: "HelloAsso", smtp: "SMTP (emails)",
   ga4: "Google Analytics (GA4)", facebook: "Facebook (Page)", qonto: "Qonto", documenso: "Documenso", brevo: "Brevo",
+  assistant: "Assistant Claude",
 };
 
 export function integrationLabel(slug: string): string {

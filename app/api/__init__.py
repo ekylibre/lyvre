@@ -24,6 +24,9 @@ PUBLIC_ENDPOINTS = {"api.login", "api.logout", "api.password_forgot", "api.passw
 
 # Écritures permises en lecture seule (expert-comptable) : session et préférences personnelles.
 READ_ONLY_ALLOWED = {"api.login", "api.logout", "api.select_instance", "api.update_preferences",
+                     # Assistant Claude (lot AG9b) : conversations seulement, sans outil de proposition.
+                     "api.assistant_conversation_create", "api.assistant_conversation_delete", "api.assistant_ask",
+                     "api.assistant_proposal_update",
                      "api.notifications_mark_read", "api.change_password", "api.password_forgot",
                      "api.password_reset_check", "api.password_reset"}
 WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
@@ -190,6 +193,6 @@ from . import (  # noqa: E402,F401
     sirene,
     simple_categories, subscriptions,
     simple_operations, simple_reports,
-    task_types, users, agenda, aids, analytic, msa, rfa, stock, tax_result, vat_books, vat_returns,
+    task_types, users, agenda, aids, analytic, assistant, checklists, msa, rfa, stock, tax_result, vat_books, vat_returns,
     work_times,
 )
