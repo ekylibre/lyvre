@@ -90,6 +90,10 @@ def _lyvre(rule: dict, start: date, end: date, today: date) -> list[dict]:
             out.append({"date": aid.payment_request_deadline, "period": f"{aid.label} {aid.campaign}",
                         "lyvre_status": "declared" if aid.payment_requested_on else None,
                         "link": f"/aids/?campaign={aid.campaign}"})
+    elif source == "living_reinvestments":
+        # Lot AG5.c : reconstitution du cheptel dans les 2 ans après un abattage sanitaire.
+        from app.services import living_exits
+        out += living_exits.agenda_occurrences(start, end)
     seen, unique = set(), []
     for occ in out:  # une période civile peut être lue depuis deux exercices décalés
         key = (occ["date"], occ["period"])

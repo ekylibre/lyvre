@@ -55,6 +55,9 @@ OPTIONS = {
     "vat_quarterly": "Option CA3 trimestrielle (RSA)",
     "vat_monthly": "Option CA3 mensuelle (RSA)",
     "rsa_fiscal_year": "Déclaration annuelle de TVA sur l'exercice (CA12AE)",
+    # Lot AG5.d (AGD22, Q-B6) : reproducteurs gardés en stock pour l'impôt ; coupe l'alerte « reproducteur en stock ».
+    # Texte de référence à vérifier (annexe III, art. 38 sexdecies) avant de lui donner une durée ou une source.
+    "breeders_in_stock": "Reproducteurs maintenus en stock (option fiscale, à vérifier)",
 }
 
 

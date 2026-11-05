@@ -141,4 +141,35 @@ def living_assets_table(fy: FiscalYear, fy_prev: FiscalYear | None = None) -> di
         groups.append({"key": key, "label": label, "rows": rows, "total": total})
         grand["opening"] += total["opening"]
         grand["closing"] += total["closing"]
-    return {"groups": groups, "total": grand}
+    return {"groups": groups, "total": grand, "headcount": living_headcount(fy)}
+
+
+def living_headcount(fy: FiscalYear) -> list[dict]:
+    """Effectifs des biens vivants immobilisés par nature (lot AG5.d) : clôture, entrées et sorties de l'exercice,
+    ouverture déduite (clôture − entrées + sorties)."""
+    from app.models import Asset, AssetLivingExit
+    from app.models.asset import LIVING_KINDS
+    from app.services import assets
+
+    rows = {k: {"kind": k, "label": v, "opening": 0, "entries": 0, "exits": 0, "closing": 0} for k, v in LIVING_KINDS.items()}
+    for asset in Asset.query.filter(Asset.living_kind.isnot(None)):
+        if asset.components or asset.units is None or not assets.is_living(asset.account):
+            continue
+        kind = (asset.parent.living_kind if asset.parent is not None and asset.parent.living_kind else asset.living_kind)
+        row = rows.setdefault(kind, {"kind": kind, "label": kind, "opening": 0, "entries": 0, "exits": 0, "closing": 0})
+        exited = asset.status in ("sold", "scrapped") and asset.disposal_date and asset.disposal_date <= fy.end_date
+        in_service = asset.in_service_date and asset.in_service_date <= fy.end_date and asset.status != "waiting"
+        if in_service and not exited:
+            row["closing"] += asset.units
+        if asset.in_service_date and fy.start_date <= asset.in_service_date <= fy.end_date and asset.origin != "split":
+            row["entries"] += asset.units
+    for exit_ in AssetLivingExit.query.filter(AssetLivingExit.on.between(fy.start_date, fy.end_date)):
+        kind = exit_.asset.living_kind or "other"
+        rows.setdefault(kind, {"kind": kind, "label": kind, "opening": 0, "entries": 0, "exits": 0, "closing": 0})
+        rows[kind]["exits"] += exit_.units or 0
+    out = []
+    for row in rows.values():
+        row["opening"] = row["closing"] - row["entries"] + row["exits"]
+        if any(row[k] for k in ("opening", "entries", "exits", "closing")):
+            out.append(row)
+    return out

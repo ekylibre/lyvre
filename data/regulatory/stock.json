@@ -1,0 +1,27 @@
+{
+ "_comment": "Inventaire de clôture (lot AG4) : décotes de la méthode forfaitaire des stocks (réel simplifié, option flat_stock_method). Même format que ba.json.",
+ "values": [
+  {
+   "key": "stock.flat_discount_general_bp",
+   "value": 2000,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 74 b ; taux confirmé par l'expert-comptable le 04/11/2026",
+   "verified_on": "2026-11-04",
+   "reliability": "R",
+   "note": "Décote générale de 20 % : produits finis, en-cours et animaux."
+  },
+  {
+   "key": "stock.flat_discount_cattle_wine_bp",
+   "value": 3000,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 74 b ; taux confirmé par l'expert-comptable le 04/11/2026",
+   "verified_on": "2026-11-04",
+   "reliability": "R",
+   "note": "Décote majorée de 30 % : bovins et produits de la viticulture (vins, eaux-de-vie)."
+  }
+ ]
+}

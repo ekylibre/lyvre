@@ -299,6 +299,7 @@ def save(asset: Asset | None, data: dict) -> Asset:
         raise AssetError(str(exc), "project_id", 422) from None
     asset.project_id = project.id if project else None
     asset.notes = (data.get("notes") or "").strip() or None
+    _living(asset, account, data)
     if isinstance(data.get("parent_id"), int):
         parent = db.session.get(Asset, data["parent_id"])
         if parent is None or parent.parent_id is not None:
@@ -314,6 +315,46 @@ def save(asset: Asset | None, data: dict) -> Asset:
     db.session.add(asset)
     db.session.flush()
     return asset
+
+
+LIVING_BY_ACCOUNT = (("2341", "breeding"), ("2343", "service"), ("2346", "plantation"), ("2347", "other"),
+                     ("241", "breeding"), ("242", "breeding"), ("243", "service"), ("246", "plantation"), ("247", "other"))
+
+
+def is_living(account: Account | None) -> bool:
+    """Bien vivant immobilisé (plan agricole) : compte 24x, ou 234x tant qu'il est en cours."""
+    return account is not None and (account.code.startswith("24") or account.code.startswith("234"))
+
+
+def _living(asset: Asset, account: Account, data: dict) -> None:
+    """Champs des biens vivants (lot AG5.a) ; effacés hors comptes 24x / 234x."""
+    from app.models.asset import LIVING_KINDS, LIVING_ORIGINS
+    if not is_living(account):
+        asset.living_kind = asset.species = asset.age_class = asset.units = asset.origin = None
+        return
+    kind = data.get("living_kind") or next((k for prefix, k in LIVING_BY_ACCOUNT if account.code.startswith(prefix)), "other")
+    if kind not in LIVING_KINDS:
+        raise AssetError("Nature du bien vivant inconnue.", "living_kind", 422)
+    origin = data.get("origin") or None
+    if origin is not None and origin not in LIVING_ORIGINS:
+        raise AssetError("Origine inconnue.", "origin", 422)
+    units = data.get("units")
+    if units in ("", None):
+        units = None
+    elif isinstance(units, bool) or not isinstance(units, int) or not 0 <= units < 10 ** 7:
+        raise AssetError("Effectif : nombre de têtes ou de plants attendu.", "units", 422)
+    asset.living_kind, asset.origin, asset.units = kind, origin, units
+    asset.species = (str(data.get("species") or "").strip()[:80]) or None
+    asset.age_class = (str(data.get("age_class") or "").strip()[:80]) or None
+
+
+def units_of(asset: Asset) -> int | None:
+    """Effectif d'un bien vivant : somme des composants d'un lot, sinon le sien."""
+    if asset.components:
+        gone = asset.status in ("sold", "scrapped")
+        values = [c.units for c in asset.components if gone or c.status not in ("sold", "scrapped")]
+        return sum(v or 0 for v in values) if any(v is not None for v in values) else None
+    return asset.units
 
 
 def from_purchase_line(line) -> Asset:
@@ -338,6 +379,10 @@ def put_in_service(asset: Asset, on: date, account_id: int | None = None, user_i
     from app.services.ledger import post_entry
     if asset.status != "waiting":
         raise AssetError("Seule une immobilisation en cours se met en service.")
+    if not account_id and asset.account.code.startswith("234"):          # lot AG5.b : 2341 → 241…
+        from app.services.living_assets import in_service_account
+        proposed = in_service_account(asset)
+        account_id = proposed.id if proposed is not None else None
     target = db.session.get(Account, account_id) if account_id else asset.account
     if target is None or target.is_header or not target.code.startswith("2") or target.code.startswith("23"):
         raise AssetError("Compte d'immobilisation définitif (2x hors 23) obligatoire.", "account_id", 422)
@@ -461,6 +506,9 @@ def dispose(asset: Asset, on: date, kind: str, price_cents: int = 0, sale_id: in
         raise AssetError("Dotations de l'exercice déjà passées : annulez-les (assistant de clôture) avant la sortie.")
     expense = _role("depreciation_expense") if enabled() else None
     book_value = _role("disposal_book_value")
+    living = is_living(asset.account) or any(is_living(leaf.account) for leaf in targets)
+    if living:                                           # AGD11 / AGD22 : biens vivants en 6571 / 7571 (PCG 618-11)
+        book_value = _living_account("6571") or book_value
     lines, complements = [], []
     for leaf in targets:
         complement = 0
@@ -481,9 +529,10 @@ def dispose(asset: Asset, on: date, kind: str, price_cents: int = 0, sale_id: in
             lines.append({"account_id": book_value.id, "label": leaf.label, "debit_cents": net, "credit_cents": 0})
         lines.append({"account_id": leaf.account_id, "label": leaf.label, "debit_cents": 0, "credit_cents": leaf.acquisition_cents})
     if kind == "sold" and price_cents and not sale_id:
+        proceeds = (_living_account("7571") if living else None) or _role("disposal_proceeds")
         lines += [{"account_id": _role("disposal_receivable").id, "label": f"Cession — {asset.label}",
                    "debit_cents": price_cents, "credit_cents": 0},
-                  {"account_id": _role("disposal_proceeds").id, "label": f"Cession — {asset.label}",
+                  {"account_id": proceeds.id, "label": f"Cession — {asset.label}",
                    "debit_cents": 0, "credit_cents": price_cents}]
     text = ("Cession" if kind == "sold" else "Mise au rebut") + f" — {asset.label}"
     entry = post_entry(fy.id, _journal().id, on, text[:500], [l for l in lines if l["debit_cents"] or l["credit_cents"]],
@@ -498,6 +547,79 @@ def dispose(asset: Asset, on: date, kind: str, price_cents: int = 0, sale_id: in
     asset.disposal_entry_id = entry.id
     db.session.flush()
     return entry
+
+
+def _living_account(code: str) -> Account | None:
+    return Account.query.filter_by(code=code, is_header=False).first()
+
+
+def _share(value: int | None, numerator: int, denominator: int) -> int:
+    return int((Decimal(value or 0) * numerator / denominator).quantize(Decimal(1), "ROUND_HALF_UP"))
+
+
+def split_living(asset: Asset, units: int) -> Asset:
+    """Détache `units` têtes (ou plants) d'un bien vivant ou d'un lot, au **coût moyen** (AGD22, Q-B2) : chaque
+    composant est scindé dans la proportion units ÷ effectif (coût, valeur résiduelle, reprise, dotations passées).
+    Renvoie le bien détaché (fiche parente des parts, ou fiche simple), en service, prêt à sortir (sans commit)."""
+    total = units_of(asset)
+    if not is_living(asset.account) or total is None:
+        raise AssetError("Sortie partielle réservée aux biens vivants avec un effectif.", "units", 422)
+    if isinstance(units, bool) or not isinstance(units, int) or not 0 < units < total:
+        raise AssetError(f"Effectif sorti entre 1 et {total - 1} (sinon, sortie totale).", "units", 422)
+    if asset.status not in ("in_use", "depreciated"):
+        raise AssetError("Bien vivant non en service.", "units", 422)
+    pieces = []
+    left = units
+    sources = [l for l in leaves(asset) if l.status not in ("sold", "scrapped")]
+    for index, leaf in enumerate(sources):
+        piece_units = left if index == len(sources) - 1 else _share(leaf.units, units, total)
+        left -= piece_units
+        piece = Asset(label=leaf.label[:180], account_id=leaf.account_id, depreciation_account_id=leaf.depreciation_account_id,
+                      expense_account_id=leaf.expense_account_id, acquired_on=leaf.acquired_on,
+                      in_service_date=leaf.in_service_date, acquisition_cents=_share(leaf.acquisition_cents, units, total),
+                      residual_cents=_share(leaf.residual_cents, units, total), method=leaf.method,
+                      duration_months=leaf.duration_months, fiscal_coefficient=leaf.fiscal_coefficient,
+                      prior_depreciation_cents=_share(leaf.prior_depreciation_cents, units, total),
+                      prior_as_of=leaf.prior_as_of, project_id=leaf.project_id, status=leaf.status,
+                      living_kind=leaf.living_kind, species=leaf.species, age_class=leaf.age_class,
+                      units=max(piece_units, 0) if leaf.units is not None else None, origin=leaf.origin)
+        db.session.add(piece)
+        db.session.flush()
+        for record in leaf.depreciations:
+            part = _share(record.amount_cents, units, total)
+            db.session.add(AssetDepreciation(asset_id=piece.id, fiscal_year_id=record.fiscal_year_id,
+                                             started_on=record.started_on, stopped_on=record.stopped_on, days=record.days,
+                                             amount_cents=part, entry_id=record.entry_id))
+            record.amount_cents -= part
+        leaf.acquisition_cents -= piece.acquisition_cents
+        leaf.residual_cents = (leaf.residual_cents or 0) - (piece.residual_cents or 0)
+        leaf.prior_depreciation_cents = (leaf.prior_depreciation_cents or 0) - (piece.prior_depreciation_cents or 0)
+        if leaf.units is not None:
+            leaf.units -= piece.units or 0
+        pieces.append(piece)
+    db.session.flush()
+    if len(pieces) == 1:
+        pieces[0].label = f"{asset.label} — sortie de {units}"[:200]
+        return pieces[0]
+    root = Asset(label=f"{asset.label} — sortie de {units}"[:200], account_id=asset.account_id, acquired_on=asset.acquired_on,
+                 in_service_date=asset.in_service_date, acquisition_cents=0, method=asset.method,
+                 duration_months=asset.duration_months, status=asset.status, living_kind=asset.living_kind,
+                 species=asset.species, age_class=asset.age_class, origin=asset.origin)
+    db.session.add(root)
+    db.session.flush()
+    for piece in pieces:
+        piece.parent_id = root.id
+    db.session.flush()
+    db.session.expire(root)
+    return root
+
+
+def living_exit(asset: Asset, on: date, units: int | None, kind: str, price_cents: int = 0, sale_id: int | None = None,
+                user_id=None) -> tuple[Asset, JournalEntry]:
+    """Sortie d'un bien vivant, totale ou partielle (`units` têtes, au coût moyen), par cession ou mise au rebut."""
+    total = units_of(asset)
+    target = asset if units in (None, total) else split_living(asset, units)
+    return target, dispose(target, on, kind, price_cents, sale_id, user_id)
 
 
 # ------------------------------------------------------------------ états
@@ -524,6 +646,8 @@ def payload(asset: Asset, with_schedule: bool = False) -> dict:
         "disposal_date": asset.disposal_date.isoformat() if asset.disposal_date else None,
         "disposal_price_cents": asset.disposal_price_cents, "purchase_line_id": asset.purchase_line_id,
         "notes": asset.notes or "", "components": [payload(c) for c in asset.components],
+        "living": {"kind": asset.living_kind, "species": asset.species, "age_class": asset.age_class,
+                   "units": units_of(asset), "origin": asset.origin} if is_living(asset.account) else None,
         "deletable": not any(l.depreciations for l in leaves(asset)) and not asset.in_service_entry_id
         and not asset.disposal_entry_id,
     }

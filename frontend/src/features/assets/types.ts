@@ -14,8 +14,14 @@ export interface AssetItem {
   project_id: number | null; project: string | null; status: string; status_label: string;
   accumulated_cents: number; net_cents: number; disposal_date: string | null; disposal_price_cents: number | null;
   purchase_line_id: number | null; notes: string; components: AssetItem[]; deletable: boolean; schedule?: ScheduleRow[];
+  /** Bien vivant immobilisé (lot AG5.a), comptes 24x / 234x. */
+  living?: { kind: string; species: string | null; age_class: string | null; units: number | null; origin: string | null } | null;
 }
-export interface AssetsMeta { accounts: Option[]; methods: Option[]; statuses: Option[]; enabled: boolean }
+export interface AssetsMeta { accounts: Option[]; methods: Option[]; statuses: Option[]; enabled: boolean;
+  living_kinds?: Option[]; living_origins?: Option[] }
+
+/** Compte d'un bien vivant (24x, ou 234x en cours) d'après le libellé « code — libellé » des options. */
+export const isLivingAccount = (label: string | undefined) => !!label && /^(24|234)/.test(label);
 
 export const STATUS_TONES: Record<string, "ok" | "todo" | "gap" | "info" | "neutral"> = {
   waiting: "todo", in_use: "ok", depreciated: "info", sold: "neutral", scrapped: "neutral",

@@ -8,7 +8,7 @@ import { useAction, type Notice } from "../../api/resources";
 import { applyApiError, FormBody } from "../../components/ApiForm";
 import { MoneyInput } from "../../components/Money";
 import { useProjectOptions } from "../projects/LineProjectModal";
-import { ASSETS_KEY, type AssetItem, type AssetsMeta } from "./types";
+import { ASSETS_KEY, isLivingAccount, type AssetItem, type AssetsMeta } from "./types";
 
 export function AssetForm({ asset, meta, parentId, onDone }: {
   asset: AssetItem | null; meta: AssetsMeta; parentId?: number; onDone: (item?: AssetItem) => void;
@@ -23,11 +23,15 @@ export function AssetForm({ asset, meta, parentId, onDone }: {
     fiscal_coefficient: asset?.fiscal_coefficient ?? "", prior_depreciation_cents: asset?.prior_depreciation_cents ?? 0,
     prior_as_of: asset?.prior_as_of ?? "", project_id: asset?.project_id ? String(asset.project_id) : "",
     notes: asset?.notes ?? "", waiting: asset ? asset.status === "waiting" : false,
+    living_kind: asset?.living?.kind ?? "", species: asset?.living?.species ?? "", age_class: asset?.living?.age_class ?? "",
+    units: asset?.living?.units != null ? String(asset.living.units) : "", origin: asset?.living?.origin ?? "",
   } });
+  const living = isLivingAccount(meta.accounts.find((o) => o.value === form.values.account_id)?.label);
   const save = useAction((v: typeof form.values) => {
     const body = { ...v, account_id: Number(v.account_id) || null, duration_months: Number(v.duration_months) || null,
       project_id: v.project_id ? Number(v.project_id) : null, parent_id: parentId ?? asset?.parent_id ?? null,
-      in_service_date: v.in_service_date || null, prior_as_of: v.prior_as_of || null, fiscal_coefficient: v.fiscal_coefficient || null };
+      in_service_date: v.in_service_date || null, prior_as_of: v.prior_as_of || null, fiscal_coefficient: v.fiscal_coefficient || null,
+      living_kind: v.living_kind || null, origin: v.origin || null, units: v.units === "" ? null : Number(v.units) };
     return asset ? api.patch<{ item: AssetItem; notices: Notice[] }>(`/api/v1/assets/${asset.id}`, body)
       : api.post<{ item: AssetItem; notices: Notice[] }>("/api/v1/assets", body);
   }, { invalidate: [ASSETS_KEY], silent: true });
@@ -48,6 +52,14 @@ export function AssetForm({ asset, meta, parentId, onDone }: {
           <MoneyInput label="Valeur d'origine" required {...money("acquisition_cents")} />
           <MoneyInput label="Valeur résiduelle" {...money("residual_cents")} />
         </SimpleGrid>
+        {living && (
+          <SimpleGrid cols={{ base: 2, sm: 5 }}>
+            <Select label="Nature" data={meta.living_kinds ?? []} placeholder="selon le compte" clearable {...form.getInputProps("living_kind")} />
+            <TextInput label="Espèce" {...form.getInputProps("species")} />
+            <TextInput label="Catégorie d'âge" {...form.getInputProps("age_class")} />
+            <TextInput label="Effectif (têtes, plants)" inputMode="numeric" {...form.getInputProps("units")} />
+            <Select label="Origine" data={meta.living_origins ?? []} clearable {...form.getInputProps("origin")} />
+          </SimpleGrid>)}
         {!asset && <Checkbox label="Immobilisation en cours (travaux, pas encore utilisée)" {...form.getInputProps("waiting", { type: "checkbox" })} />}
         <SimpleGrid cols={{ base: 2, sm: 3 }}>
           <Select label="Méthode" data={meta.methods} allowDeselect={false} {...form.getInputProps("method")} />

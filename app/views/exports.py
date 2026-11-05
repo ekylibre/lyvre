@@ -361,6 +361,50 @@ def _rfa(year):
     return rfa.compute(year), rfa, organization.get()
 
 
+@bp.route("/fiscal-years/<int:fy_id>/stock.xlsx")
+@login_required
+def stock_xlsx(fy_id):
+    """État d'inventaire de clôture (lot AG4.d) : lignes, méthodes, valeurs, dépréciations, total par catégorie."""
+    from app.models import FiscalYear, StockLine
+    from app.models.stock import STOCK_METHODS, STOCK_UNITS
+    from app.models.stock import FISCAL_METHODS
+    from app.services import stock_entry, stock_inventory as inv, stock_tax
+
+    if not inv.enabled():
+        abort(404)
+    fy = db.session.get(FiscalYear, fy_id) or abort(404)
+    discount_map = inv.discounts(fy)
+    labels = {c["key"]: c["label"] for c in inv.categories()}
+    wb = Workbook()
+    wb.remove(wb.active)
+    rows, totals = [], {}
+    for line in StockLine.query.filter_by(fiscal_year_id=fy.id).order_by(StockLine.position, StockLine.id):
+        unit, value, warnings = inv.evaluate(line, fy, discount_map)
+        fiscal = stock_tax.fiscal_value(line, fy)
+        rows.append([labels.get(line.category, line.category), line.account.code, line.variation_account.code, line.label,
+                     line.production, float(line.quantity or 0), STOCK_UNITS.get(line.unit, line.unit),
+                     STOCK_METHODS.get(line.method, line.method), (unit or 0) / 100 if unit is not None else None,
+                     (value or 0) / 100 if value is not None else None, (line.depreciation_cents or 0) / 100 or None,
+                     line.depreciation_reason, FISCAL_METHODS.get(fiscal["fiscal_method"], ""),
+                     fiscal["fiscal_value_cents"] / 100 if fiscal["fiscal_value_cents"] is not None else None,
+                     fiscal["gap_cents"] / 100 if fiscal["gap_cents"] is not None else None,
+                     "; ".join([*warnings, *fiscal["warnings"]])])
+        totals[line.category] = totals.get(line.category, 0) + (value or 0)
+    _sheet(wb, f"Inventaire {fy.label}", ["Catégorie", "Compte", "Variation", "Libellé", "Production", "Quantité", "Unité",
+                                          "Méthode", "Valeur unitaire", "Valeur", "Dépréciation", "Motif",
+                                          "Méthode fiscale", "Valeur fiscale", "Écart fiscal", "Contrôles"],
+           rows, (9, 10, 11, 14, 15))
+    status = stock_entry.status(fy)
+    summary = [[labels.get(k, k), v / 100] for k, v in totals.items()]
+    summary += [["Stock final", status["final_cents"] / 100], ["Stock initial (avant écriture)", status["opening_cents"] / 100],
+                ["Variation", status["variation_cents"] / 100], ["Dépréciations", status["depreciation_cents"] / 100]]
+    tax = stock_tax.totals(fy)
+    summary += [["Valeur fiscale des stocks", tax["fiscal_cents"] / 100],
+                ["Écart fiscal (tableau de passage)", tax["gap_cents"] / 100]]
+    _sheet(wb, "Totaux", ["Élément", "Montant"], summary, (2,))
+    return _response(wb, f"inventaire-{fy.label}.xlsx")
+
+
 @bp.route("/rfa/<int:year>.xlsx")
 @login_required
 def rfa_xlsx(year):

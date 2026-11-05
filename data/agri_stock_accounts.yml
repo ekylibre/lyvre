@@ -1,0 +1,96 @@
+# Inventaire de clôture (lot AG4, claudedocs/design_inventaire_agricole.md § 3, décision AGD21).
+#
+# Catégories de stock du plan agricole (Recueil PCG 2026, titre 5) : comptes de stock (préfixes, le plus long
+# l'emporte), compte de variation proposé (modifiable par ligne) et méthodes de valorisation permises.
+# - Prix de détail : interdit pour les approvisionnements achetés (PCG 618-13, 4°) et les avances aux cultures
+#   (PCG 618-14, 2°).
+# - Forfaitaire : jamais pour les approvisionnements achetés ni les avances aux cultures.
+# - Animaux achetés (AGD21, Q-S2) : charge 60117 à l'achat, puis stock sur la même variation que les animaux nés.
+# `purchase` : compte de charge correspondant, pour le repère « achats de l'exercice » du coût réel.
+categories:
+  - key: supplies
+    group: supplies
+    label: Approvisionnements
+    methods: [actual, standard]
+    accounts:
+      - {prefix: "31111", variation: "6031", purchase: "60111"}
+      - {prefix: "31112", variation: "6031", purchase: "60112"}
+      - {prefix: "31113", variation: "6031", purchase: "60113"}
+      - {prefix: "31114", variation: "6031", purchase: "60114"}
+      - {prefix: "31115", variation: "6031", purchase: "60115"}
+      - {prefix: "31116", variation: "6031", purchase: "60116"}
+      - {prefix: "3111", variation: "6031", purchase: "6011"}
+      - {prefix: "311", variation: "6031"}
+      - {prefix: "31", variation: "6031"}           # compte 31 tenu sans détail (dossiers repris)
+  - key: other_supplies
+    group: supplies
+    label: Autres approvisionnements (carburant, emballages, fournitures)
+    methods: [actual]
+    accounts:
+      - {prefix: "32", variation: "6032"}
+  - key: goods
+    group: supplies
+    label: Marchandises
+    methods: [actual]
+    accounts:
+      - {prefix: "37", variation: "6037", purchase: "607"}
+  - key: animals_long
+    group: animals
+    label: Animaux, cycle long (non immobilisés)
+    methods: [actual, standard, retail, flat]
+    accounts:
+      - {prefix: "3112", variation: "713551", purchase: "60117"}
+  - key: animals_short
+    group: animals
+    label: Animaux, cycle court
+    methods: [actual, standard, retail, flat]
+    accounts:
+      - {prefix: "3113", variation: "713552", purchase: "60117"}
+  - key: crop_advances
+    group: crops
+    label: Avances aux cultures
+    methods: [crop_advance, actual, standard]
+    accounts:
+      - {prefix: "31141", variation: "713311"}
+      - {prefix: "31151", variation: "713312"}
+  - key: plants
+    group: crops
+    label: Pépinières et autres végétaux
+    methods: [actual, standard, retail, flat]
+    accounts:
+      - {prefix: "31142", variation: "713553"}
+      - {prefix: "31148", variation: "713553"}
+      - {prefix: "3114", variation: "713553"}
+      - {prefix: "31152", variation: "713554"}
+      - {prefix: "31158", variation: "713554"}
+      - {prefix: "3115", variation: "713554"}
+  - key: in_progress
+    group: products
+    label: En-cours de production
+    methods: [actual, standard, retail, flat]
+    accounts:
+      - {prefix: "3311", variation: "713311"}
+      - {prefix: "3312", variation: "713312"}
+      - {prefix: "331", variation: "71331"}
+      - {prefix: "33", variation: "7133"}
+  - key: intermediate
+    group: products
+    label: Produits intermédiaires
+    methods: [actual, standard, retail, flat]
+    accounts:
+      - {prefix: "351", variation: "71351"}
+  - key: finished
+    group: products
+    label: Produits finis
+    methods: [actual, standard, retail, flat]
+    accounts:
+      - {prefix: "35511", variation: "713554"}
+      - {prefix: "35512", variation: "713552"}
+      - {prefix: "35513", variation: "71355"}
+      - {prefix: "355", variation: "71355"}
+      - {prefix: "35", variation: "7135"}
+groups:
+  supplies: Approvisionnements
+  animals: Animaux
+  crops: Végétaux en terre
+  products: En-cours et produits

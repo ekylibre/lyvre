@@ -7,7 +7,8 @@ import { MoneyText } from "../../components/Money";
 
 interface Row { key: string; label: string; opening: number; closing: number }
 interface Group { key: string; label: string; rows: Row[]; total: { opening: number; closing: number } }
-interface Response { item: { groups: Group[]; total: { opening: number; closing: number } } }
+interface Headcount { kind: string; label: string; opening: number; entries: number; exits: number; closing: number }
+interface Response { item: { groups: Group[]; total: { opening: number; closing: number }; headcount?: Headcount[] } }
 
 const AMOUNT = { width: 150, whiteSpace: "nowrap" } as const;
 const ROMAN = ["I", "II"];
@@ -18,7 +19,7 @@ export function LivingAssetsTable({ fyId }: { fyId: string }) {
     queryFn: () => api.get<Response>(`/api/v1/reports/living-assets${fyId ? `?fy_id=${fyId}` : ""}`),
   });
   if (!data) return null;
-  const { groups, total } = data.item;
+  const { groups, total, headcount = [] } = data.item;
   return (
     <Paper p={0} mt="lg" style={{ overflowX: "auto" }}>
       <Title order={3} size="h5" p="sm">Annexe : biens vivants et en-cours de production</Title>
@@ -50,6 +51,22 @@ export function LivingAssetsTable({ fyId }: { fyId: string }) {
           </Table.Tr>
         </Table.Tbody>
       </Table>
+      {headcount.length > 0 && (
+        <>
+          <Title order={4} size="h6" p="sm">Effectifs des biens vivants immobilisés</Title>
+          <Table verticalSpacing={6} style={{ minWidth: 520 }}>
+            <Table.Thead bg="var(--lv-sauge)">
+              <Table.Tr><Table.Th>Nature</Table.Th><Table.Th ta="right">Ouverture</Table.Th><Table.Th ta="right">Entrées</Table.Th>
+                <Table.Th ta="right">Sorties</Table.Th><Table.Th ta="right">Clôture</Table.Th></Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {headcount.map((h) => (
+                <Table.Tr key={h.kind}><Table.Td><Text size="sm">{h.label}</Text></Table.Td>
+                  <Table.Td ta="right" className="lv-num">{h.opening}</Table.Td><Table.Td ta="right" className="lv-num">{h.entries}</Table.Td>
+                  <Table.Td ta="right" className="lv-num">{h.exits}</Table.Td><Table.Td ta="right" className="lv-num">{h.closing}</Table.Td></Table.Tr>))}
+            </Table.Tbody>
+          </Table>
+        </>)}
     </Paper>
   );
 }

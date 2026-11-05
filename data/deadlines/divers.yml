@@ -61,3 +61,18 @@
   summary: Fiscalité du gazole non routier agricole modifiée par la loi de finances pour 2024 (hausse progressive, remboursement partiel) ; dispositif et date limite à vérifier.
   events: []
   reliability: I
+
+- id: DIV-06
+  title: Reconstitution du cheptel après abattage sanitaire
+  domain: divers
+  organism: Exploitation
+  summary: Indemnité d'abattage sanitaire exonérée si elle est réinvestie dans la reconstitution du cheptel dans les 2 ans ; la part non réinvestie est réintégrée (art. 75-0 D, à vérifier ; calcul en AG6).
+  applies: {bookkeeping: [double]}
+  events:
+    - label: Date limite de reconstitution du cheptel
+      rule: {type: lyvre, source: living_reinvestments}
+      reminders: [180, 60, 15]
+      action: {label: Voir les biens vivants, route: "/assets/?living=1"}
+  lyvre_data: Registre des abattages sanitaires (indemnité, valeur nette, montant réinvesti).
+  reliability: A
+

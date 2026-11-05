@@ -190,6 +190,6 @@ from . import (  # noqa: E402,F401
     sirene,
     simple_categories, subscriptions,
     simple_operations, simple_reports,
-    task_types, users, agenda, aids, rfa, vat_books, vat_returns,
+    task_types, users, agenda, aids, rfa, stock, vat_books, vat_returns,
     work_times,
 )

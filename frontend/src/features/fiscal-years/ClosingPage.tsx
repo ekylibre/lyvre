@@ -30,6 +30,9 @@ import { PrepaidPanel } from "./PrepaidPanel";
 import { DepreciationPanel } from "./DepreciationPanel";
 import { AidAccrualPanel } from "../aids/AidAccrualPanel";
 import { GrantReleasePanel } from "../aids/GrantReleasePanel";
+import { ClosingStockPanel } from "../stock/StockEntryBar";
+import { LivingWipPanel } from "../assets/LivingWipPanel";
+import { LivingImpairmentPanel } from "../assets/LivingImpairmentPanel";
 import { FISCAL_YEARS_KEY, type FiscalYear } from "./FiscalYearsPage";
 
 type StepState = "todo" | "done" | "skipped" | "provisional";
@@ -218,7 +221,9 @@ function Inventory({ view }: { view: ClosingView }) {
   const fyId = view.fiscal_year.id;
   const editable = can.write && view.fiscal_year.status === "open";
   const remove = useClosingAction(fyId, (entryId: number) => api.delete(`/api/v1/fiscal-years/${fyId}/inventory/${entryId}`));
-  const withAssociates = !!useCurrentSession().instance?.has_associates;
+  const session = useCurrentSession();
+  const withAssociates = !!session.instance?.has_associates;
+  const agri = session.instance?.chart === "agri";
   return (
     <Stack>
       {view.inventory.length ? (
@@ -244,6 +249,9 @@ function Inventory({ view }: { view: ClosingView }) {
       ) : <Text size="sm" c="dimmed">Aucune écriture d'inventaire.</Text>}
       <DepreciationPanel fyId={fyId} editable={editable} />
       <PrepaidPanel fyId={fyId} editable={editable} />
+      {agri && <ClosingStockPanel fyId={fyId} editable={editable} />}
+      {agri && <LivingWipPanel fyId={fyId} editable={editable} />}
+      {agri && <LivingImpairmentPanel fyId={fyId} editable={editable} />}
       <AidAccrualPanel fyId={fyId} editable={editable} />
       <GrantReleasePanel fyId={fyId} editable={editable} />
       {editable && <InventoryForm view={view} />}

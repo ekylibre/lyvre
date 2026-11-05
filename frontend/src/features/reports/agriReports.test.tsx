@@ -24,7 +24,8 @@ beforeEach(() => {
         total: { opening: 0, closing: 182000000 } },
       { key: "court", label: "Biens vivants (cycle court)", rows: [{ key: "vegetaux", label: "Végétaux", opening: 0, closing: 30000000 }],
         total: { opening: 0, closing: 30000000 } }],
-      total: { opening: 0, closing: 212000000 } }, meta: META });
+      total: { opening: 0, closing: 212000000 },
+      headcount: [{ kind: "breeding", label: "Animaux reproducteurs", opening: 0, entries: 20, exits: 5, closing: 15 }] }, meta: META });
     if (url.startsWith("/api/v1/reports/bilan")) return json({ actif: [], passif: [], meta: { ...META, layout: "agri_ei" } });
     return json({ items: [] });
   }) as typeof fetch);
@@ -42,6 +43,8 @@ describe("états agricoles", () => {
     renderWithProviders(<BilanPage />, { session: session("agri") });
     expect(await screen.findByText("Annexe : biens vivants et en-cours de production")).toBeInTheDocument();
     expect(screen.getByText("TOTAL GÉNÉRAL (I + II)")).toBeInTheDocument();
+    expect(screen.getByText("Effectifs des biens vivants immobilisés")).toBeInTheDocument();
+    expect(screen.getByText("Animaux reproducteurs")).toBeInTheDocument();
   });
 
   it("pas d'annexe pour une société", async () => {

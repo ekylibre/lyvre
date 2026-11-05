@@ -13,11 +13,14 @@ SOURCE_DEDICATED_FUND = "DEDICATED_FUND"  # dotation / utilisation de fonds déd
 SOURCE_DEPRECIATION = "DEPRECIATION"      # dotations aux amortissements de l'exercice (lot F5)
 SOURCE_AID_GRANT = "AID_GRANT"            # octroi d'une subvention d'investissement, D 441 / C 131 (lot AG3.d)
 SOURCE_AID_RELEASE = "AID_RELEASE"        # reprise des subventions d'investissement, D 139 / C 747 (lot AG3.d)
+SOURCE_STOCK = "STOCK"                    # inventaire des stocks à la clôture, non extourné (lot AG4.d)
+SOURCE_LIVING_WIP = "LIVING_WIP"          # coûts de croissance des biens vivants en cours, D 234x / C 7222 (lot AG5.b)
+SOURCE_LIVING_IMPAIRMENT = "LIVING_IMPAIRMENT"  # dépréciation des biens vivants, 68164 / 294 / 78164 (lot AG5.c)
 CLOSING_SOURCES = (SOURCE_OPENING, SOURCE_REVERSAL, SOURCE_ALLOCATION, SOURCE_CLOSING)
 # Écritures produites par l'assistant de clôture : modifiées ou supprimées seulement par lui.
 SOURCE_VAT_RETURN = "VAT_RETURN"          # liquidation d'une déclaration de TVA (lot T3)
 MANAGED_SOURCES = (*CLOSING_SOURCES, SOURCE_INVENTORY, SOURCE_DEDICATED_FUND, SOURCE_DEPRECIATION, SOURCE_VAT_RETURN,
-                   SOURCE_AID_GRANT, SOURCE_AID_RELEASE)
+                   SOURCE_AID_GRANT, SOURCE_AID_RELEASE, SOURCE_STOCK, SOURCE_LIVING_WIP, SOURCE_LIVING_IMPAIRMENT)
 # Écriture d'une facture ou d'un avoir de vente émis : ni modifiée ni supprimée (on passe un avoir).
 SOURCE_SALE = "SALE"
 SALE_LOCKED_MESSAGE = "Écriture d'une facture de vente émise : elle se corrige par un avoir (Ventes)."

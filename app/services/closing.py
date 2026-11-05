@@ -214,6 +214,22 @@ def _agri_checks(fy) -> list[Check]:
     if unlinked:
         found.append(Check("aid_unlinked", "Virements reçus d'un payeur d'aides (ASP, FranceAgriMer, Région…) rattachés "
                            "à aucun dossier d'aide", len(unlinked), "info", "/aids/"))
+    from app.services import stock_entry    # lot AG4.d
+
+    from app.services import stock_tax    # lot AG4.e
+
+    for key, label, count, severity in [*stock_entry.checks(fy), *stock_tax.checks(fy)]:
+        found.append(Check(key, label, count, severity, f"/inventory/?fiscal_year={fy.id}"))
+    from app.services import living_assets    # lot AG5.b
+
+    from app.services import living_exits    # lot AG5.c
+
+    from app.services import stock_lots    # lot AG5.d
+
+    for key, label, count, severity in stock_lots.checks(fy):
+        found.append(Check(key, label, count, severity, f"/inventory/?fiscal_year={fy.id}&group=animals"))
+    for key, label, count, severity in [*living_assets.checks(fy), *living_exits.checks(fy)]:
+        found.append(Check(key, label, count, severity, f"/fiscal-years/{fy.id}/closing"))
     from app.services import aid_closing    # lot AG3.c
 
     for key, label, count, severity in aid_closing.checks(fy):

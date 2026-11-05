@@ -20,21 +20,62 @@ import { ASSETS_KEY, STATUS_TONES, type AssetItem, type AssetsMeta } from "./typ
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+const LIVING_KINDS = [{ value: "sale", label: "Cession" }, { value: "death", label: "Mort" }, { value: "casualty", label: "Sinistre" },
+  { value: "sanitary_slaughter", label: "Abattage sanitaire" }, { value: "scrap", label: "Rebut" }];
+
+/** Sortie d'un bien vivant (lot AG5.c) : cession, mort, sinistre, abattage sanitaire, rebut ; totale ou partielle. */
+function LivingExitForm({ asset, onDone }: { asset: AssetItem; onDone: () => void }) {
+  const [kind, setKind] = useState("sale");
+  const [on, setOn] = useState(today());
+  const [amount, setAmount] = useState<number | null>(null);
+  const total = asset.living?.units ?? null;
+  const [units, setUnits] = useState<string>(total != null ? String(total) : "");
+  const indemnity = ["death", "casualty", "sanitary_slaughter"].includes(kind);
+  const save = useAction(() => api.post<{ notices: Notice[] }>(`/api/v1/assets/${asset.id}/living-exits`, {
+    date: on, kind, units: units === "" ? null : Number(units),
+    ...(kind === "sale" ? { price_cents: amount ?? 0 } : indemnity ? { indemnity_cents: amount ?? 0 } : {}) }), { invalidate: [ASSETS_KEY] });
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); save.mutate(undefined, { onSuccess: onDone }); }}>
+      <FormBody submitLabel="Enregistrer la sortie" onCancel={onDone} loading={save.isPending}>
+        <SegmentedControl value={kind} onChange={setKind} data={LIVING_KINDS} />
+        <TextInput label="Date de sortie" type="date" required value={on} onChange={(e) => setOn(e.currentTarget.value)} />
+        {total != null && <TextInput label={`Effectif sorti (sur ${total})`} inputMode="numeric" value={units}
+          onChange={(e) => setUnits(e.currentTarget.value)}
+          description="Moins que l'effectif : sortie partielle au coût moyen du lot (chaque composant scindé au prorata)." />}
+        {(kind === "sale" || indemnity) && <MoneyInput label={kind === "sale" ? "Prix de cession" : "Indemnité (assurance, État)"}
+          value={amount} onChange={setAmount} description={kind === "sale" ? "Sans facture de vente : 462 / 7571." : "Créance 462 / produit 7571."} />}
+        <Text size="xs" c="dimmed">Dotation complémentaire jusqu'à la date, valeur nette en 6571 (résultat d'exploitation).
+          {kind === "sanitary_slaughter" && " L'abattage sanitaire ouvre le registre de reconstitution du cheptel (2 ans)."}</Text>
+      </FormBody>
+    </form>
+  );
+}
+
 function DisposeForm({ asset, onDone }: { asset: AssetItem; onDone: () => void }) {
   const [kind, setKind] = useState<"sold" | "scrapped">("sold");
   const [on, setOn] = useState(today());
   const [price, setPrice] = useState<number | null>(null);
-  const save = useAction(() => api.post<{ notices: Notice[] }>(`/api/v1/assets/${asset.id}/dispose`, { date: on, kind, price_cents: price ?? 0 }),
-    { invalidate: [ASSETS_KEY] });
+  const total = asset.living?.units ?? null;
+  const [units, setUnits] = useState<string>(total != null ? String(total) : "");
+  const living = !!asset.living;
+  const save = useAction(() => (living
+    ? api.post<{ notices: Notice[] }>(`/api/v1/assets/${asset.id}/living-exit`, { date: on, kind, price_cents: price ?? 0,
+      units: units === "" ? null : Number(units) })
+    : api.post<{ notices: Notice[] }>(`/api/v1/assets/${asset.id}/dispose`, { date: on, kind, price_cents: price ?? 0 })),
+  { invalidate: [ASSETS_KEY] });
   return (
     <form onSubmit={(e) => { e.preventDefault(); save.mutate(undefined, { onSuccess: onDone }); }}>
       <FormBody submitLabel="Enregistrer la sortie" onCancel={onDone} loading={save.isPending}>
         <SegmentedControl value={kind} onChange={(v) => setKind(v as "sold" | "scrapped")}
           data={[{ value: "sold", label: "Cession" }, { value: "scrapped", label: "Mise au rebut" }]} />
         <TextInput label="Date de sortie" type="date" required value={on} onChange={(e) => setOn(e.currentTarget.value)} />
+        {living && total != null && <TextInput label={`Effectif sorti (sur ${total})`} inputMode="numeric" value={units}
+          onChange={(e) => setUnits(e.currentTarget.value)}
+          description="Moins que l'effectif : sortie partielle au coût moyen du lot (chaque composant scindé au prorata)." />}
         {kind === "sold" && <MoneyInput label="Prix de cession" value={price} onChange={setPrice}
           description="Sans facture de vente : créance 462 / produit 775." />}
-        <Text size="xs" c="dimmed">Dotation complémentaire jusqu'à la date, sortie de l'actif (valeur nette en 675).</Text>
+        <Text size="xs" c="dimmed">{living ? "Bien vivant : dotation complémentaire, valeur nette en 6571, prix en 7571 (cession habituelle, résultat d'exploitation)."
+          : "Dotation complémentaire jusqu'à la date, sortie de l'actif (valeur nette en 675)."}</Text>
       </FormBody>
     </form>
   );
@@ -85,7 +126,8 @@ export default function AssetDetailPage() {
       <SimpleGrid cols={{ base: 2, md: 4 }} mb="md">
         <Paper p="md"><Text size="sm" c="dimmed">Valeur d'origine</Text><MoneyText cents={a.acquisition_cents} fw={700} /></Paper>
         <Paper p="md"><Text size="sm" c="dimmed">Amortissements</Text><MoneyText cents={a.accumulated_cents} fw={700} /></Paper>
-        <Paper p="md"><Text size="sm" c="dimmed">Valeur nette</Text><MoneyText cents={a.net_cents} fw={700} /></Paper>
+        <Paper p="md"><Text size="sm" c="dimmed">Valeur nette</Text><MoneyText cents={a.net_cents} fw={700} />
+          {a.living?.units ? <Text size="xs" c="dimmed">{a.living.units} {a.living.species ?? ""} · <MoneyText cents={Math.round(a.net_cents / a.living.units)} /> par tête</Text> : null}</Paper>
         <Paper p="md"><Text size="sm" c="dimmed">Plan</Text><Text>{a.method_label}{a.duration_months ? ` · ${a.duration_months} mois` : ""}
           {a.fiscal_coefficient ? ` · coef. ${a.fiscal_coefficient.replace(".", ",")}` : ""}</Text>
           <Text size="xs" c="dimmed">{`Acquise le ${formatDate(a.acquired_on)}${a.in_service_date ? `, en service le ${formatDate(a.in_service_date)}` : ""}`}</Text></Paper>
@@ -125,7 +167,8 @@ export default function AssetDetailPage() {
           parentId={modal === "component" ? a.id : undefined} onDone={() => setModal(null)} />}
       </FormModal>
       <FormModal opened={modal === "dispose"} onClose={() => setModal(null)} title={`Sortie de ${a.label}`}>
-        {modal === "dispose" && <DisposeForm asset={a} onDone={() => setModal(null)} />}
+        {modal === "dispose" && (a.living ? <LivingExitForm asset={a} onDone={() => setModal(null)} />
+          : <DisposeForm asset={a} onDone={() => setModal(null)} />)}
       </FormModal>
       <FormModal opened={modal === "service"} onClose={() => setModal(null)} title={`Mise en service de ${a.label}`}>
         {modal === "service" && <InServiceForm asset={a} meta={data.meta} onDone={() => setModal(null)} />}

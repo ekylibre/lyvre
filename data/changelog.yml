@@ -3,6 +3,69 @@
 # kind : new | improved | fixed | action ; structure : asso | sci (absent : toutes) ;
 # text : pour l'utilisateur ; tech : précision pour CHANGELOG.md seulement.
 next:
+- kind: improved
+  structure: agri
+  text: Contrôles des biens vivants — un reproducteur laissé en stock est signalé à l'inventaire et à la clôture (sauf
+    option « reproducteurs maintenus en stock » du profil fiscal), et l'annexe du bilan donne les effectifs des biens
+    vivants immobilisés (ouverture, entrées, sorties, clôture).
+  tech: option breeders_in_stock, stock_lots.breeder_warning / checks, agri_reports.living_headcount (lot AG5.d).
+- kind: new
+  structure: agri
+  text: Mort, sinistre et abattage sanitaire des biens vivants — la sortie d'un animal ou d'un lot passe sa valeur nette
+    en 6571 et l'indemnité en 7571 ; l'abattage sanitaire ouvre un registre de reconstitution du cheptel sur 2 ans,
+    rappelé dans l'échéancier ; les biens vivants se déprécient à la clôture (294).
+  tech: app/services/living_exits.py, tables asset_living_exits / living_reinvestments / asset_impairments (migration
+    b0c2d4e6f8a9), source LIVING_IMPAIRMENT, fiche DIV-06, /api/v1/assets/<id>/living-exits (lot AG5.c).
+- kind: new
+  structure: agri
+  text: Biens vivants en cours et entrées en production — à la clôture, les coûts de croissance des animaux et
+    plantations pas encore en production passent en en-cours (234 / 7222), puis la mise en service les vire en 24 ;
+    un animal du stock qui devient reproducteur entre dans les immobilisations depuis son lot (24 / 724).
+  tech: app/services/living_assets.py, table living_wip_costs, stock_lot_movements.asset_id (migration a9b1c3d5e7f8),
+    source LIVING_WIP, /api/v1/fiscal-years/<id>/closing/living-wip, POST /api/v1/stock-lots/<id>/to-fixed-assets
+    (lot AG5.b).
+- kind: new
+  structure: agri
+  text: Biens vivants immobilisés — reproducteurs, animaux de service et plantations ont leur nature, espèce, catégorie
+    d'âge et effectif ; un lot se sort en partie au coût moyen, et la cession d'un bien vivant passe en 6571 / 7571.
+  tech: colonnes assets.living_kind / species / age_class / units / origin (migration f8a0b2c4d6e7), assets.split_living,
+    POST /api/v1/assets/<id>/living-exit, GET /api/v1/assets?living=1 (lot AG5.a).
+- kind: new
+  structure: agri
+  text: Valeur fiscale des stocks — à côté de la valeur comptable, chaque ligne d'inventaire peut prendre la méthode
+    forfaitaire (20 %, 30 % pour les bovins et la viticulture), le stock bloqué de l'art. 72 B bis ou une valeur saisie ;
+    l'écart avec la comptabilité est calculé pour le tableau de passage fiscal et figure dans l'export.
+  tech: app/services/stock_tax.py, colonnes stock_lines.fiscal_* (migration e7f9a1b3c5d6), contrôles stock_fiscal (lot AG4.e).
+- kind: new
+  structure: agri
+  text: Écriture de stock à la clôture — depuis l'inventaire, Lyvre annule le stock initial et constate le stock final
+    compte par compte, avec les dépréciations, sans extourne à l'ouverture ; la clôture signale un inventaire oublié ou
+    modifié depuis l'écriture, et l'état d'inventaire s'exporte en XLSX.
+  tech: app/services/stock_entry.py, source STOCK, POST/DELETE /api/v1/fiscal-years/<id>/stock/entry,
+    /fiscal-years/<id>/stock.xlsx, contrôles stock_* (lot AG4.d).
+- kind: new
+  structure: agri
+  text: Avances aux cultures — une fiche par culture en terre à la clôture, valorisée au coût standard de vos barèmes
+    par hectare et par mois (variantes F, M1, M2) ou au coût réel des charges de l'art. 72 A cochées avec leur
+    quote-part ; elle alimente sa ligne d'inventaire.
+  tech: app/services/crop_advances.py, tables crop_standards / crop_standard_rows / crop_advances / crop_advance_costs
+    (migration d6e8f0a2b4c5), /api/v1/crop-advances, /api/v1/crop-standards (lot AG4.c).
+- kind: new
+  structure: agri
+  text: Lots d'animaux — à l'inventaire, chaque lot (espèce, catégorie d'âge, destination) suit ses naissances, achats,
+    ventes, morts et passages d'un lot à l'autre ; Lyvre en déduit l'effectif théorique et signale l'écart avec
+    l'effectif compté.
+  tech: app/services/stock_lots.py, tables stock_lots / stock_lot_movements, colonnes stock_lines.lot_id / heads /
+    gap_reason (migration c5d7e9f1a3b4), /api/v1/stock-lots (lot AG4.b).
+- kind: new
+  structure: agri
+  text: Inventaire de clôture — les stocks de l'exercice ligne par ligne (approvisionnements, animaux, végétaux en terre,
+    en-cours et produits), valorisés au coût réel, au coût standard, au prix de détail moins une décote par catégorie
+    ou à la méthode forfaitaire, avec les feuilles de comptage, la reprise de l'exercice précédent et l'import d'un
+    tableur.
+  tech: data/agri_stock_accounts.yml, data/agri_price_references.yml, data/regulatory/stock.json,
+    app/services/stock_inventory.py, tables stock_* (migration b4c6d8e0f2a3), /api/v1/fiscal-years/<id>/stock,
+    /api/v1/stock-standards (lot AG4.a).
 - kind: new
   structure: agri
   text: Montants PAC publiés — l'écran des aides compare, pour une année, les aides publiées par l'ASP pour votre SIREN

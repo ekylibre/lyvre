@@ -8,7 +8,7 @@ from .journal_entry import JournalEntry
 from .journal_line import JournalLine
 from .validation import EntryEvent, ValidationBatch
 from .lettering import AccountRole, Lettering
-from .asset import Asset, AssetDepreciation
+from .asset import Asset, AssetDepreciation, AssetImpairment, AssetLivingExit, LivingReinvestment, LivingWipCost
 from .data_import import AccountMapping, ImportProfile
 from .bank_account import BankAccount
 from .bank_statement import BankStatement
@@ -59,6 +59,7 @@ from .tax_profile import TaxOption, TaxProfile
 from .regulatory_value import RegulatoryValue
 from .micro_receipts import MicroReceiptsYear
 from .rfa import RfaAttestation, RfaClaim
+from .stock import CropAdvance, CropAdvanceCost, CropStandard, CropStandardRow, StockCountFile, StockLine, StockLot, StockLotMovement, StockSettings, StockStandard
 from .aid import Aid, AidAccrual, AidAsset, AidPayment, AidRelease, CapPublished
 from .deadline_state import DeadlineState
 from .agenda_subscription import AgendaSubscription
@@ -74,6 +75,16 @@ __all__ = [
     "AidAsset",
     "AidRelease",
     "CapPublished",
+    "CropAdvance",
+    "CropAdvanceCost",
+    "CropStandard",
+    "CropStandardRow",
+    "StockCountFile",
+    "StockLine",
+    "StockLot",
+    "StockLotMovement",
+    "StockSettings",
+    "StockStandard",
     "MicroReceiptsYear",
     "TaxOption",
     "TaxProfile",
@@ -95,6 +106,10 @@ __all__ = [
     "AccountMapping",
     "ImportProfile",
     "AssetDepreciation",
+    "LivingWipCost",
+    "AssetImpairment",
+    "AssetLivingExit",
+    "LivingReinvestment",
     "Lettering",
     "ValidationBatch",
     "BankAccount",
