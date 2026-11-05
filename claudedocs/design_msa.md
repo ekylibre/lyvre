@@ -17,6 +17,115 @@
 > - **§ 6** : en société, écriture D 455 de l'associé / C 512, sans 646. La ligne CSG du résultat fiscal ne vaut que pour l'EI. Pour un associé, la déductibilité de ses cotisations personnelles sur sa quote-part est seulement affichée, **à valider**.
 > - **§ 7** : estimation dans AG7.e.
 >
+> **AG7.a réalisé (05/11/2026, non commité)**. Contenu :
+> - tables `msa_people` (exploitant suivi : statut, option d'assiette), `msa_bases` (assiette par année, source `lyvre` ou `entered`) et `msa_adjustments` (lignes saisies) ; migration `b6c8d0e2f4a6` ;
+> - paramètres `data/regulatory/msa.json` : PASS 2026, taux de 26 %, plancher et plafond, taux de CSG et de CRDS ;
+> - `app/services/msa.py` :
+>   - exploitants suivis : l'exploitant de l'EI, ou les associés exploitants, dont la fiche est créée d'office ;
+>   - passage du résultat fiscal à l'assiette :
+>     - réintégrations : JA de l'exploitant, stock bloqué (lignes `frozen`), cotisations 646 moins la ligne CSG du résultat fiscal (EI seulement) ;
+>     - déduction de la DJA : part d'exploitation l'exercice de la décision, et reprises 139 ;
+>     - lignes saisies (à-valoir 72 F, autres avec motif) ;
+>   - abattement borné, plancher aussi en cas de déficit ;
+>   - assiette enregistrée dans l'historique une fois le résultat fiscal figé ;
+> - API :
+>   - `/fiscal-years/<id>/msa` ;
+>   - `…/msa/adjustments` (POST, DELETE) ;
+>   - `PATCH /msa/people/<id>` ;
+> - export `/fiscal-years/<id>/msa.xlsx` ;
+> - écran Compta › **Cotisations MSA** (`/msa/`).
+>
+> Écarts et points à valider :
+> - **PASS retenu** : celui de l'année de cotisation (N+1). S'il n'est pas encore publié, le dernier PASS connu est retenu, avec une alerte ;
+> - **DJA en société** : répartie comme le résultat, et non attribuée au seul associé JA ;
+> - **revenus antérieurs à 2025** : pas de calcul, l'assiette est à saisir (AG7.b) ;
+> - **membres de la famille non participants** et **dividendes** : non traités.
+>
+> Tests : `tests/api/test_msa.py` (5), `frontend/src/features/msa/msa.test.tsx` (1).
+>
+> **AG7.b réalisé (05/11/2026, non commité)**. Contenu :
+> - `msa.history`, `msa.comparison` et `msa.save_base` / `delete_base` :
+>   - les assiettes saisies (`entered`) sont modifiables ; celles calculées à la clôture (`lyvre`) ne le sont pas (409) ;
+>   - **comparaison** pour l'année de cotisation C = N + 1 : assiette annuelle (revenus N) contre moyenne des revenus N, N − 1 et N − 2, avec les années manquantes, l'écart, la plus basse et l'assiette retenue selon l'option ;
+>   - **option** : délai d'option au 30/06 de C ; si l'option annuelle est en vigueur, fin de l'engagement de 5 ans et dénonciation au 30/11 (6 ans sans nouvelle option ensuite) ;
+>   - **notes** : revenus d'avant 2025 reconstitués par la caisse, à saisir depuis l'avis ; expérimentation sur l'assiette N pour les cotisations 2027 et 2028 ;
+> - API `PUT` et `DELETE /msa/people/<id>/bases/<année>` ; l'option se modifie par `PATCH /msa/people/<id>` (AG7.a) ;
+> - écran : bloc « Assiette des cotisations C » et historique saisissable par exploitant (`MsaOptionPanel.tsx`) ;
+> - fiche **SOC-03** complétée : dénonciation au 30/11, durée, rente du sol, sources MSA, fiabilité R.
+>
+> Écart : la moyenne triennale est un arrondi de la moyenne des trois assiettes après abattement, comme le décrit la MSA (abattement appliqué à chaque année reconstituée). À valider.
+>
+> Tests : `tests/api/test_msa.py` (+1), `msa.test.tsx` (complété).
+>
+> **AG7.c réalisé (05/11/2026, non commité)**. Contenu :
+> - table `msa_calls` (migration `c7d9e1f3a5b7`) : appel par exploitant et par année de cotisation, avec :
+>   - nature, exigibilité, montant, assiette de l'avis ;
+>   - détail : cotisations, CSG déductible, CSG non déductible et CRDS, tiers ;
+>   - marque « estimé » ;
+>   - débit bancaire rapproché ; écriture (réservée à AG7.d) ;
+> - `app/services/msa_calls.py` :
+>   - **saisie** : le détail doit égaler le montant ; les cotisations sont déduites quand elles manquent ;
+>   - **estimation du détail** : CSG et CRDS = taux × assiette retenue (historique, selon l'option), au prorata des appels saisis pour l'année ;
+>   - **paiements** : débits de J − 15 à J + 30 (MSA ou montant égal d'abord), un débit par appel ;
+>   - **mensualités** : 11 × 1/11 des appels de l'année précédente, le 5 de janvier à novembre ; jour et mois à corriger d'après la caisse ;
+>   - **rappel de modulation** : écart de plus de 20 % entre l'assiette de l'avis et l'assiette retenue, demande au plus tard 15 jours avant l'exigibilité ;
+>   - **alerte** : appel échu depuis plus de 30 jours sans paiement rapproché ;
+> - API `/msa/calls` :
+>   - GET `?year=`, POST, PATCH, DELETE ;
+>   - `/monthly`, `/<id>/estimate`, `/<id>/candidates`, `/<id>/payment` ;
+> - écran : bloc « Appels de cotisations » de la page MSA (`MsaCallsPanel.tsx`).
+>
+> Écarts et points à valider :
+> - les montants des appels de l'échéancier (SOC-02) ne sont pas alimentés par le registre ; le rapprochement de l'échéancier reste indépendant de celui du registre ;
+> - le seuil de 20 % pour le rappel de modulation est à valider ;
+> - calendrier des mensualités (5 janvier → 5 novembre) supposé.
+>
+> Tests : `tests/api/test_msa.py` (+2), `msa.test.tsx` (complété).
+>
+> **AG7.d réalisé (05/11/2026, non commité)**. Contenu :
+> - `app/services/msa_ventilation.py` :
+>   - **EI** :
+>     - ligne `msa` du résultat fiscal : CSG non déductible et CRDS des appels exigibles dans l'exercice, marquée « à valider » si un détail est estimé ;
+>     - alertes : appels sans détail ; doublon avec une ligne CSG saisie ;
+>     - **charge à payer** des appels non réglés au dernier jour (débit absent ou postérieur), D 646 / C 4311, écriture d'inventaire repérée `msa_accrual`, passée ou supprimée depuis l'écran ;
+>   - **société** : rien en charge ; par associé, appels, part déductible (cotisations et CSG déductible) et CSG non déductible, à valider ;
+>   - **contrôles de clôture** :
+>     - `msa_646` : 646 ≠ appels de l'exercice ;
+>     - `msa_register` : 646 sans appel ;
+>     - `msa_accrual` : charge à payer à passer (anomalie) ;
+>     - `msa_455` : paiement d'un associé non passé en 455 ;
+> - l'assiette (AG7.a) retranche du 646 la CSG reprise du registre comme la ligne saisie ;
+> - API `/fiscal-years/<id>/msa/ventilation` (GET) et `/msa/accrual` (POST, DELETE) ; bloc « Ventilation de l'exercice » de la page MSA.
+>
+> Écarts : quand la ligne CSG vient du registre, la ligne saisie d'AG6 n'est pas supprimée d'office ; une alerte demande de la supprimer.
+>
+> Tests : `tests/api/test_msa.py` (+2), `msa.test.tsx` (complété).
+>
+> **AG7.e réalisé (06/11/2026, non commité) — AG7 terminé (a à e)**. Contenu :
+> - barème NSA 2026 de la MSA en paramètres datés dans `data/regulatory/msa.json`, valables du 01/01 au 31/12/2026, fiabilité A, sauf le taux AMEXA au-delà de 300 % du PASS (I) :
+>   - SMIC horaire ;
+>   - AMEXA (T1 à T5, et taux au-delà de 300 % du PASS) ;
+>   - invalidité (1,1 %, minimum 11,5 % du PASS) ;
+>   - IJ 250 € ;
+>   - retraite de base plafonnée (17,15 % ou 14,15 %) et déplafonnée (0,72 %), minimum 600 SMIC ;
+>   - prestations familiales (jusqu'à 3,10 %) ;
+>   - ATEXA par catégorie A à E ;
+>   - RCO 4 % (minimum 1 820 SMIC) et RCO complémentaire (1 % à 3 %) ;
+>   - VIVEA 0,61 %, entre 0,17 % et 0,89 % du PASS ;
+>   - FMSE 20 € ;
+> - colonne `msa_people.atexa_category` (migration `d8e0f2a4b6c8`) ;
+> - `app/services/msa_estimate.py` : estimation ligne par ligne sur l'assiette retenue pour l'année de cotisation (AG7.b) ;
+>   - couvre les chefs à titre principal et à titre secondaire, pas le collaborateur ;
+>   - si le barème de l'année de cotisation n'est pas publié, le dernier barème connu est appliqué, avec une alerte ;
+> - bloc « Estimation des cotisations » par exploitant sur la page MSA, avec le choix de la catégorie ATEXA.
+>
+> Écarts et points à valider :
+> - **AMEXA au-delà de 300 % du PASS** : lecture retenue, 8,5 % jusqu'à 300 % puis 6,5 % sur la part au-delà ;
+> - **non comptés** : exonération JA (65 % à 15 % sur 5 ans), cotisations complémentaires par production (FMSE, InterApi, Val'hor), membres de la famille, invalidité du chef à titre secondaire ;
+> - **PASS et SMIC** : ceux de l'année de cotisation.
+>
+> Tests : `tests/api/test_msa.py` (+2), `msa.test.tsx` (complété).
+>
 > Sources lues le 05/11/2026 :
 > - textes officiels sur Légifrance :
 >   - LFSS 2024 art. 18 ;

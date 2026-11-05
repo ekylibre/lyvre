@@ -246,6 +246,10 @@ def _agri_checks(fy) -> list[Check]:
     for key, label, count, severity in aid_closing.checks(fy):
         url = "/aids/" if key == "aid_issues" else f"/fiscal-years/{fy.id}/closing"
         found.append(Check(key, label, count, severity, url))
+    from app.services import msa_ventilation    # lot AG7.d
+
+    for key, label, count, severity in msa_ventilation.checks(fy):
+        found.append(Check(key, label, count, severity, f"/msa/?fiscal_year={fy.id}"))
     return found
 
 

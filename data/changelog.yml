@@ -5,6 +5,16 @@
 next:
 - kind: new
   structure: agri
+  text: Cotisations MSA — assiette sociale de l'exercice par exploitant, du résultat fiscal à l'assiette des cotisations
+    (réintégrations, DJA, abattement de 26 % borné), avec export ; historique des assiettes, comparaison entre moyenne
+    triennale et assiette annuelle, délais d'option et de dénonciation ; registre des appels avec détail de la CSG,
+    paiements rapprochés, mensualités proposées et rappel de modulation ; CSG non déductible reportée au résultat
+    fiscal, charge à payer à la clôture et contrôles ; estimation indicative des cotisations ligne par ligne
+    d'après le barème MSA 2026.
+  tech: app/services/msa.py, tables msa_people / msa_bases / msa_adjustments (migration b6c8d0e2f4a6), paramètres
+    data/regulatory/msa.json, /api/v1/fiscal-years/<id>/msa, page /msa/ (lots AG7.a à AG7.e, msa_ventilation.py, msa_estimate.py, migration d8e0f2a4b6c8, assiettes saisies, comparaison, fiche SOC-03, table msa_calls migration c7d9e1f3a5b7).
+- kind: new
+  structure: agri
   text: Plus-values et crédits d'impôt — plus-values des immobilisations cédées réparties en court et long terme,
     simulation de l'exonération de l'art. 151 septies (par associé en société) reportée dans le résultat fiscal, et
     crédits d'impôt bio, HVE et remplacement pour congés calculés et répartis par associé (montants à valider).

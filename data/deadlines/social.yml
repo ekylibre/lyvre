@@ -32,13 +32,21 @@
   title: Option pour l'assiette annuelle des cotisations
   domain: social
   organism: MSA
-  summary: Assiette triennale par défaut ; option pour l'assiette annuelle pour 5 ans. Date limite souvent citée au 30 juin de l'année de cotisation, à confirmer auprès de la caisse (réforme de 2026).
+  summary: Assiette triennale (moyenne des revenus des 3 années précédentes) par défaut ; option pour l'assiette annuelle (revenus N-1) à demander au plus tard le 30 juin, pour 5 ans reconduits tacitement ; dénonciation au plus tard le 30 novembre, effet au 1er janvier suivant, puis 6 ans sans nouvelle option (CRPM L.731-15, D.731-26). Rente du sol - option ou dénonciation avant le 30 juin.
   events:
     - label: Date limite de l'option pour l'assiette annuelle
       rule: {type: fixed, days: ["06-30"], shift: none}
       reminders: [30]
       quiet: true
-  reliability: I
+    - label: Date limite de dénonciation de l'option annuelle
+      rule: {type: fixed, days: ["11-30"], shift: none}
+      reminders: [30]
+      quiet: true
+  lyvre_data: Comparaison triennale / annuelle par exploitant (Compta › Cotisations MSA).
+  links:
+    - https://www.msa.fr/lfp/web/msa/exploitant/reforme-assiette-sociale
+    - https://nord-pasdecalais.msa.fr/lfp/documents/98870/470755434/Informations+et+dates+importantes+2026
+  reliability: R
 
 - id: SOC-04
   title: Cotisants de solidarité

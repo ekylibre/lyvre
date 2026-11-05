@@ -1,0 +1,317 @@
+{
+ "_comment": "Paramètres datés des cotisations MSA des non-salariés agricoles (lot AG7, claudedocs/design_msa.md, AGD24). Montants en centimes, taux en points de base. reliability : V vérifiée, R règle stable, A annuelle, I incertaine. Une surcharge de la méta-base l'emporte.",
+ "values": [
+  {
+   "key": "msa.pass_cents",
+   "value": 4806000,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/web/msa/exploitant/cotisations-et-contributions",
+   "source_label": "MSA, cotisations et contributions des exploitants (« PASS : 48 060 € pour l'année 2026 »)",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "Plafond annuel de la sécurité sociale 2026 (arrêté du 22/12/2025)"
+  },
+  {
+   "key": "msa.base.abatement_rate_bp",
+   "value": 2600,
+   "valid_from": "2025-01-01",
+   "valid_to": null,
+   "source": "https://www.msa.fr/lfp/web/msa/exploitant/reforme-assiette-sociale",
+   "source_label": "MSA, réforme de l'assiette sociale (CSS L.136-3 III)",
+   "verified_on": "2026-11-05",
+   "reliability": "R",
+   "note": "Abattement forfaitaire de 26 % sur le revenu professionnel, à compter des cotisations 2026 (revenus 2025)"
+  },
+  {
+   "key": "msa.base.abatement_floor_pass_bp",
+   "value": 176,
+   "valid_from": "2025-01-01",
+   "valid_to": null,
+   "source": "https://www.msa.fr/lfp/web/msa/exploitant/reforme-assiette-sociale",
+   "source_label": "MSA, réforme de l'assiette sociale (CSS D.136-5, décret 2024-688)",
+   "verified_on": "2026-11-05",
+   "reliability": "R",
+   "note": "Montant plancher de l'abattement : 1,76 % du PASS ; s'applique aussi à un revenu nul ou déficitaire (AGD24, Q-M3)"
+  },
+  {
+   "key": "msa.base.abatement_ceiling_pass_bp",
+   "value": 13000,
+   "valid_from": "2025-01-01",
+   "valid_to": null,
+   "source": "https://www.msa.fr/lfp/web/msa/exploitant/reforme-assiette-sociale",
+   "source_label": "MSA, réforme de l'assiette sociale (CSS D.136-5, décret 2024-688)",
+   "verified_on": "2026-11-05",
+   "reliability": "R",
+   "note": "Montant plafond de l'abattement : 130 % du PASS"
+  },
+  {
+   "key": "msa.csg.deductible_bp",
+   "value": 680,
+   "valid_from": "2026-01-01",
+   "valid_to": null,
+   "source": "https://www.msa.fr/lfp/web/msa/exploitant/cotisations-et-contributions",
+   "source_label": "MSA, cotisations et contributions des exploitants (CSG/CRDS, février 2026)",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "CSG déductible 6,8 %"
+  },
+  {
+   "key": "msa.csg.non_deductible_bp",
+   "value": 240,
+   "valid_from": "2026-01-01",
+   "valid_to": null,
+   "source": "https://www.msa.fr/lfp/web/msa/exploitant/cotisations-et-contributions",
+   "source_label": "MSA, cotisations et contributions des exploitants (CSG/CRDS, février 2026)",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "CSG non déductible 2,4 %"
+  },
+  {
+   "key": "msa.crds_bp",
+   "value": 50,
+   "valid_from": "2026-01-01",
+   "valid_to": null,
+   "source": "https://www.msa.fr/lfp/web/msa/exploitant/cotisations-et-contributions",
+   "source_label": "MSA, cotisations et contributions des exploitants (CSG/CRDS, février 2026)",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "CRDS 0,5 % (non déductible)"
+  },
+  {
+   "key": "msa.smic_hour_cents",
+   "value": 1202,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "SMIC horaire au 01/01/2026 (assiettes minimales en nombre de SMIC)"
+  },
+  {
+   "key": "msa.amexa.rates",
+   "value": [
+    150,
+    400,
+    650,
+    770,
+    850
+   ],
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "AMEXA du chef d'exploitation domicilié en France : taux T1 à T5 (pb) atteints à 40, 60, 110, 200 et 300 % du PASS, 0 sous 20 % du PASS, interpolation linéaire entre les bornes"
+  },
+  {
+   "key": "msa.amexa.top_rate_bp",
+   "value": 650,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026",
+   "verified_on": "2026-11-05",
+   "reliability": "I",
+   "note": "AMEXA : taux de la partie de l'assiette au-delà de 300 % du PASS (lecture à valider)"
+  },
+  {
+   "key": "msa.invalidity.rate_bp",
+   "value": 110,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "Invalidité du chef d'exploitation à titre exclusif ou principal"
+  },
+  {
+   "key": "msa.invalidity.min_pass_bp",
+   "value": 1150,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "Invalidité : assiette minimum de 11,5 % du PASS"
+  },
+  {
+   "key": "msa.ij.amount_cents",
+   "value": 25000,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "IJ AMEXA : forfait annuel du chef d'exploitation"
+  },
+  {
+   "key": "msa.pension.capped_rate_bp",
+   "value": 1715,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "Retraite de base plafonnée, chef à titre exclusif ou principal (dans la limite du PASS, assiette minimum 600 SMIC)"
+  },
+  {
+   "key": "msa.pension.capped_secondary_rate_bp",
+   "value": 1415,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "Retraite de base plafonnée, chef à titre secondaire"
+  },
+  {
+   "key": "msa.pension.uncapped_rate_bp",
+   "value": 72,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "Retraite de base déplafonnée (assiette minimum 600 SMIC)"
+  },
+  {
+   "key": "msa.pension.min_smic",
+   "value": 600,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "Assiette minimum de la retraite de base, en SMIC horaires"
+  },
+  {
+   "key": "msa.pfa.rate_bp",
+   "value": 310,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "Prestations familiales : 0 jusqu'à 110 % du PASS, taux progressif jusqu'à 3,10 % à 140 % du PASS"
+  },
+  {
+   "key": "msa.atexa.amounts",
+   "value": {
+    "principal": [
+     52773,
+     55095,
+     51555,
+     56038,
+     56038
+    ],
+    "secondary": [
+     26386,
+     27547,
+     25777,
+     28019,
+     28019
+    ]
+   },
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "ATEXA forfaitaire par catégorie de risques A à E (centimes)"
+  },
+  {
+   "key": "msa.rco.rate_bp",
+   "value": 400,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "Retraite complémentaire obligatoire (assiette minimum 1 820 SMIC)"
+  },
+  {
+   "key": "msa.rco.min_smic",
+   "value": 1820,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "RCO : assiette minimum en SMIC horaires"
+  },
+  {
+   "key": "msa.rco_extra.rates",
+   "value": [
+    100,
+    130,
+    180,
+    300
+   ],
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "RCO complémentaire du chef : taux T1 à T4 (pb) atteints à 40, 60, 100 et 200 % du PASS, interpolation linéaire, 3 % au-delà"
+  },
+  {
+   "key": "msa.vivea.rate_bp",
+   "value": 61,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "Formation (VIVEA) du chef d'exploitation"
+  },
+  {
+   "key": "msa.vivea.min_pass_bp",
+   "value": 17,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "VIVEA : minimum 0,17 % du PASS"
+  },
+  {
+   "key": "msa.vivea.max_pass_bp",
+   "value": 89,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "VIVEA : maximum 0,89 % du PASS"
+  },
+  {
+   "key": "msa.fmse.amount_cents",
+   "value": 2000,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026",
+   "verified_on": "2026-11-05",
+   "reliability": "A",
+   "note": "FMSE : cotisation commune par exploitant (hors cotisations complémentaires par production)"
+  }
+ ]
+}

@@ -385,6 +385,33 @@ def tax_result_xlsx(fy_id):
     return _response(wb, f"resultat-fiscal-{fy.label}.xlsx")
 
 
+
+@bp.route("/fiscal-years/<int:fy_id>/msa.xlsx")
+@login_required
+def msa_xlsx(fy_id):
+    """Assiette sociale MSA par exploitant (lot AG7.a)."""
+    from app.models import FiscalYear
+    from app.services import msa
+
+    if not msa.enabled():
+        abort(404)
+    fy = db.session.get(FiscalYear, fy_id) or abort(404)
+    data = msa.view(fy)
+    wb = Workbook()
+    wb.remove(wb.active)
+    for item in data["people"]:
+        abat = item["abatement"]
+        rows = [["Résultat fiscal BA (quote-part)", item["fiscal_result_cents"] / 100, ""]]
+        rows += [[l["label"], l["amount_cents"] / 100, l.get("reason") or l.get("basis") or ""] for l in item["lines"]]
+        rows.append(["Revenu professionnel avant abattement", item["income_cents"] / 100, ""])
+        if "amount_cents" in abat:
+            rows.append(["Abattement forfaitaire", -abat["amount_cents"] / 100, abat.get("bound") or ""])
+        rows.append(["Assiette sociale", (item["base_cents"] or 0) / 100, ""])
+        _sheet(wb, item["person"]["name"][:31], ["Ligne", "Montant", "Fondement"], rows, (2,))
+    if not data["people"]:
+        _sheet(wb, "MSA", ["Information"], [[data.get("reason") or "Aucun exploitant."]], ())
+    return _response(wb, f"assiette-msa-{fy.label}.xlsx")
+
 def _liasse(fy_id):
     from app.models import FiscalYear
     from app.services import liasse, organization, tax_result

@@ -68,7 +68,7 @@ export default function TaxResultPage() {
             <Table.Tr key={l.key}>
               <Table.Td>{l.link ? <Anchor component={AppLink} href={l.link} size="sm">{l.label}</Anchor> : l.label}
                 {l.reason && <Text size="xs" c="dimmed">{l.reason}</Text>}</Table.Td>
-              <Table.Td><Text size="xs" c="dimmed">{l.source === "manual" ? "saisie" : l.source === "young_farmer" ? "calculée (art. 73 B)" : l.source === "dep" ? "DEP" : l.source === "cow_provision" ? "provision 73 A" : l.source === "ba_regime" ? "régime (72 E bis, 75-0 A)" : l.source === "capital_gains" ? "plus-values" : "proposée"}{l.to_validate ? " · à valider" : ""}</Text></Table.Td>
+              <Table.Td><Text size="xs" c="dimmed">{l.source === "manual" ? "saisie" : l.source === "young_farmer" ? "calculée (art. 73 B)" : l.source === "dep" ? "DEP" : l.source === "cow_provision" ? "provision 73 A" : l.source === "ba_regime" ? "régime (72 E bis, 75-0 A)" : l.source === "capital_gains" ? "plus-values" : l.source === "msa" ? "appels MSA" : "proposée"}{l.to_validate ? " · à valider" : ""}</Text></Table.Td>
               <Table.Td ta="right"><MoneyText cents={l.amount_cents} plus /></Table.Td>
               <Table.Td>{writable && l.id && <Button size="compact-xs" variant="subtle" color="brique" onClick={() => remove.mutate(l.id!)}>Supprimer</Button>}</Table.Td>
             </Table.Tr>))}

@@ -135,8 +135,10 @@ def compute(fy: FiscalYear) -> dict:
     from app.services import cow_provision                       # lot AG6.d : exonération au 6e exercice
     from app.services import ba_regimes                          # lot AG6.e : 72 E bis, étalement 75-0 A
     from app.services import capital_gains                       # lot AG6.g : plus-values à long terme, 151 septies
+    from app.services import msa_ventilation                     # lot AG7.d : CSG non déductible des appels MSA (EI)
+    msa_lines = [] if _is_company_is(fy) else msa_ventilation.tax_lines(fy)
     lines = [*_stock_line(fy), *_slaughter_lines(fy), *cow_provision.tax_lines(fy), *ba_regimes.tax_lines(fy),
-             *capital_gains.tax_lines(fy), *_manual_lines(fy)]
+             *capital_gains.tax_lines(fy), *msa_lines, *_manual_lines(fy)]
     before_ja = accounting + sum(l["amount_cents"] for l in lines)
     company_is = _is_company_is(fy)
     rows, warnings = ([], []) if company_is else shares(fy)
@@ -162,6 +164,8 @@ def compute(fy: FiscalYear) -> dict:
             r["fiscal_result_cents"] = part + own
     if any(l.get("to_validate") and l.get("source") == "living_assets" for l in lines):
         warnings.append("Exonération et réintégration de l'abattage sanitaire : règle de l'art. 75-0 D à vérifier.")
+    if not company_is:
+        warnings += msa_ventilation.tax_warnings(fy, lines)
     if any(l.get("source") == "capital_gains" for l in lines):
         warnings.append("Plus-values : régime court / long terme et seuils de l'art. 151 septies à valider.")
     return {"fiscal_year": {"id": fy.id, "label": fy.label, "end_date": fy.end_date.isoformat(), "status": fy.status},

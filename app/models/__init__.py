@@ -62,11 +62,13 @@ from .rfa import RfaAttestation, RfaClaim
 from .stock import CropAdvance, CropAdvanceCost, CropStandard, CropStandardRow, StockCountFile, StockLine, StockLot, StockLotMovement, StockSettings, StockStandard
 from .tax_result import (BaHistoryYear, CapitalGainChoice, TaxCredit, CowProvision, CowProvisionRelease, DepEntry, DepMovement, DepSubstitute, IncomeSpread,
                          TaxResult, TaxResultLine)
+from .msa import MsaAdjustment, MsaBase, MsaCall, MsaPerson
 from .aid import Aid, AidAccrual, AidAsset, AidPayment, AidRelease, CapPublished
 from .deadline_state import DeadlineState
 from .agenda_subscription import AgendaSubscription
 
 __all__ = [
+    "MsaAdjustment", "MsaBase", "MsaCall", "MsaPerson",
     "DeadlineState",
     "AgendaSubscription",
     "RfaAttestation",
