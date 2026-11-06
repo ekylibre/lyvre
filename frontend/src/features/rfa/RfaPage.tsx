@@ -18,6 +18,7 @@ import { MoneyInput, MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
+import { CalculatorLink } from "../tools/CalculatorLink";
 
 export const RFA_KEY = ["rfa"];
 
@@ -116,7 +117,8 @@ export default function RfaPage() {
   return (
     <>
       <PageHeader title="Remboursement forfaitaire"
-        description="Demande 3520 sur les ventes de l'année civile à des clients assujettis : forfait par taux, attestations d'achats à joindre, à déposer avant le 31 décembre de l'année suivante." />
+        description="Demande 3520 sur les ventes de l'année civile à des clients assujettis : forfait par taux, attestations d'achats à joindre, à déposer avant le 31 décembre de l'année suivante."
+        actions={<CalculatorLink code="rfa" label="Simuler" />} />
       <FilterBar>
         <Select aria-label="Année des ventes" w={160} allowDeselect={false} value={String(year)}
           data={data.years_available.map((y) => ({ value: String(y), label: `Ventes ${y}` }))}

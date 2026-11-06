@@ -140,6 +140,11 @@ def _round(value: Decimal) -> int:
     return int(value.quantize(Decimal(1), ROUND_HALF_UP))
 
 
+def apply_ratio(cents: int, ratio: Decimal) -> int:
+    """Montant révisé : montant × nouvel indice ÷ indice de référence, au centime. Règle unique (calculette 15)."""
+    return _round(Decimal(cents) * ratio)
+
+
 def _reference(lease: Lease) -> tuple[str | None, Decimal | None]:
     period = lease.index_reference_period
     value = Decimal(lease.index_reference_value) if lease.index_reference_value is not None else None
@@ -175,10 +180,10 @@ def revise(lease: Lease) -> LeaseRevision:
     ratio = new_value / old_value
     row.new_value, row.old_annual_cents, row.old_deposit_cents = new_value, leases.annual_total(lease), lease.deposit_cents
     for item in lease.items:
-        item.unit_price_cents = _round(Decimal(item.unit_price_cents) * ratio)
+        item.unit_price_cents = apply_ratio(item.unit_price_cents, ratio)
         item.annual_cents = leases.annual_of(item)
     if lease.revise_deposit and lease.deposit_cents:
-        lease.deposit_cents = _round(Decimal(lease.deposit_cents) * ratio)
+        lease.deposit_cents = apply_ratio(lease.deposit_cents, ratio)
     leases._sync_recurrence(lease)
     row.new_annual_cents, row.new_deposit_cents = leases.annual_total(lease), lease.deposit_cents
     row.status, row.applied_at, row.note = "applied", datetime.utcnow(), None

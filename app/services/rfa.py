@@ -130,6 +130,11 @@ def _associates_factor() -> int:
     return 1
 
 
+def flat_amount(high_cents: int, low_cents: int, high_bp: int, low_bp: int) -> int:
+    """Forfait : bases des deux classes × leurs taux, arrondi à l'euro. Règle unique (calculette 24, lot AG12.b)."""
+    return _euro(high_cents * high_bp / 10000 + low_cents * low_bp / 10000)
+
+
 def compute(year: int, today: date | None = None) -> dict:
     """Demande de l'année des ventes `year` : clients, bases par classe, forfait, contrôles, seuil."""
     from app.services import tax_profile
@@ -191,7 +196,7 @@ def compute(year: int, today: date | None = None) -> dict:
     if unclassified_cents:
         problems.append(f"{unclassified_cents / 100:.2f} € de ventes à des clients assujettis sans classe de taux : "
                         "choisissez la classe des comptes de vente.")
-    amount = _euro(bases["high"] * (high_bp or 0) / 10000 + bases["low"] * (low_bp or 0) / 10000)
+    amount = flat_amount(bases["high"], bases["low"], high_bp or 0, low_bp or 0)
     missing = [c for c in out_clients if any(i.startswith("Attestation") for i in c["issues"])]
     if missing:
         warnings.append(f"{len(missing)} client{'s' if len(missing) > 1 else ''} sans attestation d'achats conforme : "

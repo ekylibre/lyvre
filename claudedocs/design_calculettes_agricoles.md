@@ -142,7 +142,7 @@ La calculette 05 a besoin d'un paramètre (taux de remboursement de TICPE) : ell
 | Sous-lot | Contenu | Dépend de |
 |---|---|---|
 | **AG12.a** ✅ | Cadre : registre, API, écran générique, gabarit, copie, menu ; 3 calculettes pilotes : 23 amortissement, 25 acompte de TVA, 08 micro-BA | — |
-| **AG12.b** | Reste du groupe A : 13 DEP, 15 fermage, 17 MSA, 21 marge brute, 22 coût d'un matériel, 24 RFA ; liens depuis les écrans existants | AG12.a |
+| **AG12.b** ✅ | Reste du groupe A : 13 DEP, 15 fermage, 17 MSA, 21 marge brute, 22 coût d'un matériel, 24 RFA ; liens depuis les écrans existants | AG12.a |
 | **AG12.c** | Groupe B : 06 (outils cochés au § 9), 11, 12, 14, 09 (et 05 sans le remboursement) | AG12.a, § 9 |
 | **AG12.d** | Groupe C, après sourçage et ta validation des paramètres : 02, 20, 10, 16, 05 (remboursement), 04, 07 | AG12.a, Q-C7 |
 | **AG12.e** | Outil `calculator` de l'assistant | AG12.a, AG9b |
@@ -164,6 +164,22 @@ La calculette 05 a besoin d'un paramètre (taux de remboursement de TICPE) : ell
   - **25 Acomptes de TVA** : `vat_installments.proposed_amount`, `blocks`, `due_date`, dispense ; préremplissage par la référence de l'année (CA12A ou saisie) ;
   - **08 Micro-BA ou réel** : bénéfice par `ba_regimes.micro_profit`, extrait de `simulation` pour une règle unique ; préremplissage par `ba_regimes.simulation`.
 - Tests : chaque exemple se calcule ; même résultat que le registre des immobilisations, que `vat_installments` et que `micro_profit` ; paramètre absent bloquant ; filtre par type ; calcul permis à l'expert-comptable.
+
+## 7 ter. Réalisé (AG12.b)
+
+- **Règles partagées extraites**, pour qu'écran et calculette ne divergent pas :
+  - `dep.ceiling_for` (plafond de la DEP, appelé par `dep.ceiling`) ;
+  - `rfa.flat_amount` (forfait, appelé par `rfa.compute`) ;
+  - `rent_revision.apply_ratio` (révision au centime, appelée par `revise`).
+- **Calculettes** :
+  - **13 DEP** : préremplie par l'exercice (résultat fiscal avant DEP, associés exploitants, durée, déductions non rapportées) ;
+  - **15 Révision d'un fermage ou d'un loyer** : indices lus dans Lyvre (`rent_indices`) ou saisis ; préremplie depuis un bail ;
+  - **17 Cotisations MSA** : `msa_estimate.estimate`, avec le même repli sur le dernier barème connu ; préremplie depuis un exploitant (assiette retenue de l'historique, statut, ATEXA) ;
+  - **21 Marge brute** : même définition que l'état des marges ; préremplie depuis une activité et une campagne ;
+  - **22 Coût de revient d'un matériel** : charges fixes et variables à l'heure et à l'hectare ; amortissement prérempli depuis le registre ;
+  - **24 Remboursement forfaitaire** : forfait et contrôle du seuil ; préremplie par les ventes de l'année précédente.
+- **Liens « Calculette »** (instance agricole) depuis les écrans suivants : Remboursement forfaitaire, Cotisations MSA, Marges par activité, Résultat fiscal (DEP, micro-BA), Baux, Immobilisations (amortissement, coût d'un matériel).
+- Tests : même résultat que la règle du service pour chaque calculette ; indice manquant bloquant ; seuil du RFA.
 
 ## 8. Questions
 

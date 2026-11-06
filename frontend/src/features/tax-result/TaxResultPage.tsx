@@ -18,6 +18,7 @@ import { GainsCreditsPanel } from "./GainsCreditsPanel";
 import { LiassePanel } from "./LiassePanel";
 import { SpreadPanel } from "./SpreadPanel";
 import { ExplainButton } from "../assistant/AssistantDrawer";
+import { CalculatorLink } from "../tools/CalculatorLink";
 
 export interface TaxLine { key: string; id?: number; kind?: string; label: string; amount_cents: number; reason?: string | null;
   source: string; link?: string; to_validate?: boolean }
@@ -49,7 +50,8 @@ export default function TaxResultPage() {
   return (
     <>
       <PageHeader title="Résultat fiscal" description="Passage du résultat comptable au résultat fiscal (bénéfices agricoles), sans écriture : retraitements proposés et saisis, puis répartition par associé."
-        actions={<Button variant="default" component="a" href={`/fiscal-years/${fyId}/tax-result.xlsx`}>XLSX</Button>} />
+        actions={<><CalculatorLink code="dep" label="Plafond DEP" /><CalculatorLink code="micro-ba" label="Micro-BA ou réel" />
+          <Button variant="default" component="a" href={`/fiscal-years/${fyId}/tax-result.xlsx`}>XLSX</Button></>} />
       <FilterBar>
         <Select aria-label="Exercice" w={180} allowDeselect={false} value={fyId ? String(fyId) : null}
           data={years.items.map((y) => ({ value: String(y.id), label: `Exercice ${y.label}` }))} onChange={(x) => setParams({ fiscal_year: x ?? "" })} />

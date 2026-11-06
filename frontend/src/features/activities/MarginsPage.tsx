@@ -10,6 +10,7 @@ import { FilterBar, useUrlParams } from "../../components/FilterBar";
 import { MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
 import type { FiscalYear } from "../fiscal-years/FiscalYearsPage";
+import { CalculatorLink } from "../tools/CalculatorLink";
 
 type Summary = { classes: Record<string, number>; production_cents: number; operational_cents: number; gross_margin_cents: number;
   structure_cents: number; result_cents: number; auxiliary_cents?: number; result_after_cents?: number };
@@ -56,6 +57,7 @@ export default function MarginsPage() {
     <>
       <PageHeader title="Marges par activité" description="Production nette des achats d'animaux, charges opérationnelles (RICA), marge brute par hectare ou par tête, charges de structure directes, par activité et par atelier."
         actions={<Group gap="xs">
+          <CalculatorLink code="marge-brute" />
           <Button variant="default" component="a" href={`/fiscal-years/${fyId}/activity-margins.xlsx${query}`}>XLSX</Button>
           <Button variant="default" component="a" href={`/fiscal-years/${fyId}/activity-margins.pdf${query}`} target="_blank">PDF</Button></Group>} />
       <FilterBar>

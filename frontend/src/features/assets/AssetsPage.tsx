@@ -15,6 +15,7 @@ import { AppLink, useGoTo } from "../../app/navigation";
 import { AssetForm } from "./AssetForm";
 import { ReinvestmentsPanel } from "./ReinvestmentsPanel";
 import { ASSETS_KEY, STATUS_TONES, type AssetItem, type AssetsMeta } from "./types";
+import { CalculatorLink } from "../tools/CalculatorLink";
 
 const COLUMNS: GridColumn<AssetItem>[] = [
   { accessor: "label", title: "Immobilisation", hideable: false, render: (a) => <Anchor component={AppLink} href={`/assets/${a.id}`} size="sm">{a.label}</Anchor> },
@@ -38,7 +39,8 @@ export default function AssetsPage() {
   return (
     <>
       <PageHeader title="Immobilisations" description="Registre des immobilisations : plan d'amortissement par fiche (linéaire ou dégressif, année de 360 jours), dotations passées à la clôture."
-        actions={<Can><Button onClick={() => setCreating(true)}>Nouvelle immobilisation</Button></Can>} />
+        actions={<><CalculatorLink code="amortissement" label="Simuler un amortissement" /><CalculatorLink code="cout-materiel" label="Coût d'un matériel" />
+          <Can><Button onClick={() => setCreating(true)}>Nouvelle immobilisation</Button></Can></>} />
       {data?.meta && !data.meta.enabled && <Alert color="ardoise" variant="light" mb="sm">Registre seulement : les amortissements ne sont pas
         comptabilisés pour cette structure (réglage à valider avec l'expert-comptable).</Alert>}
       <FilterBar>

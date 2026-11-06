@@ -49,28 +49,31 @@ def _months(fy: FiscalYear) -> int:
 
 def ceiling(base: int, fy: FiscalYear) -> dict:
     """Plafond de la DEP de l'exercice pour un bénéfice `base` (après abattement JA)."""
+    return ceiling_for(base, fy.end_date, operators(fy), _months(fy), outstanding(fy, exclude_fy=fy))
+
+
+def ceiling_for(base: int, on: date, n: int, months: int, pending: int) -> dict:
+    """Plafond de la DEP à la clôture `on` : `n` associés exploitants, exercice de `months` mois, déductions non
+    rapportées `pending`. Règle unique, partagée avec la calculette 13 (lot AG12.b)."""
     keys = ("band1_cents", "band2_cents", "band3_cents", "band4_cents", "rate2_bp", "rate3_bp", "rate4_bp", "cap_cents")
-    values = {k: _p(f"ba.dep.{k}", fy) for k in keys}
+    values = {k: reg_params.value(f"ba.dep.{k}", on, default=None) for k in keys}
     if any(v is None for v in values.values()):
         return {"ceiling_cents": 0, "error": "Barème de la DEP introuvable pour la date de clôture."}
-    end = _p("ba.dep.end_date", fy)
-    if end and fy.end_date > date.fromisoformat(end):
+    end = reg_params.value("ba.dep.end_date", on, default=None)
+    if end and on > date.fromisoformat(end):
         return {"ceiling_cents": 0, "error": f"DEP applicable aux exercices clos jusqu'au {date.fromisoformat(end):%d/%m/%Y}."}
     if base <= 0:
-        return {"ceiling_cents": 0, "per_operator_cents": 0, "operators": operators(fy)}
+        return {"ceiling_cents": 0, "per_operator_cents": 0, "operators": n}
     b1, b2, b3, b4 = (values[k] for k in ("band1_cents", "band2_cents", "band3_cents", "band4_cents"))
     amount = min(base, b1)
     for low, high, rate in ((b1, b2, values["rate2_bp"]), (b2, b3, values["rate3_bp"]), (b3, b4, values["rate4_bp"])):
         if base > low:
             amount += round((min(base, high) - low) * rate / 10000)
     amount = values["cap_cents"] if base >= b4 else min(amount, values["cap_cents"])
-    months = _months(fy)
     if months != 12:
         amount = round(amount * months / 12)
-    n = operators(fy)
     total = min(amount * n, base)
-    global_cap = (_p("ba.dep.global_cap_cents", fy) or 0) * n
-    pending = outstanding(fy, exclude_fy=fy)
+    global_cap = (reg_params.value("ba.dep.global_cap_cents", on, default=None) or 0) * n
     room = max(global_cap - pending, 0)
     return {"ceiling_cents": min(total, room), "per_operator_cents": amount, "operators": n, "global_cap_cents": global_cap,
             "pending_cents": pending, "months": months}

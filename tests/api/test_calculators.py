@@ -100,3 +100,64 @@ def test_accountant_can_compute(app, login_as):
     _agri_instance()
     resp = accountant.post(f"{API}/acompte-tva", json={"values": {"year": "2027", "due": "8400"}})
     assert resp.status_code == 200                                          # un calcul n'écrit rien
+
+
+# ------------------------------------------------------------------ lot AG12.b : reste du groupe A
+
+def _run(farm, code, values):
+    resp = farm.post(f"{API}/{code}", json={"values": values})
+    assert resp.status_code == 200, resp.get_json()
+    return resp.get_json()["result"]
+
+
+def test_dep_single_rule(farm):
+    from app.services import dep
+    result = _run(farm, "dep", {"closing": "2026-12-31", "profit": "62000", "operators": "2", "months": "12", "pending": "15000"})
+    expected = dep.ceiling_for(6200000, date(2026, 12, 31), 2, 12, 1500000)
+    assert result["headline"][0]["value"] == calculators.euros(expected["ceiling_cents"])
+    fy = FiscalYear.query.one()
+    assert dep.ceiling(6200000, fy)["ceiling_cents"] == dep.ceiling_for(6200000, fy.end_date, dep.operators(fy), 12,
+                                                                         dep.outstanding(fy, exclude_fy=fy))["ceiling_cents"]
+
+
+def test_fermage(farm):
+    from decimal import Decimal
+    from app.services import rent_revision
+    rent_revision.save_value("FERMAGES", "2025", "122.55")
+    rent_revision.save_value("FERMAGES", "2026", "123.06")
+    db.session.commit()
+    result = _run(farm, "fermage", {"rent": "4800", "index_code": "FERMAGES", "old_period": "2025", "new_period": "2026"})
+    expected = rent_revision.apply_ratio(480000, Decimal("123.06") / Decimal("122.55"))
+    assert result["headline"][0]["value"] == calculators.euros(expected)
+    missing = farm.post(f"{API}/fermage", json={"values": {"rent": "4800", "index_code": "FERMAGES", "old_period": "2019",
+                                                           "new_period": "2026"}})
+    assert missing.status_code == 409 and "2019" in missing.get_json()["error"]["message"]
+
+
+def test_msa_single_rule(farm):
+    from app.services import msa_estimate
+    result = _run(farm, "msa", {"year": "2026", "base": "32000", "status": "principal", "atexa": "B"})
+    expected = msa_estimate.estimate(3200000, 2026, "principal", "B")["totals"]["total_cents"]
+    assert result["headline"][0]["value"] == calculators.euros(expected) and len(result["table"]["rows"]) > 8
+
+
+def test_marge_brute_and_cout_materiel(farm):
+    result = _run(farm, "marge-brute", {"sales": "86000", "aids": "4200", "other": "-1500", "operational": "38500",
+                                        "measure": "62", "unit": "ha"})
+    assert result["headline"][0]["value"] == calculators.euros(5020000)
+    assert result["headline"][1] == {"label": "Marge brute par ha", "value": calculators.euros(80968)}
+    cost = _run(farm, "cout-materiel", {"depreciation": "9600", "financial": "1100", "insurance": "650", "maintenance": "2400",
+                                        "hours": "480", "fuel_per_hour": "14", "fuel_price": "1.15", "hectares": "320"})
+    # Fixes 11 350 € ÷ 480 h = 23,65 €/h ; variables : 2 400 ÷ 480 + 14 × 1,15 = 21,10 €/h.
+    assert cost["headline"][0]["value"] == calculators.euros(2365 + 2110)
+    assert cost["headline"][1]["value"] == calculators.euros(round((1135000 + 240000 + 1610 * 480) / 320))
+
+
+def test_rfa_single_rule(farm):
+    from app.services import rfa
+    result = _run(farm, "rfa", {"year": "2026", "high_base": "38000", "low_base": "6500", "receipts_previous": "41000",
+                                "receipts_year": "60000", "factor": "1"})
+    on = date(2026, 12, 31)
+    expected = rfa.flat_amount(3800000, 650000, reg_params.value("vat.rfa.rate_high_bp", on), reg_params.value("vat.rfa.rate_low_bp", on))
+    assert result["headline"][0]["value"] == calculators.euros(expected)
+    assert any("régime simplifié" in w for w in result["warnings"])         # moyenne 50 500 € > 46 000 €

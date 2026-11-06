@@ -17,6 +17,7 @@ import { MsaEstimatePanel, type MsaEstimate } from "./MsaEstimatePanel";
 import { MsaVentilationPanel } from "./MsaVentilationPanel";
 import { MsaOptionPanel, type MsaBaseRow, type MsaComparison } from "./MsaOptionPanel";
 import { ExplainButton } from "../assistant/AssistantDrawer";
+import { CalculatorLink } from "../tools/CalculatorLink";
 
 type Option = { value: string; label: string };
 interface MsaLine { key: string; id?: number; kind?: string; label: string; amount_cents: number; basis?: string; reason?: string | null }
@@ -57,7 +58,7 @@ export default function MsaPage() {
   return (
     <>
       <PageHeader title="Cotisations MSA" description="Assiette sociale des non-salariés agricoles : du résultat fiscal BA à l'assiette des cotisations, par exploitant (réforme 2026)."
-        actions={<Button variant="default" component="a" href={`/fiscal-years/${fyId}/msa.xlsx`}>XLSX</Button>} />
+        actions={<><CalculatorLink code="msa" label="Simuler" /><Button variant="default" component="a" href={`/fiscal-years/${fyId}/msa.xlsx`}>XLSX</Button></>} />
       <FilterBar>
         <Select aria-label="Exercice" w={180} allowDeselect={false} value={fyId ? String(fyId) : null}
           data={years.items.map((y) => ({ value: String(y.id), label: `Exercice ${y.label}` }))} onChange={(x) => setParams({ fiscal_year: x ?? "" })} />

@@ -12,6 +12,7 @@ import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
 import type { LeasesMeta } from "./LeaseWizardPage";
 import { LEASES_KEY, type Lease } from "./types";
+import { CalculatorLink } from "../tools/CalculatorLink";
 
 export default function LeasesPage() {
   const { data, isFetching } = useList<Lease, LeasesMeta>(LEASES_KEY, "/api/v1/leases");
@@ -32,7 +33,7 @@ export default function LeasesPage() {
   return (
     <>
       <PageHeader title="Baux et quittances" description="Les avis d'échéance de loyer sont préparés dans « À émettre » ; la quittance est disponible quand le loyer de la période est payé."
-        actions={<><Button variant="default" component={AppLink} href="/sales/due">À émettre</Button>
+        actions={<><CalculatorLink code="fermage" label="Révision d'un loyer" /><Button variant="default" component={AppLink} href="/sales/due">À émettre</Button>
           <Can><Button component={AppLink} href="/leases/new">Nouveau bail</Button></Can></>} />
       <DataGrid id="leases" records={data?.items} columns={columns} fetching={isFetching} emptyText="Aucun bail." />
     </>
