@@ -21,8 +21,11 @@ from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
-CATEGORIES = {"fiscal": "Fiscal", "social": "Social", "vat": "TVA", "management": "Gestion", "crops": "Cultures",
-              "livestock": "Élevage", "regulatory": "Réglementaire"}
+CATEGORIES = {"fiscal": "Fiscal", "social": "Social", "vat": "TVA", "management": "Gestion", "economics": "Économie",
+              "measures": "Mesures et conversions", "equipment": "Chantiers et matériel", "sowing": "Semis et plantation",
+              "fertilization": "Fertilisation", "spraying": "Pulvérisation", "irrigation": "Irrigation et eau",
+              "harvest": "Récolte et stockage", "crops": "Cultures", "livestock": "Élevage", "energy": "Énergie",
+              "regulatory": "Réglementaire"}
 CHART_LABELS = {"agri": "Agricole", "asso": "Association", "societe": "Société", "sci": "SCI"}
 KINDS = ("money", "number", "integer", "percent", "date", "choice", "text")
 
@@ -75,6 +78,15 @@ class Result:
     actions: list[tuple[str, str]] = field(default_factory=list)   # (libellé, route de l'application)
 
 
+class Tool:
+    """Calculette déclarée dans une liste (`TOOLS` d'un module) plutôt que par un module entier : mêmes attributs."""
+
+    def __init__(self, spec: "Spec", compute, on_date=None):
+        self.SPEC, self.compute = spec, compute
+        if on_date is not None:
+            self.on_date = on_date
+
+
 @dataclass
 class Context:
     chart: str | None
@@ -93,6 +105,8 @@ def registry() -> dict[str, object]:
             spec = getattr(module, "SPEC", None)
             if isinstance(spec, Spec):
                 _REGISTRY[spec.code] = module
+            for tool in getattr(module, "TOOLS", ()):
+                _REGISTRY[tool.SPEC.code] = tool
     return _REGISTRY
 
 
@@ -116,6 +130,14 @@ def euros(cents: int | None) -> str:
 def number(value, digits: int = 2) -> str:
     text = f"{Decimal(value):,.{digits}f}".replace(",", " ").replace(".", ",")
     return text
+
+
+def positive(values: dict, key: str, label: str, allow_zero: bool = False):
+    """Valeur strictement positive (ou nulle si `allow_zero`), sinon erreur sur le champ."""
+    value = values.get(key)
+    if value is None or value < 0 or (value == 0 and not allow_zero):
+        raise CalculatorError(f"{label} : valeur {'positive ou nulle' if allow_zero else 'positive'} attendue.", key)
+    return value
 
 
 def pct(bp: int) -> str:

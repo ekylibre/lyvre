@@ -161,3 +161,46 @@ def test_rfa_single_rule(farm):
     expected = rfa.flat_amount(3800000, 650000, reg_params.value("vat.rfa.rate_high_bp", on), reg_params.value("vat.rfa.rate_low_bp", on))
     assert result["headline"][0]["value"] == calculators.euros(expected)
     assert any("régime simplifié" in w for w in result["warnings"])         # moyenne 50 500 € > 46 000 €
+
+
+# ------------------------------------------------------------------ lot AG12.c : groupe B (cas chiffrés à la main)
+
+@pytest.mark.parametrize("code, values, expected", [
+    ("calc-surfaces", {"value": "2.35", "unit": "ha"}, "2,3500 ha"),
+    ("calc-parcelle", {"shape": "trapeze", "a": "210", "b": "95", "c": "180"}, "18 525,0 m²"),   # (210+180)/2×95
+    ("calc-regle-de-trois", {"a": "12", "b": "540", "c": "17"}, "765,0000"),
+    ("calc-pourcentage", {"start": "200", "end": "230"}, "+15,00 %"),
+    ("calc-debit-chantier", {"width": "6", "speed": "8", "efficiency": "75"}, "3,60 ha/h"),
+    ("calc-temps-chantier", {"surface": "48", "rate": "3.6"}, "13 h 20"),
+    ("calc-dose-semis", {"grains": "300", "tgw": "45", "emergence": "90"}, "150,0 kg/ha"),
+    ("calc-densite-plantation", {"row": "2.5", "spacing": "1"}, "4 000 plants/ha"),
+    ("calc-prix-unite", {"price": "420", "content": "27"}, "1,556 €/unité"),
+    ("calc-dose-apport", {"units": "60", "content": "30"}, "200,0 kg/ha"),
+    ("calc-debit-buse", {"volume": "150", "speed": "8", "spacing": "0.5"}, "1,000 l/min"),
+    ("calc-pluviometrie", {"mm": "25"}, "250,0 m³/ha"),
+    ("calc-enrouleur", {"flow": "40", "width": "80", "speed": "25"}, "20,0 mm"),
+    ("calc-rendement", {"weight": "182.4", "surface": "24"}, "76,0 q/ha"),
+    ("calc-gmq", {"start": "280", "end": "400", "days": "120"}, "1 000 g/j"),
+    ("calc-mise-bas", {"service": "2026-11-10", "gestation": "283"}, "20/08/2027"),
+    ("calc-chargement", {"n1": "55", "c1": "1", "n2": "30", "c2": "0.5", "surface": "70"}, "1,00 UGB/ha"),
+    ("calc-emprunt", {"capital": "100000", "rate": "3", "months": "120"}, "965,61 €"),
+    ("refaction-humidite", {"gross": "28.4", "measured": "18.5", "base": "15", "drying": "1.9"}, "27,231 t"),
+    ("prix-equilibre", {"costs": "1450", "aids": "180", "other": "60", "yield": "7.2"}, "168,06 €/t"),
+    ("entraide", {"tool": "28", "tractor": "35", "driver": "22", "rate": "2.5"}, "34,00 €/ha"),
+    ("solaire", {"power": "100", "yield": "1150", "tariff": "0.105"}, "115 000 kWh"),
+])
+def test_group_b_values(farm, code, values, expected):
+    result = _run(farm, code, values)
+    assert result["headline"][0]["value"] == expected
+
+
+def test_group_b_refusals(farm):
+    assert farm.post(f"{API}/calc-debit-chantier", json={"values": {"width": "0", "speed": "8", "efficiency": "75"}}).status_code == 422
+    assert farm.post(f"{API}/calc-pourcentage", json={"values": {"start": "0", "end": "5"}}).status_code == 422
+    assert farm.post(f"{API}/refaction-humidite", json={"values": {"gross": "10", "measured": "120", "base": "15"}}).status_code == 422
+    vat = _run(farm, "calc-tva", {"amount": "1055", "kind": "ttc", "rate": "5.5"})
+    assert [h["value"] for h in vat["headline"]] == [calculators.euros(100000), calculators.euros(5500), calculators.euros(105500)]
+    gnr = _run(farm, "gnr", {"litres": "12000", "gnr_price": "1.12", "road_price": "1.62"})
+    assert gnr["headline"][1]["value"] == calculators.euros(600000) and "TICPE" in gnr["warnings"][0]
+    listing = farm.get(f"{API}?chart=agri").get_json()
+    assert len(listing["items"]) == len(calculators.registry())

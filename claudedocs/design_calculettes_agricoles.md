@@ -6,7 +6,7 @@
 > - **Q-C7 Sourçage du groupe C** : validé. Je cherche les sources officielles et te présente chaque paramètre avant d'écrire la calculette.
 > - **Q-C8 Zonages** : **Lexicon et IGN** (Géoplateforme).
 > - **Q-C9 Ordre** : validé (pilotes 23, 25, 08, puis a → b → c → d → e).
-> - **Q-C10 Calculatrice agricole** : **liste exhaustive** proposée au § 9, à cocher par toi avant AG12.c.
+> - **Q-C10 Calculatrice agricole** : **liste exhaustive** proposée au § 9 ; **les 34 outils sont retenus** (réponse du 07/11/2026).
 >
 > **Cadrage** :
 > - `compta_agri.md` § 7 bis : exigences C1 à C7 ;
@@ -143,7 +143,7 @@ La calculette 05 a besoin d'un paramètre (taux de remboursement de TICPE) : ell
 |---|---|---|
 | **AG12.a** ✅ | Cadre : registre, API, écran générique, gabarit, copie, menu ; 3 calculettes pilotes : 23 amortissement, 25 acompte de TVA, 08 micro-BA | — |
 | **AG12.b** ✅ | Reste du groupe A : 13 DEP, 15 fermage, 17 MSA, 21 marge brute, 22 coût d'un matériel, 24 RFA ; liens depuis les écrans existants | AG12.a |
-| **AG12.c** | Groupe B : 06 (outils cochés au § 9), 11, 12, 14, 09 (et 05 sans le remboursement) | AG12.a, § 9 |
+| **AG12.c** ✅ | Groupe B : 06 (outils cochés au § 9), 11, 12, 14, 09 (et 05 sans le remboursement) | AG12.a, § 9 |
 | **AG12.d** | Groupe C, après sourçage et ta validation des paramètres : 02, 20, 10, 16, 05 (remboursement), 04, 07 | AG12.a, Q-C7 |
 | **AG12.e** | Outil `calculator` de l'assistant | AG12.a, AG9b |
 
@@ -181,6 +181,16 @@ La calculette 05 a besoin d'un paramètre (taux de remboursement de TICPE) : ell
 - **Liens « Calculette »** (instance agricole) depuis les écrans suivants : Remboursement forfaitaire, Cotisations MSA, Marges par activité, Résultat fiscal (DEP, micro-BA), Baux, Immobilisations (amortissement, coût d'un matériel).
 - Tests : même résultat que la règle du service pour chaque calculette ; indice manquant bloquant ; seuil du RFA.
 
+## 7 quater. Réalisé (AG12.c)
+
+- **Cadre** :
+  - un module peut déclarer une liste de calculettes (`TOOLS`, objets `Tool`) ;
+  - nouvelles catégories : économie, mesures et conversions, chantiers et matériel, semis et plantation, fertilisation, pulvérisation, irrigation et eau, récolte et stockage, énergie ;
+  - contrôle `positive` des valeurs.
+- **06 Calculatrice agricole** : les **34 outils** du § 9 (`calculatrice.py`, codes `calc-…`, numéros 06.01 à 06.34), rangés par famille dans le menu Outils. Toute valeur de référence (densité, PMG, teneurs, gestation, coefficients UGB, prix) est saisie.
+- **Groupe B** (`gestion.py`) : 11 réfaction humidité (norme et tarif de séchage saisis), 12 prix d'équilibre (cours saisi), 14 coût d'un chantier d'entraide (barème saisi), 09 solaire (productible et tarif saisis, rappel des revenus accessoires), 05 gazole et GNR (prix saisis ; remboursement de TICPE en AG12.d).
+- Tests : chaque exemple se calcule ; 22 cas chiffrés à la main ; valeurs refusées ; liste complète des 48 calculettes.
+
 ## 8. Questions
 
 - **Q-C5 Place dans le menu** : une entrée « Calculettes » dans le menu agricole ? Ou dans un menu « Outils » ?
@@ -193,7 +203,7 @@ La calculette 05 a besoin d'un paramètre (taux de remboursement de TICPE) : ell
 ## 9. Calculatrice agricole (06) : liste des outils à cocher (Q-C10)
 
 Calculs simples, sans paramètre réglementaire. Toute valeur de référence (densité, PMG, teneur, durée de gestation,
-coefficient) est **saisie** par l'utilisateur, jamais fixée dans le code. Coche les outils à retenir.
+coefficient) est **saisie** par l'utilisateur, jamais fixée dans le code. **Tous retenus** (07/11/2026).
 
 **Surfaces et mesures**
 
