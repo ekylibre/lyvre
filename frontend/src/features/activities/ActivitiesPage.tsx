@@ -6,7 +6,8 @@ import { Alert, Badge, Button, Center, Group, Loader, Paper, Select, Table, Text
 import { useQuery } from "@tanstack/react-query";
 import { ApiError, api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
-import { useCan } from "../../api/session";
+import { useCan, useIntegration } from "../../api/session";
+import { AppLink } from "../../app/navigation";
 import { FilterBar, useUrlParams } from "../../components/FilterBar";
 import { PageHeader } from "../../components/PageHeader";
 import { KeysPanel } from "./KeysPanel";
@@ -65,6 +66,7 @@ function ActivityForm({ workshop, meta, onDone }: { workshop: WorkshopRow; meta:
 
 export default function ActivitiesPage() {
   const can = useCan();
+  const ekylibre = useIntegration("ekylibre");
   const [params, setParams] = useUrlParams({ campaign: "" });
   const year = Number(params.campaign) || new Date().getFullYear();
   const { data, error } = useQuery({ queryKey: ["activities", year],
@@ -87,7 +89,8 @@ export default function ActivitiesPage() {
   const years = Array.from(new Set([...v.campaigns, year, new Date().getFullYear(), new Date().getFullYear() + 1])).sort((a, b) => b - a);
   return (
     <>
-      <PageHeader title="Activités" description="Ateliers et activités de l'exploitation, et leurs surfaces ou effectifs par campagne : base de la ventilation analytique et des marges." />
+      <PageHeader title="Activités" description="Ateliers et activités de l'exploitation, et leurs surfaces ou effectifs par campagne : base de la ventilation analytique et des marges."
+        actions={ekylibre && <Button variant="default" component={AppLink} href="/activities/ekylibre">Depuis Ekylibre</Button>} />
       <FilterBar>
         <Select aria-label="Campagne" w={170} allowDeselect={false} value={String(year)} data={years.map((y) => ({ value: String(y), label: `Campagne ${y}` }))}
           onChange={(x) => setParams({ campaign: x ?? "" })} />

@@ -181,6 +181,19 @@ L'API ne les expose pas. Trois voies :
   - unité de `working_duration`, lue en secondes ;
   - présence de `costing` sur les interventions anciennes.
 
+## 7 ter. Réalisé (AG11.b)
+
+- Lecture des **parcelles** ajoutée à l'adaptateur et à l'instantané (`products/land_parcels`), pour le contrôle des surfaces.
+- `activities.ekylibre_id` (migration `c9d1e3f5a7b9`).
+- `ekylibre_activities.py`, sur l'instantané :
+  - cultures regroupées par activité Ekylibre (sans surface ou sans activité : ignorées) ;
+  - rapprochement : `ekylibre_id`, sinon même nom, sinon même production Lexicon ; sinon création proposée (atelier de la famille Lexicon, grandes cultures à défaut) ;
+  - campagne d'une culture : celle de sa fin de production (sinon de son début) par la règle de l'activité Lyvre ;
+  - surface par campagne reportée en mesure `measure_source = ekylibre`. Une mesure saisie dans Lyvre n'est jamais remplacée : l'écart est compté et signalé. Une saisie postérieure repasse la mesure en « saisie » (`analytic.set_measure`) ;
+  - un identifiant Ekylibre ne désigne qu'une activité Lyvre : rattacher ailleurs le retire de l'ancienne ;
+  - contrôle : surface des cultures d'une campagne supérieure de plus de 1 % à celle des parcelles (avertissement : dérobées, cultures associées).
+- Écran Activités › **Depuis Ekylibre** (`/activities/ekylibre`, bouton sur la page Activités quand l'intégration est active) : cible par activité (existante ou à créer), surfaces par campagne (à reporter, à jour, à mettre à jour, saisie différente), rattachement en lot.
+
 ## 8. Hors périmètre
 
 - Écriture vers Ekylibre : comptes, factures, statuts.
@@ -218,7 +231,7 @@ L'API ne les expose pas. Trois voies :
 | Sous-lot | Contenu | Dépend de |
 |---|---|---|
 | **AG11.a** ✅ | Intégration Ekylibre : jeton (mot de passe non conservé), test de connexion, client HTTP borné, tâche de synchronisation | — |
-| **AG11.b** | Activités et surfaces : `ekylibre_id`, activités proposées, mesures par campagne, contrôle avec les parcelles | AG11.a, AG8 |
+| **AG11.b** ✅ | Activités et surfaces : `ekylibre_id`, activités proposées, mesures par campagne, contrôle avec les parcelles | AG11.a, AG8 |
 | **AG11.c** | Clés de répartition depuis les interventions : intrants, main-d'œuvre, matériel, heures ; règles proposées | AG11.b |
 | **AG11.d** | Inventaire : feuille de comptage préremplie depuis les matières, correspondance des variantes | AG11.a, AG4 |
 | ~~AG11.e~~ | Ventes et achats : sans objet (Q-K1, voie A) | — |

@@ -15,8 +15,8 @@ from app.models import EkylibreSnapshot
 from app.services import ekylibre_client, external_config
 from app.services.ekylibre_client import EkylibreError, Intervention, Matter, Production
 
-KINDS = {"productions": Production, "interventions": Intervention, "matters": Matter}
-LABELS = {"productions": "cultures", "interventions": "interventions", "matters": "matières"}
+KINDS = {"productions": Production, "parcels": Production, "interventions": Intervention, "matters": Matter}
+LABELS = {"productions": "cultures", "parcels": "parcelles", "interventions": "interventions", "matters": "matières"}
 
 
 # ------------------------------------------------------------------ connexion
@@ -102,8 +102,8 @@ def status() -> dict:
 def sync(client=None, progress_cb=None) -> dict:
     client = client or ekylibre_client.Client.from_config()
     fetched = {}
-    for index, (kind, method) in enumerate((("productions", client.productions), ("interventions", client.interventions),
-                                            ("matters", client.matters))):
+    for index, (kind, method) in enumerate((("productions", client.productions), ("parcels", client.parcels),
+                                            ("interventions", client.interventions), ("matters", client.matters))):
         fetched[kind] = method()
         if progress_cb:
             progress_cb(index + 1, len(KINDS))

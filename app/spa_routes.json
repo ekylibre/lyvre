@@ -22,6 +22,7 @@
     {"rule": "/msa/", "endpoint": "msa.index"},
     {"rule": "/activities/", "endpoint": "activities.index"},
     {"rule": "/activities/margins", "endpoint": "activities.margins"},
+    {"rule": "/activities/ekylibre", "endpoint": "activities.ekylibre"},
     {"rule": "/analytic/", "endpoint": "analytic.index"},
     {"rule": "/agenda/", "endpoint": "agenda.index"},
     {"rule": "/vat-returns/<period>", "endpoint": "vat_returns.detail"},

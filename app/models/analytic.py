@@ -46,6 +46,7 @@ class Activity(db.Model):
     cycle_stop = db.Column(db.String(5), nullable=False, default="12-31", server_default="12-31")
     year_offset = db.Column(db.Integer, nullable=False, default=0, server_default="0")               # début en N − offset
     isacompta_code = db.Column(db.String(20))
+    ekylibre_id = db.Column(db.Integer, index=True)    # activité Ekylibre rattachée (lot AG11.b)
     distribution_key_id = db.Column(db.Integer, db.ForeignKey("analytic_keys.id", ondelete="SET NULL"))  # auxiliaire (AG8.e)
     archived = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)

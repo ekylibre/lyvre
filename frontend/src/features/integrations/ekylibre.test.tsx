@@ -12,6 +12,7 @@ const STATE: EkylibreState = {
   enabled: true, configured: false, url: "", email: "", job: null,
   snapshots: {
     productions: { label: "cultures", count: 12, synced_at: "2026-11-07T10:00:00" },
+    parcels: { label: "parcelles", count: null, synced_at: null },
     interventions: { label: "interventions", count: null, synced_at: null },
     matters: { label: "matières", count: null, synced_at: null },
   },
@@ -24,7 +25,7 @@ describe("Connexion Ekylibre", () => {
     renderWithProviders(<EkylibreConnection />);
     expect(await screen.findByText("cultures")).toBeInTheDocument();
     expect(screen.getByText("12")).toBeInTheDocument();
-    expect(screen.getAllByText("jamais")).toHaveLength(2);
+    expect(screen.getAllByText("jamais")).toHaveLength(3);
     expect(screen.getByRole("button", { name: "Lire Ekylibre" })).toBeDisabled();
     await userEvent.type(screen.getByLabelText(/Adresse de l'instance/), "https://demo.ekylibre.test");
     await userEvent.type(screen.getByLabelText(/Email Ekylibre/), "camille@example.org");

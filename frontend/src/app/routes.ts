@@ -57,6 +57,7 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
   "msa.index": () => import("../features/msa/MsaPage"),
   "activities.index": () => import("../features/activities/ActivitiesPage"),
   "activities.margins": () => import("../features/activities/MarginsPage"),
+  "activities.ekylibre": () => import("../features/activities/EkylibreActivitiesPage"),
   "analytic.index": () => import("../features/analytic/AnalyticPage"),
   "agenda.index": () => import("../features/agenda/AgendaPage"),
   "projects.statement": () => import("../features/projects/ProjectStatementPage"),

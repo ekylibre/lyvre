@@ -263,6 +263,10 @@ class Client:
     def productions(self) -> list[Production]:
         return [production(raw) for raw in self._list("/products/plants")]
 
+    def parcels(self) -> list[Production]:
+        """Parcelles (lot AG11.b) : mêmes champs qu'une culture, sans activité (contrôle des surfaces)."""
+        return [production(raw) for raw in self._list("/products/land_parcels")]
+
     def matters(self) -> list[Matter]:
         return [matter(raw) for raw in self._list("/products/matters")]
 

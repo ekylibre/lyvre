@@ -14,7 +14,7 @@ const KEY = ["ekylibre", "state"] as const;
 
 export interface EkylibreState {
   enabled: boolean; configured: boolean; url: string; email: string; job: Job | null;
-  snapshots: Record<"productions" | "interventions" | "matters", { label: string; count: number | null; synced_at: string | null }>;
+  snapshots: Record<"productions" | "parcels" | "interventions" | "matters", { label: string; count: number | null; synced_at: string | null }>;
 }
 
 export function EkylibreConnection({ onChange }: { onChange?: () => void }) {

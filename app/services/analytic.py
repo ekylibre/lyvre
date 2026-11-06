@@ -269,6 +269,9 @@ def delete_activity(activity: Activity) -> None:
     db.session.delete(activity)
 
 
+MEASURE_SOURCES = ("entered", "ekylibre")
+
+
 def set_measure(activity_id, year, data: dict) -> ActivityProduction:
     activity = db.session.get(Activity, activity_id) if isinstance(activity_id, int) else None
     if activity is None:
@@ -290,6 +293,8 @@ def set_measure(activity_id, year, data: dict) -> ActivityProduction:
         production = ActivityProduction(activity_id=activity.id, campaign_id=campaign.id)
         db.session.add(production)
     production.measure = measure.quantize(Decimal("0.001")) if measure is not None else None
+    # Lot AG11.b : origine de la mesure (saisie, Ekylibre) ; une saisie n'est jamais écrasée par Ekylibre.
+    production.measure_source = data.get("source") if data.get("source") in MEASURE_SOURCES else "entered"
     production.note = _text(data.get("note"), "note", 300) if "note" in data else production.note
     db.session.flush()
     return production

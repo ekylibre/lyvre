@@ -47,6 +47,7 @@ class FakeServer:
                        ("GET", "/api/v2/profile"): _response(body={"first_name": "Camille", "last_name": "Essai"}),
                        ("GET", "/api/v2/products/plants"): _response(body=PLANTS),
                        ("GET", "/api/v2/products/matters"): _response(body=MATTERS),
+                       ("GET", "/api/v2/products/land_parcels"): _response(body=[]),
                        ("GET", "/api/v2/interventions"): _response(body=INTERVENTIONS),
                        ("DELETE", "/api/v2/tokens/tok-secret"): _response(body={"token": "tok-secret"})}
 
@@ -156,7 +157,7 @@ def test_connect_refused(farm, server):
 def test_sync_snapshot_roundtrip(farm, server):
     ekylibre_sync.connect(URL, "camille@example.org", "pw")
     result = ekylibre_sync.sync()
-    assert result["counts"] == {"productions": 2, "interventions": 1, "matters": 1}
+    assert result["counts"] == {"productions": 2, "parcels": 0, "interventions": 1, "matters": 1}
     plants, at = ekylibre_sync.snapshot("productions")
     assert isinstance(at, datetime) and plants[0].surface_ha == Decimal("12.5000") and plants[0].started_on == date(2025, 10, 1)
     interventions, _ = ekylibre_sync.snapshot("interventions")

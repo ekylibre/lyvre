@@ -74,3 +74,37 @@ def ekylibre_sync_start():
         raise ApiError("conflict", "Une lecture d'Ekylibre est déjà en cours.", 409)
     job = ekylibre_sync.start_sync(current_app._get_current_object())
     return jsonify(job=job_payload(job)), 202
+
+
+# ------------------------------------------------------------------ activités et surfaces (lot AG11.b)
+
+@bp.route("/ekylibre/activities")
+@instance_admin_required
+def ekylibre_activities_list():
+    _agri_only()
+    from app.services import ekylibre_activities
+    return jsonify(ekylibre_activities.rows())
+
+
+@bp.route("/ekylibre/activities", methods=["POST"])
+@instance_admin_required
+def ekylibre_activities_apply():
+    """`{items: [{ekylibre_id, activity_id? | create?, name?}]}` : rattachement ou création, puis surfaces."""
+    _agri_only()
+    from app.extensions import db
+    from app.services import ekylibre_activities
+    from app.services.analytic import AnalyticError
+    try:
+        stats = ekylibre_activities.apply(json_body().get("items"))
+    except (ekylibre_activities.EkylibreActivityError, AnalyticError) as exc:
+        db.session.rollback()
+        if exc.status == 422:
+            raise invalid(exc.message, exc.field) from None
+        raise ApiError("conflict" if exc.status == 409 else "not_found", exc.message, status=exc.status) from None
+    text = (f"{stats['linked']} activité(s) rattachée(s), dont {stats['created']} créée(s) ; "
+            f"{stats['measures']} surface(s) reportée(s).")
+    notices = [notice(text)]
+    if stats["conflicts"]:
+        notices.append(notice(f"{stats['conflicts']} surface(s) saisie(s) dans Lyvre différente(s) d'Ekylibre : "
+                              "conservée(s), à vérifier.", "warning"))
+    return jsonify(stats=stats, notices=notices, **ekylibre_activities.rows())
