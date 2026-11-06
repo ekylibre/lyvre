@@ -286,6 +286,8 @@ def update(sale: Sale, data: dict) -> Sale:
 
     if sale.status != "draft":
         raise SaleError("Pièce émise : elle ne se modifie plus.", status=409)
+    if sale.self_billed:
+        raise SaleError("Autofacture reçue : elle ne se modifie pas (contestez-la auprès du client).", status=409)
     header, lines = parse_header(data), parse_lines(data.get("lines"))
     if sale.kind == "credit_note":
         header.entity = sale.entity  # l'avoir reste au client de sa facture
@@ -304,6 +306,13 @@ def delete(sale: Sale) -> None:
             raise SaleError("Devis émis : il ne se supprime pas (marquez-le refusé).", status=409)
         raise SaleError("Pièce émise : elle ne se supprime pas (passez un avoir).", status=409)
     quote = db.session.get(Sale, sale.quote_id) if sale.quote_id else None
+    if sale.self_billed:
+        if sale.lifecycle_status != "received":
+            raise SaleError("Autofacture déjà traitée : elle ne se supprime pas.", status=409)
+        from app.services import self_billing
+        path = self_billing.received_path(sale)
+        if path is not None:
+            path.unlink(missing_ok=True)
     db.session.delete(sale)
     db.session.flush()
     if quote is not None and quote.status == "invoiced" and not Sale.query.filter_by(kind="invoice", quote_id=quote.id).count():

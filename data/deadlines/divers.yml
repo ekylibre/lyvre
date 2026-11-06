@@ -76,3 +76,17 @@
   lyvre_data: Registre des abattages sanitaires (indemnité, valeur nette, montant réinvesti).
   reliability: A
 
+- id: DIV-07
+  title: Autofactures contestées
+  domain: divers
+  organism: Exploitation
+  summary: Autofacture reçue d'une coopérative, d'une laiterie ou d'un négociant (mandat de facturation) contestée et non encore réglée ; le statut « en litige » (fr:207) et son motif se transmettent par la plateforme agréée.
+  applies: {bookkeeping: [double]}
+  events:
+    - label: Échéance de l'autofacture contestée
+      rule: {type: lyvre, source: self_billing_disputes}
+      reminders: [15, 5]
+      action: {label: Voir les autofactures, route: "/sales/self-billed"}
+  lyvre_data: Autofactures reçues (statut, motif de la contestation).
+  reliability: A
+

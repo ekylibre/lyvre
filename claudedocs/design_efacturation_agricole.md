@@ -89,6 +89,21 @@
   Le statut est **à transmettre par la PA** (pas d'envoi par Lyvre, Q-E1) : Lyvre affiche le code et le motif à reporter.
 - **Doublon** : même client et même numéro → refusé.
 
+**Réalisé (AG10.c)** :
+- `einvoice_reader.py` : lecture complète CII (seul ou joint au PDF Factur-X) et UBL (`Invoice`) : type BT-3, numéro, dates, parties (SIREN, SIRET, TVA, adresse), lignes (unités UN/ECE usuelles), remises et frais de pied de facture repris en lignes, ventilation de TVA, totaux, notes. XML avec DOCTYPE ou ENTITY refusé, 1 Mo au plus.
+- `self_billing.py` :
+  - **contrôles bloquants** : type 389, ou vendeur = SIREN de l'organisation ; vendeur ≠ exploitation ; numéro, date, lignes, client ; euros ; somme des lignes = base HT ; bases par taux ; TVA par taux = total de TVA ; HT + TVA = TTC ; doublon ;
+  - **avertissements** : SIREN de l'organisation ou du vendeur absent, TVA d'un taux écartée de plus d'un centime, TVA facturée à un exercice non soumis (RFA, franchise : à contester), net à payer différent du TTC (acomptes), aucun exercice ;
+  - **compte proposé par ligne** : produit du catalogue de même désignation, sinon même désignation déjà reçue du client, sinon production Lexicon → activité AG8 → sa règle de compte ;
+  - **client** retrouvé par SIREN, n° de TVA ou nom, sinon créé ;
+  - **vente reçue** : `self_billed`, `source = received`, numéro du client, montants et TVA du fichier (pas de recalcul), sans écriture ; fichier rangé dans `uploads/<instance>/autofactures/AAAA/MM/` ;
+  - **cycle de vie** : reçue → acceptée (écriture VE, `fr:205`), contestée (motif obligatoire, `fr:207`), refusée (statut annulée, `fr:210`) ; contestée → acceptée ou refusée ; « encaissée » (`fr:212`) se lit du règlement ;
+  - une autofacture reçue ne se modifie pas et ne prend pas de numéro Lyvre ; elle se supprime tant qu'elle est « reçue ».
+- Numéro unique par **client** (contrainte `kind, entity_id, number`, migration `e5f7a9b1c3d5`).
+- Échéancier : fiche DIV-07 (source `self_billing_disputes`), rappel à l'échéance des autofactures contestées.
+- Écrans : Ventes › Autofactures reçues (plan agricole) ; sur la fiche de vente, Accepter, Contester, Refuser, fichier reçu, code de statut à transmettre.
+- **Non fait** : avoir reçu sur autofacture (refusé à la lecture, à saisir à la main) ; ventilation analytique de la ligne (AG10.d).
+
 ## 4. Décomptes de coopérative (AG10.1, suite)
 
 - Une **autofacture de coopérative** peut être un décompte complet. À défaut, un **décompte papier ou PDF** se saisit avec le même formulaire.
@@ -243,7 +258,7 @@
 |---|---|---|
 | **AG10.a** ✅ | Import FEC : correspondance PCGA 1986, sous-comptes par culture proposés comme activités | AG8 |
 | **AG10.b** ✅ | Import `.ISA` : lecteur, plan, journaux, écritures, ateliers ANA vers AG8, affectations, codes TVA | AG10.a |
-| **AG10.c** | Autofactures reçues : lecture Factur-X / CII / UBL, vente proposée, cycle de vie, doublons | — |
+| **AG10.c** ✅ | Autofactures reçues : lecture Factur-X / CII / UBL, vente proposée, cycle de vie, doublons | — |
 | **AG10.d** | Décomptes de coopérative : lignes typées, écriture, activités | AG10.c |
 | **AG10.e** | Factur-X agricole (RFA sous réserve du code sourcé, nouvelles mentions, note B2C) et e-reporting B2C (agrégats jour × catégorie × taux, contrôle, export JSON SUPER PDP) | AG10.c |
 

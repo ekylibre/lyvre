@@ -107,6 +107,7 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
   ...pages(["sales.new", "sales.edit"], () => import("../features/sales/SaleFormPage")),
   "sales.detail": () => import("../features/sales/SaleDetailPage"),
   "sales.due": () => import("../features/sales/DueSalesPage"),
+  "sales.self_billed": () => import("../features/sales/SelfBilledPage"),
   "sales.recurring": () => import("../features/sales/RecurringPage"),
   ...pages(["sales.recurring_new", "sales.recurring_edit"], () => import("../features/sales/RecurringFormPage")),
   "leases.index": () => import("../features/sales/LeasesPage"),

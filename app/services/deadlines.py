@@ -35,7 +35,8 @@ DOMAINS = {"tva": "TVA", "fiscal": "Fiscal", "social": "Social (MSA)", "pac": "P
 RELIABILITIES = ("V", "R", "A", "I")
 RULE_TYPES = ("fixed", "nth_working_day_after", "after_close", "in_fiscal_year", "monthly", "once", "annual_param",
               "profile", "leases", "lyvre")
-LYVRE_SOURCES = ("vat_returns", "vat_installments", "rfa", "aids", "living_reinvestments")
+LYVRE_SOURCES = ("vat_returns", "vat_installments", "rfa", "aids", "living_reinvestments",
+                 "self_billing_disputes")
 TAX_CONDITIONS = ("income_tax", "ba_regime", "vat_regime")
 CONDITIONS = ("legal_form", *TAX_CONDITIONS, "option", "close", "flags", "production", "company", "commercial",
               "bookkeeping")

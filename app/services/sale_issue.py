@@ -52,6 +52,8 @@ def issue_problems(sale: Sale) -> list[str]:
         return ["Pièce déjà émise."]
     if sale.kind not in ("invoice", "credit_note", "quote"):
         return ["Type de pièce non émissible."]
+    if sale.self_billed:
+        return ["Autofacture reçue : elle porte le numéro du client, acceptez-la pour la comptabiliser."]
     fy = fiscal_year_for(sale.issue_date)
     if sale.kind == "quote":
         pass  # un devis n'est pas comptabilisé

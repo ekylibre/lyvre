@@ -24,7 +24,7 @@ def _first(rule, ctx, after):
 
 def test_base_is_valid_and_complete():
     fiches = deadlines.fiches()
-    assert len(fiches) == 39 and len({f["id"] for f in fiches}) == 39       # 38 de l'audit + DIV-06 (AG5.c)
+    assert len(fiches) == 40 and len({f["id"] for f in fiches}) == 40       # 38 de l'audit + DIV-06 (AG5.c) + DIV-07 (AG10.c)
     assert {f["domain"] for f in fiches} == set(deadlines.DOMAINS)
     bad = [{"id": "X-1", "title": "x", "domain": "tva", "organism": "x", "summary": "x", "reliability": "Z",
             "applies": {"weather": [1]}, "events": [{"label": "x", "rule": {"type": "eval", "expr": "1"}}]}]

@@ -21,11 +21,16 @@ QUOTE_VALIDITY_DAYS = 30
 OPERATION_TYPES = {"goods": "Livraison de biens", "services": "Prestation de services", "both": "Biens et services"}
 # Mode de TVA figé à l'émission : non assujetti (art. 293 B), exigible à l'encaissement, d'après les débits.
 VAT_MODES = ("none", "receipts", "debits")
+# Cycle de vie d'une autofacture reçue (lot AG10.c) : libellé et code de statut de la réforme à transmettre
+# par la plateforme agréée (codes listés par SUPER PDP, design_efacturation_agricole.md § 3 et § 11).
+LIFECYCLE = {"received": ("Reçue", None), "accepted": ("Acceptée", "fr:205"), "disputed": ("Contestée", "fr:207"),
+             "refused": ("Refusée", "fr:210"), "paid": ("Encaissée", "fr:212")}
 
 
 class Sale(db.Model):
     __tablename__ = "sales"
-    __table_args__ = (db.UniqueConstraint("kind", "number", name="uq_sales_kind_number"),)
+    # Lot AG10.c : le numéro d'une autofacture est celui du client ; unique par client (doublon refusé).
+    __table_args__ = (db.UniqueConstraint("kind", "entity_id", "number", name="uq_sales_kind_entity_number"),)
 
     id = db.Column(db.Integer, primary_key=True)
     kind = db.Column(db.String(12), nullable=False, default="invoice")
@@ -69,6 +74,12 @@ class Sale(db.Model):
     last_reminder_at = db.Column(db.DateTime)
     reminder_count = db.Column(db.Integer, nullable=False, default=0)
     raw_payload = db.Column(db.Text)
+    # Lot AG10.c : autofacture reçue (émise par le client sous mandat, `source = received`), cycle de vie.
+    self_billed = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
+    lifecycle_status = db.Column(db.String(10))     # received | accepted | disputed | refused (LIFECYCLE)
+    lifecycle_reason = db.Column(db.Text)
+    lifecycle_at = db.Column(db.DateTime)
+    received_file = db.Column(db.String(300))       # fichier déposé, relatif au dossier de l'instance
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

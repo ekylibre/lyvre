@@ -5,7 +5,8 @@
 import { useState } from "react";
 import { useParams } from "react-router";
 import {
-  Alert, Anchor, Button, Center, Checkbox, Grid, Group, List, Loader, Paper, Stack, Table, TagsInput, Text, TextInput, Textarea, Title,
+  Alert, Anchor, Button, Center, Checkbox, Grid, Group, List, Loader, Paper, Select, Stack, Table, TagsInput, Text, TextInput, Textarea,
+  Title,
 } from "@mantine/core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
@@ -21,7 +22,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate, formatDateTime } from "../../lib/format";
 import { AppLink, useGoTo } from "../../app/navigation";
 import { PaymentForm } from "./PaymentForm";
-import { KIND_TITLES, SALES_KEY, STATUS_TONES, VAT_MODE_LABELS, type SaleDetail } from "./types";
+import { KIND_TITLES, LIFECYCLE_TONES, SALES_KEY, STATUS_TONES, VAT_MODE_LABELS, type SaleDetail } from "./types";
 
 const rate = (bp: number) => `${(bp / 100).toLocaleString("fr-FR")} %`;
 
@@ -66,13 +67,47 @@ function CreditForm({ sale, onDone }: { sale: SaleDetail; onDone: (id?: number) 
   );
 }
 
+const LIFECYCLE_ACTIONS = {
+  accepted: { title: "Accepter l'autofacture", submit: "Accepter et comptabiliser",
+    help: "La vente est comptabilisée au journal des ventes. Transmettez ensuite le statut « approuvée » (fr:205) par votre plateforme." },
+  disputed: { title: "Contester l'autofacture", submit: "Contester",
+    help: "Rien n'est comptabilisé ; un rappel est placé dans l'échéancier. Transmettez le statut « en litige » (fr:207) et ce motif par votre plateforme." },
+  refused: { title: "Refuser l'autofacture", submit: "Refuser",
+    help: "Rien n'est comptabilisé. Transmettez le statut « refusée » (fr:210) par votre plateforme." },
+} as const;
+
+/** Lot AG10.c : acceptation (comptes des lignes qui n'en ont pas), contestation (motif) ou refus d'une autofacture reçue. */
+export function LifecycleForm({ sale, status, onDone }: {
+  sale: SaleDetail; status: keyof typeof LIFECYCLE_ACTIONS; onDone: (s?: SaleDetail) => void;
+}) {
+  const [reason, setReason] = useState("");
+  const [accounts, setAccounts] = useState<Record<number, string>>({});
+  const missing = status === "accepted" ? sale.lines.filter((l) => !l.account_code) : [];
+  const options = useQuery({ queryKey: [...SALES_KEY, "form-options"], enabled: missing.length > 0,
+    queryFn: () => api.get<{ sale_accounts: { value: string; label: string }[] }>("/api/v1/sales/form-options") });
+  const send = useAction(() => api.post<{ item: SaleDetail; notices: Notice[] }>(`/api/v1/sales/${sale.id}/lifecycle`,
+    { status, reason, accounts }), { invalidate: [SALES_KEY] });
+  const action = LIFECYCLE_ACTIONS[status];
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); send.mutate(undefined, { onSuccess: (r) => onDone(r.item) }); }}>
+      <FormBody submitLabel={action.submit} onCancel={() => onDone()} loading={send.isPending}>
+        <Text size="sm">{action.help}</Text>
+        {missing.map((l) => <Select key={l.id} label={`Compte de vente : ${l.label}`} required searchable data={options.data?.sale_accounts ?? []}
+          value={accounts[l.id] ?? null} onChange={(v) => setAccounts((c) => ({ ...c, [l.id]: v ?? "" }))} />)}
+        {status !== "accepted" && <Textarea label="Motif" required={status === "disputed"} data-autofocus autosize minRows={2}
+          value={reason} onChange={(e) => setReason(e.currentTarget.value)} placeholder="Poids, prix, qualité, réfaction…" />}
+      </FormBody>
+    </form>
+  );
+}
+
 export default function SaleDetailPage() {
   const id = Number(useParams().sale_id);
   const client = useQueryClient();
   const goTo = useGoTo();
   const key = [...SALES_KEY, id];
   const { data, error } = useQuery({ queryKey: key, retry: false, queryFn: () => api.get<{ item: SaleDetail }>(`/api/v1/sales/${id}`) });
-  const [modal, setModal] = useState<"send" | "credit" | "pay" | "remind" | null>(null);
+  const [modal, setModal] = useState<"send" | "credit" | "pay" | "remind" | "accepted" | "disputed" | "refused" | null>(null);
   const smtp = useIntegrationGuard("smtp", "L'envoi par email");
   const refresh = (item: SaleDetail) => { client.setQueryData(key, { item }); void client.invalidateQueries({ queryKey: SALES_KEY }); };
   const issue = useAction(() => api.post<{ item: SaleDetail; notices: Notice[] }>(`/api/v1/sales/${id}/issue`));
@@ -89,6 +124,7 @@ export default function SaleDetailPage() {
   const s = data.item;
   const draft = s.status === "draft";
   const quote = s.kind === "quote";
+  const received = !!s.self_billed;
   const title = `${KIND_TITLES[s.kind]} ${s.number ?? "brouillon"}`;
   return (
     <>
@@ -103,13 +139,17 @@ export default function SaleDetailPage() {
           {quote && s.validity_date && <span>valable jusqu'au {formatDate(s.validity_date)}</span>}
           {(s.qonto_emit || s.source === "qonto") && <StatusBadge tone="info">{s.source === "qonto" ? "Créée dans Qonto" : "Qonto"}</StatusBadge>}
           {s.qonto_status && <span>Qonto : {s.qonto_status}</span>}
+          {s.lifecycle && <StatusBadge tone={LIFECYCLE_TONES[s.lifecycle.status]}>{`Autofacture ${s.lifecycle.label.toLowerCase()}`}</StatusBadge>}
         </Group>}
         actions={<>
           <Can>
-            {draft && <Button variant="default" component={AppLink} href={`/sales/${id}/edit`}>Modifier</Button>}
-            {draft && <ConfirmButton title={`Supprimer ce brouillon ?`} confirmLabel="Supprimer" loading={remove.isPending}
+            {draft && !received && <Button variant="default" component={AppLink} href={`/sales/${id}/edit`}>Modifier</Button>}
+            {s.lifecycle?.actions.includes("accepted") && <Button onClick={() => setModal("accepted")}>Accepter</Button>}
+            {s.lifecycle?.actions.includes("disputed") && <Button variant="default" onClick={() => setModal("disputed")}>Contester</Button>}
+            {s.lifecycle?.actions.includes("refused") && <Button variant="default" onClick={() => setModal("refused")}>Refuser</Button>}
+            {draft && (!received || s.lifecycle?.status === "received") && <ConfirmButton title={`Supprimer ce brouillon ?`} confirmLabel="Supprimer" loading={remove.isPending}
               onConfirm={() => remove.mutate(undefined, { onSuccess: () => goTo(quote ? "/sales/?kind=quote" : "/sales/") })}>Supprimer</ConfirmButton>}
-            {draft && <ConfirmButton danger={false} disabled={s.issue_problems.length > 0} loading={issue.isPending}
+            {draft && !received && <ConfirmButton danger={false} disabled={s.issue_problems.length > 0} loading={issue.isPending}
               title={`Émettre ${s.kind === "credit_note" ? "l'avoir" : quote ? "le devis" : "la facture"} ?`} confirmLabel="Émettre"
               message={quote ? "Un numéro définitif est attribué et le PDF est produit. Le devis ne pourra plus être modifié."
                 : "Un numéro définitif est attribué, l'écriture comptable est passée et le PDF Factur-X est produit. La pièce ne pourra plus être modifiée ni supprimée (on la corrige par un avoir)."}
@@ -131,11 +171,21 @@ export default function SaleDetailPage() {
               <Button loading={toInvoice.isPending} onClick={() => toInvoice.mutate(undefined, { onSuccess: (r) => goTo(`/sales/${r.item.id}`) })}>
                 {s.status === "invoiced" ? "Nouvelle facture" : "Transformer en facture"}</Button>}
           </Can>
-          <Button variant="default" component="a" href={s.pdf_url} target="_blank">{draft ? "Aperçu PDF" : "PDF"}</Button>
+          {s.received_file_url && <Button variant="default" component="a" href={s.received_file_url} target="_blank">Fichier reçu</Button>}
+          <Button variant="default" component="a" href={s.pdf_url} target="_blank">{draft && !received ? "Aperçu PDF" : "PDF"}</Button>
           <Button variant="default" component={AppLink} href={quote ? "/sales/?kind=quote" : "/sales/"}>{quote ? "Devis" : "Ventes"}</Button>
         </>} />
 
-      {draft && s.issue_problems.length > 0 && (
+      {s.lifecycle && (
+        <Alert color={s.lifecycle.status === "disputed" ? "paille" : "ardoise"} mb="md" title={`Autofacture ${s.lifecycle.label.toLowerCase()}`}>
+          <Text size="sm">Émise par le client sous mandat de facturation, avec son numéro.
+            {s.lifecycle.code ? <> Statut à transmettre par votre plateforme agréée : <b className="lv-num">{s.lifecycle.code}</b>
+              {s.lifecycle.at && <> (le {formatDate(s.lifecycle.at)})</>}.</>
+              : " Acceptez-la pour la comptabiliser, ou contestez-la."}</Text>
+          {s.lifecycle.reason && <Text size="sm" mt={4}>Motif : {s.lifecycle.reason}</Text>}
+        </Alert>
+      )}
+      {draft && !received && s.issue_problems.length > 0 && (
         <Alert color="paille" mb="md" title="À compléter avant l'émission :">
           <List size="sm">{s.issue_problems.map((p) => <List.Item key={p}>{p}</List.Item>)}</List>
         </Alert>
@@ -261,6 +311,11 @@ export default function SaleDetailPage() {
       <FormModal opened={modal === "pay"} onClose={() => setModal(null)} title={`Encaisser ${title}`} size="lg">
         {modal === "pay" && <PaymentForm sale={s} onDone={(item) => { if (item) refresh(item); setModal(null); }} />}
       </FormModal>
+      {(modal === "accepted" || modal === "disputed" || modal === "refused") && (
+        <FormModal opened onClose={() => setModal(null)} title={`${LIFECYCLE_ACTIONS[modal].title} ${s.number}`}>
+          <LifecycleForm sale={s} status={modal} onDone={(item) => { if (item) refresh(item); setModal(null); }} />
+        </FormModal>
+      )}
       <FormModal opened={modal === "credit"} onClose={() => setModal(null)} title={`Avoir sur la facture ${s.number}`}>
         {modal === "credit" && <CreditForm sale={s} onDone={(noteId) => { setModal(null); if (noteId) goTo(`/sales/${noteId}`); }} />}
       </FormModal>
