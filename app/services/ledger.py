@@ -273,7 +273,9 @@ def _attach_analytic(created) -> None:
     from app.services.analytic_allocation import attach
     db.session.flush()
     for line, l in wanted:
-        attach(line, l["analytic"], l.get("analytic_origin", "manual"))
+        row = attach(line, l["analytic"], l.get("analytic_origin", "manual"))
+        if row is not None and l.get("analytic_campaign"):
+            row.campaign_year = l["analytic_campaign"]
 
 
 def post_validated_entry(clean, bank_transaction=None):

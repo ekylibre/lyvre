@@ -66,6 +66,7 @@ from .analytic import (Activity, ActivityProduction, AnalyticAllocation, Analyti
                        Campaign, Workshop)
 from .assistant import AssistantConversation, AssistantMessage, AssistantProposal
 from .checklist import ChecklistMark
+from .coop_statement import CoopStatement, CoopStatementLine
 from .msa import MsaAdjustment, MsaBase, MsaCall, MsaPerson
 from .aid import Aid, AidAccrual, AidAsset, AidPayment, AidRelease, CapPublished
 from .deadline_state import DeadlineState
@@ -73,6 +74,7 @@ from .agenda_subscription import AgendaSubscription
 
 __all__ = [
     "ChecklistMark",
+    "CoopStatement", "CoopStatementLine",
     "AssistantConversation", "AssistantMessage", "AssistantProposal",
     "Activity", "ActivityProduction", "AnalyticAllocation", "AnalyticKey", "AnalyticKeyMember", "AnalyticRule", "AnalyticSnapshot", "Campaign", "Workshop",
     "MsaAdjustment", "MsaBase", "MsaCall", "MsaPerson",

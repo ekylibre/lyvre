@@ -85,7 +85,8 @@ class ActivityProduction(db.Model):
 KEY_BASES = {"surface": "Surface des activités", "headcount": "Effectif des activités",
              "percentage": "Pourcentages saisis", "gross_margin": "Marge brute (état des marges)"}
 ALLOCATION_ORIGINS = {"manual": "saisie", "account": "règle de compte", "purchase": "ligne d'achat", "rule": "règle bancaire",
-                      "simple": "opération simple", "aid": "dossier d'aide", "import": "reprise du dossier"}
+                      "simple": "opération simple", "aid": "dossier d'aide", "import": "reprise du dossier",
+                      "coop": "décompte de coopérative"}
 
 
 class AnalyticKey(db.Model):

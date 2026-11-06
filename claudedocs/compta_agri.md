@@ -421,7 +421,7 @@ Il s'inscrit dans le cadrage `doc/base_documentaire/` : API Claude, outils qui a
 
 - **AG10.1 Autofactures reçues** (coopérative, laiterie, négoce) via la plateforme agréée :
   - enregistrées comme **ventes** du producteur, avec acceptation ou contestation (fait : AG10.c, dépôt Factur-X / CII / UBL) ;
-  - **décomptes de coopérative** : apports, acomptes, compléments de prix, ristournes, parts sociales retenues (2621).
+  - **décomptes de coopérative** : apports, acomptes, compléments de prix, ristournes, parts sociales retenues (2621) (fait : AG10.d).
 - **AG10.2 Codes TVA agricoles dans Factur-X** : mention « non assujetti, remboursement forfaitaire » pour le RFA. Code et libellé à sourcer (AGD27).
 - **AG10.3 E-reporting B2C** (vente directe, marchés) agrégé par jour et par taux, à préparer pour le 01/09/2027.
 - **AG10.4 Reprise de dossiers** : import de FEC Isacompta, Agrigest ou ISTEA par l'import FEC existant, avec une table de correspondance de comptes agricoles.

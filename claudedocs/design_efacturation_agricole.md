@@ -122,6 +122,18 @@
 - **Exercice** : compléments de prix et ristournes vont dans les ventes de l'exercice du décompte, même s'ils portent sur une campagne antérieure.
 - **Activité** : chaque apport peut porter son activité et sa campagne (AG8), ce qui en fait une ventilation analytique de la ligne de vente.
 
+**Réalisé (AG10.d)** :
+- Tables `coop_statements` (tiers, numéro unique par tiers, date, libellé, brouillon ou comptabilisé, écriture, pièce jointe) et `coop_statement_lines` (type, désignation, quantité, unité, montant HT positif, TVA, compte, activité, campagne) ; migration `f6a8b0c2d4e6`.
+- `coop_statements.py` :
+  - **écriture unique** au journal des ventes, à la date du décompte (source `COOP_STATEMENT`) : 411 du tiers au net (crédit s'il est négatif), ventes 70x au crédit, TVA collectée 44571 par taux (`V55`…), parts 2621 et frais 6x au débit, TVA déductible 44566 sur les frais (`D20`…) ;
+  - **acompte déjà versé** : sans écriture, il réduit le net à payer (l'encaissement de l'acompte a déjà crédité le 411) ;
+  - **comptes proposés** sans saisie : règle de l'activité, sinon `self_billing.propose_account` ; 2621 pour les parts ; même libellé d'un décompte précédent du tiers pour les frais ; compte contrôlé selon le type (7…, 26…/27…, 6…) ;
+  - **analytique** : ligne de vente avec activité → ventilation à 100 % (origine « décompte de coopérative ») avec sa campagne, déduite de la date pour un apport ;
+  - contrôles : au moins une vente, montants positifs, pas de TVA sur acompte ni parts, TVA refusée si l'exercice n'est pas soumis, doublon (même tiers, même numéro), exercice ouvert ;
+  - retour en brouillon : écriture supprimée si elle n'est pas validée.
+- Écran Ventes › Décomptes de coopérative (plan agricole) : liste, saisie des lignes typées, totaux (ventes, retenues, acomptes, net à payer), pièce jointe, comptabiliser, repasser en brouillon.
+- **Non fait** : décompte lu depuis un fichier (une autofacture reçue garde le parcours AG10.c) ; lettrage automatique des acomptes.
+
 ## 5. Factur-X agricole (AG10.2)
 
 - Les taux 5,5 %, 10 % et 20 % des ventes agricoles sont déjà portés par les codes de TVA (AG2).
@@ -259,7 +271,7 @@
 | **AG10.a** ✅ | Import FEC : correspondance PCGA 1986, sous-comptes par culture proposés comme activités | AG8 |
 | **AG10.b** ✅ | Import `.ISA` : lecteur, plan, journaux, écritures, ateliers ANA vers AG8, affectations, codes TVA | AG10.a |
 | **AG10.c** ✅ | Autofactures reçues : lecture Factur-X / CII / UBL, vente proposée, cycle de vie, doublons | — |
-| **AG10.d** | Décomptes de coopérative : lignes typées, écriture, activités | AG10.c |
+| **AG10.d** ✅ | Décomptes de coopérative : lignes typées, écriture, activités | AG10.c |
 | **AG10.e** | Factur-X agricole (RFA sous réserve du code sourcé, nouvelles mentions, note B2C) et e-reporting B2C (agrégats jour × catégorie × taux, contrôle, export JSON SUPER PDP) | AG10.c |
 
 Ordre retenu (Q-E6) : a → b, puis c → d, puis e.

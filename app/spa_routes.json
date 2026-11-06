@@ -113,6 +113,7 @@
     {"rule": "/sales/new", "endpoint": "sales.new"},
     {"rule": "/sales/due", "endpoint": "sales.due"},
     {"rule": "/sales/self-billed", "endpoint": "sales.self_billed"},
+    {"rule": "/sales/coop-statements", "endpoint": "sales.coop_statements"},
     {"rule": "/sales/recurring", "endpoint": "sales.recurring"},
     {"rule": "/sales/recurring/new", "endpoint": "sales.recurring_new"},
     {"rule": "/sales/recurring/<int:rec_id>", "endpoint": "sales.recurring_edit"},

@@ -174,12 +174,19 @@ def propose_account(label: str, entity: Entity | None) -> tuple[Account | None, 
         activity = Activity.query.filter_by(lexicon_reference=production["reference"], archived=False).first()
         if activity is None:
             activity = next((a for a in Activity.query.filter_by(archived=False) if _words(a.name) == _words(production["name"])), None)
-        if activity is not None:
-            for rule in AnalyticRule.query.filter_by(activity_id=activity.id).order_by(db.func.length(AnalyticRule.account_prefix).desc()):
-                account = _sale_account(rule.account_prefix)
-                if account is not None:
-                    return account, "activity"
+        account = activity_account(activity) if activity is not None else None
+        if account is not None:
+            return account, "activity"
     return None, None
+
+
+def activity_account(activity: Activity) -> Account | None:
+    """Compte de vente de l'activité : celui de sa règle « compte → activité » (préfixe le plus long)."""
+    for rule in AnalyticRule.query.filter_by(activity_id=activity.id).order_by(db.func.length(AnalyticRule.account_prefix).desc()):
+        account = _sale_account(rule.account_prefix)
+        if account is not None:
+            return account
+    return None
 
 
 ORIGIN_LABELS = {"product": "produit du catalogue", "history": "déjà reçu de ce client", "activity": "activité"}

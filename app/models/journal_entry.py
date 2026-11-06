@@ -32,6 +32,8 @@ SOURCE_LETTERING = "LETTERING"
 # Reprise d'historique (lot F6) : FEC (historique complet) et tableur.
 SOURCE_FEC_IMPORT = "FEC_IMPORT"
 SOURCE_SHEET_IMPORT = "SHEET_IMPORT"
+# Décompte de coopérative (lot AG10.d).
+SOURCE_COOP_STATEMENT = "COOP_STATEMENT"
 INVENTORY_KINDS = ("accrued_expense", "accrued_income", "prepaid_expense", "deferred_income",
                    "compensation_debit", "compensation_credit")  # lot AG1.d : conventions 472 (agri)
 

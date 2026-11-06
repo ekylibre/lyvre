@@ -167,6 +167,8 @@ MENUS = [
             {"key": "sales_list", "label": "Factures, avoirs et devis", "endpoint": "sales.index", "charts": _ALL},
             {"key": "sales_due", "label": "À émettre", "endpoint": "sales.due", "charts": _ALL},
             {"key": "sales_self_billed", "label": "Autofactures reçues", "endpoint": "sales.self_billed", "charts": ["agri"]},
+            {"key": "sales_coop_statements", "label": "Décomptes de coopérative", "endpoint": "sales.coop_statements",
+             "charts": ["agri"]},
             {"key": "sales_recurring", "label": "Factures récurrentes", "endpoint": "sales.recurring", "charts": _ALL},
             {"key": "leases", "label": "Baux et quittances", "endpoint": "leases.index", "charts": _ALL},
             {"key": "rent_indices", "label": "Indices de loyer", "endpoint": "rent_indices.index", "charts": _ALL},
