@@ -313,6 +313,15 @@ def _probe_assistant() -> str:
     return f"Modèle {getattr(info, 'display_name', None) or model} accessible{origin}."
 
 
+def _probe_ekylibre() -> str:
+    """Lot AG11.a : instance accessible et jeton accepté (profil de l'utilisateur)."""
+    from app.services import ekylibre_client
+    client = ekylibre_client.Client.from_config(timeout=CHECK_TIMEOUT)
+    profile = client.profile()
+    who = " ".join(p for p in (profile.get("first_name"), profile.get("last_name")) if p) or client.email
+    return f"Instance {client.base} accessible, connecté en tant que {who}."
+
+
 def _probe_brevo() -> str:
     from app.services import brevo_attributes, brevo_client
 
@@ -346,6 +355,7 @@ PROBES: dict[str, Callable[[], str]] = {
     "documenso": _probe_documenso,
     "brevo": _probe_brevo,
     "assistant": _probe_assistant,
+    "ekylibre": _probe_ekylibre,
 }
 
 
@@ -400,7 +410,8 @@ def describe_error(service: str, exc: BaseException) -> str:
     from app.services.odoo_client import OdooConfigError
     from app.services.qonto_client import QontoConfigError, QontoError
 
-    if isinstance(exc, BrevoError):  # déjà en français (IP non autorisée, clé refusée…)
+    from app.services.ekylibre_client import EkylibreError
+    if isinstance(exc, (BrevoError, EkylibreError)):  # déjà en français (IP non autorisée, clé refusée…)
         return exc.message
     if service == "assistant":                       # lot AG9b : erreurs du SDK anthropic
         from app.services.assistant.settings import describe_error as assistant_error

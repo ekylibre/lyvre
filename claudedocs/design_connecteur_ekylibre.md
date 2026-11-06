@@ -158,6 +158,29 @@ L'API ne les expose pas. Trois voies :
 - l'URL est contrôlée : `https` seulement, pas d'adresse privée, même règle que les autres intégrations ;
 - délai d'attente et taille de réponse bornés.
 
+## 7 bis. Réalisé (AG11.a)
+
+- **Adaptateur** `ekylibre_client.py` : seul module qui connaît l'API v2.
+  - Objets neutres `Production`, `Intervention` (coûts par nature, cibles, outils, durée), `Matter`.
+  - `obtain_token` et `revoke_token`.
+  - `Client` : profil, cultures, interventions, matières.
+- **Sûreté** :
+  - URL `https` seulement, sans identifiants ;
+  - résolution DNS contrôlée : adresses privées, locales, de lien local et réservées refusées ;
+  - redirections non suivies, délai de 30 s, réponse de 30 Mo au plus.
+- **Intégration** `ekylibre` (instances agricoles), clés `url`, `email` et `token` (secret) :
+  - test de connexion par le profil ;
+  - connexion par mot de passe **à usage unique** (`POST /api/v1/ekylibre/connect`), qui n'est ni conservé ni renvoyé ;
+  - révocation du jeton chez Ekylibre ; le jeton est effacé de Lyvre dans tous les cas.
+- **Instantané local** `ekylibre_snapshots` (migration `b8c0d2e4f6a8`), un par type (cultures, interventions, matières), lu en tâche de fond (`sync_jobs`, `POST /api/v1/ekylibre/sync`).
+  - La lecture se fait en tout-ou-rien : en cas d'échec, l'instantané précédent reste.
+  - Les sous-lots b à d travaillent sur l'instantané.
+- **Écran** : Intégrations › Ekylibre › « Connexion et lecture » (se connecter, révoquer, lire Ekylibre, date et volume des données lues).
+- **À vérifier sur `demo.ekylibre-dev.com`** :
+  - forme JSON de `net_surface_area` (`Measure` sans `as_json` côté Ekylibre ; l'adaptateur accepte un objet `{value, unit}`, un texte avec unité ou une fraction) ;
+  - unité de `working_duration`, lue en secondes ;
+  - présence de `costing` sur les interventions anciennes.
+
 ## 8. Hors périmètre
 
 - Écriture vers Ekylibre : comptes, factures, statuts.
@@ -194,7 +217,7 @@ L'API ne les expose pas. Trois voies :
 
 | Sous-lot | Contenu | Dépend de |
 |---|---|---|
-| **AG11.a** | Intégration Ekylibre : jeton (mot de passe non conservé), test de connexion, client HTTP borné, tâche de synchronisation | — |
+| **AG11.a** ✅ | Intégration Ekylibre : jeton (mot de passe non conservé), test de connexion, client HTTP borné, tâche de synchronisation | — |
 | **AG11.b** | Activités et surfaces : `ekylibre_id`, activités proposées, mesures par campagne, contrôle avec les parcelles | AG11.a, AG8 |
 | **AG11.c** | Clés de répartition depuis les interventions : intrants, main-d'œuvre, matériel, heures ; règles proposées | AG11.b |
 | **AG11.d** | Inventaire : feuille de comptage préremplie depuis les matières, correspondance des variantes | AG11.a, AG4 |

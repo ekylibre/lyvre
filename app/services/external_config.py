@@ -34,6 +34,7 @@ SERVICE_KEYS: dict[str, list[str]] = {
     "documenso": ["url", "api_key"],
     "brevo":     ["api_key", "list_id"],
     "assistant": ["api_key", "model", "monthly_tokens", "lexicon"],
+    "ekylibre":  ["url", "email", "token"],
 }
 
 SERVICE_LABELS: dict[str, str] = {
@@ -47,6 +48,7 @@ SERVICE_LABELS: dict[str, str] = {
     "documenso": "Documenso",
     "brevo":     "Brevo",
     "assistant": "Assistant Claude",
+    "ekylibre":  "Ekylibre",
 }
 
 # Usage de chaque intégration dans l'application (page index des intégrations).
@@ -61,6 +63,7 @@ SERVICE_DESCRIPTIONS: dict[str, str] = {
     "documenso": "Signature électronique des baux",
     "brevo":     "Liste de contacts des adhérents (synchronisée depuis Lyvre)",
     "assistant": "Questions sur le dossier (échéances, TVA, fiscal, MSA, marges) et brouillons à valider (API Claude)",
+    "ekylibre":  "Activités, surfaces, coûts des interventions et quantités en stock, lus dans Ekylibre (lecture seule)",
 }
 
 # Structures (Instance.chart) pour lesquelles l'intégration existe ; absente = toutes.
@@ -70,6 +73,7 @@ SERVICE_CHARTS: dict[str, set[str]] = {
     "facebook":  {"asso"},
     "brevo":     {"asso"},
     "assistant": {"agri"},
+    "ekylibre":  {"agri"},
 }
 
 # Périmètre d'une intégration (cases de sa fiche) ; défaut quand rien n'est enregistré.
@@ -100,6 +104,7 @@ SECRET_KEYS: set[tuple[str, str]] = {
     ("documenso", "api_key"),
     ("brevo",     "api_key"),
     ("assistant", "api_key"),
+    ("ekylibre",  "token"),
 }
 
 # Champs à rendre en <textarea> (valeurs longues / secrets multilignes).
@@ -119,6 +124,7 @@ SERVICE_REQUIRED_KEYS: dict[str, list[str]] = {
     "documenso": ["url", "api_key"],
     "brevo":     ["api_key", "list_id"],
     "assistant": ["api_key"],
+    "ekylibre":  ["url", "email", "token"],
 }
 
 ENV_FALLBACK: dict[tuple[str, str], str] = {

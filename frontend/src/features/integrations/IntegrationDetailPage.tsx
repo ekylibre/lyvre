@@ -13,6 +13,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { AppLink } from "../../app/navigation";
 import { AssistantUsage } from "./AssistantUsage";
+import { EkylibreConnection } from "./EkylibreConnection";
 import { BrevoAttributes, BrevoListField } from "./BrevoSettings";
 import { IntegrationLogo } from "./IntegrationLogo";
 import { INTEGRATIONS_KEY, STATUS_TONES, checkSummary, localDateTime, type Field, type IntegrationDetail } from "./types";
@@ -136,6 +137,7 @@ export default function IntegrationDetailPage() {
             <BrevoAttributes admin />
           )}
           {v.slug === "assistant" && v.enabled && <AssistantUsage />}
+          {v.slug === "ekylibre" && <EkylibreConnection onChange={() => void client.invalidateQueries({ queryKey: key })} />}
           {!!v.scopes?.length && (
             <Paper p="md" mb="md">
               <Title order={3} mb="sm">Périmètre</Title>
