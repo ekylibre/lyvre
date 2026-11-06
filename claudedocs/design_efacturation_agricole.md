@@ -149,7 +149,21 @@
 **FEC des cabinets (Isacompta, Agrigest, ISTEA)** :
 - **correspondance PCGA 1986** : le plan de correspondance de l'import propose d'abord `map_pcga1986` (comptes sur 8 chiffres, 704x, 7011xxxx, 713xxxxx, 241/242…), puis la correspondance mémorisée ou la création ;
 - **sous-comptes par culture** (7011xxxx, 713xxxxx) : proposés comme **activités** (AG8) d'un atelier, avec une règle de compte, à la fin de l'import ;
-- tests sur les FEC fictifs du jeu d'essai (A, B, C).
+- tests sur des FEC fictifs en numérotation Isacompta (les FEC du jeu d'essai A, B, C sont déjà au plan actuel).
+
+**Réalisé (AG10.a)** :
+- `agri_chart.resolve_pcga1986` (compte du plan, sous-compte replié) et `old_numbering` : la correspondance ne
+  s'applique que dans une instance agricole et à un fichier dont les comptes généraux (hors classe 4) sont sur
+  8 chiffres à 90 % au moins, pour ne pas renuméroter un FEC déjà au plan actuel (`60112` resterait sinon `60111`) ;
+- `fec_import.plan_accounts` : compte renuméroté → correspondance (`60110000` → 60111) ; sous-compte replié →
+  sous-compte du compte du plan, qui garde son numéro sans les zéros de fin quand il commence par celui du compte
+  (`70117111`, `512001`), sinon le premier numéro libre (`70120700` → 7011001) ; nature du compte parent ;
+  correspondances mémorisées (exercice suivant sans création) ;
+- `import_activities` : propositions sur les sous-comptes 7011 à 7014 sans règle, production Lexicon rapprochée
+  par les mots du libellé (ambiguïté → aucune), activité existante reprise ; création : atelier par famille,
+  activité, règle « compte → activité » ;
+- API `GET` / `POST /api/v1/imports/activities` (administrateur, instance agricole) ; écran Reprise d'historique :
+  avertissement « ancien plan », mention « plan 1986 » par compte, panneau « Activités proposées ».
 
 **Export Isacompta `.ISA`** :
 - format de transfert à enregistrements typés (VER, DOS, EXO, JOU, CPT, TVA, ANA, ECR, MVT, AFF, ECH, POI), encodage DOS ;
@@ -157,11 +171,27 @@
 - **apports** :
   - plan et journaux ;
   - écritures et lignes (comme le FEC) ;
-  - **ateliers ANA** → ateliers et activités AG8, avec leur surface sur la campagne ;
-  - **affectations AFF** → ventilations analytiques ;
-  - échéances ECH (information) ;
-  - codes de TVA (correspondance avec les codes Lyvre) ;
+  - **sections ANA** → ateliers et activités AG8, avec leur surface sur la campagne ;
+  - **ventilations** `ANAMVT` (ligne) et `ANACPT` (compte) → ventilations et règles analytiques ;
+  - échéances `ECHMVT` (information) ;
+  - codes de TVA (information) ;
 - même écran que l'import FEC : analyse, plan de correspondance, import.
+
+**Réalisé (AG10.b)** — disposition relevée sur 4 exports réels lus sur place (aucune copie), décrite dans
+`app/services/isa_import.py` :
+- les enregistrements `AFF` sont des **lettrages** (`AFFLET`) et `POI` des **pointages** bancaires (`POINTI`), pas des
+  affectations analytiques : la ventilation est dans `ANAMVT` (ligne) et `ANACPT` (compte), en ‰ ;
+- lecture : écritures `ECR` + lignes `MVT` (débit, crédit, lettre, date), comptes sur 10 caractères ramenés à
+  8 chiffres (`6262000000` → `62620000`), tiers alphanumériques en comptes auxiliaires (`401DUPONT`) ; en-têtes
+  `ECR` sans journal ignorés. Sur les 4 exports : toutes les écritures et tous les lettrages équilibrés ;
+- import par le même chemin que le FEC (`fec_import.analyze / import_history / import_opening` acceptent un lecteur
+  et un traitement complémentaire), donc ancien plan agricole (AG10.a), correspondances, tout-ou-rien ;
+- analytique (instance agricole) : feuilles de la hiérarchie des sections = activités, **choisies** à l'écran
+  (proposées : ventilées, avec surface ou reconnues dans Lexicon) ; section la plus haute = atelier (famille par
+  Lexicon, un mot du libellé, sinon « Administration ») ; surface en hectares sur la campagne en cours au milieu
+  de l'exercice ; ventilation sur un **regroupement** de sections → clé « surface » sur ses activités ; origine
+  « reprise du dossier » ; une section non reprise laisse la ligne à ventiler ;
+- non repris : échéances, pointages, codes de TVA (affichés à l'analyse).
 
 ## 8. Données et écrans
 
@@ -211,8 +241,8 @@
 
 | Sous-lot | Contenu | Dépend de |
 |---|---|---|
-| **AG10.a** | Import FEC : correspondance PCGA 1986, sous-comptes par culture proposés comme activités | AG8 |
-| **AG10.b** | Import `.ISA` : lecteur, plan, journaux, écritures, ateliers ANA vers AG8, affectations, codes TVA | AG10.a |
+| **AG10.a** ✅ | Import FEC : correspondance PCGA 1986, sous-comptes par culture proposés comme activités | AG8 |
+| **AG10.b** ✅ | Import `.ISA` : lecteur, plan, journaux, écritures, ateliers ANA vers AG8, affectations, codes TVA | AG10.a |
 | **AG10.c** | Autofactures reçues : lecture Factur-X / CII / UBL, vente proposée, cycle de vie, doublons | — |
 | **AG10.d** | Décomptes de coopérative : lignes typées, écriture, activités | AG10.c |
 | **AG10.e** | Factur-X agricole (RFA sous réserve du code sourcé, nouvelles mentions, note B2C) et e-reporting B2C (agrégats jour × catégorie × taux, contrôle, export JSON SUPER PDP) | AG10.c |

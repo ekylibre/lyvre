@@ -429,10 +429,10 @@ Il s'inscrit dans le cadrage `doc/base_documentaire/` : API Claude, outils qui a
 - **AG10.6 Ancienne numérotation du plan agricole (1986)** : les dossiers des cabinets la suivent encore (§ 10.1).
   - Exemples : 704x pour les ventes d'animaux, 7011xxxx par culture, 713xxxxx par produit, 241/242 pour les reproducteurs adultes et jeunes, comptes sur 8 chiffres.
   - L'import FEC fait **correspondre l'ancienne numérotation à l'ANC 2020-04** grâce à la colonne `fr_pcga` de Lexicon et d'onoma.
-  - Les sous-comptes par culture sont conservés et proposés comme axe « atelier ».
+  - Les sous-comptes par culture sont conservés et proposés comme activités (fait : AG10.a).
 - **AG10.7 Import d'un export Isacompta `.ISA`** : format de transfert à enregistrements typés (VER, DOS, EXO, JOU, CPT, TVA, ANA, ECR, MVT, AFF, ECH, POI ; encodage DOS).
   - Il apporte ce que le FEC n'a pas : **les ateliers analytiques avec leur surface** (codes de culture Isacompta, par exemple 11111 « Blé tendre d'hiver », 341 « Luzerne »), les affectations analytiques des lignes, les échéances et les codes TVA.
-  - Il alimente AG8 et le profil de l'exploitation.
+  - Il alimente AG8 et le profil de l'exploitation. Fait (AG10.b) : sections → ateliers et activités, ventilations `ANAMVT` / `ANACPT` ; `AFF` et `POI` sont des lettrages et des pointages.
 
 ---
 
