@@ -23,9 +23,12 @@ class Tool:
     schema: dict
     handler: Callable[[dict], dict]
     propose: bool = False                     # outil de proposition (rôles admin / treasurer) : handler(args, ctx)
+    # Mode strict de l'API : au plus 24 paramètres facultatifs sur l'ensemble des outils stricts. Les outils qui en ont
+    # beaucoup (recherche, brouillons) restent non stricts ; `run` contrôle leurs arguments.
+    strict: bool = True
 
     def definition(self) -> dict:
-        return {"name": self.name, "description": self.description, "input_schema": self.schema, "strict": True}
+        return {"name": self.name, "description": self.description, "input_schema": self.schema, "strict": self.strict}
 
 
 def euros(cents: int | None) -> str | None:
@@ -39,6 +42,14 @@ def euros(cents: int | None) -> str | None:
 def _schema(properties: dict | None = None, required: list[str] | None = None) -> dict:
     return {"type": "object", "properties": properties or {}, "required": required or [],
             "additionalProperties": False}
+
+
+def _base_type(prop: dict) -> tuple[str, bool]:
+    """(type JSON, null permis) d'une propriété de schéma."""
+    kind = prop.get("type")
+    if isinstance(kind, list):
+        return next((k for k in kind if k != "null"), "null"), "null" in kind
+    return kind, False
 
 
 # ------------------------------------------------------------------ get_context
@@ -485,7 +496,9 @@ def run_calculator(args: dict) -> dict:
     try:
         result = calculators.run(module, values, origins)
     except CalculatorError as exc:
-        return {"error": exc.message, "field": exc.field}
+        expected = [i.key for i in module.SPEC.inputs if i.required]
+        return {"error": exc.message, "field": exc.field,
+                "hint": f"Passez les entrées dans « values » : [{{\"key\": …, \"value\": …}}] ; obligatoires : {', '.join(expected)}."}
     table = result["table"]
     if table and len(table["rows"]) > MAX_TABLE_ROWS:
         table = {**table, "rows": table["rows"][:MAX_TABLE_ROWS], "truncated": True}
@@ -508,7 +521,7 @@ TOOLS: tuple[Tool, ...] = (
                   "values": {"type": "array", "items": _schema({"key": {"type": "string"}, "value": {"type": "string"}},
                                                                ["key", "value"])},
                   "prefill": {"type": "boolean", "description": "Préremplir depuis la structure (défaut : non)"}},
-                 ["code"]), run_calculator),
+                 ["code", "values"]), run_calculator),
     Tool("get_aids", "Dossiers d'aides et subventions (PAC, DJA, investissement…) : montant acquis, versé, restant dû, alertes.",
          _schema({"campaign": {"type": "string", "description": "Campagne (année), facultative"}}), get_aids),
     Tool("get_balances", "Soldes des comptes de l'exercice commençant par les préfixes donnés (ex. « 512 » banque, « 401 » "
@@ -547,17 +560,17 @@ TOOLS: tuple[Tool, ...] = (
                   "lines": {"type": "array", "items": _schema({"account": {"type": "string"}, "label": {"type": "string"},
                                                                "debit": {"type": "string"}, "credit": {"type": "string"}},
                                                               ["account"])}},
-                 ["date", "lines"]), propose_entry, propose=True),
+                 ["date", "lines"]), propose_entry, propose=True, strict=False),
     Tool("propose_msa_call", "Prépare l'enregistrement d'un appel de cotisations MSA reçu (formulaire des appels prérempli, "
          "enregistré par l'utilisateur). Montants en euros.",
          _schema({"person": {"type": "string", "description": "Exploitant (nom) ; facultatif s'il n'y en a qu'un"},
                   "kind": {"type": "string", "enum": ["first", "second", "balance", "monthly", "single", "regularization"]},
                   "due_on": {"type": "string"}, "amount": {"type": "string"}, "csg_deductible": {"type": "string"},
                   "csg_non_deductible": {"type": "string", "description": "CSG non déductible + CRDS"}},
-                 ["kind", "due_on", "amount"]), propose_msa_call, propose=True),
+                 ["kind", "due_on", "amount"]), propose_msa_call, propose=True, strict=False),
     Tool("search_entries", "Lignes d'écriture de l'exercice (20 au plus, plus récentes d'abord), filtrées par compte, texte "
          "ou dates.", _schema({**FY_PROP, "account_prefix": {"type": "string"}, "text": {"type": "string"},
-                               "date_from": {"type": "string"}, "date_to": {"type": "string"}}), search_entries),
+                               "date_from": {"type": "string"}, "date_to": {"type": "string"}}), search_entries, strict=False),
     Tool("get_agenda",
          "Échéancier de l'exploitation (TVA, impôts, MSA, PAC, baux…) entre deux dates : date, fiche, organisme, statut "
          "(à venir, à préparer, prête, faite, en retard), montant connu ou estimé, fiabilité. Par défaut, de J-30 à J+60.",
@@ -584,12 +597,16 @@ def run(name: str, args, can_propose: bool, ctx: dict | None = None) -> tuple[st
     if not isinstance(args, dict):
         return json.dumps({"error": "Arguments invalides (objet JSON attendu)."}, ensure_ascii=False), True
     allowed = set(tool.schema["properties"])
-    if set(args) - allowed or any(not isinstance(args.get(k), str) for k in allowed if k in args
-                                  and tool.schema["properties"][k].get("type") == "string") \
-            or any(not isinstance(args.get(k), list) for k in allowed if k in args
-                   and tool.schema["properties"][k].get("type") == "array") \
-            or any(not isinstance(args.get(k), bool) for k in allowed if k in args
-                   and tool.schema["properties"][k].get("type") == "boolean"):
+    expected = {"string": str, "array": list, "boolean": bool}
+
+    def conforms(key) -> bool:
+        kind, nullable = _base_type(tool.schema["properties"][key])
+        value = args[key]
+        if value is None:
+            return nullable
+        return kind not in expected or isinstance(value, expected[kind])
+
+    if set(args) - allowed or not all(conforms(k) for k in args):
         return json.dumps({"error": "Arguments non conformes au schéma de l'outil."}, ensure_ascii=False), True
     if tool.propose and not (ctx and ctx.get("message_id")):
         return json.dumps({"error": "Proposition impossible hors conversation."}, ensure_ascii=False), True

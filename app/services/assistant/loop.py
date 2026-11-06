@@ -158,12 +158,17 @@ def ask(conversation: AssistantConversation, text: str, page: dict | None, role:
         yield {"type": "error", "message": str(exc)}
         return
     usage = {"input": 0, "output": 0, "cache_read": 0}
+    wrote = False                       # texte déjà diffusé : le texte d'une étape suivante commence un paragraphe
     for _turn in range(MAX_TOOL_TURNS + 1):
+        started = False
         try:
             with client.beta.messages.stream(**_request(model, history(conversation), can_propose,
                                                         "high" if explain else EFFORT)) as stream:
                 for event in stream:
                     if event.type == "text":
+                        if not started and wrote:
+                            yield {"type": "text", "text": "\n\n"}
+                        started = wrote = True
                         yield {"type": "text", "text": event.text}
                 response = stream.get_final_message()
         except Exception as exc:  # noqa: BLE001 — erreur de l'API rendue à l'interface, en français

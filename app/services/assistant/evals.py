@@ -33,7 +33,9 @@ def score(case: dict, run: dict) -> list[str]:
         if not re.search(pattern, run.get("text") or ""):
             problems.append(f"citation absente : {pattern}")
     if "proposals" in expect:
-        kinds = sorted(run.get("proposals") or [])
+        # Un lien de navigation n'est pas une action : compté seulement si le cas l'attend.
+        wanted_links = "navigate" in (expect["proposals"] or [])
+        kinds = sorted(k for k in run.get("proposals") or [] if k != "navigate" or wanted_links)
         if kinds != sorted(expect["proposals"] or []):
             problems.append(f"propositions {kinds} au lieu de {sorted(expect['proposals'] or [])}")
     if run.get("errors"):

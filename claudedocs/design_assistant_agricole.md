@@ -334,6 +334,31 @@ On vise une trentaine de cas sur le jeu d'essai fictif :
 - des contrôles déterministes d'abord : montants égaux à ceux des services, sources citées, mention « à valider » pour une valeur de fiabilité I, absence d'action non demandée ;
 - puis une grille courte notée par un modèle.
 
+### 8 bis. Premier passage réel (07/11/2026, Claude Haiku 5.5)
+
+- **Défaut bloquant trouvé** : l'API refusait toutes les requêtes (erreur 400). Le mode strict des outils admet au plus
+  **24 paramètres facultatifs** et **16 paramètres « nullables »** sur l'ensemble des outils stricts. Lyvre en avait 25
+  avant AG12.e (28 après) : l'assistant n'avait jamais fonctionné avec l'API réelle, et les tests (faux client) ne le
+  voyaient pas.
+  - Correction : `strict` par outil ; `search_entries`, `propose_entry` et `propose_msa_call`, qui ont beaucoup de
+    paramètres facultatifs, passent en non strict. `run` contrôle leurs arguments. Il reste 14 paramètres facultatifs en
+    mode strict.
+  - Un test vérifie désormais la limite.
+- **`run_calculator`** : le modèle omettait le paramètre facultatif `values` et bouclait. `values` est devenu obligatoire,
+  et l'erreur rappelle les clés attendues.
+- **Affichage** : le texte d'une étape après un appel d'outil commence maintenant un nouveau paragraphe. Avant, il était
+  collé au précédent.
+- **Correcteur** : un lien de navigation n'est plus compté comme proposition, sauf si le cas l'attend.
+- **Cas** : la date de l'option MSA est acceptée sous la forme « 30 juin » ou « 30/06 », puisque la consigne impose
+  JJ/MM/AAAA. Le brouillon d'écriture est daté dans l'exercice du jeu d'essai.
+- **Environnement** : `scripts/assistant_eval_env.py <dossier>` construit hors de la base locale l'instance
+  « essai-agri ». Elle contient l'exploitation fictive A, un exercice ouvert, et un associé exploitant fictif en
+  assiette annuelle.
+- **Résultat** :
+  - 17 cas × 3 passages : **50/51 (98 %)**, pour 0,09 $ ;
+  - échecs isolés selon les passages : une fois « à valider » paraphrasé (crédit HVE), une fois la mention
+    « indicatif » absente (MSA).
+
 ## 9. Hors périmètre
 
 - **Hors AG9b** : envoi en direct, pièces jointes envoyées à l'API, serveur MCP de Lyvre (exposer les outils à Claude Desktop) ;

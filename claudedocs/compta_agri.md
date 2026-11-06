@@ -508,7 +508,7 @@ Il s'inscrit dans le cadrage `doc/base_documentaire/` : API Claude, outils qui a
 | **AG6 + AG7** | Résultat fiscal, DEP, JA, 73 A, accessoires, aide à la liasse, assiette MSA | AG4, AG3 | Avant la première liasse (mai) |
 | **AG9b** | Intégration « Assistant Claude » : conversation, outils, base documentaire, MCP Lexicon | AG9a, base documentaire lot 2 | S'appuie sur des services déjà fiables |
 | **AG8, AG10** | Analytique par activité × campagne, autofactures, e-reporting, FEC trésorerie, reprise Isacompta | AG1 | AG10 avant le 01/09/2027 |
-| **AG11** ✅ | Connecteur Ekylibre en lecture seule : activités et surfaces, clés depuis les interventions, comptage d'inventaire (`design_connecteur_ekylibre.md`) | AG8, AG4 | AGD8, AGD28 ; factures tenues dans Lyvre |
+| **AG11** ⏸ | Connecteur Ekylibre en lecture seule (suspendu, AGD30) : activités et surfaces, clés depuis les interventions, comptage d'inventaire (`design_connecteur_ekylibre.md`) | AG8, AG4 | AGD8, AGD28 ; factures tenues dans Lyvre |
 | **AG12** | Mini-calculettes agricoles (§ 7 bis, `design_calculettes_agricoles.md`) : 21 calculettes (AGD12, AGD13, AGD29) dans un menu « Outils » filtré par type, pour les utilisateurs connectés, sans données en direct | selon la calculette : AG0.6, AG2, AG3, AG5 à AG9 | Brainstorm du 04/11/2026, besoins complets ; chaque calculette peut suivre le lot dont elle dépend |
 
 ---
@@ -719,6 +719,7 @@ Les réponses de l'expert sont visibles via "=>"
 - **AGD11 (conception, Q-A2) 757 / 657 subdivisés** : 7571 / 6571 pour les biens vivants, 7578 / 6578 pour les autres immobilisations ; en-tête 234 pour les biens vivants en cours. Source du plan : Recueil PCG 2026, titre 5.
 - Conception : `claudedocs/design_compta_agricole.md` (lot AG1, validée le 03/11/2026).
 - **AGD27 (conception AG10, 06/11/2026)** : `claudedocs/design_efacturation_agricole.md`, validée (Q-E1 à Q-E6).
+- **AGD30 (07/11/2026) Connecteur Ekylibre suspendu** : Ekylibre va être entièrement réécrit (jumeau numérique de la ferme). Le connecteur AG11 n'est pas essayé sur la démonstration ; il reste dans le code, désactivé tant qu'aucune instance ne l'active, et sera repris sur la nouvelle API (seul l'adaptateur `ekylibre_client.py` devrait changer).
 - **AGD29 (conception AG12, 07/11/2026)** : `claudedocs/design_calculettes_agricoles.md`, validée (Q-C5 à Q-C10). Menu « Outils » commun à toutes les structures, filtré par type ; copie en texte seulement ; paramètres du groupe C sourcés puis validés avant écriture ; zonages par Lexicon et IGN ; outils de la calculatrice agricole (06) à cocher dans la liste du § 9.
 - **AGD28 (conception AG11, 07/11/2026)** : `claudedocs/design_connecteur_ekylibre.md`, validée (Q-K1 à Q-K7). Lyvre tient les ventes et achats (supprimés d'Ekylibre) ; connecteur en lecture seule derrière un adaptateur unique, l'API Ekylibre devant devenir celle du jumeau numérique de la ferme ; coûts des interventions répartis au prorata des surfaces des cibles ; essais manuels sur `demo.ekylibre-dev.com`.
   - Dépôt de fichiers d'abord (Factur-X, CII, UBL) ; PA de référence SUPER PDP, connecteur plus tard.

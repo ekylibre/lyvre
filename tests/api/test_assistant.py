@@ -126,12 +126,17 @@ def test_conversation_with_tool(farm):
                        json={"text": "Qu'ai-je à payer ?", "page": {"route": "/agenda/"}})
     assert resp.mimetype == "text/event-stream"
     events = _events(resp)
-    assert [e["type"] for e in events] == ["text", "tool", "text", "done"]
+    assert [e["type"] for e in events] == ["text", "tool", "text", "text", "done"]
+    assert events[2]["text"] == "\n\n"                       # le texte de l'étape suivante commence un paragraphe
     assert events[1]["name"] == "get_agenda" and events[-1]["usage"]["input"] == 2000
     first, second = fake.calls
     names = [t["name"] for t in first["tools"]]
     assert names == sorted(names) and {"get_agenda", "get_context"} <= set(names)
-    assert all(t["strict"] for t in first["tools"]) and first["system"][-1]["cache_control"] == {"type": "ephemeral"}
+    # Mode strict de l'API : au plus 24 paramètres facultatifs sur l'ensemble des outils stricts (erreur 400 sinon).
+    strict = [t for t in first["tools"] if t["strict"]]
+    optional = sum(len(set(t["input_schema"]["properties"]) - set(t["input_schema"]["required"])) for t in strict)
+    assert optional <= 24 and first["system"][-1]["cache_control"] == {"type": "ephemeral"}
+    assert {t["name"] for t in first["tools"] if not t["strict"]} <= {"search_entries", "propose_entry", "propose_msa_call"}
     assert first["model"] == "claude-haiku-5-5" and "fallbacks" not in first and first["output_config"] == {"effort": "medium"}
     assert [m["role"] for m in first["messages"]] == ["user", "system"]
     assert "Écran ouvert : /agenda/." in first["messages"][1]["content"]

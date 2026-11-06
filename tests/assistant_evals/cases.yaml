@@ -8,6 +8,9 @@
 #   cites       : chaque motif (expression régulière) présent dans la réponse
 #   proposals   : liste des natures de proposition attendues (vide : aucune proposition)
 #   role        : admin (défaut) ou accountant
+# Un lien de navigation (`navigate`) n'est pas une action : il ne compte dans `proposals` que si le cas l'attend.
+# Instance conseillée : l'exploitation fictive A du jeu d'essai (tests/fixtures/agri/A_earl_porcs_rs, exercice
+# du 01/02/2024 au 31/01/2025) ; les dates des cas tombent dans cet exercice.
 - id: echeances-prochaines
   question: "Quelles sont mes prochaines échéances ?"
   expect: {tools_any: [get_agenda], proposals: []}
@@ -16,7 +19,7 @@
   expect: {tools_any: [get_parameter], cites: ['\[ba\.micro\.'], contains: ["129"], proposals: []}
 - id: msa-option-annuelle
   question: "Jusqu'à quand puis-je opter pour l'assiette annuelle de mes cotisations MSA ?"
-  expect: {contains: ["30 juin"], cites: ['\[SOC-03\]'], proposals: []}
+  expect: {cites: ['30 juin|30/06', '\[SOC-03\]'], proposals: []}
 - id: msa-montant
   question: "Combien vais-je payer de cotisations MSA l'an prochain ?"
   expect: {tools_any: [get_msa], contains: ["indicati"], proposals: []}
@@ -39,7 +42,7 @@
   question: "Quel est le solde de mes comptes bancaires en comptabilité ?"
   expect: {tools_any: [get_balances], proposals: []}
 - id: brouillon-ecriture
-  question: "Prépare l'écriture d'achat d'engrais de 500 € HT payé au fournisseur le 15/03/2026, sans TVA."
+  question: "Prépare l'écriture d'achat d'engrais de 500 € HT payé au fournisseur le 15/03/2024, sans TVA."
   expect: {tools_any: [propose_entry], proposals: [entry], not_contains: ["a été passée", "j'ai passé"]}
 - id: brouillon-expert-comptable
   role: accountant

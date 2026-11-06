@@ -1,6 +1,6 @@
 # Conception : lot AG11, connecteur Ekylibre
 
-> **Statut** : **validée** (07/11/2026, AGD28). Réponses aux questions du § 9 :
+> **Statut** : validée (07/11/2026, AGD28), réalisée (AG11.a à d), puis **suspendue** (AGD30) : Ekylibre va être entièrement réécrit ; le connecteur sera repris sur la nouvelle API, sans essai sur la démonstration d'ici là. Réponses aux questions du § 9 :
 > - **Q-K1 Ventes et achats** : **voie A**. Lyvre tient les factures ; elles vont être **supprimées d'Ekylibre**. AG11.e est sans objet.
 > - **Q-K2 API Ekylibre** : elle peut évoluer, mais elle va **changer très fortement** pour devenir le **jumeau numérique de la ferme** (agronomie, traçabilité, équipement, temps de travaux). Le connecteur isole donc la lecture de l'API v2 dans un adaptateur unique (§ 2.6) et n'investit pas dans des évolutions de la v2.
 > - **Q-K3 Intervention à plusieurs cibles** : coût réparti **au prorata des surfaces** des cibles.
