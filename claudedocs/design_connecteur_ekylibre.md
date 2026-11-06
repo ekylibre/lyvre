@@ -194,6 +194,16 @@ L'API ne les expose pas. Trois voies :
   - contrôle : surface des cultures d'une campagne supérieure de plus de 1 % à celle des parcelles (avertissement : dérobées, cultures associées).
 - Écran Activités › **Depuis Ekylibre** (`/activities/ekylibre`, bouton sur la page Activités quand l'intégration est active) : cible par activité (existante ou à créer), surfaces par campagne (à reporter, à jour, à mettre à jour, saisie différente), rattachement en lot.
 
+## 7 quater. Réalisé (AG11.c)
+
+- `ekylibre_keys.py`, sur l'instantané :
+  - interventions **réalisées** (`nature = record`, hors `rejected`) commencées dans l'exercice choisi ;
+  - imputation aux cibles : culture → activité Ekylibre → activité Lyvre ; plusieurs cibles au prorata des surfaces (Q-K3). Une cible non rattachée, ou une intervention sans culture visée, laisse sa part « non imputée », affichée hors clé ;
+  - quatre clés : intrants, main-d'œuvre, matériel (coûts `inputs`, `doers`, `tools`) et heures de matériel (durée des interventions avec matériel), base `percentage`, parts ramenées à 10 000 points par la méthode des plus forts restes ; coûts de réception sans clé ;
+  - clés « (Ekylibre) » créées ou refaites à chaque calcul (`analytic_keys.source = ekylibre`, `synced_at`, migration `d0e2f4a6b8c0`), avec l'exercice et le nombre d'interventions dans la note. Une clé saisie du même nom bloque le calcul (409) ;
+  - règles proposées : 601 et 602 vers les intrants, 6061 et 6155 vers le matériel, 64 vers la main-d'œuvre. Elles ne sont proposées que si le compte existe et que le préfixe n'a pas de règle, et elles ne sont créées qu'à la demande.
+- Écran Activités › Depuis Ekylibre, section « Clés de répartition depuis les interventions » : exercice, détail par activité (montant, part), non imputé, calcul, règles à cocher.
+
 ## 8. Hors périmètre
 
 - Écriture vers Ekylibre : comptes, factures, statuts.
@@ -232,6 +242,6 @@ L'API ne les expose pas. Trois voies :
 |---|---|---|
 | **AG11.a** ✅ | Intégration Ekylibre : jeton (mot de passe non conservé), test de connexion, client HTTP borné, tâche de synchronisation | — |
 | **AG11.b** ✅ | Activités et surfaces : `ekylibre_id`, activités proposées, mesures par campagne, contrôle avec les parcelles | AG11.a, AG8 |
-| **AG11.c** | Clés de répartition depuis les interventions : intrants, main-d'œuvre, matériel, heures ; règles proposées | AG11.b |
+| **AG11.c** ✅ | Clés de répartition depuis les interventions : intrants, main-d'œuvre, matériel, heures ; règles proposées | AG11.b |
 | **AG11.d** | Inventaire : feuille de comptage préremplie depuis les matières, correspondance des variantes | AG11.a, AG4 |
 | ~~AG11.e~~ | Ventes et achats : sans objet (Q-K1, voie A) | — |

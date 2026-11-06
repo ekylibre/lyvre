@@ -98,6 +98,9 @@ class AnalyticKey(db.Model):
     name = db.Column(db.String(120), nullable=False, unique=True)
     basis = db.Column(db.String(14), nullable=False)
     note = db.Column(db.String(300))
+    # Lot AG11.c : clé calculée depuis Ekylibre (coûts des interventions), refaite à chaque calcul.
+    source = db.Column(db.String(10), nullable=False, default="manual", server_default="manual")
+    synced_at = db.Column(db.DateTime)
     archived = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
 
     members = db.relationship("AnalyticKeyMember", cascade="all, delete-orphan", order_by="AnalyticKeyMember.id")

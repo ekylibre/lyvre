@@ -10,6 +10,7 @@ import { Can } from "../../components/Can";
 import { PageHeader } from "../../components/PageHeader";
 import { formatDateTime } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
+import { EkylibreKeys } from "./EkylibreKeys";
 
 const KEY = ["ekylibre", "activities"] as const;
 const HOW: Record<string, string> = { ekylibre: "déjà rattachée", name: "même nom", lexicon: "même production Lexicon" };
@@ -98,6 +99,7 @@ export default function EkylibreActivitiesPage() {
               client.setQueryData(KEY, { synced_at: r.synced_at, items: r.items, warnings: r.warnings });
               void client.invalidateQueries({ queryKey: ["activities"] });
             } })} />}
+        <EkylibreKeys />
       </Stack>}
     </>
   );

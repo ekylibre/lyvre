@@ -108,3 +108,70 @@ def ekylibre_activities_apply():
         notices.append(notice(f"{stats['conflicts']} surface(s) saisie(s) dans Lyvre différente(s) d'Ekylibre : "
                               "conservée(s), à vérifier.", "warning"))
     return jsonify(stats=stats, notices=notices, **ekylibre_activities.rows())
+
+
+# ------------------------------------------------------------------ clés depuis les interventions (lot AG11.c)
+
+def _fiscal_year(raw):
+    from app.extensions import db
+    from app.models import FiscalYear
+    from app.services.ledger import open_fiscal_year_for
+    from datetime import date
+    if raw not in (None, ""):
+        fy = db.session.get(FiscalYear, int(raw)) if str(raw).isdigit() else None
+        if fy is None:
+            raise invalid("Exercice introuvable.", "fiscal_year_id")
+        return fy
+    fy = open_fiscal_year_for(date.today()) or FiscalYear.query.order_by(FiscalYear.end_date.desc()).first()
+    if fy is None:
+        raise ApiError("conflict", "Aucun exercice.", status=409)
+    return fy
+
+
+def _key_errors(call):
+    from app.extensions import db
+    from app.services import ekylibre_keys
+    from app.services.analytic import AnalyticError
+    try:
+        return call()
+    except (ekylibre_keys.EkylibreKeyError, AnalyticError) as exc:
+        db.session.rollback()
+        if exc.status == 422:
+            raise invalid(exc.message, exc.field) from None
+        raise ApiError("conflict" if exc.status == 409 else "not_found", exc.message, status=exc.status) from None
+
+
+@bp.route("/ekylibre/keys")
+@instance_admin_required
+def ekylibre_keys_view():
+    _agri_only()
+    from flask import request
+    from app.models import FiscalYear
+    from app.services import ekylibre_keys
+    fy = _fiscal_year(request.args.get("fiscal_year_id"))
+    data = ekylibre_keys.compute(fy)
+    data["fiscal_years"] = [{"value": str(f.id), "label": f.label}
+                            for f in FiscalYear.query.order_by(FiscalYear.start_date.desc())]
+    return jsonify(data)
+
+
+@bp.route("/ekylibre/keys", methods=["POST"])
+@instance_admin_required
+def ekylibre_keys_apply():
+    """`{fiscal_year_id}` : crée ou refait les clés « (Ekylibre) » de l'exercice."""
+    _agri_only()
+    from app.services import ekylibre_keys
+    fy = _fiscal_year(json_body().get("fiscal_year_id"))
+    data = _key_errors(lambda: ekylibre_keys.apply(fy))
+    return jsonify(**data, notices=[notice(f"{len(data['applied'])} clé(s) calculée(s) depuis Ekylibre sur l'exercice {fy.label}.")])
+
+
+@bp.route("/ekylibre/rules", methods=["POST"])
+@instance_admin_required
+def ekylibre_rules_apply():
+    """`{prefixes: [...]}` : règles « compte → clé Ekylibre » proposées, créées."""
+    _agri_only()
+    from app.services import ekylibre_keys
+    count = _key_errors(lambda: ekylibre_keys.apply_rules(json_body().get("prefixes")))
+    return jsonify(rules=ekylibre_keys.proposed_rules(), notices=[notice(
+        f"{count} règle(s) créée(s) : les lignes de ces comptes non encore ventilées suivent la clé.")])

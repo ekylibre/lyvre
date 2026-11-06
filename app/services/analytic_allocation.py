@@ -70,7 +70,8 @@ def key_payload(key: AnalyticKey) -> dict:
     if key.basis == "percentage" and key.members and not sum(m.share_bp or 0 for m in key.members):
         warnings.append("Pourcentages à saisir.")
     return {"id": key.id, "name": key.name, "basis": key.basis, "basis_label": KEY_BASES.get(key.basis, key.basis),
-            "note": key.note, "archived": key.archived, "warnings": warnings,
+            "note": key.note, "archived": key.archived, "warnings": warnings, "source": key.source,
+            "synced_at": key.synced_at.isoformat() if key.synced_at else None,
             "members": [{"activity_id": m.activity_id, "activity": m.activity.name, "workshop": m.activity.workshop.name,
                          "share_bp": m.share_bp} for m in key.members]}
 
