@@ -201,6 +201,65 @@ def test_group_b_refusals(farm):
     vat = _run(farm, "calc-tva", {"amount": "1055", "kind": "ttc", "rate": "5.5"})
     assert [h["value"] for h in vat["headline"]] == [calculators.euros(100000), calculators.euros(5500), calculators.euros(105500)]
     gnr = _run(farm, "gnr", {"litres": "12000", "gnr_price": "1.12", "road_price": "1.62"})
-    assert gnr["headline"][1]["value"] == calculators.euros(600000) and "TICPE" in gnr["warnings"][0]
+    assert gnr["headline"][1]["value"] == calculators.euros(600000) and "attestation" in gnr["warnings"][0]
     listing = farm.get(f"{API}?chart=agri").get_json()
     assert len(listing["items"]) == len(calculators.registry())
+
+
+
+# ------------------------------------------------------------------ lot AG12.d : groupe C (paramètres sourcés)
+
+def test_certiphyto(farm):
+    dea = _run(farm, "certiphyto", {"expiry": "2024-10-11", "category": "dea"})
+    assert dea["headline"][0]["value"] == "10/10/2026"                       # exemple officiel (service-public)
+    other = _run(farm, "certiphyto", {"expiry": "2024-10-11", "category": "other"})
+    assert other["headline"][0]["value"] == "11/10/2024" and "expiré" in other["warnings"][0]
+    late = _run(farm, "certiphyto", {"expiry": "2030-03-15", "category": "dea"})
+    assert late["headline"] == [{"label": "Valide jusqu'au", "value": "15/03/2030"},
+                                {"label": "Renouveler à partir du", "value": "15/03/2029"}]
+
+
+def test_duer(farm):
+    small = _run(farm, "duer", {"staff": "4", "last_update": "2024-01-10"})
+    assert small["headline"][0]["value"] == "non obligatoire"
+    big = _run(farm, "duer", {"staff": "11", "last_update": "2024-01-10"})
+    assert big["headline"][0]["value"] == "10/01/2025" and "retard" in big["warnings"][0]
+
+
+@pytest.mark.parametrize("pay, expected_rate", [("2000", "28,000 %"), ("2900", "0,000 %")])
+def test_tode_bounds(farm, pay, expected_rate):
+    result = _run(farm, "tode", {"pay": pay, "smic": "1800", "rate": "28"})
+    assert result["headline"][1]["value"] == expected_rate                  # ≤ 1,25 SMIC : total ; ≥ 1,6 : nul
+
+
+def test_tode_degressive(farm):
+    from decimal import Decimal
+    result = _run(farm, "tode", {"pay": "2520", "smic": "1800", "rate": "28"})   # 1,4 SMIC
+    rate = Decimal("1.25") * Decimal("0.28") / Decimal("0.35") * (Decimal("1.6") * 1800 / 2520 - 1)
+    assert result["headline"][0]["value"] == calculators.euros(int((Decimal(252000) * rate).quantize(Decimal(1))))
+
+
+def test_aides_pac(farm):
+    result = _run(farm, "aides-pac", {"campaign": "2026", "dpb_value": "11500", "hectares": "95", "ecoregime": "base",
+                                      "hedges": "yes", "young_farmer": "yes", "bovines": "40", "bovine_level": "base",
+                                      "ewes": "600", "goats": ""})
+    details = {d["label"]: d["value"] for d in result["details"]}
+    assert details["Aide redistributive (52,00 ha)"] == calculators.euros(52 * 4850)
+    assert details["Écorégime"] == calculators.euros(95 * 4546) and details["Bonus haies"] == calculators.euros(95 * 2000)
+    assert details["Aide ovine"] == calculators.euros(600 * 2054 + 500 * 200)
+    expected = 1150000 + 52 * 4850 + 95 * 4546 + 95 * 2000 + 370000 + 40 * 5100 + 600 * 2054 + 500 * 200
+    assert result["headline"][0]["value"] == calculators.euros(expected)
+    assert farm.post(f"{API}/aides-pac", json={"values": {"campaign": "2025", "hectares": "10", "ecoregime": "base",
+                                                         "hedges": "no", "young_farmer": "no", "bovine_level": "base"}}
+                     ).status_code == 409                                     # campagne sans arrêté enregistré
+
+
+def test_gnr_crisis_aid(farm):
+    base = {"litres": "12000", "gnr_price": "1.12", "road_price": "1.62"}
+    september = _run(farm, "gnr", {**base, "aid_month": "2026-09-15", "aid_litres": "1800"})
+    assert september["headline"][2]["value"] == calculators.euros(27000)    # 1 800 l × 15 c€
+    assert "energy.gnr.crisis_aid_cents_per_hl" in {p["key"] for p in september["params"]}
+    april = _run(farm, "gnr", {**base, "aid_month": "2026-04-10", "aid_litres": "2000000000"})
+    assert april["headline"][2]["value"] == calculators.euros(5000000)      # plafond d'avril
+    none = _run(farm, "gnr", {**base, "aid_month": "2025-09-01", "aid_litres": "1000"})
+    assert len(none["headline"]) == 2 and any(d["value"] == "aucune pour ce mois" for d in none["details"])

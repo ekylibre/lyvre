@@ -283,3 +283,96 @@ coefficient) est **saisie** par l'utilisateur, jamais fixée dans le code. **Tou
 | 06.32 | HT, TVA et TTC | à partir de l'un des trois et du taux |
 | 06.33 | Marge et taux de marque | prix de vente − coût ; marge ÷ coût, marge ÷ prix |
 | 06.34 | Mensualité d'un emprunt | annuité constante : capital × t ÷ (1 − (1 + t)^−n), tableau d'amortissement |
+
+## 10. Sourçage du groupe C (AG12.d, 07/11/2026) : paramètres proposés, à valider
+
+Recherche faite le 07/11/2026. **Légifrance refuse les accès automatisés (HTTP 403)** : les articles de code et les
+arrêtés n'ont pas pu être lus directement. Ils sont cités d'après des pages officielles qui y renvoient (service-public,
+code.travail.gouv.fr, impots.gouv.fr, douane.gouv.fr, msa.fr) ou d'après la presse agricole, ce qui est indiqué à chaque
+ligne. Rien n'entre dans `data/regulatory/` avant ta validation (AGD5) ; la fiabilité proposée suit l'échelle des
+paramètres (V vérifié sur le texte, R recoupé sur une source officielle, A à vérifier).
+
+### 02 Validité du Certiphyto
+
+| Paramètre | Valeur | Source | Fiabilité proposée |
+|---|---|---|---|
+| `phyto.certiphyto.validity_years` | 5 ans | CRPM art. R254-8 (cité par la DRAAF Bretagne, note d'avril 2025) ; fiche service-public F31192 (vérifiée le 26/03/2026) | R |
+| `phyto.certiphyto.renewal_window_months` | 12 mois avant la fin (« de préférence ») | service-public F31192 | R |
+| Prorogations DEA / DENSA | expirant du 10/04/2024 au 30/04/2024 : + 3 ans ; du 01/05/2024 au 01/05/2025 : + 2 ans ; du 02/05/2025 au 01/05/2026 : + 1 an | service-public F31192 ; décrets n° 2024-326 du 9 avril 2024 et n° 2025-222 du 7 mars 2025 | R |
+
+Calcul : date de fin = délivrance + 5 ans, prorogée selon la catégorie et la date d'échéance ; date conseillée de
+renouvellement = 12 mois avant. Un projet de décret (renouvellement de 12 mois sans attestation jusqu'en 2027) n'est
+**pas** retenu tant qu'il n'est pas publié.
+
+### 20 Mise à jour du DUER
+
+| Paramètre | Valeur | Source | Fiabilité proposée |
+|---|---|---|---|
+| `labour.duer.annual_threshold` | mise à jour au moins chaque année à partir de **11 salariés** | Code du travail art. R4121-2, 1° (texte lu sur code.travail.gouv.fr) | V |
+| Autres cas | à tout aménagement important modifiant les conditions de santé, sécurité ou travail ; à toute information supplémentaire sur un risque | R4121-2, 2° et 3° | V |
+
+Calcul : effectif et date de la dernière mise à jour → prochaine échéance (un an) ou « à chaque changement » sous 11
+salariés ; rappel possible dans l'échéancier.
+
+### 10 Exonération TO-DE
+
+| Paramètre | Valeur | Source | Fiabilité proposée |
+|---|---|---|---|
+| `msa.tode.full_ceiling_smic` | exonération totale jusqu'à **1,25 SMIC** mensuel (depuis le 01/05/2024) | msa.fr (mise à jour du 01/04/2026) | R |
+| `msa.tode.zero_ceiling_smic` | exonération nulle à partir de **1,6 SMIC** | presse sociale (Previssima, bulletinspaie) citant la LFSS 2025 art. 8 ; CRPM D741-60 non lu | A |
+| `msa.tode.formula` | entre les deux : 1,25 × C ÷ 0,35 × (1,6 × SMIC mensuel ÷ rémunération − 1), C = taux des cotisations patronales exonérées | décret n° 2025-537 du 12 juin 2025 modifiant D741-60, d'après bulletinspaie ; texte non lu | A |
+| Pérennité | dispositif permanent (LFSS 2025), étendu à certaines CUMA et coopératives de fruits et légumes | msa.fr | R |
+
+Le taux C dépend des cotisations de l'employeur : il serait **saisi** (avis de la caisse). La durée maximale par salarié
+et par an n'a pas été vérifiée : non retenue sans source.
+
+### 16 Aides PAC 2026
+
+| Paramètre | Valeur 2026 | Source | Fiabilité proposée |
+|---|---|---|---|
+| `pac.dpb.unit_value_cents` (Hexagone) | 127,70 € | arrêtés du 16/09/2026 (JORF n° 0229 du 01/10/2026) cités par la presse (Aliantis, Leandri Conseils) ; texte non lu | A |
+| `pac.redistributive.amount_cents` | 48,50 €/ha (une source indique 48,58 €/ha : **écart**) | presse (Terre-net, Cerfrance, chambre des Landes) | A |
+| `pac.redistributive.max_ha` | 52 premiers hectares | presse (La France Agricole) ; à confirmer pour 2026 | A |
+| `pac.ecoregime.base_cents` / `higher_cents` / `organic_cents` / `hedges_bonus_cents` | 45,46 / 62,05 / 110 / 20 €/ha | arrêté du 16/09/2026 « écorégime » (JORFTEXT000054930379) cité par la presse ; texte non lu | A |
+| `pac.young_farmer.amount_cents` | 3 700 € par exploitation | presse (Terre-net, Cerfrance) | A |
+| Avance 2026 | 75 % à partir du 16/10/2026 | chambres d'agriculture (Vienne, Landes) | A |
+
+Le coefficient stabilisateur (montant versé par DPB inférieur à sa valeur) et la transparence GAEC sont à préciser ;
+les aides couplées (bovins, ovins, protéines) ne sont pas sourcées ici. **Tous ces montants demandent ta lecture de
+l'arrêté sur Légifrance ou TéléPAC** avant d'être enregistrés.
+
+### 05 Gazole non routier (partie « remboursement »)
+
+| Paramètre | Valeur | Source | Fiabilité proposée |
+|---|---|---|---|
+| `energy.gnr.agri_rate_cents_per_hl` | tarif réduit **3,86 €/hl**, appliqué dès la facture sur attestation depuis le 01/07/2024 (sinon remboursement par la DGFiP) | douane.gouv.fr, page « Gazole non routier (GNR) » ; CIBS art. L312-35 | R |
+| `energy.gnr.crisis_aid_cents_per_l` (2026) | avril 2026 : 3,86 c€/l (plafond 50 000 €) ; mai à décembre 2026 : 15 c€/l livré par mois | impots.gouv.fr, page de l'aide « travaux agricoles et forestiers » (décrets n° 2026-477 du 10 juin 2026 et n° 2026-982 du 23 octobre 2026 cités) | R |
+
+Conséquence : depuis juillet 2024, il n'y a plus de « remboursement TICPE » à calculer pour un exploitant qui achète
+avec attestation. La calculette 05 compterait l'**aide exceptionnelle 2026** (paramètre daté) et signalerait le tarif
+réduit. Le tarif de droit commun du GNR n'a pas été sourcé : la comparaison « sans attestation » resterait à saisir.
+
+### 04 Carte RPG et 07 zonages (données, pas de paramètres)
+
+| Besoin | Source vérifiée (en ligne, sans clé) | Remarque |
+|---|---|---|
+| Parcelles et cultures (04) | IGN Géoplateforme WFS `RPG.LATEST:parcelles_graphiques`, `RPG.LATEST:codes_cultures` (et `RPG.2024`) ; Lexicon `graphic_parcels` (campagnes 2022 à 2025, Licence Ouverte) | IGN déjà utilisé par `geodata.py` (WFS par emprise) |
+| Natura 2000 (07) | IGN WFS `patrinat_sic:sic`, `patrinat_zps:zps` ; Lexicon `protected_natural_zones` (MNHN / INPN) | |
+| BCAE (07) | IGN WFS `HYDROGRAPHY.BCAE.LATEST:bcae_cours_eau` (bandes tampons), `TOURBIERES_ZONES-HUMIDES.BCAE:bcae` (BCAE 2), `PRAIRIES.SENSIBLES.BCAE:prairies_sensibles` | |
+| Zones vulnérables nitrates, zones défavorisées (ICHN) | **non trouvées** dans les couches IGN listées ni dans Lexicon | source à choisir (Q-C11) |
+
+### Validation du 07/11/2026 et réalisé (AG12.d, première partie)
+
+- **Validé par l'utilisateur** :
+  - Certiphyto, DUER, GNR : tels que proposés ;
+  - **TO-DE** : texte de l'article D741-60 (version du 15/06/2025) fourni depuis Légifrance, d'où la fiabilité V ;
+  - **PAC 2026** : montants de l'arrêté du 16/09/2026 confirmés, avec les aides animales. Bovins de plus de 16 mois : 51 € (base) ou 94 € (supérieur) par UGB. Ovins : 20,54 € par brebis, plus 2 € sur les 500 premières. Caprins : 13,83 € par chèvre. L'aide redistributive est retenue à 48,50 €/ha, et non 48,58 €, qui était l'estimation du printemps. La valeur du DPB reste saisie (montant TéléPAC).
+- **Paramètres** `data/regulatory/tools.json` (25 valeurs datées, sources et fiabilité).
+- **Calculettes** (`reglementaire.py`) :
+  - **02 Certiphyto** : échéance du certificat, prorogation DEA / DENSA, date conseillée de renouvellement. L'exemple officiel est vérifié : échéance 11/10/2024, validité jusqu'au 10/10/2026 ;
+  - **20 DUER** : échéance annuelle à partir de 11 salariés, sinon mise à jour aux changements ;
+  - **10 TO-DE** : exonération du mois, totale, dégressive ou nulle ; le taux C est saisi ;
+  - **16 Aides PAC** : redistributive, écorégime, bonus haies, jeune agriculteur, bovins, ovins, caprins. Une campagne sans arrêté enregistré est refusée.
+- **05 Gazole et GNR** : tarif réduit d'accise affiché, aide exceptionnelle 2026 du mois choisi (plafond en avril). Un mois sans aide affiche « aucune ».
+- **Cadre** : un résultat peut citer des paramètres facultatifs (aide d'un mois donné), affichés avec leur source.
+- **Reste (AG12.d, seconde partie)** : **04 carte RPG** et **07 zonages**. Sources retenues (Q-C8, Q-C11) : IGN Géoplateforme (RPG, Natura 2000, BCAE) et Sandre (`https://services.sandre.eaufrance.fr/geo/zrpe`, couche WFS `sa:ZoneVuln_delimitation_FXX`, GML seulement). La mise au point des requêtes sur un point est encore à faire : ordre des axes, noms de champs, formats. Les zones défavorisées (ICHN) sont sans source pour l'instant.

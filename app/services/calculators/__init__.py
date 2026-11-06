@@ -76,6 +76,7 @@ class Result:
     table: dict | None = None                           # {columns: [...], rows: [[...]]}
     warnings: list[str] = field(default_factory=list)
     actions: list[tuple[str, str]] = field(default_factory=list)   # (libellé, route de l'application)
+    params: list[tuple[str, date]] = field(default_factory=list)   # paramètres facultatifs utilisés (clé, date)
 
 
 class Tool:
@@ -231,6 +232,10 @@ def run(module, raw: dict, origins: dict | None = None) -> dict:
     on = module.on_date(values) if hasattr(module, "on_date") else date.today()
     used = require_params(spec, on)
     result: Result = module.compute(values, on)
+    for key, day in result.params:                       # paramètres facultatifs (aide d'un mois…) : affichés
+        extra = params(Spec(code="", number="", title="", category="fiscal", summary="", inputs=[], example={},
+                            method="", params=(key,)), day)
+        used += [p for p in extra if not p["missing"] and p["key"] not in {u["key"] for u in used}]
     payload = {"headline": [{"label": l, "value": v} for l, v in result.headline],
                "details": [{"label": l, "value": v} for l, v in result.details], "table": result.table,
                "warnings": result.warnings, "actions": [{"label": l, "route": r} for l, r in result.actions],

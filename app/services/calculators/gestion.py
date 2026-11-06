@@ -82,13 +82,33 @@ def solar(v, on):
 
 
 def fuel(v, on):
+    from app.services import reg_params
     litres = positive(v, "litres", "Consommation annuelle")
     road, gnr = positive(v, "road_price", "Prix du gazole", True), positive(v, "gnr_price", "Prix du GNR", True)
     gap = (road - gnr) * litres
-    return Result(headline=[("Coût annuel au GNR", euros(_cents(gnr * litres))),
-                            ("Écart avec le gazole routier", euros(_cents(gap)))],
-                  details=[("Écart par litre", _n(road - gnr, 3) + " €/l")],
-                  warnings=["Remboursement partiel de TICPE non compté : il attend son taux sourcé (lot AG12.d)."])
+    rate = reg_params.value("energy.gnr.agri_rate_cents_per_hl", on)
+    headline = [("Coût annuel au GNR", euros(_cents(gnr * litres))), ("Écart avec le gazole routier", euros(_cents(gap)))]
+    details = [("Écart par litre", _n(road - gnr, 3) + " €/l"),
+               ("Accise du GNR agricole (tarif réduit en facture)", _n(D(rate) / 100, 2) + " €/hl")]
+    used = []
+    if v["aid_month"] is not None:
+        month = v["aid_month"].replace(day=1)
+        aid = reg_params.get("energy.gnr.crisis_aid_cents_per_hl", month, default=None)
+        if aid is None:
+            details.append(("Aide exceptionnelle du mois", "aucune pour ce mois"))
+        else:
+            delivered = positive(v, "aid_litres", "Litres livrés dans le mois")
+            amount = int((delivered * aid.value / 100).quantize(D(1)))
+            cap = reg_params.get("energy.gnr.crisis_aid_cap_cents", month, default=None)
+            if cap is not None:
+                amount = min(amount, cap.value)
+                used.append(("energy.gnr.crisis_aid_cap_cents", month))
+            headline.append((f"Aide exceptionnelle de {month:%m/%Y}", euros(amount)))
+            details.append(("Taux de l'aide", _n(D(aid.value) / 100, 2) + " c€/l"))
+            used.append(("energy.gnr.crisis_aid_cents_per_hl", month))
+    return Result(headline=headline, details=details, params=used,
+                  warnings=["Le tarif réduit s'obtient en facture sur attestation ; acheté au tarif normal en station, "
+                            "la différence se demande à la DGFiP."])
 
 
 def I(key, label, kind="number", unit=None, required=True, **kw):  # noqa: E743
@@ -138,9 +158,16 @@ TOOLS = [
     Tool(Spec(code="gnr", number="05", title="Gazole et GNR", category="equipment",
               summary="Coût annuel du gazole non routier et écart avec le gazole routier, aux prix saisis.",
               inputs=[I("litres", "Consommation annuelle", unit="l"), I("gnr_price", "Prix du GNR", unit="€/l"),
-                      I("road_price", "Prix du gazole routier", unit="€/l")],
-              example={"litres": "12000", "gnr_price": "1.12", "road_price": "1.62"},
-              method="Coût = litres × prix ; écart = (prix routier − prix GNR) × litres. Prix saisis avec leur date et "
-                     "leur source (pas de prix en direct). Le remboursement partiel de TICPE viendra avec son taux sourcé."),
+                      I("road_price", "Prix du gazole routier", unit="€/l"),
+                      I("aid_month", "Mois de livraison (aide exceptionnelle)", "date", required=False,
+                        help="Un jour du mois concerné"),
+                      I("aid_litres", "Litres de GNR livrés ce mois", unit="l", required=False)],
+              example={"litres": "12000", "gnr_price": "1.12", "road_price": "1.62", "aid_month": "2026-09-01",
+                       "aid_litres": "1800"},
+              method="Coût = litres × prix ; écart = (prix routier − prix GNR) × litres, prix saisis avec leur date et leur "
+                     "source. Le GNR agricole supporte une accise réduite (CIBS art. L312-35) appliquée dès la facture "
+                     "depuis le 01/07/2024. Aide exceptionnelle 2026 : litres livrés dans le mois × taux du mois "
+                     "(plafond en avril). Limites : la demande d'aide se fait sur impots.gouv.fr, mois par mois.",
+              params=("energy.gnr.agri_rate_cents_per_hl",)),
          fuel),
 ]
