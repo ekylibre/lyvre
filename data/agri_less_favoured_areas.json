@@ -1,0 +1,186 @@
+{
+ "_comment": "Zones agricoles défavorisées (ICHN) publiées par les DDT sur data.gouv.fr (lot AG12.d, calculette 07). Relevé du 07/11/2026 : jeux postérieurs à la réforme de 2019 seulement (arrêté du 27 mars 2019) ; écartés : Vendée (2016), Cher (2014), Aveyron (2007), Alpes-de-Haute-Provence infracommunal (2004), Cantal (couche sans attributs), doublon GéoFLA de la Corrèze. Les données des DDT peuvent ne pas intégrer les arrêtés modificatifs de 2023 et de 2026 : réponse à confirmer avec la DDT. `kind` infracommunal : seules les communes classées en partie sont décrites.",
+ "verified_on": "2026-11-07",
+ "departments": [
+  {
+   "department": "004",
+   "name": "Alpes-de-Haute-Provence",
+   "layer": "ms:N_DEFAVORISEE_ZSUP_004",
+   "wfs": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_37948/cf1e8546-5544-4adc-9434-e18f00aa6b11.internet.map",
+   "label_field": "TYPE_HANDI",
+   "unclassified": [],
+   "min_year": null,
+   "kind": "zone",
+   "dataset": "Zones agricoles défavorisées des Alpes de Haute-Provence",
+   "page": "https://www.data.gouv.fr/datasets/zones-agricoles-defavorisees-des-alpes-de-haute-provence-2",
+   "updated": "2019-09-02"
+  },
+  {
+   "department": "016",
+   "name": "Charente",
+   "layer": "ms:N_DEFAVORISEE_ZSUP_016",
+   "wfs": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_37972/ea905f6d-957f-489a-a8d7-5df8c3d46a21.internet.map",
+   "label_field": "TYPE_HANDI",
+   "unclassified": [],
+   "min_year": null,
+   "kind": "zone",
+   "dataset": "Zones agricoles défavorisées en Charente",
+   "page": "https://www.data.gouv.fr/datasets/zones-agricoles-defavorisees-en-charente",
+   "updated": "2019-10-18"
+  },
+  {
+   "department": "019",
+   "name": "Corrèze",
+   "layer": "ms:N_DEFAVORISEE_ZSUP_019",
+   "wfs": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_37978/58a70345-1c99-4a61-9b38-519165037f4d.internet.map",
+   "label_field": "TYPE_HANDI",
+   "unclassified": [],
+   "min_year": null,
+   "kind": "zone",
+   "dataset": "Zones agricoles défavorisées en Corrèze",
+   "page": "https://www.data.gouv.fr/datasets/zones-agricoles-defavorisees-en-correze-2",
+   "updated": "2023-07-26"
+  },
+  {
+   "department": "021",
+   "name": "Côte-d'Or",
+   "layer": "ms:N_DEFAVORISEE_ZSUP_021",
+   "wfs": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_37980/3fd825f2-318e-40d2-b456-922f092a6330.internet.map",
+   "label_field": null,
+   "unclassified": [],
+   "min_year": null,
+   "kind": "zone",
+   "dataset": "Zone agricole défavorisée infracommunale en Côte d'Or",
+   "page": "https://www.data.gouv.fr/datasets/zone-agricole-defavorisee-infracommunale-en-cote-dor-1",
+   "updated": "2021-01-08"
+  },
+  {
+   "department": "041",
+   "name": "Loir-et-Cher",
+   "layer": "ms:N_DEFAVORISEE_ZSUP_041",
+   "wfs": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_38024/408e7d6b-c80b-40d2-932d-e35611397a51.internet.map",
+   "label_field": "TYPE_HANDI",
+   "unclassified": [],
+   "min_year": null,
+   "kind": "zone",
+   "dataset": "Agriculture - Zones agricoles défavorisées en Loir-et-Cher",
+   "page": "https://www.data.gouv.fr/datasets/agriculture-zones-agricoles-defavorisees-en-loir-et-cher",
+   "updated": "2019-04-09"
+  },
+  {
+   "department": "058",
+   "name": "Nièvre",
+   "layer": "ms:N_DEFAVORISEE_ZSUP_058",
+   "wfs": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_38058/28996c7b-593c-498f-aa74-64f3a203e1d6.internet.map",
+   "label_field": "TYPE_ZONE",
+   "unclassified": [],
+   "min_year": null,
+   "kind": "zone",
+   "dataset": "Zones agricoles défavorisées dans le département de la Nièvre (58)",
+   "page": "https://www.data.gouv.fr/datasets/zones-agricoles-defavorisees-dans-le-departement-de-la-nievre-58",
+   "updated": "2021-04-16"
+  },
+  {
+   "department": "065",
+   "name": "Hautes-Pyrénées",
+   "layer": "ms:N_ZONAGE_ICHN_065",
+   "wfs": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_38072/557c6c93-c069-4e84-9d93-034f98eb6866.internet.map",
+   "label_field": "zone_ichn",
+   "unclassified": [
+    "non classee"
+   ],
+   "min_year": null,
+   "kind": "zone",
+   "dataset": "Zones Défavorisées ICHN dans les Hautes Pyrénées",
+   "page": "https://www.data.gouv.fr/datasets/zones-defavorisees-ichn-dans-les-hautes-pyrenees",
+   "updated": "2022-04-19"
+  },
+  {
+   "department": "069",
+   "name": "Rhône",
+   "layer": "ms:n_defavorisee_zinf_s_069",
+   "wfs": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_38080/230c8945-b613-4de4-a52c-4d9d927b5f4a.internet.map",
+   "label_field": "lib_zone",
+   "unclassified": [
+    "Plaine"
+   ],
+   "min_year": {
+    "field": "annee",
+    "value": 2019
+   },
+   "kind": "infracommunal",
+   "dataset": "Zone agricole défavorisée infracommunale du Rhône",
+   "page": "https://www.data.gouv.fr/datasets/zone-agricole-defavorisee-infracommunale-du-rhone",
+   "updated": "2022-03-28"
+  },
+  {
+   "department": "072",
+   "name": "Sarthe",
+   "layer": "ms:N_DEFAVORISEE_ZSUP_072",
+   "wfs": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_38086/911db9e3-5db5-409b-b6c2-7509974f3899.internet.map",
+   "label_field": "TYPE_HANDI",
+   "unclassified": [],
+   "min_year": null,
+   "kind": "zone",
+   "dataset": "Zones agricoles défavorisées dans le département de la Sarthe (Millésime 2019)",
+   "page": "https://www.data.gouv.fr/datasets/zones-agricoles-defavorisees-dans-le-departement-de-la-sarthe-millesime-2019",
+   "updated": "2020-02-06"
+  },
+  {
+   "department": "073",
+   "name": "Savoie",
+   "layer": "ms:N_DEFAVORISEE_ZSUP_073",
+   "wfs": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_38088/90cb886a-dee6-4d92-ac5d-09dd408fcba1.internet.map",
+   "label_field": "TYPE_HANDICAP",
+   "unclassified": [
+    "LAC"
+   ],
+   "min_year": null,
+   "kind": "zone",
+   "dataset": "Zones agricoles défavorisées (Savoie)",
+   "page": "https://www.data.gouv.fr/datasets/zones-agricoles-defavorisees-savoie",
+   "updated": "2022-04-20"
+  },
+  {
+   "department": "074",
+   "name": "Haute-Savoie",
+   "layer": "ms:N_DEFAVORISEE_ZSUP_074",
+   "wfs": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_38090/0105aff5-9668-43fb-b529-ba30c4361f72.internet.map",
+   "label_field": "TYPE_HANDI",
+   "unclassified": [
+    "plaine"
+   ],
+   "min_year": null,
+   "kind": "zone",
+   "dataset": "Zones agricoles défavorisées en Haute-Savoie",
+   "page": "https://www.data.gouv.fr/datasets/zones-agricoles-defavorisees-en-haute-savoie",
+   "updated": "2022-04-12"
+  },
+  {
+   "department": "086",
+   "name": "Vienne",
+   "layer": "ms:N_DEFAVORISEE_ZSUP_086",
+   "wfs": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_38112/8e75b8df-8640-4ab1-a73f-2b66d2cb495b.internet.map",
+   "label_field": "libelle",
+   "unclassified": [],
+   "min_year": null,
+   "kind": "zone",
+   "dataset": "Zones agricoles défavorisées dans la Vienne",
+   "page": "https://www.data.gouv.fr/datasets/zones-agricoles-defavorisees-dans-la-vienne-2",
+   "updated": "2025-04-14"
+  },
+  {
+   "department": "089",
+   "name": "Yonne",
+   "layer": "ms:N_DEFAVORISEE_ZSUP_089",
+   "wfs": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_38118/30d6e8fe-137b-4408-beb2-b8e5a3159fdc.internet.map",
+   "label_field": "TYPE_HANDICAP",
+   "unclassified": [],
+   "min_year": null,
+   "kind": "zone",
+   "dataset": "Zones agricoles défavorisées dans l'Yonne",
+   "page": "https://www.data.gouv.fr/datasets/zones-agricoles-defavorisees-dans-lyonne",
+   "updated": "2024-11-26"
+  }
+ ]
+}

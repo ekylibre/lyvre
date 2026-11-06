@@ -404,3 +404,25 @@ réduit. Le tarif de droit commun du GNR n'a pas été sourcé : la comparaison 
 - **Consigne de l'assistant** : pour un calcul, passer par ces deux outils et reprendre méthode et sources.
 - **Jeu d'évaluation** (manuel, hors CI) : deux cas ajoutés, plafond DEP et dose de semis.
 - **Tests** sans appel à l'API Claude : même résultat que l'écran, erreur sur une entrée manquante, booléen contrôlé, préremplissage avec origine.
+
+### Zones défavorisées (ICHN), ajout du 07/11/2026
+
+- **Constat**, après vérification de la source signalée :
+  - pas de jeu national sur data.gouv.fr ;
+  - pas de couche ICHN à l'IGN ;
+  - le tableau du ministère par commune décrit le **projet** de zonage 2019, sans les zones de montagne et sans les modificatifs de 2023 et 2026.
+- **Choix de l'utilisateur** : les services cartographiques des DDT qui en publient. La réponse est exacte, mais seulement pour ces départements.
+- **Référentiel** `data/agri_less_favoured_areas.json` : 13 départements retenus sur 27 jeux trouvés. Seuls les jeux postérieurs à la réforme de 2019 sont gardés, dont le Rhône pour ses seules communes classées en partie (années de 2019 et après).
+  - Écartés : Vendée 2016, Cher 2014, Aveyron 2007, Alpes-de-Haute-Provence infracommunal 2004, Cantal (couche sans attributs), doublon GéoFLA de la Corrèze.
+  - Par département : service WFS (Géo-IDE), couche, champ du libellé, valeurs « non classé » (« Plaine », « LAC », « non classee ») et page data.gouv.fr.
+- **Service** `agri_geo.less_favoured_at` :
+  - département du point par la parcelle cadastrale la plus proche (géocodage inverse IGN, index « parcel » ; l'index « address » ne répond pas loin des habitations) ;
+  - puis couche de la DDT sur un carré de ± 5 m, attributs seuls ;
+  - correction des libellés UTF-8 lus en Latin-1.
+- **Calculette 07** : ligne « Zone défavorisée (ICHN) » qui vaut « oui » ou « non », avec le libellé de la DDT et l'année des données, ou « à vérifier » hors des départements couverts (lien vers la page du ministère).
+- **Vérifié en réel** :
+  - Charente : ZSCS ;
+  - Savoie : haute montagne ;
+  - Vienne : zone défavorisée simple 2019 ;
+  - Hautes-Pyrénées : zone défavorisée simple ;
+  - Charente-Maritime : « à vérifier ».

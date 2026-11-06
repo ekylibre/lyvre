@@ -38,11 +38,18 @@ def _fake_ign(layer, params):
     return {"features": []}
 
 
+DDT_016 = """<?xml version='1.0' encoding="UTF-8" ?><wfs:FeatureCollection xmlns:ms="http://mapserver.gis.umn.edu/mapserver"
+ xmlns:wfs="http://www.opengis.net/wfs/2.0"><wfs:member><ms:N_DEFAVORISEE_ZSUP_016><ms:TYPE_HANDI>ZSCS</ms:TYPE_HANDI>
+ </ms:N_DEFAVORISEE_ZSUP_016></wfs:member></wfs:FeatureCollection>"""
+
+
 @pytest.fixture(autouse=True)
 def _no_network(monkeypatch):
     from app.services import agri_geo
     monkeypatch.setattr(agri_geo, "_ign", _fake_ign)
     monkeypatch.setattr(agri_geo, "_sandre", lambda query: SANDRE_IN if "45.8" in query else SANDRE_OUT)
+    monkeypatch.setattr(agri_geo, "department_at", lambda lat, lon: "016" if lat < 45.7 else "017")
+    monkeypatch.setattr(agri_geo, "_ddt", lambda source, lat, lon: DDT_016)
 
 
 @pytest.fixture()
@@ -335,3 +342,29 @@ def test_point_in_and_sandre_parse():
     from app.services import agri_geo
     assert agri_geo.point_in(SQUARE, 45.83, -0.785) and not agri_geo.point_in(SQUARE, 45.85, -0.785)
     assert agri_geo.parse_vulnerable(SANDRE_IN)["code"] == "FRF_38" and agri_geo.parse_vulnerable(SANDRE_OUT) is None
+
+
+
+# ------------------------------------------------------------------ zones défavorisées (ICHN), données des DDT
+
+def test_zonages_ichn(farm):
+    covered = _run(farm, "zonages", {"point": "45.65,0.16"})                # Charente : DDT publiée
+    rows = {r[0]: r for r in covered["table"]["rows"]}
+    assert rows["Zone défavorisée (ICHN)"][1] == "oui" and "ZSCS" in rows["Zone défavorisée (ICHN)"][2]
+    assert "DDT Charente" in rows["Zone défavorisée (ICHN)"][2]
+    other = _run(farm, "zonages", {"point": "45.8295,-0.7870"})             # Charente-Maritime : pas de données
+    row = next(r for r in other["table"]["rows"] if r[0] == "Zone défavorisée (ICHN)")
+    assert row[1] == "à vérifier" and "017" in row[2]
+
+
+def test_parse_ddt_filters():
+    from app.services import agri_geo
+    rhone = agri_geo.less_favoured_sources()["069"]
+    text = """<wfs:FeatureCollection xmlns:ms="http://mapserver.gis.umn.edu/mapserver" xmlns:wfs="http://www.opengis.net/wfs/2.0">
+     <wfs:member><ms:n_defavorisee_zinf_s_069><ms:lib_zone>Piémont</ms:lib_zone><ms:annee>2015</ms:annee></ms:n_defavorisee_zinf_s_069></wfs:member>
+     <wfs:member><ms:n_defavorisee_zinf_s_069><ms:lib_zone>Plaine</ms:lib_zone><ms:annee>2019</ms:annee></ms:n_defavorisee_zinf_s_069></wfs:member>
+     <wfs:member><ms:n_defavorisee_zinf_s_069><ms:lib_zone>Zone défavorisée simple</ms:lib_zone><ms:annee>2022</ms:annee></ms:n_defavorisee_zinf_s_069></wfs:member>
+    </wfs:FeatureCollection>"""
+    assert agri_geo.parse_ddt(text, rhone) == ["Zone défavorisée simple"]      # 2015 écarté, « Plaine » non classée
+    assert agri_geo._repair("DÃ©favorisÃ©e simple") == "Défavorisée simple"
+    assert len(agri_geo.less_favoured_sources()) == 13

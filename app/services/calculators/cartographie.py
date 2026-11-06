@@ -62,7 +62,7 @@ def zonings(v, on):
     except GeoUnavailable as exc:
         raise CalculatorError(exc.message, status=503) from None
     inside = [z for z in found if z["inside"]]
-    rows = [[z["label"], "oui" if z["inside"] else "non",
+    rows = [[z["label"], "à vérifier" if z.get("status") == "unknown" else "oui" if z["inside"] else "non",
              "; ".join(" ".join(x for x in (i["name"], f"({i['code']})" if i["code"] and i["code"] != i["name"] else "",
                                              i["note"] or "") if x) for i in z["items"])] for z in found]
     links = [(f"Fiche {i['code'] or i['name']}", i["url"]) for z in found for i in z["items"] if i.get("url")]
@@ -70,9 +70,10 @@ def zonings(v, on):
                             ("Zone vulnérable aux nitrates", "oui" if found[0]["inside"] else "non")],
                   table={"columns": ["Zonage", "Au point", "Détail"], "rows": rows},
                   details=[(label, url) for label, url in links],
-                  warnings=["Zonages publiés (IGN, Sandre) à la date de la consultation : les obligations qui en découlent "
-                            "(programme d'actions nitrates, document d'objectifs Natura 2000, BCAE) se lisent dans les "
-                            "textes. Zones défavorisées (ICHN) non couvertes."],
+                  warnings=["Zonages publiés (IGN, Sandre, DDT) à la date de la consultation : les obligations qui en "
+                            "découlent (programme d'actions nitrates, document d'objectifs Natura 2000, BCAE, ICHN) se lisent "
+                            "dans les textes. Zones défavorisées : seulement dans les 13 départements dont la DDT publie un "
+                            "zonage postérieur à 2019, à confirmer avec elle (arrêtés modificatifs de 2023 et 2026)."],
                   map={"center": [lat, lon], "zoom": 15, "features": None})
 
 
@@ -93,9 +94,13 @@ TOOLS = [
               inputs=[POINT], example={"point": "45.8295,-0.7870"},
               method="Le point est comparé aux zonages publiés : zones vulnérables aux nitrates (Sandre, délimitation en "
                      "vigueur), sites Natura 2000 (INPN par l'IGN), couches BCAE de l'IGN (prairies sensibles, zones humides "
-                     "et tourbières ; cours d'eau dans un rayon d'environ 50 m). Limites : précision de quelques mètres "
-                     "aux limites d'une zone ; zones défavorisées (ICHN) non couvertes.",
+                     "et tourbières ; cours d'eau dans un rayon d'environ 50 m), zones agricoles défavorisées publiées par "
+                     "la DDT du département (13 départements, data.gouv.fr). Limites : précision de quelques mètres aux "
+                     "limites d'une zone ; département de la parcelle cadastrale la plus proche ; zonage ICHN à confirmer avec "
+                     "la DDT, et « à vérifier » hors des départements couverts.",
               sources=(("Zones vulnérables — Sandre", "https://services.sandre.eaufrance.fr/geo/zrpe"),
                        ("Natura 2000 — INPN", "https://inpn.mnhn.fr/programme/natura2000"),
-                       ("Géoplateforme IGN", "https://data.geopf.fr/wfs/ows"))), zonings),
+                       ("Géoplateforme IGN", "https://data.geopf.fr/wfs/ows"),
+                       ("Zones défavorisées — ministère de l'Agriculture",
+                        "https://agriculture.gouv.fr/aides-aux-exploitations-classement-en-zone-defavorisee"))), zonings),
 ]
