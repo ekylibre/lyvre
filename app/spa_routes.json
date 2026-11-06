@@ -16,6 +16,8 @@
     {"rule": "/vat-returns/books", "endpoint": "vat_returns.books"},
     {"rule": "/rfa/", "endpoint": "rfa.index"},
     {"rule": "/ereporting/", "endpoint": "ereporting.index"},
+    {"rule": "/outils/", "endpoint": "tools.index"},
+    {"rule": "/outils/<code>", "endpoint": "tools.calculator"},
     {"rule": "/aids/", "endpoint": "aids.index"},
     {"rule": "/inventory/", "endpoint": "stock.index"},
     {"rule": "/tax-result/", "endpoint": "tax_result.index"},

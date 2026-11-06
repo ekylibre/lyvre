@@ -141,11 +141,29 @@ La calculette 05 a besoin d'un paramètre (taux de remboursement de TICPE) : ell
 
 | Sous-lot | Contenu | Dépend de |
 |---|---|---|
-| **AG12.a** | Cadre : registre, API, écran générique, gabarit, copie, menu ; 3 calculettes pilotes : 23 amortissement, 25 acompte de TVA, 08 micro-BA | — |
+| **AG12.a** ✅ | Cadre : registre, API, écran générique, gabarit, copie, menu ; 3 calculettes pilotes : 23 amortissement, 25 acompte de TVA, 08 micro-BA | — |
 | **AG12.b** | Reste du groupe A : 13 DEP, 15 fermage, 17 MSA, 21 marge brute, 22 coût d'un matériel, 24 RFA ; liens depuis les écrans existants | AG12.a |
 | **AG12.c** | Groupe B : 06 (outils cochés au § 9), 11, 12, 14, 09 (et 05 sans le remboursement) | AG12.a, § 9 |
 | **AG12.d** | Groupe C, après sourçage et ta validation des paramètres : 02, 20, 10, 16, 05 (remboursement), 04, 07 | AG12.a, Q-C7 |
 | **AG12.e** | Outil `calculator` de l'assistant | AG12.a, AG9b |
+
+## 7 bis. Réalisé (AG12.a)
+
+- **Cadre** `app/services/calculators/` :
+  - registre des modules (`SPEC`, `prefill`, `prefill_options`, `on_date`, `compute`) ;
+  - entrées typées (montant en centimes, nombre, entier, pourcentage, date, choix, texte) et validées ;
+  - paramètres lus à la date de calcul, un paramètre absent bloquant (409) ;
+  - gabarit `Result` ; texte copiable avec les entrées et leur origine, la méthode, les paramètres (source, fiabilité) et les sources.
+- **API** :
+  - `GET /api/v1/calculators?chart=` : liste filtrée par type, par défaut celui de l'instance ;
+  - `GET /api/v1/calculators/<code>?choice=` : spécification, préremplissage, choix de préremplissage, paramètres ;
+  - `POST /api/v1/calculators/<code>` : calcul. Il est permis à l'expert-comptable en lecture seule, puisqu'il n'écrit rien.
+- **Menu « Outils » › Calculettes** (toutes structures) : `/outils/`, avec un filtre par type et un badge « préremplie » ; page générique `/outils/<code>` (formulaire, origine des valeurs préremplies, exemple, résultat, copie, liens d'action).
+- **Pilotes** :
+  - **23 Amortissement** : bien simulé passé à `assets.schedule`, préremplissage depuis un bien du registre ;
+  - **25 Acomptes de TVA** : `vat_installments.proposed_amount`, `blocks`, `due_date`, dispense ; préremplissage par la référence de l'année (CA12A ou saisie) ;
+  - **08 Micro-BA ou réel** : bénéfice par `ba_regimes.micro_profit`, extrait de `simulation` pour une règle unique ; préremplissage par `ba_regimes.simulation`.
+- Tests : chaque exemple se calcule ; même résultat que le registre des immobilisations, que `vat_installments` et que `micro_profit` ; paramètre absent bloquant ; filtre par type ; calcul permis à l'expert-comptable.
 
 ## 8. Questions
 

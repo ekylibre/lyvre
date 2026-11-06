@@ -28,7 +28,9 @@ READ_ONLY_ALLOWED = {"api.login", "api.logout", "api.select_instance", "api.upda
                      "api.assistant_conversation_create", "api.assistant_conversation_delete", "api.assistant_ask",
                      "api.assistant_proposal_update",
                      "api.notifications_mark_read", "api.change_password", "api.password_forgot",
-                     "api.password_reset_check", "api.password_reset"}
+                     "api.password_reset_check", "api.password_reset",
+                     # Calculettes (lot AG12) : un calcul n'écrit rien.
+                     "api.calculators_compute"}
 WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
 _HTTP_CODES = {
@@ -185,7 +187,7 @@ def register_api(app):
 # Routes are attached to ``bp`` by these modules (import for side effects).
 from . import (  # noqa: E402,F401
     access, activity_report, assets, brevo, data_import, associate_expenses, associates, bank_accounts, bank_statements,
-    budgets, cash, cash_forecast, chart, coop_statements, ekylibre, entities, entries, ereporting, fiscal_years,
+    budgets, calculators, cash, cash_forecast, chart, coop_statements, ekylibre, entities, entries, ereporting, fiscal_years,
     impact, imports, lettering,
     instances, integrations, journals, leases, lookups, members, notifications, odoo, organization, payouts,
     products, projects, purchases, receipts, reconciliation, regulatory, reports, rules, sales, search, session,

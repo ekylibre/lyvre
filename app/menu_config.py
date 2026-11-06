@@ -243,6 +243,16 @@ MENUS = [
             {"key": "eco_import", "label": "Import de tonnages", "endpoint": "activity_report.eco", "charts": _ASSO, "admin_only": True},
         ],
     },
+    # ----------------------------------------------------------------- Outils (lot AG12, AGD29)
+    {
+        "key": "tools",
+        "label": "Outils",
+        "charts": _ALL,
+        "active": ["tools"],
+        "items": [
+            {"key": "calculators", "label": "Calculettes", "endpoint": "tools.index", "charts": _ALL},
+        ],
+    },
     # ----------------------------------------------------------------- Configuration
     {
         "key": "configuration",

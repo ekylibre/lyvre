@@ -221,6 +221,15 @@ def micro_to_real_lines(fy: FiscalYear) -> list[dict]:
 
 # ------------------------------------------------------------------ simulation micro ou réel
 
+def micro_profit(average: int | None, on: date) -> int | None:
+    """Bénéfice micro-BA : moyenne des recettes moins l'abattement, au moins le minimum (paramètres datés).
+    Règle unique, partagée avec la calculette 08 (lot AG12.a)."""
+    allowance, minimum = _p("ba.micro.allowance_bp", on), _p("ba.micro.minimum_cents", on, 0)
+    if average is None or allowance is None:
+        return None
+    return max(round(average * (10000 - allowance) / 10000), minimum or 0)
+
+
 def simulation(fy: FiscalYear) -> dict:
     from app.services import closing, tax_result
     year = fy.end_date.year
@@ -233,8 +242,8 @@ def simulation(fy: FiscalYear) -> dict:
             data["agricultural_ht"] + data["custom_work_ht"] if data else None)
         receipts.append({"year": y, "receipts_cents": value})
     average = _average([r["receipts_cents"] for r in receipts])
-    allowance, minimum = _p("ba.micro.allowance_bp", fy.end_date), _p("ba.micro.minimum_cents", fy.end_date, 0)
-    micro = max(round(average * (10000 - allowance) / 10000), minimum or 0) if average is not None and allowance is not None else None
+    allowance = _p("ba.micro.allowance_bp", fy.end_date)
+    micro = micro_profit(average, fy.end_date)
     if tax_result.enabled():
         real, basis = tax_result.compute(fy)["fiscal_result_cents"], "résultat fiscal (après abattement JA et DEP)"
     else:
