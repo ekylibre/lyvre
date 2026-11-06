@@ -62,4 +62,5 @@ def calculators_compute(code):
     except CalculatorError as exc:
         if exc.status == 422:
             raise invalid(exc.message, exc.field) from None
-        raise ApiError("conflict" if exc.status == 409 else "not_found", exc.message, status=exc.status) from None
+        code = {409: "conflict", 503: "unavailable"}.get(exc.status, "not_found")
+        raise ApiError(code, exc.message, status=exc.status) from None

@@ -144,7 +144,7 @@ La calculette 05 a besoin d'un paramètre (taux de remboursement de TICPE) : ell
 | **AG12.a** ✅ | Cadre : registre, API, écran générique, gabarit, copie, menu ; 3 calculettes pilotes : 23 amortissement, 25 acompte de TVA, 08 micro-BA | — |
 | **AG12.b** ✅ | Reste du groupe A : 13 DEP, 15 fermage, 17 MSA, 21 marge brute, 22 coût d'un matériel, 24 RFA ; liens depuis les écrans existants | AG12.a |
 | **AG12.c** ✅ | Groupe B : 06 (outils cochés au § 9), 11, 12, 14, 09 (et 05 sans le remboursement) | AG12.a, § 9 |
-| **AG12.d** | Groupe C, après sourçage et ta validation des paramètres : 02, 20, 10, 16, 05 (remboursement), 04, 07 | AG12.a, Q-C7 |
+| **AG12.d** ✅ | Groupe C, après sourçage et ta validation des paramètres : 02, 20, 10, 16, 05 (remboursement), 04, 07 | AG12.a, Q-C7 |
 | **AG12.e** | Outil `calculator` de l'assistant | AG12.a, AG9b |
 
 ## 7 bis. Réalisé (AG12.a)
@@ -375,4 +375,23 @@ réduit. Le tarif de droit commun du GNR n'a pas été sourcé : la comparaison 
   - **16 Aides PAC** : redistributive, écorégime, bonus haies, jeune agriculteur, bovins, ovins, caprins. Une campagne sans arrêté enregistré est refusée.
 - **05 Gazole et GNR** : tarif réduit d'accise affiché, aide exceptionnelle 2026 du mois choisi (plafond en avril). Un mois sans aide affiche « aucune ».
 - **Cadre** : un résultat peut citer des paramètres facultatifs (aide d'un mois donné), affichés avec leur source.
-- **Reste (AG12.d, seconde partie)** : **04 carte RPG** et **07 zonages**. Sources retenues (Q-C8, Q-C11) : IGN Géoplateforme (RPG, Natura 2000, BCAE) et Sandre (`https://services.sandre.eaufrance.fr/geo/zrpe`, couche WFS `sa:ZoneVuln_delimitation_FXX`, GML seulement). La mise au point des requêtes sur un point est encore à faire : ordre des axes, noms de champs, formats. Les zones défavorisées (ICHN) sont sans source pour l'instant.
+- **AG12.d, seconde partie (faite)** : voir ci-dessous.
+
+### Réalisé (AG12.d, seconde partie : 04 carte RPG, 07 zonages)
+
+- **Choix de l'utilisateur** : point choisi d'un **clic sur une carte** ; **résultat avec carte**. Lieu de test :
+  45,8295 N ; 0,7870 O, d'après l'outil d'identification de parcelle de Lexicon.
+- **Requêtes mises au point**, vérifiées en réel sur le lieu de test :
+  - **IGN** : WFS 2.0, emprise en `urn:ogc:def:crs:EPSG::4326` (ordre latitude, longitude), GeoJSON.
+    - RPG : parcelles qui touchent le carré de côté deux fois le rayon (7 parcelles, blé tendre d'hiver sous le point).
+    - Natura 2000 et BCAE : carré de ± 5 m (le filtre « point » ne répond pas sur Natura 2000).
+    - Cours d'eau BCAE : carré de ± 50 m.
+  - **Sandre** : WFS 2.0, filtre `fes:Intersects` sur un point et attributs seuls. La réponse fait 1,2 Ko au lieu de 2,4 Mo avec la géométrie. Le lieu de test est en zone FRF_38 ; un point dans les Alpes est hors zone.
+- **Service** `agri_geo.py` : RPG autour d'un point avec les libellés des cultures, point dans un polygone, zone vulnérable (GML analysé), zonages au point, cache et délai bornés.
+- **Cadre** : entrée de type `point` (latitude, longitude en France métropolitaine) ; résultat avec carte (`Result.map`).
+- **Calculettes** :
+  - **04 Carte RPG** : parcelle sous le point, parcelles et surfaces par culture dans un rayon de 50 à 1 000 m, carte colorée par groupe de cultures ;
+  - **07 Zonages** : zone vulnérable aux nitrates, Natura 2000 (habitats, oiseaux), BCAE 9 (prairies sensibles), BCAE 2 (zones humides et tourbières), BCAE 4 (cours d'eau à proximité), avec liens vers les fiches et l'arrêté.
+- **Écran** : carte Leaflet chargée à la demande (photo aérienne IGN), centrée sur la structure. Un clic place le point, et le résultat s'affiche sur la carte.
+- **Tests** : faux IGN et faux Sandre, aucun appel réel. Indisponibilité → 503 ; point hors de France refusé.
+- **Non couvert** : zones défavorisées (ICHN), faute de source.

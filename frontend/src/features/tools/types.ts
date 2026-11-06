@@ -2,7 +2,7 @@
 export const TOOLS_KEY = ["calculators"] as const;
 
 export interface CalcInput {
-  key: string; label: string; kind: "money" | "number" | "integer" | "percent" | "date" | "choice" | "text";
+  key: string; label: string; kind: "money" | "number" | "integer" | "percent" | "date" | "choice" | "text" | "point";
   unit: string | null; required: boolean; choices: { value: string; label: string }[] | null; help: string | null;
   default: string | null;
 }
@@ -24,4 +24,6 @@ export interface CalcResult {
   headline: { label: string; value: string }[]; details: { label: string; value: string }[];
   table: { columns: string[]; rows: (string | number)[][] } | null; warnings: string[];
   actions: { label: string; route: string }[]; params: CalcParam[]; on: string; text: string;
+  /** Calculettes géographiques (04, 07) : carte du résultat. */
+  map?: { center: [number, number]; zoom: number; features: import("geojson").FeatureCollection | null } | null;
 }

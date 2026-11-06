@@ -1,7 +1,7 @@
 // Outils › une calculette (lot AG12) : formulaire construit depuis la spécification (saisie libre ou préremplie,
 // origine de chaque valeur), résultat selon le gabarit commun (C1) : chiffres, détail, tableau, avertissements,
 // méthode et limites, paramètres réglementaires avec leur fiabilité, sources, actions ; copie en texte (C4).
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useParams } from "react-router";
 import {
   Alert, Anchor, Badge, Button, CopyButton, Grid, Group, List, Loader, Paper, Select, Stack, Table, Text, TextInput, Title,
@@ -12,6 +12,32 @@ import { PageHeader } from "../../components/PageHeader";
 import { AppLink } from "../../app/navigation";
 import { TOOLS_KEY, type CalcInput, type CalcResult, type CalcSpec } from "./types";
 
+const CalcMap = lazy(() => import("./CalcMap"));
+const FRANCE: [number, number] = [46.6, 2.4];
+
+function parsePoint(value: string): [number, number] | null {
+  const parts = value.split(",").map((p) => Number(p.trim()));
+  return parts.length === 2 && parts.every((n) => Number.isFinite(n) && value.trim() !== "") ? [parts[0], parts[1]] : null;
+}
+
+/** Point choisi d'un clic sur la carte (centrée sur la structure), ou saisi « latitude, longitude ». */
+function PointField({ input, value, onChange }: { input: CalcInput; value: string; onChange: (v: string) => void }) {
+  const { data } = useQuery({ queryKey: ["geo", "organization"], staleTime: Infinity,
+    queryFn: () => api.get<{ center: { lat: number; lon: number; zoom: number } }>("/api/v1/geo/organization") });
+  const point = parsePoint(value);
+  const center: [number, number] = point ?? (data ? [data.center.lat, data.center.lon] : FRANCE);
+  return (
+    <Stack gap={4}>
+      <TextInput label={input.label} required={input.required} description={input.help ?? undefined} value={value}
+        placeholder="45.8295, -0.7870" onChange={(e) => onChange(e.currentTarget.value)} />
+      <Suspense fallback={<Loader size="sm" />}>
+        <CalcMap center={center} zoom={point ? 16 : data?.center.zoom ?? 6} point={point}
+          onPick={(lat, lon) => onChange(`${lat},${lon}`)} height={260} />
+      </Suspense>
+    </Stack>
+  );
+}
+
 const RELIABILITY: Record<string, { label: string; color: string }> = {
   V: { label: "vérifié", color: "lichen" }, R: { label: "recoupé", color: "ardoise" }, A: { label: "à vérifier", color: "paille" },
   I: { label: "incertain", color: "brique" },
@@ -19,6 +45,7 @@ const RELIABILITY: Record<string, { label: string; color: string }> = {
 
 function Field({ input, value, origin, onChange }: { input: CalcInput; value: string; origin?: string; onChange: (v: string) => void }) {
   const description = [input.help, origin && `Origine : ${origin}`].filter(Boolean).join(" · ") || undefined;
+  if (input.kind === "point") return <PointField input={input} value={value} onChange={onChange} />;
   if (input.kind === "choice") {
     return <Select label={input.label} required={input.required} data={input.choices ?? []} value={value || null}
       description={description} onChange={(v) => onChange(v ?? "")} allowDeselect={!input.required} />;
@@ -35,8 +62,13 @@ export function ResultView({ spec, result }: { spec: CalcSpec; result: CalcResul
       <Group gap="xl">{result.headline.map((h) => (
         <div key={h.label}><Text size="sm" c="dimmed">{h.label}</Text><Text fw={700} size="xl" className="lv-num">{h.value}</Text></div>))}</Group>
       {result.warnings.map((w) => <Alert key={w} color="paille">{w}</Alert>)}
+      {result.map && <Suspense fallback={<Loader size="sm" />}>
+        <CalcMap center={result.map.center} zoom={result.map.zoom} point={result.map.center} features={result.map.features} />
+      </Suspense>}
       {result.details.length > 0 && <Table><Table.Tbody>{result.details.map((d) => (
-        <Table.Tr key={d.label}><Table.Td>{d.label}</Table.Td><Table.Td ta="right" className="lv-num">{d.value}</Table.Td></Table.Tr>))}
+        <Table.Tr key={d.label}><Table.Td>{d.label}</Table.Td><Table.Td ta="right" className="lv-num">
+          {d.value.startsWith("https://") || d.value.startsWith("http://")
+            ? <Anchor href={d.value} target="_blank" size="sm">ouvrir</Anchor> : d.value}</Table.Td></Table.Tr>))}
       </Table.Tbody></Table>}
       {result.table && <Table.ScrollContainer minWidth={500}><Table striped>
         <Table.Thead><Table.Tr>{result.table.columns.map((c) => <Table.Th key={c}>{c}</Table.Th>)}</Table.Tr></Table.Thead>

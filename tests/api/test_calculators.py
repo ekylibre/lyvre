@@ -13,6 +13,37 @@ from test_agri_fixtures import _agri_instance
 
 API = "/api/v1/calculators"
 
+# Faux services géographiques (calculettes 04 et 07) : aucun appel réel à l'IGN ni au Sandre.
+SQUARE = {"type": "MultiPolygon", "coordinates": [[[[-0.79, 45.82], [-0.78, 45.82], [-0.78, 45.84], [-0.79, 45.84],
+                                                     [-0.79, 45.82]]]]}
+SANDRE_IN = """<?xml version='1.0' encoding="UTF-8" ?><wfs:FeatureCollection xmlns:sa="http://xml.sandre.eaufrance.fr/"
+ xmlns:wfs="http://www.opengis.net/wfs/2.0" numberMatched="1" numberReturned="1"><wfs:member>
+ <sa:ZoneVuln_delimitation_FXX><sa:CdEuZoneVuln>FRF_38</sa:CdEuZoneVuln><sa:NomZoneVuln></sa:NomZoneVuln>
+ <sa:NumTexteReglem>R76-2021-07-15-00023</sa:NumTexteReglem><sa:URLTexteReglem>https://example.org/arrete.pdf</sa:URLTexteReglem>
+ </sa:ZoneVuln_delimitation_FXX></wfs:member></wfs:FeatureCollection>"""
+SANDRE_OUT = """<?xml version='1.0' encoding="UTF-8" ?><wfs:FeatureCollection xmlns:wfs="http://www.opengis.net/wfs/2.0"
+ numberMatched="0" numberReturned="0"></wfs:FeatureCollection>"""
+
+
+def _fake_ign(layer, params):
+    if layer == "RPG.LATEST:codes_cultures":
+        return {"features": [{"properties": {"code_culture": "BTH", "libelle_culture": "Blé tendre d'hiver",
+                                             "libelle_groupe_culture": "Blé tendre"}}]}
+    if layer == "RPG.LATEST:parcelles_graphiques":
+        return {"features": [{"type": "Feature", "geometry": SQUARE, "properties": {"code_cultu": "BTH", "surf_parc": 9.53}},
+                             {"type": "Feature", "geometry": None, "properties": {"code_cultu": "MIS", "surf_parc": 4.84}}]}
+    if layer == "patrinat_sic:sic":
+        return {"features": [{"properties": {"nom_site": "Vallée de la Charente (basse vallée)", "id_mnhn": "FR5400430",
+                                             "url_fiche": "https://inpn.mnhn.fr/site/natura2000/FR5400430"}}]}
+    return {"features": []}
+
+
+@pytest.fixture(autouse=True)
+def _no_network(monkeypatch):
+    from app.services import agri_geo
+    monkeypatch.setattr(agri_geo, "_ign", _fake_ign)
+    monkeypatch.setattr(agri_geo, "_sandre", lambda query: SANDRE_IN if "45.8" in query else SANDRE_OUT)
+
 
 @pytest.fixture()
 def farm(app, login_as):
@@ -263,3 +294,44 @@ def test_gnr_crisis_aid(farm):
     assert april["headline"][2]["value"] == calculators.euros(5000000)      # plafond d'avril
     none = _run(farm, "gnr", {**base, "aid_month": "2025-09-01", "aid_litres": "1000"})
     assert len(none["headline"]) == 2 and any(d["value"] == "aucune pour ce mois" for d in none["details"])
+
+
+
+# ------------------------------------------------------------------ lot AG12.d : 04 carte RPG, 07 zonages
+
+def test_rpg(farm):
+    result = _run(farm, "rpg", {"point": "45.8295,-0.7870", "radius": "300"})
+    assert result["headline"][0]["value"] == "Blé tendre d'hiver (9.53 ha)"
+    assert result["headline"][2]["value"] == "14,37 ha" and len(result["table"]["rows"]) == 2
+    assert result["map"]["center"] == [45.8295, -0.787] and len(result["map"]["features"]["features"]) == 2
+    assert farm.post(f"{API}/rpg", json={"values": {"point": "60,20"}}).status_code == 422          # hors de France
+    assert farm.post(f"{API}/rpg", json={"values": {"point": "45.8,-0.78", "radius": "5000"}}).status_code == 422
+
+
+def test_zonages(farm):
+    result = _run(farm, "zonages", {"point": "45.8295,-0.7870"})
+    rows = {r[0]: r for r in result["table"]["rows"]}
+    assert rows["Zone vulnérable aux nitrates"][1] == "oui" and "FRF_38" in rows["Zone vulnérable aux nitrates"][2]
+    natura = rows["Natura 2000 — site d'importance communautaire (directive Habitats)"]
+    assert natura[1] == "oui" and "FR5400430" in natura[2]
+    assert result["headline"] == [{"label": "Zonages au point", "value": "2"},
+                                  {"label": "Zone vulnérable aux nitrates", "value": "oui"}]
+    outside = _run(farm, "zonages", {"point": "45.0,6.3"})
+    assert outside["headline"][1]["value"] == "non"
+
+
+def test_geo_unavailable(farm, monkeypatch):
+    from app.services import agri_geo
+    from app.services.geodata import GeoUnavailable
+
+    def down(*a, **k):
+        raise GeoUnavailable("Le service cartographique de l'IGN")
+    monkeypatch.setattr(agri_geo, "_ign", down)
+    resp = farm.post(f"{API}/rpg", json={"values": {"point": "45.8,-0.78"}})
+    assert resp.status_code == 503 and "IGN" in resp.get_json()["error"]["message"]
+
+
+def test_point_in_and_sandre_parse():
+    from app.services import agri_geo
+    assert agri_geo.point_in(SQUARE, 45.83, -0.785) and not agri_geo.point_in(SQUARE, 45.85, -0.785)
+    assert agri_geo.parse_vulnerable(SANDRE_IN)["code"] == "FRF_38" and agri_geo.parse_vulnerable(SANDRE_OUT) is None

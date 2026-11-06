@@ -27,7 +27,8 @@ CATEGORIES = {"fiscal": "Fiscal", "social": "Social", "vat": "TVA", "management"
               "harvest": "Récolte et stockage", "crops": "Cultures", "livestock": "Élevage", "energy": "Énergie",
               "regulatory": "Réglementaire"}
 CHART_LABELS = {"agri": "Agricole", "asso": "Association", "societe": "Société", "sci": "SCI"}
-KINDS = ("money", "number", "integer", "percent", "date", "choice", "text")
+KINDS = ("money", "number", "integer", "percent", "date", "choice", "text", "point")
+FRANCE_BOUNDS = (41.0, 51.6, -5.8, 10.0)           # point : France métropolitaine (lat. min, max, long. min, max)
 
 
 class CalculatorError(ValueError):
@@ -77,6 +78,7 @@ class Result:
     warnings: list[str] = field(default_factory=list)
     actions: list[tuple[str, str]] = field(default_factory=list)   # (libellé, route de l'application)
     params: list[tuple[str, date]] = field(default_factory=list)   # paramètres facultatifs utilisés (clé, date)
+    map: dict | None = None                     # {center: [lat, lon], zoom, features: GeoJSON} (calculettes 04, 07)
 
 
 class Tool:
@@ -181,6 +183,15 @@ def parse(spec: Spec, raw: dict) -> dict:
                 values[item.key] = date.fromisoformat(str(value)[:10])
             except ValueError:
                 raise CalculatorError(f"{item.label} : date attendue (AAAA-MM-JJ).", item.key) from None
+        elif item.kind == "point":
+            try:
+                lat, lon = (float(part) for part in str(value).replace(" ", "").split(","))
+            except ValueError:
+                raise CalculatorError(f"{item.label} : point attendu (latitude, longitude).", item.key) from None
+            south, north, west, east = FRANCE_BOUNDS
+            if not (south <= lat <= north and west <= lon <= east):
+                raise CalculatorError(f"{item.label} : point hors de France métropolitaine.", item.key)
+            values[item.key] = (lat, lon)
         elif item.kind == "choice":
             if str(value) not in {v for v, _ in item.choices or ()}:
                 raise CalculatorError(f"{item.label} : choix inconnu.", item.key)
@@ -239,7 +250,7 @@ def run(module, raw: dict, origins: dict | None = None) -> dict:
     payload = {"headline": [{"label": l, "value": v} for l, v in result.headline],
                "details": [{"label": l, "value": v} for l, v in result.details], "table": result.table,
                "warnings": result.warnings, "actions": [{"label": l, "route": r} for l, r in result.actions],
-               "params": used, "on": on.isoformat()}
+               "params": used, "on": on.isoformat(), "map": result.map}
     payload["text"] = as_text(spec, raw, origins or {}, payload)
     return payload
 

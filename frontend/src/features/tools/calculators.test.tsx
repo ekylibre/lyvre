@@ -57,3 +57,32 @@ describe("Calculette", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Paramètre réglementaire absent");
   });
 });
+
+// Lot AG12.d : point choisi sur la carte (carte remplacée par un bouton dans les tests).
+vi.mock("./CalcMap", () => ({
+  default: ({ onPick, features }: { onPick?: (lat: number, lon: number) => void; features?: { features: unknown[] } | null }) => (
+    <div>{onPick && <button type="button" onClick={() => onPick(45.8295, -0.787)}>clic carte</button>}
+      {features && <span>{features.features.length} parcelle(s) sur la carte</span>}</div>),
+}));
+
+const ZONES: CalcSpec = {
+  ...SPEC, code: "zonages", title: "Zonages de ma parcelle", prefill: {}, method: "Zonages publiés.",
+  inputs: [{ key: "point", label: "Point sur la carte", kind: "point", unit: null, required: true, choices: null, help: null, default: null }],
+  example: { point: "45.8295,-0.7870" },
+};
+
+describe("Calculette géographique", () => {
+  it("prend le point cliqué et affiche la carte du résultat", async () => {
+    const spy = vi.spyOn(globalThis, "fetch").mockImplementation(((url: string) => json(url.includes("/geo/organization")
+      ? { center: { lat: 46, lon: 0, zoom: 12 } }
+      : { result: { ...RESULT, map: { center: [45.8295, -0.787], zoom: 15, features: { type: "FeatureCollection", features: [{}, {}] } } } }
+    )) as typeof fetch);
+    renderWithProviders(<CalculatorForm spec={ZONES} />);
+    await userEvent.click(await screen.findByRole("button", { name: "clic carte" }));
+    expect(screen.getByLabelText(/Point sur la carte/)).toHaveValue("45.8295,-0.787");
+    await userEvent.click(screen.getByRole("button", { name: "Calculer" }));
+    expect(await screen.findByText("2 parcelle(s) sur la carte")).toBeInTheDocument();
+    const post = spy.mock.calls.find(([, init]) => (init as RequestInit | undefined)?.method === "POST")!;
+    expect(JSON.parse(String((post[1] as RequestInit).body)).values).toEqual({ point: "45.8295,-0.787" });
+  });
+});
