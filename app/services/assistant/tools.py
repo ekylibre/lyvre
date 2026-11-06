@@ -435,7 +435,80 @@ def navigate(args: dict, ctx: dict) -> dict:
 
 FY_PROP = {"fiscal_year": {"type": "string", "description": "Libellé de l'exercice (ex. « 2026 ») ; défaut : exercice en cours"}}
 
+# ------------------------------------------------------------------ calculettes (lot AG12.e)
+
+MAX_TABLE_ROWS = 30
+
+
+def list_calculators(args: dict) -> dict:
+    """Calculettes du type de la structure (ou toutes) : code, titre, entrées attendues."""
+    from app.services import calculators
+    from app.tenant import current_instance
+    inst = current_instance()
+    chart = inst.chart if inst is not None else None
+    query = (args.get("query") or "").strip().lower()
+    out = []
+    for module in calculators.registry().values():
+        spec = module.SPEC
+        if chart and chart not in spec.charts:
+            continue
+        if query and query not in f"{spec.title} {spec.summary} {spec.code}".lower():
+            continue
+        out.append({"code": spec.code, "number": spec.number, "title": spec.title, "summary": spec.summary,
+                    "prefillable": hasattr(module, "prefill"),
+                    "inputs": [{"key": i.key, "label": i.label, "kind": i.kind, "unit": i.unit, "required": i.required,
+                                "choices": [v for v, _ in i.choices] if i.choices else None, "default": i.default}
+                               for i in spec.inputs]})
+    out.sort(key=lambda c: c["number"])
+    return {"calculators": out, "note": "Montants en euros (ex. « 1234,56 »), dates AAAA-MM-JJ, point « latitude,longitude »."}
+
+
+def run_calculator(args: dict) -> dict:
+    """Calcul d'une calculette, identique à l'écran (règle du service, paramètres datés, méthode) ; rien n'est
+    enregistré. `prefill` : valeurs de la structure pour les entrées non fournies."""
+    from app.services import calculators
+    from app.services.calculators import CalculatorError, Context
+    from app.tenant import current_instance
+    try:
+        module = calculators.get(args.get("code") or "")
+    except CalculatorError:
+        return {"error": f"Calculette « {args.get('code')} » inconnue : voir list_calculators."}
+    values, origins = {}, {}
+    if args.get("prefill") and hasattr(module, "prefill"):
+        inst = current_instance()
+        for key, item in (module.prefill(Context(chart=inst.chart if inst else None)) or {}).items():
+            values[key], origins[key] = item["value"], item["origin"]
+    for pair in args.get("values") or []:
+        if isinstance(pair, dict) and pair.get("key"):
+            values[pair["key"]] = pair.get("value")
+            origins.pop(pair["key"], None)
+    try:
+        result = calculators.run(module, values, origins)
+    except CalculatorError as exc:
+        return {"error": exc.message, "field": exc.field}
+    table = result["table"]
+    if table and len(table["rows"]) > MAX_TABLE_ROWS:
+        table = {**table, "rows": table["rows"][:MAX_TABLE_ROWS], "truncated": True}
+    return {"calculator": module.SPEC.title, "values": values, "origins": origins, "headline": result["headline"],
+            "details": result["details"], "table": table, "warnings": result["warnings"], "method": module.SPEC.method,
+            "params": [{k: p[k] for k in ("key", "value", "valid_from", "source", "source_label", "reliability")}
+                       for p in result["params"]],
+            "link": f"/outils/{module.SPEC.code}"}
+
+
 TOOLS: tuple[Tool, ...] = (
+    Tool("list_calculators", "Calculettes de Lyvre (fiscal, social, TVA, gestion, cultures, élevage, réglementaire) : code, "
+         "titre, entrées attendues. À consulter avant run_calculator ; filtre facultatif sur un mot.",
+         _schema({"query": {"type": "string", "description": "Mot recherché, ex. « DEP », « semis », « MSA »"}}),
+         list_calculators),
+    Tool("run_calculator", "Exécute une calculette (même calcul que l'écran Outils › Calculettes : méthode, paramètres "
+         "datés et sources) sans rien enregistrer. Valeurs en paires clé / valeur (clés de list_calculators) ; prefill : "
+         "compléter avec les chiffres de la structure quand la calculette le permet.",
+         _schema({"code": {"type": "string", "description": "Code de la calculette, ex. dep, micro-ba, calc-dose-semis"},
+                  "values": {"type": "array", "items": _schema({"key": {"type": "string"}, "value": {"type": "string"}},
+                                                               ["key", "value"])},
+                  "prefill": {"type": "boolean", "description": "Préremplir depuis la structure (défaut : non)"}},
+                 ["code"]), run_calculator),
     Tool("get_aids", "Dossiers d'aides et subventions (PAC, DJA, investissement…) : montant acquis, versé, restant dû, alertes.",
          _schema({"campaign": {"type": "string", "description": "Campagne (année), facultative"}}), get_aids),
     Tool("get_balances", "Soldes des comptes de l'exercice commençant par les préfixes donnés (ex. « 512 » banque, « 401 » "
@@ -514,7 +587,9 @@ def run(name: str, args, can_propose: bool, ctx: dict | None = None) -> tuple[st
     if set(args) - allowed or any(not isinstance(args.get(k), str) for k in allowed if k in args
                                   and tool.schema["properties"][k].get("type") == "string") \
             or any(not isinstance(args.get(k), list) for k in allowed if k in args
-                   and tool.schema["properties"][k].get("type") == "array"):
+                   and tool.schema["properties"][k].get("type") == "array") \
+            or any(not isinstance(args.get(k), bool) for k in allowed if k in args
+                   and tool.schema["properties"][k].get("type") == "boolean"):
         return json.dumps({"error": "Arguments non conformes au schéma de l'outil."}, ensure_ascii=False), True
     if tool.propose and not (ctx and ctx.get("message_id")):
         return json.dumps({"error": "Proposition impossible hors conversation."}, ensure_ascii=False), True

@@ -54,3 +54,9 @@
 - id: pac-rappel
   question: "Que dois-je faire pour ma déclaration PAC ?"
   expect: {tools_none: [propose_entry], proposals: []}
+- id: calculette-dep
+  question: "Quel est le plafond de DEP pour un bénéfice de 62 000 € en exploitation individuelle, clôture au 31/12/2026 ?"
+  expect: {tools_any: [run_calculator], contains: ["/outils/dep"], proposals: []}
+- id: calculette-semis
+  question: "Quelle dose de semis pour 300 grains/m², un PMG de 45 g et 90 % de levée ?"
+  expect: {tools_any: [run_calculator], contains: ["150"], proposals: []}

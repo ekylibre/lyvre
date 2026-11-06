@@ -235,7 +235,7 @@ def test_read_tools_and_corpus(farm):
     _events(farm["client"].post(f"/api/v1/assistant/conversations/{conv['id']}/messages", json={"text": "Bonjour"}))
     system = fake.calls[-1]["system"]
     assert "cache_control" not in system[0] and system[1]["cache_control"] == {"type": "ephemeral"}
-    assert system[1]["text"] == text and len(fake.calls[-1]["tools"]) == 16          # admin : lecture + propositions
+    assert system[1]["text"] == text and len(fake.calls[-1]["tools"]) == 18          # admin : lecture + propositions
 
 
 def test_proposals(farm):
@@ -336,3 +336,33 @@ def test_eval_scorer_and_cases(farm):
     assert AssistantConversation.query.filter(AssistantConversation.title.like("[évaluation]%")).count() == 0
     bad = evals.score(case, {"text": "Rien", "tools": ["propose_entry"], "proposals": ["entry"], "errors": []})
     assert len(bad) == 4
+
+
+
+def test_calculator_tools(farm):
+    """Lot AG12.e : l'assistant liste et exécute les calculettes (même résultat que l'écran, rien d'enregistré)."""
+    from app.services import calculators
+    from app.services.assistant import tools
+
+    def call(name, **args):
+        content, error = tools.run(name, args, False)
+        return json.loads(content), error
+
+    listing, err = call("list_calculators", query="micro")
+    assert not err and [c["code"] for c in listing["calculators"]] == ["micro-ba"]
+    assert {i["key"] for i in listing["calculators"][0]["inputs"]} >= {"year", "receipts_n"}
+    values = [{"key": k, "value": v} for k, v in {"year": "2026", "receipts_n2": "61000", "receipts_n1": "68000",
+                                                    "receipts_n": "72000"}.items()]
+    result, err = call("run_calculator", code="micro-ba", values=values)
+    screen = calculators.run(calculators.get("micro-ba"), {v["key"]: v["value"] for v in values})
+    assert not err and result["headline"] == screen["headline"] and result["link"] == "/outils/micro-ba"
+    assert result["params"] and result["method"]
+    seeds, _ = call("run_calculator", code="calc-dose-semis",
+                    values=[{"key": "grains", "value": "300"}, {"key": "tgw", "value": "45"}, {"key": "emergence", "value": "90"}])
+    assert seeds["headline"][0]["value"] == "150,0 kg/ha"
+    missing, err = call("run_calculator", code="micro-ba", values=[{"key": "year", "value": "2026"}])
+    assert err and missing["field"] == "receipts_n2"
+    assert call("run_calculator", code="inconnue")[0]["error"]
+    assert call("run_calculator", code="micro-ba", prefill="oui")[1]                 # booléen attendu
+    prefilled, err = call("run_calculator", code="acompte-tva", prefill=True, values=[{"key": "due", "value": "8400"}])
+    assert not err and prefilled["origins"].get("year") == "année en cours" and "due" not in prefilled["origins"]

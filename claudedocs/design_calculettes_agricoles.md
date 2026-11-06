@@ -145,7 +145,7 @@ La calculette 05 a besoin d'un paramètre (taux de remboursement de TICPE) : ell
 | **AG12.b** ✅ | Reste du groupe A : 13 DEP, 15 fermage, 17 MSA, 21 marge brute, 22 coût d'un matériel, 24 RFA ; liens depuis les écrans existants | AG12.a |
 | **AG12.c** ✅ | Groupe B : 06 (outils cochés au § 9), 11, 12, 14, 09 (et 05 sans le remboursement) | AG12.a, § 9 |
 | **AG12.d** ✅ | Groupe C, après sourçage et ta validation des paramètres : 02, 20, 10, 16, 05 (remboursement), 04, 07 | AG12.a, Q-C7 |
-| **AG12.e** | Outil `calculator` de l'assistant | AG12.a, AG9b |
+| **AG12.e** ✅ | Outil `calculator` de l'assistant | AG12.a, AG9b |
 
 ## 7 bis. Réalisé (AG12.a)
 
@@ -395,3 +395,12 @@ réduit. Le tarif de droit commun du GNR n'a pas été sourcé : la comparaison 
 - **Écran** : carte Leaflet chargée à la demande (photo aérienne IGN), centrée sur la structure. Un clic place le point, et le résultat s'affiche sur la carte.
 - **Tests** : faux IGN et faux Sandre, aucun appel réel. Indisponibilité → 503 ; point hors de France refusé.
 - **Non couvert** : zones défavorisées (ICHN), faute de source.
+
+### Réalisé (AG12.e : outil de l'assistant)
+
+- **Deux outils de lecture** (`app/services/assistant/tools.py`), donnés à tous les rôles :
+  - `list_calculators` : calculettes du type de la structure, avec leurs entrées (clé, type, unité, choix possibles) et un filtre sur un mot ;
+  - `run_calculator` : même calcul que l'écran (`calculators.run`). Les valeurs passent en paires clé / valeur, ce qui garde le schéma strict. `prefill` complète les entrées avec les chiffres de la structure. Le résultat rend le résultat principal, le détail, le tableau (30 lignes au plus), les avertissements, la méthode, les paramètres datés avec leur source, et le lien `/outils/<code>`. Rien n'est enregistré.
+- **Consigne de l'assistant** : pour un calcul, passer par ces deux outils et reprendre méthode et sources.
+- **Jeu d'évaluation** (manuel, hors CI) : deux cas ajoutés, plafond DEP et dose de semis.
+- **Tests** sans appel à l'API Claude : même résultat que l'écran, erreur sur une entrée manquante, booléen contrôlé, préremplissage avec origine.
