@@ -68,7 +68,7 @@ MENUS = [
         "key": "compta",
         "label": "Compta",
         "charts": _ALL,
-        "active": ["accounts", "journals", "fiscal_years", "vat_returns", "rfa", "aids", "stock", "tax_result", "msa", "activities", "analytic", "activity_margins", "agenda", "products", "entries", "reports", "projects", "budgets", "budget_tracking",
+        "active": ["accounts", "journals", "fiscal_years", "vat_returns", "rfa", "ereporting", "aids", "stock", "tax_result", "msa", "activities", "analytic", "activity_margins", "agenda", "products", "entries", "reports", "projects", "budgets", "budget_tracking",
                    "lettering", "assets"],
         "items": [
             {"key": "entries", "label": "Écritures", "endpoint": "entries.index", "charts": _ALL, "bookkeeping": _DOUBLE},
@@ -91,6 +91,7 @@ MENUS = [
              "feature": "vat_returns", "bookkeeping": _DOUBLE},
             {"key": "agenda", "label": "Échéancier", "endpoint": "agenda.index", "charts": ["agri"]},
             {"key": "rfa", "label": "Remboursement forfaitaire", "endpoint": "rfa.index", "charts": ["agri"]},
+            {"key": "ereporting", "label": "E-reporting B2C", "endpoint": "ereporting.index", "charts": ["agri"]},
             {"key": "aids", "label": "Aides et subventions", "endpoint": "aids.index", "charts": ["agri"]},
             {"key": "activities", "label": "Activités", "endpoint": "activities.index", "charts": ["agri"]},
             {"key": "analytic", "label": "Ventilation analytique", "endpoint": "analytic.index", "charts": ["agri"]},

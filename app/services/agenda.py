@@ -98,6 +98,10 @@ def _lyvre(rule: dict, start: date, end: date, today: date) -> list[dict]:
         # Lot AG10.c : autofactures reçues contestées, à suivre jusqu'à l'échéance de la facture.
         from app.services import self_billing
         out += self_billing.agenda_occurrences(start, end)
+    elif source == "ereporting_pending":
+        # Lot AG10.e : ventes directes non exportées pour l'e-reporting B2C, rappel en fin de mois.
+        from app.services import ereporting
+        out += ereporting.agenda_occurrences(start, end)
     seen, unique = set(), []
     for occ in out:  # une période civile peut être lue depuis deux exercices décalés
         key = (occ["date"], occ["period"])

@@ -15,6 +15,7 @@
     {"rule": "/reports/sig", "endpoint": "reports.sig"},
     {"rule": "/vat-returns/books", "endpoint": "vat_returns.books"},
     {"rule": "/rfa/", "endpoint": "rfa.index"},
+    {"rule": "/ereporting/", "endpoint": "ereporting.index"},
     {"rule": "/aids/", "endpoint": "aids.index"},
     {"rule": "/inventory/", "endpoint": "stock.index"},
     {"rule": "/tax-result/", "endpoint": "tax_result.index"},

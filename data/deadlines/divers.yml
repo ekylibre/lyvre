@@ -90,3 +90,17 @@
   lyvre_data: Autofactures reçues (statut, motif de la contestation).
   reliability: A
 
+- id: DIV-08
+  title: E-reporting des ventes directes
+  domain: divers
+  organism: Plateforme agréée
+  summary: Ventes à des particuliers sans facture (vente directe, marchés) à transmettre par la plateforme agréée, agrégées par jour, catégorie et taux ; la plateforme fixe le calendrier selon le régime de TVA. Rappel en fin de mois tant que des jours ne sont pas exportés (aucune date réglementaire).
+  applies: {bookkeeping: [double, simple]}
+  events:
+    - label: Exporter l'e-reporting des ventes directes
+      rule: {type: lyvre, source: ereporting_pending}
+      reminders: [5]
+      action: {label: Voir l'e-reporting, route: "/ereporting/"}
+  lyvre_data: Recettes des catégories « vente directe » et ventes du journal de caisse.
+  reliability: A
+

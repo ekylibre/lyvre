@@ -151,6 +151,12 @@
   Les champs existent ou sont ajoutés au module Ventes. Le profil Factur-X reste **EN 16931** (BT-24 `urn:cen.eu:en16931:2017`, valeur acceptée par SUPER PDP).
 - **Facture à un particulier** : note **BAR** de valeur `B2C` (SUPER PDP la détecte ainsi et en tire l'e-reporting) ; une facture ne mêle pas biens et services.
 
+**Réalisé (AG10.e, Factur-X)** :
+- **Note BAR = B2C** (BT-21 `BAR`, BT-22 `B2C`) sur la facture d'un client particulier (`person_kind = individual`), vérifiée dans l'article « E-reporting » de SUPER PDP ; badge « Particulier (B2C) » sur la fiche de vente.
+- **Facture mixte à un particulier refusée** à l'émission (biens et services à séparer) : SUPER PDP ne gère pas les factures mixtes B2C.
+- **RFA** : paramètre daté `vat.rfa.facturx_exemption` (`{code, reason, mention}`), **absent** des fichiers réglementaires faute de source. Tant qu'il manque, la facture d'un producteur au RFA est émise en PDF/A **sans XML Factur-X** et **sans mention d'exonération**, avec une alerte sur la fiche. Avant ce lot, elle portait à tort la franchise en base (art. 293 B) ; ce n'est plus le cas. Une fois sourcé et saisi (Administration › Paramètres réglementaires), le code et le libellé vont en BT-121 / BT-120.
+- **Non fait** : adresse de livraison et option pour les débits en mentions dédiées (la nature de l'opération est déjà imprimée).
+
 ## 6. E-reporting B2C (AG10.3)
 
 - **Champ** : ventes à des particuliers (vente directe, marchés, paniers).
@@ -170,6 +176,13 @@
   - tableau par période, contrôlé avec le chiffre d'affaires de la CA12A ou de la CA3 ;
   - export **JSON** dans la forme de `POST /v1.beta/b2c_transactions` de SUPER PDP (`date`, `category_code`, `currency`, `role_code`, `tax_exclusive_amount`, `tax_total`, `tax_subtotals[]`), et un tableur ;
   - rappel dans l'échéancier : « exporter l'e-reporting » à la fréquence choisie (pas de date réglementaire inventée).
+
+**Réalisé (AG10.e, e-reporting)** :
+- Sources : lignes au crédit d'un compte 7 dans une écriture qui touche la trésorerie, sur le compte d'une catégorie de recette marquée **« vente directe »** (`simple_categories.direct_sale`, migration `a7b9c1d3e5f7`), ou sur un compte 70 d'une écriture du **journal de caisse** ; écritures du journal des ventes et des décomptes exclues.
+- Catégorie `TPS1` pour un compte 706, `TLB1` sinon ; taux du code de TVA de la ligne, sinon de la TVA collectée de l'écriture (si un seul taux), sinon 0 % avec un avertissement en exercice soumis ; TVA de l'agrégat = base × taux.
+- `ereporting.py` et écran TVA › E-reporting B2C : agrégats jour × catégorie × taux, jours exportés ou non, catégories de vente directe, export **JSON** au schéma `b2c_transaction` de l'OpenAPI SUPER PDP 1.39.0.beta (`{data: [{date, category_code, currency, role_code: SE, tax_exclusive_amount, tax_total, tax_subtotals: [{tax_percent, taxable_amount, tax_total}]}]}`), tableur CSV, historique des exports (`ereporting_exports`).
+- Échéancier : fiche DIV-08 (source `ereporting_pending`), rappel en fin de mois tant que des jours ne sont pas exportés, sans date réglementaire.
+- **Non fait** : contrôle avec le chiffre d'affaires de la CA12A ou de la CA3 (le B2C n'en est qu'une part) ; paiements (`b2c_payments`, prestations de services hors option pour les débits) ; transmission (Q-E1).
 
 ## 7. Reprise de dossiers (AG10.4, AG10.6, AG10.7)
 
@@ -272,7 +285,7 @@
 | **AG10.b** ✅ | Import `.ISA` : lecteur, plan, journaux, écritures, ateliers ANA vers AG8, affectations, codes TVA | AG10.a |
 | **AG10.c** ✅ | Autofactures reçues : lecture Factur-X / CII / UBL, vente proposée, cycle de vie, doublons | — |
 | **AG10.d** ✅ | Décomptes de coopérative : lignes typées, écriture, activités | AG10.c |
-| **AG10.e** | Factur-X agricole (RFA sous réserve du code sourcé, nouvelles mentions, note B2C) et e-reporting B2C (agrégats jour × catégorie × taux, contrôle, export JSON SUPER PDP) | AG10.c |
+| **AG10.e** ✅ | Factur-X agricole (RFA sous réserve du code sourcé, nouvelles mentions, note B2C) et e-reporting B2C (agrégats jour × catégorie × taux, contrôle, export JSON SUPER PDP) | AG10.c |
 
 Ordre retenu (Q-E6) : a → b, puis c → d, puis e.
 

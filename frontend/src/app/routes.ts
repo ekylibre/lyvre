@@ -50,6 +50,7 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
   "vat_returns.detail": () => import("../features/vat-returns/VatReturnPage"),
   "vat_returns.books": () => import("../features/vat-returns/VatBooksPage"),
   "rfa.index": () => import("../features/rfa/RfaPage"),
+  "ereporting.index": () => import("../features/ereporting/EreportingPage"),
   "aids.index": () => import("../features/aids/AidsPage"),
   "stock.index": () => import("../features/stock/InventoryPage"),
   "tax_result.index": () => import("../features/tax-result/TaxResultPage"),

@@ -62,6 +62,49 @@ def exemption_mentions(sale: Sale) -> list[str]:
     return mentions
 
 
+# ------------------------------------------------------------------ lot AG10.e : RFA, B2C
+
+RFA_PARAM = "vat.rfa.facturx_exemption"
+
+
+def is_b2c(sale: Sale) -> bool:
+    """Client particulier : la facture porte la note BAR = B2C."""
+    return (sale.client or {}).get("person_kind") == "individual"
+
+
+def is_rfa(sale: Sale) -> bool:
+    from app.services import tax_profile
+    return sale.vat_mode == "none" and tax_profile.current_value("vat_regime", sale.issue_date) == "rfa"
+
+
+def rfa_exemption(sale: Sale) -> dict | None:
+    """Motif d'exonération Factur-X d'un producteur au remboursement forfaitaire : paramètre daté, vide tant qu'il
+    n'est pas sourcé (design_efacturation_agricole.md § 5). `{code, reason, mention}`."""
+    from app.services import reg_params
+    value = reg_params.value(RFA_PARAM, sale.issue_date, default=None) if sale.issue_date else None
+    return value if isinstance(value, dict) and value.get("code") and value.get("reason") else None
+
+
+def facturx_warning(sale: Sale) -> str | None:
+    """Pourquoi la pièce n'a pas (ou n'aura pas) de Factur-X ; None si elle en a un."""
+    if sale.kind not in ("invoice", "credit_note") or sale.self_billed:
+        return None
+    if is_rfa(sale) and rfa_exemption(sale) is None:
+        return ("Producteur au remboursement forfaitaire : le motif d'exonération à porter dans la facture électronique "
+                "n'est pas encore sourcé (paramètre réglementaire « vat.rfa.facturx_exemption »). Le PDF est produit "
+                "sans Factur-X et sans mention d'exonération.")
+    return None
+
+
+def exempt_mention(sale: Sale) -> str | None:
+    if sale.vat_mode != "none":
+        return None
+    if is_rfa(sale):
+        exemption = rfa_exemption(sale)
+        return exemption.get("mention") or exemption["reason"] if exemption else None
+    return einvoice.FRANCHISE[1] + "."
+
+
 def render_html(sale: Sale) -> str:
     settings, org = billing.get(), organization.get()
     logo = billing.logo_file(settings)
@@ -72,7 +115,8 @@ def render_html(sale: Sale) -> str:
         rcs_mention=organization.rcs_mention(org),
         invoice=sale.invoice if sale.kind == "credit_note" else None,
         logo_src=logo.as_uri() if logo else None, money=euros, date=_date, qty=_qty, rate=_rate,
-        vat_rows=vat_rows(sale), exempt=sale.vat_mode == "none", exemption_mentions=exemption_mentions(sale),
+        vat_rows=vat_rows(sale), exempt=sale.vat_mode == "none", exempt_mention=exempt_mention(sale),
+        exemption_mentions=exemption_mentions(sale),
         has_discount=any(l.discount_bp for l in sale.lines),
         has_services=any(l.nature == "services" for l in sale.lines),
         is_business=client.get("person_kind") != "individual",
@@ -102,15 +146,19 @@ def einvoice_document(sale: Sale) -> einvoice.Document:
         vat_exempt=sale.vat_mode == "none", vat_on_receipts=sale.vat_mode == "receipts",
         iban=settings.iban if sale.kind == "invoice" else None,
         preceding_number=invoice.number if invoice else None, preceding_date=invoice.issue_date if invoice else None,
-        period_start=sale.service_start, period_end=sale.service_end,
+        period_start=sale.service_start, period_end=sale.service_end, b2c=is_b2c(sale),
+        exempt_reason=((rfa_exemption(sale) or {}).get("code"), (rfa_exemption(sale) or {}).get("reason"))
+        if is_rfa(sale) and rfa_exemption(sale) else None,
         notes=[sale.credit_reason] if sale.credit_reason else [])
 
 
 def render_pdf(sale: Sale) -> bytes:
     """PDF de la pièce : Factur-X si elle est émise, PDF simple (brouillon) sinon."""
     html = render_html(sale)
-    if sale.number and sale.kind in ("invoice", "credit_note"):
+    if sale.number and sale.kind in ("invoice", "credit_note") and facturx_warning(sale) is None:
         return einvoice.facturx_pdf(html, einvoice_document(sale))
+    if sale.number and sale.kind in ("invoice", "credit_note"):
+        return einvoice.pdf_a3(html)  # RFA sans motif sourcé : PDF/A sans XML (lot AG10.e)
     from weasyprint import HTML
     return HTML(string=html).write_pdf()
 

@@ -422,8 +422,8 @@ Il s'inscrit dans le cadrage `doc/base_documentaire/` : API Claude, outils qui a
 - **AG10.1 Autofactures reçues** (coopérative, laiterie, négoce) via la plateforme agréée :
   - enregistrées comme **ventes** du producteur, avec acceptation ou contestation (fait : AG10.c, dépôt Factur-X / CII / UBL) ;
   - **décomptes de coopérative** : apports, acomptes, compléments de prix, ristournes, parts sociales retenues (2621) (fait : AG10.d).
-- **AG10.2 Codes TVA agricoles dans Factur-X** : mention « non assujetti, remboursement forfaitaire » pour le RFA. Code et libellé à sourcer (AGD27).
-- **AG10.3 E-reporting B2C** (vente directe, marchés) agrégé par jour et par taux, à préparer pour le 01/09/2027.
+- **AG10.2 Codes TVA agricoles dans Factur-X** : mention « non assujetti, remboursement forfaitaire » pour le RFA. Code et libellé à sourcer (AGD27) ; en attendant, pas de Factur-X pour un producteur au RFA (AG10.e). Note BAR = B2C faite.
+- **AG10.3 E-reporting B2C** (vente directe, marchés) agrégé par jour et par taux, à préparer pour le 01/09/2027 (fait : AG10.e, export JSON SUPER PDP).
 - **AG10.4 Reprise de dossiers** : import de FEC Isacompta, Agrigest ou ISTEA par l'import FEC existant, avec une table de correspondance de comptes agricoles.
 - **AG10.5 ~~FEC « trésorerie » BA~~** : sans objet (AGD10), le FEC standard suffit.
 - **AG10.6 Ancienne numérotation du plan agricole (1986)** : les dossiers des cabinets la suivent encore (§ 10.1).

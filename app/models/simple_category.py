@@ -17,5 +17,7 @@ class SimpleCategory(db.Model):
     excluded_from_micro = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
     # Lot AG2.e : classe de taux du remboursement forfaitaire (high, low, excluded ; nul : à choisir).
     rfa_rate = db.Column(db.String(10))
+    # Lot AG10.e : recette de vente directe à des particuliers sans facture (e-reporting B2C).
+    direct_sale = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
 
     account = db.relationship("Account")

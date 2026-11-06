@@ -99,6 +99,7 @@ def sale_detail(s: Sale) -> dict:
                              for c in credit_notes],
             "remaining_credit_cents": s.total_cents - sale_issue.credited_cents(s) if s.kind == "invoice" else 0,
             "issue_problems": sale_issue.issue_problems(s) if s.status == "draft" else [],
+            "facturx_warning": sale_documents.facturx_warning(s), "b2c": sale_documents.is_b2c(s),
             "recipients": sale_issue.recipients_of(s), "emails": [
                 {"sent_at": _iso(e.sent_at), "recipients": e.recipients, "subject": e.subject, "status": e.status,
                  "error": e.error, "purpose": e.purpose} for e in s.emails],

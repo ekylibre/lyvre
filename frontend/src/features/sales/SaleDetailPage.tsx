@@ -139,6 +139,7 @@ export default function SaleDetailPage() {
           {quote && s.validity_date && <span>valable jusqu'au {formatDate(s.validity_date)}</span>}
           {(s.qonto_emit || s.source === "qonto") && <StatusBadge tone="info">{s.source === "qonto" ? "Créée dans Qonto" : "Qonto"}</StatusBadge>}
           {s.qonto_status && <span>Qonto : {s.qonto_status}</span>}
+          {s.b2c && <StatusBadge tone="neutral">Particulier (B2C)</StatusBadge>}
           {s.lifecycle && <StatusBadge tone={LIFECYCLE_TONES[s.lifecycle.status]}>{`Autofacture ${s.lifecycle.label.toLowerCase()}`}</StatusBadge>}
         </Group>}
         actions={<>
@@ -191,6 +192,7 @@ export default function SaleDetailPage() {
         </Alert>
       )}
       {s.qonto_error && <Alert color="brique" mb="md" title="Qonto">{s.qonto_error}</Alert>}
+      {s.facturx_warning && <Alert color="paille" mb="md" title="Sans Factur-X">{s.facturx_warning}</Alert>}
       {draft && s.qonto_emit && <Alert color="ardoise" mb="md">À l'émission, la pièce est créée dans Qonto, qui lui donne son numéro et son PDF.</Alert>}
       {s.credit_reason && <Alert color="ardoise" mb="md">Motif de l'avoir : {s.credit_reason}</Alert>}
 

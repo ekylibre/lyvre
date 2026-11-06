@@ -69,6 +69,8 @@ export interface SaleDetail extends Omit<SaleRow, "client"> {
     purpose: "send" | "reminder" }[];
   payments: SalePayment[];
   pdf_url: string; received_file_url?: string | null;
+  /** Lot AG10.e : pourquoi la pièce n'a pas de Factur-X (RFA sans motif sourcé) ; client particulier (note BAR = B2C). */
+  facturx_warning?: string | null; b2c?: boolean;
   lease: { id: number; unit_label: string } | null; recurrence_id: number | null;
   rent_receipts: { id: number; kind: "quittance" | "recu"; label: string; paid_cents: number; sent_at: string | null; pdf_url: string }[];
 }
