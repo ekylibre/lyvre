@@ -508,7 +508,7 @@ Il s'inscrit dans le cadrage `doc/base_documentaire/` : API Claude, outils qui a
 | **AG6 + AG7** | Résultat fiscal, DEP, JA, 73 A, accessoires, aide à la liasse, assiette MSA | AG4, AG3 | Avant la première liasse (mai) |
 | **AG9b** | Intégration « Assistant Claude » : conversation, outils, base documentaire, MCP Lexicon | AG9a, base documentaire lot 2 | S'appuie sur des services déjà fiables |
 | **AG8, AG10** | Analytique par activité × campagne, autofactures, e-reporting, FEC trésorerie, reprise Isacompta | AG1 | AG10 avant le 01/09/2027 |
-| **AG11** (plus tard) | Connecteur Ekylibre | AG8, AG4 | AGD8 : après les lots précédents |
+| **AG11** | Connecteur Ekylibre en lecture seule : activités et surfaces, clés depuis les interventions, comptage d'inventaire (`design_connecteur_ekylibre.md`) | AG8, AG4 | AGD8, AGD28 ; factures tenues dans Lyvre |
 | **AG12** (feuille de route) | Mini-calculettes agricoles (§ 7 bis) : 21 calculettes (AGD12, AGD13), pour les utilisateurs connectés, sans données en direct | selon la calculette : AG0.6, AG2, AG3, AG5 à AG9 | Brainstorm du 04/11/2026, besoins complets ; chaque calculette peut suivre le lot dont elle dépend |
 
 ---
@@ -719,6 +719,7 @@ Les réponses de l'expert sont visibles via "=>"
 - **AGD11 (conception, Q-A2) 757 / 657 subdivisés** : 7571 / 6571 pour les biens vivants, 7578 / 6578 pour les autres immobilisations ; en-tête 234 pour les biens vivants en cours. Source du plan : Recueil PCG 2026, titre 5.
 - Conception : `claudedocs/design_compta_agricole.md` (lot AG1, validée le 03/11/2026).
 - **AGD27 (conception AG10, 06/11/2026)** : `claudedocs/design_efacturation_agricole.md`, validée (Q-E1 à Q-E6).
+- **AGD28 (conception AG11, 07/11/2026)** : `claudedocs/design_connecteur_ekylibre.md`, validée (Q-K1 à Q-K7). Lyvre tient les ventes et achats (supprimés d'Ekylibre) ; connecteur en lecture seule derrière un adaptateur unique, l'API Ekylibre devant devenir celle du jumeau numérique de la ferme ; coûts des interventions répartis au prorata des surfaces des cibles ; essais manuels sur `demo.ekylibre-dev.com`.
   - Dépôt de fichiers d'abord (Factur-X, CII, UBL) ; PA de référence SUPER PDP, connecteur plus tard.
   - Autofacture reçue = vente (type 389, mandat de facturation), statuts `fr:205` / `fr:207` / `fr:210` à reporter dans la PA.
   - Décomptes de coopérative : apports, ristournes et compléments de prix au compte de vente habituel (70x) dans l'exercice du décompte ; acomptes sur le 411, parts sociales en 2621, frais en 62x / 63x.
