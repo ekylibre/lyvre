@@ -508,7 +508,7 @@ Il s'inscrit dans le cadrage `doc/base_documentaire/` : API Claude, outils qui a
 | **AG6 + AG7** | Résultat fiscal, DEP, JA, 73 A, accessoires, aide à la liasse, assiette MSA | AG4, AG3 | Avant la première liasse (mai) |
 | **AG9b** | Intégration « Assistant Claude » : conversation, outils, base documentaire, MCP Lexicon | AG9a, base documentaire lot 2 | S'appuie sur des services déjà fiables |
 | **AG8, AG10** | Analytique par activité × campagne, autofactures, e-reporting, FEC trésorerie, reprise Isacompta | AG1 | AG10 avant le 01/09/2027 |
-| **AG11** | Connecteur Ekylibre en lecture seule : activités et surfaces, clés depuis les interventions, comptage d'inventaire (`design_connecteur_ekylibre.md`) | AG8, AG4 | AGD8, AGD28 ; factures tenues dans Lyvre |
+| **AG11** ✅ | Connecteur Ekylibre en lecture seule : activités et surfaces, clés depuis les interventions, comptage d'inventaire (`design_connecteur_ekylibre.md`) | AG8, AG4 | AGD8, AGD28 ; factures tenues dans Lyvre |
 | **AG12** (feuille de route) | Mini-calculettes agricoles (§ 7 bis) : 21 calculettes (AGD12, AGD13), pour les utilisateurs connectés, sans données en direct | selon la calculette : AG0.6, AG2, AG3, AG5 à AG9 | Brainstorm du 04/11/2026, besoins complets ; chaque calculette peut suivre le lot dont elle dépend |
 
 ---

@@ -204,6 +204,18 @@ L'API ne les expose pas. Trois voies :
   - règles proposées : 601 et 602 vers les intrants, 6061 et 6155 vers le matériel, 64 vers la main-d'œuvre. Elles ne sont proposées que si le compte existe et que le préfixe n'a pas de règle, et elles ne sont créées qu'à la demande.
 - Écran Activités › Depuis Ekylibre, section « Clés de répartition depuis les interventions » : exercice, détail par activité (montant, part), non imputé, calcul, règles à cocher.
 
+## 7 quinquies. Réalisé (AG11.d)
+
+- Précision : dans Lyvre, la « feuille de comptage » est une pièce jointe (`stock_count_files`) ; les quantités se
+  saisissent sur les **lignes d'inventaire** de l'exercice (`stock_lines`). Le préremplissage porte donc sur ces lignes.
+- `ekylibre_inventory.py`, sur l'instantané des matières :
+  - matières regroupées par variante (quantités additionnées dans une unité commune) ;
+  - date d'inventaire = date de comptage saisie, sinon fin d'exercice ; report permis si la lecture d'Ekylibre est à **7 jours au plus** (Q-K4), sinon refusé avec l'écart ;
+  - correspondance variante → ligne par **compte et libellé** (`ekylibre_variant_links`, migration `e1f3a5b7c9d1`), qui suit les lignes reprises d'un exercice à l'autre ; rattachement à une ligne existante, ou création (compte de stock saisi, libellé de la matière) ;
+  - unités : t, q, kg entre elles ; hl, l, m³ entre elles ; unité inconnue ou incompatible non reportée et signalée ;
+  - seule la quantité change ; la valeur est recalculée par la méthode de la ligne (AG4).
+- Écran Inventaire de clôture › **Quantités depuis Ekylibre** (exercice ouvert, intégration active) : matières, quantité convertie, ligne choisie ou à créer, report en lot.
+
 ## 8. Hors périmètre
 
 - Écriture vers Ekylibre : comptes, factures, statuts.
@@ -243,5 +255,5 @@ L'API ne les expose pas. Trois voies :
 | **AG11.a** ✅ | Intégration Ekylibre : jeton (mot de passe non conservé), test de connexion, client HTTP borné, tâche de synchronisation | — |
 | **AG11.b** ✅ | Activités et surfaces : `ekylibre_id`, activités proposées, mesures par campagne, contrôle avec les parcelles | AG11.a, AG8 |
 | **AG11.c** ✅ | Clés de répartition depuis les interventions : intrants, main-d'œuvre, matériel, heures ; règles proposées | AG11.b |
-| **AG11.d** | Inventaire : feuille de comptage préremplie depuis les matières, correspondance des variantes | AG11.a, AG4 |
+| **AG11.d** ✅ | Inventaire : feuille de comptage préremplie depuis les matières, correspondance des variantes | AG11.a, AG4 |
 | ~~AG11.e~~ | Ventes et achats : sans objet (Q-K1, voie A) | — |

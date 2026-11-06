@@ -10,7 +10,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, api } from "../../api/client";
 import { showNotices, useAction, type Notice } from "../../api/resources";
-import { useCan } from "../../api/session";
+import { useCan, useIntegration } from "../../api/session";
 import { upload } from "../../api/upload";
 import { ConfirmButton } from "../../components/ConfirmButton";
 import { FilterBar, useUrlParams } from "../../components/FilterBar";
@@ -22,6 +22,7 @@ import type { FiscalYear } from "../fiscal-years/FiscalYearsPage";
 import { LotsPanel, type StockLotItem } from "./LotsPanel";
 import { CropAdvancesPanel, type CropAdvanceItem } from "./CropAdvancesPanel";
 import { StockEntryBar, type StockEntryStatus } from "./StockEntryBar";
+import { EkylibreInventory } from "./EkylibreInventory";
 import { ActivitySelect, useAnalyticTargets } from "../../components/AnalyticSelect";
 
 export const STOCK_KEY = ["stock"];
@@ -263,6 +264,8 @@ export default function InventoryPage() {
     queryFn: () => api.get<StockView>(`/api/v1/fiscal-years/${fyId}/stock`) });
   const [editing, setEditing] = useState<StockLineItem | "new" | null>(null);
   const [standards, setStandards] = useState(false);
+  const [ekylibre, setEkylibre] = useState(false);
+  const ekylibreOn = useIntegration("ekylibre");
   const [importError, setImportError] = useState<string | null>(null);
   const opts = { invalidate: [STOCK_KEY] };
   const copy = useAction(() => api.post<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fyId}/stock/copy-previous`), opts);
@@ -293,10 +296,15 @@ export default function InventoryPage() {
   const fiscalShown = v.fiscal.flat || v.fiscal.frozen;
   return (
     <>
+      <FormModal opened={ekylibre} onClose={() => setEkylibre(false)} title="Quantités depuis Ekylibre" size="xl">
+        {ekylibre && <EkylibreInventory fiscalYearId={v.fiscal_year.id}
+          onDone={() => void queryClient.invalidateQueries({ queryKey: STOCK_KEY })} />}
+      </FormModal>
       <PageHeader title="Inventaire de clôture"
         description={`Stocks au ${formatDate(v.fiscal_year.end_date)} : quantités comptées, méthode de valorisation par ligne. L'écriture de stock se passe à la clôture.`}
         actions={<Group gap="xs">
           {can.write && <Button variant="default" onClick={() => setStandards(true)}>Barèmes</Button>}
+          {writable && ekylibreOn && <Button variant="default" onClick={() => setEkylibre(true)}>Quantités depuis Ekylibre</Button>}
           {writable && v.items.length === 0 && v.has_previous && <Button variant="default" loading={copy.isPending}
             onClick={() => copy.mutate(undefined)}>Reprendre l'exercice précédent</Button>}
           {writable && <FileButton onChange={(f) => void importFile(f)} accept=".csv,.xlsx,text/csv">
