@@ -1,11 +1,11 @@
 // Compta › Éditions comptables (lot NV3, claudedocs/design_navigation.md § 4) : une carte par état, l'exercice
 // choisi en tête est transmis à l'édition ouverte (`?fy_id=`).
-import { Anchor, Card, Group, SimpleGrid, Text, ThemeIcon } from "@mantine/core";
+import { Anchor, Card, Group, SimpleGrid, Text } from "@mantine/core";
 import { Download } from "lucide-react";
 import { useList } from "../../api/resources";
 import { useUrlParams } from "../../components/FilterBar";
 import { AppLink } from "../../app/navigation";
-import { NavIcon } from "../../app/navIcons";
+import { IconTile } from "../../components/IconTile";
 import { ReportFrame, type ReportMeta } from "./ReportFrame";
 
 export interface Edition {
@@ -26,9 +26,7 @@ export default function ReportsHubPage() {
         {(data?.items ?? []).map((e) => (
           <Card key={e.key} withBorder padding="lg" data-testid={`edition-${e.key}`}>
             <Group gap="sm" mb="xs" wrap="nowrap">
-              <ThemeIcon variant="light" color="lichen" size={40} radius="md" aria-hidden>
-                <NavIcon name={e.icon} size={22} />
-              </ThemeIcon>
+              <IconTile icon={e.icon} />
               <Anchor component={AppLink} href={withFy(e.url)} fw={600} size="lg">{e.title}</Anchor>
             </Group>
             <Text size="sm" c="dimmed">{e.summary}</Text>

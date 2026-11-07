@@ -147,12 +147,12 @@ MENUS = [
         "charts": _ALL,
         "active": ["imports.ofx", "bank_accounts", "reconciliation", "payouts", "cash_forecast"],
         "items": [
-            {"key": "bank_accounts", "label": "Comptes et caisses", "endpoint": "bank_accounts.index", "charts": _ALL},
-            {"key": "reconciliation", "label": "Rapprochement", "endpoint": "reconciliation.index", "charts": _ALL, "bookkeeping": _DOUBLE},
-            {"key": "cash_forecast", "label": "Prévisionnel", "endpoint": "cash_forecast.index", "charts": _ALL},
+            {"key": "bank_accounts", "label": "Comptes et caisses", "icon": "credit-card", "endpoint": "bank_accounts.index", "charts": _ALL},
+            {"key": "reconciliation", "label": "Rapprochement", "icon": "git-compare-arrows", "endpoint": "reconciliation.index", "charts": _ALL, "bookkeeping": _DOUBLE},
+            {"key": "cash_forecast", "label": "Prévisionnel", "icon": "trending-up", "endpoint": "cash_forecast.index", "charts": _ALL},
             {"divider": True, "charts": _ALL, "feature": "stancer"},
             # Intégration Stancer activée (interrupteur de l'instance), quelle que soit la structure.
-            {"key": "payouts", "label": "Versements Stancer", "endpoint": "payouts.index", "charts": _ALL,
+            {"key": "payouts", "label": "Versements Stancer", "icon": "banknote", "endpoint": "payouts.index", "charts": _ALL,
              "feature": "stancer"},
         ],
     },
@@ -183,7 +183,7 @@ MENUS = [
         "charts": _ASSO,
         "active": ["receipts"],
         "items": [
-            {"key": "receipts", "label": "Reçus fiscaux", "endpoint": "receipts.index", "charts": _ASSO},
+            {"key": "receipts", "label": "Reçus fiscaux", "icon": "file-heart", "endpoint": "receipts.index", "charts": _ASSO},
         ],
     },
     # -------------------------------------------------------------------- Achats
@@ -195,8 +195,8 @@ MENUS = [
         "bookkeeping": _DOUBLE,   # comptabilité d'engagement (401)
         "active": ["purchases", "subscriptions"],
         "items": [
-            {"key": "purchases_list", "label": "Factures d'achat", "endpoint": "purchases.index", "charts": _ALL},
-            {"key": "subscriptions", "label": "Abonnements", "endpoint": "subscriptions.index", "charts": _ALL},
+            {"key": "purchases_list", "label": "Factures d'achat", "icon": "receipt", "endpoint": "purchases.index", "charts": _ALL},
+            {"key": "subscriptions", "label": "Abonnements", "icon": "repeat", "endpoint": "subscriptions.index", "charts": _ALL},
         ],
     },
     # -------------------------------------------------------------------- Ventes
@@ -208,9 +208,9 @@ MENUS = [
         "bookkeeping": _DOUBLE,   # journal VE, comptes clients 411
         "active": ["sales", "leases", "rent_indices"],
         "items": [
-            {"key": "sales_list", "label": "Factures, avoirs et devis", "endpoint": "sales.index", "charts": _ALL},
-            {"key": "sales_due", "label": "À émettre", "endpoint": "sales.due", "charts": _ALL},
-            {"key": "sales_recurring", "label": "Factures récurrentes", "endpoint": "sales.recurring", "charts": _ALL},
+            {"key": "sales_list", "label": "Factures, avoirs et devis", "icon": "file-text", "endpoint": "sales.index", "charts": _ALL},
+            {"key": "sales_due", "label": "À émettre", "icon": "file-clock", "endpoint": "sales.due", "charts": _ALL},
+            {"key": "sales_recurring", "label": "Factures récurrentes", "icon": "repeat-2", "endpoint": "sales.recurring", "charts": _ALL},
             {"key": "cooperatives", "label": "Coopératives", "icon": "warehouse", "pictogram": "barn", "charts": ["agri"],
              "items": [
                 {"key": "sales_self_billed", "label": "Autofactures reçues", "icon": "file-input",
@@ -231,13 +231,13 @@ MENUS = [
         "feature": "associates",  # option de l'instance (Instance.has_associates)
         "active": ["associates", "share_movements", "associate_expenses"],
         "items": [
-            {"key": "associates_list", "label": "Associés", "endpoint": "associates.index", "charts": _ALL},
-            {"key": "share_movements", "label": "Registre des parts", "endpoint": "share_movements.index",
+            {"key": "associates_list", "label": "Associés", "icon": "users", "endpoint": "associates.index", "charts": _ALL},
+            {"key": "share_movements", "label": "Registre des parts", "icon": "book-user", "endpoint": "share_movements.index",
              "charts": _ALL},
-            {"key": "associate_expenses", "label": "Notes de frais", "endpoint": "associate_expenses.index",
+            {"key": "associate_expenses", "label": "Notes de frais", "icon": "receipt-euro", "endpoint": "associate_expenses.index",
              "charts": _ALL, "bookkeeping": _DOUBLE},
             {"divider": True, "charts": _ALL},
-            {"key": "associates_import", "label": "Importer (CSV)", "endpoint": "associates.import_csv",
+            {"key": "associates_import", "label": "Importer (CSV)", "icon": "file-up", "endpoint": "associates.import_csv",
              "charts": _ALL, "admin_only": True},
         ],
     },
@@ -249,11 +249,11 @@ MENUS = [
         "charts": _ALL,
         "active": ["entities", "rules", "work_times"],
         "items": [
-            {"key": "entities", "label": "Entités", "endpoint": "entities.index", "charts": _ALL},
-            {"key": "members", "label": "Adhérents", "endpoint": "entities.members", "charts": _ASSO},
-            {"key": "work_times", "label": "Temps de travaux", "endpoint": "work_times.index", "charts": _ASSO},
+            {"key": "entities", "label": "Entités", "icon": "contact", "endpoint": "entities.index", "charts": _ALL},
+            {"key": "members", "label": "Adhérents", "icon": "id-card", "endpoint": "entities.members", "charts": _ASSO},
+            {"key": "work_times", "label": "Temps de travaux", "icon": "clock", "endpoint": "work_times.index", "charts": _ASSO},
             {"divider": True, "charts": _ALL},
-            {"key": "rules", "label": "Règles de catégorisation", "endpoint": "rules.index", "charts": _ALL},
+            {"key": "rules", "label": "Règles de catégorisation", "icon": "list-filter", "endpoint": "rules.index", "charts": _ALL},
         ],
     },
     # ----------------------------------------------------------------------- Odoo
@@ -265,8 +265,8 @@ MENUS = [
         "feature": "odoo",  # intégration Odoo activée
         "active": ["orders", "customer_invoices"],
         "items": [
-            {"key": "orders", "label": "Commandes POS", "endpoint": "orders.index", "charts": _ALL},
-            {"key": "customer_invoices", "label": "Factures clients", "endpoint": "customer_invoices.index", "charts": _ALL},
+            {"key": "orders", "label": "Commandes POS", "icon": "shopping-bag", "endpoint": "orders.index", "charts": _ALL},
+            {"key": "customer_invoices", "label": "Factures clients", "icon": "file-text", "endpoint": "customer_invoices.index", "charts": _ALL},
         ],
     },
     # ----------------------------------------------------------------- Indicateurs
@@ -277,8 +277,8 @@ MENUS = [
         "charts": _ASSO,
         "active": ["impact", "activity_report"],
         "items": [
-            {"key": "impact", "label": "Visibilité & Impact", "endpoint": "impact.index", "charts": _ALL},
-            {"key": "activity_report", "label": "Rapport d'activité", "endpoint": "activity_report.index", "charts": _ALL},
+            {"key": "impact", "label": "Visibilité & Impact", "icon": "megaphone", "endpoint": "impact.index", "charts": _ALL},
+            {"key": "activity_report", "label": "Rapport d'activité", "icon": "file-chart-line", "endpoint": "activity_report.index", "charts": _ALL},
         ],
     },
     # ------------------------------------------------------------- Imports/Exports
@@ -289,10 +289,10 @@ MENUS = [
         "charts": _ALL,
         "active": ["imports"],
         "items": [
-            {"key": "ofx", "label": "Fichier OFX", "endpoint": "imports.ofx", "charts": _ALL},
-            {"key": "reprise", "label": "Reprise d'historique", "endpoint": "imports.reprise", "charts": _ALL,
+            {"key": "ofx", "label": "Fichier OFX", "icon": "file-up", "endpoint": "imports.ofx", "charts": _ALL},
+            {"key": "reprise", "label": "Reprise d'historique", "icon": "history", "endpoint": "imports.reprise", "charts": _ALL,
              "admin_only": True, "bookkeeping": _DOUBLE},
-            {"key": "eco_import", "label": "Import de tonnages", "endpoint": "activity_report.eco", "charts": _ASSO, "admin_only": True},
+            {"key": "eco_import", "label": "Import de tonnages", "icon": "recycle", "endpoint": "activity_report.eco", "charts": _ASSO, "admin_only": True},
         ],
     },
     # ----------------------------------------------------------------- Outils (lot AG12, AGD29)
@@ -303,7 +303,7 @@ MENUS = [
         "charts": _ALL,
         "active": ["tools"],
         "items": [
-            {"key": "calculators", "label": "Calculettes", "endpoint": "tools.index", "charts": _ALL},
+            {"key": "calculators", "label": "Calculettes", "icon": "calculator", "endpoint": "tools.index", "charts": _ALL},
         ],
     },
     # ----------------------------------------------------------------- Configuration
@@ -316,15 +316,15 @@ MENUS = [
         "active": ["organization", "integrations", "access", "receipts_settings", "simple_categories", "account_roles",
                    "lease_templates"],
         "items": [
-            {"key": "organization", "label": "Structure", "endpoint": "organization.index", "charts": _ALL},
-            {"key": "receipts_settings", "label": "Reçus fiscaux", "endpoint": "receipts.settings", "charts": _ASSO},
-            {"key": "simple_categories", "label": "Catégories", "endpoint": "simple_categories.index", "charts": _SIMPLE_CHARTS,
+            {"key": "organization", "label": "Structure", "icon": "building", "endpoint": "organization.index", "charts": _ALL},
+            {"key": "receipts_settings", "label": "Reçus fiscaux", "icon": "file-cog", "endpoint": "receipts.settings", "charts": _ASSO},
+            {"key": "simple_categories", "label": "Catégories", "icon": "tags", "endpoint": "simple_categories.index", "charts": _SIMPLE_CHARTS,
              "bookkeeping": _SIMPLE},
-            {"key": "account_roles", "label": "Comptes par défaut", "endpoint": "account_roles.index", "charts": _ALL,
+            {"key": "account_roles", "label": "Comptes par défaut", "icon": "list-checks", "endpoint": "account_roles.index", "charts": _ALL,
              "bookkeeping": _DOUBLE},
-            {"key": "lease_templates", "label": "Modèles de bail", "endpoint": "lease_templates.index", "charts": _ALL},
-            {"key": "integrations", "label": "Intégrations", "endpoint": "integrations.index", "charts": _ALL},
-            {"key": "access", "label": "Accès", "endpoint": "access.index", "charts": _ALL},
+            {"key": "lease_templates", "label": "Modèles de bail", "icon": "file-pen-line", "endpoint": "lease_templates.index", "charts": _ALL},
+            {"key": "integrations", "label": "Intégrations", "icon": "plug", "endpoint": "integrations.index", "charts": _ALL},
+            {"key": "access", "label": "Accès", "icon": "shield-check", "endpoint": "access.index", "charts": _ALL},
         ],
     },
 ]

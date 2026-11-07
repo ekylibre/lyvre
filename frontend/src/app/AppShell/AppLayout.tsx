@@ -4,15 +4,17 @@
 import type { ReactNode } from "react";
 import { useLocation } from "react-router";
 import {
-  ActionIcon, Anchor, AppShell, Badge, Box, Burger, Divider, Group, Image, Indicator, Kbd, Menu, NavLink, ScrollArea, Text,
-  Tooltip, UnstyledButton, useComputedColorScheme, useMantineColorScheme,
+  ActionIcon, Anchor, AppShell, Badge, Box, Burger, Divider, Group, Image, Indicator, Kbd, Menu, NavLink, ScrollArea, Stack,
+  Text, Tooltip, UnstyledButton, useComputedColorScheme, useMantineColorScheme,
 } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
+import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { spotlight } from "@mantine/spotlight";
-import { ArrowLeftRight, ChevronDown, Eye, KeyRound, LogOut, Moon, Search, Sparkles, Sun } from "lucide-react";
+import {
+  ArrowLeftRight, ChevronDown, Eye, KeyRound, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Search, Sparkles, Sun,
+} from "lucide-react";
 import symbolInverse from "../../assets/lyvre-symbole-inverse.svg";
 import {
-  navLinks, useCan, useCurrentSession, useLogout, usePreferences, useSelectInstance, type NavItem, type NavMenu,
+  activeUrl, useCan, useCurrentSession, useLogout, usePreferences, useSelectInstance, type NavItem, type NavMenu,
 } from "../../api/session";
 import { NavIcon } from "../navIcons";
 import { AppLink } from "../navigation";
@@ -21,20 +23,7 @@ import { AssistantButton } from "../../features/assistant/AssistantDrawer";
 import { NotificationBell } from "./NotificationBell";
 import { Wordmark } from "./Wordmark";
 
-const pathOf = (url: string) => new URL(url, window.location.origin).pathname.replace(/\/$/, "") || "/";
-
-/** URL du menu qui correspond le mieux à la page (préfixe le plus long : /entities/members
- * l'emporte sur /entities/ pour la page des adhérents). Tous niveaux (lot NV1). */
-export function activeUrl(menus: NavMenu[], pathname: string): string | null {
-  // Lot NV2 : une page rattachée (`also_urls`, un onglet) active l'entrée qui la porte.
-  const candidates = navLinks(menus).flatMap((l) => [[l.url, l.url], ...(l.also_urls ?? []).map((a) => [a, l.url])]);
-  const current = pathname.replace(/\/$/, "") || "/";
-  const matches = candidates.filter(([u]) => {
-    const path = pathOf(u);
-    return path === "/" ? current === "/" : current === path || current.startsWith(`${path}/`);
-  });
-  return matches.sort(([a], [b]) => pathOf(b).length - pathOf(a).length)[0]?.[1] ?? null;
-}
+export { activeUrl } from "../../api/session";
 
 /** Un sous-menu contient-il l'adresse active (pour l'ouvrir d'office) ? */
 function contains(items: NavItem[], url: string | null): boolean {
@@ -86,6 +75,72 @@ function NavMenus({ menus, onNavigate }: { menus: NavMenu[]; onNavigate: () => v
         );
       })}
     </>
+  );
+}
+
+/** Entrées d'un sous-menu en menu flottant (rail) : les sous-menus de 3e niveau deviennent des sections. */
+function RailItems({ items, current }: { items: NavItem[]; current: string | null }) {
+  return (
+    <>
+      {items.map((item, index) => {
+        if ("divider" in item) return <Menu.Divider key={`d${index}`} />;
+        if ("items" in item) {
+          return (
+            <div key={item.key}>
+              <Menu.Label>{item.label}</Menu.Label>
+              <RailItems items={item.items} current={current} />
+            </div>
+          );
+        }
+        const active = item.url === current;
+        return (
+          <Menu.Item key={item.key} component={AppLink} href={item.url} leftSection={<NavIcon name={item.icon} size={16} />}
+            aria-current={active ? "page" : undefined} fw={active ? 600 : undefined}>
+            {item.label}
+          </Menu.Item>
+        );
+      })}
+    </>
+  );
+}
+
+/** Menu replié en rail (lot NV4, § 5.3) : une icône par menu, libellé en info-bulle, sous-menus flottants. */
+function NavRail({ menus }: { menus: NavMenu[] }) {
+  const { pathname } = useLocation();
+  const current = activeUrl(menus, pathname);
+  return (
+    <Stack gap={4} align="center">
+      {menus.map((menu) => {
+        if (menu.url) {
+          const active = menu.url === current;
+          return (
+            <Tooltip key={menu.key} label={menu.label} position="right">
+              <ActionIcon component={AppLink} href={menu.url} variant="subtle" className="lv-rail-btn" aria-label={menu.label}
+                data-active={active || undefined} aria-current={active ? "page" : undefined}>
+                <NavIcon name={menu.icon} size={20} />
+              </ActionIcon>
+            </Tooltip>
+          );
+        }
+        const items = menu.items ?? [];
+        const active = contains(items, current);
+        return (
+          <Menu key={menu.key} position="right-start" offset={12} width={260} withinPortal>
+            <Tooltip label={menu.label} position="right">
+              <Menu.Target>
+                <ActionIcon variant="subtle" className="lv-rail-btn" aria-label={menu.label} data-active={active || undefined}>
+                  <NavIcon name={menu.icon} size={20} />
+                </ActionIcon>
+              </Menu.Target>
+            </Tooltip>
+            <Menu.Dropdown>
+              <Menu.Label>{menu.label}</Menu.Label>
+              <RailItems items={items} current={current} />
+            </Menu.Dropdown>
+          </Menu>
+        );
+      })}
+    </Stack>
   );
 }
 
@@ -197,8 +252,13 @@ function UserMenu() {
 export function AppLayout({ children }: { children: ReactNode }) {
   const [opened, { toggle, close }] = useDisclosure();
   const session = useCurrentSession();
+  const [preferences, updatePreferences] = usePreferences();
+  // Rail (lot NV4) : choix mémorisé ; sur mobile, le tiroir reste en pleine largeur.
+  const desktop = useMediaQuery("(min-width: 48em)", true);
+  const rail = !!preferences.nav_rail && !!desktop;
+  const toggleRail = () => updatePreferences({ nav_rail: !rail });
   return (
-    <AppShell header={{ height: 64 }} navbar={{ width: 240, breakpoint: "sm", collapsed: { mobile: !opened } }}
+    <AppShell header={{ height: 64 }} navbar={{ width: rail ? 72 : 240, breakpoint: "sm", collapsed: { mobile: !opened } }}
       padding={0} layout="alt">
       <AppShell.Header bg="var(--lv-paper)" withBorder>
         <Group h="100%" px="md" justify="space-between" wrap="nowrap">
@@ -220,22 +280,30 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </Group>
         </Group>
       </AppShell.Header>
-      <AppShell.Navbar className="lv-nav" p="md">
+      <AppShell.Navbar className="lv-nav" p={rail ? "xs" : "md"}>
         <AppShell.Section>
-          <Group gap="sm" px={8} pb="lg" wrap="nowrap">
+          <Group gap="sm" px={rail ? 0 : 8} pb="lg" wrap="nowrap" justify={rail ? "center" : undefined}>
             <AppLink href="/" aria-label="Lyvre, tableau de bord">
               <Image src={symbolInverse} w={36} h={36} alt="" />
             </AppLink>
-            <Wordmark onDark />
+            {!rail && <Wordmark onDark />}
             <Burger opened={opened} onClick={close} hiddenFrom="sm" size="sm" color="var(--lv-on-night)"
               aria-label="Fermer le menu" ml="auto" />
           </Group>
         </AppShell.Section>
         <AppShell.Section grow component={ScrollArea}>
-          <NavMenus menus={session.nav} onNavigate={close} />
+          {rail ? <NavRail menus={session.nav} /> : <NavMenus menus={session.nav} onNavigate={close} />}
         </AppShell.Section>
-        <AppShell.Section pt="md" px={8}>
-          <Anchor href="/about" className="lv-nav-foot" underline="never" c="inherit">À PROPOS · LOGICIEL LIBRE · AGPL-3.0</Anchor>
+        <AppShell.Section pt="md" px={rail ? 0 : 8}>
+          <Group justify={rail ? "center" : "flex-end"} mb={rail ? 0 : 4}>
+            <Tooltip label={rail ? "Déplier le menu" : "Replier le menu"} position="right">
+              <ActionIcon variant="subtle" className="lv-rail-btn" visibleFrom="sm" onClick={toggleRail}
+                aria-label={rail ? "Déplier le menu" : "Replier le menu"} aria-pressed={rail}>
+                {rail ? <PanelLeftOpen size={20} aria-hidden /> : <PanelLeftClose size={20} aria-hidden />}
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+          {!rail && <Anchor href="/about" className="lv-nav-foot" underline="never" c="inherit">À PROPOS · LOGICIEL LIBRE · AGPL-3.0</Anchor>}
         </AppShell.Section>
       </AppShell.Navbar>
       <AppShell.Main bg="var(--lv-paper)">

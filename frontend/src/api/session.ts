@@ -1,5 +1,6 @@
 // Session de la SPA : utilisateur, instance, menus, préférences (GET /api/v1/session).
 import { useCallback, useEffect, useRef } from "react";
+import { useInRouterContext, useLocation } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, api, setCsrfToken } from "./client";
 
@@ -27,11 +28,43 @@ export function navLinks(menus: NavMenu[]): (NavLink & { trail: string[] })[] {
   return out;
 }
 
+const pathOf = (url: string) => new URL(url, window.location.origin).pathname.replace(/\/$/, "") || "/";
+
+/** URL du menu qui correspond le mieux à la page (préfixe le plus long : /entities/members
+ * l'emporte sur /entities/ pour la page des adhérents). Tous niveaux (lot NV1). */
+export function activeUrl(menus: NavMenu[], pathname: string): string | null {
+  // Lot NV2 : une page rattachée (`also_urls`, un onglet) active l'entrée qui la porte.
+  const candidates = navLinks(menus).flatMap((l) => [[l.url, l.url], ...(l.also_urls ?? []).map((a) => [a, l.url])]);
+  const current = pathname.replace(/\/$/, "") || "/";
+  const matches = candidates.filter(([u]) => {
+    const path = pathOf(u);
+    return path === "/" ? current === "/" : current === path || current.startsWith(`${path}/`);
+  });
+  return matches.sort(([a], [b]) => pathOf(b).length - pathOf(a).length)[0]?.[1] ?? null;
+}
+
+function useOptionalPathname(): string | null {
+  // Hors routeur (rare : écrans d'erreur), pas d'entrée de menu.
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  return useInRouterContext() ? useLocation().pathname : null;
+}
+
+/** Entrée de menu de la page courante (lot NV4 : icône automatique des en-têtes de page). */
+export function useNavEntry(): (NavLink & { trail: string[] }) | null {
+  const pathname = useOptionalPathname();
+  const nav = useCurrentSession().nav;
+  if (pathname === null) return null;
+  const url = activeUrl(nav, pathname);
+  return url ? navLinks(nav).find((l) => l.url === url) ?? null : null;
+}
+
 export type ColorSchemePreference = "light" | "dark" | "auto";
 
 export interface Preferences {
   color_scheme?: ColorSchemePreference;
   tables?: Record<string, { hidden?: string[] }>;
+  /** Menu latéral replié en rail (lot NV4). */
+  nav_rail?: boolean;
   [key: string]: unknown;
 }
 

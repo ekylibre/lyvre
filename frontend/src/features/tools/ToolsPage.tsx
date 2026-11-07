@@ -6,6 +6,8 @@ import { api } from "../../api/client";
 import { FilterBar, useUrlParams } from "../../components/FilterBar";
 import { PageHeader } from "../../components/PageHeader";
 import { AppLink } from "../../app/navigation";
+import { TOOL_CATEGORY_ICONS } from "../../app/navIcons";
+import { IconTile } from "../../components/IconTile";
 import { TOOLS_KEY, type CalcSpec } from "./types";
 
 interface ListData {
@@ -34,7 +36,10 @@ export default function ToolsPage() {
           if (!items.length) return null;
           return (
             <div key={cat.value}>
-              <Title order={3} mb="xs">{cat.label}</Title>
+              <Group gap="sm" mb="xs" wrap="nowrap">
+                <IconTile {...TOOL_CATEGORY_ICONS[cat.value]} size={36} />
+                <Title order={3}>{cat.label}</Title>
+              </Group>
               <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
                 {items.map((i) => (
                   <Card key={i.code} withBorder component={AppLink} href={`/outils/${i.code}`}>

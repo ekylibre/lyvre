@@ -226,3 +226,27 @@ Un commit par lot, avec les tests. Aucune migration de base (le rail est une pr�
   - pytest : `tests/test_sig.py` (SIG du PCG pour asso, sci et société ; API), plus les adaptations de `test_agri_reports`, `test_menu_config` et `test_simple_mode` ;
   - Vitest : `ReportsHubPage.test.tsx` ;
   - résultats : 1719 pytest et 305 Vitest passent.
+
+**NV4 (07/11/2026).**
+- **Icônes Lucide** : toutes les entrées de `menu_config` ont désormais une icône (33 ajoutées). `app/navIcons.tsx` est une table explicite, qui couvre aussi les catégories de calculettes (`TOOL_CATEGORY_ICONS`).
+- **Pictogrammes agric** : `scripts/import_agric_pictograms.py` génère `components/pictograms.generated.ts`, commité avec la mention MIT.
+  - Liste fermée de 29 pictogrammes.
+  - Polygones et rectangles convertis en tracés.
+  - Formes blanches transformées en découpes (masque SVG), formes `fill:none` ignorées.
+- **Composants** :
+  - `Pictogram` (SVG en `currentColor`, `aria-hidden`) ;
+  - `IconTile` : pastille teintée ; le pictogramme l'emporte sur l'icône.
+- **En-têtes de page** : sans `icon`, `PageHeader` affiche la pastille de l'entrée de menu de la page (`useNavEntry`, qui tient compte des onglets `also_urls`) ; `icon={null}` n'en met aucune. `activeUrl` est passé dans `api/session.ts`.
+- **Rail** :
+  - un bouton en bas de la barre la fait passer de 240 à 72 px ;
+  - chaque menu devient une icône avec une info-bulle ; ses sous-menus s'ouvrent en menu flottant, les sous-menus du 3e niveau y deviennent des sections ;
+  - le choix est mémorisé dans la préférence `nav_rail` ;
+  - sur mobile, le tiroir reste déplié.
+- **Cartes** :
+  - éditions comptables ;
+  - catégories de calculettes : pictogrammes agric pour les sujets agricoles ;
+  - tuiles de chiffres du tableau de bord.
+- **« À propos »** : les crédits d'icônes (Lucide sous ISC, agric sous MIT) sont ajoutés sur la page elle-même (`AboutPage.tsx`) ; `openSourceVendors.ts` est le comparatif des logiciels.
+- **Tests** :
+  - pytest : icône sur chaque entrée, pictogrammes existants, une pastille par catégorie ;
+  - Vitest : `IconTile.test.tsx`, plus le rail dans `AppLayout.test.tsx`.

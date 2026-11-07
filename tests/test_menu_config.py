@@ -161,3 +161,36 @@ def test_every_icon_is_in_the_frontend_table():
                 yield e["icon"]
             yield from icons(e.get("items", []))
     assert sorted(set(icons(MENUS)) - known) == []
+
+
+# ---------------------------------------------------------------- lot NV4 (claudedocs/design_navigation.md § 5)
+def _generated_pictograms():
+    import re
+    from pathlib import Path
+    text = (Path(__file__).parents[1] / "frontend" / "src" / "components" / "pictograms.generated.ts").read_text()
+    return set(re.findall(r'^  "([a-z-]+)": \{', text, re.M))
+
+
+def test_every_entry_has_an_icon_and_pictograms_exist():
+    pictos = _generated_pictograms()
+
+    def walk(entries):
+        for e in entries:
+            if e.get("divider"):
+                continue
+            assert e.get("icon"), e["key"]
+            assert e.get("pictogram") is None or e["pictogram"] in pictos, e["key"]
+            walk(e.get("items", []))
+    walk(MENUS)
+
+
+def test_tool_categories_have_a_tile():
+    import re
+    from pathlib import Path
+
+    from app.services.calculators import CATEGORIES
+    table = (Path(__file__).parents[1] / "frontend" / "src" / "app" / "navIcons.tsx").read_text()
+    block = table[table.index("TOOL_CATEGORY_ICONS"):]
+    tiles = dict(re.findall(r"(\w+): \{ (?:icon|pictogram): \"([a-z-]+)\" \}", block))
+    assert set(CATEGORIES) <= set(tiles)
+    assert {"cow", "wheat", "tractor"} <= _generated_pictograms()

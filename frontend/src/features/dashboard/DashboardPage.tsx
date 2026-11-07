@@ -9,6 +9,7 @@ import { api } from "../../api/client";
 import { useBookkeeping, useCan, useCurrentSession, useIntegration } from "../../api/session";
 import { useUrlParams } from "../../components/FilterBar";
 import { MoneyText } from "../../components/Money";
+import { IconTile } from "../../components/IconTile";
 import { PageHeader } from "../../components/PageHeader";
 import { EUROS_Y_AXIS, formatDate, formatEuros } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
@@ -32,10 +33,10 @@ interface Dashboard {
 
 const euros = (value: number) => formatEuros(Math.round(value * 100));
 
-function StatTile({ label, children, meta }: { label: string; children: ReactNode; meta?: string }) {
+function StatTile({ label, children, meta, icon }: { label: string; children: ReactNode; meta?: string; icon?: string }) {
   return (
     <Paper p="md">
-      <Text size="sm" c="dimmed">{label}</Text>
+      <Group gap="xs" wrap="nowrap" mb={2}>{icon && <IconTile icon={icon} size={28} />}<Text size="sm" c="dimmed">{label}</Text></Group>
       <Text className="lv-num" fz={28} lh="34px" fw={500}>{children}</Text>
       {meta && <Text size="sm" c="dimmed">{meta}</Text>}
     </Paper>
@@ -115,19 +116,19 @@ export default function DashboardPage() {
               <Anchor component={AppLink} href="/entries/?state=draft">validez-les</Anchor> une fois vérifiées.</Alert>
           )}
           <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
-            {odoo && <StatTile label="Ventes de l'exercice" meta="Caisse et factures Odoo"><MoneyText cents={stats.total_sales_cents} /></StatTile>}
-            {stats.new_members !== null && <StatTile label="Adhésions" meta="Adhérents de l'exercice">{stats.new_members}</StatTile>}
-            <StatTile label="Résultat courant" meta="Exploitation et financier">
+            {odoo && <StatTile icon="store" label="Ventes de l'exercice" meta="Caisse et factures Odoo"><MoneyText cents={stats.total_sales_cents} /></StatTile>}
+            {stats.new_members !== null && <StatTile icon="users" label="Adhésions" meta="Adhérents de l'exercice">{stats.new_members}</StatTile>}
+            <StatTile icon="chart-line" label="Résultat courant" meta="Exploitation et financier">
               <MoneyText cents={stats.resultat_courant_cents} c={stats.resultat_courant_cents >= 0 ? "var(--lv-lichen)" : "var(--lv-brique)"} />
             </StatTile>
-            {stancer && <StatTile label="Versements Stancer" meta="Reçus sur l'exercice"><MoneyText cents={stats.total_payouts_cents} /></StatTile>}
+            {stancer && <StatTile icon="banknote" label="Versements Stancer" meta="Reçus sur l'exercice"><MoneyText cents={stats.total_payouts_cents} /></StatTile>}
           </SimpleGrid>
           {data.sales?.has_sales && (
             <SimpleGrid cols={{ base: 1, sm: 3 }}>
-              <StatTile label="Facturé" meta="Factures émises de l'exercice, HT, avoirs déduits"><MoneyText cents={data.sales.revenue_cents} /></StatTile>
-              <StatTile label="Encours clients" meta="Restant dû des factures émises">
+              <StatTile icon="file-text" label="Facturé" meta="Factures émises de l'exercice, HT, avoirs déduits"><MoneyText cents={data.sales.revenue_cents} /></StatTile>
+              <StatTile icon="hand-coins" label="Encours clients" meta="Restant dû des factures émises">
                 <Anchor component={AppLink} href="/sales/" underline="never" c="inherit"><MoneyText cents={data.sales.receivable_cents} /></Anchor></StatTile>
-              <StatTile label="Factures échues" meta={`${data.sales.overdue_count} facture(s) à relancer`}>
+              <StatTile icon="file-clock" label="Factures échues" meta={`${data.sales.overdue_count} facture(s) à relancer`}>
                 <Anchor component={AppLink} href="/sales/?overdue=1" underline="never" c="inherit">
                   <MoneyText cents={data.sales.overdue_cents} c={data.sales.overdue_cents ? "var(--lv-brique)" : undefined} /></Anchor></StatTile>
             </SimpleGrid>

@@ -279,6 +279,13 @@ export default function AboutPage() {
           <List.Item>Sites et centres d'aide des éditeurs, consultés le {CHECKED_ON} : chaque case du tableau renvoie à sa page.</List.Item>
           <List.Item>Logiciels open source : documentation et dépôts de code publics, consultés le {CHECKED_ON} ; chaque case renvoie à sa page.</List.Item>
         </List>
+        <Text size="sm" fw={600} mb={4}>Icônes</Text>
+        <List size="xs" c="dimmed" mb={40}>
+          <List.Item><Anchor href="https://lucide.dev" target="_blank" rel="noreferrer" size="xs">Lucide</Anchor>
+            {" "}— icônes de l'interface, licence ISC.</List.Item>
+          <List.Item><Anchor href="https://github.com/ekylibre/agric" target="_blank" rel="noreferrer" size="xs">agric</Anchor>
+            {" "}(Ekylibre, © 2013 Brice Texier) — pictogrammes agricoles, licence MIT.</List.Item>
+        </List>
         <Text size="xs" c="dimmed" ta="center" pb="lg">LOGICIEL LIBRE · AGPL-3.0 · AUTO-HÉBERGÉ
           {app.data && <> · VERSION {app.data.version}{app.data.commit && ` (${app.data.commit.slice(0, 7)})`}</>}</Text>
       </Container>

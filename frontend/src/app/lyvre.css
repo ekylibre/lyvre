@@ -90,6 +90,11 @@ html, body { background: var(--lv-paper); }
 .lv-nav .mantine-NavLink-root[data-active] { background: #DDE8DF; color: #1E2421; font-weight: 600; }
 .lv-nav .mantine-NavLink-root:focus-visible { outline-color: var(--lv-paille); }
 .lv-nav .mantine-Divider-root { border-color: rgba(255, 255, 255, 0.15); }
+/* Menu en rail (lot NV4) : colonne d'icônes, sous-menus en menu flottant. */
+.lv-rail-btn { color: var(--lv-on-night); width: 44px; height: 44px; border-radius: 10px; }
+.lv-rail-btn:hover { background: rgba(255, 255, 255, 0.08); }
+.lv-rail-btn[data-active] { background: #DDE8DF; color: #1E2421; }
+.lv-rail-btn:focus-visible { outline: 2px solid var(--lv-paille); }
 .lv-nav-foot { font: 500 11px/16px var(--mantine-font-family-monospace); opacity: 0.75; letter-spacing: 0.06em; }
 
 /* Tableaux (LedgerTable) : en-tête sauge en capitales, survol paper. */
