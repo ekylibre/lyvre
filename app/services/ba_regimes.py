@@ -556,6 +556,9 @@ def checks(fy: FiscalYear) -> list[tuple[str, str, int, str]]:
         else:
             out.append(("accessory_bic", "Revenus accessoires au-delà des limites de l'art. 75 : imposition en BIC / BNC",
                         1, "info"))
+    if _option("stock_freeze_72_b_bis", fy.end_date) and _option("averaging_75_0_b", fy.end_date):   # lot CG4.b
+        from app.services.tax_profile import CONFLICT_72_B_BIS_75_0_B
+        out.append(("freeze_averaging_conflict", CONFLICT_72_B_BIS_75_0_B, 1, "anomaly"))
     if tax_result.enabled() and not IncomeSpread.query.filter_by(fiscal_year_id=fy.id).first():
         proposal = spread_proposal(fy)
         if proposal["exceptional_cents"] > 0 and not proposal["reason"]:

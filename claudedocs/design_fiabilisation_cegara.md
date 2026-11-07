@@ -380,7 +380,7 @@ Un commit par étape. Ensuite, **CG5** (fonctions nouvelles retenues) :
 ## 6.8 Questions ouvertes de CG3
 - **D-CG3.1** ✅ *Lu au BOFiP le 07/11/2026 (voir b1).* Base DEP : faut-il retirer les revenus de l'art. 75, des DPB et de l'énergie, comme l'outil 10 ? À lire au BOFiP, BOI-BA-BASE-30-45-20 § 50 et suivants.
 - **D-CG3.2** ✅ *Tranché le 07/11/2026 : art. 1727.* Intérêt des réintégrations : **intérêt de retard de l'art. 1727** (0,40 % puis 0,20 % par mois, sur le supplément d'impôt) **ou intérêt légal** ? La réponse à la question 2 dit « taux légal ». Or le CGI renvoie à l'art. 1727 pour la DEP (art. 73 II) et l'ancienne DPI. À confirmer avant CG3.b.
-- **D-CG3.3** Non-cumul 72 B bis et 75-0 B : la LF 2026 l'a-t-elle levé ?
+- **D-CG3.3** ✅ *Tranché au lot CG4.b (07/11/2026)* : le BOI-BA-BASE-20-20-20-40 § 100 interdit le cumul. Lyvre l'avertit dans le profil fiscal et signale une anomalie à la clôture (`freeze_averaging_conflict`), à la demande de l'utilisateur. Une levée par la LF 2026 n'a pas été trouvée.
 
 ---
 
@@ -484,6 +484,22 @@ Le statut visé pour MA-01 à MA-05 et MA-07 est `publie`, grâce aux sources d�
   - M1 : le travail de l'exploitant et des aides familiaux n'est pas compté (§ 100), ce qui justifie la part salariée de CG5.
 - Le BOI ne dit pas quelle méthode s'applique sans option. Pour une société à l'IS, son § 5 renvoie à l'art. 38 nonies de l'annexe III.
 - 2 questions d'évaluation (`methode-avances-m2`, `methode-dep-epargne-excedentaire`).
+
+## 7.6 ter Réalisé (CG4.b, 07/11/2026)
+
+- **MA-01 Stocks** (557 mots, publiée) : règles générales lues au BOI-BA-BASE-20-20-20-10 (version du 04/07/2018) :
+  - prix de revient, ou cours du jour s'il est inférieur, avec provision (§ 90 et § 320) ;
+  - coûts standards interdits pour le prix de revient (§ 190) ;
+  - cours du jour = prix de vente sur le marché (§ 310).
+
+  Le stock d'entrée au passage du micro-BA au réel n'est **pas** sur ces pages (renvoi au BOI-BA-REG-40, non lu). La fiche le laisse à l'expert-comptable.
+- **MA-03 Blocage 72 B bis** (572 mots, publiée) : BOI-BA-BASE-20-20-20-40 (version du 03/07/2019) lu en entier. Il confirme la conception de CG3.d : option globale, rotation de plus d'un an, entrée bloquée à sa valeur d'inscription (§ 60), PEPS admis (§ 70 et 80). Il apporte aussi :
+  - **non-cumul avec 75-0 A et 75-0 B** (§ 100). Le contrôle du 75-0 B est ajouté : avertissement dans le profil fiscal, anomalie `freeze_averaging_conflict` à la clôture ;
+  - imposition de l'écart à la renonciation (§ 120) ;
+  - aide de minimis mesurée par l'économie d'impôt actualisée (§ 200 et 210).
+- **MA-05 DPI et DPA** (352 mots) : **à confirmer**, les art. 72 D et 72 D bis n'ont pas été relus.
+- **MA-07 Assiette MSA** (420 mots, publiée) : l'ordre « moyenne puis abattement » y est signalé « à valider ».
+- Le corpus fait environ 21 300 tokens. 4 questions d'évaluation ajoutées.
 
 ## 7.7 Questions
 - **D-CG4.1** ✅ *Accepté le 07/11/2026 : chargeur générique, fiches agri seules.* Les fiches de méthode sont-elles réservées aux instances agricoles (référentiel `agri`), ou faut-il préparer dès maintenant les fiches A, C, D et S de la base documentaire avec le même chargeur ? Proposition : chargeur générique, et seules les fiches `agri` livrées dans CG4.

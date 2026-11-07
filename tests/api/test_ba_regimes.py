@@ -152,3 +152,18 @@ def test_spread_exclusions(farm):
     db.session.commit()
     resp = client.post(f"{farm['url'](2027)}/income-spreads", json={"kind": "slaughter", "amount_cents": 700, "reason": "motif long"})
     assert resp.status_code == 422 and "72 B bis" in resp.get_json()["error"]["message"]
+
+
+def test_stock_freeze_and_averaging_conflict_cg4b(farm):
+    """Lot CG4.b (BOI-BA-BASE-20-20-20-40 § 100) : 72 B bis et moyenne triennale 75-0 B non cumulables."""
+    from app.services import ba_regimes, tax_profile
+    db.session.add(TaxOption(code="stock_freeze_72_b_bis", start_date=date(2025, 1, 1)))
+    db.session.commit()
+    assert not any(c[0] == "freeze_averaging_conflict" for c in ba_regimes.checks(farm["fy"][2026]))
+    db.session.add(TaxOption(code="averaging_75_0_b", start_date=date(2026, 1, 1)))
+    db.session.commit()
+    (conflict,) = [c for c in ba_regimes.checks(farm["fy"][2026]) if c[0] == "freeze_averaging_conflict"]
+    assert conflict[3] == "anomaly" and "§ 100" in conflict[1]
+    assert not any(c[0] == "freeze_averaging_conflict" for c in ba_regimes.checks(farm["fy"][2025]))
+    assert tax_profile.CONFLICT_72_B_BIS_75_0_B in tax_profile.warnings(date(2026, 6, 1))
+    assert any(c.key == "freeze_averaging_conflict" for c in closing._agri_checks(farm["fy"][2026]))

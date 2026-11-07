@@ -88,3 +88,15 @@
 - id: methode-dep-epargne-excedentaire
   question: "Mon épargne DEP dépasse mes déductions non rapportées : que se passe-t-il ?"
   expect: {cites: ['\[MA-04\]'], contains: ["expert-comptable"], proposals: []}
+- id: methode-stock-cours-du-jour
+  question: "Mon blé vaut moins au cours du jour que son prix de revient : comment l'inscrire à l'inventaire ?"
+  expect: {cites: ['\[MA-01\]'], contains: ["provision"], proposals: []}
+- id: methode-72-b-bis-cumul
+  question: "Puis-je cumuler le blocage des stocks 72 B bis avec la moyenne triennale ?"
+  expect: {cites: ['\[MA-03\]'], contains: ["non"], proposals: []}
+- id: methode-dpa-reliquat
+  question: "Il me reste une DPA de 2017 non utilisée : que dois-je faire ?"
+  expect: {cites: ['\[MA-05\]'], contains: ["confirmer"], proposals: []}
+- id: methode-msa-triennale
+  question: "Comment la MSA calcule-t-elle mon assiette triennale depuis la réforme ?"
+  expect: {cites: ['\[MA-07\]'], contains: ["abattement"], proposals: []}

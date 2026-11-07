@@ -351,7 +351,19 @@ def warnings(on: date | None = None) -> list[str]:
         items.append("Impôt sur les bénéfices (IR ou IS) non renseigné pour la période en cours.")
     if form in BA_FORMS and income_tax == "IR" and current_value("ba_regime", on) is None:
         items.append("Régime des bénéfices agricoles non renseigné pour la période en cours.")
+    if option_active("stock_freeze_72_b_bis", on) and option_active("averaging_75_0_b", on):
+        items.append(CONFLICT_72_B_BIS_75_0_B)
     return items
+
+
+# Lot CG4.b : BOI-BA-BASE-20-20-20-40 § 100 (version du 03/07/2019).
+CONFLICT_72_B_BIS_75_0_B = ("Blocage des stocks (72 B bis) et moyenne triennale (75-0 B) en vigueur ensemble : options non "
+                            "cumulables (BOI-BA-BASE-20-20-20-40 § 100).")
+
+
+def option_active(code: str, on: date) -> bool:
+    return any(o.start_date <= on and (o.renounced_on is None or on < o.renounced_on)
+               for o in TaxOption.query.filter_by(code=code))
 
 
 def payload(on: date | None = None) -> dict:
