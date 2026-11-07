@@ -298,3 +298,30 @@ def test_estimate_in_view(farm):
     est = client.get(f"{url}/msa").get_json()["item"]["people"][0]["estimate"]
     assert est["available"] and est["year"] == 2027 and est["base_cents"] == 2960000
     assert any(l["key"] == "atexa" and l["amount_cents"] == 55095 for l in est["lines"])
+
+
+def test_triennial_average_then_abatement_cg3c(farm):
+    """Lot CG3.c (Q4, design_fiabilisation_cegara.md § 6.3) : moyenne des revenus, puis abattement de 26 % borné.
+    Revenus 0, 0 et 90 000 € : moyenne 30 000 €, abattement 7 800 € → 22 200 € (21 636,09 € année par année)."""
+    from app.models.msa import MsaBase, MsaPerson
+    person = MsaPerson(status="principal")
+    db.session.add(person)
+    db.session.flush()
+    for year in (2024, 2025):
+        db.session.add(MsaBase(person_id=person.id, year=year, source="entered", income_cents=0, base_cents=-84586))
+    db.session.commit()
+    comp = msa.comparison(person, 2026, 6660000, current_income=9000000)
+    assert comp["triennial_cents"] == 2220000 and comp["annual_cents"] == 6660000
+    MsaBase.query.filter_by(person_id=person.id, year=2024).one().income_cents = None    # assiette de l'avis seule
+    db.session.commit()
+    comp = msa.comparison(person, 2026, 6660000, current_income=9000000)
+    assert comp["triennial_cents"] == round((6660000 - 2 * 84586) / 3)                    # repli : moyenne des assiettes
+    assert any("Revenu 2024 inconnu" in n for n in comp["notes"])
+
+
+def test_micro_ba_has_no_computed_base_cg3c(farm):
+    from app.models import TaxProfile
+    db.session.add(TaxProfile(kind="ba_regime", value="micro", start_date=date(2025, 1, 1), origin="law"))
+    db.session.commit()
+    body = farm["client"].get(f"{farm['url']}/msa").get_json()["item"]
+    assert body["people"] == [] and "Micro-BA" in body["reason"] and "87 %" in body["reason"]

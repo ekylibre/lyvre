@@ -261,24 +261,20 @@ Valeurs fixed3 et fixed4 (BOFiP § 10) :
 
 **c1 Triennale (Q4).**
 - `comparison()` calcule la moyenne des **revenus** des 3 années, puis `abatement(moyenne, year)` : triennale = moyenne − abattement.
-- Il faut `income_cents` sur les 3 lignes d'historique.
+- Il faut `income_cents` sur les 3 lignes d'historique. L'écran de l'historique gagne un champ « Revenu avant abattement ».
 - Une année saisie depuis l'avis MSA avec la seule assiette (sans revenu) bascule sur l'ancien calcul (moyenne des assiettes), avec la note « revenu {année} inconnu : moyenne des assiettes ».
 - Le formulaire de l'historique accepte un revenu facultatif.
 
-**c2 Taux AMEXA et prestations familiales sur le revenu N-1 (Q4 bis).**
-- `msa_estimate.estimate(base, year, status, atexa, rate_income=None)` :
-  - le taux interpolé de `_amexa` et `_pfa` se lit sur `rate_income` s'il est fourni ;
-  - il s'applique à `base`.
-- `msa.view` passe l'assiette annuelle N-1 (`comparison["annual_cents"]`, sinon `None`).
-- Le détail affiche « taux lu sur le revenu N-1 ».
-- **Vérification au codage** sur msa.fr (barème 2026). Si la MSA lit le taux sur l'assiette retenue, on garde l'ancien calcul et on remonte l'écart.
+**c2 et c3 abandonnés (décision du 07/11/2026).** Le barème NSA 2026 de la MSA (annexe du 25/02/2026, lue au codage) contredit Q4 bis et Q4 ter :
+- le taux de l'AMEXA se lit sur « a, l'assiette sociale des cotisations retenue pour le calcul desdites cotisations » ;
+- pour les prestations familiales, « r » est « le montant de l'assiette de cotisations » ;
+- un seul barème AMEXA progressif s'applique à tout chef d'exploitation domicilié en France. Le chef à titre secondaire n'a de valeurs propres que pour la retraite de base plafonnée (14,15 %) et l'ATEXA (montants divisés par deux).
 
-**c3 Chef à titre secondaire (Q4 ter).**
-- Paramètre `msa.amexa.secondary_rate_bp` (valeur 2026 depuis le barème NSA de msa.fr, sinon fiabilité I et pas de valeur : l'estimation l'indique).
-- `_amexa` l'applique quand `status == "secondary"`.
+L'utilisateur a choisi de **suivre le barème** : le calcul de Lyvre est conservé. Le taux au-delà de 300 % du PASS (6,50 %) passe en V.
 
 **c4 Micro-BA (MS3).**
-- `msa.compute` : si `tax_profile.current_value("ba_regime", fin d'exercice) == "micro"`, renvoyer `reason` : « Micro-BA : assiette = recettes moyennes après l'abattement du micro-BA, sans abattement de 26 % ; saisissez l'assiette de l'avis MSA dans l'historique. »
+- `msa.compute` : si le régime BA à la clôture est le micro-BA, renvoyer une `reason`. D'après msa.fr (page micro-BA, 16/03/2026), l'assiette est la moyenne des recettes hors taxes des 3 années précédentes (ou de N-1 sur option) après l'abattement de 87 %.
+- L'application de l'abattement de 26 % au micro-BA après la réforme n'est pas établie : Lyvre ne calcule pas l'assiette et renvoie à l'avis MSA.
 - La calculette 17 garde la saisie libre.
 
 ## 6.4 CG3.d Stocks

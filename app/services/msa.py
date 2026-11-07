@@ -177,6 +177,12 @@ def compute(fy: FiscalYear) -> dict:
                           "dividendes au-delà de 10 % du capital, hors bénéfices agricoles.")
         return head
     year = fy.end_date.year
+    from app.services import tax_profile
+    if tax_profile.current_value("ba_regime", fy.end_date) == "micro":   # lot CG3.c (MS3)
+        head["reason"] = ("Micro-BA : l'assiette sociale est la moyenne des recettes hors taxes des 3 années précédentes "
+                          "(ou celles de N-1 sur option) après l'abattement de 87 % du micro-BA, et non le résultat "
+                          "comptable ; Lyvre ne la calcule pas. Saisissez l'assiette de l'avis MSA dans l'historique.")
+        return head
     if year < REFORM_FIRST_YEAR:
         head["reason"] = (f"Revenus {year} : ancienne assiette (avant la réforme de 2026), reconstituée par la caisse. "
                           "Saisissez l'assiette de l'avis MSA dans l'historique.")
@@ -261,7 +267,7 @@ def view(fy: FiscalYear) -> dict:
     for item in data["people"]:
         person = db.session.get(MsaPerson, item["person"]["id"])
         item["history"] = history(person)
-        item["comparison"] = comparison(person, data["year"], item["base_cents"])
+        item["comparison"] = comparison(person, data["year"], item["base_cents"], current_income=item["income_cents"])
         from app.services import msa_estimate                     # lot AG7.e : estimation indicative
         item["estimate"] = msa_estimate.estimate(item["comparison"]["retained_cents"],
                                                  item["comparison"]["contribution_year"], person.status,
@@ -282,19 +288,37 @@ def history(person: MsaPerson) -> list[dict]:
     return [base_payload(r) for r in rows]
 
 
-def comparison(person: MsaPerson, year: int, current_base: int | None, today: date | None = None) -> dict:
+def comparison(person: MsaPerson, year: int, current_base: int | None, today: date | None = None,
+               current_income: int | None = None) -> dict:
     """Assiette des cotisations de l'année C = year + 1 : annuelle (revenus de `year`) ou moyenne triennale
     (revenus de year, year − 1, year − 2) ; état de l'option de l'exploitant et délais (L.731-15, D.731-26)."""
     today = today or date.today()
-    bases = {r.year: r.base_cents for r in MsaBase.query.filter_by(person_id=person.id)}
+    rows = MsaBase.query.filter_by(person_id=person.id).all()
+    bases = {r.year: r.base_cents for r in rows}
+    incomes = {r.year: r.income_cents for r in rows}
     if current_base is not None:
         bases[year] = current_base
+    if current_income is not None:
+        incomes[year] = current_income
     contribution_year = year + 1
     span = [year, year - 1, year - 2]
     missing = [y for y in span if y not in bases]
     annual = bases.get(year)
-    triennial = None if missing else round(sum(bases[y] for y in span) / 3)
     notes = []
+    triennial = None
+    if not missing:
+        # Lot CG3.c (Q4) : moyenne des revenus des 3 années, puis abattement de 26 % borné sur cette moyenne. Une année
+        # sans revenu connu (assiette saisie depuis l'avis seule) : moyenne des assiettes, comme avant.
+        if all(incomes.get(y) is not None for y in span):
+            average = round(sum(incomes[y] for y in span) / 3)
+            abat = abatement(average, year)
+            triennial = None if abat.get("error") else average - abat["amount_cents"]
+        if triennial is None:
+            triennial = round(sum(bases[y] for y in span) / 3)
+            unknown = [str(y) for y in span if incomes.get(y) is None]
+            if unknown:
+                notes.append(f"Revenu {', '.join(unknown)} inconnu (assiette seule) : moyenne triennale des assiettes. "
+                             "Saisissez le revenu avant abattement pour appliquer l'abattement à la moyenne.")
     old = [y for y in span if y < REFORM_FIRST_YEAR]
     if old:
         notes.append(f"Revenus {', '.join(map(str, sorted(old)))} : assiette reconstituée par la caisse (ancienne assiette "

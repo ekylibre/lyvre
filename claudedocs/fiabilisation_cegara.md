@@ -218,8 +218,8 @@ Cas recalculés à la main, chacun avec son millésime de paramètres et sa sour
 | 3 | Date limite de l'épargne DEP | **6 mois après la clôture, ou date de dépôt de la déclaration si elle est plus tôt** | Date de dépôt selon la clôture (échéancier fiscal) |
 | 3 bis | Épargne au-delà de 100 % | **Réintégration proposée** (ligne à valider) | Montant réintégré : texte à relire (art. 73) |
 | 4 | Triennale MSA | **Moyenne des revenus, puis abattement de 26 % borné** | — |
-| 4 bis | Base des taux progressifs AMEXA et prestations familiales | **Revenu N-1** | L'analyse du classeur outil-06 y voyait un défaut : à confirmer sur msa.fr |
-| 4 ter | AMEXA du chef à titre secondaire | **Taux fixe, paramètre daté** (`msa.amexa.secondary_rate_bp`) | Valeur 2026 à sourcer sur msa.fr |
+| 4 bis | Base des taux progressifs AMEXA et prestations familiales | ~~Revenu N-1~~ → **assiette retenue** (barème MSA 2026, décision revue le 07/11/2026) | Confirmé : le classeur outil-06 avait tort |
+| 4 ter | AMEXA du chef à titre secondaire | ~~Taux fixe~~ → **barème progressif commun** (barème MSA 2026, décision revue le 07/11/2026) | — |
 | 5 | M1 et M2 | Travaux par des tiers et main-d'œuvre au réel confirmés ; **rémunérations des associés (64116, 64117) incluses** dans la main-d'œuvre | Retirer `EXCLUDED_ACCOUNTS` (CG2.a) |
 | 5 bis | Main-d'œuvre de l'exploitant dans le barème | **Part de main-d'œuvre salariée saisie** sur la fiche ; composante main-d'œuvre réduite d'autant | — |
 | 6 | Passage du micro-BA au réel | **Stock d'ouverture guidé** (PR, ou CJ s'il est inférieur, à la date du changement), écriture d'ouverture | ann. III art. 38 sexdecies D, LF 2020 art. 55 |

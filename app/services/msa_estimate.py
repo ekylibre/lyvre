@@ -2,6 +2,8 @@
 
 Barème NSA 2026 de la MSA en paramètres datés (`data/regulatory/msa.json`), appliqué à l'assiette retenue pour
 l'année de cotisation (AG7.b) : chef d'exploitation domicilié en France, à titre exclusif ou principal, ou secondaire.
+Taux progressifs (AMEXA, prestations familiales) lus sur cette assiette retenue, et même barème AMEXA pour le chef à
+titre secondaire : barème 2026 de la MSA, vérifié au lot CG3.c.
 Lignes : AMEXA (taux progressif), invalidité, IJ AMEXA, retraite de base plafonnée et déplafonnée, RCO et RCO
 complémentaire, ATEXA (catégorie de risques), prestations familiales, CSG / CRDS, formation (VIVEA), FMSE.
 Assiettes minimales en SMIC ou en % du PASS. **Indicatif** : ni exonération JA, ni cotisations complémentaires par
@@ -56,7 +58,7 @@ def _amexa(base: int, p: dict) -> tuple[int, str]:
     if base * 10000 >= 30000 * pass_cents:
         top = 3 * pass_cents
         amount = top * t5 / 10000 + (base - top) * p["msa.amexa.top_rate_bp"] / 10000
-        return round(amount), f"{t5 / 100:.2f} % jusqu'à 300 % du PASS, {p['msa.amexa.top_rate_bp'] / 100:.2f} % au-delà (à valider)"
+        return round(amount), f"{t5 / 100:.2f} % jusqu'à 300 % du PASS, {p['msa.amexa.top_rate_bp'] / 100:.2f} % au-delà"
     rate = _interpolate(base, pass_cents, [(2000, 0), (4000, t1), (6000, t2), (11000, t3), (20000, t4), (30000, t5)])
     return round(base * rate / 10000), f"taux progressif {rate / 100:.3f} %"
 

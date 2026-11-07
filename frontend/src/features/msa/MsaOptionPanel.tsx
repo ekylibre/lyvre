@@ -20,7 +20,7 @@ const money = (v: number | null | undefined) => (v === null || v === undefined ?
 
 export function MsaOptionPanel({ personId, comparison: c, history, editable }:
   { personId: number; comparison: MsaComparison; history: MsaBaseRow[]; editable: boolean }) {
-  const [draft, setDraft] = useState<{ year: number | null; base: number | null; note: string }>({ year: c.missing[0] ?? null, base: null, note: "" });
+  const [draft, setDraft] = useState<{ year: number | null; base: number | null; income: number | null; note: string }>({ year: c.missing[0] ?? null, base: null, income: null, note: "" });
   const [error, setError] = useState<string | null>(null);
   const base = `/api/v1/msa/people/${personId}/bases`;
   const opts = { invalidate: [["msa"]] };
@@ -48,10 +48,11 @@ export function MsaOptionPanel({ personId, comparison: c, history, editable }:
       <Text fw={600} size="sm" mt="md">Historique des assiettes</Text>
       {history.length > 0 && (
         <Table>
-          <Table.Thead><Table.Tr><Table.Th>Revenus</Table.Th><Table.Th>Origine</Table.Th><Table.Th ta="right">Assiette</Table.Th><Table.Th>Note</Table.Th><Table.Th /></Table.Tr></Table.Thead>
+          <Table.Thead><Table.Tr><Table.Th>Revenus</Table.Th><Table.Th>Origine</Table.Th><Table.Th ta="right">Revenu avant abattement</Table.Th><Table.Th ta="right">Assiette</Table.Th><Table.Th>Note</Table.Th><Table.Th /></Table.Tr></Table.Thead>
           <Table.Tbody>
             {history.map((h) => (
               <Table.Tr key={h.id}><Table.Td>{h.year}</Table.Td><Table.Td>{h.source === "lyvre" ? "calculée (clôture)" : "saisie"}</Table.Td>
+                <Table.Td ta="right">{h.income_cents === null ? "—" : <MoneyText cents={h.income_cents} />}</Table.Td>
                 <Table.Td ta="right"><MoneyText cents={h.base_cents} /></Table.Td><Table.Td><Text size="xs">{h.note}</Text></Table.Td>
                 <Table.Td>{editable && h.source === "entered" && <Button size="compact-xs" variant="subtle" color="brique" onClick={() => run(remove.mutateAsync(h.year))}>Supprimer</Button>}</Table.Td></Table.Tr>))}
           </Table.Tbody>
@@ -59,10 +60,11 @@ export function MsaOptionPanel({ personId, comparison: c, history, editable }:
       {editable && (
         <Group align="end" gap="xs" mt="xs">
           <NumberInput label="Revenus de" w={110} min={2000} max={2100} value={draft.year ?? ""} onChange={(x) => setDraft({ ...draft, year: typeof x === "number" ? x : null })} />
+          <MoneyInput label="Revenu avant abattement" description="pour la triennale" w={170} value={draft.income} onChange={(x) => setDraft({ ...draft, income: x })} />
           <MoneyInput label="Assiette (avis MSA)" w={160} value={draft.base} onChange={(x) => setDraft({ ...draft, base: x })} />
           <TextInput label="Note" w={240} value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.currentTarget.value })} />
           <Button variant="light" loading={save.isPending} disabled={!draft.year}
-            onClick={() => run(save.mutateAsync({ year: draft.year!, base_cents: draft.base, note: draft.note }), () => setDraft({ year: null, base: null, note: "" }))}>Enregistrer</Button>
+            onClick={() => run(save.mutateAsync({ year: draft.year!, base_cents: draft.base, income_cents: draft.income, note: draft.note }), () => setDraft({ year: null, base: null, income: null, note: "" }))}>Enregistrer</Button>
         </Group>)}
       {error && <Alert color="brique" mt="xs">{error}</Alert>}
     </>
