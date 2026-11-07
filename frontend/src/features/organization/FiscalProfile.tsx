@@ -30,7 +30,7 @@ export interface TaxProfilePayload {
   current: Record<string, string | null>; warnings: string[];
 }
 interface TaxMeta {
-  legal_forms: Option[]; origins: Option[]; options: Option[];
+  legal_forms: Option[]; origins: Option[]; options: (Option & { description?: string | null })[];
   kinds: (Option & { values: Option[] })[];
 }
 type Response = { item: TaxProfilePayload; meta: TaxMeta; notices?: Notice[] };
@@ -98,7 +98,8 @@ function OptionForm({ meta, option, onDone }: { meta: TaxMeta; option: TaxOption
       onError: (e) => setError(applyApiError(form, e)),
     }))}>
       <FormBody error={error} submitLabel={option ? "Enregistrer" : "Ajouter l'option"} onCancel={onDone} loading={save.isPending}>
-        <Select label="Option" required data={meta.options} disabled={!!option} {...form.getInputProps("code")} />
+        <Select label="Option" required data={meta.options.map(({ value, label }) => ({ value, label }))} disabled={!!option}
+          description={meta.options.find((o) => o.value === form.values.code)?.description ?? undefined} {...form.getInputProps("code")} />
         <DateInput label="Prise d'effet" required valueFormat="DD/MM/YYYY" {...form.getInputProps("start_date")} />
         <SimpleGrid cols={2}>
           <TextInput label="Durée (années)" inputMode="numeric" classNames={{ input: "lv-num" }}

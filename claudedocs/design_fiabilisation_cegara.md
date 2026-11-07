@@ -328,6 +328,19 @@ L'utilisateur a choisi de **suivre le barème** : le calcul de Lyvre est conserv
 | e6 | **Délais d'option** : nouvelle famille de paramètres `option.<code>.elect`, règle de la date limite pour opter, affichée dans le formulaire d'option et dans le corpus de l'assistant. Formes de règle : `{"months_after_start": 3}` (IS), `{"with_return": "first"}` (avec la déclaration du premier exercice concerné). | voir ci-dessous |
 | e7 | Nouvelles options dans `tax_profile.OPTIONS` (Q9 ter) : `crop_advance_method` (méthode des avances aux cultures), `fuel_flat_74c`, `recurring_expenses_74d`, `income_spread_75_0_a`, `land_on_balance_sheet`, `landlord_vat` | CGI art. 72 A, 74 c, 74 d, 75-0 A, ann. III 38 sexdecies D, art. 260 6° |
 
+**Réalisé (CG3.e, 07/11/2026)**, d'après les textes relus. Les règles qui n'ont pas pu être relues restent sans valeur, en fiabilité I :
+- **réel normal** : 2 exercices, reconduction tacite par période de 2 (CGI art. 69 III, impots.gouv.fr ; R) ; renonciation dans le délai de dépôt de la déclaration ;
+- **réel simplifié** : 1 an reconduit tacitement, renonciation dans le délai de déclaration de la période précédente (CGI art. 64 bis V, lu sur Légifrance ; V). Le « 1er février » du guide de 2019 est périmé ;
+- **délai pour opter au réel (simplifié ou normal)** : dans le délai de déclaration de l'année précédente (art. 69 IV, V), paramètres `option.*.elect` ;
+- **RSA** : renonciation par lettre recommandée 2 mois au moins avant l'expiration (BOI-TVA-SECT-80-20 ; R), nouvelle forme de règle `{"months_before_end": 2}` dans `renounce_by` ;
+- **`rsa_fiscal_year`** : 5 ans, fiabilité I ;
+- **`vat_monthly`** : inchangé, non relu ;
+- **6 options ajoutées** au profil fiscal (avances aux cultures, 74 c, 74 d, 75-0 A, terres au bilan, TVA du bailleur) :
+  - `crop_advance_method` porte en note les durées de chaque méthode (BOI-BA-BASE-20-20-20-30, version 2019 : M 10 ans tacites, F 3 ans renouvelable une fois, T 3 ans, R irrévocable) ;
+  - les 5 autres sont « à vérifier » ;
+- **délai d'option IS** : non relu, pas de paramètre ;
+- **formulaire d'option** : il affiche la durée, le délai et la renonciation de l'option choisie (`tax_profile.option_rules`).
+
 `income_spread_75_0_a` ne remplace pas la proposition annuelle d'étalement : il trace seulement l'option et son délai. Le lien avec `ba_regimes.spread_*` reste inchangé.
 
 ## 6.6 Tests

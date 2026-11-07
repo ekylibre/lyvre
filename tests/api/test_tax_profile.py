@@ -120,3 +120,15 @@ def test_api_write_requires_instance_admin(app, login_as):
     assert client.get("/api/v1/tax-profile").status_code == 200
     assert client.post("/api/v1/tax-profiles", json={"kind": "income_tax", "value": "IR",
                                                      "start_date": "2026-01-01"}).status_code == 403
+
+
+def test_option_rules_cg3e(org):
+    """Lot CG3.e : renonciation « 2 mois avant l'expiration » (RSA), durées et délais d'option affichés."""
+    option = TaxOption(code="rsa_option", start_date=date(2026, 1, 1), duration_years=5, tacit_renewal=True)
+    db.session.add(option)
+    db.session.commit()
+    assert tax_profile.option_payload(option, on=date(2026, 6, 1))["renounce_by"]["date"] == "2030-10-31"
+    rules = {o["value"]: o["description"] for o in tax_profile.meta()["options"]}
+    assert "2 an(s)" in rules["ba_normal_option"] and "délai de déclaration" in rules["ba_normal_option"]
+    assert "10 ans" in rules["crop_advance_method"]
+    assert "à vérifier" in rules["fuel_flat_74c"]

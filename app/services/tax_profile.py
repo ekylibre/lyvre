@@ -6,6 +6,8 @@ alertes (``warnings()``), affichées sans refus : les associés, par exemple, se
 """
 from __future__ import annotations
 
+import calendar
+
 from datetime import date, timedelta
 
 from app.extensions import db
@@ -59,6 +61,13 @@ OPTIONS = {
     # Lot AG5.d (AGD22, Q-B6) : reproducteurs gardés en stock pour l'impôt ; coupe l'alerte « reproducteur en stock ».
     # Texte de référence à vérifier (annexe III, art. 38 sexdecies) avant de lui donner une durée ou une source.
     "breeders_in_stock": "Reproducteurs maintenus en stock (option fiscale, à vérifier)",
+    # Lot CG3.e (Q9 ter) : options tracées avec leur durée et leur délai quand la source primaire a été relue.
+    "crop_advance_method": "Méthode d'évaluation des avances aux cultures (art. 72 A)",
+    "fuel_flat_74c": "Évaluation forfaitaire des frais de carburant (art. 74 c)",
+    "recurring_expenses_74d": "Frais généraux répétitifs déduits à la date de paiement (art. 74 d)",
+    "income_spread_75_0_a": "Étalement des revenus exceptionnels (art. 75-0 A)",
+    "land_on_balance_sheet": "Inscription des terres au bilan (ann. III art. 38 sexdecies D)",
+    "landlord_vat": "TVA du bailleur de biens ruraux (art. 260 6°)",
 }
 
 
@@ -247,6 +256,15 @@ def renounce_by(option: TaxOption, on: date | None = None) -> dict | None:
     if not rule:
         return {"date": None, "reliability": param.reliability if param else "I",
                 "note": param.note if param else "Règle de renonciation non renseignée."}
+    if rule.get("months_before_end"):                  # lot CG3.e : « n mois au moins avant l'expiration »
+        bounds = period_bounds(option, on)
+        if bounds is None:
+            return {"date": None, "reliability": param.reliability, "note": param.note}
+        month = 12 - int(rule["months_before_end"])
+        year = bounds[1] - (1 if month <= 0 else 0)
+        month = month + 12 if month <= 0 else month
+        return {"date": date(year, month, calendar.monthrange(year, month)[1]).isoformat(),
+                "reliability": param.reliability, "note": param.note}
     month, day = (int(part) for part in rule["month_day"].split("-"))
     if rule.get("year") == "fifth":
         year = option.start_date.year + 5
@@ -351,4 +369,22 @@ def meta() -> dict:
             "kinds": [{"value": k, "label": v["label"],
                        "values": [{"value": a, "label": b} for a, b in v["values"].items()]} for k, v in KINDS.items()],
             "origins": [{"value": k, "label": v} for k, v in ORIGINS.items()],
-            "options": [{"value": k, "label": v} for k, v in OPTIONS.items()]}
+            "options": [{"value": k, "label": v, "description": option_rules(k)} for k, v in OPTIONS.items()]}
+
+
+def option_rules(code: str, on: date | None = None) -> str | None:
+    """Durée, délai pour opter et renonciation d'une option, d'après les paramètres datés (lot CG3.e)."""
+    on = on or date.today()
+    parts = []
+    for suffix, label in (("duration_years", "Durée"), ("elect", "Option"), ("renounce", "Renonciation")):
+        param = reg_params.get(f"option.{code}.{suffix}", on, default=None)
+        if param is None:
+            continue
+        if suffix == "duration_years" and param.value:
+            text = f"{param.value} an(s)"
+        else:
+            text = param.note or ("à vérifier" if param.value is None else "")
+        if text:
+            flag = " (à vérifier)" if param.reliability == "I" and "vérifier" not in text else ""
+            parts.append(f"{label} : {text}{flag}")
+    return " · ".join(parts) or None

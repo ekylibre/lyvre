@@ -77,3 +77,7 @@
 - id: dep-epargne-insuffisante
   question: "Que se passe-t-il si mon épargne DEP est insuffisante ?"
   expect: {cites: ['\[ba\.(dep\.savings_min_bp|late_interest_monthly_bp)\]'], contains: ["intérêt de retard"], proposals: []}
+# Lot CG3.e : durée et renonciation des options BA.
+- id: option-reel-normal
+  question: "Pour combien de temps vaut l'option pour le réel normal en BA, et comment y renoncer ?"
+  expect: {cites: ['\[option\.ba_normal_option\.'], contains: ["2"], proposals: []}
