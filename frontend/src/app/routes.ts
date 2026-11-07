@@ -82,6 +82,7 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
   ...pages(["entries.new", "entries.edit"], () => import("../features/entries/EntryFormPage")),
   "entries.detail": () => import("../features/entries/EntryDetailPage"),
   "reports.index": () => import("../features/reports/ReportsHubPage"),
+  "documents.index": () => import("../features/documents/DocumentsPage"),
   "reports.balance": () => import("../features/reports/BalancePage"),
   "reports.grand_livre": () => import("../features/reports/GeneralLedgerPage"),
   "reports.bilan": () => import("../features/reports/BilanPage"),

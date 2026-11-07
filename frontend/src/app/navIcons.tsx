@@ -4,7 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Banknote, BookOpen, BookUser, Boxes, Briefcase, Building, Building2, Calculator, CalendarClock, CalendarRange,
   ChartLine, ChartNoAxesColumn, Clock, Coins, Contact, CreditCard, Droplets, FileChartColumn, FileChartLine, FileClock,
-  FileCog, FileHeart, FileInput, FilePenLine, FileText, FileUp, FolderKanban, Gauge, GitCompareArrows, HandCoins,
+  FileCog, FileHeart, FileInput, FilePenLine, FileText, FileUp, FolderKanban, FolderOpen, Gauge, GitCompareArrows, HandCoins,
   Handshake, Heart, HeartPulse, History, IdCard, KeyRound, Landmark, LayoutDashboard, ListChecks, ListFilter, ListTree,
   Megaphone, NotebookPen, Package, Percent, PiggyBank, Plug, Receipt, ReceiptEuro, ReceiptText, Recycle, Repeat,
   Repeat2, Ruler, Scale, ScrollText, Send, Settings, Settings2, ShieldCheck, ShoppingBag, ShoppingCart, Split, Sprout,
@@ -18,7 +18,7 @@ export const NAV_ICONS: Record<string, LucideIcon> = {
   coins: Coins, contact: Contact, "credit-card": CreditCard, droplets: Droplets, "file-chart-column": FileChartColumn,
   "file-chart-line": FileChartLine, "file-clock": FileClock, "file-cog": FileCog, "file-heart": FileHeart,
   "file-input": FileInput, "file-pen-line": FilePenLine, "file-text": FileText, "file-up": FileUp,
-  "folder-kanban": FolderKanban, gauge: Gauge, "git-compare-arrows": GitCompareArrows, "hand-coins": HandCoins,
+  "folder-kanban": FolderKanban, "folder-open": FolderOpen, gauge: Gauge, "git-compare-arrows": GitCompareArrows, "hand-coins": HandCoins,
   handshake: Handshake, heart: Heart, "heart-pulse": HeartPulse, history: History, "id-card": IdCard,
   "key-round": KeyRound, landmark: Landmark, "layout-dashboard": LayoutDashboard, "list-checks": ListChecks,
   "list-filter": ListFilter, "list-tree": ListTree, megaphone: Megaphone, "notebook-pen": NotebookPen,

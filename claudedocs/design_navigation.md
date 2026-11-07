@@ -250,3 +250,20 @@ Un commit par lot, avec les tests. Aucune migration de base (le rail est une pr�
 - **Tests** :
   - pytest : icône sur chaque entrée, pictogrammes existants, une pastille par catégorie ;
   - Vitest : `IconTile.test.tsx`, plus le rail dans `AppLayout.test.tsx`.
+
+**NV5 (07/11/2026).**
+- **Service `app/services/documents.py`** : registre de 12 sources lues dans les colonnes existantes, sans rien copier.
+  - Les sources : pièces d'achat, PDF de ventes, autofactures reçues, décomptes de coopérative, reçus fiscaux, relevés bancaires (hors relevés remplacés), quittances et pièces de signature des baux, mouvements de parts, notes de frais, feuilles de comptage, attestations RFA, FEC figés à la clôture (D-NV3).
+  - Chaque document : type, nom, date, taille (colonne, ou taille du fichier pour la seule page affichée), tiers, exercice (d'après la date), fiche d'origine, `file_url`.
+- **Droits** : `file_url` est la **route existante** de la source, avec ses contrôles ; aucune nouvelle route de fichier, aucune route générique (§ 6.2 simplifié). Tous les rôles lisent ces fiches. Mouvements de parts et notes de frais suivent l'option « associés ».
+- **API** `GET /api/v1/documents?kind=&fiscal_year=&q=&page=` :
+  - 50 documents par page, par date décroissante ;
+  - recherche sur le nom, le tiers et la fiche ;
+  - compteurs par type et par exercice (« Hors exercice » pour les dates non couvertes).
+- **Page `/documents/`** :
+  - types (pastilles) et exercices à gauche, tableau à droite ;
+  - l'aperçu PDF ou image s'ouvre dans un **tiroir** (pas en 3e colonne : la largeur de 1 200 px ne suffit pas), avec « Télécharger » et « Ouvrir la fiche ».
+- **Menu** : entrée de premier niveau « Documents » après Tiers. L'assistant connaît l'écran.
+- **Tests** :
+  - pytest : `tests/test_documents.py` (compteurs, filtres, recherche, pagination, rôle expert-comptable, option associés) ;
+  - Vitest : `DocumentsPage.test.tsx`.

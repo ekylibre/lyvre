@@ -86,6 +86,7 @@
     {"rule": "/entries/<int:entry_id>", "endpoint": "entries.detail"},
     {"rule": "/entries/<int:entry_id>/edit", "endpoint": "entries.edit"},
     {"rule": "/reports/", "endpoint": "reports.index"},
+    {"rule": "/documents/", "endpoint": "documents.index"},
     {"rule": "/reports/balance", "endpoint": "reports.balance"},
     {"rule": "/reports/grand-livre", "endpoint": "reports.grand_livre"},
     {"rule": "/reports/bilan", "endpoint": "reports.bilan"},

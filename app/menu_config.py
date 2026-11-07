@@ -256,6 +256,16 @@ MENUS = [
             {"key": "rules", "label": "Règles de catégorisation", "icon": "list-filter", "endpoint": "rules.index", "charts": _ALL},
         ],
     },
+    # ------------------------------------------------------------------ Documents
+    # Lot NV5 (claudedocs/design_navigation.md § 6) : navigateur en lecture seule des fichiers stockés.
+    {
+        "key": "documents",
+        "icon": "folder-open",
+        "label": "Documents",
+        "charts": _ALL,
+        "endpoint": "documents.index",
+        "active": ["documents"],
+    },
     # ----------------------------------------------------------------------- Odoo
     {
         "key": "odoo",

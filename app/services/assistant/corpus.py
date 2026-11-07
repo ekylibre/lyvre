@@ -24,6 +24,7 @@ SCREENS = (
     ("/entries/", "Écritures (onglets Écritures et Lettrage)"),
     ("/reports/", "Éditions comptables : balance, grand livre, bilan, compte de résultat, soldes intermédiaires de gestion"),
     ("/bank-accounts/", "Comptes bancaires et transactions"),
+    ("/documents/", "Documents : fichiers enregistrés (pièces, relevés, décomptes, quittances, FEC), en lecture"),
     ("/assets/", "Immobilisations et biens vivants"),
     ("/configuration/organization/?tab=tax", "Structure › Fiscalité (régimes, options)"),
     ("/configuration/organization/?tab=agri", "Structure › Activités et démarches (profil agricole)"),
