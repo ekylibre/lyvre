@@ -511,6 +511,17 @@ Le statut visé pour MA-01 à MA-05 et MA-07 est `publie`, grâce aux sources d�
 - **MA-10 Aides au vignoble** (à confirmer) : PCG art. 312-1 relu. Conditions de l'aide FranceAgriMer non trouvées. La page de l'aide à l'arrachage définitif 2026 est citée.
 - Bilan : 10 fiches, dont 7 publiées et 3 à confirmer (MA-05, MA-06, MA-10). Corpus d'environ 24 000 tokens. 5 questions d'évaluation ajoutées, dont la question piège du « 1er février ».
 
+## 7.6 quinquies Réalisé (CG4.d, 07/11/2026) : passage réel du jeu d'évaluation
+
+- Base jetable (`scripts/assistant_eval_env.py`, instance « essai-agri »), modèle claude-haiku-5-5, une exécution par cas.
+- **33 questions sur 33 réussies (100 %)**, coût estimé à 0,068 $.
+- Les 11 cas des lots CG1 à CG4 (conjoint collaborateur, à-valoir, SMA, intérêt de retard, option réel normal, 10 fiches de méthode, question piège du « 1er février ») citent la bonne fiche ou le bon paramètre.
+- Relecture de trois réponses :
+  - 72 B bis : non-cumul avec 75-0 B, avec l'anomalie de clôture rappelée ;
+  - entraide : pas de TVA, remboursement de frais seul comptabilisé ;
+  - piège : le « 1er février » est déclaré périmé, avec renvoi au délai de déclaration.
+- **Remarque d'outillage** : `run_assistant_evals.py` ne charge pas `.env`. Il faut exporter `ANTHROPIC_API_KEY` avant de le lancer, sinon il répond « intégration indisponible ».
+
 ## 7.7 Questions
 - **D-CG4.1** ✅ *Accepté le 07/11/2026 : chargeur générique, fiches agri seules.* Les fiches de méthode sont-elles réservées aux instances agricoles (référentiel `agri`), ou faut-il préparer dès maintenant les fiches A, C, D et S de la base documentaire avec le même chargeur ? Proposition : chargeur générique, et seules les fiches `agri` livrées dans CG4.
 - **D-CG4.2** ✅ *Accepté le 07/11/2026.* Faut-il relire les fiches avec l'expert-comptable avant de les passer en `publie` ? Proposition : `publie` dès que la source primaire est relue, revue par l'expert-comptable à la fin de CG4, le champ `verifie_par` notant qui a relu.
