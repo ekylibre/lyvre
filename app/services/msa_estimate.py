@@ -82,10 +82,69 @@ def _fmt(cents: int) -> str:
     return f"{cents / 100:,.0f} €".replace(",", " ")
 
 
+def collaborator(year: int, atexa_category: str | None = None, secondary: bool = False) -> dict:
+    """Lot CG5.f : collaborateur d'exploitation, cotisations sur assiettes forfaitaires (barème MSA 2026) : retraite de
+    base sur 600 SMIC, RCO sur 1 200 SMIC, invalidité et IJ forfaitaires, ATEXA propre, VIVEA « membres de la famille » ;
+    ni AMEXA, ni prestations familiales, ni CSG (pas de revenu professionnel propre)."""
+    keys = ("msa.smic_hour_cents", "msa.pass_cents", "msa.rco.rate_bp", "msa.ij.amount_cents",
+            "msa.collaborator.pension_rates", "msa.collaborator.pension_base_smic", "msa.collaborator.rco_base_smic",
+            "msa.collaborator.invalidity_cents", "msa.collaborator.atexa.amounts", "msa.family.vivea_pass_bp")
+    on = date(year, 1, 1)
+    p = {k: reg_params.value(k, on, None) for k in keys}
+    warning = None
+    if any(v is None for v in p.values()):
+        latest = max((x.valid_from for x in reg_params.history("msa.collaborator.pension_rates")), default=None)
+        if latest is None:
+            return {"available": False, "reason": "Barème du collaborateur non paramétré."}
+        p = {k: reg_params.value(k, latest, None) for k in keys}
+        if any(v is None for v in p.values()):
+            return {"available": False, "reason": "Barème du collaborateur incomplet."}
+        warning = f"Barème {year} non publié : barème {latest.year} appliqué."
+    smic, kind = p["msa.smic_hour_cents"], "secondary" if secondary else "principal"
+    lines = []
+
+    def add(key, label, amount, detail, group="cotisations"):
+        lines.append({"key": key, "label": label, "amount_cents": int(amount), "detail": detail, "group": group,
+                      "deductible": True})
+
+    pension_base = p["msa.collaborator.pension_base_smic"] * smic
+    rate = p["msa.collaborator.pension_rates"][kind]
+    add("pension", "Retraite de base (forfaitaire)", round(pension_base * rate / 10000),
+        f"{rate / 100:.2f} % de {_fmt(pension_base)} ({p['msa.collaborator.pension_base_smic']} SMIC)")
+    rco_base = p["msa.collaborator.rco_base_smic"] * smic
+    add("rco", "Retraite complémentaire (RCO)", round(rco_base * p["msa.rco.rate_bp"] / 10000),
+        f"{p['msa.rco.rate_bp'] / 100:.2f} % de {_fmt(rco_base)} ({p['msa.collaborator.rco_base_smic']} SMIC)")
+    add("invalidity", "Invalidité", p["msa.collaborator.invalidity_cents"], "forfait")
+    if not secondary:
+        add("ij", "Indemnités journalières AMEXA", p["msa.ij.amount_cents"], "forfait")
+    amounts = p["msa.collaborator.atexa.amounts"].get(kind) or []
+    if atexa_category in ATEXA_CATEGORIES and len(amounts) == 5:
+        add("atexa", f"Accidents du travail (ATEXA, catégorie {atexa_category})",
+            amounts[ATEXA_CATEGORIES.index(atexa_category)], "forfait du collaborateur")
+    add("vivea", "Formation professionnelle (VIVEA)", round(p["msa.pass_cents"] * p["msa.family.vivea_pass_bp"] / 10000),
+        f"{p['msa.family.vivea_pass_bp'] / 100:.2f} % du PASS", "third_party")
+    warnings = [w for w in (warning,) if w]
+    if atexa_category not in ATEXA_CATEGORIES:
+        warnings.append("Catégorie de risques ATEXA à choisir : cotisation non comptée.")
+    warnings.append("Statut de collaborateur limité à 5 ans ; fin au 31/12/2026 pour un conjoint déjà collaborateur au "
+                    "01/01/2022 [SOC-06].")
+    total = sum(l["amount_cents"] for l in lines)
+    return {"available": True, "year": year, "base_cents": None, "status": "collaborator", "lines": lines,
+            "totals": {"total_cents": total,
+                       "contributions_cents": sum(l["amount_cents"] for l in lines if l["group"] == "cotisations"),
+                       "csg_crds_cents": 0, "non_deductible_cents": 0,
+                       "third_party_cents": sum(l["amount_cents"] for l in lines if l["group"] == "third_party")},
+            "warnings": warnings,
+            "notes": ["Collaborateur : assiettes forfaitaires du barème NSA de la MSA, sans revenu propre ; le montant "
+                      "appelé par la caisse fait foi."]}
+
+
 def estimate(base: int | None, year: int, status: str = "principal", atexa_category: str | None = None) -> dict:
     """Cotisations et contributions estimées de l'année `year` sur l'assiette `base` (centimes)."""
+    if status == "collaborator":                       # lot CG5.f : assiettes forfaitaires, sans revenu propre
+        return collaborator(year, atexa_category)
     if status not in ("principal", "secondary"):
-        return {"available": False, "reason": "Estimation réservée aux chefs d'exploitation (statut du collaborateur non couvert)."}
+        return {"available": False, "reason": "Statut non couvert par l'estimation."}
     if base is None:
         return {"available": False, "reason": f"Assiette des cotisations {year} inconnue : historique des assiettes à compléter."}
     p, warning = _params(year)

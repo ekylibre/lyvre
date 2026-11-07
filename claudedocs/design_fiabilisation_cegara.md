@@ -643,6 +643,18 @@ Sources des décisions : réponses Q5 bis, Q6, Q8, Q8 bis et Q8 ter (`fiabilisat
   - cotisant de solidarité : estimation simple (taux sur les revenus N-1, plus l'ATEXA forfaitaire), si le taux est trouvé.
 - La **rente du sol** reste un rappel ([SOC-03]) : son calcul demande les revenus cadastraux, hors de Lyvre.
 
+- **Réalisé, collaborateur (07/11/2026, D-CG5.3)** :
+  - valeurs lues dans le barème NSA 2026 de la MSA : retraite de base 14,87 % (principal) ou 13,05 % (secondaire) sur 600 SMIC ; RCO 4 % sur 1 200 SMIC ; invalidité 41 € ; IJ 250 € (principal) ; ATEXA du collaborateur par catégorie ; VIVEA 0,17 % du PASS ; ni AMEXA, ni prestations familiales, ni CSG ;
+  - paramètres `msa.collaborator.*` et `msa.family.vivea_pass_bp` (V) ;
+  - `msa_estimate.collaborator()` : le statut `collaborator` n'est plus refusé ;
+  - calculette 17 : statut « collaborateur », assiette facultative ;
+  - fiche MA-07 complétée.
+- **Reste à faire en CG5.f** :
+  - nouveaux installés (assiettes forfaitaires 600, 800 et 1 820 SMIC, 11,5 % du PASS, déjà lues dans le barème) ;
+  - exonération JA (le barème 2026 donne le tableau dégressif : 55 %, 35 %, 25 %, 15 % de la 2e à la 5e année, avec plafonds en euros ; CRPM L.731-13 à relire) ;
+  - ACRE (CSS L.131-6-4, à lire) ;
+  - cotisant de solidarité (14 %, assiette forfaitaire de 100 SMIC, ATEXA 72,95 €, VIVEA 0,17 % du PASS, déjà lus).
+
 ## 8.7 Étapes et migrations
 
 | Étape | Migration | Sources à relire avant | Taille |

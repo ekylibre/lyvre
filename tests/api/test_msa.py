@@ -283,7 +283,8 @@ def test_estimate_lines(farm):
     assert "invalidity" not in high
     later = msa_estimate.estimate(3000000, 2027, "principal", "A")
     assert later["available"] and "barème 2026 appliqué" in later["warnings"][0]
-    assert msa_estimate.estimate(3000000, 2026, "collaborator")["available"] is False
+    assert msa_estimate.estimate(3000000, 2026, "collaborator")["available"] is True        # lot CG5.f
+    assert msa_estimate.estimate(3000000, 2026, "unknown")["available"] is False
 
 
 def test_estimate_in_view(farm):
@@ -325,3 +326,21 @@ def test_micro_ba_has_no_computed_base_cg3c(farm):
     db.session.commit()
     body = farm["client"].get(f"{farm['url']}/msa").get_json()["item"]
     assert body["people"] == [] and "Micro-BA" in body["reason"] and "87 %" in body["reason"]
+
+
+def test_collaborator_estimate_cg5f(farm):
+    """Lot CG5.f (barème NSA 2026) : collaborateur sur assiettes forfaitaires. SMIC 12,02 € : 600 SMIC = 7 212 €,
+    1 200 SMIC = 14 424 € ; PASS 48 060 €."""
+    from app.services import calculators, msa_estimate
+    data = msa_estimate.estimate(None, 2026, "collaborator", "A")
+    lines = {l["key"]: l["amount_cents"] for l in data["lines"]}
+    assert lines == {"pension": 107242, "rco": 57696, "invalidity": 4100, "ij": 25000, "atexa": 20307, "vivea": 8170}
+    assert data["totals"]["csg_crds_cents"] == 0 and any("SOC-06" in w for w in data["warnings"])
+    second = msa_estimate.collaborator(2026, "A", secondary=True)
+    assert {l["key"]: l["amount_cents"] for l in second["lines"]}["pension"] == 94117 and "ij" not in {
+        l["key"] for l in second["lines"]}                                       # 13,05 % ; pas d'IJ
+    module = calculators.get("msa")
+    result = calculators.run(module, {"year": "2026", "status": "collaborator", "atexa": "A"})
+    assert result["headline"][0]["value"].replace(" ", " ") == "2 225,15 €"
+    with pytest.raises(calculators.CalculatorError):
+        calculators.run(module, {"year": "2026", "status": "principal"})

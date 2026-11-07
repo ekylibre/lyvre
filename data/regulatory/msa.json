@@ -312,6 +312,90 @@
    "verified_on": "2026-11-05",
    "reliability": "A",
    "note": "FMSE : cotisation commune par exploitant (hors cotisations complémentaires par production)"
+  },
+  {
+   "key": "msa.collaborator.pension_rates",
+   "value": {
+    "principal": 1487,
+    "secondary": 1305
+   },
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026 (annexe du 25/02/2026)",
+   "verified_on": "2026-11-07",
+   "reliability": "V",
+   "note": "Retraite de base du collaborateur : 14,15 % + 0,72 % (principal), 12,33 % + 0,72 % (secondaire) (lot CG5.f)."
+  },
+  {
+   "key": "msa.collaborator.pension_base_smic",
+   "value": 600,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026 (annexe du 25/02/2026)",
+   "verified_on": "2026-11-07",
+   "reliability": "V",
+   "note": "Assiette forfaitaire de la retraite de base du collaborateur : 600 SMIC."
+  },
+  {
+   "key": "msa.collaborator.rco_base_smic",
+   "value": 1200,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026 (annexe du 25/02/2026)",
+   "verified_on": "2026-11-07",
+   "reliability": "V",
+   "note": "Assiette forfaitaire de la RCO du collaborateur : 1 200 SMIC (taux msa.rco.rate_bp)."
+  },
+  {
+   "key": "msa.collaborator.invalidity_cents",
+   "value": 4100,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026 (annexe du 25/02/2026)",
+   "verified_on": "2026-11-07",
+   "reliability": "V",
+   "note": "Invalidité du collaborateur : 41 € (2/3 de la cotisation minimum du chef)."
+  },
+  {
+   "key": "msa.collaborator.atexa.amounts",
+   "value": {
+    "principal": [
+     20307,
+     21201,
+     19838,
+     21563,
+     21563
+    ],
+    "secondary": [
+     10154,
+     10601,
+     9919,
+     10782,
+     10782
+    ]
+   },
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026 (annexe du 25/02/2026)",
+   "verified_on": "2026-11-07",
+   "reliability": "V",
+   "note": "ATEXA du collaborateur par catégorie A à E (principal ; secondaire)."
+  },
+  {
+   "key": "msa.family.vivea_pass_bp",
+   "value": 17,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026 (annexe du 25/02/2026)",
+   "verified_on": "2026-11-07",
+   "reliability": "V",
+   "note": "VIVEA des membres de la famille et des cotisants de solidarité : 0,17 % du PASS."
   }
  ]
 }

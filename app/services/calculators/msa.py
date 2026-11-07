@@ -13,9 +13,11 @@ SPEC = Spec(
             "une assiette donnée.",
     inputs=[
         Input("year", "Année des cotisations", "integer"),
-        Input("base", "Assiette des cotisations", "money", "€", help="Assiette annuelle ou moyenne triennale retenue"),
+        Input("base", "Assiette des cotisations", "money", "€", required=False,
+              help="Assiette annuelle ou moyenne triennale retenue (sans objet pour le collaborateur)"),
         Input("status", "Statut", "choice", choices=[("principal", "Chef d'exploitation à titre principal"),
-                                                     ("secondary", "À titre secondaire")], default="principal"),
+                                                     ("secondary", "À titre secondaire"),
+                                                     ("collaborator", "Collaborateur d'exploitation")], default="principal"),
         Input("atexa", "Catégorie ATEXA", "choice", required=False,
               choices=[(c, f"Catégorie {c}") for c in msa_estimate.ATEXA_CATEGORIES], help="Indiquée sur l'avis MSA"),
     ],
@@ -68,6 +70,8 @@ def prefill(ctx: Context) -> dict:
 
 
 def compute(values: dict, on: date) -> Result:
+    if values["status"] != "collaborator" and values["base"] is None:
+        raise CalculatorError("Assiette des cotisations à saisir.", "base")
     data = msa_estimate.estimate(values["base"], values["year"], values["status"], values["atexa"])
     if not data["available"]:
         raise CalculatorError(data["reason"], status=409)
