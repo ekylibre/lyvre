@@ -168,3 +168,23 @@ def test_simple_mode_and_accountant(app, login_as):
     Instance.query.one().bookkeeping = "simple"
     db.session.commit()
     assert client.get(f"/api/v1/fiscal-years/{fy.id}/stock").status_code == 404
+
+
+def test_depreciation_suggestion_cg5b(farm):
+    """Lot CG5.b (BOI-BA-BASE-20-20-20-10 § 90, § 320) : cours du jour inférieur au prix de revient → provision proposée."""
+    from app.services import closing
+    body = _line(farm, account_code="35511", label="Blé", quantity="10", unit="t", method="actual",
+                 unit_value_cents=18000, market_price_cents=16000)
+    item = _item(body, "Blé")
+    assert item["depreciation_suggested_cents"] == 20000                           # 10 t × (180 − 160) €
+    assert not any("provision" in w for w in item["warnings"])                     # pas une ligne « à compléter »
+    checks = {c.key: c for c in closing._agri_checks(farm["fy"])}
+    assert checks["stock_depreciation_missing"].count == 1 and checks["stock_depreciation_missing"].severity == "info"
+    line = StockLine.query.filter_by(label="Blé").one()
+    body = farm["client"].put(f"{farm['url']}/lines/{line.id}", json={
+        "depreciation_cents": 20000, "depreciation_reason": inv.DEPRECIATION_REASON}).get_json()
+    assert _item(body, "Blé")["depreciation_suggested_cents"] is None
+    assert "stock_depreciation_missing" not in {c.key for c in closing._agri_checks(farm["fy"])}
+    high = _line(farm, account_code="35511", label="Orge", quantity="10", unit="t", method="actual",
+                 unit_value_cents=15000, market_price_cents=17000)
+    assert _item(high, "Orge")["depreciation_suggested_cents"] is None             # cours au-dessus du prix de revient

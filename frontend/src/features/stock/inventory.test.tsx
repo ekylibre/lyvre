@@ -74,4 +74,17 @@ describe("Inventaire de clôture", () => {
     await userEvent.click(await screen.findByText("Cognac"));
     expect(await screen.findByRole("checkbox", { name: /Rotation de plus d'un an/ })).toBeChecked();
   });
+
+  it("provision proposée quand le cours du jour est inférieur au prix de revient (lot CG5.b)", async () => {
+    const view = { ...VIEW, item: { ...VIEW.item, items: [{ ...LINE, label: "Blé", market_price_cents: 16000, unit_value_cents: 18000,
+      depreciation_suggested_cents: 20000 }] } };
+    vi.spyOn(globalThis, "fetch").mockImplementation(((url: string) => json(String(url).includes("/stock")
+      ? view : { items: [{ id: 7, label: "2026", status: "open", start_date: "2026-01-01", end_date: "2026-12-31" }] })) as typeof globalThis.fetch);
+    renderWithProviders(<InventoryPage />, { route: "/inventory/",
+      session: { ...TEST_SESSION, role: "admin" as const, permissions: { write: true, instance_admin: true } } });
+    await userEvent.click(await screen.findByText("Blé"));
+    expect(await screen.findByText(/provision de/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Reprendre la provision" }));
+    expect(screen.getByLabelText("Motif de la dépréciation")).toHaveValue("Cours du jour inférieur au prix de revient");
+  });
 });

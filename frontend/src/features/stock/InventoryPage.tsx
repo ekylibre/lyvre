@@ -33,7 +33,7 @@ export interface StockLineItem {
   standard: { id: number; label: string; value_cents: number; unit: string; year: number } | null;
   market_price_cents: number | null; price_source: string | null; price_reference: string | null; flat_rate: string | null;
   unit_value_cents: number | null; value_cents: number | null; depreciation_cents: number | null;
-  depreciation_reason: string | null; notes: string | null; warnings: string[]; purchase_account: string | null;
+  depreciation_reason: string | null; depreciation_suggested_cents?: number | null; notes: string | null; warnings: string[]; purchase_account: string | null;
   lot_id: number | null; heads: number | null; gap_reason: string | null; crop_advance_id: number | null; cow_category?: string | null;
   fiscal: { fiscal_method: string; fiscal_value_cents: number | null; gap_cents: number | null; warnings: string[]; allowed: string[];
     fiscal_reason: string | null; manual_cents: number | null; slow_rotation?: boolean | null; slow?: boolean; freezable?: boolean;
@@ -142,6 +142,12 @@ function LineForm({ view, line, onDone }: { view: StockView; line: StockLineItem
             {method === "flat" && <Select label="Décote forfaitaire" data={view.meta.flat_rates} value={String(d.flat_rate ?? "general")}
               allowDeselect={false} onChange={(v) => set({ flat_rate: v })} />}
           </>)}
+        {line?.depreciation_suggested_cents && !d.depreciation_cents ? (
+          <Alert color="paille">
+            Cours du jour inférieur au prix de revient : provision de <MoneyText cents={line.depreciation_suggested_cents} /> à constater.{" "}
+            <Button size="compact-xs" variant="light" onClick={() => set({ depreciation_cents: line.depreciation_suggested_cents ?? null,
+              depreciation_reason: "Cours du jour inférieur au prix de revient" })}>Reprendre la provision</Button>
+          </Alert>) : null}
         <Group grow>
           <MoneyInput label="Dépréciation" value={(d.depreciation_cents as number | null) ?? null} onChange={(v) => set({ depreciation_cents: v })} />
           <TextInput label="Motif de la dépréciation" value={String(d.depreciation_reason ?? "")} onChange={(e) => set({ depreciation_reason: e.currentTarget.value })} />

@@ -188,6 +188,10 @@ def checks(fy: FiscalYear) -> list[tuple[str, str, int, str]]:
     if incomplete:
         out.append(("stock_warnings", "Lignes d'inventaire à compléter ou à vérifier (valeur, décote, écart d'effectif…)",
                     len(incomplete), "info"))
+    below = [line for line in lines if inv.depreciation_suggestion(line, fy)]      # lot CG5.b
+    if below:
+        out.append(("stock_depreciation_missing", "Cours du jour inférieur au prix de revient sans dépréciation : "
+                    "provision à constater (BOI-BA-BASE-20-20-20-10 § 320)", len(below), "info"))
     moved = (db.session.query(func.count(JournalLine.id))
              .join(JournalEntry, JournalEntry.id == JournalLine.entry_id)
              .join(Account, Account.id == JournalLine.account_id)

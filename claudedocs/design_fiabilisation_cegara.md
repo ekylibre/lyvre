@@ -556,6 +556,12 @@ Sources des décisions : réponses Q5 bis, Q6, Q8, Q8 bis et Q8 ter (`fiabilisat
   - bouton qui remplit `depreciation_cents` avec l'écart, motif « cours du jour < prix de revient ». L'utilisateur valide.
 - **Contrôle de clôture** `stock_depreciation_missing` (information), avec le nombre de lignes.
 
+- **Réalisé (07/11/2026)** :
+  - `stock_inventory.depreciation_suggestion()` renvoie la provision proposée (`depreciation_suggested_cents` dans les données de la ligne). Elle ne passe pas par les avertissements, pour ne pas compter la ligne « à compléter » ;
+  - contrôle `stock_depreciation_missing` ;
+  - bouton « Reprendre la provision » dans le formulaire de la ligne ;
+  - fiche MA-01 mise à jour.
+
 ## 8.3 CG5.c Stock d'ouverture guidé au passage au réel (Q6)
 
 - **Source à relire avant de coder** : BOI-BA-REG-40-10-10 (§ 190 et suivants), BOI-BA-REG-40-10-20, BOI-BA-REG-40-20 et BOI-BA-REG-40-30, cités en renvoi par BOI-BA-BASE-20-20-20-10 § 330. Tant qu'ils ne sont pas lus, la règle d'évaluation reste « à valider ».

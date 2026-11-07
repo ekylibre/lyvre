@@ -264,6 +264,23 @@ def evaluate(line: StockLine, fy: FiscalYear, discount_map: dict | None = None) 
     return unit, value, warnings
 
 
+DEPRECIATION_REASON = "Cours du jour inférieur au prix de revient"
+
+
+def depreciation_suggestion(line: StockLine, fy: FiscalYear, unit: int | None = None) -> int | None:
+    """Lot CG5.b (BOI-BA-BASE-20-20-20-10 § 90 et § 320) : provision à constater quand le cours du jour est inférieur
+    au prix de revient d'une ligne au coût réel ou au barème, sans dépréciation saisie. La méthode forfaitaire exclut la
+    provision (BOI-BA-BASE-20-20-20-20 § 50) ; le prix de détail est déjà un prix de marché."""
+    if line.method not in ("actual", "standard") or line.market_price_cents is None or line.depreciation_cents:
+        return None
+    if unit is None:
+        unit = evaluate(line, fy)[0]
+    if unit is None or line.market_price_cents >= unit:
+        return None
+    gap = _times(Decimal(line.quantity or 0), unit - line.market_price_cents)
+    return gap or None
+
+
 def price_warnings(line: StockLine) -> list[str]:
     ref = price_references()["by_key"].get(line.price_reference or "")
     if ref is None or line.market_price_cents is None:
@@ -637,6 +654,7 @@ def line_payload(line: StockLine, fy: FiscalYear, discount_map: dict) -> dict:
             "price_reference": line.price_reference, "flat_rate": line.flat_rate,
             "unit_value_cents": unit if line.method != "actual" else line.unit_value_cents, "value_cents": value,
             "depreciation_cents": line.depreciation_cents, "depreciation_reason": line.depreciation_reason,
+            "depreciation_suggested_cents": depreciation_suggestion(line, fy, unit),
             "notes": line.notes, "warnings": warnings, "lot_id": line.lot_id, "heads": line.heads,
             "crop_advance_id": line.crop_advance_id, "fiscal": _fiscal(line, fy), "cow_category": line.cow_category,
             "gap_reason": line.gap_reason,
