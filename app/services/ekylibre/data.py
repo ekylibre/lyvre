@@ -15,7 +15,9 @@ TABLES = {
     "journal_entry_items", "purchases", "purchase_items", "sales", "sale_items", "outgoing_payments",
     "incoming_payments", "incoming_payment_modes", "affairs", "cashes", "bank_statements",
     "bank_statement_items", "attachments", "documents", "associates", "fixed_assets", "taxes",
+    "preferences",   # lot RE1 : référentiel détecté (accounting_system, fiscal_position)
 }
+WIDE_START, WIDE_UNTIL = date(1900, 1, 1), date(2999, 12, 31)   # chargement avant la détection de la période
 
 
 def cents(value) -> int:
@@ -73,6 +75,20 @@ class EkyData:
 
     def get(self, table, row_id):
         return self.by_id[table].get(row_id) if row_id else None
+
+    def preference(self, name: str):
+        row = next((p for p in self.rows.get("preferences", []) if p.get("name") == name and not p.get("user_id")), None)
+        if row is None:
+            return None
+        return next((row.get(k) for k in ("string_value", "integer_value", "decimal_value", "boolean_value")
+                     if row.get(k) is not None), None)
+
+    def own_company(self) -> dict | None:
+        """Fiche de la structure (« of_company »)."""
+        return next((e for e in self.rows["entities"] if e.get("of_company") == "t"), None)
+
+    def set_period(self, start: date, until: date) -> None:
+        self.start, self.until = start, until
 
     def account_number(self, account_id) -> str | None:
         account = self.get("accounts", account_id)

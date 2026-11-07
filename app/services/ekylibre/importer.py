@@ -37,6 +37,7 @@ class Context:
     chart: Chart
     accounts_plan: dict[str, AccountTarget]
     entities_plan: dict[str, EntityTarget]
+    profile: object = None                                            # profil de restauration (lot RE1)
     accounts: dict[str, Account] = field(default_factory=dict)        # numéro Ekylibre → compte Lyvre
     entities: dict[str, Entity] = field(default_factory=dict)         # id Ekylibre → tiers
     journals: dict[str, Journal] = field(default_factory=dict)        # code Lyvre → journal
@@ -82,7 +83,8 @@ def step_structure(ctx: Context) -> None:
             continue
         label = fy["code"].replace("EX", "") if fy.get("code") else str(end.year)
         existing = FiscalYear.query.filter_by(start_date=start, end_date=end).first()
-        ctx.years[fy["id"]] = existing or FiscalYear(label=label, start_date=start, end_date=end, vat_liable=False)
+        ctx.years[fy["id"]] = existing or FiscalYear(label=label, start_date=start, end_date=end,
+                                                     vat_liable=not ctx.profile.absorb_purchase_vat)
         db.session.add(ctx.years[fy["id"]])
     for entry in data.entries():
         code = map_journal(data.journal_code(entry["journal_id"]))
@@ -196,7 +198,8 @@ def _vat_plan(ctx: Context) -> dict[str, int]:
 
 def step_entries(ctx: Context) -> None:
     data = ctx.data
-    ctx.deltas = Counter(_vat_plan(ctx))
+    ctx.deltas = Counter(_vat_plan(ctx)) if ctx.profile.absorb_purchase_vat else Counter()
+    years = {fy["id"]: fy for fy in data.rows["financial_years"]}
     confirmed = defaultdict(list)
     for entry in data.entries():
         code = data.journal_code(entry["journal_id"])
@@ -221,7 +224,7 @@ def step_entries(ctx: Context) -> None:
         ctx.entries[entry["id"]] = created
         for item_id, line in zip(kept, sorted(created.lines, key=lambda l: l.id)):
             ctx.lines[item_id] = line
-        if entry.get("state") in ("confirmed", "closed"):
+        if ctx.profile.should_validate(entry, years.get(entry["financial_year_id"])):
             confirmed[fy.id].append(created)
         ctx.stats["entries"] += 1
     for fy_id, entries in confirmed.items():
@@ -495,7 +498,7 @@ def step_assets(ctx: Context) -> None:
         account = ctx.accounts.get(number)
         if account is None:
             raise ImportFailure(f"Immobilisation {row['name']} : compte {number} non repris.")
-        is_land = any(w in (row["name"] or "").lower() for w in LAND_WORDS)
+        is_land = ctx.profile.land_reclass and any(w in (row["name"] or "").lower() for w in LAND_WORDS)
         target = _land_account(ctx) if is_land and account.code.startswith("213") else account
         amount = cents(row["depreciable_amount"])
         assets_service.save(None, {"label": row["name"], "account_id": target.id, "acquired_on": row["started_on"],
@@ -570,7 +573,7 @@ def step_attachments(ctx: Context, source, year_from: int) -> None:
 
 
 def company(data: EkyData) -> dict | None:
-    return next((e for e in data.rows["entities"] if e.get("of_company") == "t"), None)
+    return data.own_company()
 
 
 def step_organization(ctx: Context) -> None:
@@ -724,9 +727,12 @@ def step_rules(ctx: Context, source) -> None:
     db.session.flush()
 
 
-def run(data: EkyData, accounts_plan, entities_plan, chart: Chart, source=None, attachments_from: int | None = None) -> Context:
-    """Étapes K2-K3 dans la base courante, sans commit (l'appelant valide ou annule le tout)."""
-    ctx = Context(data, chart, accounts_plan, entities_plan)
+def run(data: EkyData, accounts_plan, entities_plan, chart: Chart, source=None, attachments_from: int | None = None,
+        profile=None) -> Context:
+    """Étapes K2-K3 dans la base courante, sans commit (l'appelant valide ou annule le tout).
+    `profile` : profil de restauration (défaut : reprise de la SCI, à l'identique)."""
+    from app.services.ekylibre import profile as profiles
+    ctx = Context(data, chart, accounts_plan, entities_plan, profile or profiles.sci(data.start, data.until))
     step_structure(ctx)
     step_organization(ctx)
     step_associates(ctx)

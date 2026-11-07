@@ -9,15 +9,16 @@ from app.services.ekylibre.mapping import (
 )
 
 
-def plan(data: EkyData, chart: Chart) -> dict:
+def plan(data: EkyData, chart: Chart, profile=None) -> dict:
     """Correspondances calculées sans rien écrire (analyse à blanc et préparation de l'import)."""
     numbers = {data.account_number(i["account_id"]) for e in data.entries() for i in data.items_by_entry[e["id"]]}
     for entity in data.rows["entities"]:
         for key in ("supplier_account_id", "client_account_id"):
             if entity["id"] in data.entities_used() and data.account_number(entity.get(key)):
                 numbers.add(data.account_number(entity.get(key)))
-    accounts = map_accounts(data, chart, {n for n in numbers if n})
-    entities = map_entities(data, accounts)
+    absorb = profile.absorb_purchase_vat if profile is not None else True
+    accounts = map_accounts(data, chart, {n for n in numbers if n}, absorb_vat=absorb)
+    entities = map_entities(data, accounts, dedupe=profile is not None and profile.dedupe_entity_names)
     journals = Counter(data.journal_code(e["journal_id"]) for e in data.entries())
     return {"accounts": accounts, "entities": entities,
             "journals": {code: (map_journal(code), n) for code, n in sorted(journals.items())}}
@@ -30,14 +31,17 @@ def _table(headers, rows) -> list[str]:
 
 
 def render(data: EkyData, mapping: dict, results: list[checks_module.Check], source: str, dry_run: bool,
-           imported=None) -> str:
+           imported=None, profile=None) -> str:
     accounts: dict[str, AccountTarget] = mapping["accounts"]
     entities: dict[str, EntityTarget] = mapping["entities"]
     entries = data.entries()
     out = [f"# Rapport de reprise Ekylibre — {'analyse à blanc' if dry_run else 'import'}", "",
            f"- Source : `{source}`",
            f"- Période : du {data.start:%d/%m/%Y} au {data.until:%d/%m/%Y}",
-           f"- Produit le {datetime.now():%d/%m/%Y %H:%M}", "", "## Volumes", ""]
+           f"- Produit le {datetime.now():%d/%m/%Y %H:%M}"]
+    if profile is not None and not profile.is_sci:
+        out += [f"- {line}" for line in profile.describe()]
+    out += ["", "## Volumes", ""]
     out += _table(["Élément", "Nombre"], [
         ("Écritures (dont à-nouveaux)", len(entries)),
         ("Lignes d'écriture", sum(len(data.items_by_entry[e["id"]]) for e in entries)),
@@ -62,10 +66,11 @@ def render(data: EkyData, mapping: dict, results: list[checks_module.Check], sou
     out += ["", "## Journaux", ""]
     out += _table(["Ekylibre", "Lyvre", "Écritures"], [(k, v[0], v[1]) for k, v in mapping["journals"].items()])
     by_action = Counter(t.action for t in accounts.values())
+    chart_name = profile.chart if profile is not None else "sci"
     out += ["", "## Comptes", "",
-            f"{len(accounts)} compte(s) mouvementé(s) : {by_action['existing']} existant(s) dans le plan SCI, "
-            f"{by_action['create']} à créer, {by_action['associate']} compte(s) d'associé, "
-            f"{by_action['vat']} compte(s) de TVA absorbé(s) dans les achats.", ""]
+            f"{len(accounts)} compte(s) mouvementé(s) : {by_action['existing']} existant(s) dans le plan {chart_name.upper() if chart_name == 'sci' else chart_name}, "
+            f"{by_action['create']} à créer, {by_action['associate']} compte(s) d'associé"
+            + (f", {by_action['vat']} compte(s) de TVA absorbé(s) dans les achats." if by_action["vat"] else "."), ""]
     out += _table(["Ekylibre", "Libellé", "Lyvre", "Action", "Rattaché à"],
                   [(t.eky_number, t.eky_label, t.code, t.action, t.parent or "") for t in
                    sorted(accounts.values(), key=lambda t: t.code)])
@@ -76,9 +81,10 @@ def render(data: EkyData, mapping: dict, results: list[checks_module.Check], sou
     if imported is not None:
         out += ["", "## Import", ""]
         out += _table(["Élément", "Nombre"], sorted(imported.stats.items()))
-        out += ["", f"TVA intégrée à la charge : {len(imported.vat_corrections)} écriture(s), "
-                f"{sum(v for _n, v in imported.vat_corrections) / 100:.2f} €.", ""]
-        out += _table(["Écriture", "TVA intégrée"], [(n, f"{v / 100:.2f} €") for n, v in imported.vat_corrections])
+        if imported.vat_corrections:
+            out += ["", f"TVA intégrée à la charge : {len(imported.vat_corrections)} écriture(s), "
+                    f"{sum(v for _n, v in imported.vat_corrections) / 100:.2f} €.", ""]
+            out += _table(["Écriture", "TVA intégrée"], [(n, f"{v / 100:.2f} €") for n, v in imported.vat_corrections])
         out += ["", "Contrôle : balance Lyvre = balance Ekylibre de la période, corrections de TVA comprises (aucun écart).", ""]
         if imported.attachments:
             out += ["### Pièces reprises", ""]
@@ -91,8 +97,11 @@ def render(data: EkyData, mapping: dict, results: list[checks_module.Check], sou
             out += _table(["Motif", "Raison"], imported.rules_skipped)
         out.append("")
         out += ["### Remarques", ""] + [f"- {note}" for note in imported.notes]
-    out += ["", "## Corrections prévues", "",
-            "- TVA déductible des achats intégrée à la charge (EK3) : voir le contrôle « TVA ».",
-            "- Reclassement des terrains (Bois, Terres) du 2131 au 211 au "
-            f"{data.start:%d/%m/%Y}, en brouillard (EK6).", ""]
+    corrections = []
+    if profile is None or profile.absorb_purchase_vat:
+        corrections.append("- TVA déductible des achats intégrée à la charge (EK3) : voir le contrôle « TVA ».")
+    if profile is None or profile.land_reclass:
+        corrections.append("- Reclassement des terrains (Bois, Terres) du 2131 au 211 au "
+                           f"{data.start:%d/%m/%Y}, en brouillard (EK6).")
+    out += ["", "## Corrections prévues", ""] + (corrections or ["Aucune."]) + [""]
     return "\n".join(out) + "\n"
