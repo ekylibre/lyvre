@@ -58,10 +58,11 @@ def _dep_view(fy):
     from app.services import dep
 
     data = tax_result.view(fy)
-    base = data.get("fiscal_result_before_dep_cents", data["fiscal_result_cents"])
+    base, basis = dep.base_for(data)
     from app.models import DepEntry
     entry = DepEntry.query.filter_by(fiscal_year_id=fy.id).first()
-    return {"base_cents": base, "ceiling": dep.ceiling(base, fy), "deduction_cents": entry.amount_cents if entry else 0,
+    return {"base_cents": base, "base_basis": basis, "base_notes": dep.base_notes(fy),
+            "ceiling": dep.ceiling(base, fy), "deduction_cents": entry.amount_cents if entry else 0,
             "register": dep.register(fy), "savings": dep.savings(fy), "hazard": dep.economic_hazard(fy),
             "kinds": [{"value": k, "label": v} for k, v in DEP_KINDS.items()],
             "movements": [{"value": k, "label": v} for k, v in DEP_MOVEMENTS.items()],

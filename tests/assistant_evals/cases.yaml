@@ -73,3 +73,7 @@
 - id: assujettissement-sma
   question: "À partir de combien d'hectares suis-je chef d'exploitation à la MSA ?"
   expect: {cites: ['\[SOC-04\]'], contains: ["arrêté"], proposals: []}
+# Lot CG3.b : intérêt de retard de l'art. 1727 sur la DEP réintégrée faute d'épargne.
+- id: dep-epargne-insuffisante
+  question: "Que se passe-t-il si mon épargne DEP est insuffisante ?"
+  expect: {cites: ['\[ba\.(dep\.savings_min_bp|late_interest_monthly_bp)\]'], contains: ["intérêt de retard"], proposals: []}

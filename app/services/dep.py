@@ -1,6 +1,6 @@
 """Déduction pour épargne de précaution, DEP (lot AG6.c, claudedocs/design_fiscalite_ba.md § 5, art. 73, AGD23).
 
-- **Plafond** (barème daté `ba.dep.*`) sur le bénéfice après l'abattement JA : 100 % jusqu'au 1er seuil, puis 30 %,
+- **Plafond** (barème daté `ba.dep.*`) sur le bénéfice après l'abattement JA (avant en société, lot CG3.b) : 100 % jusqu'au 1er seuil, puis 30 %,
   20 % et 10 % des tranches suivantes, plafonné ; × associés exploitants (4 au plus), sans dépasser le bénéfice ;
   au prorata de la durée de l'exercice ; plafond global des déductions non rapportées.
 - **Déduction extra-comptable** (Q-F3) : ligne de passage −, sans écriture.
@@ -48,8 +48,26 @@ def _months(fy: FiscalYear) -> int:
     return (fy.end_date.year - fy.start_date.year) * 12 + fy.end_date.month - fy.start_date.month + 1
 
 
+def base_for(tax: dict) -> tuple[int, str]:
+    """Bénéfice servant au plafond (lot CG3.b, Q1) : après l'abattement JA pour l'exploitant individuel, avant pour une
+    société (BOI-BA-BASE-30-45-20 § 240, § 350 à 380)."""
+    if tax.get("associates"):
+        return tax.get("fiscal_result_before_ja_cents", tax["fiscal_result_cents"]), "before_ja"
+    return tax.get("fiscal_result_before_dep_cents", tax["fiscal_result_cents"]), "after_ja"
+
+
+def base_notes(fy: FiscalYear) -> list[str]:
+    """Retraitements de la base que Lyvre ne calcule pas (BOI-BA-BASE-30-45-20 § 290)."""
+    from app.services import ba_regimes
+    accessory = ba_regimes.year_receipts(fy.end_date.year).get("accessory_ttc_cents")
+    if accessory:
+        return ["Revenus accessoires (art. 75) dans l'exercice : retrancher leur résultat de la base du plafond "
+                "(BOI-BA-BASE-30-45-20 § 290), non calculé par Lyvre."]
+    return []
+
+
 def ceiling(base: int, fy: FiscalYear) -> dict:
-    """Plafond de la DEP de l'exercice pour un bénéfice `base` (après abattement JA)."""
+    """Plafond de la DEP de l'exercice pour un bénéfice `base` (`base_for` : avant ou après l'abattement JA)."""
     return ceiling_for(base, fy.end_date, operators(fy), _months(fy), outstanding(fy, exclude_fy=fy))
 
 
@@ -108,6 +126,25 @@ def horizon(entry: DepEntry) -> int:
     """Nombre d'exercices après celui de la déduction au terme duquel le reliquat est réintégré."""
     key, default = HORIZON_KEYS.get(entry.kind, HORIZON_KEYS["dep"])
     return reg_params.value(key, _origin_end(entry), default=default) or default
+
+
+def late_interest(amount: int, origin_year: int, last_year: int) -> dict:
+    """Intérêt de retard de l'art. 1727 sur une somme réintégrée (lot CG3.b) : taux mensuel daté, du 1er juillet qui suit
+    l'année de la déduction au 30 juin qui suit l'année de la réintégration (convention des outils CEGARA, à valider).
+    Le produit s'ajoute au résultat (art. 73 II-3 ; BOI-BA-BASE-30-45-10 § 330)."""
+    start, end = date(origin_year + 1, 7, 1), date(last_year + 1, 6, 30)
+    months, total_bp, rates = 0, 0, set()
+    year, month = start.year, start.month
+    while date(year, month, 1) <= end:
+        bp = reg_params.value("ba.late_interest_monthly_bp", date(year, month, 1), default=None)
+        if bp is None:
+            return {"error": f"Taux de l'intérêt de retard introuvable pour {month:02d}/{year}."}
+        total_bp, months = total_bp + bp, months + 1
+        rates.add(bp)
+        year, month = (year + 1, 1) if month == 12 else (year, month + 1)
+    return {"months": months, "rate_bp_total": total_bp, "interest_cents": round(amount * total_bp / 10000),
+            "from": start.isoformat(), "to": end.isoformat(),
+            "rates": " puis ".join(f"{r / 100:.2f} %".replace(".", ",") for r in sorted(rates, reverse=True))}
 
 
 def deadline_label(entry: DepEntry) -> str:
@@ -196,10 +233,29 @@ def _balance(account_id: int, on: date) -> int:
     return int(total or 0) + int(opening or 0)
 
 
+def filing_deadline(fy: FiscalYear) -> date | None:
+    """Date limite de dépôt de la liasse BA de l'exercice (règle de FIS-01, délai de télédéclaration compris)."""
+    from datetime import timedelta
+
+    from app.services import deadlines
+    try:
+        rule = deadlines.fiche("FIS-01")["events"][0]["rule"]
+    except (KeyError, IndexError, TypeError):
+        return None
+    ctx = deadlines.Context(fiscal_years=[(fy.start_date, fy.end_date)])
+    for occ in deadlines.dates(rule, fy.end_date, fy.end_date + timedelta(days=400), ctx):
+        if occ.date > fy.end_date:
+            return occ.edi_date or occ.date
+    return None
+
+
 def savings(fy: FiscalYear, today: date | None = None) -> dict:
     accounts = BankAccount.query.filter_by(dep_savings=True).all()
     at_close = sum(_balance(a.account_id, fy.end_date) for a in accounts)
-    deadline = _add_months(fy.end_date, 6)
+    deadline, basis = _add_months(fy.end_date, 6), "six_months"
+    filing = filing_deadline(fy)                                    # lot CG3.b : au plus tard au dépôt de la liasse
+    if filing is not None and filing < deadline:
+        deadline, basis = filing, "filing"
     at_deadline = sum(_balance(a.account_id, deadline) for a in accounts)
     substitutes = DepSubstitute.query.filter_by(fiscal_year_id=fy.id).all()
     sub_total = sum(s.amount_cents for s in substitutes)
@@ -209,7 +265,7 @@ def savings(fy: FiscalYear, today: date | None = None) -> dict:
     passed = (today or date.today()) > deadline                     # épargne à constituer dans les 6 mois
     shortfall = max(pending - 2 * best, 0) if pending and best < minimum and passed else 0
     return {"accounts": [{"id": a.id, "label": a.label} for a in accounts], "at_close_cents": at_close,
-            "deadline": deadline.isoformat(), "at_deadline_cents": at_deadline, "substitutes_cents": sub_total,
+            "deadline": deadline.isoformat(), "deadline_basis": basis, "at_deadline_cents": at_deadline, "substitutes_cents": sub_total,
             "substitutes": [{"id": s.id, "label": s.label, "amount_cents": s.amount_cents} for s in substitutes],
             "savings_cents": best, "pending_cents": pending, "minimum_cents": minimum,
             "ratio_bp": round(best * 10000 / pending) if pending else None, "below": pending > 0 and best < minimum,
@@ -391,12 +447,45 @@ def tax_lines(fy: FiscalYear, today: date | None = None) -> list[dict]:
                 origin = e.fiscal_year.label if e.fiscal_year else str(e.origin_year)
                 lines.append({"key": f"dep_deadline_{e.id}", "source": "dep", "amount_cents": left,
                               "label": f"{DEP_KINDS[e.kind]} {origin} non utilisée : réintégration au {horizon(e)}e exercice"})
+                if e.kind in ("dpi", "dpa"):                     # lot CG3.b (Q2) : majorée de l'intérêt de retard
+                    lines += _interest_line(f"dep_interest_{e.id}", f"{DEP_KINDS[e.kind]} {origin}", left,
+                                            _origin_end(e).year, fy.end_date.year)
     s = savings(fy, today)
     if s["shortfall_reintegration_cents"]:
         lines.append({"key": "dep_shortfall", "source": "dep", "amount_cents": s["shortfall_reintegration_cents"],
-                      "label": "DEP : épargne insuffisante, réintégration de la fraction qui excède le double de l'épargne "
-                               "(majorée de l'intérêt de retard)", "to_validate": True})
+                      "label": "DEP : épargne insuffisante, réintégration de la fraction qui excède le double de l'épargne",
+                      "to_validate": True})
+        left = s["shortfall_reintegration_cents"]               # imputée sur les DEP les plus anciennes (choix par défaut)
+        for e in sorted((e for e in DepEntry.query.all() if _before_or_in(e, fy)), key=_origin_end):
+            part = min(max(entry_outstanding(e, fy), 0), left)
+            if part <= 0:
+                continue
+            origin = e.fiscal_year.label if e.fiscal_year else str(e.origin_year)
+            lines += _interest_line(f"dep_shortfall_interest_{e.id}", f"DEP {origin} (épargne insuffisante)", part,
+                                    _origin_end(e).year, fy.end_date.year)
+            left -= part
+            if left <= 0:
+                break
+    if s["above"] and s["deadline_passed"]:                          # lot CG3.b (Q3 bis)
+        pending = outstanding(fy, exclude_fy=fy)
+        if pending:
+            lines.append({"key": "dep_excess", "source": "dep", "amount_cents": pending, "to_validate": True,
+                          "label": "DEP : épargne supérieure aux déductions non rapportées, réintégration des DEP antérieures "
+                                   "(BOI-BA-BASE-30-45-30 § 50 ; le § 330 du BOI-BA-BASE-30-45-10 parle d'épargne libre "
+                                   "à retirer) : à confirmer"})
     return lines
+
+
+def _interest_line(key: str, what: str, amount: int, origin_year: int, last_year: int) -> list[dict]:
+    data = late_interest(amount, origin_year, last_year)
+    if data.get("error"):
+        return [{"key": key, "source": "dep", "amount_cents": 0, "to_validate": True,
+                 "label": f"{what} : intérêt de retard non calculé ({data['error']})"}]
+    if not data["interest_cents"]:
+        return []
+    return [{"key": key, "source": "dep", "amount_cents": data["interest_cents"], "to_validate": True,
+             "label": f"{what} : intérêt de retard (art. 1727), {data['months']} mois à {data['rates']} par mois sur "
+                      f"{amount / 100:,.2f} €".replace(",", " ").replace(".", ",")}]
 
 
 def checks(fy: FiscalYear) -> list[tuple[str, str, int, str]]:
@@ -409,7 +498,8 @@ def checks(fy: FiscalYear) -> list[tuple[str, str, int, str]]:
         out.append(("dep_savings_due", f"Épargne DEP à constituer avant le {date.fromisoformat(s['deadline']):%d/%m/%Y} "
                     "(50 % au moins des déductions non rapportées)", 1, "info"))
     elif s["above"]:
-        out.append(("dep_savings_above", "Épargne DEP au-delà des déductions non rapportées (100 % au plus)", 1, "info"))
+        out.append(("dep_savings_above", "Épargne DEP au-delà des déductions non rapportées (100 % au plus) : "
+                    "réintégration des DEP antérieures proposée", 1, "anomaly" if s["deadline_passed"] else "info"))
     due = [e for e in DepEntry.query.all() if _is_deadline(e, fy) and entry_outstanding(e, fy) > 0]
     if due:
         out.append(("dep_deadline", "DEP ou DPI/DPA arrivées à échéance (DEP au 10e exercice, DPI au 5e) : réintégration",

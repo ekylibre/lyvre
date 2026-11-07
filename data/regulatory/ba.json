@@ -729,14 +729,36 @@
   },
   {
    "key": "ba.dpa.reintegration_years",
-   "value": 10,
+   "value": 7,
    "valid_from": "2002-01-01",
    "valid_to": "2018-12-31",
    "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
-   "source_label": "CGI art. 72 D bis (version antérieure à la LF 2019) — durée à confirmer",
+   "source_label": "CGI art. 72 D bis (version antérieure à la LF 2019) — texte non relu (Légifrance indisponible)",
    "verified_on": "2026-11-07",
    "reliability": "I",
-   "note": "Ancienne DPA : durée d'utilisation à confirmer avec l'expert-comptable (D-CG2) ; 10 exercices gardés en attendant."
+   "note": "Ancienne DPA : réintégration au 7e exercice (décision de l'utilisateur du 07/11/2026, Q2, lot CG3.b) ; à confirmer sur le texte."
+  },
+  {
+   "key": "ba.late_interest_monthly_bp",
+   "value": 40,
+   "valid_from": "2006-01-01",
+   "valid_to": "2017-12-31",
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 1727 (version en vigueur jusqu'au 31/12/2017)",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Intérêt de retard : 0,40 % par mois (lot CG3.b)."
+  },
+  {
+   "key": "ba.late_interest_monthly_bp",
+   "value": 20,
+   "valid_from": "2018-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 1727 (LF 2018) ; appliqué aux réintégrations DEP pour épargne insuffisante (art. 73 II-3, BOI-BA-BASE-30-45-10 § 330)",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Intérêt de retard : 0,20 % par mois (lot CG3.b)."
   },
   {
    "key": "ba.cow.cap_cents",

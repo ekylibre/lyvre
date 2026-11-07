@@ -13,14 +13,14 @@ SPEC = Spec(
             "nombre d'associés exploitants.",
     inputs=[
         Input("closing", "Date de clôture de l'exercice", "date"),
-        Input("profit", "Bénéfice imposable avant DEP", "money", "€", help="Après l'abattement jeune agriculteur"),
+        Input("profit", "Bénéfice imposable avant DEP", "money", "€", help="Après l'abattement jeune agriculteur pour un exploitant individuel, avant pour une société (GAEC, EARL)"),
         Input("operators", "Associés exploitants", "integer", help="1 pour une exploitation individuelle", default="1"),
         Input("months", "Durée de l'exercice", "integer", "mois", default="12"),
         Input("pending", "Déductions non encore rapportées", "money", "€", required=False,
               help="DEP (et anciennes DPI / DPA) des exercices précédents non utilisées ni réintégrées"),
     ],
     example={"closing": "2026-12-31", "profit": "62000", "operators": "1", "months": "12", "pending": "15000"},
-    method="Barème réglementaire appliqué au bénéfice (après l'abattement JA) : 100 % jusqu'au premier seuil, puis "
+    method="Barème réglementaire appliqué au bénéfice (après l'abattement JA en individuel, avant en société) : 100 % jusqu'au premier seuil, puis "
            "le montant fixe publié par le BOFiP au début de chaque tranche majoré de 30, 20 ou 10 % de l'excédent, dans la limite d'un plafond par exploitant ; multiplié par le nombre "
            "d'associés exploitants (4 au plus), sans dépasser le bénéfice ; au prorata d'un exercice de durée "
            "différente de 12 mois ; puis limité par le plafond global des déductions non rapportées (CGI art. 73). "
@@ -50,8 +50,9 @@ def prefill(ctx: Context) -> dict:
            "pending": {"value": f"{dep.outstanding(fy, exclude_fy=fy) / 100:.2f}", "origin": "registre de la DEP"}}
     try:
         data = tax_result.view(fy)
-        base = data.get("fiscal_result_before_dep_cents", data["fiscal_result_cents"])
-        out["profit"] = {"value": f"{base / 100:.2f}", "origin": f"résultat fiscal {fy.label} avant DEP"}
+        base, basis = dep.base_for(data)                             # lot CG3.b : avant JA en société
+        what = "avant abattement JA" if basis == "before_ja" else "avant DEP"
+        out["profit"] = {"value": f"{base / 100:.2f}", "origin": f"résultat fiscal {fy.label} {what}"}
     except Exception:  # noqa: BLE001 — préremplissage facultatif
         pass
     return out

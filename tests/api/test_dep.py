@@ -95,12 +95,20 @@ def test_use_with_hazard_and_history_deadline(farm):
     lines = {l["key"]: l for l in client.get(f"/api/v1/fiscal-years/{fy2023.id}/tax-result").get_json()["item"]["lines"]}
     dpi = next(l for k, l in lines.items() if k.startswith("dep_deadline_"))
     assert dpi["amount_cents"] == 500000 and "au 5e exercice" in dpi["label"]
+    interest = next(l for k, l in lines.items() if k.startswith("dep_interest_"))   # lot CG3.b : art. 1727
+    assert interest["amount_cents"] == 60000 and interest["to_validate"]           # 60 mois × 0,20 % × 5 000 €
+    assert "60 mois" in interest["label"]
     assert not any(c.key == "dep_deadline_past" for c in closing._agri_checks(farm["fy"][2026]))
     assert client.post("/api/v1/dep/history", json={"kind": "dpa", "origin_year": 2018, "amount_cents": 300000}).status_code == 201
-    lines = {l["key"]: l for l in client.get(f"{farm['url'](2028)}/tax-result").get_json()["item"]["lines"]}
+    fy2025 = FiscalYear(label="2025", start_date=date(2025, 1, 1), end_date=date(2025, 12, 31))
+    db.session.add(fy2025)
+    db.session.commit()
+    lines = {l["key"]: l for l in client.get(f"/api/v1/fiscal-years/{fy2025.id}/tax-result").get_json()["item"]["lines"]}
     dpa = next(l for k, l in lines.items() if k.startswith("dep_deadline_"))
-    assert dpa["amount_cents"] == 300000 and "au 10e exercice" in dpa["label"]
-    assert any(c.key == "dep_deadline" for c in closing._agri_checks(farm["fy"][2028]))
+    assert dpa["amount_cents"] == 300000 and "au 7e exercice" in dpa["label"]      # Q2 : DPA au 7e exercice
+    interest = next(l for k, l in lines.items() if k.startswith("dep_interest_"))
+    assert interest["amount_cents"] == 50400                                      # 84 mois × 0,20 % × 3 000 €
+    assert any(c.key == "dep_deadline" for c in closing._agri_checks(fy2025))
 
 
 def test_economic_hazard_value_added(farm):
@@ -126,3 +134,34 @@ def test_dep_historical_scales_cg2d(app, close, base, n, months, pending, expect
 def test_dep_before_2019_has_no_scale(app):
     with app.app_context():
         assert "introuvable" in dep.ceiling_for(10000000, date(2018, 12, 31), 1, 12, 0)["error"]
+
+
+def test_savings_deadline_interest_and_excess_cg3b(farm):
+    """Lot CG3.b (design_fiabilisation_cegara.md § 6.2) : épargne au plus tard au dépôt de la liasse (BOI-BA-BASE-30-45-10
+    § 50), intérêt de retard de l'art. 1727 sur la fraction réintégrée (§ 330), épargne au-delà de 100 % (Q3 bis)."""
+    client, fy26, fy27 = farm["client"], farm["fy"][2026], farm["fy"][2027]
+    s = dep.savings(fy26)
+    assert s["deadline_basis"] == "filing" and s["deadline"] < "2027-06-30"           # clôture au 31/12 : liasse de mai
+    assert s["deadline"] == dep.filing_deadline(fy26).isoformat()
+    client.put(f"{farm['url'](2026)}/dep", json={"amount_cents": 3000000})
+    lines = {l["key"]: l for l in dep.tax_lines(fy27, today=date(2028, 8, 1))}    # aucune épargne, délai passé
+    assert lines["dep_shortfall"]["amount_cents"] == 3000000
+    interest = next(l for k, l in lines.items() if k.startswith("dep_shortfall_interest_"))
+    assert interest["amount_cents"] == 72000 and "12 mois" in interest["label"]      # 30 000 € × 12 × 0,20 %
+    assert not any(k.startswith("dep_shortfall_interest_") for k in
+                   (l["key"] for l in dep.tax_lines(fy26, today=date(2027, 8, 1))))  # DEP de l'exercice : pas de retard
+    bank = BankAccount(label="Épargne DEP", account_id=_id("5121"))
+    db.session.add(bank)
+    db.session.commit()
+    client.put(f"/api/v1/bank-accounts/{bank.id}/dep-savings", json={"dep_savings": True})
+    _save(farm, 4000000, on=date(2027, 6, 1))                                         # 40 000 € pour 30 000 € de DEP
+    lines = {l["key"]: l for l in dep.tax_lines(fy27, today=date(2028, 8, 1))}
+    assert lines["dep_excess"]["amount_cents"] == 3000000 and lines["dep_excess"]["to_validate"]
+    assert "dep_shortfall" not in lines
+
+
+def test_dep_base_individual_vs_company_cg3b():
+    """Lot CG3.b (Q1, BOI-BA-BASE-30-45-20 § 240 et § 350 à 380) : après l'abattement JA en individuel, avant en société."""
+    tax = {"fiscal_result_cents": 4000000, "fiscal_result_before_ja_cents": 6000000, "fiscal_result_before_dep_cents": 4500000}
+    assert dep.base_for({**tax, "associates": []}) == (4500000, "after_ja")
+    assert dep.base_for({**tax, "associates": [{"associate_id": 1}]}) == (6000000, "before_ja")

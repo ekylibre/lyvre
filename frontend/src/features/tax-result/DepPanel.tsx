@@ -11,13 +11,13 @@ import { formatDate } from "../../lib/format";
 
 type Option = { value: string; label: string };
 export interface DepView {
-  base_cents: number; deduction_cents: number;
+  base_cents: number; base_basis?: "before_ja" | "after_ja"; base_notes?: string[]; deduction_cents: number;
   ceiling: { ceiling_cents: number; per_operator_cents?: number; operators?: number; pending_cents?: number; error?: string };
   register: { id: number; kind_label: string; origin: string; amount_cents: number; outstanding_cents: number; deadline: string; deadline_now: boolean;
     movements: { id: number; kind_label: string; on: string; amount_cents: number; exempt_cents: number; reason: string | null; fiscal_year_id: number }[] }[];
   savings: { accounts: { id: number; label: string }[]; at_close_cents: number; at_deadline_cents: number; deadline: string; substitutes_cents: number;
     substitutes: { id: number; label: string; amount_cents: number }[]; savings_cents: number; pending_cents: number; minimum_cents: number;
-    ratio_bp: number | null; below: boolean; above: boolean; deadline_passed: boolean };
+    ratio_bp: number | null; below: boolean; above: boolean; deadline_passed: boolean; deadline_basis?: "six_months" | "filing" };
   hazard: { value_added_cents: number; average3_cents: number | null; drop3_bp: number | null; hazard: boolean };
   movements: Option[]; hazards: Option[];
 }
@@ -47,11 +47,12 @@ export function DepPanel({ fyId, editable }: { fyId: number; editable: boolean }
       <Title order={4} mb="xs">Déduction pour épargne de précaution (DEP)</Title>
       {d.ceiling.error && <Alert color="paille" mb="xs">{d.ceiling.error}</Alert>}
       <SimpleGrid cols={{ base: 2, sm: 4 }} mb="sm">
-        <div><Text size="xs" c="dimmed">Bénéfice après abattement JA</Text><MoneyText cents={d.base_cents} /></div>
+        <div><Text size="xs" c="dimmed">{d.base_basis === "before_ja" ? "Bénéfice avant abattement JA (société)" : "Bénéfice après abattement JA"}</Text><MoneyText cents={d.base_cents} /></div>
         <div><Text size="xs" c="dimmed">Plafond{d.ceiling.operators && d.ceiling.operators > 1 ? ` (× ${d.ceiling.operators})` : ""}</Text><MoneyText cents={d.ceiling.ceiling_cents} /></div>
         <div><Text size="xs" c="dimmed">DEP de l'exercice</Text><MoneyText cents={d.deduction_cents} /></div>
         <div><Text size="xs" c="dimmed">Déductions non rapportées</Text><MoneyText cents={d.savings.pending_cents} /></div>
       </SimpleGrid>
+      {(d.base_notes ?? []).map((n) => <Alert key={n} color="paille" mb="xs">{n}</Alert>)}
       {editable && (
         <Group align="end" gap="xs" mb="md">
           <MoneyInput label="DEP de l'exercice" w={160} value={amount ?? d.deduction_cents} onChange={setAmount} />
@@ -60,7 +61,7 @@ export function DepPanel({ fyId, editable }: { fyId: number; editable: boolean }
 
       <Text fw={600} size="sm">Épargne</Text>
       <Text size="sm" c={d.savings.below ? "var(--lv-brique-ink)" : undefined}>
-        Comptes repérés : <MoneyText cents={d.savings.at_close_cents} /> à la clôture, <MoneyText cents={d.savings.at_deadline_cents} /> au {formatDate(d.savings.deadline)} ;
+        Comptes repérés : <MoneyText cents={d.savings.at_close_cents} /> à la clôture, <MoneyText cents={d.savings.at_deadline_cents} /> au {formatDate(d.savings.deadline)}{d.savings.deadline_basis === "filing" ? " (date limite de dépôt de la liasse)" : ""} ;
         substituts <MoneyText cents={d.savings.substitutes_cents} /> — épargne retenue <MoneyText cents={d.savings.savings_cents} />
         {d.savings.ratio_bp !== null && ` (${(d.savings.ratio_bp / 100).toLocaleString("fr-FR")} %)`} ; minimum <MoneyText cents={d.savings.minimum_cents} />.
       </Text>

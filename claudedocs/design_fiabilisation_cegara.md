@@ -231,22 +231,20 @@ Valeurs fixed3 et fixed4 (BOFiP § 10) :
   - en individuel : `fiscal_result_before_dep_cents`, comme aujourd'hui.
 - La calculette 13 reçoit un choix « société / individuel » et son aide l'explique.
 - `dep.ceiling` change de docstring.
-- Les retraitements de base de l'outil 10 (revenus de l'art. 75, DPB, énergie) **ne sont pas repris** sans lecture du BOFiP. Ils relèvent d'une question ouverte (D-CG3.1).
+- Retraitements de base (D-CG3.1, BOFiP lu au codage) :
+  - les revenus accessoires de l'art. 75 sont retranchés (§ 290). Lyvre ne connaît pas leur résultat : un avertissement s'affiche quand l'exercice a des recettes accessoires (`dep.base_notes`) ;
+  - les revenus des DPB et de l'énergie restent dans la base quand l'exploitation a une autre activité agricole (§ 325 à 340).
 
-**b2 DPA au 7e exercice (Q2).** `ba.dpa.reintegration_years` passe à **7**, reliability R après lecture de l'art. 72 D bis (version 2018).
+**b2 DPA au 7e exercice (Q2).** `ba.dpa.reintegration_years` passe à **7**. Fiabilité **I** : l'art. 72 D bis n'a pas pu être relu (Légifrance renvoie une erreur 404).
 
-**b3 Intérêt de retard (Q2).**
-- Il porte sur le **supplément d'impôt** dû à la réintégration, pas sur la déduction elle-même. Lyvre ne connaît pas l'impôt sur le revenu du foyer.
-- Il calcule donc :
-  - le **nombre de mois** (du 1er juillet de l'année qui suit l'exercice de la déduction jusqu'à la réintégration) ;
-  - le **taux** daté ;
-  - le **pourcentage à appliquer à l'impôt supplémentaire** ;
-  - une estimation en euros seulement si l'utilisateur saisit un taux marginal d'imposition, gardé le temps de la session sans enregistrement.
-- Paramètre daté `ba.late_interest_monthly_bp`. La valeur dépend de la question **D-CG3.2** :
-  - CGI art. 1727 : 40 pb jusqu'au 31/12/2017, puis 20 pb ;
-  - ou intérêt légal, comme répondu.
-- S'applique aux réintégrations de DPI et de DPA à l'échéance, et à la réintégration de la DEP pour épargne insuffisante. La DEP réintégrée normalement au 10e exercice n'en porte pas.
-- Affichage : colonne « Intérêt » du registre, et note sur la ligne du tableau de passage. Aucune ligne au tableau de passage : l'intérêt ne fait pas partie du bénéfice.
+**b3 Intérêt de retard (Q2, D-CG3.2 : art. 1727).**
+- *Corrigé au codage, d'après BOI-BA-BASE-30-45-10 § 330* : la fraction réintégrée est « majorée d'un montant égal au produit de cette somme par le taux de l'intérêt de retard ». L'intérêt porte donc sur la **somme réintégrée** et s'ajoute au résultat. Lyvre le calcule en euros, sans taux d'imposition.
+- Paramètre daté `ba.late_interest_monthly_bp` : 40 pb jusqu'au 31/12/2017, 20 pb ensuite.
+- Période : du 1er juillet qui suit l'année de la déduction au 30 juin qui suit l'année de la réintégration (convention des outils CEGARA, à valider).
+- Lignes `to_validate` du tableau de passage :
+  - `dep_interest_{id}` pour les DPI et les DPA à l'échéance ;
+  - `dep_shortfall_interest_{id}` pour l'épargne insuffisante, imputée sur les DEP les plus anciennes (le § 330 laisse le choix à l'exploitant).
+- La DEP réintégrée normalement au 10e exercice n'en porte pas (BOI-BA-BASE-30-45-30 § 40 et § 50).
 
 **b4 Date limite de l'épargne (Q3).**
 - `dep.savings` retient `min(clôture + 6 mois, date de dépôt de la liasse BA)`.
@@ -255,7 +253,7 @@ Valeurs fixed3 et fixed4 (BOFiP § 10) :
 
 **b5 Épargne au-delà de 100 % (Q3 bis).**
 - Ligne de passage `dep_excess`, `to_validate: True` : « Épargne supérieure aux déductions non rapportées : réintégration à confirmer ».
-- Montant proposé : la totalité des déductions non rapportées, comme dans l'outil 11.
+- Montant proposé : les DEP antérieures non rapportées (BOI-BA-BASE-30-45-30 § 50). Le BOI-BA-BASE-30-45-10 § 330 parle seulement d'une épargne libre à retirer : le libellé cite les deux, et la ligne reste à valider.
 - Le contrôle `dep_savings_above` passe d'information à anomalie.
 - Le texte (art. 73) est à relire au codage. S'il ne prévoit rien, la ligne est retirée et la question remontée.
 
@@ -363,6 +361,6 @@ Un commit par étape. Ensuite, **CG5** (fonctions nouvelles retenues) :
 - alerte de provision quand le cours du jour est inférieur au prix de revient.
 
 ## 6.8 Questions ouvertes de CG3
-- **D-CG3.1** Base DEP : faut-il retirer les revenus de l'art. 75, des DPB et de l'énergie, comme l'outil 10 ? À lire au BOFiP, BOI-BA-BASE-30-45-20 § 50 et suivants.
+- **D-CG3.1** ✅ *Lu au BOFiP le 07/11/2026 (voir b1).* Base DEP : faut-il retirer les revenus de l'art. 75, des DPB et de l'énergie, comme l'outil 10 ? À lire au BOFiP, BOI-BA-BASE-30-45-20 § 50 et suivants.
 - **D-CG3.2** ✅ *Tranché le 07/11/2026 : art. 1727.* Intérêt des réintégrations : **intérêt de retard de l'art. 1727** (0,40 % puis 0,20 % par mois, sur le supplément d'impôt) **ou intérêt légal** ? La réponse à la question 2 dit « taux légal ». Or le CGI renvoie à l'art. 1727 pour la DEP (art. 73 II) et l'ancienne DPI. À confirmer avant CG3.b.
 - **D-CG3.3** Non-cumul 72 B bis et 75-0 B : la LF 2026 l'a-t-elle levé ?
