@@ -381,3 +381,110 @@ Un commit par étape. Ensuite, **CG5** (fonctions nouvelles retenues) :
 - **D-CG3.1** ✅ *Lu au BOFiP le 07/11/2026 (voir b1).* Base DEP : faut-il retirer les revenus de l'art. 75, des DPB et de l'énergie, comme l'outil 10 ? À lire au BOFiP, BOI-BA-BASE-30-45-20 § 50 et suivants.
 - **D-CG3.2** ✅ *Tranché le 07/11/2026 : art. 1727.* Intérêt des réintégrations : **intérêt de retard de l'art. 1727** (0,40 % puis 0,20 % par mois, sur le supplément d'impôt) **ou intérêt légal** ? La réponse à la question 2 dit « taux légal ». Or le CGI renvoie à l'art. 1727 pour la DEP (art. 73 II) et l'ancienne DPI. À confirmer avant CG3.b.
 - **D-CG3.3** Non-cumul 72 B bis et 75-0 B : la LF 2026 l'a-t-elle levé ?
+
+---
+
+# Lot CG4 : fiches de méthode de l'assistant
+
+Besoins : `fiabilisation_cegara.md` F4 (AS1, AS3). Le corpus de l'assistant (`assistant/corpus.py`, environ 16 000 tokens en cache) ne contient que des échéances, des paramètres et des écrans. CG4 y ajoute des **fiches de méthode** courtes, rédigées par nous. Chacune donne ses sources primaires.
+
+## 7.1 Choix
+
+| # | Choix | Raison |
+|---|---|---|
+| M1 | Format de fiche de la base documentaire (`doc/base_documentaire/02_corpus_fiches.md` § 2.3) : Markdown à en-tête YAML ; sections « Résumé », « Exemple », « Référence », « Dans le logiciel » ; au plus environ 600 mots | Format déjà décidé pour la base documentaire. Les fiches agricoles en sont la première mise en œuvre. |
+| M2 | Emplacement `data/kb/fiches/agri/`, identifiants **`MA-01`…** (méthode agricole), référentiel `agri` | Arborescence cible du § 2.2. Le préfixe `AG` est déjà pris par les lots. |
+| M3 | **Tout le texte des fiches en contexte, en cache**, dans une section « Fiches de méthode » du corpus, triée par identifiant. Pas de recherche. | 10 fiches de 500 mots font environ 7 000 tokens, soit un corpus d'environ 23 000 tokens, sous le seuil du § 4 de `design_assistant_agricole.md`. |
+| M4 | **Pas de montant, seuil ni taux écrit en dur** : la fiche cite la clé du paramètre daté (`[ba.dep.cap_cents]`) | Une seule source pour les valeurs, déjà datée et sourcée. Les fiches ne périment pas à chaque loi de finances. |
+| M5 | Statut `publie` seulement si chaque règle de la fiche a été relue sur sa source primaire (CGI, BOFiP, CRPM, PCG, msa.fr). Sinon `a_confirmer`, et l'assistant le dit. | Même règle que les paramètres (V, R, I). |
+| M6 | Aucun texte des guides CEGARA repris. Ils peuvent figurer dans `verifie_par` comme piste, jamais dans `sources`. | Règle AGD16. |
+
+## 7.2 En-tête d'une fiche
+
+```yaml
+id: MA-04
+titre: DEP — plafond, épargne, réintégrations
+referentiels: [agri]
+comptes: ["5121"]                         # facultatif
+articles: ["CGI art. 73", "BOI-BA-BASE-30-45-20 § 10, 240, 290, 350-380", "BOI-BA-BASE-30-45-10 § 50, 330"]
+liens: [https://bofip.impots.gouv.fr/…]   # au moins un lien vers une source primaire
+parametres: [ba.dep.band1_cents, ba.dep.fixed3_cents, ba.late_interest_monthly_bp]   # clés citées, vérifiées par le test
+echeances: [FIS-01]                       # fiches d'échéances liées, facultatif
+mots_cles: [épargne de précaution, plafond, intérêt de retard]
+risque: attention                         # aucun | attention | expert
+statut: publie                            # brouillon | a_confirmer | publie
+verifie_le: 2026-11-07
+verifie_par: lecture du BOFiP (lot CG3.b)
+ecrans: ["/tax-result/"]
+```
+
+## 7.3 Composants
+
+- **`app/services/kb.py`** (nouveau) :
+  - `method_fiches()` lit `data/kb/fiches/agri/*.md` (en-tête et corps), trie par identifiant, garde en cache (`lru_cache`) ;
+  - `validate()` contrôle :
+    - les clés obligatoires ;
+    - l'identifiant unique, conforme à `MA-\d\d`, égal au nom du fichier ;
+    - la présence des 4 sections ;
+    - une longueur de 700 mots au plus ;
+    - au moins un lien `https://` de domaine primaire (legifrance, bofip, impots.gouv, msa.fr, service-public, agriculture.gouv, eur-lex, anc) ;
+    - l'existence de chaque clé de `parametres` dans `reg_params` et de chaque `echeances` dans `deadlines` ;
+    - l'absence de « CEGARA » ou « CEGAO » dans le corps ;
+  - les fiches au statut `brouillon` ne sont pas chargées.
+- **`assistant/corpus.py`** : nouvelle section « ## Fiches de méthode » après les paramètres. Chaque fiche commence par une ligne `[MA-04] titre — statut, vérifiée le …, sources : …`, suivie du corps. Le texte reste déterministe.
+- **`assistant/prompt.py`** : la consigne de citation ajoute les fiches de méthode `[MA-00]`. Nouvelle consigne : « une fiche au statut à confirmer se cite avec cette réserve ; pour un chiffre, cite le paramètre daté, pas la fiche ».
+- **Pas d'écran nouveau** dans CG4. L'affichage des fiches dans l'aide de Lyvre (champ `ecrans`) viendra avec la base documentaire.
+
+## 7.4 Les fiches
+
+| Id | Fiche | Contenu (synthèse propre) | Sources primaires à relire | Liens Lyvre |
+|---|---|---|---|---|
+| MA-01 | Évaluation des stocks selon le régime | Prix de revient, ou cours du jour s'il est plus bas (provision) ; méthode forfaitaire et décote, écrêtement et renonciation ; IS ; changement de régime | CGI art. 72, 74 b ; ann. III 38 sexdecies H, JC ; BOI-BA-BASE-20-20-20-20 | `/inventory/`, option `flat_stock_method` |
+| MA-02 | Avances aux cultures | Art. 72 A ; méthodes T, F, M1, M2, R et leurs durées ; rubriques au réel selon la méthode ; barème mensuel ou en cumul ; fermage et frais financiers exclus | CGI art. 72 A ; BOI-BA-BASE-20-20-20-30 | fiche d'avance, barèmes, option `crop_advance_method` |
+| MA-03 | Blocage des stocks à rotation lente (72 B bis) | Option globale, rotation de plus d'un an, couches à la première inscription, sorties PEPS, non-cumul avec 75-0 A, de minimis | CGI art. 72 B bis ; BOFiP 72 B bis ; règlement UE 1408/2013 modifié | `/inventory/`, contrôle de minimis |
+| MA-04 | DEP | Plafond (base individuelle ou de société, montants fixes, associés, prorata, plafond global) ; épargne de 50 à 100 % et date limite ; utilisation, aléa, 10e exercice ; intérêt de l'art. 1727 | CGI art. 73 ; BOI-BA-BASE-30-45-10, -20, -30 | `/tax-result/`, calculette 13 |
+| MA-05 | Anciennes DPI et DPA | Échéances (5e et 7e exercice), intérêt de retard, reprise de l'historique, échéance passée | CGI art. 72 D et 72 D bis (versions 2018) | registre DEP |
+| MA-06 | Plantations pérennes | 2346 puis 246 ; coûts de plantation et annexes ; façons culturales en charges ou en 7222 (choix du dossier) ; durées indicatives ; arrachage ; sol d'autrui ; autorisations 2082 ; subvention | PCG titre 6 ; BOI-BA-BASE-20-10-20 ; CGI art. 39 | `/assets/` (biens vivants) |
+| MA-07 | Assiette des cotisations MSA | Triennale ou annuelle ; moyenne des revenus puis abattement de 26 % borné ; taux progressifs sur l'assiette retenue ; micro-BA ; rente du sol ; réintégrations (JA, 72 B bis, DJA) | CRPM L.731-14 et L.731-15 ; CSS L.136-4 ; barème MSA 2026 | `/msa/`, calculette 17, SOC-03 |
+| MA-08 | Entraide et coût du matériel | Barème d'entraide (avec intérêt du capital) et coût des façons culturales ; recalcul du coût fixe à l'utilisation réelle ; barème départemental à saisir avec son millésime ; compte 472 | BCMA (méthode publiée) ; CGI art. 75 (entraide) ; PCG agricole 472 | calculettes 14 et 22 |
+| MA-09 | Contrôle des structures | Autorisation, déclaration, rescrit ; critères nationaux ; seuils régionaux (SDREA) à lire dans l'arrêté ; délais et sanctions | CRPM L.331-1 à L.331-12, R.331-1 à R.331-15 | baux, associés |
+| MA-10 | Aide à la restructuration du vignoble | Aide mixte : part d'investissement (131, reprise au rythme de l'amortissement) et indemnité de perte de recette (74) | règlement OCM, décisions FranceAgriMer ; PCG 131 et 74 | `/aids/` (nature mixte) |
+
+Le statut visé pour MA-01 à MA-05 et MA-07 est `publie`, grâce aux sources déjà lues en CG2 et CG3. Pour MA-06, MA-08, MA-09 et MA-10, c'est `a_confirmer` jusqu'à la lecture des sources.
+
+## 7.5 Tests et évaluation
+- **pytest** :
+  - `kb.validate()` sans problème sur les fiches livrées ;
+  - fiche fautive : clé manquante, mot « CEGARA », paramètre inconnu, plus de 700 mots, aucun lien primaire ;
+  - le corpus contient `[MA-01]`, son texte est identique sur deux appels ;
+  - une fiche `brouillon` n'est pas chargée.
+- **Jeu d'évaluation** (lancement manuel, payant), une question par fiche. Exemples :
+  - « Comment évaluer mes avances aux cultures en M2 ? » → `[MA-02]`, mention de la main-d'œuvre au réel ;
+  - « Mon épargne DEP dépasse mes déductions, que se passe-t-il ? » → `[MA-04]`, réserve « à valider » ;
+  - **piège** : « Le guide dit que je dois renoncer au réel simplifié avant le 1er février, c'est juste ? » → cite l'article 64 bis V et le délai de déclaration, ne valide pas le 1er février.
+- Coût : le corpus passe d'environ 16 000 à 23 000 tokens en cache. La première question d'une conversation coûte un peu plus, les suivantes très peu (lecture du cache).
+
+## 7.6 Étapes
+
+| Étape | Contenu |
+|---|---|
+| CG4.a | `kb.py`, validation, section du corpus, consigne de citation, tests ; fiches pilotes MA-04 et MA-02 |
+| CG4.b | MA-01, MA-03, MA-05, MA-07 (sources déjà lues) |
+| CG4.c | MA-06, MA-08, MA-09, MA-10 (lecture des sources, sinon `a_confirmer`) |
+| CG4.d | Questions d'évaluation ; un passage réel sur la base jetable, si l'utilisateur l'accepte (API payante) |
+
+## 7.6 bis Réalisé (CG4.a, 07/11/2026)
+
+- `app/services/kb.py` : chargeur générique `data/kb/fiches/<référentiel>/*.md`, `validate()`, `method_fiches()` et `corpus_text()`.
+- Le corpus de l'assistant a une section « Fiches de méthode ». Sa taille passe de 16 100 à 18 100 tokens environ.
+- La consigne de citation couvre `[MA-00]`.
+- Fiches **MA-02** (586 mots) et **MA-04** (608 mots), publiées. MA-02 s'appuie sur la lecture intégrale du BOI-BA-BASE-20-20-20-30 (version du 03/07/2019), qui confirme les règles des lots CG2.a et CG3.a :
+  - M1 et M2 : approvisionnements et travaux par des tiers au réel (§ 70 à 80) ;
+  - M2 : main-d'œuvre salariée au réel, associés d'exploitation compris (§ 110) ;
+  - M1 : le travail de l'exploitant et des aides familiaux n'est pas compté (§ 100), ce qui justifie la part salariée de CG5.
+- Le BOI ne dit pas quelle méthode s'applique sans option. Pour une société à l'IS, son § 5 renvoie à l'art. 38 nonies de l'annexe III.
+- 2 questions d'évaluation (`methode-avances-m2`, `methode-dep-epargne-excedentaire`).
+
+## 7.7 Questions
+- **D-CG4.1** ✅ *Accepté le 07/11/2026 : chargeur générique, fiches agri seules.* Les fiches de méthode sont-elles réservées aux instances agricoles (référentiel `agri`), ou faut-il préparer dès maintenant les fiches A, C, D et S de la base documentaire avec le même chargeur ? Proposition : chargeur générique, et seules les fiches `agri` livrées dans CG4.
+- **D-CG4.2** ✅ *Accepté le 07/11/2026.* Faut-il relire les fiches avec l'expert-comptable avant de les passer en `publie` ? Proposition : `publie` dès que la source primaire est relue, revue par l'expert-comptable à la fin de CG4, le champ `verifie_par` notant qui a relu.

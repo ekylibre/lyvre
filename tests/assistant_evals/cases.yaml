@@ -81,3 +81,10 @@
 - id: option-reel-normal
   question: "Pour combien de temps vaut l'option pour le réel normal en BA, et comment y renoncer ?"
   expect: {cites: ['\[option\.ba_normal_option\.'], contains: ["2"], proposals: []}
+# Lot CG4 : fiches de méthode.
+- id: methode-avances-m2
+  question: "Comment sont évaluées mes avances aux cultures en méthode M2 ?"
+  expect: {cites: ['\[MA-02\]'], contains: ["main-d'œuvre"], proposals: []}
+- id: methode-dep-epargne-excedentaire
+  question: "Mon épargne DEP dépasse mes déductions non rapportées : que se passe-t-il ?"
+  expect: {cites: ['\[MA-04\]'], contains: ["expert-comptable"], proposals: []}

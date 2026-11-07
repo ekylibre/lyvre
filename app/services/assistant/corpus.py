@@ -3,7 +3,7 @@
 Texte **déterministe** (tri par identifiant, sans date du jour) pour que le préfixe en cache serve à toutes les
 conversations : fiches d'échéances (`data/deadlines/*.yml`), paramètres réglementaires datés des fichiers
 (`data/regulatory/*.json`, valeurs de référence ; la valeur en vigueur, surcharges comprises, se lit par l'outil
-`get_parameter`) et carte des écrans de Lyvre.
+`get_parameter`), fiches de méthode (`data/kb/fiches/agri/`, lot CG4) et carte des écrans de Lyvre.
 """
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ def _param_line(p) -> str:
 
 @lru_cache(maxsize=1)
 def text() -> str:
-    from app.services import deadlines, reg_params
+    from app.services import deadlines, kb, reg_params
     fiches = sorted(deadlines.fiches(), key=lambda f: f["id"])
     params = sorted(reg_params.file_params(), key=lambda p: (p.key, p.valid_from))
     return "\n\n".join([
@@ -61,5 +61,7 @@ def text() -> str:
         "## Fiches d'échéances\n" + "\n".join(_fiche_line(f) for f in fiches),
         "## Paramètres réglementaires datés (valeurs de référence ; valeur en vigueur : outil get_parameter)\n"
         + "\n".join(_param_line(p) for p in params),
+        "## Fiches de méthode (synthèses de Lyvre ; chiffres : paramètres datés cités entre crochets)\n"
+        + (kb.corpus_text("agri") or "(aucune)"),
         "## Écrans de Lyvre (pour orienter l'utilisateur)\n" + "\n".join(f"- {route} : {label}" for route, label in SCREENS),
     ])
