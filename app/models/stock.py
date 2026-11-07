@@ -77,6 +77,8 @@ class StockLine(db.Model):
     cow_category = db.Column(db.String(8))                                # AG6.d : dairy | suckler (art. 73 A)
     fiscal_value_cents = db.Column(db.Integer)                            # valeur fiscale saisie (méthode « manual »)
     fiscal_reason = db.Column(db.String(300))
+    # Lot CG3.d : stock à rotation de plus d'un an (blocage 72 B bis) ; nul = selon la catégorie (animaux d'élevage).
+    slow_rotation = db.Column(db.Boolean)
     notes = db.Column(db.Text)
     position = db.Column(db.Integer, nullable=False, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)

@@ -145,6 +145,62 @@ def _times(quantity: Decimal, cents: int) -> int:
     return int((quantity * cents).quantize(Decimal(1), ROUND_HALF_UP))
 
 
+def line_key(line: StockLine) -> tuple:
+    """Clé d'une ligne d'un exercice à l'autre : lot, sinon compte et libellé de production."""
+    if line.lot_id is not None:
+        return (line.account_id, "lot", line.lot_id)
+    text = (line.production or line.label or "").strip().lower()
+    return (line.account_id, "label", text)
+
+
+def same_line(fy_id: int, wanted: tuple) -> StockLine | None:
+    for other in StockLine.query.filter_by(fiscal_year_id=fy_id):
+        if line_key(other) == wanted:
+            return other
+    return None
+
+
+def _capping_renounced(on: date) -> bool:
+    return any(o.start_date <= on and (o.renounced_on is None or on < o.renounced_on)
+               for o in TaxOption.query.filter_by(code="flat_stock_no_capping"))
+
+
+def flat_unit(line: StockLine, fy: FiscalYear, previous_unit=None) -> tuple[int | None, str | None]:
+    """Valeur unitaire forfaitaire : cours du jour × (1 − décote), écrêtée à ± 20 % de la valeur unitaire forfaitaire
+    de la même ligne à l'ouverture (lot CG3.d, BOI-BA-BASE-20-20-20-20 § 120), sauf renonciation
+    (`flat_stock_no_capping`). `previous_unit(ligne, exercice)` donne la valeur d'ouverture ; par défaut, la valeur
+    comptable forfaitaire de l'exercice précédent. Rend (valeur, note)."""
+    if line.market_price_cents is None:
+        return None, "Cours du jour à la clôture à saisir."
+    bp = flat_discount_bp(line.flat_rate or "general", fy.end_date)
+    if bp is None:
+        return None, "Taux de décote forfaitaire introuvable pour la date de clôture."
+    unit = _discounted(line.market_price_cents, bp)
+    from app.services import reg_params
+    cap = reg_params.value("stock.flat_capping_bp", fy.end_date, default=None)
+    if not cap or _capping_renounced(fy.end_date):
+        return unit, None
+    previous_fy = previous_fiscal_year(fy)
+    previous = same_line(previous_fy.id, line_key(line)) if previous_fy is not None else None
+    if previous is None:
+        return unit, None
+    if previous_unit is None:
+        if previous.method != "flat":
+            return unit, None
+        opening, _value, _w = evaluate(previous, previous_fy)
+    else:
+        opening = previous_unit(previous, previous_fy)
+    if not opening:
+        return unit, None
+    low, high = round(opening * (10000 - cap) / 10000), round(opening * (10000 + cap) / 10000)
+    if unit > high or unit < low:
+        bound = high if unit > high else low
+        sign = "+" if unit > high else "−"
+        return bound, (f"Écrêtée à {sign}{cap / 100:.0f} % de la valeur d'ouverture ({opening / 100:.2f}) : "
+                       f"{bound / 100:.2f} au lieu de {unit / 100:.2f}.").replace(".", ",")
+    return unit, None
+
+
 def _discounted(cents: int, bp: int) -> int:
     return int((Decimal(cents) * (10000 - bp) / 10000).quantize(Decimal(1), ROUND_HALF_UP))
 
@@ -183,11 +239,11 @@ def evaluate(line: StockLine, fy: FiscalYear, discount_map: dict | None = None) 
             else:
                 unit = _discounted(line.market_price_cents, bp)
         else:
-            bp = flat_discount_bp(line.flat_rate or "general", fy.end_date)
-            if bp is None:
-                warnings.append("Taux de décote forfaitaire introuvable pour la date de clôture.")
-            else:
-                unit = _discounted(line.market_price_cents, bp)
+            unit, note = flat_unit(line, fy)
+            if unit is None:
+                warnings.append(note)
+            elif note:
+                warnings.append(note)
         warnings += price_warnings(line)
     if line.category in ("animals_long", "animals_short"):
         from app.services import stock_lots
@@ -252,7 +308,7 @@ def _account(code, field, label) -> Account:
 FIELDS = {"activity_id", "account_code", "variation_account_code", "label", "production", "quantity", "unit", "method", "standard_id",
           "market_price_cents", "price_source", "price_reference", "flat_rate", "unit_value_cents",
           "depreciation_cents", "depreciation_reason", "notes", "lot_id", "heads", "gap_reason", "fiscal_method",
-          "fiscal_value_cents", "fiscal_reason", "cow_category"}
+          "fiscal_value_cents", "fiscal_reason", "cow_category", "slow_rotation"}
 
 
 def _apply(line: StockLine, data: dict, fy: FiscalYear, creating: bool) -> None:
@@ -591,7 +647,8 @@ def _fiscal(line: StockLine, fy: FiscalYear) -> dict:
     from app.services import stock_tax
     data = stock_tax.fiscal_value(line, fy)
     return {**data, "allowed": stock_tax.allowed(line, fy), "fiscal_reason": line.fiscal_reason,
-            "manual_cents": line.fiscal_value_cents}
+            "manual_cents": line.fiscal_value_cents, "slow_rotation": line.slow_rotation, "slow": stock_tax.slow(line),
+            "freezable": line.category in stock_tax.FROZEN_ALLOWED}
 
 
 def overview(fy: FiscalYear) -> dict:

@@ -66,3 +66,20 @@ def test_entry_mode_columns_cg2b(tmp_path):
         assert c.execute(sa.text("SELECT entry_mode, start_month FROM crop_standards")).one() == ("monthly", None)
         _run(c, cg2b.downgrade)
         assert "entry_mode" not in {col["name"] for col in sa.inspect(c).get_columns("crop_standards")}
+
+
+def test_slow_rotation_column_cg3d(tmp_path):
+    """Migration CG3.d (b4c6d8e0f2a4) : lignes déjà bloquées marquées à rotation lente ; retour arrière."""
+    path = Path(__file__).parents[1] / "migrations" / "versions" / "b4c6d8e0f2a4_stock_slow_rotation.py"
+    spec_d = importlib.util.spec_from_file_location("cg3d_migration", path)
+    cg3d = importlib.util.module_from_spec(spec_d)
+    spec_d.loader.exec_module(cg3d)
+    engine = sa.create_engine(f"sqlite:///{tmp_path / 'cg3d.db'}")
+    with engine.begin() as c:
+        c.execute(sa.text("CREATE TABLE stock_lines (id INTEGER PRIMARY KEY, fiscal_method VARCHAR(8))"))
+        c.execute(sa.text("INSERT INTO stock_lines VALUES (1, 'frozen'), (2, 'none')"))
+    with engine.begin() as c:
+        _run(c, cg3d.upgrade)
+        assert dict(c.execute(sa.text("SELECT id, slow_rotation FROM stock_lines")).all()) == {1: 1, 2: None}
+        _run(c, cg3d.downgrade)
+        assert "slow_rotation" not in {col["name"] for col in sa.inspect(c).get_columns("stock_lines")}

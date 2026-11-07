@@ -51,6 +51,7 @@ OPTIONS = {
     "averaging_75_0_b": "Moyenne triennale (art. 75-0 B)",
     "stock_freeze_72_b_bis": "Blocage des stocks à rotation lente (art. 72 B bis)",
     "flat_stock_method": "Méthode forfaitaire des stocks (art. 74 b)",
+    "flat_stock_no_capping": "Renonciation à l'écrêtement de la méthode forfaitaire (± 20 %)",
     "rsa_option": "Option pour le régime simplifié agricole (TVA)",
     "vat_quarterly": "Option CA3 trimestrielle (RSA)",
     "vat_monthly": "Option CA3 mensuelle (RSA)",

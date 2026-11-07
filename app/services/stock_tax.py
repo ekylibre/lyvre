@@ -3,11 +3,13 @@
 Par ligne d'inventaire, à côté de la valeur comptable :
 - **valeur comptable** (méthode `none`, par défaut) ;
 - **méthode forfaitaire** (art. 74 b, option `flat_stock_method` en vigueur à la clôture) : cours du jour × (1 − décote
-  de 20 %, ou 30 % pour les bovins et la viticulture) ; ni approvisionnements ni avances aux cultures ;
-- **stock bloqué** (art. 72 B bis, option `stock_freeze_72_b_bis` en vigueur à la clôture), produits et animaux :
-  valeur unitaire fiscale de la clôture qui précède l'option, pour la ligne de même clé. **Règle proposée, à valider
-  (Q-S5)** : la quantité bloquée est la plus petite des quantités de référence, de l'exercice précédent et de
-  l'exercice (une sortie la réduit, elle ne se reconstitue pas) ; le surplus est évalué à la valeur comptable ;
+  de 20 %, ou 30 % pour les bovins et la viticulture), écrêtée à ± 20 % de la valeur d'ouverture sauf renonciation
+  (lot CG3.d) ; ni approvisionnements ni avances aux cultures ;
+- **stock bloqué** (art. 72 B bis, option `stock_freeze_72_b_bis` en vigueur à la clôture), stocks à rotation de
+  plus d'un an (lot CG3.d) : option **globale** (toute ligne à rotation lente est bloquée, saisie motivée possible) ;
+  **couches** reconstituées d'exercice en exercice depuis la clôture qui précède l'option : la couche de référence à sa
+  valeur fiscale unitaire, chaque hausse de quantité à la valeur comptable unitaire de l'exercice où elle apparaît
+  (première inscription), chaque baisse consomme les couches les plus anciennes (PEPS) ;
 - **valeur saisie** avec un motif.
 L'écart (valeur fiscale − valeur comptable) est sans écriture : il est repris au tableau de passage fiscal (AG6.3).
 """
@@ -19,6 +21,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from app.extensions import db
 from app.models import FiscalYear, StockLine, TaxOption
 from app.models.stock import FISCAL_METHODS
+from app.services import reg_params
 from app.services import stock_inventory as inv
 from app.services.stock_inventory import StockError
 
@@ -39,28 +42,39 @@ def options(fy: FiscalYear) -> dict:
             "frozen_since": frozen.start_date.isoformat() if frozen is not None else None}
 
 
+def slow(line: StockLine) -> bool:
+    """Rotation de plus d'un an : la case de la ligne, sinon les animaux d'élevage (lot CG3.d)."""
+    if line.slow_rotation is not None:
+        return bool(line.slow_rotation)
+    return line.category == "animals_long"
+
+
+def _frozen_line(line: StockLine, opts: dict) -> bool:
+    return opts["frozen"] and line.category in FROZEN_ALLOWED and slow(line)
+
+
 def allowed(line: StockLine, fy: FiscalYear, opts: dict | None = None) -> list[str]:
     opts = opts or options(fy)
+    if _frozen_line(line, opts):                   # option globale : la ligne lente est bloquée (ou saisie motivée)
+        return ["frozen", "manual"]
     out = ["none", "manual"]
     if opts["flat"] and line.category not in FLAT_FORBIDDEN:
         out.append("flat")
-    if opts["frozen"] and line.category in FROZEN_ALLOWED:
-        out.append("frozen")
     return out
 
 
-def key(line: StockLine) -> tuple:
-    if line.lot_id is not None:
-        return (line.account_id, "lot", line.lot_id)
-    text = (line.production or line.label or "").strip().lower()
-    return (line.account_id, "label", text)
+def effective_method(line: StockLine, fy: FiscalYear, opts: dict | None = None) -> str:
+    opts = opts or options(fy)
+    method = line.fiscal_method or "none"
+    if _frozen_line(line, opts) and method != "manual":
+        return "frozen"
+    if method == "frozen":                         # option close ou ligne devenue rapide
+        return "none"
+    return method
 
 
-def _same(fy_id: int, wanted: tuple) -> StockLine | None:
-    for line in StockLine.query.filter_by(fiscal_year_id=fy_id):
-        if key(line) == wanted:
-            return line
-    return None
+key = inv.line_key
+_same = inv.same_line
 
 
 def _reference_year(fy: FiscalYear) -> FiscalYear | None:
@@ -78,7 +92,7 @@ def _accounting(line: StockLine, fy: FiscalYear) -> tuple[int | None, int | None
 
 
 def frozen(line: StockLine, fy: FiscalYear) -> dict:
-    """Valeur bloquée : référence, quantité bloquée, surplus évalué à la valeur comptable."""
+    """Valeur bloquée en couches (lot CG3.d, Q7) : référence, entrées à leur première inscription, sorties PEPS."""
     ref_year = _reference_year(fy)
     if ref_year is None:
         return {"error": "Aucun exercice clos avant l'option de blocage : valeur de référence introuvable."}
@@ -89,24 +103,33 @@ def frozen(line: StockLine, fy: FiscalYear) -> dict:
     ref_unit = _fiscal_unit(ref_line, ref_year)
     if ref_unit is None:
         return {"error": "Valeur unitaire de référence inconnue."}
-    blocked = Decimal(ref_line.quantity or 0)
-    year = inv.previous_fiscal_year(fy)
-    chain = []
+    layers = [[Decimal(ref_line.quantity or 0), ref_unit, ref_year.label]]
+    chain, year = [], fy
     while year is not None and year.end_date > ref_year.end_date:
         chain.append(year)
         year = inv.previous_fiscal_year(year)
-    for previous in reversed(chain):                      # la quantité bloquée ne se reconstitue jamais
-        prev_line = _same(previous.id, wanted)
-        blocked = min(blocked, Decimal(prev_line.quantity or 0) if prev_line is not None else Decimal(0))
-    quantity = Decimal(line.quantity or 0)
-    blocked = min(blocked, quantity)
-    unit, _value = _accounting(line, fy)
-    surplus = quantity - blocked
-    if surplus and unit is None:
-        return {"error": "Valeur comptable unitaire inconnue pour le surplus."}
-    value = int((blocked * ref_unit + surplus * (unit or 0)).quantize(Decimal(1), ROUND_HALF_UP))
-    return {"reference_year": ref_year.label, "reference_unit_cents": ref_unit, "blocked_quantity": str(blocked),
-            "surplus_quantity": str(surplus), "value_cents": value}
+    for current in reversed(chain):
+        current_line = line if current.id == fy.id else _same(current.id, wanted)
+        quantity = Decimal(current_line.quantity or 0) if current_line is not None else Decimal(0)
+        held = sum(layer[0] for layer in layers)
+        if quantity < held:                        # sortie : premières entrées, premières sorties
+            out = held - quantity
+            for layer in layers:
+                take = min(layer[0], out)
+                layer[0] -= take
+                out -= take
+            layers = [layer for layer in layers if layer[0] > 0]
+        elif quantity > held:                      # entrée : bloquée à sa valeur de première inscription
+            unit, _value = _accounting(current_line, current)
+            if unit is None:
+                return {"error": f"Valeur comptable unitaire inconnue en {current.label} pour l'entrée en stock."}
+            layers.append([quantity - held, unit, current.label])
+    value = int(sum(q * u for q, u, _ in layers).quantize(Decimal(1), ROUND_HALF_UP)) if layers else 0
+    reference = next((q for q, _u, label in layers if label == ref_year.label), Decimal(0))
+    return {"reference_year": ref_year.label, "reference_unit_cents": ref_unit, "blocked_quantity": str(reference),
+            "surplus_quantity": str(sum((q for q, _u, label in layers if label != ref_year.label), Decimal(0))),
+            "layers": [{"quantity": str(q), "unit_cents": u, "since": label} for q, u, label in layers],
+            "value_cents": value}
 
 
 def _fiscal_unit(line: StockLine, fy: FiscalYear) -> int | None:
@@ -118,10 +141,18 @@ def _fiscal_unit(line: StockLine, fy: FiscalYear) -> int | None:
     return int((Decimal(value) / quantity).quantize(Decimal(1), ROUND_HALF_UP))
 
 
+def _opening_flat_unit(previous: StockLine, previous_fy: FiscalYear) -> int | None:
+    """Valeur unitaire d'ouverture pour l'écrêtement fiscal : la valeur fiscale de la ligne à la clôture précédente,
+    si elle était au forfait."""
+    if effective_method(previous, previous_fy) != "flat" and previous.method != "flat":
+        return None
+    return _fiscal_unit(previous, previous_fy)
+
+
 def fiscal_value(line: StockLine, fy: FiscalYear) -> dict:
     """{fiscal_method, fiscal_value_cents, gap_cents, warnings, frozen?} de la ligne."""
     _unit, accounting = _accounting(line, fy)
-    method = line.fiscal_method or "none"
+    method = effective_method(line, fy)
     warnings: list[str] = []
     out: dict = {"fiscal_method": method}
     if method == "none":
@@ -136,9 +167,10 @@ def fiscal_value(line: StockLine, fy: FiscalYear) -> dict:
         elif line.market_price_cents is None:
             value = None
             warnings.append("Cours du jour à saisir pour la valeur forfaitaire.")
-        else:
-            bp = inv.flat_discount_bp(line.flat_rate or "general", fy.end_date)
-            unit = inv._discounted(line.market_price_cents, bp) if bp is not None else None  # noqa: SLF001
+        else:                                              # écrêtement sur la valeur fiscale d'ouverture (CG3.d)
+            unit, note = inv.flat_unit(line, fy, previous_unit=_opening_flat_unit)
+            if note:
+                warnings.append(note)
             value = int((Decimal(line.quantity or 0) * unit).quantize(Decimal(1), ROUND_HALF_UP)) if unit is not None else None
         if not options(fy)["flat"]:
             warnings.append("Option de la méthode forfaitaire non en vigueur à la clôture.")
@@ -148,7 +180,6 @@ def fiscal_value(line: StockLine, fy: FiscalYear) -> dict:
         value = detail.get("value_cents")
         if "error" in detail:
             warnings.append(detail["error"])
-        warnings.append("Stock bloqué : règle de l'excédent et des sorties à valider (Q-S5).")
     out["fiscal_value_cents"] = value
     out["gap_cents"] = None if value is None or accounting is None else value - accounting
     out["warnings"] = warnings
@@ -157,6 +188,11 @@ def fiscal_value(line: StockLine, fy: FiscalYear) -> dict:
 
 def apply(line: StockLine, data: dict, fy: FiscalYear) -> None:
     """Champs fiscaux d'une ligne (appelé par la saisie des lignes)."""
+    if "slow_rotation" in data:
+        value = data["slow_rotation"]
+        if value is not None and not isinstance(value, bool):
+            raise StockError("Rotation lente : oui, non ou vide.", "slow_rotation")
+        line.slow_rotation = value
     if "fiscal_method" in data:
         method = data["fiscal_method"] or "none"
         if method not in FISCAL_METHODS:
@@ -211,4 +247,30 @@ def checks(fy: FiscalYear) -> list[tuple[str, str, int, str]]:
                     "produits et d'animaux à choisir", len(pending), "info"))
     if incomplete:
         out.append(("stock_fiscal_missing", "Valeurs fiscales de stock incomplètes", len(incomplete), "info"))
+    if opts["frozen"]:
+        out += _de_minimis(fy)
     return out
+
+
+def _de_minimis(fy: FiscalYear) -> list[tuple[str, str, int, str]]:
+    """Blocage 72 B bis : écart de valeur cumulé sur l'exercice et les 2 précédents, rapproché du plafond de minimis
+    agricole (lot CG3.d). L'aide est l'avantage fiscal et social qui en résulte, non l'écart lui-même."""
+    years, year = [], fy
+    while year is not None and len(years) < 3:
+        years.append(year)
+        year = inv.previous_fiscal_year(year)
+    gap = 0
+    for y in years:
+        opts = options(y)
+        for line in StockLine.query.filter_by(fiscal_year_id=y.id):
+            if effective_method(line, y, opts) == "frozen":
+                data = fiscal_value(line, y)
+                gap += max(-(data["gap_cents"] or 0), 0)
+    if not gap:
+        return []
+    cap = reg_params.value("aid.de_minimis.agri_cap_cents", fy.end_date, default=None)
+    euros = lambda c: f"{c / 100:,.0f} €".replace(",", " ")  # noqa: E731
+    label = (f"Blocage 72 B bis : valeur des stocks minorée de {euros(gap)} sur {len(years)} exercice(s). L'avantage "
+             "fiscal et social qui en résulte est une aide de minimis")
+    label += f", plafonnée à {euros(cap)} sur 3 exercices toutes aides de minimis agricoles confondues" if cap else ""
+    return [("stock_freeze_de_minimis", label, 1, "info")]

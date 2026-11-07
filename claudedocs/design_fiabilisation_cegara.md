@@ -306,6 +306,14 @@ L'utilisateur a choisi de **suivre le barème** : le calcul de Lyvre est conserv
 - Paramètre `aid.de_minimis.agri_cap_cents` (règlement UE 1408/2013 modifié par le 2024/3118, montant et période à lire au codage, fiabilité I sinon).
 - Contrôle de clôture `stock_freeze_de_minimis` (information) : avantage du blocage (valeur comptable − valeur fiscale) cumulé sur l'exercice et les 2 précédents, comparé au plafond. Le message rappelle que le plafond vaut **toutes aides de minimis confondues**.
 
+**Réalisé (CG3.d, 07/11/2026)** :
+- paramètres `stock.flat_capping_bp` (2 000 pb) et `aid.de_minimis.agri_cap_cents` (20 000 € jusqu'au 15/12/2024, puis 50 000 € : règlement UE 2024/3118) ;
+- `option.flat_stock_no_capping.duration_years` = 5 (V, BOI-BA-BASE-20-20-20-20 § 130) ;
+- `stock_inventory.flat_unit` et `line_key`, couches PEPS dans `stock_tax.frozen` (`layers`), `stock_tax.slow` et `effective_method` ;
+- migration `b4c6d8e0f2a4` : les lignes déjà bloquées sont marquées à rotation lente ;
+- le contrôle de minimis montre l'**écart de valeur** cumulé (la base de l'avantage), car Lyvre ne connaît pas l'impôt économisé ;
+- la mention « règle à valider (Q-S5) » disparaît.
+
 **Non-cumul avec 75-0 B** (non retenu en Q7 bis) : pas de contrôle ajouté. Question **D-CG3.3** : l'interdiction du BOFiP a-t-elle été levée par la LF 2026 ?
 
 ## 6.5 CG3.e Options

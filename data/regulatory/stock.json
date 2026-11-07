@@ -1,5 +1,5 @@
 {
- "_comment": "Inventaire de clôture (lot AG4) : décotes de la méthode forfaitaire des stocks (réel simplifié, option flat_stock_method). Même format que ba.json.",
+ "_comment": "Inventaire de clôture (lot AG4) : décotes de la méthode forfaitaire des stocks (réel simplifié, option flat_stock_method). Même format que ba.json. Lot CG3.d : écrêtement et plafond de minimis (blocage 72 B bis).",
  "values": [
   {
    "key": "stock.flat_discount_general_bp",
@@ -22,6 +22,39 @@
    "verified_on": "2026-11-04",
    "reliability": "R",
    "note": "Décote majorée de 30 % : bovins et produits de la viticulture (vins, eaux-de-vie)."
+  },
+  {
+   "key": "stock.flat_capping_bp",
+   "value": 2000,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/doctrine/pgp/4562-PGP",
+   "source_label": "BOI-BA-BASE-20-20-20-20 § 120 ; ann. III art. 38 sexdecies JC",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Écrêtement de la méthode forfaitaire : valeur d'inscription limitée à ± 20 % de celle de l'ouverture, sauf renonciation (lot CG3.d)."
+  },
+  {
+   "key": "aid.de_minimis.agri_cap_cents",
+   "value": 2000000,
+   "valid_from": "2019-03-14",
+   "valid_to": "2024-12-15",
+   "source": "https://eur-lex.europa.eu/eli/reg/2013/1408/2024-12-16/eng/pdf",
+   "source_label": "Règlement (UE) 1408/2013 modifié par le 2019/316",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Plafond de minimis agricole par entreprise unique sur 3 exercices (lot CG3.d)."
+  },
+  {
+   "key": "aid.de_minimis.agri_cap_cents",
+   "value": 5000000,
+   "valid_from": "2024-12-16",
+   "valid_to": null,
+   "source": "https://eur-lex.europa.eu/eli/reg/2024/3118/oj",
+   "source_label": "Règlement (UE) 2024/3118 modifiant le 1408/2013 ; instruction DGPE 2025-57",
+   "verified_on": "2026-11-07",
+   "reliability": "V",
+   "note": "50 000 € par entreprise unique sur 3 ans, toutes aides de minimis agricoles confondues (lot CG3.d)."
   }
  ]
 }

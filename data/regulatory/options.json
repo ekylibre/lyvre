@@ -163,6 +163,17 @@
    "verified_on": "2026-11-07",
    "reliability": "V",
    "note": "Méthode forfaitaire des stocks (réel simplifié) : 5 exercices, reconduction tacite par période de 5 ; dénonciation dans le délai de déclaration du dernier exercice de la période (lot CG2.e)."
+  },
+  {
+   "key": "option.flat_stock_no_capping.duration_years",
+   "value": 5,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/doctrine/pgp/4562-PGP",
+   "source_label": "BOI-BA-BASE-20-20-20-20 § 130",
+   "verified_on": "2026-11-07",
+   "reliability": "V",
+   "note": "Renonciation à l'écrêtement : mêmes conditions et même durée que l'option pour la méthode forfaitaire (lot CG3.d)."
   }
  ]
 }

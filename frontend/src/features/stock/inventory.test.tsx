@@ -62,4 +62,16 @@ describe("Inventaire de clôture", () => {
     expect(await screen.findByRole("columnheader", { name: "Valeur fiscale" })).toBeInTheDocument();
     expect(screen.getByText("Méthode forfaitaire (art. 74 b)", { exact: false })).toBeInTheDocument();
   });
+
+  it("blocage 72 B bis : case de rotation lente sur la ligne (lot CG3.d)", async () => {
+    const view = { ...VIEW, item: { ...VIEW.item, fiscal: { ...VIEW.item.fiscal, frozen: true, frozen_since: "2025-01-01" },
+      items: [{ ...LINE, label: "Cognac", fiscal: { ...LINE.fiscal, fiscal_method: "frozen", allowed: ["frozen", "manual"],
+        freezable: true, slow: true, slow_rotation: true } }] } };
+    vi.spyOn(globalThis, "fetch").mockImplementation(((url: string) => json(String(url).includes("/stock")
+      ? view : { items: [{ id: 7, label: "2026", status: "open", start_date: "2026-01-01", end_date: "2026-12-31" }] })) as typeof globalThis.fetch);
+    renderWithProviders(<InventoryPage />, { route: "/inventory/",
+      session: { ...TEST_SESSION, role: "admin" as const, permissions: { write: true, instance_admin: true } } });
+    await userEvent.click(await screen.findByText("Cognac"));
+    expect(await screen.findByRole("checkbox", { name: /Rotation de plus d'un an/ })).toBeChecked();
+  });
 });

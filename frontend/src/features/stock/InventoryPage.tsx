@@ -4,7 +4,7 @@
 // feuilles de comptage, reprise de l'exercice précédent, import d'un tableur, barèmes. Masqué au micro-BA.
 import { useState } from "react";
 import {
-  Alert, Anchor, Badge, Button, Center, FileButton, Group, Loader, NumberInput, Paper, SegmentedControl, Select,
+  Alert, Anchor, Badge, Button, Center, Checkbox, FileButton, Group, Loader, NumberInput, Paper, SegmentedControl, Select,
   SimpleGrid, Stack, Table, Text, TextInput, Textarea, Title,
 } from "@mantine/core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -36,8 +36,9 @@ export interface StockLineItem {
   depreciation_reason: string | null; notes: string | null; warnings: string[]; purchase_account: string | null;
   lot_id: number | null; heads: number | null; gap_reason: string | null; crop_advance_id: number | null; cow_category?: string | null;
   fiscal: { fiscal_method: string; fiscal_value_cents: number | null; gap_cents: number | null; warnings: string[]; allowed: string[];
-    fiscal_reason: string | null; manual_cents: number | null;
-    frozen?: { reference_year?: string; reference_unit_cents?: number; blocked_quantity?: string; surplus_quantity?: string; error?: string } };
+    fiscal_reason: string | null; manual_cents: number | null; slow_rotation?: boolean | null; slow?: boolean; freezable?: boolean;
+    frozen?: { reference_year?: string; reference_unit_cents?: number; blocked_quantity?: string; surplus_quantity?: string; error?: string;
+      layers?: { quantity: string; unit_cents: number; since: string }[] } };
 }
 interface Category { key: string; label: string; group: string; methods: string[]; retail: boolean; accounts: { prefix: string; variation: string }[] }
 interface Standard { id: number; key: string; label: string; unit: string; value_cents: number; year: number; source: string | null }
@@ -62,7 +63,7 @@ const FISCAL: Record<string, string> = { none: "Valeur comptable", flat: "Métho
   frozen: "Stock bloqué (art. 72 B bis)", manual: "Valeur fiscale saisie" };
 const errorOf = (e: unknown) => (e instanceof ApiError ? e.message : "Enregistrement impossible.");
 
-type Draft = Record<string, string | number | null>;
+type Draft = Record<string, string | number | boolean | null>;
 
 function LineForm({ view, line, onDone }: { view: StockView; line: StockLineItem | null; onDone: () => void }) {
   const fyId = view.item.fiscal_year.id;
@@ -74,6 +75,7 @@ function LineForm({ view, line, onDone }: { view: StockView; line: StockLineItem
     depreciation_cents: line.depreciation_cents, depreciation_reason: line.depreciation_reason, notes: line.notes,
     lot_id: line.lot_id, heads: line.heads, gap_reason: line.gap_reason, cow_category: line.cow_category ?? null,
     fiscal_method: line.fiscal.fiscal_method, fiscal_value_cents: line.fiscal.manual_cents, fiscal_reason: line.fiscal.fiscal_reason,
+    slow_rotation: line.fiscal.slow_rotation ?? null,
   } : { account_code: "", label: "", quantity: "0", unit: "unit", method: "actual" });
   const [error, setError] = useState<string | null>(null);
   const targets = useAnalyticTargets();
@@ -144,11 +146,14 @@ function LineForm({ view, line, onDone }: { view: StockView; line: StockLineItem
           <MoneyInput label="Dépréciation" value={(d.depreciation_cents as number | null) ?? null} onChange={(v) => set({ depreciation_cents: v })} />
           <TextInput label="Motif de la dépréciation" value={String(d.depreciation_reason ?? "")} onChange={(e) => set({ depreciation_reason: e.currentTarget.value })} />
         </Group>
+        {line && view.item.fiscal.frozen && line.fiscal.freezable && (
+          <Checkbox label="Rotation de plus d'un an (blocage 72 B bis : toute ligne lente est bloquée)"
+            checked={d.slow_rotation === undefined || d.slow_rotation === null ? !!line.fiscal.slow : !!d.slow_rotation}
+            onChange={(e) => set({ slow_rotation: e.currentTarget.checked })} />)}
         {line && line.fiscal.allowed.length > 2 && (
           <>
             <Select label="Valeur fiscale" allowDeselect={false} value={String(d.fiscal_method ?? "none")} onChange={(v) => set({ fiscal_method: v })}
-              data={line.fiscal.allowed.map((m) => ({ value: m, label: FISCAL[m] ?? m }))}
-              description={d.fiscal_method === "frozen" ? "Règle de l'excédent et des sorties à valider (Q-S5)." : undefined} />
+              data={line.fiscal.allowed.map((m) => ({ value: m, label: FISCAL[m] ?? m }))} />
             {d.fiscal_method === "manual" && (
               <Group grow>
                 <MoneyInput label="Valeur fiscale saisie" value={(d.fiscal_value_cents as number | null) ?? null} onChange={(v) => set({ fiscal_value_cents: v })} />
