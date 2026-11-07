@@ -525,3 +525,91 @@ Le statut visé pour MA-01 à MA-05 et MA-07 est `publie`, grâce aux sources d�
 ## 7.7 Questions
 - **D-CG4.1** ✅ *Accepté le 07/11/2026 : chargeur générique, fiches agri seules.* Les fiches de méthode sont-elles réservées aux instances agricoles (référentiel `agri`), ou faut-il préparer dès maintenant les fiches A, C, D et S de la base documentaire avec le même chargeur ? Proposition : chargeur générique, et seules les fiches `agri` livrées dans CG4.
 - **D-CG4.2** ✅ *Accepté le 07/11/2026.* Faut-il relire les fiches avec l'expert-comptable avant de les passer en `publie` ? Proposition : `publie` dès que la source primaire est relue, revue par l'expert-comptable à la fin de CG4, le champ `verifie_par` notant qui a relu.
+
+---
+
+# Lot CG5 : fonctions nouvelles retenues
+
+Sources des décisions : réponses Q5 bis, Q6, Q8, Q8 bis et Q8 ter (`fiabilisation_cegara.md` § 6) et périmètre Q-CG3 (stocks, sous-activité, cas particuliers MSA, plantations). Mêmes règles que les lots précédents :
+- chaque valeur ajoutée cite une source primaire relue, sinon fiabilité I ;
+- aucune écriture n'est passée sans validation de l'utilisateur ;
+- un exercice clôturé n'est jamais réécrit.
+
+## 8.1 CG5.a Part de main-d'œuvre salariée des avances aux cultures (Q5 bis)
+
+- **Source** : BOI-BA-BASE-20-20-20-30 § 100, déjà lu. En M1, « le travail de l'exploitant et des aides familiaux n'étant pas pris en considération ». La même logique vaut pour la méthode F, dont le barème suppose une main-d'œuvre salariée.
+- **Modèle** : `CropAdvance.salaried_share_bp` (entier de 0 à 10 000, nul = 100 %). Migration.
+- **Calcul** : en F et en M1, la composante `labour` du barème est multipliée par la part salariée. En M2 et au coût réel, la main-d'œuvre vient des charges réelles, donc la part ne s'applique pas. Le détail affiche « main-d'œuvre du barème × 40 % (part salariée) ».
+- **Écran** : champ « Part de main-d'œuvre salariée (%) » sur la fiche, visible en F et en M1. L'hypothèse du barème reste affichée.
+- **Test** : blé, clôture au 31 mars, barème fictif ; F avec une part salariée de 0 % → la composante main-d'œuvre est à 0.
+
+## 8.2 CG5.b Alerte de provision des stocks (ST8)
+
+- **Source** : BOI-BA-BASE-20-20-20-10 § 90 et § 320, déjà lus. Quand le cours du jour est inférieur au prix de revient, une provision est constituée.
+- **Calcul** : pour une ligne d'inventaire au coût réel ou au barème (pas au forfait, qui exclut la provision, § 50), avec un cours du jour saisi et inférieur à la valeur unitaire, et sans dépréciation saisie :
+  - avertissement « Cours du jour inférieur au prix de revient : provision de X € à constater » ;
+  - bouton qui remplit `depreciation_cents` avec l'écart, motif « cours du jour < prix de revient ». L'utilisateur valide.
+- **Contrôle de clôture** `stock_depreciation_missing` (information), avec le nombre de lignes.
+
+## 8.3 CG5.c Stock d'ouverture guidé au passage au réel (Q6)
+
+- **Source à relire avant de coder** : BOI-BA-REG-40-10-10 (§ 190 et suivants), BOI-BA-REG-40-10-20, BOI-BA-REG-40-20 et BOI-BA-REG-40-30, cités en renvoi par BOI-BA-BASE-20-20-20-10 § 330. Tant qu'ils ne sont pas lus, la règle d'évaluation reste « à valider ».
+- **Déclencheur** : `ba_regimes._first_real_year(fy)`, déjà utilisé pour les créances du passage du micro au réel.
+- **Écran Inventaire** de cet exercice : un encadré « Stock d'entrée au passage au réel ». L'utilisateur saisit ou reprend les lignes du stock détenu à la date du changement, avec prix de revient et cours du jour. Lyvre retient la plus petite des deux valeurs, sous réserve de la lecture du BOI.
+- **Écriture d'ouverture** proposée en brouillon : débit des comptes de stock (3x), crédit du compte de l'exploitant (108) pour une EI, ou des comptes courants d'associés (455) pour une société. Elle est marquée `SOURCE_OPENING`, pour que la variation de stock de l'exercice parte de ce stock d'entrée.
+- **Tableau de passage** : aucune ligne, puisque le stock d'entrée vient réduire la variation de stock.
+- **Contrepartie** : compte de l'exploitant (108) pour une EI ; **comptes courants d'associés (455), au prorata des parts**, pour une société (D-CG5.1).
+
+## 8.4 CG5.d Plantations (Q8, Q8 bis, Q8 ter)
+
+1. **Choix du dossier pour les façons culturales des jeunes plantations** (Q8) :
+   - drapeau du profil agricole `plantation_costs_capitalized` (oui = coûts de croissance en 7222 ; non = charges) ;
+   - le contrôle `living_wip_missing` ne s'affiche que si le drapeau vaut oui ;
+   - si le drapeau vaut non, la plantation en cours ne reçoit que ses coûts de plantation, et Lyvre le rappelle sur la fiche.
+2. **Annuité entière** (Q8 bis) : `Asset.full_first_year` (booléen), proposé par défaut pour les plantations (comptes 246 et 2346). L'amortissement part du **premier jour de l'exercice** de mise en service, au lieu de la date de mise en service. `plan_bounds()` prend le début de l'exercice qui contient `in_service_date`. Le tableau d'amortissement l'affiche. Migration.
+3. **Repères de durée** (Q8 ter) :
+   - *révisé (D-CG5.2)* : pas de durée par défaut. Le tableau de l'annexe BOI-ANNX-000100 (première récolte, début de décroissance, par espèce et par conduite) est affiché comme repère pour les vergers.
+4. La fiche [MA-06] est mise à jour en conséquence.
+
+## 8.5 CG5.e Sous-activité (ST9)
+
+- **Source à relire avant de coder** : PCG 2026 art. 213-32 (affectation des frais fixes selon la capacité normale, disponible dans le dépôt) et, pour le fiscal, ann. III art. 38 nonies et BOI-BIC-PDSTK-20-20-10-10 § 240.
+- **Calculette 26 « Sous-activité »** :
+  - entrées : rendements des 5 dernières années, rendement de l'année, charges fixes de production ;
+  - calcul : rendement normal = moyenne des 3 rendements médians ; taux d'activité = rendement de l'année ÷ rendement normal ; charges fixes imputables = charges fixes × taux ;
+  - méthode et limites affichées, comme les autres calculettes.
+- **Inventaire** : sur une ligne au coût réel ou au barème, champ facultatif « charges fixes de sous-activité écartées », avec le lien vers la calculette. La part écartée reste en charge et ne s'ajoute pas au stock. Aucune écriture propre.
+
+## 8.6 CG5.f Cas particuliers MSA (MS4)
+
+- **Sources** :
+  - barème NSA 2026 de la MSA, déjà lu : assiettes forfaitaires d'installation (600 SMIC AMEXA, retraite de base, PFA et CSG ; 800 SMIC formation ; 1 820 SMIC RCO ; 11,5 % du PASS invalidité) ; collaborateur (retraite de base sur 600 SMIC à 14,87 % ou 13,05 %, RCO sur 1 200 SMIC, ATEXA à un pourcentage de la cotisation du chef) ; cotisant de solidarité (ATEXA forfaitaire) ;
+  - à relire : exonération jeune agriculteur (CRPM L.731-13) et ACRE (CSS L.131-6-4).
+- **Paramètres** : `msa.install.*_smic`, `msa.collaborator.*` et `msa.solidarity.*` depuis le barème 2026 (fiabilité V), puis `msa.ja.*` et `msa.acre.*` après lecture.
+- **Estimation** (`msa_estimate`) :
+  - statut `collaborator` couvert : il n'est plus refusé ;
+  - « nouvel installé » : assiettes forfaitaires quand il n'y a pas encore de revenu ;
+  - exonération JA dégressive et ACRE appliquées à l'estimation, ligne par ligne, avec leur base légale ;
+  - cotisant de solidarité : estimation simple (taux sur les revenus N-1, plus l'ATEXA forfaitaire), si le taux est trouvé.
+- La **rente du sol** reste un rappel ([SOC-03]) : son calcul demande les revenus cadastraux, hors de Lyvre.
+
+## 8.7 Étapes et migrations
+
+| Étape | Migration | Sources à relire avant | Taille |
+|---|---|---|---|
+| CG5.a part salariée | oui (`crop_advances.salaried_share_bp`) | — | petite |
+| CG5.b alerte de provision | non | — | petite |
+| CG5.d plantations | oui (`assets.full_first_year`) | durées (D-CG5.2) | moyenne |
+| CG5.e sous-activité | non | PCG 213-32, ann. III 38 nonies | moyenne |
+| CG5.c stock d'ouverture au réel | non | BOI-BA-REG-40 | moyenne |
+| CG5.f cas particuliers MSA | non | CRPM L.731-13, CSS L.131-6-4 | grande |
+
+Ordre proposé : a, b, d, e, c, f (du plus sûr au plus dépendant des sources). Un commit par étape, avec la fiche de méthode concernée mise à jour (MA-01, MA-02, MA-06, MA-07).
+
+## 8.8 Questions
+- **D-CG5.1** ✅ *Réponse du 07/11/2026 : compte courant d'associé (455), réparti selon les parts.* Passage au réel en société : contrepartie de l'écriture de stock d'entrée ?
+- **D-CG5.2** ✅ *Sources données par l'utilisateur le 07/11/2026, lues le même jour :*
+  - **BOI-ANNX-000100** (annexe « Durée d'amortissement des différentes plantations de vergers », version du 29/09/2014) : 10 espèces de vergers (pommiers, pêchers, poiriers, pruniers, cerisiers, abricotiers, amandiers, noyers, noisetiers, actinidia), 3 modes de conduite. Pour chacun : densité, âge de la première récolte, âge du début de décroissance des rendements. **Aucune durée en années ni aucun taux** ; ni vigne ni asperge.
+  - **BOI-BA-BASE-20-30-10-10** (version du 05/08/2026) : les plantations sont des immobilisations amortissables, même sur des terres restées dans le patrimoine privé (§ 100). Leur prix de revient comprend les plants et les frais de plantation « jusqu'à ce que la plantation soit arrivée à un stade de production normale » (§ 120). Les investissements annexes vont à un compte spécial (§ 120). Au passage du micro au réel, les plantations sont reprises à leur valeur nette comptable (§ 130). Renvoi au BOI-BA-BASE-20-30-10-20 § 100 à 160 pour la définition des frais de plantation (à lire en CG5.d).
+  - **Conception révisée** : pas de durée par défaut inventée. Le tableau de l'annexe devient un référentiel daté (`data/regulatory/plantation_orchards.json`, fiabilité V), affiché comme repère à la création d'une plantation de verger. L'utilisateur choisit la durée. Pour la vigne et l'asperge : saisie libre, sans repère.
+- **D-CG5.3** ✅ *Réponse du 07/11/2026 : commencer par le collaborateur.* Cas particuliers MSA : tout faire, ou commencer par les nouveaux installés et le collaborateur ?
