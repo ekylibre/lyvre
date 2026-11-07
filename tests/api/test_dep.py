@@ -82,12 +82,47 @@ def test_use_with_hazard_and_history_deadline(farm):
     lines = {l["key"]: l for l in client.get(f"{farm['url'](2027)}/tax-result").get_json()["item"]["lines"]}
     move = next(l for k, l in lines.items() if k.startswith("dep_move_"))
     assert move["amount_cents"] == 700000 and "exonérés" in move["label"]
+    # Lot CG2.c (design_fiabilisation_cegara.md § 2.3) : DPI au 5e exercice, DPA au 10e (paramètre « I »).
     assert client.post("/api/v1/dep/history", json={"kind": "dpi", "origin_year": 2018, "amount_cents": 500000}).status_code == 201
     lines = {l["key"]: l["amount_cents"] for l in client.get(f"{farm['url'](2028)}/tax-result").get_json()["item"]["lines"]}
-    assert any(k.startswith("dep_deadline_") and v == 500000 for k, v in lines.items())       # DPI 2018 au 10e exercice
+    assert not any(k.startswith("dep_deadline_") for k in lines)                  # DPI 2018 : échéance 2023, hors Lyvre
+    past = next(c for c in closing._agri_checks(farm["fy"][2026]) if c.key == "dep_deadline_past")
+    assert past.severity == "anomaly" and "DPI (ancienne) 2018 (échéance 2023)" in past.label
+    assert client.post("/api/v1/dep/history", json={"kind": "dpi", "origin_year": 2022, "amount_cents": 1}).status_code == 422
+    fy2023 = FiscalYear(label="2023", start_date=date(2023, 1, 1), end_date=date(2023, 12, 31), status="closed")
+    db.session.add(fy2023)
+    db.session.commit()                                                           # 2023 tenu dans Lyvre : échéance visible
+    lines = {l["key"]: l for l in client.get(f"/api/v1/fiscal-years/{fy2023.id}/tax-result").get_json()["item"]["lines"]}
+    dpi = next(l for k, l in lines.items() if k.startswith("dep_deadline_"))
+    assert dpi["amount_cents"] == 500000 and "au 5e exercice" in dpi["label"]
+    assert not any(c.key == "dep_deadline_past" for c in closing._agri_checks(farm["fy"][2026]))
+    assert client.post("/api/v1/dep/history", json={"kind": "dpa", "origin_year": 2018, "amount_cents": 300000}).status_code == 201
+    lines = {l["key"]: l for l in client.get(f"{farm['url'](2028)}/tax-result").get_json()["item"]["lines"]}
+    dpa = next(l for k, l in lines.items() if k.startswith("dep_deadline_"))
+    assert dpa["amount_cents"] == 300000 and "au 10e exercice" in dpa["label"]
     assert any(c.key == "dep_deadline" for c in closing._agri_checks(farm["fy"][2028]))
 
 
 def test_economic_hazard_value_added(farm):
     data = dep.economic_hazard(farm["fy"][2026])
     assert data["value_added_cents"] == 4000000 and data["average3_cents"] is None and data["hazard"] is False
+
+
+@pytest.mark.parametrize("close, base, n, months, pending, expected", [
+    (date(2019, 12, 31), 10000000, 1, 12, 0, 4140000),        # au-delà du 4e seuil : plafond 41 400 €
+    (date(2023, 12, 31), 10000000, 1, 12, 0, 4327470),        # 28 612 + 7 311,90 + 5 298,60 + 2 052,20
+    (date(2024, 12, 31), 10000000, 1, 12, 0, 4792200),        # 32 608 + 8 333,10 + 6 038,80 + 942,10
+    (date(2025, 12, 31), 10000000, 1, 12, 0, 4836610),        # 32 990 + 8 430,60 + 6 109,40 + 836,10
+    (date(2024, 9, 30), 4000000, 1, 9, 14000000, 1000000),    # 34 825,60 × 9/12 = 26 119,20, plafond global : 10 000
+    (date(2024, 12, 31), 15000000, 3, 12, 0, 15000000),       # GAEC de 3 : 3 × 50 000, limité au bénéfice
+])
+def test_dep_historical_scales_cg2d(app, close, base, n, months, pending, expected):
+    """Lot CG2.d (design_fiabilisation_cegara.md § 2.4) : barèmes 2019 à 2025 du BOI-BA-BASE-30-45-20 § 10, valeurs
+    recalculées à la main (somme des tranches)."""
+    with app.app_context():
+        assert dep.ceiling_for(base, close, n, months, pending)["ceiling_cents"] == expected
+
+
+def test_dep_before_2019_has_no_scale(app):
+    with app.app_context():
+        assert "introuvable" in dep.ceiling_for(10000000, date(2018, 12, 31), 1, 12, 0)["error"]

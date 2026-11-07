@@ -79,7 +79,7 @@ export function DepPanel({ fyId, editable }: { fyId: number; editable: boolean }
 
       <Text fw={600} size="sm" mt="sm">Registre</Text>
       <Table>
-        <Table.Thead><Table.Tr><Table.Th>Origine</Table.Th><Table.Th ta="right">Montant</Table.Th><Table.Th ta="right">Non rapporté</Table.Th><Table.Th>10e exercice</Table.Th><Table.Th>Mouvements</Table.Th></Table.Tr></Table.Thead>
+        <Table.Thead><Table.Tr><Table.Th>Origine</Table.Th><Table.Th ta="right">Montant</Table.Th><Table.Th ta="right">Non rapporté</Table.Th><Table.Th>Échéance</Table.Th><Table.Th>Mouvements</Table.Th></Table.Tr></Table.Thead>
         <Table.Tbody>
           {d.register.map((e) => (
             <Table.Tr key={e.id}>

@@ -145,24 +145,24 @@
   {
    "key": "option.stock_freeze_72_b_bis.duration_years",
    "value": 5,
-   "valid_from": "2016-01-01",
+   "valid_from": "2019-01-01",
    "valid_to": null,
    "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
-   "source_label": "CGI art. 72 B bis",
-   "verified_on": "2026-11-03",
+   "source_label": "CGI art. 72 B bis, rétabli par la loi 2018-1317 (LF 2019), art. 58 : exercices ouverts à compter du 01/01/2019",
+   "verified_on": "2026-11-07",
    "reliability": "R",
-   "note": "Blocage des stocks à rotation lente."
+   "note": "Blocage des stocks à rotation lente (lot CG2.e : date de départ corrigée)."
   },
   {
    "key": "option.flat_stock_method.duration_years",
-   "value": null,
+   "value": 5,
    "valid_from": "2016-01-01",
    "valid_to": null,
-   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
-   "source_label": "CGI art. 74 b",
-   "verified_on": "2026-11-03",
-   "reliability": "I",
-   "note": "Méthode forfaitaire des stocks (réel simplifié)."
+   "source": "https://bofip.impots.gouv.fr/doctrine/pgp/4562-PGP",
+   "source_label": "CGI art. 74 b ; ann. III art. 38 sexdecies JC ; BOI-BA-BASE-20-20-20-20 § 80 et § 90",
+   "verified_on": "2026-11-07",
+   "reliability": "V",
+   "note": "Méthode forfaitaire des stocks (réel simplifié) : 5 exercices, reconduction tacite par période de 5 ; dénonciation dans le délai de déclaration du dernier exercice de la période (lot CG2.e)."
   }
  ]
 }

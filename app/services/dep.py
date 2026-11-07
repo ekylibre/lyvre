@@ -5,7 +5,8 @@
   au prorata de la durée de l'exercice ; plafond global des déductions non rapportées.
 - **Déduction extra-comptable** (Q-F3) : ligne de passage −, sans écriture.
 - **Registre par exercice d'origine** (DEP, anciennes DPI / DPA) : utilisations (réintégrées dans l'exercice, 30 %
-  exonérés en cas d'aléa, dans les plafonds), réintégrations, **10e exercice** (réintégration proposée).
+  exonérés en cas d'aléa, dans les plafonds), réintégrations, **échéance** (DEP au 10e exercice, DPI au 5e, lot CG2.c ;
+  réintégration proposée).
 - **Épargne** : solde des comptes bancaires repérés « épargne DEP » et substituts saisis (fourrage, stocks à rotation
   lente) ; ratio ≥ 50 % (et ≤ 100 %) des déductions non rapportées ; en défaut, réintégration proposée de la fraction
   qui excède le double de l'épargne (à valider).
@@ -85,26 +86,51 @@ def _fy_index() -> list[FiscalYear]:
     return FiscalYear.query.order_by(FiscalYear.start_date).all()
 
 
+# Échéance de réintégration par nature (lot CG2.c, claudedocs/design_fiabilisation_cegara.md § 2.3) : la DEP au 10e
+# exercice (art. 73), l'ancienne DPI au 5e (art. 72 D), l'ancienne DPA selon l'art. 72 D bis (paramètre « I »).
+HORIZON_KEYS = {"dep": ("ba.dep.reintegration_years", 10), "dpi": ("ba.dpi.reintegration_years", 5),
+                "dpa": ("ba.dpa.reintegration_years", 10)}
+
+
+def _origin_end(entry: DepEntry) -> date:
+    return entry.fiscal_year.end_date if entry.fiscal_year_id is not None else date(entry.origin_year or 2000, 12, 31)
+
+
+def horizon(entry: DepEntry) -> int:
+    """Nombre d'exercices après celui de la déduction au terme duquel le reliquat est réintégré."""
+    key, default = HORIZON_KEYS.get(entry.kind, HORIZON_KEYS["dep"])
+    return reg_params.value(key, _origin_end(entry), default=default) or default
+
+
 def deadline_label(entry: DepEntry) -> str:
     years = _fy_index()
+    n = horizon(entry)
     if entry.fiscal_year_id is not None:
         ids = [y.id for y in years]
-        index = ids.index(entry.fiscal_year_id) + (reg_params.value("ba.dep.reintegration_years", entry.fiscal_year.end_date,
-                                                                   default=10) or 10)
+        index = ids.index(entry.fiscal_year_id) + n
         if index < len(years):
             return years[index].label
-        return f"{entry.fiscal_year.end_date.year + 10}"
-    return f"{(entry.origin_year or 0) + 10}"
+        return f"{entry.fiscal_year.end_date.year + n}"
+    return f"{(entry.origin_year or 0) + n}"
 
 
 def _is_deadline(entry: DepEntry, fy: FiscalYear) -> bool:
     years = _fy_index()
+    n = horizon(entry)
     if entry.fiscal_year_id is not None:
         ids = [y.id for y in years]
-        n = reg_params.value("ba.dep.reintegration_years", fy.end_date, default=10) or 10
         index = ids.index(entry.fiscal_year_id) + n
         return index < len(years) and years[index].id == fy.id
-    return entry.origin_year is not None and fy.end_date.year == entry.origin_year + 10
+    return entry.origin_year is not None and fy.end_date.year == entry.origin_year + n
+
+
+def deadline_passed_before_lyvre(entry: DepEntry) -> bool:
+    """Reprise d'une ancienne déduction dont l'échéance tombe avant le premier exercice tenu dans Lyvre : Lyvre ne
+    réintègre rien (l'exercice n'y est pas) et demande de vérifier que la réintégration a été faite."""
+    years = _fy_index()
+    if entry.fiscal_year_id is not None or entry.origin_year is None or not years:
+        return False
+    return entry.origin_year + horizon(entry) < years[0].end_date.year
 
 
 def _before_or_in(entry: DepEntry, fy: FiscalYear) -> bool:
@@ -251,6 +277,8 @@ def add_history(data: dict) -> DepEntry:
     year, amount = data.get("origin_year"), data.get("amount_cents")
     if isinstance(year, bool) or not isinstance(year, int) or not 1990 <= year <= 2100:
         raise TaxResultError("Exercice d'origine : année attendue.", "origin_year")
+    if kind in ("dpi", "dpa") and year > 2018:
+        raise TaxResultError("DPI et DPA : exercices clos jusqu'en 2018 (remplacées ensuite par la DEP).", "origin_year")
     if isinstance(amount, bool) or not isinstance(amount, int) or amount <= 0:
         raise TaxResultError("Montant non rapporté positif attendu.", "amount_cents")
     entry = DepEntry(kind=kind, origin_year=year, amount_cents=amount, note=(str(data.get("note") or "").strip()[:300]) or None)
@@ -354,7 +382,7 @@ def tax_lines(fy: FiscalYear, today: date | None = None) -> list[dict]:
             if left > 0:
                 origin = e.fiscal_year.label if e.fiscal_year else str(e.origin_year)
                 lines.append({"key": f"dep_deadline_{e.id}", "source": "dep", "amount_cents": left,
-                              "label": f"{DEP_KINDS[e.kind]} {origin} non utilisée : réintégration au 10e exercice"})
+                              "label": f"{DEP_KINDS[e.kind]} {origin} non utilisée : réintégration au {horizon(e)}e exercice"})
     s = savings(fy, today)
     if s["shortfall_reintegration_cents"]:
         lines.append({"key": "dep_shortfall", "source": "dep", "amount_cents": s["shortfall_reintegration_cents"],
@@ -376,5 +404,12 @@ def checks(fy: FiscalYear) -> list[tuple[str, str, int, str]]:
         out.append(("dep_savings_above", "Épargne DEP au-delà des déductions non rapportées (100 % au plus)", 1, "info"))
     due = [e for e in DepEntry.query.all() if _is_deadline(e, fy) and entry_outstanding(e, fy) > 0]
     if due:
-        out.append(("dep_deadline", "DEP ou DPI/DPA arrivées au 10e exercice : réintégration", len(due), "info"))
+        out.append(("dep_deadline", "DEP ou DPI/DPA arrivées à échéance (DEP au 10e exercice, DPI au 5e) : réintégration",
+                    len(due), "info"))
+    past = [e for e in DepEntry.query.all()
+            if deadline_passed_before_lyvre(e) and _before_or_in(e, fy) and entry_outstanding(e, fy) > 0]
+    if past:
+        names = ", ".join(f"{DEP_KINDS[e.kind]} {e.origin_year} (échéance {e.origin_year + horizon(e)})" for e in past)
+        out.append(("dep_deadline_past", f"Ancienne déduction arrivée à échéance avant les exercices tenus dans Lyvre : "
+                    f"{names}. Vérifier qu'elle a été réintégrée, puis solder son reliquat", len(past), "anomaly"))
     return out
