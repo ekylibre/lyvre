@@ -80,6 +80,10 @@ def value(advance: CropAdvance, fy: FiscalYear) -> tuple[int | None, dict, list[
             span = span[-12:]
         wanted = {m for _, m in span}
         per_ha = {c: sum(r.amount_cents for r in standard.rows if r.component == c and r.month in wanted) for c in components}
+        share = advance.salaried_share_bp
+        if share is not None and share != 10000 and "labour" in per_ha:   # lot CG5.a : part salariée (F, M1)
+            per_ha["labour"] = round(per_ha["labour"] * share / 10000)
+            detail["salaried_share_bp"] = share
         for component, cents in per_ha.items():
             detail["components"][component] = _times(advance.surface_ha, cents)
         total += sum(detail["components"].values())
@@ -124,7 +128,7 @@ def _account(cycle: str) -> tuple[Account, Account]:
 
 def _apply(advance: CropAdvance, data: dict, creating: bool) -> None:
     unknown = set(data) - {"activity_id", "production", "surface_ha", "planted_on", "campaign", "cycle", "plots", "method",
-                           "crop_standard_id", "notes"}
+                           "crop_standard_id", "notes", "salaried_share_bp"}
     if unknown:
         raise StockError(f"Champ inconnu : {sorted(unknown)[0]}.", sorted(unknown)[0])
     from app.services import analytic                     # lot AG8.c
@@ -164,6 +168,11 @@ def _apply(advance: CropAdvance, data: dict, creating: bool) -> None:
     for field, limit in (("plots", 300), ("notes", 5000)):
         if field in data:
             setattr(advance, field, str(data[field] or "").strip()[:limit] or None)
+    if "salaried_share_bp" in data:
+        share = data["salaried_share_bp"]
+        if share is not None and (isinstance(share, bool) or not isinstance(share, int) or not 0 <= share <= 10000):
+            raise StockError("Part de main-d'œuvre salariée entre 0 et 100 %.", "salaried_share_bp")
+        advance.salaried_share_bp = share
 
 
 def line_of(advance: CropAdvance) -> StockLine | None:
@@ -518,6 +527,7 @@ def payload(advance: CropAdvance, with_proposals: bool = False) -> dict:
     data = {"id": advance.id, **_activity(advance.activity_id), "production": advance.production, "surface_ha": str(advance.surface_ha),
             "planted_on": advance.planted_on.isoformat(), "campaign": advance.campaign, "cycle": advance.cycle,
             "account_code": ACCOUNTS[advance.cycle], "plots": advance.plots, "method": advance.method,
+            "salaried_share_bp": advance.salaried_share_bp,
             "method_label": CROP_METHODS[advance.method], "crop_standard_id": advance.crop_standard_id,
             "notes": advance.notes, "value_cents": total, "detail": detail, "warnings": warnings,
             "line_id": line.id if line is not None else None,

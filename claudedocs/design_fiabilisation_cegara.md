@@ -543,6 +543,11 @@ Sources des décisions : réponses Q5 bis, Q6, Q8, Q8 bis et Q8 ter (`fiabilisat
 - **Écran** : champ « Part de main-d'œuvre salariée (%) » sur la fiche, visible en F et en M1. L'hypothèse du barème reste affichée.
 - **Test** : blé, clôture au 31 mars, barème fictif ; F avec une part salariée de 0 % → la composante main-d'œuvre est à 0.
 
+- **Réalisé (07/11/2026)** :
+  - `CropAdvance.salaried_share_bp` (migration `c5d7e9f1a3b5`), appliquée à la composante `labour` du barème en F et en M1. En M2, le barème n'a pas de composante main-d'œuvre, donc la part est sans effet ;
+  - champ sur la fiche ;
+  - fiche MA-02 mise à jour.
+
 ## 8.2 CG5.b Alerte de provision des stocks (ST8)
 
 - **Source** : BOI-BA-BASE-20-20-20-10 § 90 et § 320, déjà lus. Quand le cours du jour est inférieur au prix de revient, une provision est constituée.

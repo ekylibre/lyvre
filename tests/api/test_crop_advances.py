@@ -185,3 +185,21 @@ def test_import_cumulative_and_warning_cg2b(farm):
     resp = client.post("/api/v1/crop-standards/import", data={"file": (io.BytesIO(growing.encode()), "g.csv")},
                        content_type="multipart/form-data")
     assert resp.status_code == 201 and any("sans doute un cumul" in n["message"] for n in resp.get_json()["notices"])
+
+
+def test_salaried_share_cg5a(farm):
+    """Lot CG5.a (BOI-BA-BASE-20-20-20-30 § 100) : en F et M1, la main-d'œuvre du barème est réduite à la part
+    salariée ; sans effet en M2 (main-d'œuvre au réel)."""
+    client = farm["client"]
+    std = client.post("/api/v1/crop-standards", json={"production": "Blé", "year": 2025, "rows": [
+        {"component": "machinery", "month": 11, "amount_cents": 3000}, {"component": "labour", "month": 11, "amount_cents": 1000}]})
+    adv = _create(farm, production="Blé", surface_ha="10", planted_on="2025-11-05", method="standard_f",
+                  crop_standard_id=std.get_json()["item"]["id"])
+    assert adv["value_cents"] == 40000                                            # (30 + 10) × 10
+    url = f"/api/v1/crop-advances/{adv['id']}"
+    body = client.put(url, json={"salaried_share_bp": 4000}).get_json()["item"]
+    assert body["value_cents"] == 34000 and body["detail"]["components"]["labour"] == 4000   # 10 × 40 % × 10 ha
+    assert body["salaried_share_bp"] == 4000 and body["detail"]["salaried_share_bp"] == 4000
+    assert client.put(url, json={"salaried_share_bp": 0}).get_json()["item"]["value_cents"] == 30000
+    assert client.put(url, json={"method": "standard_m2"}).get_json()["item"]["value_cents"] == 30000  # mécanisation seule
+    assert client.put(url, json={"salaried_share_bp": 12000}).status_code == 422

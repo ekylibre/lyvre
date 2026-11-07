@@ -230,6 +230,9 @@ class CropAdvance(db.Model):
     plots = db.Column(db.String(300))
     method = db.Column(db.String(12), nullable=False, default="actual")
     crop_standard_id = db.Column(db.Integer, db.ForeignKey("crop_standards.id", ondelete="SET NULL"))
+    # Lot CG5.a : part de main-d'œuvre salariée (pb), appliquée à la main-d'œuvre du barème en F et M1 ; nul = 100 %
+    # (BOI-BA-BASE-20-20-20-30 § 100 : le travail de l'exploitant et des aides familiaux n'est pas compté).
+    salaried_share_bp = db.Column(db.Integer)
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 

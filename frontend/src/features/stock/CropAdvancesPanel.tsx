@@ -21,8 +21,8 @@ export interface CropStandardItem { id: number; production: string; year: number
 export interface CropAdvanceItem {
   id: number; production: string; surface_ha: string; planted_on: string; campaign: number | null; cycle: "short" | "long";
   account_code: string; plots: string | null; method: string; method_label: string; crop_standard_id: number | null;
-  notes: string | null; value_cents: number | null; warnings: string[]; line_id: number | null;
-  detail: { components: Record<string, number>; costs: Record<string, number>; months: number; labour_assumption?: string };
+  salaried_share_bp?: number | null; notes: string | null; value_cents: number | null; warnings: string[]; line_id: number | null;
+  detail: { components: Record<string, number>; costs: Record<string, number>; months: number; labour_assumption?: string; salaried_share_bp?: number };
   costs: { id: number; rubric: string; rubric_label: string; label: string; journal_line_id: number | null; base_cents: number; share_bp: number; amount_cents: number }[];
   proposals?: { journal_line_id: number; date: string; account: string; label: string; amount_cents: number; rubric: string;
     rubric_label: string; selected: boolean; cost_id: number | null; share_used_bp: number; share_free_bp: number }[];
@@ -63,11 +63,20 @@ function AdvanceDrawer({ id, editable, invalidate, onClose }: { id: number | nul
             {a.method !== "actual" && <Select label="Barème" clearable disabled={!editable} value={a.crop_standard_id ? String(a.crop_standard_id) : null}
               data={meta.standards.map((s) => ({ value: String(s.id), label: `${s.production} (${s.year})` }))}
               onChange={(v) => run(save.mutateAsync({ crop_standard_id: v ? Number(v) : null }))} />}
+            {(a.method === "standard_f" || a.method === "standard_m1") && (
+              <NumberInput label="Part de main-d'œuvre salariée (%)" min={0} max={100} disabled={!editable}
+                description="Le travail de l'exploitant et des aides familiaux n'est pas compté (BOFiP)"
+                defaultValue={a.salaried_share_bp === null || a.salaried_share_bp === undefined ? 100 : a.salaried_share_bp / 100}
+                onBlur={(e) => {
+                  const pct = Number(e.currentTarget.value.replace(",", "."));
+                  if (!Number.isNaN(pct)) run(save.mutateAsync({ salaried_share_bp: Math.round(pct * 100) }));
+                }} />)}
           </Group>
           {Object.keys(a.detail.components).length > 0 && (
             <Text size="sm">Barème × surface : {Object.entries(a.detail.components).map(([c, cents]) => (
               <span key={c}>{meta.components.find((x) => x.value === c)?.label} <MoneyText cents={cents} /> · </span>))}
-              {a.detail.labour_assumption && <Text span size="xs" c="dimmed">main-d'œuvre : {a.detail.labour_assumption}</Text>}</Text>)}
+              {a.detail.labour_assumption && <Text span size="xs" c="dimmed">main-d'œuvre : {a.detail.labour_assumption}</Text>}
+              {a.detail.salaried_share_bp !== undefined && <Text span size="xs" c="dimmed"> · main-d'œuvre du barème × {a.detail.salaried_share_bp / 100} % (part salariée)</Text>}</Text>)}
           {usesCosts && (
             <>
               <Text fw={600} size="sm">{supplyOnly ? "Charges prises au coût réel" : "Charges de l'art. 72 A"}</Text>

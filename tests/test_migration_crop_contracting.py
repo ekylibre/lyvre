@@ -83,3 +83,20 @@ def test_slow_rotation_column_cg3d(tmp_path):
         assert dict(c.execute(sa.text("SELECT id, slow_rotation FROM stock_lines")).all()) == {1: 1, 2: None}
         _run(c, cg3d.downgrade)
         assert "slow_rotation" not in {col["name"] for col in sa.inspect(c).get_columns("stock_lines")}
+
+
+def test_salaried_share_column_cg5a(tmp_path):
+    """Migration CG5.a (c5d7e9f1a3b5) : part de main-d'œuvre salariée, nulle par défaut ; retour arrière."""
+    path = Path(__file__).parents[1] / "migrations" / "versions" / "c5d7e9f1a3b5_crop_salaried_share.py"
+    spec_a = importlib.util.spec_from_file_location("cg5a_migration", path)
+    cg5a = importlib.util.module_from_spec(spec_a)
+    spec_a.loader.exec_module(cg5a)
+    engine = sa.create_engine(f"sqlite:///{tmp_path / 'cg5a.db'}")
+    with engine.begin() as c:
+        c.execute(sa.text("CREATE TABLE crop_advances (id INTEGER PRIMARY KEY, method VARCHAR(12))"))
+        c.execute(sa.text("INSERT INTO crop_advances VALUES (1, 'standard_f')"))
+    with engine.begin() as c:
+        _run(c, cg5a.upgrade)
+        assert c.execute(sa.text("SELECT salaried_share_bp FROM crop_advances")).scalar() is None
+        _run(c, cg5a.downgrade)
+        assert "salaried_share_bp" not in {col["name"] for col in sa.inspect(c).get_columns("crop_advances")}
