@@ -257,3 +257,29 @@ class CropAdvanceCost(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     advance = db.relationship("CropAdvance", back_populates="costs")
+
+
+OPENING_STOCK_METHODS = {"lower": "Prix de revient, ou cours du jour s'il est inférieur",
+                         "market_reconstructed": "Prix de revient reconstitué à partir du cours du jour (option)",
+                         "crop_advance": "Avances aux cultures au prix de revient"}
+
+
+class OpeningStockLine(db.Model):
+    """Stock d'entrée au passage du micro-BA au réel (lot CG5.c, BOI-BA-REG-40-10-10 § 190 à 200 et § 470) : une ligne
+    par produit, valeur figée ensuite (§ 197) ; alimente l'écriture d'ouverture du premier exercice au réel."""
+    __tablename__ = "opening_stock_lines"
+
+    id = db.Column(db.Integer, primary_key=True)
+    fiscal_year_id = db.Column(db.Integer, db.ForeignKey("fiscal_years.id", ondelete="CASCADE"), nullable=False, index=True)
+    account_id = db.Column(db.Integer, db.ForeignKey("accounts.id", ondelete="RESTRICT"), nullable=False)
+    label = db.Column(db.String(200), nullable=False)
+    quantity = db.Column(db.Numeric(14, 3), nullable=False, default=0)
+    unit = db.Column(db.String(10), nullable=False, default="unit")
+    method = db.Column(db.String(22), nullable=False, default="lower")
+    cost_unit_cents = db.Column(db.Integer)          # prix de revient unitaire (ou reconstitué)
+    market_unit_cents = db.Column(db.Integer)        # cours du jour unitaire à la date du changement
+    amount_cents = db.Column(db.Integer)             # avances aux cultures : montant à la date du changement
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    account = db.relationship("Account")
+

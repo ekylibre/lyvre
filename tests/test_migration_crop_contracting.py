@@ -117,3 +117,20 @@ def test_full_first_year_column_cg5d(tmp_path):
         assert c.execute(sa.text("SELECT full_first_year FROM assets")).scalar() is None
         _run(c, cg5d.downgrade)
         assert "full_first_year" not in {col["name"] for col in sa.inspect(c).get_columns("assets")}
+
+
+def test_opening_stock_table_cg5c(tmp_path):
+    """Migration CG5.c (e7f9a1b3c5d7) : table du stock d'entrée ; retour arrière."""
+    path = Path(__file__).parents[1] / "migrations" / "versions" / "e7f9a1b3c5d7_opening_stock_lines.py"
+    spec_c = importlib.util.spec_from_file_location("cg5c_migration", path)
+    cg5c = importlib.util.module_from_spec(spec_c)
+    spec_c.loader.exec_module(cg5c)
+    engine = sa.create_engine(f"sqlite:///{tmp_path / 'cg5c.db'}")
+    with engine.begin() as c:
+        c.execute(sa.text("CREATE TABLE fiscal_years (id INTEGER PRIMARY KEY)"))
+        c.execute(sa.text("CREATE TABLE accounts (id INTEGER PRIMARY KEY)"))
+    with engine.begin() as c:
+        _run(c, cg5c.upgrade)
+        assert "opening_stock_lines" in sa.inspect(c).get_table_names()
+        _run(c, cg5c.downgrade)
+        assert "opening_stock_lines" not in sa.inspect(c).get_table_names()

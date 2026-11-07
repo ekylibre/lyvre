@@ -14,7 +14,7 @@ from sqlalchemy import func
 
 from app.extensions import db
 from app.models import Account, FiscalYear, JournalEntry, JournalLine, StockLine
-from app.models.journal_entry import SOURCE_OPENING, SOURCE_STOCK
+from app.models.journal_entry import SOURCE_STOCK_OPENING, SOURCE_OPENING, SOURCE_STOCK
 from app.services import stock_inventory as inv
 from app.services.stock_inventory import StockError
 
@@ -196,7 +196,7 @@ def checks(fy: FiscalYear) -> list[tuple[str, str, int, str]]:
              .join(JournalEntry, JournalEntry.id == JournalLine.entry_id)
              .join(Account, Account.id == JournalLine.account_id)
              .filter(JournalEntry.fiscal_year_id == fy.id, db.or_(*[Account.code.like(f"{p}%") for p in STOCK_PREFIXES]),
-                     db.or_(JournalEntry.source.is_(None), JournalEntry.source.notin_((SOURCE_OPENING, SOURCE_STOCK)))).scalar())
+                     db.or_(JournalEntry.source.is_(None), JournalEntry.source.notin_((SOURCE_OPENING, SOURCE_STOCK, SOURCE_STOCK_OPENING)))).scalar())
     if moved:
         out.append(("stock_moves", "Mouvements de comptes de stock hors de l'écriture d'inventaire et des à-nouveaux "
                     "(stock tenu ailleurs ?)", int(moved), "info"))

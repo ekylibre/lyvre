@@ -669,6 +669,11 @@ def _fiscal(line: StockLine, fy: FiscalYear) -> dict:
             "freezable": line.category in stock_tax.FROZEN_ALLOWED}
 
 
+def _opening_stock_applies(fy: FiscalYear) -> bool:
+    from app.services import opening_stock               # lot CG5.c
+    return opening_stock.applies(fy)
+
+
 def overview(fy: FiscalYear) -> dict:
     discount_map = discounts(fy)
     lines = StockLine.query.filter_by(fiscal_year_id=fy.id).order_by(StockLine.position, StockLine.id).all()
@@ -699,6 +704,7 @@ def overview(fy: FiscalYear) -> dict:
             "counted_on": row.counted_on.isoformat() if row is not None and row.counted_on else None,
             "opening": sorted(opening, key=lambda o: o["code"]), "purchases": purchase_hints,
             "flat_allowed": flat_allowed(fy), "has_previous": previous_fiscal_year(fy) is not None,
+            "opening_stock": _opening_stock_applies(fy),
             "lots": _lots(fy), "crop_advances": _advances(fy), "fiscal": _fiscal_totals(fy)}
 
 

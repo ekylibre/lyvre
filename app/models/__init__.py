@@ -59,7 +59,7 @@ from .tax_profile import TaxOption, TaxProfile
 from .regulatory_value import RegulatoryValue
 from .micro_receipts import MicroReceiptsYear
 from .rfa import RfaAttestation, RfaClaim
-from .stock import CropAdvance, CropAdvanceCost, CropStandard, CropStandardRow, StockCountFile, StockLine, StockLot, StockLotMovement, StockSettings, StockStandard
+from .stock import CropAdvance, CropAdvanceCost, CropStandard, CropStandardRow, OpeningStockLine, StockCountFile, StockLine, StockLot, StockLotMovement, StockSettings, StockStandard
 from .tax_result import (BaHistoryYear, CapitalGainChoice, TaxCredit, CowProvision, CowProvisionRelease, DepEntry, DepMovement, DepSubstitute, IncomeSpread,
                          TaxResult, TaxResultLine)
 from .analytic import (Activity, ActivityProduction, AnalyticAllocation, AnalyticKey, AnalyticKeyMember, AnalyticRule, AnalyticSnapshot,
@@ -107,6 +107,7 @@ __all__ = [
     "CropStandardRow",
     "StockCountFile",
     "StockLine",
+    "OpeningStockLine",
     "StockLot",
     "StockLotMovement",
     "StockSettings",

@@ -467,3 +467,59 @@ def stock_entry_cancel(fy_id):
         stock_entry.cancel(fy)
         db.session.commit()
     return jsonify(**_view(fy), notices=[notice("Écriture de stock annulée.")])
+
+
+# ------------------------------------------------------------------ stock d'entrée au passage au réel (lot CG5.c)
+
+def _opening(fy, status=200, message=None):
+    from app.services import opening_stock
+
+    body = {"item": opening_stock.payload(fy)}
+    if message:
+        body["notices"] = [notice(message)]
+    return jsonify(**body), status
+
+
+@bp.route("/fiscal-years/<int:fy_id>/opening-stock")
+def opening_stock_view(fy_id):
+    return _opening(_fy(fy_id))
+
+
+@bp.route("/fiscal-years/<int:fy_id>/opening-stock/lines", methods=["POST"])
+def opening_stock_add(fy_id):
+    from app.services import opening_stock
+
+    fy = _fy(fy_id)
+    with _errors():
+        opening_stock.add_line(fy, json_body())
+        db.session.commit()
+    return _opening(fy, 201, "Ligne ajoutée au stock d'entrée.")
+
+
+@bp.route("/fiscal-years/<int:fy_id>/opening-stock/lines/<int:line_id>", methods=["PUT", "DELETE"])
+def opening_stock_line(fy_id, line_id):
+    from app.models import OpeningStockLine
+    from app.services import opening_stock
+
+    fy = _fy(fy_id)
+    line = get_or_404(OpeningStockLine, line_id, "Ligne introuvable.")
+    if line.fiscal_year_id != fy.id:
+        raise ApiError("not_found", "Ligne introuvable.", 404)
+    with _errors():
+        if request.method == "DELETE":
+            opening_stock.delete_line(fy, line)
+        else:
+            opening_stock.update_line(fy, line, json_body())
+        db.session.commit()
+    return _opening(fy, message="Stock d'entrée enregistré.")
+
+
+@bp.route("/fiscal-years/<int:fy_id>/opening-stock/entry", methods=["POST"])
+def opening_stock_entry(fy_id):
+    from app.services import opening_stock
+
+    fy = _fy(fy_id)
+    with _errors():
+        opening_stock.post(fy)
+        db.session.commit()
+    return _opening(fy, message="Écriture d'ouverture du stock passée, à valider.")

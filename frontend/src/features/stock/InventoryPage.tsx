@@ -21,6 +21,7 @@ import { formatDate } from "../../lib/format";
 import type { FiscalYear } from "../fiscal-years/FiscalYearsPage";
 import { LotsPanel, type StockLotItem } from "./LotsPanel";
 import { CropAdvancesPanel, type CropAdvanceItem } from "./CropAdvancesPanel";
+import { OpeningStockPanel } from "./OpeningStockPanel";
 import { StockEntryBar, type StockEntryStatus } from "./StockEntryBar";
 import { EkylibreInventory } from "./EkylibreInventory";
 import { ActivitySelect, useAnalyticTargets } from "../../components/AnalyticSelect";
@@ -46,7 +47,7 @@ export interface StockView {
   item: {
     fiscal_year: { id: number; label: string; end_date: string; status: string }; editable: boolean; items: StockLineItem[];
     totals: Record<string, { value_cents: number; depreciation_cents: number; lines: number }>; total_cents: number;
-    discounts: Record<string, number>; counted_on: string | null; flat_allowed: boolean; has_previous: boolean;
+    discounts: Record<string, number>; counted_on: string | null; flat_allowed: boolean; has_previous: boolean; opening_stock?: boolean;
     opening: { code: string; label: string; balance_cents: number; counted: boolean }[]; purchases: Record<string, number | null>;
     lots: StockLotItem[]; crop_advances: CropAdvanceItem[];
     fiscal: { accounting_cents: number; fiscal_cents: number; gap_cents: number; missing: number; flat: boolean; frozen: boolean; frozen_since: string | null };
@@ -329,6 +330,7 @@ export default function InventoryPage() {
         {!v.editable && <Badge color="gray">Exercice clôturé : inventaire figé</Badge>}
       </FilterBar>
       {importError && <Alert color="brique" mb="sm">{importError}</Alert>}
+      {fyId && v.opening_stock && <OpeningStockPanel fyId={fyId} units={view.meta.units} editable={writable} />}
       {fyId && <StockEntryBar fyId={fyId} status={view.entry} editable={v.editable} invalidate={[STOCK_KEY, ["closing", fyId]]} />}
       {missing.length > 0 && (
         <Alert color="paille" mb="sm" title="Stocks initiaux sans ligne d'inventaire">

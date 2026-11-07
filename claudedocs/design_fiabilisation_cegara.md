@@ -571,6 +571,20 @@ Sources des décisions : réponses Q5 bis, Q6, Q8, Q8 bis et Q8 ter (`fiabilisat
 - **Tableau de passage** : aucune ligne, puisque le stock d'entrée vient réduire la variation de stock.
 - **Contrepartie** : compte de l'exploitant (108) pour une EI ; **comptes courants d'associés (455), au prorata des parts**, pour une société (D-CG5.1).
 
+- **Réalisé (07/11/2026)**. Source lue avant de coder : BOI-BA-REG-40-10-10 (version du 01/07/2020) :
+  - prix de revient, ou cours du jour s'il est inférieur (§ 190 et 195) ;
+  - prix de revient reconstitué à partir du cours du jour, en option (§ 193) ;
+  - avances aux cultures au prix de revient (§ 200) ;
+  - valeurs figées ensuite (§ 197) ;
+  - note du stock initial jointe à la première déclaration (§ 470).
+
+  Mise en œuvre :
+  - table `opening_stock_lines` (migration `e7f9a1b3c5d7`) et service `opening_stock` ;
+  - écriture d'origine `STOCK_OPENING`, propre au stock d'entrée, pour qu'elle ne soit pas traitée comme des à-nouveaux. Elle est datée du 1er jour de l'exercice, non validée, avec pour contrepartie le 108 (EI) ou les comptes 455 au prorata des parts (D-CG5.1). Une fois validée, le stock d'entrée est figé ;
+  - panneau sur l'inventaire du premier exercice au réel ;
+  - note du § 470 générée ;
+  - fiche MA-01 complétée.
+
 ## 8.4 CG5.d Plantations (Q8, Q8 bis, Q8 ter)
 
 1. **Choix du dossier pour les façons culturales des jeunes plantations** (Q8) :
