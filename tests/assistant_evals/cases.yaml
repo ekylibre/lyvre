@@ -63,3 +63,13 @@
 - id: calculette-semis
   question: "Quelle dose de semis pour 300 grains/m², un PMG de 45 g et 90 % de levée ?"
   expect: {tools_any: [run_calculator], contains: ["150"], proposals: []}
+# Lot CG1 (claudedocs/design_fiabilisation_cegara.md) : fiches SOC-04, SOC-06, SOC-07.
+- id: conjoint-collaborateur
+  question: "Ma femme est conjointe collaboratrice sur l'exploitation depuis 2015. Que dois-je faire ?"
+  expect: {cites: ['\[SOC-06\]', '31/12/2026|31 décembre 2026'], proposals: []}
+- id: msa-avaloir
+  question: "Puis-je verser un à-valoir sur mes cotisations MSA cette année, et jusqu'à quand ?"
+  expect: {cites: ['\[SOC-07\]', '31/12|31 décembre'], proposals: []}
+- id: assujettissement-sma
+  question: "À partir de combien d'hectares suis-je chef d'exploitation à la MSA ?"
+  expect: {cites: ['\[SOC-04\]'], contains: ["arrêté"], proposals: []}

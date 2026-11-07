@@ -22,6 +22,7 @@
       rule: {type: annual_param, key: "agenda.msa.calls.{msa_fund}", fallback: {type: fixed, days: ["04-30", "10-15", "12-10"]}}
       payment: true
       reminders: [15, 5]
+  prepare: Modulation des appels provisionnels si le revenu baisse ou monte, à demander au plus tard 15 jours avant la date d'exigibilité de l'appel. Mensualisation sur demande, à adresser à la caisse (une demande reçue entre le 1er et le 15 du mois prend effet en général au mois suivant ; règles propres à chaque caisse).
   lyvre_data: Compte 646 (cotisations de l'exploitant).
   links:
     - https://nord-pasdecalais.msa.fr/lfp/documents/98870/427241435/Exploitants+calendrier+des+%C3%A9ch%C3%A9ances+2026
@@ -42,6 +43,15 @@
       rule: {type: fixed, days: ["11-30"], shift: none}
       reminders: [30]
       quiet: true
+    - label: "Rente du sol : demande ou dénonciation de la déduction"
+      rule: {type: fixed, days: ["06-30"], shift: none}
+      reminders: [30]
+      quiet: true
+    - label: Renonciation à l'exonération JA au profit du taux AMEXA réduit
+      rule: {type: fixed, days: ["06-30"], shift: none}
+      applies: {flags: [young_farmer]}
+      reminders: [30]
+      quiet: true
   lyvre_data: Comparaison triennale / annuelle par exploitant (Compta › Cotisations MSA).
   links:
     - https://www.msa.fr/lfp/web/msa/exploitant/reforme-assiette-sociale
@@ -52,8 +62,17 @@
   title: Cotisants de solidarité
   domain: social
   organism: MSA
-  summary: Exploitation entre 1/4 et 1 SMA, ou entre 150 et 1 200 heures de travail ; appel annuel, revenus déclarés avec la DRP ou la 2042.
+  summary: >-
+    Assujettissement au régime des non-salariés agricoles (CRPM L.722-5, L.731-23). Chef d'exploitation dès que
+    l'activité atteint 1 surface minimale d'assujettissement (SMA), ou 1 200 heures de travail par an pour les activités
+    sans surface, ou un revenu professionnel d'au moins 800 SMIC horaires. Cotisant de solidarité entre 1/4 et 1 SMA, ou
+    entre 150 et 1 200 heures. La SMA est fixée par arrêté préfectoral (schéma directeur régional, avec des équivalences
+    par production) : la lire dans l'arrêté du département, Lyvre ne la connaît pas. Cotisation de solidarité appelée
+    chaque année sur les revenus déclarés avec la déclaration de revenus.
   events: []
+  links:
+    - https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006071367
+    - https://www.msa.fr/lfp/web/msa/exploitant/affiliation
   reliability: R
 
 - id: SOC-05
@@ -68,3 +87,67 @@
       reminders: [3]
   lyvre_data: Comptes 641, 645, 421, 431.
   reliability: R
+
+- id: SOC-06
+  title: Fin du statut de conjoint collaborateur
+  domain: social
+  organism: MSA
+  summary: >-
+    Le statut de conjoint collaborateur d'exploitation est limité à 5 ans (CRPM L.321-5, modifié par la LFSS pour
+    2022). Pour un conjoint déjà collaborateur au 1er janvier 2022, il prend fin le 31 décembre 2026. Avant cette date,
+    le chef d'exploitation fait choisir un autre statut au conjoint (chef d'exploitation ou associé, salarié) et le
+    déclare au guichet unique ; sans choix, la MSA peut affilier d'office. Exception liée à l'âge (proche de la
+    retraite, avant 2032) : conditions à vérifier sur le texte en vigueur ou auprès de la caisse. Le drapeau suit les
+    personnes au statut de collaborateur dans Compta › Cotisations MSA ; un conjoint qui n'y est pas suivi est aussi
+    concerné.
+  applies: {flags: [msa_collaborator]}
+  events:
+    - label: Fin du statut de conjoint collaborateur (choix d'un nouveau statut)
+      rule: {type: once, date: "2026-12-31"}
+      reminders: [90, 30, 7]
+  lyvre_data: Statut des personnes suivies (Compta › Cotisations MSA) ; estimation des cotisations après changement de statut.
+  links:
+    - https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006071367
+    - https://www.reussir.fr/vigne/anticiper-la-fin-du-statut-de-conjoint-collaborateur
+  reliability: R
+
+- id: SOC-07
+  title: À-valoir sur les cotisations MSA
+  domain: social
+  organism: MSA
+  summary: >-
+    Versement anticipé des cotisations de l'année suivante (CRPM L.731-22-1) : demande et paiement en une fois auprès
+    de la caisse avant le 31 décembre, pour un montant plafonné (au plus 50 % des dernières cotisations selon
+    service-public ; montant maximal communiqué par la caisse). Au réel, l'à-valoir est déductible du résultat de
+    l'exercice de versement (CGI art. 72 F) et ne l'est plus l'année où les cotisations sont appelées. Compter le délai
+    d'acheminement.
+  applies: {ba_regime: [simplified, normal]}
+  events:
+    - label: Date limite de demande et de paiement de l'à-valoir MSA
+      rule: {type: fixed, days: ["12-31"], shift: none}
+      reminders: [45, 15]
+      payment: true
+  lyvre_data: Ligne « À-valoir social (art. 72 F) déduit » de l'assiette MSA ; compte 646.
+  links:
+    - https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577
+    - https://www.service-public.fr/particuliers/vosdroits/F23787
+    - https://charentes.msa.fr/lfp/documents/98870/78473535/Questions+r%C3%A9ponses+A+VALOIR
+  reliability: R
+
+- id: SOC-08
+  title: Cotisations calculées sur les revenus de l'année (expérimentation)
+  domain: social
+  organism: MSA
+  summary: >-
+    Expérimentation de la LFSS pour 2026 : l'exploitant peut demander que ses cotisations provisionnelles soient
+    calculées sur une estimation de ses revenus de l'année en cours, puis régularisées. Fenêtre de demande du
+    1er octobre au 31 mars ; caisses participantes, conditions et date d'effet à vérifier auprès de la caisse.
+  events:
+    - label: Fin de la fenêtre de demande (revenus estimés de l'année)
+      rule: {type: fixed, days: ["03-31"], shift: none}
+      reminders: [30]
+      quiet: true
+  lyvre_data: Estimation des cotisations (Compta › Cotisations MSA).
+  links:
+    - https://www.msa.fr/lfp/web/msa/exploitant/reforme-assiette-sociale
+  reliability: I

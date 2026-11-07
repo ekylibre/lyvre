@@ -244,9 +244,16 @@ def context() -> Context:
     for option in TaxOption.query.all():
         options.setdefault(option.code, []).append((option.start_date, option.renounced_on))
     years = [(fy.start_date, fy.end_date) for fy in FiscalYear.query.order_by(FiscalYear.start_date)]
+    profile = {**agri_profile.get(), "msa_collaborator": _has_msa_collaborator()}
     return Context(legal_form=org.legal_form_code, bookkeeping=inst.bookkeeping if inst is not None else "double",
-                   profile=agri_profile.get(), options=options, fiscal_years=years,
+                   profile=profile, options=options, fiscal_years=years,
                    tax_lookup=lambda kind, on: tax_profile.current_value(kind, on))
+
+
+def _has_msa_collaborator() -> bool:
+    """Drapeau dérivé `msa_collaborator` : une personne suivie pour la MSA au statut de collaborateur d'exploitation."""
+    from app.models.msa import MsaPerson
+    return MsaPerson.query.filter_by(status="collaborator").first() is not None
 
 
 def applies(conditions: dict | None, ctx: Context, on: date) -> bool | None:

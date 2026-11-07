@@ -35,8 +35,10 @@ PRODUCTIONS = {
 MSA_FUNDS = {"nord_pas_de_calais": "MSA Nord-Pas-de-Calais", "cotes_normandes": "MSA Côtes normandes",
              "other": "Autre caisse"}
 LEASE_ROLES = {"tenant": "Preneur (je paie le fermage)", "landlord": "Bailleur (je perçois le fermage)"}
-# Drapeaux lus par les conditions des fiches (`applies.flags`) : booléens et drapeaux dérivés.
-FLAGS = (*BOOLEANS, "leases")
+# Drapeaux lus par les conditions des fiches (`applies.flags`) : booléens et drapeaux dérivés. `msa_collaborator` ne se
+# saisit pas : il est calculé par l'échéancier (une personne suivie dans /msa/ au statut de collaborateur).
+DERIVED_FLAGS = ("leases", "msa_collaborator")
+FLAGS = (*BOOLEANS, *DERIVED_FLAGS)
 _MONTH_DAY = re.compile(r"(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])")
 
 

@@ -24,7 +24,7 @@ def _first(rule, ctx, after):
 
 def test_base_is_valid_and_complete():
     fiches = deadlines.fiches()
-    assert len(fiches) == 41 and len({f["id"] for f in fiches}) == 41       # 38 de l'audit + DIV-06, DIV-07, DIV-08 (AG10)
+    assert len(fiches) == 44 and len({f["id"] for f in fiches}) == 44       # 38 de l'audit + DIV-06 à 08 (AG10) + SOC-06 à 08 (CG1)
     assert {f["domain"] for f in fiches} == set(deadlines.DOMAINS)
     bad = [{"id": "X-1", "title": "x", "domain": "tva", "organism": "x", "summary": "x", "reliability": "Z",
             "applies": {"weather": [1]}, "events": [{"label": "x", "rule": {"type": "eval", "expr": "1"}}]}]
@@ -125,6 +125,23 @@ def test_applicability():
     assert deadlines.applies(deadlines.fiche("TVA-02")["applies"], Context(), on) is None     # régime inconnu
 
 
+def test_msa_fiches_cg1():
+    """Lot CG1 (claudedocs/design_fiabilisation_cegara.md § CG1) : conjoint collaborateur, à-valoir, JA."""
+    on = date(2026, 11, 7)
+    soc06 = deadlines.fiche("SOC-06")["applies"]
+    assert deadlines.applies(soc06, Context(profile={"msa_collaborator": True}), on) is True
+    assert deadlines.applies(soc06, Context(profile={"msa_collaborator": False}), on) is False
+    (end,) = deadlines.dates(_event("SOC-06", "Fin du statut")["rule"], date(2026, 1, 1), date(2027, 12, 31), Context())
+    assert end.date == date(2026, 12, 31)
+    avaloir = deadlines.dates(_event("SOC-07", "Date limite")["rule"], date(2026, 1, 1), date(2026, 12, 31), Context())
+    assert [o.date for o in avaloir] == [date(2026, 12, 31)]                     # 31/12/2026 : jeudi, pas de report
+    ja = _event("SOC-03", "Renonciation à l'exonération JA")
+    assert deadlines.applies(ja["applies"], Context(profile={"young_farmer": False}), on) is False
+    assert agri_profile.flag({"msa_collaborator": True}, "msa_collaborator") is True
+    with pytest.raises(agri_profile.ProfileError):
+        agri_profile.clean({"msa_collaborator": True})                           # dérivé : ne se saisit pas
+
+
 def test_profile_validation():
     assert agri_profile.clean({"pac": True, "productions": ["cattle", "cattle"], "msa_fund": "cotes_normandes"}) == {
         "pac": True, "productions": ["cattle"], "msa_fund": "cotes_normandes"}
@@ -148,6 +165,12 @@ def test_api_profile_and_deadlines(app, login_as):
     items = {f["id"]: f for f in client.get("/api/v1/deadlines").get_json()["items"]}
     assert items["PAC-01"]["applicable"] == "yes" and items["DIV-01"]["applicable"] == "yes"
     assert items["SOC-05"]["applicable"] == "unknown"
+    assert items["SOC-06"]["applicable"] == "no"
+    from app.models.msa import MsaPerson
+    db.session.add(MsaPerson(status="collaborator"))
+    db.session.commit()
+    items = {f["id"]: f for f in client.get("/api/v1/deadlines").get_json()["items"]}
+    assert items["SOC-06"]["applicable"] == "yes"                                 # drapeau dérivé du statut MSA
     Instance.query.filter_by(slug="test").one().chart = "societe"
     db.session.commit()
     assert client.get("/api/v1/deadlines").status_code == 404
