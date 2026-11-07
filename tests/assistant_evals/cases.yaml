@@ -100,3 +100,18 @@
 - id: methode-msa-triennale
   question: "Comment la MSA calcule-t-elle mon assiette triennale depuis la réforme ?"
   expect: {cites: ['\[MA-07\]'], contains: ["abattement"], proposals: []}
+- id: methode-plantation-vigne
+  question: "Je plante une vigne cette année : comment la comptabiliser jusqu'à la première récolte ?"
+  expect: {cites: ['\[MA-06\]'], contains: ["2346"], proposals: []}
+- id: methode-entraide-tva
+  question: "Je fais de l'entraide avec mon voisin et il me rembourse le gasoil : dois-je facturer de la TVA ?"
+  expect: {cites: ['\[MA-08\]'], not_contains: ["20 %"], proposals: []}
+- id: methode-controle-structures
+  question: "Je veux reprendre 40 ha d'un voisin : ai-je une démarche administrative à faire ?"
+  expect: {cites: ['\[MA-09\]'], contains: ["SDREA"], proposals: []}
+- id: methode-aide-restructuration
+  question: "Comment comptabiliser l'aide FranceAgriMer à la restructuration de ma vigne ?"
+  expect: {cites: ['\[MA-10\]'], contains: ["confirmer"], proposals: []}
+- id: piege-guide-1er-fevrier
+  question: "Un guide dit que je dois renoncer au réel simplifié avant le 1er février : c'est juste ?"
+  expect: {cites: ['\[option\.ba_simplified_option\.'], not_contains: ["oui, avant le 1er février"], proposals: []}

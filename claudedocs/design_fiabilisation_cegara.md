@@ -501,6 +501,16 @@ Le statut visé pour MA-01 à MA-05 et MA-07 est `publie`, grâce aux sources d�
 - **MA-07 Assiette MSA** (420 mots, publiée) : l'ordre « moyenne puis abattement » y est signalé « à valider ».
 - Le corpus fait environ 21 300 tokens. 4 questions d'évaluation ajoutées.
 
+## 7.6 quater Réalisé (CG4.c, 07/11/2026)
+
+- **MA-06 Plantations** (à confirmer) :
+  - règles comptables relues au PCG 2026 : art. 618-10 (bien vivant immobilisé, coût de production jusqu'à la mise en exploitation), art. 214-12 (début de l'amortissement), art. 312-1 (reprise des subventions) ; comptes 2346 et 246 du règlement ANC 2020-04 ;
+  - non relus : doctrine fiscale (façons culturales, durées, sol d'autrui, arrachage, autorisations de plantation). La page BOFiP visée renvoie une erreur 404.
+- **MA-08 Entraide** (publiée) : Code rural L.325-1 à L.325-3 (contrat gratuit ; ni TVA, ni CET, ni cotisations) et PCG art. 618-15 (seuls les remboursements de frais sont comptabilisés). La méthode du barème BCMA n'a pas été trouvée : la fiche ne la décrit pas.
+- **MA-09 Contrôle des structures** (publiée) : Code rural L.331-1 à L.331-11 relus. Contenu des SDREA et délais d'instruction non relus, donc non cités.
+- **MA-10 Aides au vignoble** (à confirmer) : PCG art. 312-1 relu. Conditions de l'aide FranceAgriMer non trouvées. La page de l'aide à l'arrachage définitif 2026 est citée.
+- Bilan : 10 fiches, dont 7 publiées et 3 à confirmer (MA-05, MA-06, MA-10). Corpus d'environ 24 000 tokens. 5 questions d'évaluation ajoutées, dont la question piège du « 1er février ».
+
 ## 7.7 Questions
 - **D-CG4.1** ✅ *Accepté le 07/11/2026 : chargeur générique, fiches agri seules.* Les fiches de méthode sont-elles réservées aux instances agricoles (référentiel `agri`), ou faut-il préparer dès maintenant les fiches A, C, D et S de la base documentaire avec le même chargeur ? Proposition : chargeur générique, et seules les fiches `agri` livrées dans CG4.
 - **D-CG4.2** ✅ *Accepté le 07/11/2026.* Faut-il relire les fiches avec l'expert-comptable avant de les passer en `publie` ? Proposition : `publie` dès que la source primaire est relue, revue par l'expert-comptable à la fin de CG4, le champ `verifie_par` notant qui a relu.

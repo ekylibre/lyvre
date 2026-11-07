@@ -12,7 +12,7 @@ def test_delivered_fiches_are_valid(app):
     with app.app_context():
         assert kb.validate() == []
         ids = [f["id"] for f in kb.method_fiches("agri")]
-        assert {"MA-01", "MA-02", "MA-03", "MA-04", "MA-05", "MA-07"} <= set(ids) and ids == sorted(ids)
+        assert set(ids) == {f"MA-{n:02d}" for n in range(1, 11)} and ids == sorted(ids)
 
 
 def test_validation_rejects_bad_fiches(app):
