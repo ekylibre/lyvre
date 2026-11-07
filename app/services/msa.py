@@ -247,6 +247,23 @@ def compute(fy: FiscalYear) -> dict:
     return head
 
 
+def _ja_year(person: MsaPerson, contribution_year: int) -> int | None:
+    """Lot CG5.f : année d'exonération jeune agriculteur (1 à 5), estimée d'après la date d'installation aidée de
+    l'associé ou du profil agricole (EI) ; None hors période."""
+    from app.services import agri_profile
+    since = person.associate.young_farmer_since if person.associate is not None else None
+    if since is None and person.associate is None:
+        raw = agri_profile.get().get("young_farmer_since")
+        try:
+            since = date.fromisoformat(raw) if raw else None
+        except ValueError:
+            since = None
+    if since is None:
+        return None
+    index = contribution_year - since.year + 1
+    return index if 1 <= index <= 5 else None
+
+
 def view(fy: FiscalYear) -> dict:
     """Assiette de l'exercice ; enregistrée dans l'historique (source « lyvre ») une fois le résultat fiscal figé."""
     data = compute(fy)
@@ -271,7 +288,8 @@ def view(fy: FiscalYear) -> dict:
         from app.services import msa_estimate                     # lot AG7.e : estimation indicative
         item["estimate"] = msa_estimate.estimate(item["comparison"]["retained_cents"],
                                                  item["comparison"]["contribution_year"], person.status,
-                                                 person.atexa_category)
+                                                 person.atexa_category,
+                                                 ja_year=_ja_year(person, item["comparison"]["contribution_year"]))
     db.session.commit()
     return data
 

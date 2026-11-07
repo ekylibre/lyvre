@@ -202,8 +202,11 @@ def solidarity(base: int | None, year: int, installation: bool = False) -> dict:
             "notes": ["Cotisant de solidarité (CRPM L.731-23) : estimation indicative, le montant appelé par la caisse fait foi."]}
 
 
+JA_SCOPE = ("amexa", "invalidity", "pension_capped", "pension_uncapped", "pfa")
+
+
 def estimate(base: int | None, year: int, status: str = "principal", atexa_category: str | None = None,
-             installation: bool = False) -> dict:
+             installation: bool = False, ja_year: int | None = None) -> dict:
     """Cotisations et contributions estimées de l'année `year` sur l'assiette `base` (centimes). `installation` : nouvel
     installé sans revenus professionnels, assiettes forfaitaires provisoires du barème (lot CG5.f)."""
     if status == "collaborator":                       # lot CG5.f : assiettes forfaitaires, sans revenu propre
@@ -268,14 +271,25 @@ def estimate(base: int | None, year: int, status: str = "principal", atexa_categ
     add("vivea", "Formation professionnelle (VIVEA)", vivea, f"{p['msa.vivea.rate_bp'] / 100:.2f} % entre 0,17 % et 0,89 % du PASS",
         "third_party")
     add("fmse", "FMSE (cotisation commune)", p["msa.fmse.amount_cents"], "forfait", "third_party")
+    if ja_year:                                          # lot CG5.f : exonération jeunes agriculteurs (années 1 à 5)
+        rates = reg_params.value("msa.ja.rates", date(year, 1, 1), None)
+        caps = reg_params.value("msa.ja.caps", date(year, 1, 1), None)
+        if rates and caps and 1 <= ja_year <= len(rates):
+            scope = sum(l["amount_cents"] for l in lines if l["key"] in JA_SCOPE)
+            exemption = min(round(scope * rates[ja_year - 1] / 10000), caps[ja_year - 1])
+            add("ja_exemption", f"Exonération jeune agriculteur ({ja_year}e année)", -exemption,
+                f"{rates[ja_year - 1] / 100:.0f} % de {_fmt(scope)} (AMEXA, invalidité, retraite de base, prestations "
+                f"familiales), plafond {_fmt(caps[ja_year - 1])}", "cotisations")
     total = sum(l["amount_cents"] for l in lines)
     warnings = [w for w in (warning,) if w]
     if atexa_category not in ATEXA_CATEGORIES:
         warnings.append("Catégorie de risques ATEXA à choisir (avis MSA) : ATEXA non comptée.")
+    if ja_year and not any(l["key"] == "ja_exemption" for l in lines):
+        warnings.append("Exonération jeune agriculteur : barème de l'année ou année d'exonération (1 à 5) introuvable.")
     if installation:
         warnings.append(f"Nouvel installé : assiettes forfaitaires provisoires ({install['msa.install.base_smic']} SMIC, "
                         f"{install['msa.install.vivea_base_smic']} SMIC en formation, 1 820 SMIC en RCO, 11,5 % du PASS "
-                        "en invalidité), régularisées sur les revenus réels. Exonération JA non comptée.")
+                        "en invalidité), régularisées sur les revenus réels.")
         base = positive
     return {"available": True, "year": year, "base_cents": base, "status": status, "lines": lines,
             "totals": {"total_cents": total,
@@ -284,5 +298,5 @@ def estimate(base: int | None, year: int, status: str = "principal", atexa_categ
                        "third_party_cents": sum(l["amount_cents"] for l in lines if l["group"] == "third_party")},
             "warnings": warnings,
             "notes": ["Estimation indicative d'après le barème NSA de la MSA : le montant appelé par la caisse fait foi.",
-                      "Non comptés : exonération jeune agriculteur (65 % à 15 % sur 5 ans), cotisations complémentaires "
-                      "FMSE / InterApi / Val'hor, membres de la famille, modulation."]}
+                      "Non comptés : ACRE, cotisations complémentaires FMSE / InterApi / Val'hor, membres de la famille, "
+                      "modulation." + ("" if ja_year else " Exonération jeune agriculteur : indiquer l'année (1 à 5).")]}

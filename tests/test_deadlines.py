@@ -135,8 +135,7 @@ def test_msa_fiches_cg1():
     assert end.date == date(2026, 12, 31)
     avaloir = deadlines.dates(_event("SOC-07", "Date limite")["rule"], date(2026, 1, 1), date(2026, 12, 31), Context())
     assert [o.date for o in avaloir] == [date(2026, 12, 31)]                     # 31/12/2026 : jeudi, pas de report
-    ja = _event("SOC-03", "Renonciation à l'exonération JA")
-    assert deadlines.applies(ja["applies"], Context(profile={"young_farmer": False}), on) is False
+    assert not any(e["label"].startswith("Renonciation à l'exonération JA") for e in deadlines.fiche("SOC-03")["events"])
     assert agri_profile.flag({"msa_collaborator": True}, "msa_collaborator") is True
     with pytest.raises(agri_profile.ProfileError):
         agri_profile.clean({"msa_collaborator": True})                           # dérivé : ne se saisit pas

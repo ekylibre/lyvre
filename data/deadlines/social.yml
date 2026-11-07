@@ -33,7 +33,7 @@
   title: Option pour l'assiette annuelle des cotisations
   domain: social
   organism: MSA
-  summary: Assiette triennale (moyenne des revenus des 3 années précédentes) par défaut ; option pour l'assiette annuelle (revenus N-1) à demander au plus tard le 30 juin, pour 5 ans reconduits tacitement ; dénonciation au plus tard le 30 novembre, effet au 1er janvier suivant, puis 6 ans sans nouvelle option (CRPM L.731-15, D.731-26). Rente du sol - option ou dénonciation avant le 30 juin.
+  summary: Assiette triennale (moyenne des revenus des 3 années précédentes) par défaut ; option pour l'assiette annuelle (revenus N-1) à demander au plus tard le 30 juin, pour 5 ans reconduits tacitement ; dénonciation au plus tard le 30 novembre, effet au 1er janvier suivant, puis 6 ans sans nouvelle option (CRPM L.731-15, D.731-26). Rente du sol - option ou dénonciation avant le 30 juin. Exonération jeunes agriculteurs cumulable avec le taux réduit AMEXA (barème MSA 2026), sans option à exercer.
   events:
     - label: Date limite de l'option pour l'assiette annuelle
       rule: {type: fixed, days: ["06-30"], shift: none}
@@ -45,11 +45,6 @@
       quiet: true
     - label: "Rente du sol : demande ou dénonciation de la déduction"
       rule: {type: fixed, days: ["06-30"], shift: none}
-      reminders: [30]
-      quiet: true
-    - label: Renonciation à l'exonération JA au profit du taux AMEXA réduit
-      rule: {type: fixed, days: ["06-30"], shift: none}
-      applies: {flags: [young_farmer]}
       reminders: [30]
       quiet: true
   lyvre_data: Comparaison triennale / annuelle par exploitant (Compta › Cotisations MSA).

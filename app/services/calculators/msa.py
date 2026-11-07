@@ -19,6 +19,9 @@ SPEC = Spec(
                                                      ("secondary", "À titre secondaire"),
                                                      ("collaborator", "Collaborateur d'exploitation"),
                                                      ("solidarity", "Cotisant de solidarité")], default="principal"),
+        Input("ja_year", "Exonération jeune agriculteur", "choice", required=False,
+              choices=[(str(i), f"{i}e année" if i > 1 else "1re année") for i in range(1, 6)],
+              help="Année d'exonération (1 à 5) ; cumulable avec le taux réduit AMEXA"),
         Input("installation", "Nouvel installé sans revenus", "choice", required=False, default="no",
               choices=[("no", "Non"), ("yes", "Oui (assiettes forfaitaires d'installation)")]),
         Input("atexa", "Catégorie ATEXA", "choice", required=False,
@@ -76,7 +79,9 @@ def compute(values: dict, on: date) -> Result:
     installation = values.get("installation") == "yes"
     if values["status"] != "collaborator" and values["base"] is None and not installation:
         raise CalculatorError("Assiette des cotisations (ou revenus pour le cotisant de solidarité) à saisir.", "base")
-    data = msa_estimate.estimate(values["base"], values["year"], values["status"], values["atexa"], installation=installation)
+    ja = int(values["ja_year"]) if values.get("ja_year") else None
+    data = msa_estimate.estimate(values["base"], values["year"], values["status"], values["atexa"], installation=installation,
+                                 ja_year=ja)
     if not data["available"]:
         raise CalculatorError(data["reason"], status=409)
     t = data["totals"]

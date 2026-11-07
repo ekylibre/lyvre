@@ -655,9 +655,13 @@ Sources des décisions : réponses Q5 bis, Q6, Q8, Q8 bis et Q8 ter (`fiabilisat
   - `msa_estimate.solidarity()` : 14 % des revenus ou de 100 SMIC, CSG et CRDS, ATEXA de 72,95 €, VIVEA ;
   - calculette 17 : statut « cotisant de solidarité » et option « nouvel installé » ;
   - fiche MA-07 complétée.
+- **Réalisé, exonération jeunes agriculteurs (07/11/2026)** :
+  - taux et plafonds du barème 2026 (`msa.ja.rates`, `msa.ja.caps`, V). Champ : AMEXA, invalidité, retraite de base, prestations familiales (notice MSA) ;
+  - **cumul avec le taux réduit AMEXA** (barème 2026, section AMEXA). L'événement « renonciation à l'exonération JA au 30 juin », ajouté en CG1 à SOC-03, était **périmé** : il est retiré ;
+  - `estimate(..., ja_year=n)` ; dans l'écran MSA, l'année se déduit de la date d'installation aidée (associé ou profil agricole) ; calculette 17 : champ « exonération jeune agriculteur » ;
+  - **ACRE non codée** : réformée au 01/01/2026 (décret 2026-69, 25 % des cotisations selon la presse), absente du barème MSA 2026, aucun texte officiel lu.
 - **Reste à faire en CG5.f** :
-  - exonération JA (le barème 2026 donne le tableau dégressif : 55 %, 35 %, 25 %, 15 % de la 2e à la 5e année, avec plafonds en euros ; CRPM L.731-13 à relire) ;
-  - ACRE (CSS L.131-6-4, à lire) ;
+  - ACRE (décret 2026-69 et CSS L.131-6-4, texte officiel à lire).
 
 
 ## 8.7 Étapes et migrations

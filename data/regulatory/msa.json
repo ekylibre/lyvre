@@ -451,6 +451,40 @@
    "verified_on": "2026-11-07",
    "reliability": "V",
    "note": "ATEXA du cotisant de solidarité : 72,95 €, quelle que soit la catégorie de risques."
+  },
+  {
+   "key": "msa.ja.rates",
+   "value": [
+    6500,
+    5500,
+    3500,
+    2500,
+    1500
+   ],
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026 (annexe du 25/02/2026)",
+   "verified_on": "2026-11-07",
+   "reliability": "V",
+   "note": "Exonération jeunes agriculteurs, de la 1re à la 5e année : 65, 55, 35, 25 et 15 % (lot CG5.f). Porte sur l'AMEXA, l'invalidité-décès, la retraite de base et les prestations familiales (notice MSA) ; cumulable avec le taux réduit AMEXA (barème 2026)."
+  },
+  {
+   "key": "msa.ja.caps",
+   "value": [
+    408900,
+    346000,
+    220200,
+    157300,
+    94400
+   ],
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.msa.fr/lfp/documents/11566/41428048/Bar%C3%A8me+des+cotisations+et+contributions+sociales+des+non+salari%C3%A9s+agricoles+2026",
+   "source_label": "MSA, barème des cotisations et contributions sociales des non-salariés agricoles 2026 (annexe du 25/02/2026)",
+   "verified_on": "2026-11-07",
+   "reliability": "V",
+   "note": "Plafonds (centimes) de l'exonération jeunes agriculteurs de la 1re à la 5e année : 4 089, 3 460, 2 202, 1 573 et 944 €."
   }
  ]
 }

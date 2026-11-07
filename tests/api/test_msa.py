@@ -366,3 +366,16 @@ def test_new_farmer_and_solidarity_cg5f(farm):
     module = calculators.get("msa")
     result = calculators.run(module, {"year": "2026", "status": "solidarity", "base": "5000"})
     assert result["headline"][0]["value"].replace(" ", " ") == "1 339,65 €"
+
+
+def test_young_farmer_exemption_cg5f(farm):
+    """Lot CG5.f (barème NSA 2026) : exonération JA sur l'AMEXA, l'invalidité, la retraite de base et les prestations
+    familiales ; 65 % plafonnés à 4 089 € la 1re année, 15 % plafonnés à 944 € la 5e."""
+    from app.services import msa_estimate
+    plain = {l["key"]: l["amount_cents"] for l in msa_estimate.estimate(3000000, 2026, "principal", "A")["lines"]}
+    scope = sum(plain[k] for k in msa_estimate.JA_SCOPE if k in plain)
+    first = {l["key"]: l["amount_cents"] for l in msa_estimate.estimate(3000000, 2026, "principal", "A", ja_year=1)["lines"]}
+    assert first["ja_exemption"] == -min(round(scope * 6500 / 10000), 408900)
+    fifth = {l["key"]: l["amount_cents"] for l in msa_estimate.estimate(3000000, 2026, "principal", "A", ja_year=5)["lines"]}
+    assert fifth["ja_exemption"] == -min(round(scope * 1500 / 10000), 94400)
+    assert "ja_exemption" not in {l["key"] for l in msa_estimate.estimate(3000000, 2026, "principal", "A", ja_year=6)["lines"]}
