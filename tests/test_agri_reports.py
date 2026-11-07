@@ -181,4 +181,5 @@ def test_api(app, login_as):
     assert xlsx.status_code == 200 and xlsx.data[:2] == b"PK"
     nav = client.get("/api/v1/session").get_json()["nav"]
     compta = next(m for m in nav if m["key"] == "compta")
-    assert any(i.get("key") == "sig" for i in compta["items"])
+    editions = next(i for i in compta["items"] if i.get("key") == "editions")       # lot NV1 : sous-menu
+    assert any(i.get("key") == "sig" for i in editions["items"])

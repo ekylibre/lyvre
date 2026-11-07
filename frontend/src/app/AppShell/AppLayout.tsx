@@ -12,8 +12,9 @@ import { spotlight } from "@mantine/spotlight";
 import { ArrowLeftRight, ChevronDown, Eye, KeyRound, LogOut, Moon, Search, Sparkles, Sun } from "lucide-react";
 import symbolInverse from "../../assets/lyvre-symbole-inverse.svg";
 import {
-  useCan, useCurrentSession, useLogout, usePreferences, useSelectInstance, type NavMenu,
+  navLinks, useCan, useCurrentSession, useLogout, usePreferences, useSelectInstance, type NavItem, type NavMenu,
 } from "../../api/session";
+import { NavIcon } from "../navIcons";
 import { AppLink } from "../navigation";
 import { useChangelogUnseen } from "../../features/changelog/useChangelog";
 import { AssistantButton } from "../../features/assistant/AssistantDrawer";
@@ -23,10 +24,9 @@ import { Wordmark } from "./Wordmark";
 const pathOf = (url: string) => new URL(url, window.location.origin).pathname.replace(/\/$/, "") || "/";
 
 /** URL du menu qui correspond le mieux à la page (préfixe le plus long : /entities/members
- * l'emporte sur /entities/ pour la page des adhérents). */
+ * l'emporte sur /entities/ pour la page des adhérents). Tous niveaux (lot NV1). */
 export function activeUrl(menus: NavMenu[], pathname: string): string | null {
-  const urls = menus.flatMap((m) => [m.url, ...(m.items ?? []).map((i) => ("url" in i ? i.url : undefined))])
-    .filter((u): u is string => !!u);
+  const urls = navLinks(menus).map((l) => l.url);
   const current = pathname.replace(/\/$/, "") || "/";
   const matches = urls.filter((u) => {
     const path = pathOf(u);
@@ -35,32 +35,52 @@ export function activeUrl(menus: NavMenu[], pathname: string): string | null {
   return matches.sort((a, b) => pathOf(b).length - pathOf(a).length)[0] ?? null;
 }
 
+/** Un sous-menu contient-il l'adresse active (pour l'ouvrir d'office) ? */
+function contains(items: NavItem[], url: string | null): boolean {
+  return !!url && items.some((i) => ("items" in i ? contains(i.items, url) : "url" in i && i.url === url));
+}
+
+function NavItems({ items, current, onNavigate }: { items: NavItem[]; current: string | null; onNavigate: () => void }) {
+  return (
+    <>
+      {items.map((item, index) => {
+        if ("divider" in item) return <Divider key={`d${index}`} my={4} />;
+        if ("items" in item) {
+          return (
+            <NavLink key={item.key} label={item.label} leftSection={<NavIcon name={item.icon} />}
+              defaultOpened={contains(item.items, current)} childrenOffset="sm">
+              <NavItems items={item.items} current={current} onNavigate={onNavigate} />
+            </NavLink>
+          );
+        }
+        const active = item.url === current;
+        return (
+          <NavLink key={item.key} component={AppLink} href={item.url} label={item.label} leftSection={<NavIcon name={item.icon} />}
+            active={active} aria-current={active ? "page" : undefined} onClick={onNavigate} />
+        );
+      })}
+    </>
+  );
+}
+
 function NavMenus({ menus, onNavigate }: { menus: NavMenu[]; onNavigate: () => void }) {
   const { pathname } = useLocation();
   const current = activeUrl(menus, pathname);
-  const isActive = (url: string) => url === current;
   return (
     <>
       {menus.map((menu) => {
         if (menu.url) {
-          const active = isActive(menu.url);
+          const active = menu.url === current;
           return (
-            <NavLink key={menu.key} component={AppLink} href={menu.url} label={menu.label}
+            <NavLink key={menu.key} component={AppLink} href={menu.url} label={menu.label} leftSection={<NavIcon name={menu.icon} />}
               active={active} aria-current={active ? "page" : undefined} onClick={onNavigate} />
           );
         }
         const items = menu.items ?? [];
-        const opened = items.some((i) => "url" in i && isActive(i.url));
         return (
-          <NavLink key={menu.key} label={menu.label} defaultOpened={opened} childrenOffset="sm">
-            {items.map((item, index) => {
-              if ("divider" in item) return <Divider key={`d${index}`} my={4} />;
-              const active = isActive(item.url);
-              return (
-                <NavLink key={item.key} component={AppLink} href={item.url} label={item.label}
-                  active={active} aria-current={active ? "page" : undefined} onClick={onNavigate} />
-              );
-            })}
+          <NavLink key={menu.key} label={menu.label} leftSection={<NavIcon name={menu.icon} />}
+            defaultOpened={contains(items, current)} childrenOffset="sm">
+            <NavItems items={items} current={current} onNavigate={onNavigate} />
           </NavLink>
         );
       })}

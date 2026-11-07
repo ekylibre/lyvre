@@ -59,3 +59,20 @@ describe("menu actif", () => {
     expect(activeUrl(menus, "/")).toBe("/");
   });
 });
+
+describe("sous-menus de 3e niveau (lot NV1)", () => {
+  it("ouvre le sous-menu de la page active et retient son entrée", async () => {
+    const nav = [{ key: "compta", label: "Compta", icon: "calculator", items: [
+      { key: "entries", label: "Écritures", url: "/entries/", icon: "notebook-pen" },
+      { key: "editions", label: "Éditions comptables", icon: "file-chart-column", items: [
+        { key: "balance", label: "Balance", url: "/reports/balance", icon: "scale" },
+        { key: "bilan", label: "Bilan", url: "/reports/bilan", icon: "landmark" },
+      ] },
+    ] }];
+    renderWithProviders(<AppLayout><p /></AppLayout>, { session: { ...SESSION, nav }, route: "/reports/bilan" });
+    expect(screen.getByRole("link", { name: "Bilan" })).toHaveAttribute("data-active", "true");
+    expect(screen.getByRole("link", { name: "Balance" })).toBeInTheDocument();     // sous-menu ouvert d'office
+    const { activeUrl } = await import("./AppLayout");
+    expect(activeUrl(nav, "/reports/balance")).toBe("/reports/balance");
+  });
+});

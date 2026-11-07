@@ -18,8 +18,9 @@ def _error(resp, status):
 def _labels(nav):
     out = set()
     for menu in nav:
-        out.add(menu["label"])
-        out.update(i["label"] for i in menu.get("items", []) if "label" in i)
+        if "label" in menu:
+            out.add(menu["label"])
+        out |= _labels(menu.get("items", []))                  # trois niveaux (lot NV1)
     return out
 
 

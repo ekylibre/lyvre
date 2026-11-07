@@ -7,7 +7,7 @@ import { Spotlight, spotlight } from "@mantine/spotlight";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { api } from "../api/client";
-import { useCurrentSession } from "../api/session";
+import { navLinks, useCurrentSession } from "../api/session";
 import { useGoTo } from "./navigation";
 
 interface SearchGroup { label: string; items: { label: string; description: string | null; url: string }[] }
@@ -23,11 +23,8 @@ export function AppSpotlight() {
 
   const navActions = useMemo<NavAction[]>(() => {
     const links: NavAction[] = [];
-    for (const menu of session.nav) {
-      if (menu.url) links.push({ id: menu.url, label: menu.label, url: menu.url });
-      for (const item of menu.items ?? []) {
-        if ("url" in item) links.push({ id: item.url, label: item.label, description: menu.label, url: item.url });
-      }
+    for (const link of navLinks(session.nav)) {
+      links.push({ id: link.url, label: link.label, description: link.trail.join(" › ") || undefined, url: link.url });
     }
     for (const link of session.admin_links) links.push({ id: link.url, label: link.label, description: "Administration", url: link.url });
     links.push({ id: "select-instance", label: "Changer d'instance", url: "/select-instance" });

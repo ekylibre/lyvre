@@ -89,3 +89,72 @@ def test_chart_only_menu_is_filtered():
         assert "Compta" in _labels(build_nav("sci", is_admin=True))
     finally:
         compta["charts"] = original
+
+
+# ---------------------------------------------------------------- lot NV1 (claudedocs/design_navigation.md)
+
+def _keys(items):
+    return [i.get("key") for i in items if not i.get("divider")]
+
+
+def test_every_endpoint_is_a_spa_route():
+    import json
+    from pathlib import Path
+
+    from app.menu_config import endpoints
+    routes = {r["endpoint"] for r in json.loads((Path(__file__).parents[1] / "app" / "spa_routes.json").read_text())["routes"]}
+    missing = [e for e in endpoints() if e not in routes]
+    assert missing == []
+
+
+def test_farm_compta_has_three_submenus_and_gestion_menu():
+    nav = {m["key"]: m for m in build_nav("agri", is_admin=True, features={"vat_returns"})}
+    compta = {i["key"]: i for i in nav["compta"]["items"] if not i.get("divider")}
+    assert _keys(nav["compta"]["items"]) == ["entries", "lettering", "editions", "fixed_and_stock", "tax_social",
+                                             "accounting_settings"]
+    assert _keys(compta["editions"]["items"]) == ["balance", "grand_livre", "bilan", "compte_resultat", "sig"]
+    assert _keys(compta["fixed_and_stock"]["items"]) == ["assets", "stock"]
+    assert "vat_returns" in _keys(compta["tax_social"]["items"]) and "msa" in _keys(compta["tax_social"]["items"])
+    assert _keys(nav["gestion"]["items"]) == ["projects", "budgets", "budget_tracking", "agenda", "activities",
+                                              "analytic", "activity_margins"]
+    sales = {i["key"]: i for i in nav["sales"]["items"] if not i.get("divider")}
+    assert _keys(sales["cooperatives"]["items"]) == ["sales_self_billed", "sales_coop_statements"]
+    assert list(nav)[:4] == ["dashboard", "compta", "gestion", "banque"]
+
+
+def test_single_entry_submenu_collapses_and_empty_one_disappears():
+    nav = {m["key"]: m for m in build_nav("asso", is_admin=True)}
+    keys = _keys(nav["compta"]["items"])
+    assert "fixed_and_stock" not in keys and "assets" in keys          # une seule entrée : remontée
+    assert "tax_social" not in keys and "vat_returns" not in keys      # TVA désactivée : sous-menu vide
+    with_vat = {m["key"]: m for m in build_nav("asso", is_admin=True, features={"vat_returns"})}
+    assert "vat_returns" in _keys(with_vat["compta"]["items"])         # une seule entrée : remontée
+    assert _keys(nav["gestion"]["items"]) == ["projects", "budgets", "budget_tracking"]
+    assert "cooperatives" not in _keys(nav["sales"]["items"])
+
+
+def test_top_level_menus_have_icons():
+    assert all(m.get("icon") for m in MENUS)
+
+
+def test_session_nav_is_nested_with_icons(app, login_as):
+    client = login_as(role="admin")
+    nav = {m["key"]: m for m in client.get("/api/v1/session").get_json()["nav"]}
+    compta = {i.get("key"): i for i in nav["compta"]["items"]}
+    assert nav["compta"]["icon"] == "calculator" and compta["entries"]["url"].endswith("/entries/")
+    editions = compta["editions"]
+    assert "url" not in editions and editions["items"][0]["key"] == "balance" and editions["items"][0]["icon"] == "scale"
+
+
+def test_every_icon_is_in_the_frontend_table():
+    import re
+    from pathlib import Path
+    table = (Path(__file__).parents[1] / "frontend" / "src" / "app" / "navIcons.tsx").read_text()
+    known = set(re.findall(r'"([a-z0-9-]+)":', table)) | set(re.findall(r"\b([a-z]+): [A-Z]", table))
+
+    def icons(entries):
+        for e in entries:
+            if e.get("icon"):
+                yield e["icon"]
+            yield from icons(e.get("items", []))
+    assert sorted(set(icons(MENUS)) - known) == []

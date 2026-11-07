@@ -3,9 +3,29 @@ import { useCallback, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, api, setCsrfToken } from "./client";
 
-export interface NavLink { key: string; label: string; url: string }
+// Lot NV1 : trois niveaux (menu › entrée ou sous-menu › entrée), icône Lucide et pictogramme agric.
+export interface NavLink { key: string; label: string; url: string; icon?: string; pictogram?: string }
 export interface NavDivider { divider: true }
-export interface NavMenu { key: string; label: string; url?: string; items?: (NavLink | NavDivider)[] }
+export interface NavGroup { key: string; label: string; icon?: string; pictogram?: string; items: NavItem[] }
+export type NavItem = NavLink | NavGroup | NavDivider;
+export interface NavMenu { key: string; label: string; url?: string; icon?: string; pictogram?: string; items?: NavItem[] }
+
+/** Entrées cliquables de l'arbre, avec le fil des libellés parents (recherche, entrée active). */
+export function navLinks(menus: NavMenu[]): (NavLink & { trail: string[] })[] {
+  const out: (NavLink & { trail: string[] })[] = [];
+  const walk = (items: NavItem[], trail: string[]) => {
+    for (const item of items) {
+      if ("divider" in item) continue;
+      if ("items" in item) walk(item.items, [...trail, item.label]);
+      else out.push({ ...item, trail });
+    }
+  };
+  for (const menu of menus) {
+    if (menu.url) out.push({ key: menu.key, label: menu.label, url: menu.url, icon: menu.icon, pictogram: menu.pictogram, trail: [] });
+    walk(menu.items ?? [], [menu.label]);
+  }
+  return out;
+}
 
 export type ColorSchemePreference = "light" | "dark" | "auto";
 

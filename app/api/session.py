@@ -33,16 +33,19 @@ def _current_instance():
 
 
 def _resolve_nav(menus):
-    """Menus de menu_config avec les URL résolues (url_for) pour la SPA."""
+    """Menus de menu_config avec les URL résolues (url_for) pour la SPA, sur trois niveaux (lot NV1), avec l'icône
+    Lucide (`icon`) et le pictogramme agric (`pictogram`) de chaque entrée."""
     resolved = []
     for menu in menus:
+        if menu.get("divider"):
+            resolved.append({"divider": True})
+            continue
         entry = {"key": menu["key"], "label": menu["label"]}
+        for field in ("icon", "pictogram"):
+            if menu.get(field):
+                entry[field] = menu[field]
         if "items" in menu:
-            entry["items"] = [
-                {"divider": True} if item.get("divider")
-                else {"key": item["key"], "label": item["label"], "url": url_for(item["endpoint"])}
-                for item in menu["items"]
-            ]
+            entry["items"] = _resolve_nav(menu["items"])
         else:
             entry["url"] = url_for(menu["endpoint"])
         resolved.append(entry)
