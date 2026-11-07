@@ -139,19 +139,89 @@ def collaborator(year: int, atexa_category: str | None = None, secondary: bool =
                       "appelé par la caisse fait foi."]}
 
 
-def estimate(base: int | None, year: int, status: str = "principal", atexa_category: str | None = None) -> dict:
-    """Cotisations et contributions estimées de l'année `year` sur l'assiette `base` (centimes)."""
+def _install_params(year: int) -> dict | None:
+    keys = ("msa.install.base_smic", "msa.install.vivea_base_smic")
+    for on in (date(year, 1, 1), *(p.valid_from for p in reg_params.history("msa.install.base_smic"))):
+        values = {k: reg_params.value(k, on, None) for k in keys}
+        if all(v is not None for v in values.values()):
+            return values
+    return None
+
+
+def solidarity(base: int | None, year: int, installation: bool = False) -> dict:
+    """Lot CG5.f : cotisant de solidarité (CRPM L.731-23, barème MSA 2026) : cotisation de 14 % des revenus (ou de
+    l'assiette forfaitaire de 100 SMIC sans revenus), CSG / CRDS, ATEXA forfaitaire, VIVEA 0,17 % du PASS."""
+    keys = ("msa.smic_hour_cents", "msa.pass_cents", "msa.solidarity.rate_bp", "msa.solidarity.install_base_smic",
+            "msa.solidarity.atexa_cents", "msa.family.vivea_pass_bp", "msa.csg.deductible_bp", "msa.csg.non_deductible_bp",
+            "msa.crds_bp")
+    p, warning = None, None
+    for on in (date(year, 1, 1), *(x.valid_from for x in reg_params.history("msa.solidarity.rate_bp"))):
+        values = {k: reg_params.value(k, on, None) for k in keys}
+        if all(v is not None for v in values.values()):
+            p = values
+            if on != date(year, 1, 1):
+                warning = f"Barème {year} non publié : barème {on.year} appliqué."
+            break
+    if p is None:
+        return {"available": False, "reason": "Barème du cotisant de solidarité non paramétré."}
+    if base is None and not installation:
+        return {"available": False, "reason": "Revenus professionnels de l'année précédente à saisir (ou nouvel installé)."}
+    smic = p["msa.smic_hour_cents"]
+    assiette = p["msa.solidarity.install_base_smic"] * smic if installation else max(base, 0)
+    lines = []
+
+    def add(key, label, amount, detail, group, deductible=True):
+        lines.append({"key": key, "label": label, "amount_cents": int(amount), "detail": detail, "group": group,
+                      "deductible": deductible})
+
+    rate = p["msa.solidarity.rate_bp"]
+    add("solidarity", "Cotisation de solidarité", round(assiette * rate / 10000),
+        f"{rate / 100:.0f} % de {_fmt(assiette)}", "cotisations")
+    add("atexa", "Accidents du travail (ATEXA)", p["msa.solidarity.atexa_cents"], "forfait du cotisant de solidarité",
+        "cotisations")
+    csg_d = round(assiette * p["msa.csg.deductible_bp"] / 10000)
+    csg_n = round(assiette * p["msa.csg.non_deductible_bp"] / 10000)
+    crds = round(assiette * p["msa.crds_bp"] / 10000)
+    add("csg_deductible", "CSG déductible", csg_d, f"{p['msa.csg.deductible_bp'] / 100:.1f} %", "contributions")
+    add("csg_non_deductible", "CSG non déductible", csg_n, f"{p['msa.csg.non_deductible_bp'] / 100:.1f} %",
+        "contributions", deductible=False)
+    add("crds", "CRDS", crds, f"{p['msa.crds_bp'] / 100:.1f} %", "contributions", deductible=False)
+    add("vivea", "Formation professionnelle (VIVEA)", round(p["msa.pass_cents"] * p["msa.family.vivea_pass_bp"] / 10000),
+        f"{p['msa.family.vivea_pass_bp'] / 100:.2f} % du PASS", "third_party")
+    total = sum(l["amount_cents"] for l in lines)
+    warnings = [w for w in (warning,) if w]
+    if installation:
+        warnings.append(f"Sans revenus : assiette forfaitaire de {p['msa.solidarity.install_base_smic']} SMIC, régularisée "
+                        "ensuite.")
+    return {"available": True, "year": year, "base_cents": assiette, "status": "solidarity", "lines": lines,
+            "totals": {"total_cents": total,
+                       "contributions_cents": sum(l["amount_cents"] for l in lines if l["group"] == "cotisations"),
+                       "csg_crds_cents": csg_d + csg_n + crds, "non_deductible_cents": csg_n + crds,
+                       "third_party_cents": sum(l["amount_cents"] for l in lines if l["group"] == "third_party")},
+            "warnings": warnings,
+            "notes": ["Cotisant de solidarité (CRPM L.731-23) : estimation indicative, le montant appelé par la caisse fait foi."]}
+
+
+def estimate(base: int | None, year: int, status: str = "principal", atexa_category: str | None = None,
+             installation: bool = False) -> dict:
+    """Cotisations et contributions estimées de l'année `year` sur l'assiette `base` (centimes). `installation` : nouvel
+    installé sans revenus professionnels, assiettes forfaitaires provisoires du barème (lot CG5.f)."""
     if status == "collaborator":                       # lot CG5.f : assiettes forfaitaires, sans revenu propre
         return collaborator(year, atexa_category)
+    if status == "solidarity":
+        return solidarity(base, year, installation)
     if status not in ("principal", "secondary"):
         return {"available": False, "reason": "Statut non couvert par l'estimation."}
-    if base is None:
+    if base is None and not installation:
         return {"available": False, "reason": f"Assiette des cotisations {year} inconnue : historique des assiettes à compléter."}
     p, warning = _params(year)
     if not p:
         return {"available": False, "reason": warning}
     pass_cents, smic = p["msa.pass_cents"], p["msa.smic_hour_cents"]
-    positive = max(base, 0)
+    install = _install_params(year) if installation else None
+    if installation and install is None:
+        return {"available": False, "reason": "Assiettes forfaitaires d'installation non paramétrées."}
+    positive = install["msa.install.base_smic"] * smic if installation else max(base, 0)
     lines = []
 
     def add(key, label, amount, detail, group, deductible=True):
@@ -160,7 +230,8 @@ def estimate(base: int | None, year: int, status: str = "principal", atexa_categ
 
     amexa, detail = _amexa(positive, p)
     add("amexa", "Assurance maladie (AMEXA)", amexa, detail, "cotisations")
-    inv_base = max(positive, round(pass_cents * p["msa.invalidity.min_pass_bp"] / 10000))
+    inv_min = round(pass_cents * p["msa.invalidity.min_pass_bp"] / 10000)
+    inv_base = inv_min if installation else max(positive, inv_min)
     if status == "principal":
         add("invalidity", "Invalidité", round(inv_base * p["msa.invalidity.rate_bp"] / 10000),
             f"{p['msa.invalidity.rate_bp'] / 100:.2f} % de {_fmt(inv_base)} (minimum 11,5 % du PASS)", "cotisations")
@@ -173,7 +244,7 @@ def estimate(base: int | None, year: int, status: str = "principal", atexa_categ
     uncapped_base = max(positive, pension_min)
     add("pension_uncapped", "Retraite de base déplafonnée", round(uncapped_base * p["msa.pension.uncapped_rate_bp"] / 10000),
         f"{p['msa.pension.uncapped_rate_bp'] / 100:.2f} % de {_fmt(uncapped_base)}", "cotisations")
-    rco_base = max(positive, p["msa.rco.min_smic"] * smic)
+    rco_base = p["msa.rco.min_smic"] * smic if installation else max(positive, p["msa.rco.min_smic"] * smic)
     add("rco", "Retraite complémentaire (RCO)", round(rco_base * p["msa.rco.rate_bp"] / 10000),
         f"{p['msa.rco.rate_bp'] / 100:.2f} % de {_fmt(rco_base)} (minimum 1 820 SMIC)", "cotisations")
     extra, detail = _rco_extra(positive, p)
@@ -191,7 +262,8 @@ def estimate(base: int | None, year: int, status: str = "principal", atexa_categ
     add("csg_non_deductible", "CSG non déductible", csg_n, f"{p['msa.csg.non_deductible_bp'] / 100:.1f} %", "contributions",
         deductible=False)
     add("crds", "CRDS", crds, f"{p['msa.crds_bp'] / 100:.1f} %", "contributions", deductible=False)
-    vivea = min(max(round(positive * p["msa.vivea.rate_bp"] / 10000), round(pass_cents * p["msa.vivea.min_pass_bp"] / 10000)),
+    vivea_base = install["msa.install.vivea_base_smic"] * smic if installation else positive
+    vivea = min(max(round(vivea_base * p["msa.vivea.rate_bp"] / 10000), round(pass_cents * p["msa.vivea.min_pass_bp"] / 10000)),
                 round(pass_cents * p["msa.vivea.max_pass_bp"] / 10000))
     add("vivea", "Formation professionnelle (VIVEA)", vivea, f"{p['msa.vivea.rate_bp'] / 100:.2f} % entre 0,17 % et 0,89 % du PASS",
         "third_party")
@@ -200,6 +272,11 @@ def estimate(base: int | None, year: int, status: str = "principal", atexa_categ
     warnings = [w for w in (warning,) if w]
     if atexa_category not in ATEXA_CATEGORIES:
         warnings.append("Catégorie de risques ATEXA à choisir (avis MSA) : ATEXA non comptée.")
+    if installation:
+        warnings.append(f"Nouvel installé : assiettes forfaitaires provisoires ({install['msa.install.base_smic']} SMIC, "
+                        f"{install['msa.install.vivea_base_smic']} SMIC en formation, 1 820 SMIC en RCO, 11,5 % du PASS "
+                        "en invalidité), régularisées sur les revenus réels. Exonération JA non comptée.")
+        base = positive
     return {"available": True, "year": year, "base_cents": base, "status": status, "lines": lines,
             "totals": {"total_cents": total,
                        "contributions_cents": sum(l["amount_cents"] for l in lines if l["group"] == "cotisations"),

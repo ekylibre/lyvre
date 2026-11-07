@@ -649,11 +649,16 @@ Sources des décisions : réponses Q5 bis, Q6, Q8, Q8 bis et Q8 ter (`fiabilisat
   - `msa_estimate.collaborator()` : le statut `collaborator` n'est plus refusé ;
   - calculette 17 : statut « collaborateur », assiette facultative ;
   - fiche MA-07 complétée.
+- **Réalisé, nouvel installé et cotisant de solidarité (07/11/2026)** :
+  - paramètres `msa.install.*` et `msa.solidarity.*` (V, barème 2026) ;
+  - `estimate(..., installation=True)` : 600 SMIC, 800 SMIC en formation, 1 820 SMIC en RCO, 11,5 % du PASS en invalidité ;
+  - `msa_estimate.solidarity()` : 14 % des revenus ou de 100 SMIC, CSG et CRDS, ATEXA de 72,95 €, VIVEA ;
+  - calculette 17 : statut « cotisant de solidarité » et option « nouvel installé » ;
+  - fiche MA-07 complétée.
 - **Reste à faire en CG5.f** :
-  - nouveaux installés (assiettes forfaitaires 600, 800 et 1 820 SMIC, 11,5 % du PASS, déjà lues dans le barème) ;
   - exonération JA (le barème 2026 donne le tableau dégressif : 55 %, 35 %, 25 %, 15 % de la 2e à la 5e année, avec plafonds en euros ; CRPM L.731-13 à relire) ;
   - ACRE (CSS L.131-6-4, à lire) ;
-  - cotisant de solidarité (14 %, assiette forfaitaire de 100 SMIC, ATEXA 72,95 €, VIVEA 0,17 % du PASS, déjà lus).
+
 
 ## 8.7 Étapes et migrations
 

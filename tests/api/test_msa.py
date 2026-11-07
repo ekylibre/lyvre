@@ -344,3 +344,25 @@ def test_collaborator_estimate_cg5f(farm):
     assert result["headline"][0]["value"].replace(" ", " ") == "2 225,15 €"
     with pytest.raises(calculators.CalculatorError):
         calculators.run(module, {"year": "2026", "status": "principal"})
+
+
+def test_new_farmer_and_solidarity_cg5f(farm):
+    """Lot CG5.f (barème NSA 2026, SMIC 12,02 €, PASS 48 060 €) : nouvel installé sur assiettes forfaitaires (600 SMIC
+    = 7 212 €, 1 820 SMIC en RCO, 11,5 % du PASS en invalidité, 800 SMIC en formation) ; cotisant de solidarité (14 %)."""
+    from app.services import calculators, msa_estimate
+    new = msa_estimate.estimate(None, 2026, "principal", "A", installation=True)
+    lines = {l["key"]: l["amount_cents"] for l in new["lines"]}
+    assert new["base_cents"] == 721200 and lines["amexa"] == 0                    # 15 % du PASS : taux nul
+    assert lines["invalidity"] == 6080 and lines["pension_capped"] == 123686 and lines["rco"] == 87506   # 4 % de 21 876,40 €
+    assert lines["vivea"] == 8170 and lines["csg_deductible"] == 49042             # VIVEA : minimum 0,17 % du PASS
+    assert any("Nouvel installé" in w for w in new["warnings"])
+    solidarity = msa_estimate.estimate(500000, 2026, "solidarity")
+    lines = {l["key"]: l["amount_cents"] for l in solidarity["lines"]}
+    assert lines == {"solidarity": 70000, "atexa": 7295, "csg_deductible": 34000, "csg_non_deductible": 12000,
+                     "crds": 2500, "vivea": 8170}
+    start = msa_estimate.estimate(None, 2026, "solidarity", installation=True)
+    assert {l["key"]: l["amount_cents"] for l in start["lines"]}["solidarity"] == 16828   # 14 % de 100 SMIC
+    assert msa_estimate.estimate(None, 2026, "solidarity")["available"] is False
+    module = calculators.get("msa")
+    result = calculators.run(module, {"year": "2026", "status": "solidarity", "base": "5000"})
+    assert result["headline"][0]["value"].replace(" ", " ") == "1 339,65 €"

@@ -17,7 +17,10 @@ SPEC = Spec(
               help="Assiette annuelle ou moyenne triennale retenue (sans objet pour le collaborateur)"),
         Input("status", "Statut", "choice", choices=[("principal", "Chef d'exploitation à titre principal"),
                                                      ("secondary", "À titre secondaire"),
-                                                     ("collaborator", "Collaborateur d'exploitation")], default="principal"),
+                                                     ("collaborator", "Collaborateur d'exploitation"),
+                                                     ("solidarity", "Cotisant de solidarité")], default="principal"),
+        Input("installation", "Nouvel installé sans revenus", "choice", required=False, default="no",
+              choices=[("no", "Non"), ("yes", "Oui (assiettes forfaitaires d'installation)")]),
         Input("atexa", "Catégorie ATEXA", "choice", required=False,
               choices=[(c, f"Catégorie {c}") for c in msa_estimate.ATEXA_CATEGORIES], help="Indiquée sur l'avis MSA"),
     ],
@@ -70,9 +73,10 @@ def prefill(ctx: Context) -> dict:
 
 
 def compute(values: dict, on: date) -> Result:
-    if values["status"] != "collaborator" and values["base"] is None:
-        raise CalculatorError("Assiette des cotisations à saisir.", "base")
-    data = msa_estimate.estimate(values["base"], values["year"], values["status"], values["atexa"])
+    installation = values.get("installation") == "yes"
+    if values["status"] != "collaborator" and values["base"] is None and not installation:
+        raise CalculatorError("Assiette des cotisations (ou revenus pour le cotisant de solidarité) à saisir.", "base")
+    data = msa_estimate.estimate(values["base"], values["year"], values["status"], values["atexa"], installation=installation)
     if not data["available"]:
         raise CalculatorError(data["reason"], status=409)
     t = data["totals"]
