@@ -605,6 +605,17 @@ Sources des décisions : réponses Q5 bis, Q6, Q8, Q8 bis et Q8 ter (`fiabilisat
   - méthode et limites affichées, comme les autres calculettes.
 - **Inventaire** : sur une ligne au coût réel ou au barème, champ facultatif « charges fixes de sous-activité écartées », avec le lien vers la calculette. La part écartée reste en charge et ne s'ajoute pas au stock. Aucune écriture propre.
 
+- **Réalisé (07/11/2026)**. Sources relues :
+  - PCG 2026 art. 213-32 (capacité normale = production moyenne sur plusieurs exercices ; frais non affectés en charge) et art. 618-13, 2° (applicable aux produits agricoles) ;
+  - BOI-BIC-PDSTK-20-20-10-10 § 240 (charges de sous-activité exclues du coût fiscal), applicable au BA par BOI-BA-BASE-20-20-20-10 § 90.
+
+  Aucun texte ne fixe la formule de la capacité normale, ni ne qualifie une baisse de rendement climatique de sous-activité.
+
+  Mise en œuvre :
+  - **calculette 26** (`calculators/sous_activite.py`) : moyenne simple par défaut, variante « 3 valeurs médianes sur 5 ans » signalée à valider ;
+  - le **champ d'inventaire n'est pas ajouté** : au coût réel, c'est l'utilisateur qui saisit la valeur unitaire, et un second champ risquerait de déduire la sous-activité deux fois. La calculette donne le montant à retirer ;
+  - fiche MA-01 complétée.
+
 ## 8.6 CG5.f Cas particuliers MSA (MS4)
 
 - **Sources** :

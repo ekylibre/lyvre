@@ -368,3 +368,20 @@ def test_parse_ddt_filters():
     assert agri_geo.parse_ddt(text, rhone) == ["Zone défavorisée simple"]      # 2015 écarté, « Plaine » non classée
     assert agri_geo._repair("DÃ©favorisÃ©e simple") == "Défavorisée simple"
     assert len(agri_geo.less_favoured_sources()) == 13
+
+
+def test_under_activity_cg5e(farm):
+    """Lot CG5.e (PCG art. 213-32, 618-13 ; BOI-BIC-PDSTK-20-20-10-10 § 240) : production normale, taux d'activité,
+    charge de sous-activité. Productions 62, 71, 48, 69, 66 ; année 41 ; frais fixes 18 000 €."""
+    def head(result):
+        return {h["label"]: h["value"].replace("\u202f", " ") for h in result["headline"]}
+    module = calculators.get("sous-activite")
+    result = head(calculators.run(module, module.SPEC.example))            # moyenne 63,2 → taux 64,87 %
+    assert result["Frais fixes imputables au stock"] == "11 677,22 €" and result["Charge de sous-activité"] == "6 322,78 €"
+    median = calculators.run(module, {**module.SPEC.example, "method": "median3"})   # 62, 66, 69 → 65,67
+    assert head(median)["Frais fixes imputables au stock"] == "11 238,58 €"
+    assert any("valider" in w for w in median["warnings"])
+    full = calculators.run(module, {**module.SPEC.example, "current": "80"})
+    assert head(full)["Charge de sous-activité"] == "0,00 €"
+    with pytest.raises(calculators.CalculatorError):
+        calculators.run(module, {"y1": "60", "y2": "62", "current": "40", "fixed": "1000"})
