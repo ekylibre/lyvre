@@ -129,7 +129,8 @@ def test_real_rubrics_by_method_cg2a(farm):
     adv = _create(farm, production="Blé tendre", surface_ha="10", planted_on="2025-11-05", method="standard_m1",
                   crop_standard_id=std.get_json()["item"]["id"])
     proposals = {p["label"]: p for p in adv["proposals"]}
-    assert "Rémunération associé" not in proposals and "Réparation hangar" not in proposals
+    assert "Réparation hangar" not in proposals
+    assert proposals["Rémunération associé"]["rubric"] == "labour"               # lot CG3.a : associés compris (Q5)
     assert proposals["Semis par ETA"]["rubric"] == "contracting" and proposals["Salaire tractoriste"]["rubric"] == "labour"
     url = f"/api/v1/crop-advances/{adv['id']}"
     for label in ("Semis par ETA", "Salaire tractoriste"):

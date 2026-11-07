@@ -190,4 +190,179 @@ Un commit par étape. CG1 et CG2.c à CG2.e ne touchent pas au schéma de la bas
 | CG2.d | Seuils et plafonds DEP 2019-2022, 2023, 2024, 2025 lus dans le BOI-BA-BASE-30-45-20 § 10 (versions 2019 à 2025) ; taux, plafond global, épargne minimale et horizon ramenés à 2019 ; `end_date` 2025-12-31 pour 2019-2025 | Clés de l'exonération en cas d'aléa et de la part économique laissées à 2026 (non vérifiées pour les années antérieures). |
 | CG2.e | `flat_stock_method` : 5 exercices, reconduction tacite (V, BOI-BA-BASE-20-20-20-20 § 80-90) ; `stock_freeze_72_b_bis` : `valid_from` 2019-01-01 (LF 2019 art. 58) | — |
 
-**Écart découvert, non corrigé (à trancher)** : le barème DEP 2026 de `ba.json` (33 287 / 61 642 / 92 464 / 123 284 €, plafond 51 040 €, « confirmé par l'expert-comptable le 05/11/2026 ») ne correspond pas au BOI-BA-BASE-30-45-20-20260812 § 10 (33 234 / 61 544 / 92 317 / 123 088 €, plafond 50 959 €).
+**Écart découvert** (corrigé au lot CG3.a, Q10 bis) : le barème DEP 2026 de `ba.json` (33 287 / 61 642 / 92 464 / 123 284 €, plafond 51 040 €, « confirmé par l'expert-comptable le 05/11/2026 ») ne correspond pas au BOI-BA-BASE-30-45-20-20260812 § 10 (33 234 / 61 544 / 92 317 / 123 088 €, plafond 50 959 €).
+
+---
+
+# Lot CG3 : corrections après les réponses du 07/11/2026
+
+Source : tableau « Réponses aux questions 1 à 10 » de `fiabilisation_cegara.md` § 6. CG3 corrige des **comportements existants** selon ces réponses. Les fonctions nouvelles retenues par les mêmes réponses relèvent de CG5 (§ 6.7) :
+- part de main-d'œuvre salariée sur la fiche (Q5 bis) ;
+- stock d'ouverture au passage au réel (Q6) ;
+- plantations (Q8, Q8 bis, Q8 ter) ;
+- sous-activité ;
+- cas particuliers MSA.
+
+Même règle qu'en CG1 et CG2 : chaque valeur ajoutée cite sa source primaire, relue au codage. Les montants en euros des exemples se recalculent à la main.
+
+## 6.1 CG3.a Reprises de CG2
+
+| # | Changement | Où |
+|---|---|---|
+| a1 | Main-d'œuvre des avances aux cultures : les rémunérations des associés (64116, 64117) sont comptées (Q5). `EXCLUDED_ACCOUNTS` disparaît ; le libellé de la rubrique devient « Main-d'œuvre (salariés et associés) ». | `crop_advances.py`, `models/stock.py`, test CG2.a (le cas « Rémunération associé » passe dans les propositions) |
+| a2 | **Barème DEP 2026 aligné sur le BOI-BA-BASE-30-45-20-20260812 § 10** (Q10 bis) : 33 234 / 61 544 / 92 317 / 123 088 €, plafond 50 959 €. `source_label` : BOFiP, lu le 07/11/2026 ; la mention « confirmé par l'expert-comptable le 05/11/2026 » est retirée. | `ba.json` ; cas `calculette-dep` du jeu d'évaluation et tests 2026 recalculés |
+| a3 | **Montants fixes du BOFiP par tranche** (Q10). Nouvelles clés `ba.dep.fixed3_cents` (montant au 2e seuil) et `ba.dep.fixed4_cents` (au 3e seuil), datées comme les seuils (2019-2022, 2023, 2024, 2025, 2026). Calcul : sous T1, le bénéfice ; de T1 à T2, T1 + 30 % × (B − T1) ; de T2 à T3, fixed3 + 20 % × (B − T2) ; de T3 à T4, fixed4 + 10 % × (B − T3) ; au-delà de T4, le plafond. Un seul arrondi au centime. | `dep.ceiling_for`, `calculators/dep.py` (liste des paramètres), tests CG2.d (2023 : 43 274,20 € au lieu de 43 274,70 €) |
+
+Valeurs fixed3 et fixed4 (BOFiP § 10) :
+
+| Période | fixed3 | fixed4 |
+|---|---|---|
+| 2019-2022 | 33 900 | 38 900 |
+| 2023 | 35 924 | 41 222 |
+| 2024 | 40 942 | 46 979 |
+| 2025 | 41 421 | 47 529 |
+| 2026 | 41 728 | 47 881 |
+
+## 6.2 CG3.b DEP, DPI et DPA
+
+**b1 Base du plafond en société (Q1).**
+- `api/tax_result._dep_view` choisit la base :
+  - en société (au moins un associé dans `associates`) : `fiscal_result_before_ja_cents` ;
+  - en individuel : `fiscal_result_before_dep_cents`, comme aujourd'hui.
+- La calculette 13 reçoit un choix « société / individuel » et son aide l'explique.
+- `dep.ceiling` change de docstring.
+- Les retraitements de base de l'outil 10 (revenus de l'art. 75, DPB, énergie) **ne sont pas repris** sans lecture du BOFiP. Ils relèvent d'une question ouverte (D-CG3.1).
+
+**b2 DPA au 7e exercice (Q2).** `ba.dpa.reintegration_years` passe à **7**, reliability R après lecture de l'art. 72 D bis (version 2018).
+
+**b3 Intérêt de retard (Q2).**
+- Il porte sur le **supplément d'impôt** dû à la réintégration, pas sur la déduction elle-même. Lyvre ne connaît pas l'impôt sur le revenu du foyer.
+- Il calcule donc :
+  - le **nombre de mois** (du 1er juillet de l'année qui suit l'exercice de la déduction jusqu'à la réintégration) ;
+  - le **taux** daté ;
+  - le **pourcentage à appliquer à l'impôt supplémentaire** ;
+  - une estimation en euros seulement si l'utilisateur saisit un taux marginal d'imposition, gardé le temps de la session sans enregistrement.
+- Paramètre daté `ba.late_interest_monthly_bp`. La valeur dépend de la question **D-CG3.2** :
+  - CGI art. 1727 : 40 pb jusqu'au 31/12/2017, puis 20 pb ;
+  - ou intérêt légal, comme répondu.
+- S'applique aux réintégrations de DPI et de DPA à l'échéance, et à la réintégration de la DEP pour épargne insuffisante. La DEP réintégrée normalement au 10e exercice n'en porte pas.
+- Affichage : colonne « Intérêt » du registre, et note sur la ligne du tableau de passage. Aucune ligne au tableau de passage : l'intérêt ne fait pas partie du bénéfice.
+
+**b4 Date limite de l'épargne (Q3).**
+- `dep.savings` retient `min(clôture + 6 mois, date de dépôt de la liasse BA)`.
+- La date de dépôt est calculée par `deadlines.dates()` sur la règle de l'événement FIS-01, **avec le délai de télédéclaration** (`edi_date`).
+- `savings()["deadline_basis"]` indique laquelle des deux s'applique.
+
+**b5 Épargne au-delà de 100 % (Q3 bis).**
+- Ligne de passage `dep_excess`, `to_validate: True` : « Épargne supérieure aux déductions non rapportées : réintégration à confirmer ».
+- Montant proposé : la totalité des déductions non rapportées, comme dans l'outil 11.
+- Le contrôle `dep_savings_above` passe d'information à anomalie.
+- Le texte (art. 73) est à relire au codage. S'il ne prévoit rien, la ligne est retirée et la question remontée.
+
+## 6.3 CG3.c MSA
+
+**c1 Triennale (Q4).**
+- `comparison()` calcule la moyenne des **revenus** des 3 années, puis `abatement(moyenne, year)` : triennale = moyenne − abattement.
+- Il faut `income_cents` sur les 3 lignes d'historique.
+- Une année saisie depuis l'avis MSA avec la seule assiette (sans revenu) bascule sur l'ancien calcul (moyenne des assiettes), avec la note « revenu {année} inconnu : moyenne des assiettes ».
+- Le formulaire de l'historique accepte un revenu facultatif.
+
+**c2 Taux AMEXA et prestations familiales sur le revenu N-1 (Q4 bis).**
+- `msa_estimate.estimate(base, year, status, atexa, rate_income=None)` :
+  - le taux interpolé de `_amexa` et `_pfa` se lit sur `rate_income` s'il est fourni ;
+  - il s'applique à `base`.
+- `msa.view` passe l'assiette annuelle N-1 (`comparison["annual_cents"]`, sinon `None`).
+- Le détail affiche « taux lu sur le revenu N-1 ».
+- **Vérification au codage** sur msa.fr (barème 2026). Si la MSA lit le taux sur l'assiette retenue, on garde l'ancien calcul et on remonte l'écart.
+
+**c3 Chef à titre secondaire (Q4 ter).**
+- Paramètre `msa.amexa.secondary_rate_bp` (valeur 2026 depuis le barème NSA de msa.fr, sinon fiabilité I et pas de valeur : l'estimation l'indique).
+- `_amexa` l'applique quand `status == "secondary"`.
+
+**c4 Micro-BA (MS3).**
+- `msa.compute` : si `tax_profile.current_value("ba_regime", fin d'exercice) == "micro"`, renvoyer `reason` : « Micro-BA : assiette = recettes moyennes après l'abattement du micro-BA, sans abattement de 26 % ; saisissez l'assiette de l'avis MSA dans l'historique. »
+- La calculette 17 garde la saisie libre.
+
+## 6.4 CG3.d Stocks
+
+**d1 Écrêtement de la méthode forfaitaire (ST4).**
+- Nouvelle fonction `stock_inventory.flat_unit(line, fy)`, partagée par l'évaluation comptable (méthode `flat`) et la valeur fiscale (`stock_tax`, méthode `flat`) :
+  - valeur unitaire = cours × (1 − décote) ;
+  - si la ligne de même clé (`stock_tax.key`) de l'exercice précédent était aussi au forfait, la valeur est bornée entre 80 % et 120 % de sa valeur unitaire.
+- **Renonciation à l'écrêtement** : nouvelle option `flat_stock_no_capping` (`tax_profile.OPTIONS`). `options.json` lui donne la même durée que l'option forfaitaire (5 ans, tacite, BOI-BA-BASE-20-20-20-20 § 130).
+- Le détail de la ligne affiche « écrêté à +20 % (valeur d'ouverture 1,04) ».
+- Test, sur l'exemple des guides recalculé : porcs 1,30 → 1,90 → 1,60 €/kg, décote de 20 % → 1,04 → 1,25 → 1,28.
+
+**d2 Blocage 72 B bis à la première inscription, sorties PEPS (Q7).**
+- `stock_tax.frozen()` reconstitue des **couches** d'exercice en exercice depuis la clôture de référence :
+  - couche initiale = quantité et valeur fiscale unitaire de référence ;
+  - une hausse de quantité ajoute une couche à la valeur comptable unitaire de l'exercice où elle apparaît (première inscription) ;
+  - une baisse consomme les couches les plus anciennes (PEPS) ;
+  - valeur = somme des couches.
+- Le surplus n'est plus revalorisé chaque année. Le test « Cognac » est recalculé sur 2 exercices.
+
+**d3 Option globale, rotation lente seule (Q7 bis).**
+- Colonne `StockLine.slow_rotation` (booléen, nul = selon la catégorie : `animals_long` vrai, `animals_short` faux, produits à cocher). Migration.
+- Quand l'option 72 B bis est en vigueur :
+  - toute ligne à rotation lente prend la méthode fiscale `frozen` (choix ligne par ligne retiré, `manual` reste possible avec un motif) ;
+  - une ligne à rotation rapide ne peut pas être bloquée.
+- Écran : case « rotation de plus d'un an » sur la ligne.
+
+**d4 Avertissement de minimis (Q7 bis).**
+- Paramètre `aid.de_minimis.agri_cap_cents` (règlement UE 1408/2013 modifié par le 2024/3118, montant et période à lire au codage, fiabilité I sinon).
+- Contrôle de clôture `stock_freeze_de_minimis` (information) : avantage du blocage (valeur comptable − valeur fiscale) cumulé sur l'exercice et les 2 précédents, comparé au plafond. Le message rappelle que le plafond vaut **toutes aides de minimis confondues**.
+
+**Non-cumul avec 75-0 B** (non retenu en Q7 bis) : pas de contrôle ajouté. Question **D-CG3.3** : l'interdiction du BOFiP a-t-elle été levée par la LF 2026 ?
+
+## 6.5 CG3.e Options
+
+| # | Changement | Source à lire au codage |
+|---|---|---|
+| e1 | `ba_normal_option.duration_years` = 2 (Q9) | CGI art. 69 III |
+| e2 | `ba_simplified_option.renounce` : version en vigueur (Q9 bis) | CGI art. 69 et 64 bis, BOI-BA-REG-10 |
+| e3 | `rsa_option.renounce` = 2 mois avant la fin de la période. Nouvelle forme de règle `{"months_before_end": 2}` dans `tax_profile.renounce_by` | CGI art. 298 bis I ; ann. II art. 260 J |
+| e4 | `rsa_fiscal_year` : `duration_years` et `renounce` | CGI art. 298 bis I-1 |
+| e5 | `vat_monthly` : durée et renonciation relues | BOI-TVA-SECT-80-30-60-20 |
+| e6 | **Délais d'option** : nouvelle famille de paramètres `option.<code>.elect`, règle de la date limite pour opter, affichée dans le formulaire d'option et dans le corpus de l'assistant. Formes de règle : `{"months_after_start": 3}` (IS), `{"with_return": "first"}` (avec la déclaration du premier exercice concerné). | voir ci-dessous |
+| e7 | Nouvelles options dans `tax_profile.OPTIONS` (Q9 ter) : `crop_advance_method` (méthode des avances aux cultures), `fuel_flat_74c`, `recurring_expenses_74d`, `income_spread_75_0_a`, `land_on_balance_sheet`, `landlord_vat` | CGI art. 72 A, 74 c, 74 d, 75-0 A, ann. III 38 sexdecies D, art. 260 6° |
+
+`income_spread_75_0_a` ne remplace pas la proposition annuelle d'étalement : il trace seulement l'option et son délai. Le lien avec `ba_regimes.spread_*` reste inchangé.
+
+## 6.6 Tests
+- **a** : propositions avec 64116 ; DEP 2023, 2024, 2025 et 2026 en montants fixes ; cas `calculette-dep` (62 000 € en 2026).
+- **b** :
+  - base société avant JA : GAEC dont l'abattement JA réduit le bénéfice → plafond sur la base avant JA ;
+  - DPA 2018 → réintégration en 2025 ;
+  - date limite de l'épargne pour une clôture au 31/12 (date EDI de mai) et au 30/06 (6 mois) ;
+  - épargne au-delà de 100 % → ligne à valider.
+- **c** :
+  - triennale sur revenus de 0, 0 et 90 000 € → 22 200 € (abattement plafonné de la moyenne) au lieu de 21 636 € ;
+  - taux AMEXA lu sur N-1 ;
+  - chef à titre secondaire ;
+  - micro-BA → `reason`.
+- **d** : écrêtement (porcs) ; couches PEPS sur 3 exercices ; option globale ; refus du blocage d'une ligne rapide ; contrôle de minimis.
+- **e** : `renounce_by` avec `months_before_end` ; schéma des paramètres `elect` ; nouvelles options dans le profil.
+- Jeu d'évaluation : un cas « délai d'option IS » et un cas « intérêt de retard d'une DPA ».
+
+## 6.7 Ordre, migrations, suite
+
+| Étape | Migration | Dépend de |
+|---|---|---|
+| CG3.a | non | — |
+| CG3.b | non | D-CG3.2 pour la valeur de l'intérêt |
+| CG3.c | non | barème NSA 2026 sur msa.fr |
+| CG3.d | oui (`stock_lines.slow_rotation`) | — |
+| CG3.e | non | lectures du CGI |
+
+Un commit par étape. Ensuite, **CG5** (fonctions nouvelles retenues) :
+- part de main-d'œuvre salariée sur la fiche (Q5 bis) ;
+- stock d'ouverture guidé au passage au réel (Q6) ;
+- plantations : choix charges ou 7222 (Q8), annuité entière (Q8 bis), durées proposées (Q8 ter) ;
+- sous-activité ;
+- cas particuliers MSA ;
+- alerte de provision quand le cours du jour est inférieur au prix de revient.
+
+## 6.8 Questions ouvertes de CG3
+- **D-CG3.1** Base DEP : faut-il retirer les revenus de l'art. 75, des DPB et de l'énergie, comme l'outil 10 ? À lire au BOFiP, BOI-BA-BASE-30-45-20 § 50 et suivants.
+- **D-CG3.2** ✅ *Tranché le 07/11/2026 : art. 1727.* Intérêt des réintégrations : **intérêt de retard de l'art. 1727** (0,40 % puis 0,20 % par mois, sur le supplément d'impôt) **ou intérêt légal** ? La réponse à la question 2 dit « taux légal ». Or le CGI renvoie à l'art. 1727 pour la DEP (art. 73 II) et l'ancienne DPI. À confirmer avant CG3.b.
+- **D-CG3.3** Non-cumul 72 B bis et 75-0 B : la LF 2026 l'a-t-elle levé ?

@@ -43,7 +43,7 @@
 > Tests : `tests/api/test_young_farmer.py` (4 tests).
 >
 > **AG6.c réalisé (05/11/2026, non commité)**. Contenu :
-> - barème daté `ba.dep.*` (seuils 33 287 / 61 642 / 92 464 / 123 284 €, taux 30 / 20 / 10 %, plafond 51 040 €, plafond global 150 000 €, part exonérée 30 % dans 50 000 € dont 40 % pour l'aléa économique, épargne 50 %, 10e exercice, fin au 31/12/2028), fiabilité R ;
+> - barème daté `ba.dep.*` (seuils 33 234 / 61 544 / 92 317 / 123 088 €, taux 30 / 20 / 10 %, plafond 50 959 € — BOFiP du 12/08/2026, lot CG3.a ; avant : 33 287 / 61 642 / 92 464 / 123 284 € et 51 040 € ; plafond global 150 000 €, part exonérée 30 % dans 50 000 € dont 40 % pour l'aléa économique, épargne 50 %, 10e exercice, fin au 31/12/2028), fiabilité R ;
 > - tables `dep_entries`, `dep_movements`, `dep_substitutes`, colonne `bank_accounts.dep_savings` (migration `d2e4f6a8b0c1`) ;
 > - `app/services/dep.py` :
 >   - **plafond** sur le bénéfice après l'abattement JA : 100 %, puis 30 / 20 / 10 % par tranches, plafond fixe au-delà du dernier seuil ; × associés exploitants (4 au plus), sans dépasser le bénéfice ; au prorata de la durée de l'exercice ; dans la marge du plafond global ;
@@ -339,7 +339,7 @@ Le dispositif :
   - déduction **extra-comptable seulement**, sans écriture (proposition) ?
   - épargne lue sur un compte bancaire repéré, et substituts (fourrage, stocks à rotation lente) saisis : est-ce conforme à ta pratique ?
 - **Q-F4 Barèmes 2026 de l'audit, à confirmer avant saisie en paramètres** :
-  - DEP : tranches 33 287 / 61 642 / 92 464 / 123 284 €, plafond de 51 040 €, plafond global de 150 000 €, part exonérée de 50 000 € dont 40 % pour l'aléa économique ;
+  - DEP : tranches 33 234 / 61 544 / 92 317 / 123 088 €, plafond de 50 959 € (BOFiP du 12/08/2026, corrigé au lot CG3.a), plafond global de 150 000 €, part exonérée de 50 000 € dont 40 % pour l'aléa économique ;
   - JA : 50 700 / 67 600 €, taux 75 %, 50 %, 30 %, et 100 % / 60 % l'exercice de la DJA ;
   - 73 A : 15 000 €, minorations de 10, 20 et 25 %.
   - Sources à me donner, ou à prendre sur Légifrance (articles 73, 73 A, 73 B) ?

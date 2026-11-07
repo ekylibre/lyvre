@@ -6,7 +6,7 @@
   composantes ; cumul du mois d'implantation au mois de clôture inclus, × surface. Variantes :
   F = approvisionnements + mécanisation + main-d'œuvre ; M1 = mécanisation + main-d'œuvre ; M2 = mécanisation ;
   au coût réel (charges cochées) : en M1, approvisionnements et travaux par des tiers ; en M2, en plus, main-d'œuvre
-  salariée (`CROP_REAL_RUBRICS`, lot CG2.a).
+  (salariés et associés, `CROP_REAL_RUBRICS`, lots CG2.a et CG3.a).
 - **Coût réel** (art. 72 A, liste fermée) : charges de l'exercice cochées par rubrique, avec une quote-part ; une même
   ligne d'écriture ne se répartit pas au-delà de 100 % entre les cultures.
 - Le prix de détail est interdit (PCG 618-14) ; la dépréciation se saisit sur la ligne d'inventaire.
@@ -31,8 +31,6 @@ ACCOUNTS = {"short": "31151", "long": "31141"}
 # Comptes proposés par rubrique de l'art. 72 A (charges de l'exercice) ; fermage, assurance, frais généraux exclus.
 RUBRIC_ACCOUNTS = {"seeds": ("60112",), "fertilizers": ("60111",), "treatments": ("60113",), "labour": ("641", "645"),
                    "machinery": ("60614", "6155", "6156", "6132", "6811"), "contracting": ("6051",)}
-# Rémunérations des associés et des dirigeants : pas de la main-d'œuvre salariée (D-CG1, à confirmer).
-EXCLUDED_ACCOUNTS = ("64116", "64117")
 COMPONENTS_BY_METHOD = {"standard_f": ("supplies", "machinery", "labour"), "standard_m1": ("machinery", "labour"),
                         "standard_m2": ("machinery",), "actual": ()}
 MONTH_NAMES = ("janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre",
@@ -235,8 +233,6 @@ def refresh_line(advance: CropAdvance) -> None:
 # ------------------------------------------------------------------ charges (art. 72 A)
 
 def _rubric_of(code: str) -> str | None:
-    if code.startswith(EXCLUDED_ACCOUNTS):
-        return None
     best = None
     for rubric, prefixes in RUBRIC_ACCOUNTS.items():
         for prefix in prefixes:

@@ -37,9 +37,9 @@ def _save(farm, cents, on=date(2026, 12, 15)):
 
 def test_ceiling_scale(farm):
     fy = farm["fy"][2026]
-    assert dep.ceiling(4000000, fy)["ceiling_cents"] == 3530090                       # 33 287 + 30 % × 6 713
-    assert dep.ceiling(7000000, fy)["ceiling_cents"] == 4346510                       # + 20 % × 8 358
-    assert dep.ceiling(20000000, fy)["ceiling_cents"] == 5104000                      # plafond
+    assert dep.ceiling(4000000, fy)["ceiling_cents"] == 3526380                       # BOFiP 2026 : 33 234 + 30 % × 6 766
+    assert dep.ceiling(7000000, fy)["ceiling_cents"] == 4341920                       # 41 728 (montant fixe) + 20 % × 8 456
+    assert dep.ceiling(20000000, fy)["ceiling_cents"] == 5095900                      # plafond 50 959
     assert dep.ceiling(1000000, fy)["ceiling_cents"] == 1000000 and dep.ceiling(-1, fy)["ceiling_cents"] == 0
 
 
@@ -47,7 +47,7 @@ def test_deduction_savings_and_shortfall(farm):
     client, url = farm["client"], farm["url"](2026)
     assert client.put(f"{url}/dep", json={"amount_cents": 4000000}).status_code == 422          # > plafond
     body = client.put(f"{url}/dep", json={"amount_cents": 3000000}).get_json()["item"]
-    assert body["deduction_cents"] == 3000000 and body["ceiling"]["ceiling_cents"] == 3530090
+    assert body["deduction_cents"] == 3000000 and body["ceiling"]["ceiling_cents"] == 3526380
     result = client.get(f"{url}/tax-result").get_json()["item"]
     assert result["fiscal_result_cents"] == 1000000
     assert {c.key for c in closing._agri_checks(farm["fy"][2026])} >= {"dep_savings_due"}        # délai de 6 mois
@@ -110,15 +110,15 @@ def test_economic_hazard_value_added(farm):
 
 @pytest.mark.parametrize("close, base, n, months, pending, expected", [
     (date(2019, 12, 31), 10000000, 1, 12, 0, 4140000),        # au-delà du 4e seuil : plafond 41 400 €
-    (date(2023, 12, 31), 10000000, 1, 12, 0, 4327470),        # 28 612 + 7 311,90 + 5 298,60 + 2 052,20
-    (date(2024, 12, 31), 10000000, 1, 12, 0, 4792200),        # 32 608 + 8 333,10 + 6 038,80 + 942,10
-    (date(2025, 12, 31), 10000000, 1, 12, 0, 4836610),        # 32 990 + 8 430,60 + 6 109,40 + 836,10
+    (date(2023, 12, 31), 10000000, 1, 12, 0, 4327420),        # 41 222 (montant fixe) + 10 % × 20 522
+    (date(2024, 12, 31), 10000000, 1, 12, 0, 4792110),        # 46 979 + 10 % × 9 421
+    (date(2025, 12, 31), 10000000, 1, 12, 0, 4836510),        # 47 529 + 10 % × 8 361
     (date(2024, 9, 30), 4000000, 1, 9, 14000000, 1000000),    # 34 825,60 × 9/12 = 26 119,20, plafond global : 10 000
     (date(2024, 12, 31), 15000000, 3, 12, 0, 15000000),       # GAEC de 3 : 3 × 50 000, limité au bénéfice
 ])
 def test_dep_historical_scales_cg2d(app, close, base, n, months, pending, expected):
-    """Lot CG2.d (design_fiabilisation_cegara.md § 2.4) : barèmes 2019 à 2025 du BOI-BA-BASE-30-45-20 § 10, valeurs
-    recalculées à la main (somme des tranches)."""
+    """Lots CG2.d et CG3.a (design_fiabilisation_cegara.md § 2.4, § 6.1) : barèmes 2019 à 2025 du BOI-BA-BASE-30-45-20
+    § 10, montants fixes du BOFiP au début de chaque tranche, valeurs recalculées à la main."""
     with app.app_context():
         assert dep.ceiling_for(base, close, n, months, pending)["ceiling_cents"] == expected
 

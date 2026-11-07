@@ -161,16 +161,17 @@ CROP_METHODS = {"standard_f": "Coût standard F (approvisionnements, mécanisati
                 "standard_m1": "Coût standard M1 (mécanisation, main-d'œuvre) + approvisionnements et travaux par des "
                                "tiers au réel",
                 "standard_m2": "Coût standard M2 (mécanisation) + approvisionnements, travaux par des tiers et "
-                               "main-d'œuvre salariée au réel",
+                               "main-d'œuvre au réel",
                 "actual": "Coût réel (art. 72 A)"}
 CROP_RUBRICS = {"seeds": "Semences et plants", "fertilizers": "Engrais et amendements", "treatments": "Produits de traitement",
-                "labour": "Main-d'œuvre salariée des façons culturales, de l'amendement et des semis",
+                "labour": "Main-d'œuvre (salariés et associés) des façons culturales, de l'amendement et des semis",
                 "machinery": "Frais de matériel (carburants, entretien, réparations, amortissements)",
                 "contracting": "Travaux et services par des tiers"}
 CROP_SUPPLY_RUBRICS = ("seeds", "fertilizers", "treatments")
 CROP_ENTRY_MODES = {"monthly": "Montants par mois", "cumulative": "Cumul au mois de clôture"}
 # Rubriques prises au coût réel selon la méthode (lot CG2.a, claudedocs/design_fiabilisation_cegara.md § 2.1) : en M1 et
-# M2, les travaux par des tiers ne sont pas dans le barème de mécanisation ; en M2, la main-d'œuvre salariée est au réel.
+# M2, les travaux par des tiers ne sont pas dans le barème de mécanisation ; en M2, la main-d'œuvre (salariés et
+# associés, lot CG3.a) est au réel.
 CROP_REAL_RUBRICS = {"standard_f": (),
                      "standard_m1": (*CROP_SUPPLY_RUBRICS, "contracting"),
                      "standard_m2": (*CROP_SUPPLY_RUBRICS, "contracting", "labour"),

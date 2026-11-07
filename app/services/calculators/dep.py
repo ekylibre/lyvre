@@ -21,13 +21,14 @@ SPEC = Spec(
     ],
     example={"closing": "2026-12-31", "profit": "62000", "operators": "1", "months": "12", "pending": "15000"},
     method="Barème réglementaire appliqué au bénéfice (après l'abattement JA) : 100 % jusqu'au premier seuil, puis "
-           "des taux décroissants par tranche, dans la limite d'un plafond par exploitant ; multiplié par le nombre "
+           "le montant fixe publié par le BOFiP au début de chaque tranche majoré de 30, 20 ou 10 % de l'excédent, dans la limite d'un plafond par exploitant ; multiplié par le nombre "
            "d'associés exploitants (4 au plus), sans dépasser le bénéfice ; au prorata d'un exercice de durée "
            "différente de 12 mois ; puis limité par le plafond global des déductions non rapportées (CGI art. 73). "
            "Limites : la DEP suppose une épargne bancaire d'au moins la moitié des déductions ; l'utilisation et la "
            "réintégration se suivent sur la page DEP.",
     params=("ba.dep.band1_cents", "ba.dep.band2_cents", "ba.dep.band3_cents", "ba.dep.band4_cents", "ba.dep.rate2_bp",
-            "ba.dep.rate3_bp", "ba.dep.rate4_bp", "ba.dep.cap_cents", "ba.dep.global_cap_cents"),
+            "ba.dep.rate3_bp", "ba.dep.rate4_bp", "ba.dep.cap_cents", "ba.dep.fixed3_cents", "ba.dep.fixed4_cents",
+            "ba.dep.global_cap_cents"),
 )
 
 

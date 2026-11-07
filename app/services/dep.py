@@ -56,7 +56,8 @@ def ceiling(base: int, fy: FiscalYear) -> dict:
 def ceiling_for(base: int, on: date, n: int, months: int, pending: int) -> dict:
     """Plafond de la DEP à la clôture `on` : `n` associés exploitants, exercice de `months` mois, déductions non
     rapportées `pending`. Règle unique, partagée avec la calculette 13 (lot AG12.b)."""
-    keys = ("band1_cents", "band2_cents", "band3_cents", "band4_cents", "rate2_bp", "rate3_bp", "rate4_bp", "cap_cents")
+    keys = ("band1_cents", "band2_cents", "band3_cents", "band4_cents", "rate2_bp", "rate3_bp", "rate4_bp", "cap_cents",
+            "fixed3_cents", "fixed4_cents")
     values = {k: reg_params.value(f"ba.dep.{k}", on, default=None) for k in keys}
     if any(v is None for v in values.values()):
         return {"ceiling_cents": 0, "error": "Barème de la DEP introuvable pour la date de clôture."}
@@ -66,11 +67,18 @@ def ceiling_for(base: int, on: date, n: int, months: int, pending: int) -> dict:
     if base <= 0:
         return {"ceiling_cents": 0, "per_operator_cents": 0, "operators": n}
     b1, b2, b3, b4 = (values[k] for k in ("band1_cents", "band2_cents", "band3_cents", "band4_cents"))
-    amount = min(base, b1)
-    for low, high, rate in ((b1, b2, values["rate2_bp"]), (b2, b3, values["rate3_bp"]), (b3, b4, values["rate4_bp"])):
-        if base > low:
-            amount += round((min(base, high) - low) * rate / 10000)
-    amount = values["cap_cents"] if base >= b4 else min(amount, values["cap_cents"])
+    # Montants fixes publiés par le BOFiP au début de chaque tranche (lot CG3.a, Q10), un seul arrondi.
+    if base < b1:
+        amount = base
+    elif base < b2:
+        amount = b1 + round((base - b1) * values["rate2_bp"] / 10000)
+    elif base < b3:
+        amount = values["fixed3_cents"] + round((base - b2) * values["rate3_bp"] / 10000)
+    elif base < b4:
+        amount = values["fixed4_cents"] + round((base - b3) * values["rate4_bp"] / 10000)
+    else:
+        amount = values["cap_cents"]
+    amount = min(amount, values["cap_cents"])
     if months != 12:
         amount = round(amount * months / 12)
     total = min(amount * n, base)
