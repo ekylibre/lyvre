@@ -385,3 +385,25 @@ def test_under_activity_cg5e(farm):
     assert head(full)["Charge de sous-activité"] == "0,00 €"
     with pytest.raises(calculators.CalculatorError):
         calculators.run(module, {"y1": "60", "y2": "62", "current": "40", "fixed": "1000"})
+
+
+def test_mutual_aid_per_hectare_and_capital_cost_cg6(farm):
+    """Lot CG6 : calculette 14 avec un outil au barème à l'hectare ; calculette 22 avec rémunération du capital
+    (taux saisi sur le capital moyen) et coût hors chauffeur."""
+    def head(result):
+        return {h["label"]: h["value"].replace("\\u202f", " ") for h in result["headline"]}
+    aid = calculators.get("entraide")
+    per_ha = calculators.run(aid, {"tool": "18", "tool_unit": "ha", "tractor": "35", "driver": "22", "rate": "2.5",
+                                   "surface": "40"})
+    assert head(per_ha)["Coût par hectare"] == "40,80 €/ha"                    # 18 + (35 + 22) ÷ 2,5
+    hourly = calculators.run(aid, {"tool": "28", "tractor": "35", "driver": "22", "rate": "2.5"})
+    assert head(hourly)["Coût par hectare"] == "34,00 €/ha"                    # (28 + 35 + 22) ÷ 2,5
+    cost = calculators.get("cout-materiel")
+    base = {"depreciation": "9600", "hours": "480", "driver_per_hour": "20"}
+    plain = head(calculators.run(cost, base))
+    assert plain["Coût par heure"] == "40,00 €" and plain["Coût par heure hors chauffeur"] == "20,00 €"
+    with_capital = calculators.run(cost, {**base, "capital": "60000", "residual": "12000", "capital_rate": "3.2"})
+    assert head(with_capital)["Coût par heure"] == "42,40 €"                   # + 3,2 % × 36 000 ÷ 480 h
+    assert any(d["label"] == "dont rémunération du capital" for d in with_capital["details"])
+    with pytest.raises(calculators.CalculatorError):
+        calculators.run(cost, {**base, "capital_rate": "3"})

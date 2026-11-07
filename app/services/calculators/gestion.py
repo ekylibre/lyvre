@@ -55,13 +55,22 @@ def break_even(v, on):
 
 def mutual_aid(v, on):
     rate = positive(v, "rate", "Débit de chantier")
-    per_ha = (positive(v, "tool", "Tarif de l'outil", True) + positive(v, "tractor", "Tarif du tracteur", True)
-              + positive(v, "driver", "Coût du chauffeur", True)) / rate
+    tool = positive(v, "tool", "Tarif de l'outil", True)
+    tractor, driver = positive(v, "tractor", "Tarif du tracteur", True), positive(v, "driver", "Coût du chauffeur", True)
+    if (v.get("tool_unit") or "hour") == "ha":           # lot CG6 : outil au barème à l'hectare
+        per_ha = tool + (tractor + driver) / rate
+        details = [("Outil", _n(tool, 2) + " €/ha"), ("Tracteur et chauffeur", _n((tractor + driver) / rate, 2) + " €/ha")]
+        headline = [("Coût par hectare", _n(per_ha, 2) + " €/ha")]
+        if v["surface"]:
+            headline.append(("Coût du chantier", euros(_cents(per_ha * v["surface"]))))
+        return Result(headline=headline, details=details,
+                      actions=[("Écritures (remboursements de frais d'entraide)", "/entries/")])
+    per_ha = (tool + tractor + driver) / rate
     headline = [("Coût par hectare", _n(per_ha, 2) + " €/ha")]
     if v["surface"]:
         headline.append(("Coût du chantier", euros(_cents(per_ha * v["surface"]))))
     return Result(headline=headline, details=[("Coût horaire total", _n(v["tool"] + v["tractor"] + v["driver"], 2) + " €/h")],
-                  actions=[("Écritures d'entraide (472)", "/entries/")])
+                  actions=[("Écritures (remboursements de frais d'entraide)", "/entries/")])
 
 
 def solar(v, on):
@@ -138,12 +147,18 @@ TOOLS = [
                      "charges de l'activité se lisent dans Marges par activité."), break_even),
     Tool(Spec(code="entraide", number="14", title="Coût d'un chantier d'entraide", category="equipment",
               summary="Coût par hectare d'un chantier d'entraide ou de prestation, d'après un barème départemental saisi.",
-              inputs=[I("tool", "Tarif de l'outil", unit="€/h"), I("tractor", "Tarif du tracteur", unit="€/h"),
+              inputs=[I("tool", "Tarif de l'outil", unit="€/h ou €/ha"),
+                      I("tool_unit", "Unité du tarif de l'outil", "choice", required=False, default="hour",
+                        choices=[("hour", "à l'heure"), ("ha", "à l'hectare")],
+                        help="Les barèmes d'entraide donnent souvent les outils à l'hectare et les tracteurs à l'heure"),
+                      I("tractor", "Tarif du tracteur", unit="€/h"),
                       I("driver", "Coût du chauffeur", unit="€/h"), I("rate", "Débit de chantier", unit="ha/h"),
                       I("surface", "Surface", unit="ha", required=False)],
               example={"tool": "28", "tractor": "35", "driver": "22", "rate": "2.5", "surface": "40"},
-              method="Coût (€/ha) = (outil + tracteur) ÷ débit + chauffeur ÷ débit, tarifs horaires du barème d'entraide "
-                     "de votre département (saisis). En comptabilité, l'entraide se suit en 472 (conventions)."), mutual_aid),
+              method="Coût (€/ha) = (outil + tracteur + chauffeur) ÷ débit avec des tarifs horaires ; avec un outil au "
+                     "barème à l'hectare : outil + (tracteur + chauffeur) ÷ débit. Tarifs du barème d'entraide de votre "
+                     "département (saisis, avec leur millésime). L'entraide est un contrat gratuit (Code rural L.325-1) : "
+                     "seuls les remboursements de frais se comptabilisent (PCG art. 618-15)."), mutual_aid),
     Tool(Spec(code="solaire", number="09", title="Solaire sur hangar", category="energy",
               summary="Production et recette annuelles d'une installation photovoltaïque, au tarif d'achat saisi.",
               inputs=[I("power", "Puissance", unit="kWc"), I("yield", "Productible", unit="kWh/kWc/an",

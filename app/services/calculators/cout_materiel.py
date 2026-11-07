@@ -20,6 +20,11 @@ SPEC = Spec(
         Input("fuel_price", "Prix du carburant", "number", "€/l", required=False, help="Prix saisi : date et source à noter"),
         Input("hectares", "Hectares travaillés par an", "number", "ha", required=False),
         Input("driver_per_hour", "Coût du chauffeur", "number", "€/h", required=False),
+        Input("capital", "Valeur d'achat (pour la rémunération du capital)", "money", "€", required=False,
+              help="Lot CG6 : facultatif, avec la valeur résiduelle et un taux saisi"),
+        Input("residual", "Valeur résiduelle", "money", "€", required=False),
+        Input("capital_rate", "Taux de rémunération du capital", "number", "%", required=False,
+              help="Taux saisi (par exemple celui du barème d'entraide de votre département, avec son millésime)"),
     ],
     example={"depreciation": "9600", "financial": "1100", "insurance": "650", "maintenance": "2400", "hours": "480",
              "fuel_per_hour": "14", "fuel_price": "1.15", "hectares": "320", "driver_per_hour": ""},
@@ -27,7 +32,9 @@ SPEC = Spec(
            "de l'année ; charges variables par heure : entretien et réparations ÷ heures, carburant (consommation × "
            "prix), chauffeur si indiqué. Coût à l'hectare = coût annuel total ÷ hectares travaillés. Limites : prix du "
            "carburant saisi (pas de cours en direct) ; l'amortissement comptable n'est pas forcément la durée réelle "
-           "d'usage ; pas de valeur de revente ni de coût d'opportunité du capital.",
+           "d'usage. Rémunération du capital (facultative, lot CG6) : taux saisi × capital moyen ((valeur d'achat + valeur "
+           "résiduelle) ÷ 2), comptée en charge fixe, comme dans les barèmes d'entraide ; sans elle, le coût correspond "
+           "plutôt à un coût de façons culturales. Le coût « hors chauffeur » se compare à un barème d'entraide.",
     prefill_label="Bien du registre",
 )
 
@@ -58,6 +65,13 @@ def compute(values: dict, on: date) -> Result:
     if hours <= 0:
         raise CalculatorError("Heures d'utilisation positives attendues.", "hours")
     fixed = values["depreciation"] + (values["financial"] or 0) + (values["insurance"] or 0)
+    capital_cost = 0
+    if values.get("capital_rate"):                       # lot CG6 : rémunération du capital immobilisé
+        if not values.get("capital"):
+            raise CalculatorError("Valeur d'achat à saisir pour rémunérer le capital.", "capital")
+        average = (Decimal(values["capital"]) + Decimal(values.get("residual") or 0)) / 2
+        capital_cost = int((average * Decimal(values["capital_rate"]) / 100).quantize(Decimal(1)))
+        fixed += capital_cost
     maintenance = values["maintenance"] or 0
     fuel_hour = (values["fuel_per_hour"] or Decimal(0)) * (values["fuel_price"] or Decimal(0)) * 100
     driver_hour = (values["driver_per_hour"] or Decimal(0)) * 100
@@ -69,6 +83,10 @@ def compute(values: dict, on: date) -> Result:
     headline = [("Coût par heure", euros(per_hour))]
     details = [("Charges fixes annuelles", euros(fixed)), ("Charges fixes par heure", euros(fixed_hour)),
                ("Charges variables par heure", euros(variable_hour)), ("Coût annuel total", euros(annual))]
+    if capital_cost:
+        details.insert(1, ("dont rémunération du capital", euros(capital_cost)))
+    if driver_hour:
+        headline.append(("Coût par heure hors chauffeur", euros(per_hour - cents(driver_hour))))
     if values["hectares"]:
         if values["hectares"] <= 0:
             raise CalculatorError("Hectares positifs attendus.", "hectares")

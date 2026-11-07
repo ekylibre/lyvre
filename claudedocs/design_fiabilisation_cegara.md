@@ -684,3 +684,15 @@ Ordre proposé : a, b, d, e, c, f (du plus sûr au plus dépendant des sources).
   - **BOI-BA-BASE-20-30-10-10** (version du 05/08/2026) : les plantations sont des immobilisations amortissables, même sur des terres restées dans le patrimoine privé (§ 100). Leur prix de revient comprend les plants et les frais de plantation « jusqu'à ce que la plantation soit arrivée à un stade de production normale » (§ 120). Les investissements annexes vont à un compte spécial (§ 120). Au passage du micro au réel, les plantations sont reprises à leur valeur nette comptable (§ 130). Renvoi au BOI-BA-BASE-20-30-10-20 § 100 à 160 pour la définition des frais de plantation (à lire en CG5.d).
   - **Conception révisée** : pas de durée par défaut inventée. Le tableau de l'annexe devient un référentiel daté (`data/regulatory/plantation_orchards.json`, fiabilité V), affiché comme repère à la création d'une plantation de verger. L'utilisateur choisit la durée. Pour la vigne et l'asperge : saisie libre, sans repère.
 - **D-CG5.3** ✅ *Réponse du 07/11/2026 : commencer par le collaborateur.* Cas particuliers MSA : tout faire, ou commencer par les nouveaux installés et le collaborateur ?
+
+---
+
+# Lot CG6 : calculettes d'entraide et de coût du matériel (réalisé le 07/11/2026)
+
+Besoins EN1 et EN2 (`fiabilisation_cegara.md` § 2.6).
+
+- **Calculette 14** : tarif de l'outil à l'heure ou **à l'hectare** (`tool_unit`). À l'hectare, le coût vaut outil + (tracteur + chauffeur) ÷ débit. Le libellé de l'action ne cite plus le compte 472 : les textes lus (Code rural L.325-1, PCG art. 618-15) ne parlent que de remboursements de frais.
+- **Calculette 22** : **rémunération du capital** facultative (valeur d'achat, valeur résiduelle, taux saisi appliqué au capital moyen), comptée en charge fixe. Résultat « **coût par heure hors chauffeur** », pour comparer à un barème d'entraide.
+- **Aucun taux ni barème livré** (AGD15, EN3). Le taux de 3,20 % du guide BCMA 2024 n'est cité nulle part : c'est une source secondaire, dont la base de calcul n'est pas vérifiée.
+- Fiche MA-08 mise à jour.
+
