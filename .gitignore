@@ -18,6 +18,7 @@ app/static/dist/
 
 # Sources comptables (PDF ANC, guides, modèle Word) : volumineuses, URL dans doc/base_documentaire (registre des sources)
 doc/ref_compta/*.pdf
+doc/ref_compta/outils cegara/
 doc/ref_compta/*.doc
 
 # Documents de tiers (comptabilité agricole, AGD16) : sources lues sur place, non redistribuées.
