@@ -23,6 +23,9 @@ class Asset(db.Model):
     waiting_account_id = db.Column(db.Integer, db.ForeignKey("accounts.id", ondelete="SET NULL"))
     acquired_on = db.Column(db.Date, nullable=False)
     in_service_date = db.Column(db.Date)
+    # Lot CG5.d : amortissement en annuité entière à partir du 1er jour de l'exercice de mise en service (plantations :
+    # exercice de la première récolte, BOI-BA-BASE-20-30-10-20 § 150).
+    full_first_year = db.Column(db.Boolean)
     acquisition_cents = db.Column(db.Integer, nullable=False, default=0)
     residual_cents = db.Column(db.Integer, nullable=False, default=0)
     method = db.Column(db.String(10), nullable=False, default="linear")

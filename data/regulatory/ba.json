@@ -990,6 +990,17 @@
    "verified_on": "2026-11-05",
    "reliability": "I",
    "note": "Crédit d'impôt HVE : 2 500 € par exploitation, une seule fois, certification valide à la clôture d'un exercice clos au plus tard le 31/12/2026 (LF 2026) ; cumulable avec le crédit bio dans certaines limites ; texte de loi (LF 2026, CGI) à identifier"
+  },
+  {
+   "key": "assets.plantation.vine.duration_years",
+   "value": 25,
+   "valid_from": "2012-09-12",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/doctrine/pgp/10527-PGP",
+   "source_label": "BOI-BA-BASE-20-30-10-20 § 140 et § 150 (version du 01/03/2017)",
+   "verified_on": "2026-11-07",
+   "reliability": "V",
+   "note": "Vignes : amortissement sur 25 ans pour l'ensemble des vignobles, à partir de la première déclaration de récolte (lot CG5.d)."
   }
  ]
 }

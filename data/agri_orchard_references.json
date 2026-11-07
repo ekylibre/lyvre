@@ -1,0 +1,158 @@
+{
+ "_comment": "Repères de durée des plantations de vergers (lot CG5.d) : annexe BOI-ANNX-000100 « Durée d'amortissement des différentes plantations de vergers », version du 29/09/2014. Âges en années ; la durée d'amortissement est la durée de production, décomptée à partir de la première récolte (BOI-BA-BASE-20-30-10-20 § 130 et § 150). L'annexe ne donne pas de durée en années : ce sont des repères pour la choisir. Ni vigne (25 ans, paramètre assets.plantation.vine.duration_years) ni asperge.",
+ "source": "https://bofip.impots.gouv.fr/doctrine/pgp/3992-PGP",
+ "source_label": "BOI-ANNX-000100 (version du 29/09/2014)",
+ "verified_on": "2026-11-07",
+ "reliability": "V",
+ "note": "Correspondance des cellules relevée par lecture du tableau : à revérifier sur la page pour les noyers et les poiriers.",
+ "conducts": {
+  "very_early": "Vergers à mise à fruit très précoce",
+  "medium": "Vergers à moyenne densité",
+  "long": "Vergers à long cycle « grandes formes »"
+ },
+ "species": [
+  {
+   "key": "apple",
+   "label": "Pommiers",
+   "very_early": [
+    "1 000 à 2 000",
+    "2 à 3",
+    "12 à 15"
+   ],
+   "medium": [
+    "700 à 1 000",
+    "4 à 6",
+    "14 à 20"
+   ],
+   "long": [
+    "180 à 400",
+    "5 à 7",
+    "20 à 25"
+   ]
+  },
+  {
+   "key": "peach",
+   "label": "Pêchers",
+   "very_early": [
+    "1 000 à 2 000",
+    "2 à 3",
+    "9 à 10"
+   ],
+   "medium": [
+    "400 à 600",
+    "3 à 4",
+    "12 à 14"
+   ],
+   "long": [
+    "250 à 300",
+    "4 à 5",
+    "13 à 16"
+   ]
+  },
+  {
+   "key": "pear",
+   "label": "Poiriers",
+   "very_early": null,
+   "medium": [
+    "500 à 1 000",
+    "4 à 6",
+    "18 à 25"
+   ],
+   "long": null
+  },
+  {
+   "key": "plum",
+   "label": "Pruniers domestiques",
+   "very_early": null,
+   "medium": [
+    "350 à 400",
+    "4 à 5",
+    "15 à 18"
+   ],
+   "long": [
+    "200 à 250",
+    "5 à 7",
+    "18 à 25"
+   ]
+  },
+  {
+   "key": "cherry",
+   "label": "Cerisiers",
+   "very_early": null,
+   "medium": [
+    "400 à 500",
+    "4 à 6",
+    "12 à 18"
+   ],
+   "long": [
+    "250 à 300",
+    "5 à 7",
+    "18 à 25"
+   ]
+  },
+  {
+   "key": "apricot",
+   "label": "Abricotiers",
+   "very_early": null,
+   "medium": null,
+   "long": [
+    "300 à 350",
+    "4 à 8",
+    "12 à 20"
+   ]
+  },
+  {
+   "key": "almond",
+   "label": "Amandiers",
+   "very_early": null,
+   "medium": null,
+   "long": [
+    "200 à 300",
+    "6 à 7",
+    "20 à 25"
+   ]
+  },
+  {
+   "key": "walnut",
+   "label": "Noyers",
+   "very_early": null,
+   "medium": [
+    "150 à 200",
+    "6 à 8",
+    "20 à 25"
+   ],
+   "long": [
+    "180 à 400",
+    "5 à 7",
+    "35 à 40"
+   ]
+  },
+  {
+   "key": "hazel",
+   "label": "Noisetiers",
+   "very_early": null,
+   "medium": [
+    "650 à 800",
+    "4 à 5",
+    "14 à 18"
+   ],
+   "long": null
+  },
+  {
+   "key": "kiwi",
+   "label": "Actinidia (kiwi)",
+   "very_early": null,
+   "medium": [
+    "300 à 400",
+    "4",
+    null
+   ],
+   "long": null
+  }
+ ],
+ "columns": [
+  "Arbres à l'hectare",
+  "Première récolte à (ans)",
+  "Début de la décroissance des rendements (ans)"
+ ]
+}

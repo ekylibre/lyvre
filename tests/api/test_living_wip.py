@@ -96,3 +96,30 @@ def test_from_stock_into_existing_breeding_lot(farm):
     herd_now = client.get(f"/api/v1/assets/{herd['id']}").get_json()["item"]
     assert herd_now["living"]["units"] == 34 and herd_now["acquisition_cents"] == 1020000
     assert resp.get_json()["item"]["duration_months"] == 48                                   # durée du lot reprise
+
+
+def test_plantations_cg5d(farm):
+    """Lot CG5.d (BOI-BA-BASE-20-30-10-20) : façons culturales des jeunes plantations en avances aux cultures par défaut
+    (pas d'alerte « en-cours sans coût »), annuité entière depuis l'exercice de la première récolte, repères de durée."""
+    from app.services import agri_profile, assets
+    client, fy = farm["client"], farm["fy"]
+    resp = client.post("/api/v1/assets", json={"label": "Vigne parcelle 4", "account_id": _id("2346"),
+                                               "acquired_on": "2025-04-01", "acquisition_cents": 1500000, "method": "linear",
+                                               "duration_months": 300, "units": 5000, "species": "Vigne"})
+    vine = resp.get_json()["item"]
+    assert vine["living"]["kind"] == "plantation" and vine["full_first_year"] is True
+    assert not any(c.key == "living_wip_missing" for c in closing._agri_checks(fy[2025]))   # charges : pas d'alerte
+    org_profile = agri_profile.clean({"plantation_costs_capitalized": True})
+    from app.services import organization
+    organization.get().agri_profile = __import__("json").dumps(org_profile)
+    db.session.commit()
+    assert any(c.key == "living_wip_missing" for c in closing._agri_checks(fy[2025]))       # coûts immobilisés : alerte
+    asset = db.session.get(Asset, vine["id"])
+    asset.in_service_date, asset.status = date(2026, 9, 15), "in_use"
+    db.session.commit()
+    assert assets.plan_bounds(asset)[0] == date(2026, 1, 1)                                 # 1er jour de l'exercice 2026
+    asset.full_first_year = False
+    assert assets.plan_bounds(asset)[0] == date(2026, 9, 15)
+    meta = client.get("/api/v1/assets").get_json()["meta"]["plantation_references"]
+    assert meta["vine_years"] == 25 and any(s["key"] == "apple" for s in meta["orchards"]["species"])
+    assert "BOI-ANNX-000100" in meta["orchards"]["source_label"]

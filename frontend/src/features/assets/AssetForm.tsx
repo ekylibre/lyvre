@@ -1,7 +1,7 @@
 // Fiche d'immobilisation (lot F5) : compte, dates, valeur, méthode (linéaire, dégressif, non
 // amortissable), durée, reprise d'un cumul déjà amorti, projet ; composant d'un bien (`parentId`).
 import { useState } from "react";
-import { Checkbox, Select, SimpleGrid, TextInput, Textarea } from "@mantine/core";
+import { Alert, Anchor, Checkbox, Select, SimpleGrid, Table, Text, TextInput, Textarea } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
@@ -27,13 +27,18 @@ export function AssetForm({ asset, meta, parentId, onDone }: {
     notes: asset?.notes ?? "", activity_id: asset?.activity_id ?? (null as number | null), waiting: asset ? asset.status === "waiting" : false,
     living_kind: asset?.living?.kind ?? "", species: asset?.living?.species ?? "", age_class: asset?.living?.age_class ?? "",
     units: asset?.living?.units != null ? String(asset.living.units) : "", origin: asset?.living?.origin ?? "",
+    full_first_year: asset ? !!asset.full_first_year : true,
   } });
-  const living = isLivingAccount(meta.accounts.find((o) => o.value === form.values.account_id)?.label);
+  const accountLabel = meta.accounts.find((o) => o.value === form.values.account_id)?.label;
+  const living = isLivingAccount(accountLabel);
+  // Lot CG5.d : plantation (2346, 246) ou nature « plantation » : repères BOFiP et annuité entière.
+  const plantation = living && (form.values.living_kind === "plantation" || /^(2346|246)/.test(accountLabel ?? ""));
   const save = useAction((v: typeof form.values) => {
     const body = { ...v, account_id: Number(v.account_id) || null, duration_months: Number(v.duration_months) || null,
       project_id: v.project_id ? Number(v.project_id) : null, parent_id: parentId ?? asset?.parent_id ?? null,
       in_service_date: v.in_service_date || null, prior_as_of: v.prior_as_of || null, fiscal_coefficient: v.fiscal_coefficient || null,
-      living_kind: v.living_kind || null, origin: v.origin || null, units: v.units === "" ? null : Number(v.units) };
+      living_kind: v.living_kind || null, origin: v.origin || null, units: v.units === "" ? null : Number(v.units),
+      ...(plantation || asset ? { full_first_year: v.full_first_year } : {}) };
     return asset ? api.patch<{ item: AssetItem; notices: Notice[] }>(`/api/v1/assets/${asset.id}`, body)
       : api.post<{ item: AssetItem; notices: Notice[] }>("/api/v1/assets", body);
   }, { invalidate: [ASSETS_KEY], silent: true });
@@ -63,6 +68,10 @@ export function AssetForm({ asset, meta, parentId, onDone }: {
             <Select label="Origine" data={meta.living_origins ?? []} clearable {...form.getInputProps("origin")} />
           </SimpleGrid>)}
         {!asset && <Checkbox label="Immobilisation en cours (travaux, pas encore utilisée)" {...form.getInputProps("waiting", { type: "checkbox" })} />}
+        {plantation && <PlantationHints refs={meta.plantation_references} />}
+        {(plantation || asset?.full_first_year) && (
+          <Checkbox label="Annuité entière dès l'exercice de mise en service (première récolte)"
+            description="BOFiP : l'amortissement part de l'exercice de la première récolte" {...form.getInputProps("full_first_year", { type: "checkbox" })} />)}
         <SimpleGrid cols={{ base: 2, sm: 3 }}>
           <Select label="Méthode" data={meta.methods} allowDeselect={false} {...form.getInputProps("method")} />
           {method !== "none" && <TextInput label="Durée (mois)" inputMode="numeric" required {...form.getInputProps("duration_months")}
@@ -79,5 +88,27 @@ export function AssetForm({ asset, meta, parentId, onDone }: {
         <Textarea label="Notes" autosize minRows={2} {...form.getInputProps("notes")} />
       </FormBody>
     </form>
+  );
+}
+
+
+function PlantationHints({ refs }: { refs?: AssetsMeta["plantation_references"] }) {
+  if (!refs) return null;
+  const { orchards } = refs;
+  const cell = (row: unknown, i: number) => (Array.isArray(row) ? row[i] ?? "—" : "—");
+  return (
+    <Alert color="paille" title="Repères de durée (BOFiP)">
+      <Text size="sm">Vigne : {refs.vine_years} ans à partir de la première déclaration de récolte ({refs.vine_source}).
+        Vergers : durée de production à partir de la première récolte, à choisir avec les repères ci-dessous.</Text>
+      <Table fz="xs" mt={4}>
+        <Table.Thead><Table.Tr><Table.Th>Espèce</Table.Th>
+          {Object.values(orchards.conducts).map((c) => <Table.Th key={c}>{c} : 1re récolte / début de décroissance (ans)</Table.Th>)}</Table.Tr></Table.Thead>
+        <Table.Tbody>{orchards.species.map((s) => (
+          <Table.Tr key={s.key}><Table.Td>{s.label}</Table.Td>
+            {Object.keys(orchards.conducts).map((k) => <Table.Td key={k}>{s[k] ? `${cell(s[k], 1)} / ${cell(s[k], 2)}` : "—"}</Table.Td>)}</Table.Tr>))}
+        </Table.Tbody>
+      </Table>
+      <Text size="xs" c="dimmed">Source : <Anchor href={orchards.source} target="_blank" size="xs">{orchards.source_label}</Anchor>. {orchards.note}</Text>
+    </Alert>
   );
 }

@@ -100,3 +100,20 @@ def test_salaried_share_column_cg5a(tmp_path):
         assert c.execute(sa.text("SELECT salaried_share_bp FROM crop_advances")).scalar() is None
         _run(c, cg5a.downgrade)
         assert "salaried_share_bp" not in {col["name"] for col in sa.inspect(c).get_columns("crop_advances")}
+
+
+def test_full_first_year_column_cg5d(tmp_path):
+    """Migration CG5.d (d6e8f0a2b4c6) : annuité entière, nulle pour les fiches existantes ; retour arrière."""
+    path = Path(__file__).parents[1] / "migrations" / "versions" / "d6e8f0a2b4c6_asset_full_first_year.py"
+    spec_d = importlib.util.spec_from_file_location("cg5d_migration", path)
+    cg5d = importlib.util.module_from_spec(spec_d)
+    spec_d.loader.exec_module(cg5d)
+    engine = sa.create_engine(f"sqlite:///{tmp_path / 'cg5d.db'}")
+    with engine.begin() as c:
+        c.execute(sa.text("CREATE TABLE assets (id INTEGER PRIMARY KEY, label VARCHAR(200))"))
+        c.execute(sa.text("INSERT INTO assets VALUES (1, 'Vigne')"))
+    with engine.begin() as c:
+        _run(c, cg5d.upgrade)
+        assert c.execute(sa.text("SELECT full_first_year FROM assets")).scalar() is None
+        _run(c, cg5d.downgrade)
+        assert "full_first_year" not in {col["name"] for col in sa.inspect(c).get_columns("assets")}

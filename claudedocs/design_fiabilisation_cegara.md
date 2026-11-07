@@ -582,6 +582,20 @@ Sources des décisions : réponses Q5 bis, Q6, Q8, Q8 bis et Q8 ter (`fiabilisat
    - *révisé (D-CG5.2)* : pas de durée par défaut. Le tableau de l'annexe BOI-ANNX-000100 (première récolte, début de décroissance, par espèce et par conduite) est affiché comme repère pour les vergers.
 4. La fiche [MA-06] est mise à jour en conséquence.
 
+- **Réalisé (07/11/2026)**. Source lue avant de coder : BOI-BA-BASE-20-30-10-20 (version du 01/03/2017, § 90 à 190). Il apporte :
+  - le coût de la plantation = plants, appropriation des sols, mise en place (§ 100) ;
+  - les **façons culturales** (taille, binage, désherbage, traitements, remplacement des plants morts) sont des **avances aux cultures** (§ 170 et 180) ;
+  - **vigne : 25 ans** dès la première déclaration de récolte (§ 140 et 150) ;
+  - vergers : dès l'exercice de la première petite récolte, sur la durée de production de l'annexe ;
+  - investissements annexes sur leur propre durée (§ 160).
+
+  Mise en œuvre :
+  - drapeau du profil `plantation_costs_capitalized`, non coché par défaut (conforme au BOFiP). Le contrôle `living_wip_missing` ignore les plantations quand il n'est pas coché ;
+  - `Asset.full_first_year` (migration `d6e8f0a2b4c6`), coché par défaut à la création d'une plantation ; `plan_bounds` part du 1er jour de l'exercice de mise en service ;
+  - paramètre `assets.plantation.vine.duration_years` = 25 (V) ;
+  - référentiel `data/agri_orchard_references.json` (annexe BOI-ANNX-000100, V), servi dans les métadonnées des immobilisations et affiché dans le formulaire ;
+  - fiche MA-06 réécrite et **publiée**.
+
 ## 8.5 CG5.e Sous-activité (ST9)
 
 - **Source à relire avant de coder** : PCG 2026 art. 213-32 (affectation des frais fixes selon la capacité normale, disponible dans le dépôt) et, pour le fiscal, ann. III art. 38 nonies et BOI-BIC-PDSTK-20-20-10-10 § 240.

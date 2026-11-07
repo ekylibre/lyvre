@@ -37,6 +37,7 @@ def _meta():
             "statuses": [{"value": k, "label": v} for k, v in assets.STATUS_LABELS.items()],
             "enabled": assets.enabled(),
             "living_kinds": [{"value": k, "label": v} for k, v in LIVING_KINDS.items()],
+            "plantation_references": assets.plantation_references(),
             "living_origins": [{"value": k, "label": v} for k, v in LIVING_ORIGINS.items()]}
 
 

@@ -72,7 +72,32 @@ def plan_bounds(asset: Asset) -> tuple[date, date] | None:
         start = asset.acquired_on.replace(day=1)
     else:
         start = asset.in_service_date or asset.acquired_on
+        if asset.full_first_year:
+            start = fiscal_year_start(start)
     return start, add_months(start, asset.duration_months, start.day) - timedelta(days=1)
+
+
+def plantation_references() -> dict:
+    """Repères des plantations (lot CG5.d) : durée des vignes (paramètre daté) et tableau des vergers (BOI-ANNX-000100)."""
+    import json
+    from pathlib import Path
+
+    from app.services import reg_params
+    path = Path(__file__).resolve().parents[2] / "data" / "agri_orchard_references.json"
+    orchards = json.loads(path.read_text(encoding="utf-8"))
+    vine = reg_params.get("assets.plantation.vine.duration_years", date.today(), default=None)
+    return {"vine_years": vine.value if vine else None, "vine_source": vine.source_label if vine else None,
+            "orchards": {k: orchards[k] for k in ("conducts", "species", "columns", "source", "source_label", "note")}}
+
+
+def fiscal_year_start(day: date) -> date:
+    """Premier jour de l'exercice qui contient `day` (exercice de Lyvre, sinon au rythme du premier exercice)."""
+    fy = FiscalYear.query.filter(FiscalYear.start_date <= day, FiscalYear.end_date >= day).first()
+    if fy is not None:
+        return fy.start_date
+    month, dom = _anchor()
+    start = date(day.year, month, min(dom, 28))
+    return start if start <= day else date(day.year - 1, month, min(dom, 28))
 
 
 def _anchor() -> tuple[int, int]:
@@ -302,6 +327,10 @@ def save(asset: Asset | None, data: dict) -> Asset:
     analytic.apply_activity(asset, data, lambda message, field: AssetError(message, field, 422))
     asset.notes = (data.get("notes") or "").strip() or None
     _living(asset, account, data)
+    if "full_first_year" in data:                       # lot CG5.d
+        asset.full_first_year = bool(data["full_first_year"]) if data["full_first_year"] is not None else None
+    elif asset.id is None and asset.living_kind == "plantation":
+        asset.full_first_year = True
     if isinstance(data.get("parent_id"), int):
         parent = db.session.get(Asset, data["parent_id"])
         if parent is None or parent.parent_id is not None:
@@ -642,7 +671,7 @@ def payload(asset: Asset, with_schedule: bool = False) -> dict:
         "in_service_date": asset.in_service_date.isoformat() if asset.in_service_date else None,
         "acquisition_cents": sum(l.acquisition_cents for l in leaves(asset)) if asset.components else asset.acquisition_cents,
         "residual_cents": asset.residual_cents, "method": asset.method, "method_label": METHOD_LABELS[asset.method],
-        "duration_months": asset.duration_months,
+        "duration_months": asset.duration_months, "full_first_year": bool(asset.full_first_year),
         "fiscal_coefficient": str(asset.fiscal_coefficient) if asset.fiscal_coefficient else None,
         "prior_depreciation_cents": asset.prior_depreciation_cents,
         "prior_as_of": asset.prior_as_of.isoformat() if asset.prior_as_of else None,

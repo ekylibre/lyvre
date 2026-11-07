@@ -22,6 +22,9 @@ BOOLEANS = {
     "young_farmer": "Jeune agriculteur (DJA, plan d'entreprise en cours)",
     "non_agricultural": "Activités non agricoles (gîte, transformation, négoce, méthanisation, travaux pour tiers)",
     "msa_monthly": "Cotisations MSA mensualisées",
+    # Lot CG5.d (Q8) : choix du dossier ; fiscalement, les façons culturales des jeunes plantations sont des avances aux
+    # cultures (BOI-BA-BASE-20-30-10-20 § 170 et 180).
+    "plantation_costs_capitalized": "Jeunes plantations : façons culturales immobilisées (production immobilisée)",
 }
 DATES = {
     "certiphyto_expires_on": "Fin de validité du Certiphyto",

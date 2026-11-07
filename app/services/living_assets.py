@@ -54,7 +54,7 @@ def wip_rows(fy: FiscalYear) -> list[dict]:
     for asset_id in sorted(ids):
         asset = db.session.get(Asset, asset_id)
         cost = costs.get(asset_id)
-        out.append({"asset_id": asset.id, "label": asset.label, "account_code": asset.account.code,
+        out.append({"asset_id": asset.id, "label": asset.label, "account_code": asset.account.code, "living_kind": asset.living_kind,
                     "status": asset.status, "acquisition_cents": asset.acquisition_cents,
                     "units": asset.units, "species": asset.species,
                     "amount_cents": cost.amount_cents if cost else None, "basis": cost.basis if cost else None,
@@ -145,6 +145,9 @@ def checks(fy: FiscalYear) -> list[tuple[str, str, int, str]]:
     out = []
     rows = wip_rows(fy)
     missing = [r for r in rows if r["status"] == "waiting" and r["amount_cents"] is None]
+    from app.services import agri_profile                 # lot CG5.d : seulement si le dossier immobilise ces coûts
+    if not agri_profile.flag(agri_profile.get(), "plantation_costs_capitalized"):
+        missing = [r for r in missing if r.get("living_kind") != "plantation"]
     if missing:
         out.append(("living_wip_missing", "Biens vivants en cours (234x) sans coût de croissance de l'exercice",
                     len(missing), "info"))
