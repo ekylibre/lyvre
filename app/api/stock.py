@@ -436,9 +436,10 @@ def crop_standards_import():
     if upload is None or not upload.filename:
         raise ApiError("validation_error", "Fichier CSV attendu.", 422, {"file": "Fichier attendu."})
     with _errors():
-        count = crop_advances.import_standards(upload.stream.read(2 * 1024 * 1024))
+        count, warnings = crop_advances.import_standards(upload.stream.read(2 * 1024 * 1024))
         db.session.commit()
-    return jsonify(items=crop_advances.meta()["standards"], notices=[notice(f"{count} barème(s) importé(s).")]), 201
+    notices = [notice(f"{count} barème(s) importé(s).")] + [notice(w, "warning") for w in warnings]
+    return jsonify(items=crop_advances.meta()["standards"], notices=notices), 201
 
 
 # ------------------------------------------------------------------ écriture de stock (lot AG4.d)

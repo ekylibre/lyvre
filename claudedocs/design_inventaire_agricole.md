@@ -279,13 +279,15 @@ Une fiche par culture en terre à la clôture : production, surface en ha, mois 
   - **F** : approvisionnements, mécanisation et main-d'œuvre ;
   - **M1** : mécanisation et main-d'œuvre, approvisionnements au coût réel (§ 5.3) ;
   - **M2** : mécanisation seule, approvisionnements au coût réel.
+  - *Lot CG2.a (07/11/2026, `design_fiabilisation_cegara.md` § 2.1)* : au coût réel, M1 prend aussi les travaux par des tiers (6051, rubrique `contracting`) ; M2 prend en plus la main-d'œuvre salariée (641, 645, hors 64116 et 64117). Table `CROP_REAL_RUBRICS`.
+  - *Lot CG2.b* : un barème se saisit par mois ou **en cumul** (premier mois du cycle) ; Lyvre garde le montant du mois.
 - **Calcul** : cumul du barème du mois d'implantation au **mois de clôture** inclus, × surface ; les approvisionnements cochés s'ajoutent en M1 et M2.
   - Exemple de forme : un blé semé en novembre, une clôture fin janvier et un barème F cumulé sur novembre à janvier, × 12 ha.
 - **Main-d'œuvre** : le barème suppose une main-d'œuvre salariée. Une fiche sans salariés choisit M2, ou retire la main-d'œuvre ; la règle pour l'exploitant seul est à confirmer (§ 11).
 
 ### 5.3 Coût réel (liste fermée de l'art. 72 A)
 
-- Rubriques : semences et plants ; engrais et amendements ; produits de traitement ; main-d'œuvre des façons culturales, de l'amendement et des semis ; frais de matériel (carburants, entretien, réparations, amortissements, travaux par des tiers).
+- Rubriques : semences et plants ; engrais et amendements ; produits de traitement ; main-d'œuvre des façons culturales, de l'amendement et des semis ; frais de matériel (carburants, entretien, réparations, amortissements) ; travaux et services par des tiers (lot CG2.a).
 - **Propositions** : les lignes d'achat et d'écriture de l'exercice sur les comptes de chaque rubrique (60111, 60112, 60113, 6051, 60614, 615x, 6811x, 641x) sont proposées, l'utilisateur coche et fixe la quote-part (100 % par défaut pour un intrant).
 - **Refusés** : fermage, assurance, frais généraux.
 - Sert aussi aux approvisionnements des variantes M1 et M2.

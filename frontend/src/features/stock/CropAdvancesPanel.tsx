@@ -4,7 +4,7 @@
 // de l'exercice cochées avec une quote-part). La fiche alimente sa ligne d'inventaire 31151 / 31141.
 import { useState } from "react";
 import {
-  Alert, Button, Checkbox, Drawer, Group, Loader, NumberInput, Paper, Select, Stack, Table, Text, TextInput,
+  Alert, Button, Checkbox, Drawer, Group, Loader, NumberInput, Paper, SegmentedControl, Select, Stack, Table, Text, TextInput,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { useQuery } from "@tanstack/react-query";
@@ -15,8 +15,9 @@ import { MoneyInput, MoneyText } from "../../components/Money";
 import { formatDate } from "../../lib/format";
 
 type Option = { value: string; label: string };
+type StandardRow = { component: string; month: number; amount_cents: number };
 export interface CropStandardItem { id: number; production: string; year: number; source: string | null; labour_assumption: string | null;
-  rows: { component: string; month: number; amount_cents: number }[] }
+  entry_mode?: "monthly" | "cumulative"; start_month?: number | null; rows: StandardRow[]; cumulative_rows?: StandardRow[] }
 export interface CropAdvanceItem {
   id: number; production: string; surface_ha: string; planted_on: string; campaign: number | null; cycle: "short" | "long";
   account_code: string; plots: string | null; method: string; method_label: string; crop_standard_id: number | null;
@@ -26,7 +27,7 @@ export interface CropAdvanceItem {
   proposals?: { journal_line_id: number; date: string; account: string; label: string; amount_cents: number; rubric: string;
     rubric_label: string; selected: boolean; cost_id: number | null; share_used_bp: number; share_free_bp: number }[];
 }
-interface CropMeta { methods: Option[]; rubrics: Option[]; components: Option[]; standards: CropStandardItem[] }
+interface CropMeta { methods: Option[]; rubrics: Option[]; real_rubrics?: Record<string, string[]>; components: Option[]; standards: CropStandardItem[] }
 
 const MONTHS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
 const errorOf = (e: unknown) => (e instanceof ApiError ? e.message : "Enregistrement impossible.");
@@ -47,6 +48,8 @@ function AdvanceDrawer({ id, editable, invalidate, onClose }: { id: number | nul
   const meta = data?.meta;
   const usesCosts = a ? a.method !== "standard_f" : false;
   const supplyOnly = a ? a.method === "standard_m1" || a.method === "standard_m2" : false;
+  // Rubriques prises au coût réel selon la méthode (lot CG2.a) : table servie par l'API.
+  const realRubrics = a ? meta?.real_rubrics?.[a.method] ?? null : null;
   return (
     <Drawer opened={id !== null} onClose={onClose} position="right" size="xl" title={a ? `Avance aux cultures — ${a.production}` : ""}>
       {!a || !meta ? <Loader /> : (
@@ -67,10 +70,10 @@ function AdvanceDrawer({ id, editable, invalidate, onClose }: { id: number | nul
               {a.detail.labour_assumption && <Text span size="xs" c="dimmed">main-d'œuvre : {a.detail.labour_assumption}</Text>}</Text>)}
           {usesCosts && (
             <>
-              <Text fw={600} size="sm">{supplyOnly ? "Approvisionnements au coût réel" : "Charges de l'art. 72 A"}</Text>
+              <Text fw={600} size="sm">{supplyOnly ? "Charges prises au coût réel" : "Charges de l'art. 72 A"}</Text>
               <Table>
                 <Table.Tbody>
-                  {(a.proposals ?? []).filter((p) => !supplyOnly || ["seeds", "fertilizers", "treatments"].includes(p.rubric)).map((p) => {
+                  {(a.proposals ?? []).filter((p) => !supplyOnly || !realRubrics || realRubrics.includes(p.rubric)).map((p) => {
                     const cost = a.costs.find((c) => c.journal_line_id === p.journal_line_id);
                     return (
                       <Table.Tr key={p.journal_line_id}>
@@ -98,7 +101,7 @@ function AdvanceDrawer({ id, editable, invalidate, onClose }: { id: number | nul
                 frais de matériel. Fermage, assurance et frais généraux en sont exclus.</Text>
               {editable && (
                 <Group align="end" gap="xs">
-                  <Select label="Rubrique" w={240} data={meta.rubrics} value={manual.rubric} onChange={(v) => setManual({ ...manual, rubric: v })} />
+                  <Select label="Rubrique" w={240} data={supplyOnly && realRubrics ? meta.rubrics.filter((r) => realRubrics.includes(r.value)) : meta.rubrics} value={manual.rubric} onChange={(v) => setManual({ ...manual, rubric: v })} />
                   <TextInput label="Libellé" w={180} value={manual.label} onChange={(e) => setManual({ ...manual, label: e.currentTarget.value })} />
                   <MoneyInput label="Montant" w={120} value={manual.amount} onChange={(v) => setManual({ ...manual, amount: v })} />
                   <Button variant="light" disabled={!manual.rubric || !manual.label || !manual.amount}
@@ -122,10 +125,16 @@ function StandardsEditor({ standards, invalidate }: { standards: CropStandardIte
   const create = useAction((body: object) => api.post<{ item: CropStandardItem; notices: Notice[] }>("/api/v1/crop-standards", body), opts);
   const update = useAction((v: { id: number; body: object }) => api.put<{ notices: Notice[] }>(`/api/v1/crop-standards/${v.id}`, v.body), opts);
   const current = standards.find((s) => s.id === selected);
+  // Lot CG2.b : un barème saisi en cumul s'affiche et se modifie en cumul ; Lyvre garde le montant du mois.
+  const cumulative = current?.entry_mode === "cumulative";
+  const source = cumulative ? current?.cumulative_rows ?? [] : current?.rows ?? [];
+  const months = cumulative && current?.start_month
+    ? Array.from({ length: 12 }, (_, i) => ((current.start_month as number) - 1 + i) % 12 + 1)
+    : Array.from({ length: 12 }, (_, i) => i + 1);
   const cell = (component: string, month: number) => {
     const key = `${component}-${month}`;
     if (key in grid) return grid[key];
-    return current?.rows.find((r) => r.component === component && r.month === month)?.amount_cents ?? null;
+    return source.find((r) => r.component === component && r.month === month)?.amount_cents ?? null;
   };
   const rows = () => ["supplies", "machinery", "labour"].flatMap((c) => Array.from({ length: 12 }, (_, i) => i + 1)
     .map((m) => ({ component: c, month: m, amount_cents: cell(c, m) ?? 0 })));
@@ -133,7 +142,8 @@ function StandardsEditor({ standards, invalidate }: { standards: CropStandardIte
   return (
     <Stack>
       <Text size="sm" c="dimmed">Coût par ha et par mois d'opérations, en trois composantes (méthode du guide CEGARA). Lyvre ne fournit
-        aucune valeur : saisissez le barème de l'exploitation, ou importez-le (CSV : Production ; Année ; Composante ; Mois ; Montant).</Text>
+        aucune valeur : saisissez le barème de l'exploitation, ou importez-le (CSV : Production ; Année ; Composante ; Mois ; Montant ;
+        Mode « mensuel » ou « cumul » ; Début du cycle).</Text>
       <Group align="end">
         <Select label="Barème" w={260} data={standards.map((s) => ({ value: String(s.id), label: `${s.production} (${s.year})` }))}
           value={selected ? String(selected) : null} onChange={(v) => { setSelected(v ? Number(v) : null); setGrid({}); }} />
@@ -145,12 +155,24 @@ function StandardsEditor({ standards, invalidate }: { standards: CropStandardIte
       </Group>
       {current && (
         <>
+          <Group align="end">
+            <SegmentedControl aria-label="Mode de saisie" value={current.entry_mode ?? "monthly"}
+              data={[{ value: "monthly", label: "Montants par mois" }, { value: "cumulative", label: "Cumul au mois de clôture" }]}
+              onChange={(v) => run(update.mutateAsync({ id: current.id, body: { entry_mode: v, start_month: current.start_month ?? 9 } }), () => setGrid({}))} />
+            {cumulative && (
+              <Select label="Premier mois du cycle" w={170} data={MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))}
+                value={String(current.start_month ?? 9)}
+                onChange={(v) => v && run(update.mutateAsync({ id: current.id, body: { start_month: Number(v) } }), () => setGrid({}))} />)}
+          </Group>
+          <Text size="xs" c="dimmed">{cumulative
+            ? "Saisissez le cumul depuis le début du cycle, comme dans les barèmes publiés ; une case vide garde le cumul précédent."
+            : "Saisissez le coût du seul mois. Les barèmes publiés donnent souvent le cumul au mois de clôture : choisissez alors « Cumul »."}</Text>
           <Table>
-            <Table.Thead><Table.Tr><Table.Th>€ / ha</Table.Th>{MONTHS.map((m) => <Table.Th key={m}>{m}</Table.Th>)}</Table.Tr></Table.Thead>
+            <Table.Thead><Table.Tr><Table.Th>{cumulative ? "€ / ha cumulés" : "€ / ha du mois"}</Table.Th>{months.map((m) => <Table.Th key={m}>{MONTHS[m - 1]}</Table.Th>)}</Table.Tr></Table.Thead>
             <Table.Tbody>
               {[["supplies", "Approvisionnements"], ["machinery", "Mécanisation"], ["labour", "Main-d'œuvre"]].map(([c, label]) => (
                 <Table.Tr key={c}><Table.Td>{label}</Table.Td>
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                  {months.map((m) => (
                     <Table.Td key={m}><MoneyInput aria-label={`${label} ${MONTHS[m - 1]}`} size="xs" w={78} value={cell(c, m)}
                       onChange={(v) => setGrid({ ...grid, [`${c}-${m}`]: v })} /></Table.Td>))}
                 </Table.Tr>))}

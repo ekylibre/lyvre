@@ -158,13 +158,23 @@ class StockLotMovement(db.Model):
 
 CROP_COMPONENTS = {"supplies": "Approvisionnements", "machinery": "Mécanisation", "labour": "Main-d'œuvre"}
 CROP_METHODS = {"standard_f": "Coût standard F (approvisionnements, mécanisation, main-d'œuvre)",
-                "standard_m1": "Coût standard M1 (mécanisation, main-d'œuvre) + approvisionnements au réel",
-                "standard_m2": "Coût standard M2 (mécanisation) + approvisionnements au réel",
+                "standard_m1": "Coût standard M1 (mécanisation, main-d'œuvre) + approvisionnements et travaux par des "
+                               "tiers au réel",
+                "standard_m2": "Coût standard M2 (mécanisation) + approvisionnements, travaux par des tiers et "
+                               "main-d'œuvre salariée au réel",
                 "actual": "Coût réel (art. 72 A)"}
 CROP_RUBRICS = {"seeds": "Semences et plants", "fertilizers": "Engrais et amendements", "treatments": "Produits de traitement",
-                "labour": "Main-d'œuvre des façons culturales, de l'amendement et des semis",
-                "machinery": "Frais de matériel (carburants, entretien, réparations, amortissements, travaux par des tiers)"}
+                "labour": "Main-d'œuvre salariée des façons culturales, de l'amendement et des semis",
+                "machinery": "Frais de matériel (carburants, entretien, réparations, amortissements)",
+                "contracting": "Travaux et services par des tiers"}
 CROP_SUPPLY_RUBRICS = ("seeds", "fertilizers", "treatments")
+CROP_ENTRY_MODES = {"monthly": "Montants par mois", "cumulative": "Cumul au mois de clôture"}
+# Rubriques prises au coût réel selon la méthode (lot CG2.a, claudedocs/design_fiabilisation_cegara.md § 2.1) : en M1 et
+# M2, les travaux par des tiers ne sont pas dans le barème de mécanisation ; en M2, la main-d'œuvre salariée est au réel.
+CROP_REAL_RUBRICS = {"standard_f": (),
+                     "standard_m1": (*CROP_SUPPLY_RUBRICS, "contracting"),
+                     "standard_m2": (*CROP_SUPPLY_RUBRICS, "contracting", "labour"),
+                     "actual": tuple(CROP_RUBRICS)}
 
 
 class CropStandard(db.Model):
@@ -178,6 +188,10 @@ class CropStandard(db.Model):
     year = db.Column(db.Integer, nullable=False)
     source = db.Column(db.String(300))
     labour_assumption = db.Column(db.String(200))      # « 100 % main-d'œuvre salariée » dans le guide
+    # Lot CG2.b : montants saisis par mois (`monthly`) ou en cumul au mois de clôture (`cumulative`, avec le premier mois
+    # du cycle). Les lignes gardent toujours le montant du mois ; le cumul n'est qu'une forme de saisie et d'affichage.
+    entry_mode = db.Column(db.String(10), nullable=False, default="monthly", server_default="monthly")
+    start_month = db.Column(db.Integer)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     rows = db.relationship("CropStandardRow", back_populates="standard", cascade="all, delete-orphan",

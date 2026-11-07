@@ -111,3 +111,76 @@ def test_import_standards_and_guards(farm):
                        json={"account_code": "31151", "label": "x", "method": "crop_advance"}).status_code == 422
     assert client.delete(f"/api/v1/crop-advances/{adv['id']}").status_code == 200
     assert StockLine.query.count() == 0
+
+
+def test_real_rubrics_by_method_cg2a(farm):
+    """Lot CG2.a (design_fiabilisation_cegara.md § 2.1) : travaux par des tiers au réel en M1 et M2, main-d'œuvre
+    salariée au réel en M2, rémunérations des associés et entretien des bâtiments exclus."""
+    client, fy = farm["client"], farm["fy"]
+    od = Journal.query.filter_by(code="OD").one()
+    acc = {c: Account.query.filter_by(code=c).one().id for c in ("6051", "64111", "64116", "6152", "401")}
+    for code, cents, label in (("6051", 200000, "Semis par ETA"), ("64111", 150000, "Salaire tractoriste"),
+                               ("64116", 900000, "Rémunération associé"), ("6152", 50000, "Réparation hangar")):
+        post_entry(fy.id, od.id, date(2025, 11, 10), label, [
+            {"account_id": acc[code], "label": label, "debit_cents": cents, "credit_cents": 0},
+            {"account_id": acc["401"], "label": label, "debit_cents": 0, "credit_cents": cents}])
+    std = client.post("/api/v1/crop-standards", json={"production": "Blé tendre", "year": 2025, "rows": [
+        {"component": "machinery", "month": 11, "amount_cents": 3000}, {"component": "labour", "month": 11, "amount_cents": 1000}]})
+    adv = _create(farm, production="Blé tendre", surface_ha="10", planted_on="2025-11-05", method="standard_m1",
+                  crop_standard_id=std.get_json()["item"]["id"])
+    proposals = {p["label"]: p for p in adv["proposals"]}
+    assert "Rémunération associé" not in proposals and "Réparation hangar" not in proposals
+    assert proposals["Semis par ETA"]["rubric"] == "contracting" and proposals["Salaire tractoriste"]["rubric"] == "labour"
+    url = f"/api/v1/crop-advances/{adv['id']}"
+    for label in ("Semis par ETA", "Salaire tractoriste"):
+        assert client.post(f"{url}/costs", json={"journal_line_id": proposals[label]["journal_line_id"]}).status_code == 201
+    body = client.get(url).get_json()["item"]
+    assert body["value_cents"] == 40000 + 200000                    # M1 : barème (30 + 10) × 10 + ETA ; salaire au barème
+    resp = client.put(url, json={"method": "standard_m2"}).get_json()
+    assert resp["item"]["value_cents"] == 30000 + 200000 + 150000   # M2 : mécanisation au barème + ETA + salaire au réel
+    assert resp["meta"]["real_rubrics"]["standard_m2"] == ["seeds", "fertilizers", "treatments", "contracting", "labour"]
+
+
+def test_standard_entered_as_cumulative_cg2b(farm):
+    """Lot CG2.b (design_fiabilisation_cegara.md § 2.2) : un barème saisi en cumul vaut le même barème saisi par mois.
+    Barème fictif (mécanisation, € / ha) : septembre 100, octobre 50, novembre 30, décembre rien, janvier 20."""
+    client = farm["client"]
+    monthly = client.post("/api/v1/crop-standards", json={"production": "Blé (mensuel)", "year": 2025, "rows": [
+        {"component": "machinery", "month": m, "amount_cents": c} for m, c in ((9, 10000), (10, 5000), (11, 3000), (1, 2000))]})
+    cumul = client.post("/api/v1/crop-standards", json={
+        "production": "Blé (cumul)", "year": 2025, "entry_mode": "cumulative", "start_month": 9, "rows": [
+            {"component": "machinery", "month": m, "amount_cents": c}
+            for m, c in ((9, 10000), (10, 15000), (11, 18000), (12, 0), (1, 20000))]})
+    assert monthly.status_code == 201 and cumul.status_code == 201, cumul.get_json()
+    item = cumul.get_json()["item"]
+    assert {(r["month"], r["amount_cents"]) for r in item["rows"]} == {(9, 10000), (10, 5000), (11, 3000), (1, 2000)}
+    assert [(r["month"], r["amount_cents"]) for r in item["cumulative_rows"] if r["component"] == "machinery"] == [
+        (9, 10000), (10, 15000), (11, 18000), (12, 18000), (1, 20000)]
+    values = []
+    for std in (monthly, cumul):
+        adv = _create(farm, production="Blé", surface_ha="10", planted_on="2025-09-15", method="standard_m2",
+                      crop_standard_id=std.get_json()["item"]["id"])
+        values.append(adv["value_cents"])
+    assert values == [200000, 200000]                                       # 200 € / ha × 10 ha, compté une fois
+    sid = item["id"]
+    down = client.put(f"/api/v1/crop-standards/{sid}", json={"rows": [
+        {"component": "machinery", "month": 9, "amount_cents": 10000}, {"component": "machinery", "month": 10, "amount_cents": 8000}]})
+    assert down.status_code == 422 and "baisse en octobre" in down.get_json()["error"]["message"]
+    assert client.post("/api/v1/crop-standards", json={"production": "X", "year": 2025, "entry_mode": "cumulative"}).status_code == 422
+
+
+def test_import_cumulative_and_warning_cg2b(farm):
+    client = farm["client"]
+    head = "Production;Année;Composante;Mois;Montant;Mode;Début du cycle\n"
+    csv = head + "".join(f"Orge;2025;Mécanisation;{m};{c};cumul;septembre\n" for m, c in ((9, 100), (10, 150), (1, 200)))
+    resp = client.post("/api/v1/crop-standards/import", data={"file": (io.BytesIO(csv.encode()), "c.csv")},
+                       content_type="multipart/form-data")
+    assert resp.status_code == 201, resp.get_json()
+    (row,) = resp.get_json()["items"]
+    assert row["entry_mode"] == "cumulative" and {(r["month"], r["amount_cents"]) for r in row["rows"]} == {
+        (9, 10000), (10, 5000), (1, 5000)}
+    growing = "Production;Année;Composante;Mois;Montant\n" + "".join(
+        f"Maïs;2025;Mécanisation;{m};{10 * m}\n" for m in range(1, 8))
+    resp = client.post("/api/v1/crop-standards/import", data={"file": (io.BytesIO(growing.encode()), "g.csv")},
+                       content_type="multipart/form-data")
+    assert resp.status_code == 201 and any("sans doute un cumul" in n["message"] for n in resp.get_json()["notices"])
