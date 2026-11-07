@@ -26,13 +26,14 @@ const pathOf = (url: string) => new URL(url, window.location.origin).pathname.re
 /** URL du menu qui correspond le mieux à la page (préfixe le plus long : /entities/members
  * l'emporte sur /entities/ pour la page des adhérents). Tous niveaux (lot NV1). */
 export function activeUrl(menus: NavMenu[], pathname: string): string | null {
-  const urls = navLinks(menus).map((l) => l.url);
+  // Lot NV2 : une page rattachée (`also_urls`, un onglet) active l'entrée qui la porte.
+  const candidates = navLinks(menus).flatMap((l) => [[l.url, l.url], ...(l.also_urls ?? []).map((a) => [a, l.url])]);
   const current = pathname.replace(/\/$/, "") || "/";
-  const matches = urls.filter((u) => {
+  const matches = candidates.filter(([u]) => {
     const path = pathOf(u);
     return path === "/" ? current === "/" : current === path || current.startsWith(`${path}/`);
   });
-  return matches.sort((a, b) => pathOf(b).length - pathOf(a).length)[0] ?? null;
+  return matches.sort(([a], [b]) => pathOf(b).length - pathOf(a).length)[0]?.[1] ?? null;
 }
 
 /** Un sous-menu contient-il l'adresse active (pour l'ouvrir d'office) ? */

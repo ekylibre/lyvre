@@ -32,6 +32,7 @@ Structure d'un sous-menu (items) :
     {"key": "...", "label": "...", "endpoint": "bp.vue", "charts": [...], "admin_only": bool}
     {"divider": True, "charts": [...]}   # séparateur horizontal
     {"key": "...", "label": "...", "items": [...]}   # sous-menu de 3e niveau (lot NV1)
+    "also": ["bp.vue"]   # pages rattachées à l'entrée sans y figurer (onglets, lot NV2)
 
 Icônes (lot NV1) : "icon" = nom d'icône Lucide (kebab-case) ; "pictogram" = pictogramme agric,
 affiché seulement en pastille (cartes, en-têtes de page).
@@ -79,9 +80,7 @@ MENUS = [
                    "msa", "products", "entries", "reports", "lettering", "assets"],
         "items": [
             {"key": "entries", "label": "Écritures", "icon": "notebook-pen", "endpoint": "entries.index", "charts": _ALL,
-             "bookkeeping": _DOUBLE},
-            {"key": "lettering", "label": "Lettrage", "icon": "link", "endpoint": "lettering.index", "charts": _ALL,
-             "bookkeeping": _DOUBLE},
+             "bookkeeping": _DOUBLE, "also": ["lettering.index"]},            # lot NV2 : onglet Lettrage
             {"key": "editions", "label": "Éditions comptables", "icon": "file-chart-column", "charts": _ALL,
              "bookkeeping": _DOUBLE, "items": [
                 {"key": "balance", "label": "Balance", "icon": "scale", "endpoint": "reports.balance", "charts": _ALL},
@@ -226,9 +225,8 @@ MENUS = [
                 {"key": "sales_coop_statements", "label": "Décomptes de coopérative", "icon": "scroll-text",
                  "endpoint": "sales.coop_statements", "charts": ["agri"]},
             ]},
-            {"key": "leases", "label": "Baux et quittances", "icon": "key-round", "endpoint": "leases.index", "charts": _ALL},
-            {"key": "rent_indices", "label": "Indices de loyer", "icon": "chart-line", "endpoint": "rent_indices.index",
-             "charts": _ALL},
+            {"key": "leases", "label": "Baux et quittances", "icon": "key-round", "endpoint": "leases.index", "charts": _ALL,
+             "also": ["rent_indices.index"]},                                  # lot NV2 : onglet Indices de loyer
         ],
     },
     # ------------------------------------------------------------------- Associés
@@ -382,10 +380,11 @@ def _clean_items(items: list[dict], chart: str, is_admin: bool, bookkeeping: str
 
 
 def endpoints(entries: list[dict] | None = None):
-    """Tous les endpoints déclarés (tous niveaux), pour les tests de cohérence."""
+    """Tous les endpoints déclarés (tous niveaux, `also` compris), pour les tests de cohérence."""
     for entry in MENUS if entries is None else entries:
         if entry.get("endpoint"):
             yield entry["endpoint"]
+        yield from entry.get("also", [])
         if "items" in entry:
             yield from endpoints(entry["items"])
 

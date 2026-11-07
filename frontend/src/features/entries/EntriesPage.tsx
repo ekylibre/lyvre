@@ -9,6 +9,7 @@ import { FilterBar, SearchInput, useUrlParams } from "../../components/FilterBar
 import { MoneyText } from "../../components/Money";
 import { MonthSelect, type MonthOption } from "../../components/MonthSelect";
 import { PageHeader } from "../../components/PageHeader";
+import { ENTRY_TABS, PageTabs } from "../../components/PageTabs";
 import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
@@ -67,6 +68,7 @@ export default function EntriesPage() {
         actions={<Can>
           {meta?.fiscal_year_open && <Button variant="default" onClick={() => setUntilOpen(true)}>Valider jusqu'au…</Button>}
           <Button component={AppLink} href="/entries/new">Saisir une écriture</Button></Can>} />
+      <PageTabs tabs={ENTRY_TABS} />
       {meta?.locked_until && meta.fiscal_year_open && <Text size="sm" c="dimmed" mb="xs">{`Période verrouillée jusqu'au ${formatDate(meta.locked_until)} (Exercices).`}</Text>}
       {!!meta?.drafts?.old && <Alert color="paille" variant="light" mb="sm">{meta.drafts.old} écriture(s) en brouillard depuis plus de
         3 mois : validez-les une fois vérifiées.</Alert>}

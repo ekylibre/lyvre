@@ -48,6 +48,8 @@ def _resolve_nav(menus):
             entry["items"] = _resolve_nav(menu["items"])
         else:
             entry["url"] = url_for(menu["endpoint"])
+            if menu.get("also"):                       # lot NV2 : onglets rattachés à l'entrée
+                entry["also_urls"] = [url_for(e) for e in menu["also"]]
         resolved.append(entry)
     return resolved
 

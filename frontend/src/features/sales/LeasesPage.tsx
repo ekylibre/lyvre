@@ -7,6 +7,7 @@ import { Can } from "../../components/Can";
 import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
+import { LEASE_TABS, PageTabs } from "../../components/PageTabs";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
@@ -35,6 +36,7 @@ export default function LeasesPage() {
       <PageHeader title="Baux et quittances" description="Les avis d'échéance de loyer sont préparés dans « À émettre » ; la quittance est disponible quand le loyer de la période est payé."
         actions={<><CalculatorLink code="fermage" label="Révision d'un loyer" /><Button variant="default" component={AppLink} href="/sales/due">À émettre</Button>
           <Can><Button component={AppLink} href="/leases/new">Nouveau bail</Button></Can></>} />
+      <PageTabs tabs={LEASE_TABS} />
       <DataGrid id="leases" records={data?.items} columns={columns} fetching={isFetching} emptyText="Aucun bail." />
     </>
   );

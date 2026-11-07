@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, api, setCsrfToken } from "./client";
 
 // Lot NV1 : trois niveaux (menu › entrée ou sous-menu › entrée), icône Lucide et pictogramme agric.
-export interface NavLink { key: string; label: string; url: string; icon?: string; pictogram?: string }
+export interface NavLink { key: string; label: string; url: string; icon?: string; pictogram?: string; also_urls?: string[] }
 export interface NavDivider { divider: true }
 export interface NavGroup { key: string; label: string; icon?: string; pictogram?: string; items: NavItem[] }
 export type NavItem = NavLink | NavGroup | NavDivider;

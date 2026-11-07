@@ -55,7 +55,8 @@ def test_login_selects_single_instance_and_returns_session(app):
     labels = [m["label"] for m in body["nav"]]
     assert "Tableau de bord" in labels and "Tiers" in labels
     compta = next(m for m in body["nav"] if m["key"] == "compta")
-    assert {"key": "entries", "label": "Écritures", "url": "/entries/", "icon": "notebook-pen"} in compta["items"]
+    assert {"key": "entries", "label": "Écritures", "url": "/entries/", "icon": "notebook-pen",
+            "also_urls": ["/lettering/"]} in compta["items"]
     assert body["csrf_token"] and body["preferences"] == {"changelog_seen": version.version()} and body["admin_links"] == []
     assert body["role"] == "treasurer" and body["permissions"] == {"write": True, "instance_admin": False}
     assert client.get("/api/v1/session").get_json()["instance"]["id"] == inst.id

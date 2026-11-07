@@ -203,3 +203,8 @@ Un commit par lot, avec les tests. Aucune migration de base (le rail est une pr�
   - barre latérale sur trois niveaux, groupe de la page courante ouvert d'office ;
   - icônes Lucide via `app/navIcons.tsx`, une avance sur NV4.
 - Questions D-NV1 à D-NV3 : propositions retenues par défaut, faute de réponse.
+
+**NV2 (07/11/2026, non commité).**
+- Solution plus simple que la conception (§ 3) : les pages restent distinctes, avec leurs adresses et leur logique. Une barre d'onglets commune (`components/PageTabs.tsx`, `ENTRY_TABS`, `LEASE_TABS`) relie Écritures et Lettrage, ainsi que Baux et quittances et Indices de loyer. Cliquer sur un onglet change l'adresse, sans recharger.
+- Menu : les entrées Lettrage et Indices de loyer disparaissent. `also` (`lettering.index`, `rent_indices.index`) est servi par l'API sous la forme `also_urls`. `activeUrl()` surligne l'entrée porteuse sur la page de l'onglet.
+- Recherche rapide : les onglets restent trouvables (« Compta › Écritures » pour Lettrage).

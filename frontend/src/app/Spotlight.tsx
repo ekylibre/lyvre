@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { api } from "../api/client";
 import { navLinks, useCurrentSession } from "../api/session";
+import { ENTRY_TABS, LEASE_TABS } from "../components/PageTabs";
 import { useGoTo } from "./navigation";
 
 interface SearchGroup { label: string; items: { label: string; description: string | null; url: string }[] }
@@ -25,6 +26,12 @@ export function AppSpotlight() {
     const links: NavAction[] = [];
     for (const link of navLinks(session.nav)) {
       links.push({ id: link.url, label: link.label, description: link.trail.join(" › ") || undefined, url: link.url });
+      // Lot NV2 : les onglets rattachés (Lettrage, Indices de loyer) restent trouvables.
+      for (const tab of [...ENTRY_TABS, ...LEASE_TABS]) {
+        if (link.also_urls?.includes(tab.url)) {
+          links.push({ id: tab.url, label: tab.label, description: [...link.trail, link.label].join(" › "), url: tab.url });
+        }
+      }
     }
     for (const link of session.admin_links) links.push({ id: link.url, label: link.label, description: "Administration", url: link.url });
     links.push({ id: "select-instance", label: "Changer d'instance", url: "/select-instance" });

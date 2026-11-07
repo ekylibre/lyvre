@@ -110,8 +110,9 @@ def test_every_endpoint_is_a_spa_route():
 def test_farm_compta_has_three_submenus_and_gestion_menu():
     nav = {m["key"]: m for m in build_nav("agri", is_admin=True, features={"vat_returns"})}
     compta = {i["key"]: i for i in nav["compta"]["items"] if not i.get("divider")}
-    assert _keys(nav["compta"]["items"]) == ["entries", "lettering", "editions", "fixed_and_stock", "tax_social",
+    assert _keys(nav["compta"]["items"]) == ["entries", "editions", "fixed_and_stock", "tax_social",
                                              "accounting_settings"]
+    assert compta["entries"]["also"] == ["lettering.index"]              # lot NV2 : onglet
     assert _keys(compta["editions"]["items"]) == ["balance", "grand_livre", "bilan", "compte_resultat", "sig"]
     assert _keys(compta["fixed_and_stock"]["items"]) == ["assets", "stock"]
     assert "vat_returns" in _keys(compta["tax_social"]["items"]) and "msa" in _keys(compta["tax_social"]["items"])
@@ -119,6 +120,7 @@ def test_farm_compta_has_three_submenus_and_gestion_menu():
                                               "analytic", "activity_margins"]
     sales = {i["key"]: i for i in nav["sales"]["items"] if not i.get("divider")}
     assert _keys(sales["cooperatives"]["items"]) == ["sales_self_billed", "sales_coop_statements"]
+    assert "rent_indices" not in sales and sales["leases"]["also"] == ["rent_indices.index"]
     assert list(nav)[:4] == ["dashboard", "compta", "gestion", "banque"]
 
 
@@ -144,6 +146,7 @@ def test_session_nav_is_nested_with_icons(app, login_as):
     assert nav["compta"]["icon"] == "calculator" and compta["entries"]["url"].endswith("/entries/")
     editions = compta["editions"]
     assert "url" not in editions and editions["items"][0]["key"] == "balance" and editions["items"][0]["icon"] == "scale"
+    assert compta["entries"]["also_urls"] == ["/lettering/"]
 
 
 def test_every_icon_is_in_the_frontend_table():

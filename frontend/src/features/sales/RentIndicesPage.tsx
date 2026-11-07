@@ -9,6 +9,7 @@ import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
 import { Can } from "../../components/Can";
 import { PageHeader } from "../../components/PageHeader";
+import { LEASE_TABS, PageTabs } from "../../components/PageTabs";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import type { Option } from "../purchases/types";
@@ -35,6 +36,7 @@ export default function RentIndicesPage() {
         description="Indices de révision des baux : ILC, ILAT et IRL publiés par l'INSEE, indice national des fermages saisi chaque année."
         actions={<Can><Button loading={fetchInsee.isPending} onClick={() => fetchInsee.mutate(undefined, { onSuccess: refresh })}>
           Mettre à jour depuis l'INSEE</Button></Can>} />
+      <PageTabs tabs={LEASE_TABS} />
       <Text size="sm" c="dimmed" mb="sm">Dernière lecture de l'INSEE : {data?.meta.last_fetch ? formatDate(data.meta.last_fetch) : "jamais"}.
         Les révisions dues relisent aussi l'INSEE, au plus une fois par jour.</Text>
       <Paper p="md" mb="md" maw={900}>
