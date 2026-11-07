@@ -55,6 +55,13 @@ def sig(fy: FiscalYear, fy_prev: FiscalYear | None = None) -> list[dict]:
         done[key] = (n, p)
         rows.append({"key": key, "label": label, "kind": "total" if key in TOTALS else "row", "n": n, "p": p})
 
+    rows += result_rows(cdr, fy_prev)
+    return rows
+
+
+def result_rows(cdr: dict, fy_prev) -> list[dict]:
+    """Résultats d'exploitation, courant, exceptionnel et net d'un compte de résultat (tous référentiels, mêmes
+    sections) : fin du tableau des soldes intermédiaires (lot NV3, partagé avec `sig.py`)."""
     def result(*pairs):
         n = sum(sign * section_total(cdr[section])[0] for sign, section in pairs)
         p = _sum_opt([sign * v for sign, section in pairs if (v := section_total(cdr[section])[1]) is not None]) \
@@ -68,12 +75,11 @@ def sig(fy: FiscalYear, fy_prev: FiscalYear | None = None) -> list[dict]:
     taxes = tuple(a if a is None else a + (b or 0) for a, b in zip(cdr["impots_benefices"], cdr["participation_salaries"]))
     net = (current[0] + exceptional[0] - taxes[0],
            None if not fy_prev or current[1] is None else current[1] + (exceptional[1] or 0) - (taxes[1] or 0))
-    for key, label, values in (("resultat_exploitation", "Résultat d'exploitation", operating),
-                               ("resultat_courant", "Résultat courant avant impôts", current),
-                               ("resultat_exceptionnel", "Résultat exceptionnel", exceptional),
-                               ("resultat_net", "Résultat de l'exercice", net)):
-        rows.append({"key": key, "label": label, "kind": "result", "n": values[0], "p": values[1]})
-    return rows
+    return [{"key": key, "label": label, "kind": "result", "n": values[0], "p": values[1]}
+            for key, label, values in (("resultat_exploitation", "Résultat d'exploitation", operating),
+                                       ("resultat_courant", "Résultat courant avant impôts", current),
+                                       ("resultat_exceptionnel", "Résultat exceptionnel", exceptional),
+                                       ("resultat_net", "Résultat de l'exercice", net))]
 
 
 # Tableau des biens vivants (art. 121-4) : (ligne, libellé, comptes bruts, amortissements et dépréciations).

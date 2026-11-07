@@ -166,7 +166,7 @@ def _as_agri(legal_form="GAEC"):
 
 def test_api(app, login_as):
     client = login_as()
-    assert client.get("/api/v1/reports/sig").status_code == 404  # plan associatif
+    assert client.get("/api/v1/reports/sig").get_json()["meta"]["method"]  # plan associatif : PCG (lot NV3)
     _as_agri("EI")
     fy = _farm_year(db.session)
     db.session.commit()
@@ -181,5 +181,7 @@ def test_api(app, login_as):
     assert xlsx.status_code == 200 and xlsx.data[:2] == b"PK"
     nav = client.get("/api/v1/session").get_json()["nav"]
     compta = next(m for m in nav if m["key"] == "compta")
-    editions = next(i for i in compta["items"] if i.get("key") == "editions")       # lot NV1 : sous-menu
-    assert any(i.get("key") == "sig" for i in editions["items"])
+    editions = next(i for i in compta["items"] if i.get("key") == "editions")       # lot NV3 : page d'accueil
+    assert editions["url"] == "/reports/" and "/reports/sig" in editions["also_urls"]
+    hub = client.get(f"/api/v1/reports/?fy_id={fy.id}").get_json()["items"]
+    assert [x["label"] for x in hub[3]["exports"]] == ["CSV", "ODS", "Classeur des états agricoles"]

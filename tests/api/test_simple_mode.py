@@ -6,7 +6,7 @@ from app.extensions import db
 from app.menu_config import build_nav
 from app.models import Account, Instance, SimpleCategory
 
-DOUBLE_ONLY = {"Écritures", "Balance", "Grand livre", "Bilan", "Compte de résultat", "Plan comptable", "Journaux",
+DOUBLE_ONLY = {"Écritures", "Éditions comptables", "Plan comptable", "Journaux",
                "Catalogue", "Rapprochement", "Factures d'achat"}
 
 

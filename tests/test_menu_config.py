@@ -113,7 +113,7 @@ def test_farm_compta_has_three_submenus_and_gestion_menu():
     assert _keys(nav["compta"]["items"]) == ["entries", "editions", "fixed_and_stock", "tax_social",
                                              "accounting_settings"]
     assert compta["entries"]["also"] == ["lettering.index"]              # lot NV2 : onglet
-    assert _keys(compta["editions"]["items"]) == ["balance", "grand_livre", "bilan", "compte_resultat", "sig"]
+    assert compta["editions"]["endpoint"] == "reports.index" and "reports.sig" in compta["editions"]["also"]  # NV3
     assert _keys(compta["fixed_and_stock"]["items"]) == ["assets", "stock"]
     assert "vat_returns" in _keys(compta["tax_social"]["items"]) and "msa" in _keys(compta["tax_social"]["items"])
     assert _keys(nav["gestion"]["items"]) == ["projects", "budgets", "budget_tracking", "agenda", "activities",
@@ -145,7 +145,7 @@ def test_session_nav_is_nested_with_icons(app, login_as):
     compta = {i.get("key"): i for i in nav["compta"]["items"]}
     assert nav["compta"]["icon"] == "calculator" and compta["entries"]["url"].endswith("/entries/")
     editions = compta["editions"]
-    assert "url" not in editions and editions["items"][0]["key"] == "balance" and editions["items"][0]["icon"] == "scale"
+    assert editions["url"].endswith("/reports/") and editions["also_urls"][-1].endswith("/reports/sig")  # lot NV3
     assert compta["entries"]["also_urls"] == ["/lettering/"]
 
 

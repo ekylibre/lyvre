@@ -81,17 +81,10 @@ MENUS = [
         "items": [
             {"key": "entries", "label": "Écritures", "icon": "notebook-pen", "endpoint": "entries.index", "charts": _ALL,
              "bookkeeping": _DOUBLE, "also": ["lettering.index"]},            # lot NV2 : onglet Lettrage
-            {"key": "editions", "label": "Éditions comptables", "icon": "file-chart-column", "charts": _ALL,
-             "bookkeeping": _DOUBLE, "items": [
-                {"key": "balance", "label": "Balance", "icon": "scale", "endpoint": "reports.balance", "charts": _ALL},
-                {"key": "grand_livre", "label": "Grand livre", "icon": "book-text", "endpoint": "reports.grand_livre",
-                 "charts": _ALL},
-                {"key": "bilan", "label": "Bilan", "icon": "landmark", "endpoint": "reports.bilan", "charts": _ALL},
-                {"key": "compte_resultat", "label": "Compte de résultat", "icon": "chart-line",
-                 "endpoint": "reports.compte_resultat", "charts": _ALL},
-                {"key": "sig", "label": "Soldes intermédiaires", "icon": "chart-no-axes-column", "endpoint": "reports.sig",
-                 "charts": ["agri"]},
-            ]},
+            # Lot NV3 : une entrée qui ouvre la page d'accueil des éditions (une carte par état).
+            {"key": "editions", "label": "Éditions comptables", "icon": "file-chart-column", "endpoint": "reports.index",
+             "charts": _ALL, "bookkeeping": _DOUBLE,
+             "also": ["reports.balance", "reports.grand_livre", "reports.bilan", "reports.compte_resultat", "reports.sig"]},
             {"key": "fixed_and_stock", "label": "Immobilisations et stocks", "icon": "warehouse", "charts": _ALL, "items": [
                 {"key": "assets", "label": "Immobilisations", "icon": "building-2", "endpoint": "assets.index", "charts": _ALL},
                 {"key": "stock", "label": "Inventaire de clôture", "icon": "boxes", "pictogram": "silo",

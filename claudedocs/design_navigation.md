@@ -188,7 +188,7 @@ Un commit par lot, avec les tests. Aucune migration de base (le rail est une pr�
 
 ## 10. Réalisé
 
-**NV1 (07/11/2026, non commité).**
+**NV1 (07/11/2026, commité 37002cf).**
 - `menu_config` :
   - 3e niveau (`items` dans un item), filtrage récursif ; un sous-menu vide est retiré, un sous-menu à une entrée est remplacé par cette entrée ;
   - `icon` sur chaque menu et sur les nouvelles entrées, `pictogram` sur stock, MSA, aides, activités et coopératives ;
@@ -204,7 +204,25 @@ Un commit par lot, avec les tests. Aucune migration de base (le rail est une pr�
   - icônes Lucide via `app/navIcons.tsx`, une avance sur NV4.
 - Questions D-NV1 à D-NV3 : propositions retenues par défaut, faute de réponse.
 
-**NV2 (07/11/2026, non commité).**
+**NV2 (07/11/2026, commité a4e5980).**
 - Solution plus simple que la conception (§ 3) : les pages restent distinctes, avec leurs adresses et leur logique. Une barre d'onglets commune (`components/PageTabs.tsx`, `ENTRY_TABS`, `LEASE_TABS`) relie Écritures et Lettrage, ainsi que Baux et quittances et Indices de loyer. Cliquer sur un onglet change l'adresse, sans recharger.
 - Menu : les entrées Lettrage et Indices de loyer disparaissent. `also` (`lettering.index`, `rent_indices.index`) est servi par l'API sous la forme `also_urls`. `activeUrl()` surligne l'entrée porteuse sur la page de l'onglet.
 - Recherche rapide : les onglets restent trouvables (« Compta › Écritures » pour Lettrage).
+
+**NV3 (07/11/2026).**
+- **Soldes intermédiaires de gestion pour tous les référentiels** (Q5), dans `services/sig.py` :
+  - `agri` garde la présentation agricole (`agri_reports.sig`) ;
+  - les autres référentiels suivent le tableau usuel du système développé du PCG de 1982, que le PCG 2026 ne reprend plus. L'écran le précise (`meta.method`) ;
+  - la marge commerciale porte sur 707 et 7097 moins 607, 6087, 6097 et 6037 ; la production sur 70 (hors marchandises), 71 et 72 ; les consommations sur 60, 61 et 62 (hors marchandises) ;
+  - viennent ensuite la valeur ajoutée, les subventions (74), les impôts (63), le personnel (64) et l'EBE ;
+  - pour une association, les cotisations, dons, legs et mécénat (753 à 756) apparaissent à part avant l'EBE (D-NV1) ;
+  - les résultats d'exploitation, courant, exceptionnel et net viennent du compte de résultat du référentiel (`agri_reports.result_rows`, partagé).
+- **Page d'accueil des éditions** `/reports/` (`ReportsHubPage`, API `GET /api/v1/reports/`) :
+  - une carte par édition : pastille d'icône, titre, phrase, exports (CSV et ODS du compte de résultat, classeur des états agricoles) ;
+  - l'exercice choisi en tête est transmis par `?fy_id=`.
+- **Menu** : « Éditions comptables » redevient une entrée simple (`reports.index`). Son champ `also` couvre les cinq états, pour la mise en surbrillance.
+- **Assistant** : `/reports/` est ajouté aux écrans du corpus, et le libellé des Écritures mentionne l'onglet Lettrage.
+- **Tests** :
+  - pytest : `tests/test_sig.py` (SIG du PCG pour asso, sci et société ; API), plus les adaptations de `test_agri_reports`, `test_menu_config` et `test_simple_mode` ;
+  - Vitest : `ReportsHubPage.test.tsx` ;
+  - résultats : 1719 pytest et 305 Vitest passent.
