@@ -509,7 +509,18 @@ Il s'inscrit dans le cadrage `doc/base_documentaire/` : API Claude, outils qui a
 | **AG9b** | Intégration « Assistant Claude » : conversation, outils, base documentaire, MCP Lexicon | AG9a, base documentaire lot 2 | S'appuie sur des services déjà fiables |
 | **AG8, AG10** | Analytique par activité × campagne, autofactures, e-reporting, FEC trésorerie, reprise Isacompta | AG1 | AG10 avant le 01/09/2027 |
 | **AG11** ⏸ | Connecteur Ekylibre en lecture seule (suspendu, AGD30) : activités et surfaces, clés depuis les interventions, comptage d'inventaire (`design_connecteur_ekylibre.md`) | AG8, AG4 | AGD8, AGD28 ; factures tenues dans Lyvre |
-| **AG12** | Mini-calculettes agricoles (§ 7 bis, `design_calculettes_agricoles.md`) : 21 calculettes (AGD12, AGD13, AGD29) dans un menu « Outils » filtré par type, pour les utilisateurs connectés, sans données en direct | selon la calculette : AG0.6, AG2, AG3, AG5 à AG9 | Brainstorm du 04/11/2026, besoins complets ; chaque calculette peut suivre le lot dont elle dépend |
+| **AG12** ✅ | Mini-calculettes agricoles (§ 7 bis, `design_calculettes_agricoles.md`) : 21 calculettes (AGD12, AGD13, AGD29) dans un menu « Outils » filtré par type, pour les utilisateurs connectés, sans données en direct ; lots a–e et zones défavorisées (ICHN, 13 départements) commités | selon la calculette : AG0.6, AG2, AG3, AG5 à AG9 | Brainstorm du 04/11/2026, besoins complets ; chaque calculette peut suivre le lot dont elle dépend |
+
+
+### État au 06/11/2026 et suite
+
+- **Fait et commité** sur la branche `compta-agricole` (non poussée), de AG1 à AG12 ; AG11 suspendu (AGD30). Dernier commit : `d44aae9` (ICHN). Tests : pytest 1672, Vitest 296.
+- **Assistant** : premier passage réel du jeu d'évaluation à 98 % (`design_assistant_agricole.md` § 8 bis).
+- **Prochaine étape : essai de l'interface en local**, avant la demande de fusion vers `main`.
+  - Ne pas utiliser `instance/meta.db` (schéma en retard) : créer une base jetable, par exemple `python scripts/assistant_eval_env.py instance/essai-ui` (instance « essai-agri », exploitation fictive A, exercice ouvert). Le script ne crée pas de compte : en ajouter un dans cette méta-base avant de se connecter.
+  - Lancer Flask avec `META_DATABASE_URL=sqlite:///…/instance/essai-ui/meta.db` et `DATABASE_URL=sqlite:///…/instance/essai-ui/essai-agri.db`, puis `make dev-front` (Vite, `VITE_DEV_SERVER=http://localhost:5173`), ou `npm run build` et Flask seul.
+  - Parcours à suivre : profil agricole, TVA (RFA, acomptes, CA12A), aides PAC, inventaire et biens vivants, résultat fiscal, DEP, MSA, analytique, e-facturation (autofactures, décomptes, e-reporting B2C), échéancier et listes de contrôle, assistant (clé dans `.env`), menu « Outils » (calculettes, carte RPG, zonages dont ICHN).
+  - Noter les anomalies écran par écran, puis les corriger par petits lots.
 
 ---
 
