@@ -1,5 +1,6 @@
-"""Restauration Ekylibre, lots RE1 et RE2 (claudedocs/design_restauration_ekylibre.md) : profils, référentiel détecté,
-TVA conservée, noms de tiers rendus uniques, états des écritures (Q4), script générique.
+"""Restauration Ekylibre, lots RE1 à RE3 (claudedocs/design_restauration_ekylibre.md) : profils, référentiel détecté,
+TVA conservée, noms de tiers rendus uniques, états des écritures (Q4), script générique, à-nouveaux (RE2),
+pièces de la période, emprunt et TVA étrangère (RE3).
 Mini-dump fabriqué d'une ferme assujettie (aucune donnée réelle)."""
 import zipfile
 from datetime import date
@@ -16,10 +17,35 @@ from test_ekylibre_import import copy_block
 ACCOUNTS = [(1, "10100000", "Capital"), (2, "40100000001", "Coop"), (3, "41100000002", "Sarah"),
             (4, "41100000003", "Sarah"), (5, "41100000004", "sarah"), (6, "60110000", "Semences"),
             (7, "44566000", "TVA déductible"), (8, "51200000", "Banque"), (9, "70100000", "Ventes vin"),
-            (10, "44571000", "TVA collectée")]
+            (10, "44571000", "TVA collectée"), (11, "16400000", "Emprunt"), (12, "44575992", "TVA belge collectée")]
 
 
-def build_sql(legal=None):
+def extras_sql():
+    """Lot RE3 : emprunt, vente à taux belge, pièces (facture d'achat, relevé, pièce de vente non reprise)."""
+    return [
+        copy_block("taxes", ["id", "name", "amount", "country", "nature", "collect_account_id"], [
+            (1, "TVA 10", "10.0000", "fr", "intermediate_vat", 10), (2, "Belgian VAT normal", "21.0000", "be", "normal_vat", 12)]),
+        copy_block("sale_items", ["id", "sale_id", "label", "quantity", "unit_pretax_amount", "pretax_amount", "amount",
+                                  "account_id", "tax_id"], [
+            (1, 1, "Vin", "1", "10.00", "10.00", "12.10", 9, 2), (2, 2, "Vin", "1", "10.00", "10.00", "11.00", 9, 1)]),
+        copy_block("loans", ["id", "name", "amount", "started_on", "repayment_duration", "repayment_period",
+                             "interest_percentage", "loan_account_id", "lender_id", "state"], [
+            (1, "Emprunt tracteur", "1000.00", "2025-02-01", "10", "month", "2.0000", 11, 1, "ongoing")]),
+        copy_block("loan_repayments", ["id", "loan_id", "position", "due_on", "amount", "remaining_amount"], [
+            (1, 1, 1, "2025-11-01", "101.00", "900.00"), (2, 1, 2, "2025-12-01", "101.00", "800.00"),
+            (3, 1, 3, "2026-01-01", "101.00", "700.00")]),
+        copy_block("bank_statements", ["id", "cash_id", "number", "started_on", "stopped_on"], [
+            (1, 1, "R1", "2025-03-01", "2025-03-31"), (2, 1, "R0", "2024-03-01", "2024-03-31")]),
+        copy_block("attachments", ["id", "resource_type", "resource_id", "document_id", "deleted_at"], [
+            (1, "Purchase", 1, 7, None), (2, "BankStatement", 1, 8, None), (3, "BankStatement", 2, 9, None),
+            (4, "Sale", 1, 10, None)]),
+        copy_block("documents", ["id", "name", "file_file_name"], [
+            (7, "Facture", "semences.pdf"), (8, "Relevé", "releve-2025-03.pdf"), (9, "Relevé", "releve-2024-03.pdf"),
+            (10, "Facture V1", "V1.pdf")]),
+    ]
+
+
+def build_sql(legal=None, extras=False):
     return "\n".join([
         copy_block("preferences", ["id", "name", "string_value", "user_id"], [
             (1, "accounting_system", "fr_pcga", None), (2, "fiscal_position", "fr_ba_ir", None)]),
@@ -61,13 +87,17 @@ def build_sql(legal=None):
             (2, "V2", 3, "invoice", "f", "2025-04-02 00:00:00", "2025-04-02 00:00:00", "11.00", "10.00", 4),
             (3, "V3", 4, "invoice", "f", "2025-04-03 00:00:00", "2025-04-03 00:00:00", "11.00", "10.00", 5)]),
         copy_block("cashes", ["id", "name", "nature", "main_account_id", "journal_id"], [(1, "Banque", "bank_account", 8, 1)]),
+        *(extras_sql() if extras else []),
     ]) + "\n"
 
 
-def _archive(tmp_path, legal=None):
-    path = tmp_path / f"ferme-{legal or 'x'}.zip"
+def _archive(tmp_path, legal=None, extras=False):
+    path = tmp_path / f"ferme-{legal or 'x'}{'-plus' if extras else ''}.zip"
     with zipfile.ZipFile(path, "w") as zf:
-        zf.writestr("ferme.sql", build_sql(legal))
+        zf.writestr("ferme.sql", build_sql(legal, extras))
+        if extras:
+            for doc, content in ((7, b"%PDF-1.4 facture"), (8, b"%PDF-1.4 releve"), (9, b"%PDF-1.4 ancien"), (10, b"%PDF-1.4 vente")):
+                zf.writestr(f"files/attachments/documents/000/000/{doc:03d}/original.pdf", content)
     return path
 
 
@@ -207,3 +237,40 @@ def test_opening_check_and_cumulative_control(farm):
     results = {c.key: c for c in checks.run(data, std, mapping["entities"])}
     assert results["opening_computed"].ok and "12 Résultat de l'exercice : -300.00 €" in results["opening_computed"].details
     assert importer.compare_balances.__doc__ and "RE-C6" in importer.compare_balances.__doc__
+
+
+def test_period_documents_loan_and_foreign_vat(app, tmp_path, monkeypatch):
+    """Lot RE3 : pièces de la période (Q8), emprunt et TVA étrangère (D-R3) au rapport."""
+    from app.extensions import db
+    from app.models import Account, Purchase, SaleLine
+    from app.models.bank_statement import BankStatement
+    from app.services.ekylibre import importer
+    monkeypatch.setattr(app, "instance_path", str(tmp_path))
+    for code, label in (("101", "Capital"), ("164", "Emprunts"), ("401", "Fournisseurs"), ("411", "Clients"),
+                        ("445", "État TVA"), ("512", "Banque"), ("601", "Achats"), ("701", "Ventes")):
+        db.session.add(Account(code=code, label=label, account_type="OTHER", is_header=True))
+    db.session.commit()
+    archive = _archive(tmp_path, extras=True)
+    data = _data(archive)
+    std = profile.standard(data)
+    assert std.attachments_from == 2025                                       # Q8 : 1re année reprise
+    data.set_period(std.start, std.until)
+    chart = Chart.from_database()
+    plan = report.plan(data, chart, std)
+    with open_source(archive) as source:
+        ctx = importer.run(data, plan["accounts"], plan["entities"], chart, source=source,
+                           attachments_from=std.attachments_from, profile=std)
+    db.session.commit()
+    assert Purchase.query.one().attachment_name == "semences.pdf"
+    statement = BankStatement.query.one()                                     # 2024 hors période : non repris
+    assert (statement.period, statement.source, statement.file_name) == (date(2025, 3, 1), "ekylibre", "releve-2025-03.pdf")
+    assert ctx.stats["statement_files"] == 1 and ctx.stats["attachments"] == 1
+    assert any("1 pièce(s) de vente" in n for n in ctx.notes)
+    assert sorted(l.vat_rate_bp for l in SaleLine.query) == [1000, 2100]
+    text = report.render(data, plan, [], str(archive), dry_run=False, imported=ctx, profile=std)
+    loans = text.split("## Emprunts")[1].split("##")[0]
+    assert "Emprunt tracteur" in loans and "| 10 mois |" in loans and "| 2 / 3 | 0 / 2 | 800,00 € |" in loans
+    assert "⚠️" in loans                                                      # échéances échues non passées
+    oss = text.split("## TVA étrangère des ventes (OSS)")[1].split("##")[0]
+    assert "| BE | 21 % | 1 | 10,00 € | 2,10 € | 44575992 |" in oss and "| FR" not in oss
+    assert "Relevé 03/2025 — Banque" in text

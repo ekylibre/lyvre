@@ -24,7 +24,7 @@ class Profile:
     land_reclass: bool = False            # EK6 : terrains (Bois, Terres) reclassés en 211
     validate_rule: str = "locked_years"   # « confirmed » (EK2) | « locked_years » (Q4)
     sales_states: frozenset = field(default_factory=lambda: frozenset({"invoice", "draft", "estimate"}))
-    attachments_from: int | None = None   # SCI : 2026 (achats) ; standard : pièces de la période (lot RE3)
+    attachments_from: int | None = None   # SCI : 2026 (achats) ; standard : 1re année reprise (Q8)
     associates_from_cashes: bool = True   # Q9 : comptes courants d'associés → associés sans parts (lot RE3)
     agronomy: frozenset = field(default_factory=lambda: frozenset({"activities", "surfaces", "stock"}))
     copy_access_from: str | None = None
@@ -94,7 +94,7 @@ def standard(data: EkyData, chart: str | None = None, start: date | None = None,
     if until is None and years:
         until = day(years[-1]["stopped_on"])
     return Profile(name="standard", chart=chart, start=start, until=until, absorb_purchase_vat=not subjected,
-                   notes=tuple(notes))
+                   attachments_from=start.year if start else None, notes=tuple(notes))
 
 
 def with_period(profile: Profile, start: date | None = None, until: date | None = None) -> Profile:

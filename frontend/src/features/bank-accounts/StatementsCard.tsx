@@ -14,7 +14,7 @@ import { formatDateTime } from "../../lib/format";
 import { BANK_ACCOUNTS_KEY } from "./types";
 
 export interface Statement {
-  id: number; source: "qonto" | "upload"; file_name: string | null; file_size: number;
+  id: number; source: "qonto" | "upload" | "ekylibre"; file_name: string | null; file_size: number;
   fetched_at: string | null; replaced_at: string | null; url: string;
 }
 export interface StatementsList {
@@ -108,7 +108,7 @@ export function StatementsCard({ bankAccountId }: { bankAccountId: number }) {
                 <Table.Td>{statement
                   ? <Group gap={6}><Anchor href={statement.url} target="_blank" rel="noopener" size="sm">
                       {statement.file_name || `Relevé ${period}`}</Anchor>
-                      <StatusBadge tone="info">{statement.source === "qonto" ? "Qonto" : "Déposé"}</StatusBadge>
+                      <StatusBadge tone="info">{statement.source === "qonto" ? "Qonto" : statement.source === "ekylibre" ? "Ekylibre" : "Déposé"}</StatusBadge>
                       {statement.replaced_at && <StatusBadge tone="neutral">Remplacé</StatusBadge>}</Group>
                   : <StatusBadge tone="todo">Manquant</StatusBadge>}</Table.Td>
                 <Table.Td className="lv-num">{statement ? formatDateTime(statement.replaced_at ?? statement.fetched_at) : "—"}</Table.Td>

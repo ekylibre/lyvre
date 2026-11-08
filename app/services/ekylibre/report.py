@@ -1,9 +1,9 @@
 """Rapport de reprise (Markdown) : source, période, volumes, contrôles, correspondances, corrections."""
-from collections import Counter
-from datetime import datetime
+from collections import Counter, defaultdict
+from datetime import datetime, timedelta
 
 from app.services.ekylibre import checks as checks_module
-from app.services.ekylibre.data import EkyData
+from app.services.ekylibre.data import EkyData, cents, day
 from app.services.ekylibre.mapping import (
     AccountTarget, Chart, EntityTarget, map_accounts, map_entities, map_journal,
 )
@@ -29,6 +29,77 @@ def plan(data: EkyData, chart: Chart, profile=None) -> dict:
     journals = Counter(data.journal_code(e["journal_id"]) for e in data.entries())
     return {"accounts": accounts, "entities": entities, "opening": opening,
             "journals": {code: (map_journal(code), n) for code, n in sorted(journals.items())}}
+
+
+def _euros(amount: int) -> str:
+    return f"{amount / 100:,.2f} €".replace(",", " ").replace(".", ",")
+
+
+def _code(accounts: dict, number: str | None) -> str:
+    target = accounts.get(number) if number else None
+    return f"{number} → {target.code}" if target is not None else (number or "—")
+
+
+PERIODS = {"month": "mois", "trimester": "trimestres", "semester": "semestres", "year": "ans"}
+
+
+def loans_section(data: EkyData, accounts: dict) -> list[str]:
+    """Emprunts (lot RE3) : Lyvre n'a pas de fiche d'emprunt ; écritures reprises, échéancier résumé ici."""
+    loans = data.loans()
+    if not loans:
+        return []
+    out = ["", "## Emprunts", "",
+           "Lyvre n'a pas de fiche d'emprunt : les écritures d'Ekylibre (déblocage, échéances passées) sont reprises ; "
+           "les échéances à venir ne sont pas créées. Capital restant dû (échéancier) comparé au solde du compte "
+           "d'emprunt : un écart vient d'échéances échues non passées en écriture dans Ekylibre.", ""]
+    rows = []
+    balances = data.balances_before(data.until + timedelta(days=1))
+    for loan in loans:
+        repayments = data.repayments_of(loan["id"])
+        due = [r for r in repayments if day(r["due_on"]) <= data.until]
+        remaining = cents(due[-1]["remaining_amount"]) if due else cents(loan["amount"])
+        number = data.account_number(loan.get("loan_account_id"))
+        balance = -balances.get(number, 0) if number else 0
+        lender = (data.get("entities", loan.get("lender_id")) or {}).get("full_name") or "—"
+        booked = sum(1 for r in due if r.get("journal_entry_id"))
+        rows.append((loan.get("name") or "—", lender, _euros(cents(loan["amount"])), f"{day(loan['started_on']):%d/%m/%Y}",
+                     f"{loan.get('repayment_duration')} {PERIODS.get(loan.get('repayment_period'), loan.get('repayment_period'))}",
+                     f"{float(loan.get('interest_percentage') or 0):.2f} %".replace(".", ","),
+                     f"{len(due)} / {len(repayments)}", f"{booked} / {len(due)}", _euros(remaining), _code(accounts, number),
+                     _euros(balance) + ("" if balance == remaining else " ⚠️")))
+    out += _table(["Emprunt", "Prêteur", "Montant", "Début", "Durée", "Taux", "Échéances échues", "Passées en écriture",
+                   "Capital restant dû",
+                   "Compte", "Solde du compte"], rows)
+    return out + [""]
+
+
+def foreign_vat_section(data: EkyData, accounts: dict, profile=None) -> list[str]:
+    """D-R3 : ventes à taux étrangers (ventes à distance dans l'Union), à vérifier sur le guichet unique (OSS)."""
+    states = profile.sales_states if profile is not None else None
+    totals = defaultdict(lambda: [0, 0, 0, set()])
+    for sale in data.sales():
+        if states is not None and sale.get("state") not in states:
+            continue
+        for item in data.sale_items[sale["id"]]:
+            tax = data.get("taxes", item.get("tax_id")) or {}
+            if (tax.get("country") or "fr") == "fr":
+                continue
+            row = totals[(tax["country"].upper(), tax.get("amount"))]
+            pretax = cents(item.get("pretax_amount"))
+            row[0] += 1
+            row[1] += pretax
+            row[2] += cents(item.get("amount")) - pretax
+            row[3].add(_code(accounts, data.account_number(tax.get("collect_account_id"))))
+    if not totals:
+        return []
+    out = ["", "## TVA étrangère des ventes (OSS)", "",
+           "Taux repris tels quels sur les lignes de vente, TVA sur le compte de collecte d'Ekylibre (D-R3). "
+           "Lyvre ne déclare pas le guichet unique : vérifier ces montants sur la déclaration OSS, et que ces comptes "
+           "sont bien exclus de la CA3.", ""]
+    out += _table(["Pays", "Taux", "Lignes", "Base HT", "TVA", "Compte"],
+                  [(country, f"{float(rate or 0):g} %".replace(".", ","), n, _euros(base), _euros(vat), ", ".join(sorted(acc)))
+                   for (country, rate), (n, base, vat, acc) in sorted(totals.items())])
+    return out + [""]
 
 
 def _table(headers, rows) -> list[str]:
@@ -99,7 +170,7 @@ def render(data: EkyData, mapping: dict, results: list[checks_module.Check], sou
             out += ["", "Contrôle : balance Lyvre = balance Ekylibre de la période, corrections de TVA comprises (aucun écart).", ""]
         if imported.attachments:
             out += ["### Pièces reprises", ""]
-            out += _table(["Facture", "Fichier", "SHA-256 (début)"], imported.attachments)
+            out += _table(["Pièce", "Fichier", "SHA-256 (début)"], imported.attachments)
             out.append("")
         out += ["### Règles d'affectation créées", ""]
         out += _table(["Tiers", "Sorte", "Valeur"], imported.rules) if imported.rules else ["Aucune."]
@@ -108,6 +179,8 @@ def render(data: EkyData, mapping: dict, results: list[checks_module.Check], sou
             out += _table(["Motif", "Raison"], imported.rules_skipped)
         out.append("")
         out += ["### Remarques", ""] + [f"- {note}" for note in imported.notes]
+    if profile is not None and not profile.is_sci:
+        out += loans_section(data, accounts) + foreign_vat_section(data, accounts, profile)
     corrections = []
     if profile is None or profile.absorb_purchase_vat:
         corrections.append("- TVA déductible des achats intégrée à la charge (EK3) : voir le contrôle « TVA ».")

@@ -16,6 +16,7 @@ TABLES = {
     "incoming_payments", "incoming_payment_modes", "affairs", "cashes", "bank_statements",
     "bank_statement_items", "attachments", "documents", "associates", "fixed_assets", "taxes",
     "preferences",   # lot RE1 : référentiel détecté (accounting_system, fiscal_position)
+    "loans", "loan_repayments",   # lot RE3 : emprunts au rapport (Lyvre n'a pas de fiche d'emprunt)
 }
 WIDE_START, WIDE_UNTIL = date(1900, 1, 1), date(2999, 12, 31)   # chargement avant la détection de la période
 
@@ -160,6 +161,19 @@ class EkyData:
                 if other["entry_id"] != entry_id and other["entry_id"] in self.statement_items_by_entry:
                     return self.statement_items_by_entry[other["entry_id"]]
         return None
+
+    def bank_statements(self) -> list[dict]:
+        """Relevés de la période (par la date de fin), dans l'ordre."""
+        return sorted((s for s in self.rows["bank_statements"] if self.in_period(s.get("stopped_on") or s.get("started_on"))),
+                      key=lambda s: (s.get("started_on") or "", int(s["id"])))
+
+    def loans(self) -> list[dict]:
+        """Emprunts commencés au plus tard à la date limite."""
+        return sorted((l for l in self.rows["loans"] if l.get("started_on") and day(l["started_on"]) <= self.until),
+                      key=lambda l: (l["started_on"], int(l["id"])))
+
+    def repayments_of(self, loan_id) -> list[dict]:
+        return sorted((r for r in self.rows["loan_repayments"] if r["loan_id"] == loan_id), key=lambda r: int(r["position"]))
 
     def documents_of(self, resource_type, resource_id) -> list[dict]:
         return [self.get("documents", a["document_id"]) for a in self.attachments.get((resource_type, resource_id), [])

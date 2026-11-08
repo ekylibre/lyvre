@@ -15,6 +15,7 @@ from app.models import (
     Account, Associate, BankAccount, Product, Rule, BankTransaction, Entity, FiscalYear, Journal, JournalEntry, Lettering, Purchase,
     PurchaseLine, PurchasePayment, Sale, SaleLine, SalePayment, ShareMovement, ShareMovementLine,
 )
+from app.models.bank_statement import SOURCE_EKYLIBRE as STATEMENT_SOURCE_EKYLIBRE, BankStatement
 from app.models.journal_entry import SOURCE_OPENING
 from app.services import lettering, validation
 from app.services.ekylibre.checks import vat_lines
@@ -737,7 +738,53 @@ def step_attachments(ctx: Context, source, year_from: int) -> None:
             ctx.stats["attachments"] += 1
         if len(documents) > 1:
             ctx.notes.append(f"Achat {purchase.invoice_number} : {len(documents)} pièces, la première seule est reprise.")
+    if not ctx.profile.is_sci:
+        _statement_files(ctx, source, year_from)
+        _documents_left(ctx)
     db.session.flush()
+
+
+def _statement_files(ctx: Context, source, year_from: int) -> None:
+    """Q8 : relevés bancaires PDF de la période, rangés comme les relevés déposés (un par compte et par mois)."""
+    import hashlib
+
+    from app.services import bank_statements
+    for statement in ctx.data.bank_statements():
+        bank = ctx.bank_accounts.get(statement["cash_id"])
+        started = day(statement.get("started_on") or statement.get("stopped_on"))
+        if bank is None or started is None or started.year < year_from:
+            continue
+        period = started.replace(day=1)
+        for document in ctx.data.documents_of("BankStatement", statement["id"])[:1]:
+            found = source.document_file(document["id"])
+            if found is None or not found[1].startswith(b"%PDF"):
+                ctx.notes.append(f"Relevé {statement.get('number') or ''} du {period:%m/%Y} ({bank.label}) : "
+                                 "fichier absent de l'archive ou pas en PDF, non repris.")
+                continue
+            if BankStatement.query.filter_by(bank_account_id=bank.id, period=period).first() is not None:
+                ctx.notes.append(f"Relevé {statement.get('number') or ''} du {period:%m/%Y} ({bank.label}) : "
+                                 "un relevé de ce mois est déjà repris (un par mois dans Lyvre), non repris.")
+                continue
+            original = (document.get("file_file_name") or f"releve-{period:%Y-%m}.pdf")[:255]
+            bank_statements.save(bank, period, found[1], source=STATEMENT_SOURCE_EKYLIBRE, file_name=original)
+            ctx.attachments.append((f"Relevé {period:%m/%Y} — {bank.label}", original, hashlib.sha256(found[1]).hexdigest()[:16]))
+            ctx.stats["statement_files"] += 1
+
+
+DOCUMENT_KINDS = {"Sale": "pièce(s) de vente (PDF produits par Ekylibre ; Lyvre produit les siens)",
+                  "JournalEntry": "pièce(s) d'écritures", "Payslip": "bulletin(s) de paie", "Parcel": "pièce(s) de livraisons",
+                  "OutgoingPayment": "pièce(s) de règlements", "ProductNatureVariant": "pièce(s) d'articles",
+                  "IncomingPayment": "pièce(s) d'encaissements"}
+
+
+def _documents_left(ctx: Context) -> None:
+    """Pièces d'Ekylibre que Lyvre ne range pas (pas de champ pièce sur ces objets) : nombres au rapport."""
+    left = Counter()
+    for (kind, _id), rows in ctx.data.attachments.items():
+        if kind not in ("Purchase", "BankStatement"):
+            left[kind] += len(rows)
+    for kind, count in sorted(left.items()):
+        ctx.notes.append(f"Non repris, reste dans la sauvegarde : {count} {DOCUMENT_KINDS.get(kind, f'pièce(s) « {kind} »')}.")
 
 
 # ------------------------------------------------------------------ structure (fiche de l'organisation)
