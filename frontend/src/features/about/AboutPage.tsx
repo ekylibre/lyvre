@@ -9,8 +9,8 @@ import {
   useComputedColorScheme,
 } from "@mantine/core";
 import {
-  BadgeCheck, Banknote, BarChart3, BookOpen, Building2, Calculator, FileCheck2, FileText, HandCoins, Home, Landmark, Receipt,
-  ShieldCheck, Users,
+  BadgeCheck, Banknote, BarChart3, BookOpen, Briefcase, Building2, Calculator, FileCheck2, FileText, HandCoins, Home, Landmark,
+  Receipt, ShieldCheck, Sprout, Users,
 } from "lucide-react";
 import symbol from "../../assets/lyvre-symbole.svg";
 import symbolInverse from "../../assets/lyvre-symbole-inverse.svg";
@@ -24,7 +24,7 @@ interface Domain { icon: ReactNode; title: string; items: string[] }
 
 const DOMAINS: Domain[] = [
   { icon: <BookOpen size={18} />, title: "Comptabilité", items: [
-    "Plan comptable associatif (règlement ANC 2018-06), SCI ou société (PCG 2026, bilan et résultat de la liasse 2050), choisi par structure",
+    "Plan comptable associatif (règlement ANC 2018-06), agricole, SCI ou société (PCG 2026, bilan et résultat de la liasse 2050), choisi par structure",
     "Partie double : saisie au clavier, journaux, grand livre, balance, bilan et compte de résultat N / N-1",
     "Comptabilité simplifiée : recettes et dépenses par catégorie, sans débit ni crédit, passage en partie double sans ressaisie",
     "Écritures validées par lots, intangibles ensuite (extourne pour corriger), historique ; verrouillage de période",
@@ -32,6 +32,7 @@ const DOMAINS: Domain[] = [
     "Immobilisations : composants, plans linéaire et dégressif, dotations à la clôture, cession ; charges et produits constatés d'avance",
     "Contributions volontaires en nature (86 / 87), TVA par exercice",
     "TVA codée sur les écritures et déclaration CA3 mensuelle préparée (autoliquidation, importations, avoirs), PDF et tableur pour TeleDEC",
+    "Éditions réunies : bilan, compte de résultat, soldes intermédiaires de gestion, balance, grand livre, journaux",
   ] },
   { icon: <Landmark size={18} />, title: "Banque et caisse", items: [
     "Import OFX et synchronisation Qonto, dédoublonnage",
@@ -49,7 +50,22 @@ const DOMAINS: Domain[] = [
   { icon: <FileText size={18} />, title: "Ventes", items: [
     "Devis, factures et avoirs numérotés, PDF Factur-X, écriture au journal des ventes, envoi par email",
     "Encaissements rapprochés de la banque, TVA à l'encaissement ou sur les débits, relances",
-    "Factures récurrentes, avis d'échéance et quittances ; émission par Qonto en option",
+    "Factures récurrentes, avis d'échéance et quittances",
+    "Facture électronique : émission et réception par une plateforme agréée, SuperPDP ou Qonto (une seule à la fois, comme le veut la réforme)",
+  ] },
+  { icon: <Sprout size={18} />, title: "Exploitation agricole", items: [
+    "Plan agricole, micro-BA, réel simplifié ou normal ; TVA agricole (RFA, acomptes, CA12A, CA3 trimestrielle)",
+    "Échéancier fiscal, social (MSA) et PAC avec résumé du lundi par email et calendrier iCal",
+    "Aides PAC et subventions, inventaire et stocks, avances aux cultures, biens vivants, ICHN",
+    "Activités et campagnes : surfaces, marges par activité, ventilation analytique",
+    "Résultat fiscal, DEP, aide à la liasse et assiette MSA ; e-reporting des ventes aux particuliers",
+    "Calculettes agricoles et assistant (Claude) qui répond sur le dossier et prépare des brouillons à valider",
+    "Lecture d'Ekylibre : activités, surfaces, coûts des interventions et quantités en stock",
+  ] },
+  { icon: <Briefcase size={18} />, title: "Entreprise de services", items: [
+    "SAS, SASU, SARL : capital, associés et comptes courants, exercice décalé",
+    "Bilan et compte de résultat de la liasse 2050, CA3 avec contrôles et verrou, exports pour TeleDEC",
+    "Ventes et achats en engagement, encours clients, relances, rapprochement avec Qonto",
   ] },
   { icon: <Home size={18} />, title: "SCI et baux", items: [
     "Associés : registre des parts, comptes courants, notes de frais, gérants",
@@ -71,7 +87,8 @@ const DOMAINS: Domain[] = [
     "Assistant de clôture en 8 étapes : contrôles, écritures d'inventaire, fonds dédiés, résultat, FEC",
     "Clôture provisoire puis définitive, réouverture motivée, à-nouveaux et extournes, affectation du résultat",
     "Fichier des écritures comptables (FEC) conforme à l'article A47 A-1 du LPF",
-    "Reprise d'historique depuis un FEC, un tableur ou un export Ekylibre (écritures, tiers, lettrage, pièces)",
+    "Reprise d'historique depuis un FEC, un export Isacompta ou un tableur",
+    "Restauration d'une sauvegarde Ekylibre en une fois : écritures et à-nouveaux, tiers, banque, achats et ventes, pièces, activités et dernier inventaire, avec rapport de contrôle",
   ] },
   { icon: <Calculator size={18} />, title: "Budget et projets", items: [
     "Projets ou activités sur les écritures, les achats et les règles ; ventilation d'une ligne",
@@ -79,11 +96,12 @@ const DOMAINS: Domain[] = [
     "Compte de résultat d'un projet pour un financeur, exports tableur",
   ] },
   { icon: <BarChart3 size={18} />, title: "Pilotage et rapport d'AG", items: [
-    "Tableau de bord : résultat, facturé et encours clients, trésorerie, budget",
+    "Tableau de bord : ce qui est à traiter, échéancier de la semaine, résultat, facturé et encours clients, trésorerie, budget",
+    "Documents : toutes les pièces (factures, relevés, baux, reçus) consultables au même endroit",
     "Indicateurs de visibilité et d'impact, rapport d'activité PDF / DOCX / ODT",
   ] },
   { icon: <ShieldCheck size={18} />, title: "Collaboration et souveraineté", items: [
-    "Plusieurs structures dans une même installation, une base par structure ; écrans adaptés à l'association ou à la SCI",
+    "Plusieurs structures dans une même installation, une base par structure ; écrans adaptés à l'association, à la SCI, à l'exploitation ou à la société",
     "Rôles par structure : administrateur, trésorier, expert-comptable en lecture seule ; mot de passe oublié par email",
     "Logiciel libre (AGPL-3.0), auto-hébergé, sauvegardes avec les pièces jointes",
   ] },
@@ -125,13 +143,13 @@ const OSS_ROWS: Row[] = [
   { key: "entry_lock", label: "Écritures validées intangibles", lyvre: "yes" },
   { key: "fixed_assets", label: "Immobilisations, amortissements", lyvre: "yes" },
   { key: "vat_return", label: "Déclaration de TVA préparée", lyvre: "yes", note: "Lyvre : CA3 mensuelle, saisie sur TeleDEC" },
-  { key: "einvoicing", label: "Facture électronique, plateforme agréée", lyvre: "partial", note: "Lyvre : Factur-X émis et lu, émission par Qonto" },
+  { key: "einvoicing", label: "Facture électronique, plateforme agréée", lyvre: "yes", note: "Lyvre : Factur-X émis et lu, SuperPDP ou Qonto" },
   { key: "sepa_online", label: "Prélèvement SEPA, paiement en ligne", lyvre: "no" },
 ];
 
 const LIMITS = [
   "Pas d'application mobile native : l'interface s'adapte au téléphone.",
-  "Pas de remise de chèques ni de billetterie ; la facture électronique (réforme 2026-2027) passe par Qonto.",
+  "Pas de remise de chèques ni de billetterie ; la facture électronique (réforme 2026-2027) passe par une plateforme agréée, SuperPDP ou Qonto.",
   "Déclaration de TVA préparée mais pas transmise : la CA3 se saisit sur TeleDEC (pas d'envoi EDI), pas de CA12 annuelle.",
   "Pas de paiement en ligne propre : les adhésions et dons en ligne passent par HelloAsso.",
   "Modèles de reçus fiscaux à faire relire face aux formulaires Cerfa en vigueur avant usage.",
@@ -207,11 +225,12 @@ export default function AboutPage() {
 
         <Stack gap="xs" mt={48} mb={40} maw={760}>
           <Badge variant="light" color="lichen" w="fit-content">Logiciel libre · AGPL-3.0 · auto-hébergé</Badge>
-          <Title order={1} fz={{ base: 32, sm: 42 }} lh={1.15}>La comptabilité des associations, libre, sobre et souveraine.</Title>
+          <Title order={1} fz={{ base: 32, sm: 42 }} lh={1.15}>La comptabilité innovante, libre, sobre et souveraine.</Title>
           <Text size="lg" c="dimmed">
-            Lyvre tient la comptabilité d'une association ou d'une SCI, de la saisie au bilan : banque et caisse,
-            achats et ventes, adhésions, dons et reçus fiscaux, baux, budget et projets, immobilisations, clôture et
-            FEC pour l'expert-comptable. En partie double, ou simplifiée pour les petites structures.
+            Lyvre tient la comptabilité d'une association, d'une SCI, d'une exploitation agricole ou d'une entreprise de
+            services, de la saisie au bilan : banque et caisse, achats et ventes, facture électronique, adhésions et
+            dons, baux, échéancier, activités et stocks, immobilisations, clôture et FEC pour l'expert-comptable. En
+            partie double, ou simplifiée pour les petites structures.
           </Text>
         </Stack>
 
@@ -260,6 +279,8 @@ export default function AboutPage() {
               <List.Item>Pour une SCI : baux, carte des parcelles, signature électronique et révision des loyers.</List.Item>
               <List.Item>Tiers pré-remplis depuis Sirene, adhérents synchronisés vers Brevo.</List.Item>
               <List.Item>Partie double ou simplifiée, avec passage de l'une à l'autre sans ressaisie.</List.Item>
+              <List.Item>Pour une exploitation : échéancier fiscal, MSA et PAC, inventaire, marges par activité et assistant.</List.Item>
+              <List.Item>Arrivée depuis Ekylibre en une restauration contrôlée, soldes vérifiés compte par compte.</List.Item>
             </List>
           </Paper>
           <Paper p="md">

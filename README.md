@@ -7,7 +7,7 @@
 
 # Lyvre
 
-**La comptabilité des associations et des SCI, libre, sobre et souveraine.**
+**La comptabilité innovante, libre, sobre et souveraine** : association, SCI, exploitation agricole ou entreprise de services.
 
 De la saisie au bilan : banque et caisse, achats et ventes, adhésions et reçus fiscaux, baux,
 budget, immobilisations, clôture et FEC pour l'expert-comptable. Hébergé chez vous.
