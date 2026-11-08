@@ -302,6 +302,8 @@ MENUS = [
             {"key": "ofx", "label": "Fichier OFX", "icon": "file-up", "endpoint": "imports.ofx", "charts": _ALL},
             {"key": "reprise", "label": "Reprise d'historique", "icon": "history", "endpoint": "imports.reprise", "charts": _ALL,
              "admin_only": True, "bookkeeping": _DOUBLE},
+            {"key": "ekylibre", "label": "Sauvegarde Ekylibre", "icon": "archive-restore", "endpoint": "imports.ekylibre",
+             "charts": _ALL, "admin_only": True, "bookkeeping": _DOUBLE},
             {"key": "eco_import", "label": "Import de tonnages", "icon": "recycle", "endpoint": "activity_report.eco", "charts": _ASSO, "admin_only": True},
         ],
     },

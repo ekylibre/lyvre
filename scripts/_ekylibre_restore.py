@@ -12,17 +12,8 @@ from types import SimpleNamespace
 
 def analyse(source_path, make_profile):
     """Lecture complète, profil (`make_profile(data)`), période, correspondances et contrôles."""
-    from app.services.ekylibre import checks, report
-    from app.services.ekylibre.data import WIDE_START, WIDE_UNTIL, EkyData
-    from app.services.ekylibre.mapping import Chart, chart_file
-    from app.services.ekylibre.reader import open_source
-    with open_source(source_path) as source:
-        data = EkyData.load(source, WIDE_START, WIDE_UNTIL)
-    profile = make_profile(data)
-    data.set_period(profile.start, profile.until)
-    mapping = report.plan(data, Chart.from_file(chart_file(profile.chart)), profile)
-    results = checks.run(data, profile, mapping["entities"])
-    return data, mapping, results, profile
+    from app.services.ekylibre.restore import analyse as shared
+    return shared(source_path, make_profile)
 
 
 def dry_run(source_path, make_profile) -> tuple[str, int]:

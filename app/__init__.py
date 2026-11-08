@@ -17,6 +17,15 @@ def create_app(config_name=None):
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+
+    @app.before_request
+    def _large_uploads():
+        """Sauvegardes Ekylibre avec pièces (lot RE6) : limite relevée avant la lecture du formulaire (CSRF)."""
+        from flask import request
+        if request.path == "/api/v1/imports/ekylibre/upload":
+            from .services.ekylibre.restore import MAX_UPLOAD
+            request.max_content_length = MAX_UPLOAD + 1024 * 1024
+
     csrf.init_app(app)
 
     login_manager.login_view = "auth.login"

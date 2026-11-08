@@ -215,3 +215,80 @@ def account_mappings_delete(mapping_id):
     db.session.delete(get_or_404(AccountMapping, mapping_id, "Correspondance introuvable."))
     db.session.commit()
     return jsonify(notices=[notice("Correspondance supprimée.")])
+
+
+# ------------------------------------------------------------------ sauvegarde Ekylibre (lot RE6)
+
+
+def _restore_failure(exc):
+    return ApiError("restore_refused", exc.message, exc.status, fields={exc.field: exc.message} if exc.field else None)
+
+
+@bp.route("/imports/ekylibre")
+@instance_admin_required
+def imports_ekylibre():
+    from app.models import SyncJob
+    from app.services.ekylibre import restore
+    from .session import job_payload
+    job = (SyncJob.query.filter(SyncJob.kind.in_((restore.KIND_ANALYSE, restore.KIND_IMPORT)))
+           .order_by(SyncJob.id.desc()).first())
+    return jsonify(item=restore.overview(), job=job_payload(job) if job is not None else None)
+
+
+@bp.route("/imports/ekylibre/upload", methods=["POST"])
+@instance_admin_required
+def imports_ekylibre_upload():
+    from app.services.ekylibre import restore
+    file = request.files.get("file")
+    if not file or not file.filename:
+        raise invalid("Choisissez une sauvegarde Ekylibre (.zip).", "file")
+    try:
+        restore.store_upload(file)
+    except restore.RestoreError as exc:
+        raise _restore_failure(exc) from None
+    return jsonify(item=restore.overview(), notices=[notice("success", "Sauvegarde déposée : lancez l'analyse.")])
+
+
+@bp.route("/imports/ekylibre", methods=["DELETE"])
+@instance_admin_required
+def imports_ekylibre_discard():
+    from app.services.ekylibre import restore
+    restore.discard()
+    return jsonify(item=restore.overview(), notices=[notice("success", "Sauvegarde et rapport retirés du serveur.")])
+
+
+@bp.route("/imports/ekylibre/analyze", methods=["POST"])
+@instance_admin_required
+def imports_ekylibre_analyze():
+    from flask import current_app
+    from app.services.ekylibre import restore
+    from .session import job_payload
+    try:
+        job = restore.start_analysis(current_app._get_current_object(), json_body())
+    except restore.RestoreError as exc:
+        raise _restore_failure(exc) from None
+    return jsonify(job=job_payload(job)), 202
+
+
+@bp.route("/imports/ekylibre/run", methods=["POST"])
+@instance_admin_required
+def imports_ekylibre_run():
+    from flask import current_app
+    from app.services.ekylibre import restore
+    from .session import job_payload
+    try:
+        job = restore.start_import(current_app._get_current_object(), json_body(), current_user.id)
+    except restore.RestoreError as exc:
+        raise _restore_failure(exc) from None
+    return jsonify(job=job_payload(job)), 202
+
+
+@bp.route("/imports/ekylibre/report")
+@instance_admin_required
+def imports_ekylibre_report():
+    from flask import send_file
+    from app.services.ekylibre import restore
+    path = restore.report_path()
+    if path is None:
+        raise ApiError("not_found", "Aucun rapport : analysez d'abord une sauvegarde.", status=404)
+    return send_file(path, mimetype="text/markdown", as_attachment=True, download_name="rapport-reprise-ekylibre.md")

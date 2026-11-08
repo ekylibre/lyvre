@@ -98,6 +98,7 @@ export const PAGES: Record<string, () => Promise<PageModule>> = {
   "payouts.detail": () => import("../features/payouts/PayoutDetailPage"),
   "imports.ofx": () => import("../features/imports/ImportOfxPage"),
   "imports.reprise": () => import("../features/imports/ImportHistoryPage"),
+  "imports.ekylibre": () => import("../features/imports/ImportEkylibrePage"),
   "purchases.index": () => import("../features/purchases/PurchasesPage"),
   ...pages(["purchases.new", "purchases.edit"], () => import("../features/purchases/PurchaseFormPage")),
   "purchases.detail": () => import("../features/purchases/PurchaseDetailPage"),

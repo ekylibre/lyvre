@@ -26,7 +26,7 @@ def test_asso_only_menus_hidden_for_sci():
     assert "payouts" not in banque_items
     assert not sci["banque"]["items"][-1].get("divider")
     imports_items = [i.get("key") for i in sci["imports"]["items"]]
-    assert imports_items == ["ofx", "reprise"]  # import de tonnages (associations) masqué
+    assert imports_items == ["ofx", "reprise", "ekylibre"]  # import de tonnages (associations) masqué
 
 
 def test_asso_keeps_all_menus():

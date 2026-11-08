@@ -18,6 +18,7 @@ from app.models.sync_job import (
     SYNC_KIND_METRICS, SYNC_KIND_PAYOUT_PAYMENTS, SYNC_KIND_PAYOUTS, SYNC_KIND_QONTO, SYNC_KIND_QONTO_INVOICES,
     SYNC_KIND_QONTO_SALES,
     SYNC_KIND_RECEIPTS_ISSUE, SYNC_KIND_RECEIPTS_SEND, SYNC_KIND_SIRENE_REFRESH, SYNC_KIND_BREVO, SYNC_STATUS_FAILED,
+    SYNC_KIND_EKYLIBRE_ANALYSIS, SYNC_KIND_EKYLIBRE_RESTORE, SYNC_KIND_SUPERPDP,
 )
 
 RETENTION_DAYS = 90
@@ -36,6 +37,9 @@ JOB_LABELS = {
     SYNC_KIND_RECEIPTS_SEND: "Expédition des reçus fiscaux par email",
     SYNC_KIND_SIRENE_REFRESH: "Comparaison des tiers avec Sirene",
     SYNC_KIND_BREVO: "Synchronisation des adhérents avec Brevo",
+    SYNC_KIND_EKYLIBRE_ANALYSIS: "Analyse de la sauvegarde Ekylibre",
+    SYNC_KIND_EKYLIBRE_RESTORE: "Restauration de la sauvegarde Ekylibre",
+    SYNC_KIND_SUPERPDP: "Synchronisation SUPER PDP",
 }
 
 # Intégrations dont dépend un type de job : aucune notification si elles sont toutes désactivées
@@ -49,6 +53,7 @@ JOB_INTEGRATIONS = {
     SYNC_KIND_METRICS: ("ga4", "facebook"),
     SYNC_KIND_RECEIPTS_SEND: ("smtp",),
     SYNC_KIND_BREVO: ("brevo",),
+    SYNC_KIND_SUPERPDP: ("superpdp",),
 }
 
 
@@ -64,7 +69,8 @@ def _url(job: SyncJob) -> str | None:
         return f"/payouts/{job.payout_id}"
     return {SYNC_KIND_PAYOUTS: "/payouts/", SYNC_KIND_QONTO_INVOICES: "/purchases/", SYNC_KIND_QONTO_SALES: "/sales/",
             SYNC_KIND_METRICS: "/impact/", SYNC_KIND_RECEIPTS_ISSUE: "/receipts/?tab=issued",
-            SYNC_KIND_RECEIPTS_SEND: "/receipts/?tab=issued"}.get(job.kind)
+            SYNC_KIND_RECEIPTS_SEND: "/receipts/?tab=issued", SYNC_KIND_EKYLIBRE_ANALYSIS: "/imports/ekylibre",
+            SYNC_KIND_EKYLIBRE_RESTORE: "/imports/ekylibre", SYNC_KIND_SUPERPDP: "/purchases/"}.get(job.kind)
 
 
 def _result(job: SyncJob) -> dict:
@@ -125,6 +131,17 @@ def summary(kind: str, result: dict) -> str:
         return text + (" (arrêtée avant la fin)." if result.get("cancelled") else ".")
     if kind == SYNC_KIND_RECEIPTS_SEND:
         return f"{n('sent')} reçu(s) envoyé(s), {n('skipped')} sans adresse email."
+    if kind == SYNC_KIND_SUPERPDP:
+        text = f"{n('created')} facture(s) d'achat reçue(s) sur {n('read')} lue(s), {n('statuses')} statut(s) mis à jour"
+        if n("without_supplier"):
+            text += f", {n('without_supplier')} sans fournisseur"
+        return text + "."
+    if kind == SYNC_KIND_EKYLIBRE_ANALYSIS:
+        return (f"{n('entries')} écriture(s) lue(s), {n('blocking')} contrôle(s) bloquant(s), "
+                f"{n('warnings')} anomalie(s) signalée(s).")
+    if kind == SYNC_KIND_EKYLIBRE_RESTORE:
+        return (f"{n('entries')} écriture(s), {n('purchases')} achat(s), {n('sales')} vente(s) et "
+                f"{n('entities')} tiers repris ; {n('notes')} remarque(s) au rapport.")
     return "Terminée."
 
 

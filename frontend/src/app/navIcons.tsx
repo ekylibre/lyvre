@@ -2,7 +2,7 @@
 // catégories de calculettes, pour n'embarquer que les icônes utilisées. Un nom inconnu n'affiche rien.
 import type { LucideIcon } from "lucide-react";
 import {
-  Banknote, BookOpen, BookUser, Boxes, Briefcase, Building, Building2, Calculator, CalendarClock, CalendarRange,
+  ArchiveRestore, Banknote, BookOpen, BookUser, Boxes, Briefcase, Building, Building2, Calculator, CalendarClock, CalendarRange,
   ChartLine, ChartNoAxesColumn, Clock, Coins, Contact, CreditCard, Droplets, FileChartColumn, FileChartLine, FileClock,
   FileCog, FileHeart, FileInput, FilePenLine, FileText, FileUp, FolderKanban, FolderOpen, Gauge, GitCompareArrows, HandCoins,
   Handshake, Heart, HeartPulse, History, IdCard, KeyRound, Landmark, LayoutDashboard, ListChecks, ListFilter, ListTree,
@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 export const NAV_ICONS: Record<string, LucideIcon> = {
-  banknote: Banknote, "book-open": BookOpen, "book-user": BookUser, boxes: Boxes, briefcase: Briefcase,
+  "archive-restore": ArchiveRestore, banknote: Banknote, "book-open": BookOpen, "book-user": BookUser, boxes: Boxes, briefcase: Briefcase,
   building: Building, "building-2": Building2, calculator: Calculator, "calendar-clock": CalendarClock,
   "calendar-range": CalendarRange, "chart-line": ChartLine, "chart-no-axes-column": ChartNoAxesColumn, clock: Clock,
   coins: Coins, contact: Contact, "credit-card": CreditCard, droplets: Droplets, "file-chart-column": FileChartColumn,
