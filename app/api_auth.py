@@ -19,7 +19,10 @@ INVALID_MESSAGE = "Clé d'API invalide, expirée ou révoquée."
 
 
 def is_key_request() -> bool:
-    return getattr(g, "api_key", None) is not None
+    """Requête authentifiée par clé : clé vérifiée **et** en-tête Bearer sur cette requête (le contexte `g` peut être
+    partagé entre requêtes en test)."""
+    from flask import has_request_context
+    return has_request_context() and getattr(g, "api_key", None) is not None and _bearer() is not None
 
 
 class KeyAwareSessionInterface(SecureCookieSessionInterface):
@@ -52,6 +55,9 @@ def _unauthorized():
 
 def authenticate():
     g.api_key = None
+    # Utilisateur mis en cache par Flask-Login : jamais repris d'une requête précédente (contexte d'application
+    # partagé, en test) — une requête sans clé relit la session.
+    g.pop("_login_user", None)
     if not request.path.startswith(KEY_PATHS):
         return None
     token = _bearer()
@@ -92,6 +98,8 @@ def authorize():
     from app.api import error_response
     from app.services import api_domains
     view = current_app.view_functions.get(request.endpoint) if request.endpoint else None
+    if getattr(view, "__module__", None) == "app.api.agent":
+        return None       # outils d'agent : domaine contrôlé par outil (app/services/agent_tools.py)
     domain = api_domains.domain_of(request.endpoint, getattr(view, "__module__", None))
     if domain is None:
         return error_response("forbidden_for_key", "Cette adresse n'est pas ouverte aux clés d'API.", 403)

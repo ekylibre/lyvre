@@ -298,6 +298,18 @@ Une dépense sans facture (Q3) passe par le même outil : la pièce est le ticke
 - Tests : `tests/api/test_api_keys.py` (10 tests), `apiKeys.test.ts`.
 - Mise en production : lancer `seed_meta.py`, comme le fait déjà l'entrypoint Docker, pour créer `api_keys`.
 
+**AK2 (08/11/2026)** :
+- `app/mcp_server.py` : `POST /mcp`, JSON-RPC 2.0, sans état. Méthodes `initialize` (instructions de la structure), `ping`, `tools/list`, `tools/call` ; lots de messages ; notifications reçues en 202. `GET` et `DELETE` répondent 405. Contrôles : `Origin`, `MCP-Protocol-Version`.
+- `app/services/agent_tools.py` : registre par domaine.
+  - 14 outils de l'assistant repris.
+  - 7 outils nouveaux : `list_purchases`, `get_purchase`, `get_bank_accounts`, `list_bank_transactions`, `list_sales`, `find_party`, `list_assets`.
+  - Contrôle des arguments par le schéma. Une lecture est toujours annulée en fin d'appel (rollback).
+- `app/api/agent.py` : `GET /api/v1/agent/tools`, `POST /api/v1/agent/tools/<outil>`, par clé seulement.
+- Tests :
+  - `tests/api/test_mcp.py` (8 tests) ;
+  - `tests/api/test_mcp_reference_client.py` : client officiel `mcp` 2.3.0 en HTTP réel. Le SDK n'est pas dans `requirements.txt` ; le test est sauté sans lui.
+- Essai sur les données d'essai locales : les 21 outils répondent.
+
 ## 11. Sécurité (contrôle)
 - Le secret ne transite que dans l'en-tête. La clé n'apparaît ni dans une URL, ni dans un journal applicatif ; `api_calls` ne garde que `key_id`.
 - Comparaison en temps constant. Un `public_id` inconnu passe aussi par une comparaison factice (même durée).

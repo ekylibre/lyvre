@@ -82,6 +82,10 @@ def create_app(config_name=None):
     from .api import register_api
     register_api(app)
 
+    # Serveur MCP (lot AK2) : POST /mcp, par clé d'API.
+    from .mcp_server import register as register_mcp
+    register_mcp(app)
+
     from .commands import register_commands
     register_commands(app)
 

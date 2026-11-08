@@ -39,6 +39,7 @@ MODULE_DOMAINS: dict[str, str | None] = {
     "subscriptions": "sales", "task_types": "accounting", "tax_profiles": "tax", "tax_result": "tax",
     "users": None, "vat_books": "tax", "vat_returns": "tax", "work_times": "accounting",
     "api_keys": None,
+    "agent": None,        # outils d'agent : clé seulement, domaine contrôlé par outil (app/api_auth.py)
 }
 
 # Modules mixtes : domaine par endpoint.
