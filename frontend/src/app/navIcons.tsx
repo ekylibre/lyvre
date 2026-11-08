@@ -2,6 +2,7 @@
 // catégories de calculettes, pour n'embarquer que les icônes utilisées. Un nom inconnu n'affiche rien.
 import type { LucideIcon } from "lucide-react";
 import {
+  Bot,
   ArchiveRestore, Banknote, BookOpen, BookUser, Boxes, Briefcase, Building, Building2, Calculator, CalendarClock, CalendarRange,
   ChartLine, ChartNoAxesColumn, Clock, Coins, Contact, CreditCard, Droplets, FileChartColumn, FileChartLine, FileClock,
   FileCog, FileHeart, FileInput, FilePenLine, FileText, FileUp, FolderKanban, FolderOpen, Gauge, GitCompareArrows, HandCoins,
@@ -20,7 +21,7 @@ export const NAV_ICONS: Record<string, LucideIcon> = {
   "file-input": FileInput, "file-pen-line": FilePenLine, "file-text": FileText, "file-up": FileUp,
   "folder-kanban": FolderKanban, "folder-open": FolderOpen, gauge: Gauge, "git-compare-arrows": GitCompareArrows, "hand-coins": HandCoins,
   handshake: Handshake, heart: Heart, "heart-pulse": HeartPulse, history: History, "id-card": IdCard,
-  "key-round": KeyRound, landmark: Landmark, "layout-dashboard": LayoutDashboard, "list-checks": ListChecks,
+  bot: Bot, "key-round": KeyRound, landmark: Landmark, "layout-dashboard": LayoutDashboard, "list-checks": ListChecks,
   "list-filter": ListFilter, "list-tree": ListTree, megaphone: Megaphone, "notebook-pen": NotebookPen,
   package: Package, percent: Percent, "piggy-bank": PiggyBank, plug: Plug, receipt: Receipt,
   "receipt-euro": ReceiptEuro, "receipt-text": ReceiptText, recycle: Recycle, repeat: Repeat, "repeat-2": Repeat2,

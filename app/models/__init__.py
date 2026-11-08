@@ -2,6 +2,7 @@ from .user import User
 from .instance import Instance
 from .instance_membership import InstanceMembership
 from .api_key import ApiKey
+from .api_call import ApiCall
 from .fiscal_year import FiscalYear
 from .account import Account
 from .journal import Journal
@@ -124,6 +125,7 @@ __all__ = [
     "User",
     "Instance",
     "ApiKey",
+    "ApiCall",
     "FiscalYear",
     "Account",
     "Journal",

@@ -26,8 +26,17 @@ export function SignalRow({ signal }: { signal: Signal }) {
   );
 }
 
-export function AttentionCard({ drafts, overdue }: {
-  drafts: number; overdue: { count: number; cents: number } | null;
+export interface AgentCounts { purchases: number; entities: number; entries: number; total: number }
+
+/** Lot AK3 : saisies par clé d'API (Aiffel…) à vérifier ; lien vers la liste la plus utile. */
+export function agentSignalHref(agent: AgentCounts): string {
+  if (agent.purchases) return "/purchases/?from_key=1";
+  if (agent.entries) return "/entries/?state=draft";
+  return "/entities/";
+}
+
+export function AttentionCard({ drafts, overdue, agent }: {
+  drafts: number; overdue: { count: number; cents: number } | null; agent?: AgentCounts | null;
 }) {
   const { data: forecast } = useForecast();
   const proposed = useCurrentSession().instance?.integrations?.proposed ?? [];
@@ -45,6 +54,13 @@ export function AttentionCard({ drafts, overdue }: {
     signals.push({ key: "overdue", tone: "brique", icon: <IconTile icon="file-clock" size={32} color="brique" />,
       title: `${overdue.count} facture(s) échue(s) à relancer`, detail: <><MoneyText cents={overdue.cents} size="xs" /> restant dû</>,
       action: <Anchor component={AppLink} href="/sales/?overdue=1" size="sm">Relancer</Anchor> });
+  }
+  if (agent?.total) {
+    const parts = [agent.purchases && `${agent.purchases} facture(s) d'achat`, agent.entities && `${agent.entities} tiers`,
+      agent.entries && `${agent.entries} écriture(s)`].filter(Boolean).join(", ");
+    signals.push({ key: "agent", tone: "paille", icon: <IconTile icon="bot" size={32} color="paille" />,
+      title: `${agent.total} saisie(s) par clé d'API à vérifier`, detail: parts,
+      action: <Anchor component={AppLink} href={agentSignalHref(agent)} size="sm">Vérifier</Anchor> });
   }
   if (drafts) {
     signals.push({ key: "drafts", tone: "paille", icon: <IconTile icon="notebook-pen" size={32} color="paille" />,

@@ -181,12 +181,14 @@ def dashboard():
     if fy is None:
         return jsonify(stats=None, monthly=[], meta=_meta(years, None))
     data = dashboard_data(fy)
-    from app.services import sale_settlement, validation
+    from app.services import agent_review, sale_settlement, validation
     return jsonify(
         stats=data["stats"], monthly=data["monthly"],
         # Ventes : CA facturé de l'exercice, encours clients, échues (tuiles seulement s'il y a des factures).
         sales=sale_settlement.receivables_summary(fy.start_date, fy.end_date),
         # Écritures en brouillard des exercices ouverts (rappel au-delà de 3 mois, lot F1).
         drafts=validation.draft_counts(),
+        # Saisies par clé d'API à vérifier (lot AK3).
+        agent=agent_review.counts(),
         meta=_meta(years, fy),
     )

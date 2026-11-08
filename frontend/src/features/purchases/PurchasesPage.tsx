@@ -17,12 +17,13 @@ import { MoneyText } from "../../components/Money";
 import { MonthSelect } from "../../components/MonthSelect";
 import { PageHeader } from "../../components/PageHeader";
 import { Can } from "../../components/Can";
+import { OriginBadge } from "../../components/OriginBadge";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
 import { deleteMessage, PURCHASES_KEY, STATE_TONES, type Purchase, type PurchasesMeta } from "./types";
 
-const FILTERS = { q: "", state: "", status: "", source: "", entity_id: "", month: "", unpaid: "", no_supplier: "", hidden: "", sort: "desc" };
+const FILTERS = { q: "", state: "", status: "", source: "", entity_id: "", month: "", unpaid: "", no_supplier: "", from_key: "", hidden: "", sort: "desc" };
 
 export function syncResult(r: Record<string, unknown>) {
   const n = (key: string) => Number(r[key] ?? 0);
@@ -86,6 +87,7 @@ export default function PurchasesPage() {
         {p.source === "superpdp" && <Badge size="xs" variant="outline" color="lichen" title={p.pdp_status ? `Statut SUPER PDP : ${p.pdp_status}` : undefined}>SUPER PDP</Badge>}
         {qonto && p.qonto_upload_status === "failed" && <Badge size="xs" color="brique" title={p.qonto_upload_error ?? undefined}>envoi Qonto en échec</Badge>}
         {p.is_einvoice && <Badge size="xs" variant="outline" color="gray" title="Facture électronique">e-facture</Badge>}
+        <OriginBadge origin={p.origin} size="xs" />
       </Group>
     ) },
     { accessor: "supplier", title: "Fournisseur", render: (p) => p.supplier
@@ -142,12 +144,14 @@ export default function PurchasesPage() {
           {" "}: la charge serait comptée deux fois, à remplacer par un règlement fournisseur.
         </Alert>
       )}
-      {!!(counters && (counters.to_complete || (qonto && counters.to_review) || counters.supplier_proposals || counters.ready)) && (
+      {!!(counters && (counters.to_complete || (qonto && counters.to_review) || counters.supplier_proposals || counters.ready || counters.from_key)) && (
         <Alert color="paille" mb="sm">
           <Group justify="space-between" gap="sm">
             <Group gap="md">
               {counters.to_complete > 0 && <Text size="sm"><Anchor component="button" size="sm" onClick={() => setParams({ state: "to_complete" })}>{counters.to_complete} facture(s) à compléter</Anchor>
                 {counters.without_supplier > 0 && <> (dont <Anchor component="button" size="sm" onClick={() => setParams({ no_supplier: "1" })}>{counters.without_supplier} sans fournisseur rattaché</Anchor>)</>}.</Text>}
+              {!!counters.from_key && <Anchor component="button" size="sm" fw={600} onClick={() => setParams({ from_key: "1" })}>
+                {counters.from_key} saisie(s) par clé d'API à vérifier</Anchor>}
               {counters.supplier_proposals > 0 && <Anchor component={AppLink} href="/purchases/suppliers" size="sm" fw={600}>{counters.supplier_proposals} fournisseur(s) à valider</Anchor>}
               {qonto && counters.to_review > 0 && <Text size="sm" c="var(--lv-brique)">{counters.to_review} facture(s) comptabilisée(s) modifiée(s) dans Qonto, à revoir.</Text>}
             </Group>
@@ -169,6 +173,7 @@ export default function PurchasesPage() {
         <Group gap="md" pb={8}>
           <Checkbox label="Non payées" checked={params.unpaid === "1"} onChange={(e) => setParams({ unpaid: e.currentTarget.checked ? "1" : "" })} />
           <Checkbox label="Sans fournisseur" checked={params.no_supplier === "1"} onChange={(e) => setParams({ no_supplier: e.currentTarget.checked ? "1" : "" })} />
+          <Checkbox label="Saisies par clé à vérifier" checked={params.from_key === "1"} onChange={(e) => setParams({ from_key: e.currentTarget.checked ? "1" : "" })} />
           <Checkbox label={`Masquées (${counters?.hidden ?? 0})`} checked={params.hidden === "1"} onChange={(e) => setParams({ hidden: e.currentTarget.checked ? "1" : "" })} />
         </Group>
       </FilterBar>

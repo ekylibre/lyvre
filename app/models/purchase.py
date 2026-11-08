@@ -62,6 +62,12 @@ class Purchase(db.Model):
     )
     # Changement dans Qonto après comptabilisation (montant, date, statut) : à revoir.
     review_reason = db.Column(db.Text)
+    # Lot AK3 : objet créé par une clé d'API (brouillon d'agent) et référence externe (Fourmy…).
+    origin_key_id = db.Column(db.Integer, index=True)
+    origin_label = db.Column(db.String(80))
+    external_ref = db.Column(db.String(120), index=True)
+    checked_at = db.Column(db.DateTime)        # vérification humaine d'un objet créé par clé
+    checked_by_id = db.Column(db.Integer)
     source_updated_at = db.Column(db.DateTime)
     raw_payload = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)

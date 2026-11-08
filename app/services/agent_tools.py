@@ -310,8 +310,61 @@ OWN_TOOLS: tuple[AgentTool, ...] = (
 )
 
 
+def _write_tools() -> tuple[AgentTool, ...]:
+    from app.services import agent_writes as w
+    ref = {"external_ref": {"type": "string", "description": "Référence externe stable (ex. « fourmy:intervention/123 ») : "
+                            "une seconde création avec la même référence renvoie l'objet existant"},
+           "idempotency_key": {"type": "string", "description": "Clé d'idempotence (réessai sans doublon)"}}
+    file_props = {"file": {"type": "object", "description": "Pièce (photo JPEG/PNG ou PDF, 10 Mo au plus)",
+                           "properties": {"name": {"type": "string"}, "content_base64": {"type": "string"}},
+                           "required": ["content_base64"]},
+                  "file_token": {"type": "string", "description": "Jeton d'une pièce déposée par POST /api/v1/agent/files"}}
+    supplier = {"type": "object", "description": "Fournisseur : party_id (find_party) ou nom et identifiants",
+                "properties": {"party_id": {"type": "integer"}, "name": {"type": "string"}, "siren": {"type": "string"},
+                               "siret": {"type": "string"}, "vat_number": {"type": "string"}}}
+    amount = {"type": ["string", "number"]}
+    return (
+        AgentTool("create_purchase_draft", "Saisir une facture d'achat (brouillon)", "purchases",
+                  "Crée une facture d'achat en BROUILLON à vérifier dans Lyvre (jamais comptabilisée par cet outil). "
+                  "Une dépense sans facture (ticket, frais) passe aussi par ici, le ticket en pièce. Avec une pièce, "
+                  "Lyvre la lit (Factur-X, OCR) et complète ce qui manque ; les arguments l'emportent. Montants en "
+                  "euros (« 1 200,50 » ou 1200.5). Renvoie le lien vers la facture.",
+                  _schema({"supplier": supplier, "issue_date": {"type": "string", "description": "AAAA-MM-JJ"},
+                           "due_date": {"type": "string"}, "invoice_number": {"type": "string"},
+                           "total": {**amount, "description": "TTC"}, "untaxed": {**amount, "description": "HT"},
+                           "tax": {**amount, "description": "TVA"}, "is_credit_note": {"type": "boolean"},
+                           "lines": {"type": "array", "items": {"type": "object", "properties": {
+                               "label": {"type": "string"}, "amount_untaxed": amount, "vat_rate": amount,
+                               "vat": amount, "account": {"type": "string", "description": "Compte de charge 6…"}}}},
+                           "note": {"type": "string", "description": "Remarque pour la personne qui vérifie"},
+                           **file_props, **ref}),
+                  w.create_purchase_draft, access="write"),
+        AgentTool("attach_document", "Joindre une pièce à une facture d'achat", "purchases",
+                  "Joint une pièce à une facture d'achat saisie par cette clé et pas encore vérifiée.",
+                  _schema({"purchase_id": {"type": "integer"}, **file_props}, ["purchase_id"]),
+                  w.attach_document, access="write"),
+        AgentTool("create_supplier", "Créer un fournisseur", "parties",
+                  "Crée un fournisseur « à vérifier » s'il est introuvable (fiche complétée par Sirene si le SIREN ou "
+                  "le SIRET est donné) ; renvoie le tiers existant s'il est déjà connu.",
+                  _schema({"name": {"type": "string"}, "siren": {"type": "string"}, "siret": {"type": "string"},
+                           "vat_number": {"type": "string"}, "email": {"type": "string"}, **ref}, ["name"]),
+                  w.create_supplier, access="write"),
+        AgentTool("create_entry_draft", "Saisir une écriture (brouillard)", "accounting",
+                  "Enregistre une écriture équilibrée NON VALIDÉE (brouillard), que l'utilisateur vérifie et valide. "
+                  "Montants en euros (« 1234,56 »).",
+                  _schema({"date": {"type": "string", "description": "AAAA-MM-JJ"},
+                           "journal": {"type": "string", "description": "Code du journal (OD par défaut)"},
+                           "label": {"type": "string"},
+                           "lines": {"type": "array", "items": {"type": "object", "properties": {
+                               "account": {"type": "string"}, "label": {"type": "string"},
+                               "debit": {"type": "string"}, "credit": {"type": "string"}}, "required": ["account"]}},
+                           **ref}, ["date", "lines"]),
+                  w.create_entry_draft, access="write"),
+    )
+
+
 def registry() -> list[AgentTool]:
-    return sorted([*_from_assistant(), *OWN_TOOLS], key=lambda t: t.name)
+    return sorted([*_from_assistant(), *OWN_TOOLS, *_write_tools()], key=lambda t: t.name)
 
 
 def allowed(tool: AgentTool, key) -> bool:
@@ -346,25 +399,53 @@ def _conforms(schema: dict, args: dict) -> bool:
     props = schema.get("properties", {})
     if set(args) - set(props) or any(k not in args for k in schema.get("required", [])):
         return False
-    expected = {"string": str, "array": list, "boolean": bool, "integer": int, "object": dict}
     for key, value in args.items():
-        kind, nullable = assistant_tools._base_type(props[key])  # noqa: SLF001
+        declared = props[key].get("type")
+        kinds = declared if isinstance(declared, list) else [declared]
         if value is None:
-            if not nullable:
+            if "null" not in kinds:
                 return False
             continue
-        if kind == "integer" and isinstance(value, str) and value.isdigit():
-            continue
-        if kind in expected and (not isinstance(value, expected[kind]) or (kind == "integer" and isinstance(value, bool))):
+        if not any(_is_kind(value, kind) for kind in kinds):
             return False
         if "enum" in props[key] and value not in props[key]["enum"]:
             return False
     return True
 
 
-def run(name: str, args, key) -> tuple[dict, bool]:
-    """(résultat, erreur ?). Lève ToolRefused si l'outil est inconnu ou hors des domaines de la clé."""
+def _is_kind(value, kind) -> bool:
+    if kind is None:
+        return True
+    if isinstance(value, bool):
+        return kind == "boolean"
+    if kind == "integer":
+        return isinstance(value, int) or (isinstance(value, str) and value.isdigit())
+    if kind == "number":
+        return isinstance(value, (int, float))
+    expected = {"string": str, "array": list, "boolean": bool, "object": dict}
+    return isinstance(value, expected[kind]) if kind in expected else True
+
+
+def _log_write(tool: AgentTool, key, args: dict, result: dict, error: bool, channel: str, started: float) -> None:
+    """Journal d'un appel d'écriture (objet créé, clé d'idempotence) ; commit."""
+    import time
     from app.extensions import db
+    from app.models import ApiCall
+    obj = result.get("object") if isinstance(result, dict) and result.get("created") else None
+    idem = str(args.get("idempotency_key") or "").strip()[:80] or None if obj else None
+    db.session.add(ApiCall(key_id=key.id, channel=channel, target=tool.name, domain=tool.domain, access=tool.access,
+                           status=422 if error else 200, error=(result.get("error") or "")[:300] if error else None,
+                           object_type=obj["type"] if obj else None, object_id=obj["id"] if obj else None,
+                           idempotency_key=idem, duration_ms=int((time.monotonic() - started) * 1000)))
+    db.session.commit()
+
+
+def run(name: str, args, key, channel: str = "mcp") -> tuple[dict, bool]:
+    """(résultat, erreur ?). Lève ToolRefused si l'outil est inconnu ou hors des domaines de la clé.
+    Une lecture est toujours annulée (rollback) ; une écriture est validée (commit) et inscrite au journal."""
+    import time
+    from app.extensions import db
+    started = time.monotonic()
     tool = find(name, key)
     if args is None:
         args = {}
@@ -372,14 +453,16 @@ def run(name: str, args, key) -> tuple[dict, bool]:
         return {"error": "Arguments non conformes au schéma de l'outil.", "schema": tool.schema}, True
     try:
         result = tool.handler(args)
-        if tool.access == "write":
+        if tool.access == "write" and not (isinstance(result, dict) and result.get("error")):
             db.session.commit()
+        else:
+            db.session.rollback()   # lecture, ou écriture refusée : rien n'est gardé
     except Exception as exc:  # noqa: BLE001 — l'erreur de l'outil est rendue à l'agent
         db.session.rollback()
-        return {"error": f"{type(exc).__name__} : {exc}"[:500]}, True
-    if tool.access == "read":
-        db.session.rollback()     # une lecture n'écrit rien (produits créés au besoin par un service, etc.)
+        result = {"error": f"{type(exc).__name__} : {exc}"[:500]}
     error = isinstance(result, dict) and bool(result.get("error"))
+    if tool.access == "write":
+        _log_write(tool, key, args, result, error, channel, started)
     return result, error
 
 

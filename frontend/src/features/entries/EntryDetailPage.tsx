@@ -10,6 +10,7 @@ import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
 import { confirmAction } from "../../components/ConfirmButton";
 import { MoneyText } from "../../components/Money";
+import { OriginBadge, type AgentOrigin } from "../../components/OriginBadge";
 import { PageHeader } from "../../components/PageHeader";
 import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -25,6 +26,7 @@ interface EntryLink { id: number; reference: string | null }
 interface EntryDetail {
   id: number; reference: string | null; fiscal_year: string; journal: string; entry_date: string;
   description: string; source: string; source_ref: string | null; is_balanced: boolean;
+  origin?: AgentOrigin | null;
   total_debit_cents: number; total_credit_cents: number; reconciled: boolean; editable: boolean; managed?: boolean;
   validated: boolean; validation_number: number | null; validated_at: string | null; fiscal_year_id: number;
   fiscal_year_closed: boolean; locked_until: string | null; reversal: EntryLink | null; reverses: EntryLink | null; reversible: boolean;
@@ -56,7 +58,7 @@ export default function EntryDetailPage() {
         {data.validated ? <StatusBadge tone="ok">{`Validée n° ${data.validation_number}`}</StatusBadge>
           : <StatusBadge tone="todo">Brouillard</StatusBadge>}
         {data.reconciled && <StatusBadge tone="ok">Rapprochée</StatusBadge>}
-        {data.reversal && <StatusBadge tone="neutral">Contrepassée</StatusBadge>}</Group>}
+        {data.reversal && <StatusBadge tone="neutral">Contrepassée</StatusBadge>}<OriginBadge origin={data.origin} /></Group>}
         description={`${data.journal} · ${formatDate(data.entry_date)} · exercice ${data.fiscal_year}`}
         actions={<>
           <Button variant="default" component={AppLink} href="/entries/">Retour à la liste</Button>

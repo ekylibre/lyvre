@@ -24,6 +24,7 @@ interface Dashboard {
   sales?: { revenue_cents: number; receivable_cents: number; overdue_count: number; overdue_cents: number; has_sales: boolean };
   /** Écritures en brouillard des exercices ouverts ; `old` : plus de 3 mois (lot F1). */
   drafts?: { drafts: number; old: number };
+  agent?: { purchases: number; entities: number; entries: number; total: number };
   monthly: Month[];
   meta: ReportMeta;
 }
@@ -101,7 +102,7 @@ export default function DashboardPage() {
       ) : (
         <Stack gap="lg">
           <SimpleGrid cols={{ base: 1, lg: farm ? 2 : 1 }}>
-            <AttentionCard drafts={can.write && bookkeeping === "double" ? data.drafts?.old ?? 0 : 0}
+            <AttentionCard agent={can.write ? data.agent : null} drafts={can.write && bookkeeping === "double" ? data.drafts?.old ?? 0 : 0}
               overdue={data.sales?.has_sales ? { count: data.sales.overdue_count, cents: data.sales.overdue_cents } : null} />
             {farm && <AgendaWeekCard />}
           </SimpleGrid>

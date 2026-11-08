@@ -59,6 +59,10 @@ class JournalEntry(db.Model):
     validation_batch_id = db.Column(db.Integer, db.ForeignKey("validation_batches.id", ondelete="SET NULL"))
     reverses_entry_id = db.Column(db.Integer, db.ForeignKey("journal_entries.id", ondelete="SET NULL"))
     inventory_kind = db.Column(db.String(20))
+    # Lot AK3 : objet créé par une clé d'API (brouillon d'agent) et référence externe (Fourmy…).
+    origin_key_id = db.Column(db.Integer, index=True)
+    origin_label = db.Column(db.String(80))
+    external_ref = db.Column(db.String(120), index=True)
 
     fiscal_year = db.relationship("FiscalYear", back_populates="entries")
     journal = db.relationship("Journal", back_populates="entries")

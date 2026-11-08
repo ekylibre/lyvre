@@ -113,6 +113,8 @@ def purchase_state(p: Purchase) -> State:
     if p.is_hidden:
         return State("hidden")
     reasons = []
+    if p.origin_key_id is not None and p.checked_at is None:   # lot AK3 : brouillon d'agent
+        reasons.append(f"Saisie par « {p.origin_label} » : à vérifier, puis marquer vérifiée.")
     if p.currency != "EUR":
         reasons.append(f"Devise {p.currency} non gérée.")
     if p.entity is None:

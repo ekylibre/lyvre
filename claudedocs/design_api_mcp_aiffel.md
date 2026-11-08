@@ -310,6 +310,32 @@ Une dépense sans facture (Q3) passe par le même outil : la pièce est le ticke
   - `tests/api/test_mcp_reference_client.py` : client officiel `mcp` 2.3.0 en HTTP réel. Le SDK n'est pas dans `requirements.txt` ; le test est sauté sans lui.
 - Essai sur les données d'essai locales : les 21 outils répondent.
 
+**AK3 (08/11/2026)** :
+- Migration `a2c4e6f8b1d3` :
+  - table `api_calls` ;
+  - `origin_key_id`, `origin_label`, `external_ref` sur `purchases`, `entities` et `journal_entries` ;
+  - `checked_at` et `checked_by_id` sur `purchases` et `entities`.
+- `app/services/agent_writes.py` : `create_purchase_draft` (lecture de la pièce, fournisseur retrouvé ou créé si `parties` est écrit, lignes proposées, note et doublon dans `review_reason`), `attach_document`, `create_supplier` (Sirene), `create_entry_draft` (écriture non validée).
+  - Idempotence par `external_ref` ou `idempotency_key`.
+- Exécution (`agent_tools.run`) :
+  - une écriture refusée est annulée ;
+  - toute écriture est inscrite dans `api_calls`, y compris un refus ;
+  - le contrôle de schéma accepte les types multiples (texte ou nombre).
+- `purchase_entry.create(post=False, origin=…)`. Dans `purchase_state`, le motif « à vérifier » empêche la comptabilisation, y compris par « Comptabiliser les factures prêtes ».
+- `app/services/agent_review.py`, routes de vérification :
+  - `POST /purchases/<id>/check` : marquée vérifiée, puis comptabilisée si elle est prête ;
+  - `POST /tiers/<id>/check`.
+- Données ajoutées : `origin` dans les données des achats, des tiers et des écritures ; filtre `from_key=1` sur les achats ; `agent` dans le tableau de bord.
+- `POST /api/v1/agent/files` : dépôt d'une pièce, qui rend un jeton.
+- Interface :
+  - `OriginBadge` (liste et fiche d'achat, fiche tiers, fiche écriture) ;
+  - bandeau et bouton « Marquer vérifiée » sur la fiche d'achat, « Marquer vérifié » sur la fiche tiers ;
+  - filtre « Saisies par clé à vérifier » ;
+  - ligne « À traiter » du tableau de bord.
+- Tests :
+  - `tests/api/test_agent_writes.py` (10 tests, dont le garde-fou « aucun outil d'écriture ne comptabilise, ne valide ni n'envoie ») ;
+  - `OriginBadge.test.tsx`.
+
 ## 11. Sécurité (contrôle)
 - Le secret ne transite que dans l'en-tête. La clé n'apparaît ni dans une URL, ni dans un journal applicatif ; `api_calls` ne garde que `key_id`.
 - Comparaison en temps constant. Un `public_id` inconnu passe aussi par une comparaison factice (même durée).

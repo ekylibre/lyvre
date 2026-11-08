@@ -57,6 +57,12 @@ class Entity(db.Model):
     billing_emails = db.Column(db.Text)
     qonto_client_id = db.Column(db.String(36), index=True)  # client Qonto (ventes, lot S4)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # Lot AK3 : objet créé par une clé d'API (brouillon d'agent) et référence externe (Fourmy…).
+    origin_key_id = db.Column(db.Integer, index=True)
+    origin_label = db.Column(db.String(80))
+    external_ref = db.Column(db.String(120), index=True)
+    checked_at = db.Column(db.DateTime)        # vérification humaine d'un objet créé par clé
+    checked_by_id = db.Column(db.Integer)
 
     @validates("siret")
     def _derive_siren(self, _key, value):

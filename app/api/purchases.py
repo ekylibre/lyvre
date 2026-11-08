@@ -4,6 +4,7 @@ fournisseurs à valider. Les pièces restent servies par Flask (`purchases.attac
 `purchases.staged`). Les champs de saisie gardent les noms et le format texte du formulaire
 (montants « 39,99 ») : ils passent par purchase_entry.validate_header."""
 from flask import current_app, jsonify, request, url_for
+from flask_login import current_user
 
 from app.access import current_role, instance_admin_required
 from app.extensions import db
@@ -11,6 +12,7 @@ from app.models import Account, Associate, BankTransaction, Entity, Project, Pur
 from app.models.instance_membership import ROLE_ACCOUNTANT
 from app.models.purchase import PURCHASE_SOURCES
 from app.services import (
+    agent_review,
     associate_operations, associates, attachments, catalog, counterparties, external_config, projects,
     purchase_entry, purchase_posting,
     purchase_settlement, purchase_sync, vat_codes,
@@ -69,6 +71,7 @@ def purchase_row(p: Purchase, state=None) -> dict:
         "qonto_upload_status": p.qonto_upload_status, "qonto_upload_error": p.qonto_upload_error,
         "in_qonto": bool(p.qonto_id),
         "state": state or _state(p), "journal_entry_id": p.journal_entry_id,
+        "origin": agent_review.origin_payload(p),            # lot AK3 : saisie par clé d'API
     }
 
 
@@ -132,6 +135,8 @@ def purchases_list():
         settled = db.session.query(PurchasePayment.purchase_id).filter(PurchasePayment.journal_entry_id.isnot(None))
         query = query.filter(db.or_(Purchase.qonto_status.is_(None), Purchase.qonto_status != "paid"),
                              Purchase.id.notin_(settled))
+    if args.get("from_key") == "1":                       # lot AK3 : saisies par clé à vérifier
+        query = query.filter(Purchase.origin_key_id.isnot(None), Purchase.checked_at.is_(None))
     if args.get("no_supplier") == "1":
         query = query.filter(Purchase.entity_id.is_(None))
     q = (args.get("q") or "").strip()
@@ -157,6 +162,7 @@ def purchases_list():
             "hidden": Purchase.query.filter(Purchase.is_hidden.is_(True)).count(),
             "without_supplier": Purchase.query.filter(Purchase.entity_id.is_(None), Purchase.is_hidden.is_(False)).count(),
             "ready": len(purchase_posting.ready_purchases()),
+            "from_key": agent_review.counts()["purchases"],
         },
         "suppliers": [{"value": str(e.id), "label": e.name} for e in
                       Entity.query.join(Purchase, Purchase.entity_id == Entity.id).distinct().order_by(Entity.name)],
@@ -304,6 +310,20 @@ def purchase_detail(p: Purchase) -> dict:
 @bp.route("/purchases/<int:purchase_id>")
 def purchases_detail(purchase_id):
     return jsonify(purchase_detail(get_or_404(Purchase, purchase_id, "Facture introuvable.")))
+
+
+@bp.route("/purchases/<int:purchase_id>/check", methods=["POST"])
+def purchases_check(purchase_id):
+    """Lot AK3 : facture saisie par une clé d'API, vérifiée par l'utilisateur ; comptabilisée si elle est prête."""
+    p = get_or_404(Purchase, purchase_id, "Facture introuvable.")
+    try:
+        outcome = agent_review.check_purchase(p, current_user)
+    except ValueError as exc:
+        raise ApiError("conflict", str(exc), 409) from None
+    number = f" {p.invoice_number}" if p.invoice_number else ""
+    notices = [notice(f"{_kind(p)}{number} marquée vérifiée" + (" et comptabilisée." if outcome["posted"] else "."))]
+    notices += [notice(e, "danger") for e in outcome["errors"]]
+    return jsonify(item=purchase_detail(p), notices=notices)
 
 
 @bp.route("/purchases/<int:purchase_id>/lines", methods=["PUT"])

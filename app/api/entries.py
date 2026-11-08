@@ -14,7 +14,7 @@ from flask_login import current_user
 from app.access import instance_admin_required
 from app.models import EntryEvent
 from app.models.journal_entry import SALE_LOCKED_MESSAGE, SOURCE_CANCELLATION, SOURCE_SALE
-from app.services import projects, validation, vat_codes
+from app.services import agent_review, projects, validation, vat_codes
 from app.services.ledger import (
     MANAGED_SOURCES, VALIDATED_MESSAGE, LedgerError, delete_entries, entry_is_reconciled, post_validated_entry,
     period_locked, reversal_of, reverse, update_entry, validate_entry_payload,
@@ -90,6 +90,7 @@ def serialize_entry(entry):
         "description": entry.description or "",
         "source": entry.source,
         "source_ref": entry.source_ref,
+        "origin": agent_review.origin_payload(entry),       # lot AK3 : saisie par clé d'API
         "is_balanced": entry.is_balanced,
         "total_debit_cents": entry.total_debit,
         "total_credit_cents": entry.total_credit,

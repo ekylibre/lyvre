@@ -2,6 +2,7 @@
 import type { IntegrationState } from "../../components/IntegrationNotice";
 import type { Job } from "../../components/JobStatus";
 import type { MonthOption } from "../../components/MonthSelect";
+import type { AgentOrigin } from "../../components/OriginBadge";
 import type { Tone } from "../../components/StatusBadge";
 
 export const PURCHASES_KEY = ["purchases"];
@@ -17,6 +18,8 @@ export interface Purchase {
   qonto_status: string | null; qonto_status_label: string | null; review_reason: string | null; has_attachment: boolean;
   qonto_upload_status: "sent" | "failed" | null; qonto_upload_error: string | null; in_qonto: boolean;
   state: PurchaseState; journal_entry_id: number | null;
+  /** Lot AK3 : saisie par une clé d'API (Aiffel…). */
+  origin?: AgentOrigin | null;
 }
 
 /** Confirmation de suppression : écriture supprimée aussi ; facture présente dans Qonto (reçue de Qonto ou
@@ -32,7 +35,7 @@ export interface QontoState extends IntegrationState { upload: boolean }
 
 export interface PurchasesMeta {
   counters: { to_complete: number; to_review: number; to_replace: number; supplier_proposals: number; hidden: number;
-    without_supplier: number; ready: number };
+    without_supplier: number; ready: number; from_key?: number };
   suppliers: Option[]; states: Option[]; statuses: Option[]; months: MonthOption[];
   sync: { from: string; synced_at: string | null; job: Job | null };
   qonto: QontoState;
