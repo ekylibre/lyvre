@@ -10,7 +10,7 @@ import {
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { spotlight } from "@mantine/spotlight";
 import {
-  ArrowLeftRight, ChevronDown, Eye, KeyRound, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Search, Sparkles, Sun,
+  ArrowLeftRight, Bot, ChevronDown, Eye, KeyRound, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Search, Sparkles, Sun,
 } from "lucide-react";
 import symbolInverse from "../../assets/lyvre-symbole-inverse.svg";
 import {
@@ -225,6 +225,9 @@ function UserMenu() {
         </Menu.Item>
         <Menu.Item component={AppLink} href="/password" leftSection={<KeyRound size={16} />}>
           Changer mon mot de passe
+        </Menu.Item>
+        <Menu.Item component={AppLink} href="/me/api-keys" leftSection={<Bot size={16} />}>
+          Mes clés d'API
         </Menu.Item>
         <Menu.Item component={AppLink} href="/changelog" leftSection={<Sparkles size={16} />}
           rightSection={unseen ? <Badge size="xs" color="lichen" variant="filled">nouveau</Badge> : undefined}>

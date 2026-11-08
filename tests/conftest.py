@@ -39,6 +39,8 @@ def app():
     ctx = app.app_context()
     ctx.push()
     db.create_all()
+    from app.services import api_journal
+    api_journal.reset()   # débit et caches des clés d'API (lot AK4) : en mémoire, les ids repartent à 1
     try:
         yield app
     finally:

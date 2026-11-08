@@ -117,6 +117,7 @@ def test_refusals_leave_nothing(app, farm):
     assert bad["isError"] is True and "date de facture" in bad["structuredContent"]["error"].lower()
     assert Purchase.query.count() == 0 and Entity.query.count() == 0
     assert ApiCall.query.filter_by(status=422).count() == 1
+    assert ApiCall.query.filter_by(status=403, target="create_purchase_draft").count() == 1
 
 
 def test_create_supplier(app, farm):
@@ -165,7 +166,7 @@ def test_rest_file_upload_then_draft(app, farm):
     res = client.post("/api/v1/agent/tools/create_purchase_draft", headers=headers, json={"file_token": up.json["file_token"]})
     assert res.status_code == 200, res.json
     assert res.json["result"]["has_attachment"] is True
-    assert ApiCall.query.filter_by(channel="rest").count() == 1
+    assert ApiCall.query.filter_by(channel="rest", target="create_purchase_draft").count() == 1
 
 
 def test_write_tools_never_post_validate_or_send():

@@ -82,3 +82,32 @@ def api_keys_mine():
     items = [api_keys.payload(k, current_user.id) for k in api_keys.for_user(current_user, g.current_instance)]
     return jsonify(items=items, meta={"domains": api_domains.options(g.current_instance.chart),
                                       "mcp_url": api_keys.mcp_url()})
+
+
+@bp.route("/api-keys/<int:key_id>/calls")
+def api_keys_calls(key_id):
+    """Journal de la clé (200 derniers appels) : administrateur de l'instance, ou l'utilisateur rattaché.
+    `kind=errors` (refus seulement) ou `kind=creations` (objets créés)."""
+    from flask import request
+    from app.services import api_journal
+    key = _key(key_id, own_only=True)
+    kind = request.args.get("kind")
+    return jsonify(item=api_keys.payload(key, current_user.id),
+                   items=api_journal.entries(key.id, kind if kind in ("errors", "creations") else None),
+                   meta={"creations_today": api_journal.creations_today(key.id)})
+
+
+@bp.route("/api-keys/help")
+def api_keys_help():
+    """Aide « API et MCP » (lot AK4) : adresse MCP de l'installation, domaines et outils réels (registre)."""
+    from app.services import agent_tools
+    chart = g.current_instance.chart
+    available = set(api_domains.available(chart))
+    tools = [{"name": t.name, "title": t.title, "domain": t.domain,
+              "domain_label": "Toujours" if t.domain == agent_tools.ALWAYS else api_domains.label(t.domain),
+              "access": t.access, "description": t.description}
+             for t in agent_tools.registry() if t.domain == agent_tools.ALWAYS or t.domain in available]
+    return jsonify(mcp_url=api_keys.mcp_url(), api_url=api_keys.api_url(), domains=api_domains.options(chart),
+                   tools=tools, limits={"rate_per_minute": api_keys.DEFAULT_RATE,
+                                        "creations_per_day": api_keys.DEFAULT_DAILY,
+                                        "file_max_mb": 10})

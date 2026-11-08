@@ -25,6 +25,9 @@ def create_app(config_name=None):
         if request.path == "/api/v1/imports/ekylibre/upload":
             from .services.ekylibre.restore import MAX_UPLOAD
             request.max_content_length = MAX_UPLOAD + 1024 * 1024
+        elif request.path == "/mcp" or request.path.startswith("/api/v1/agent/"):
+            # Clés d'API (lot AK4) : une pièce de 10 Mo en base64 tient en 15 Mo ; rien au-delà.
+            request.max_content_length = 15 * 1024 * 1024
 
     # Clés d'API (lot AK1) : authentification avant le CSRF, qui ne s'applique pas à une requête par clé.
     from .api_auth import register as register_api_auth
@@ -43,6 +46,8 @@ def create_app(config_name=None):
 
     from .tenant import register_tenant_hooks
     register_tenant_hooks(app)
+    from .api_auth import register_limits
+    register_limits(app)
     from .association_only import register_association_guard
     register_association_guard(app)
 

@@ -32,7 +32,9 @@ READ_ONLY_ALLOWED = {"api.login", "api.logout", "api.select_instance", "api.upda
                      # Calculettes (lot AG12) : un calcul n'écrit rien.
                      "api.calculators_compute",
                      # Clés d'API (lot AK1) : chacun révoque les siennes.
-                     "api.api_keys_revoke"}
+                     "api.api_keys_revoke",
+                     # Outils d'agent par REST (lot AK4) : l'écriture est refusée outil par outil à une clé d'expert-comptable.
+                     "api.agent_tools_call"}
 WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
 _HTTP_CODES = {
@@ -149,6 +151,13 @@ def _api_key_scope():
     """Clé d'API (lot AK1) : lecture seulement, dans les domaines de la clé (app/api_auth.py)."""
     from app.api_auth import authorize
     return authorize()
+
+
+@bp.after_request
+def _api_key_journal(response):
+    """Clé d'API (lot AK4) : appel inscrit au journal de la clé."""
+    from app.api_auth import log_rest_call
+    return log_rest_call(response)
 
 
 def register_api(app):

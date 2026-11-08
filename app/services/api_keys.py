@@ -256,3 +256,9 @@ def mcp_url() -> str | None:
     from flask import current_app
     base = (current_app.config.get("APP_BASE_URL") or "").rstrip("/")
     return f"{base}/mcp" if base else None
+
+
+def api_url() -> str | None:
+    from flask import current_app
+    base = (current_app.config.get("APP_BASE_URL") or "").rstrip("/")
+    return f"{base}/api/v1" if base else None

@@ -299,8 +299,8 @@ def attach_document(args: dict) -> dict:
     p = db.session.get(Purchase, int(args["purchase_id"])) if str(args.get("purchase_id") or "").isdigit() else None
     if p is None:
         return {"error": "Facture d'achat introuvable."}
-    if p.origin_key_id is None or p.checked_at is not None or p.journal_entry_id is not None:
-        return {"error": "Seule une facture saisie par clé et pas encore vérifiée reçoit une pièce par cet outil."}
+    if p.origin_key_id != g.api_key.id or p.checked_at is not None or p.journal_entry_id is not None:
+        return {"error": "Seule une facture saisie par cette clé et pas encore vérifiée reçoit une pièce par cet outil."}
     try:
         token = _decode_file(args)
     except ValueError as exc:
@@ -308,7 +308,7 @@ def attach_document(args: dict) -> dict:
     if token is None:
         return {"error": "Pièce attendue (file ou file_token)."}
     attachments.store(p, token)
-    return _purchase_payload(p, False)
+    return {**_purchase_payload(p, False), "attached": True}
 
 
 # ------------------------------------------------------------------ écriture en brouillard

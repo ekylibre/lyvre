@@ -13,6 +13,8 @@ import { confirmAction } from "../../components/ConfirmButton";
 import { DataGrid, type GridColumn } from "../../components/DataGrid";
 import { FormModal } from "../../components/FormModal";
 import { PageHeader } from "../../components/PageHeader";
+import { AppLink } from "../../app/navigation";
+import { JournalDrawer } from "./JournalDrawer";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate, formatDateTime } from "../../lib/format";
 import {
@@ -154,6 +156,7 @@ export default function ApiKeysPage() {
   const { data, isFetching, error } = useList<ApiKeyItem, ApiKeysMeta>(QUERY_KEY, ENDPOINT, { enabled: can.instanceAdmin });
   const [editing, setEditing] = useState<ApiKeyItem | "new" | null>(null);
   const [created, setCreated] = useState<{ token: string; name: string } | null>(null);
+  const [journal, setJournal] = useState<ApiKeyItem | null>(null);
   const revoke = useAction((k: ApiKeyItem) => api.post<{ notices: Notice[] }>(`${ENDPOINT}/${k.id}/revoke`), { invalidate: [QUERY_KEY] });
   const meta = data?.meta;
 
@@ -170,12 +173,15 @@ export default function ApiKeysPage() {
     { accessor: "last_used_at", title: "Dernier usage", render: (k) => <Text size="sm">{k.last_used_at ? formatDateTime(k.last_used_at) : "Jamais"}</Text> },
     { accessor: "expires_at", title: "Expire le", render: (k) => <Text size="sm">{formatDate(k.expires_at.slice(0, 10))}</Text> },
     { accessor: "state", title: "État", render: (k) => <StatusBadge tone={STATE_LABELS[k.state].tone}>{STATE_LABELS[k.state].label}</StatusBadge> },
-    { accessor: "actions", title: "", hideable: false, textAlign: "right", render: (k) => k.state !== "revoked" && (
+    { accessor: "actions", title: "", hideable: false, textAlign: "right", render: (k) => (
       <Group gap={4} justify="flex-end" wrap="nowrap">
-        <Button variant="subtle" size="compact-sm" onClick={() => setEditing(k)}>Modifier</Button>
-        <Button variant="subtle" size="compact-sm" color="brique" onClick={() => confirmAction({
-          title: `Révoquer la clé « ${k.name} » ?`, message: "Elle cesse de fonctionner immédiatement. Cette action est définitive.",
-          confirmLabel: "Révoquer", onConfirm: () => revoke.mutate(k) })}>Révoquer</Button>
+        <Button variant="subtle" size="compact-sm" onClick={() => setJournal(k)}>Journal</Button>
+        {k.state !== "revoked" && <>
+          <Button variant="subtle" size="compact-sm" onClick={() => setEditing(k)}>Modifier</Button>
+          <Button variant="subtle" size="compact-sm" color="brique" onClick={() => confirmAction({
+            title: `Révoquer la clé « ${k.name} » ?`, message: "Elle cesse de fonctionner immédiatement. Cette action est définitive.",
+            confirmLabel: "Révoquer", onConfirm: () => revoke.mutate(k) })}>Révoquer</Button>
+        </>}
       </Group>) },
   ];
 
@@ -183,7 +189,10 @@ export default function ApiKeysPage() {
     <>
       <PageHeader title="Accès API"
         description="Clés qui ouvrent cette structure à un agent (Aiffel) ou à un script : domaines lus et écrits, expiration, limites."
-        actions={<Button onClick={() => setEditing("new")} disabled={!meta}>Créer une clé</Button>} />
+        actions={<>
+          <Button variant="default" component={AppLink} href="/configuration/api-keys/help">Aide API et MCP</Button>
+          <Button onClick={() => setEditing("new")} disabled={!meta}>Créer une clé</Button>
+        </>} />
       {error && <Alert color="brique" mb="sm">{(error as Error).message}</Alert>}
       {meta?.mcp_url && <Text size="sm" c="dimmed" mb="sm">Serveur MCP : <Code>{meta.mcp_url}</Code></Text>}
       <DataGrid id="api-keys" records={data?.items} columns={columns} fetching={isFetching}
@@ -197,6 +206,7 @@ export default function ApiKeysPage() {
           )}
         </FormModal>
       )}
+      <JournalDrawer apiKey={journal} onClose={() => setJournal(null)} />
       <FormModal opened={created !== null} onClose={() => { setCreated(null); setEditing(null); }} title="Clé créée" size="lg">
         {created && <TokenShown token={created.token} name={created.name} mcpUrl={meta?.mcp_url ?? null}
           onClose={() => { setCreated(null); setEditing(null); }} />}

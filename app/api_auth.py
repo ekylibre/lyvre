@@ -113,6 +113,61 @@ def authorize():
     return None
 
 
+def enforce_limits():
+    """Après le choix de l'instance (lot AK4) : débit de la clé, dernier usage. Au-delà : 429 et `Retry-After`."""
+    if not is_key_request():
+        return None
+    from app.services import api_journal
+    key = g.api_key
+    api_journal.touch(key.id)
+    wait = api_journal.rate_check(key.id, key.rate_per_minute)
+    if wait is None:
+        return None
+    message = (f"Trop de requêtes pour la clé « {key.name} » ({key.rate_per_minute} par minute) : "
+               f"réessayez dans {wait} s.")
+    channel = "mcp" if request.path.startswith("/mcp") else "rest"
+    api_journal.record(key.id, channel, request.endpoint or request.path, status=429, error=message)
+    if channel == "mcp":
+        from flask import jsonify
+        response = jsonify({"jsonrpc": "2.0", "id": None, "error": {"code": -32000, "message": message,
+                                                                    "data": {"retry_after": wait}}})
+        response.status_code = 429
+    else:
+        from app.api import error_response
+        response, _status = error_response("rate_limited", message, 429, extra={"retry_after": wait})
+        response.status_code = 429
+    response.headers["Retry-After"] = str(wait)
+    return response
+
+
+def log_rest_call(response):
+    """Blueprint de l'API : chaque appel REST par clé est inscrit au journal (les outils d'agent s'inscrivent eux-mêmes,
+    les refus de débit aussi)."""
+    if not is_key_request() or response.status_code == 429:
+        return response
+    view = current_app.view_functions.get(request.endpoint) if request.endpoint else None
+    module = getattr(view, "__module__", None)
+    if module == "app.api.agent" and request.endpoint != "api.agent_files_upload":
+        return response
+    from app.services import api_domains, api_journal
+    domain = api_domains.domain_of(request.endpoint, module)
+    error = None
+    if response.status_code >= 400 and response.is_json:
+        error = ((response.get_json(silent=True) or {}).get("error") or {}).get("message")
+    upload = bool(getattr(g, "api_upload", False)) and response.status_code < 400
+    api_journal.record(g.api_key.id, "rest", request.endpoint or request.path, domain=domain,
+                       access="write" if request.method not in ("GET", "HEAD") else "read",
+                       status=response.status_code, error=error,
+                       # Dépôt de pièce : compté comme une création (plafond quotidien, revue de sécurité AK4).
+                       object_type="file" if upload else None, object_id=0 if upload else None)
+    return response
+
+
+def register_limits(app):
+    """À appeler après `register_tenant_hooks` : les limites et le journal ont besoin de la base de l'instance."""
+    app.before_request(enforce_limits)
+
+
 def register(app):
     """À appeler avant `csrf.init_app` : hooks dans le bon ordre, session sans cookie pour une clé."""
     app.session_interface = KeyAwareSessionInterface()

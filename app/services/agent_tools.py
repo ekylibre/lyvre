@@ -273,9 +273,23 @@ _ASSISTANT = {
 }
 
 
+def _run_calculator(args: dict) -> dict:
+    """Calculette pour une clé : le préremplissage lit la comptabilité (immobilisations, baux, DEP, TVA, achats…),
+    il demande donc le domaine Comptabilité en lecture (revue de sécurité AK4)."""
+    from flask import g
+    key = getattr(g, "api_key", None)
+    if args.get("prefill") and (key is None or "accounting" not in key.reads):
+        return {"error": "Préremplissage réservé à une clé qui lit la Comptabilité : passez les valeurs dans « values »."}
+    return assistant_tools.run_calculator(args)
+
+
+_HANDLER_OVERRIDES = {"run_calculator": _run_calculator}
+
+
 def _from_assistant() -> list[AgentTool]:
     by_name = {t.name: t for t in assistant_tools.TOOLS}
-    return [AgentTool(name, title, domain, by_name[name].description, by_name[name].schema, by_name[name].handler)
+    return [AgentTool(name, title, domain, by_name[name].description, by_name[name].schema,
+                      _HANDLER_OVERRIDES.get(name, by_name[name].handler))
             for name, (domain, title) in _ASSISTANT.items()]
 
 
@@ -426,43 +440,57 @@ def _is_kind(value, kind) -> bool:
     return isinstance(value, expected[kind]) if kind in expected else True
 
 
-def _log_write(tool: AgentTool, key, args: dict, result: dict, error: bool, channel: str, started: float) -> None:
-    """Journal d'un appel d'écriture (objet créé, clé d'idempotence) ; commit."""
+def _log(tool_name: str, key, channel: str, started: float, *, tool: AgentTool | None = None, args=None,
+         result=None, error=False, status=None) -> None:
+    """Inscrit l'appel d'outil au journal (lot AK4) : objet créé et clé d'idempotence pour une écriture."""
     import time
-    from app.extensions import db
-    from app.models import ApiCall
-    obj = result.get("object") if isinstance(result, dict) and result.get("created") else None
-    idem = str(args.get("idempotency_key") or "").strip()[:80] or None if obj else None
-    db.session.add(ApiCall(key_id=key.id, channel=channel, target=tool.name, domain=tool.domain, access=tool.access,
-                           status=422 if error else 200, error=(result.get("error") or "")[:300] if error else None,
-                           object_type=obj["type"] if obj else None, object_id=obj["id"] if obj else None,
-                           idempotency_key=idem, duration_ms=int((time.monotonic() - started) * 1000)))
-    db.session.commit()
+    from app.services import api_journal
+    obj = result.get("object") if isinstance(result, dict) and (result.get("created") or result.get("attached")) else None
+    idem = (str((args or {}).get("idempotency_key") or "").strip()[:80] or None) if obj else None
+    message = result.get("error") if isinstance(result, dict) and error else None
+    api_journal.record(key.id, channel, tool_name, domain=tool.domain if tool and tool.domain != ALWAYS else None,
+                       access=tool.access if tool else None, status=status or (422 if error else 200), error=message,
+                       object_type=obj["type"] if obj else None, object_id=obj["id"] if obj else None,
+                       idempotency_key=idem, duration_ms=int((time.monotonic() - started) * 1000))
 
 
 def run(name: str, args, key, channel: str = "mcp") -> tuple[dict, bool]:
-    """(résultat, erreur ?). Lève ToolRefused si l'outil est inconnu ou hors des domaines de la clé.
-    Une lecture est toujours annulée (rollback) ; une écriture est validée (commit) et inscrite au journal."""
+    """(résultat, erreur ?). Lève ToolRefused si l'outil est inconnu, hors des domaines de la clé ou si le plafond
+    quotidien de créations est atteint. Une lecture est toujours annulée (rollback) ; une écriture est validée
+    (commit). Chaque appel est inscrit au journal, refus compris."""
     import time
     from app.extensions import db
+    from app.services import api_journal
     started = time.monotonic()
-    tool = find(name, key)
+    try:
+        tool = find(name, key)
+        if tool.access == "write" and api_journal.creations_today(key.id) >= key.creations_per_day:
+            raise ToolRefused("daily_cap", f"Plafond de {key.creations_per_day} créations par jour atteint pour la clé "
+                              f"« {key.name} » : réessayez demain (la lecture reste possible).")
+    except ToolRefused as exc:
+        found = next((t for t in registry() if t.name == name), None)
+        _log(name if found else "?", key, channel, started, tool=found, result={"error": exc.message}, error=True,
+             status=429 if exc.code == "daily_cap" else 404 if exc.code == "unknown_tool" else 403)
+        raise
     if args is None:
         args = {}
     if not isinstance(args, dict) or not _conforms(tool.schema, args):
-        return {"error": "Arguments non conformes au schéma de l'outil.", "schema": tool.schema}, True
+        result = {"error": "Arguments non conformes au schéma de l'outil.", "schema": tool.schema}
+        _log(name, key, channel, started, tool=tool, result=result, error=True)
+        return result, True
     try:
         result = tool.handler(args)
         if tool.access == "write" and not (isinstance(result, dict) and result.get("error")):
             db.session.commit()
         else:
             db.session.rollback()   # lecture, ou écriture refusée : rien n'est gardé
-    except Exception as exc:  # noqa: BLE001 — l'erreur de l'outil est rendue à l'agent
+    except Exception:  # noqa: BLE001 — détail au journal du serveur, message générique à l'agent
+        from flask import current_app
         db.session.rollback()
-        result = {"error": f"{type(exc).__name__} : {exc}"[:500]}
+        current_app.logger.exception("Outil d'agent %s : erreur", name)
+        result = {"error": "Erreur interne de l'outil : réessayez plus tard ou signalez-la à l'administrateur."}
     error = isinstance(result, dict) and bool(result.get("error"))
-    if tool.access == "write":
-        _log_write(tool, key, args, result, error, channel, started)
+    _log(name, key, channel, started, tool=tool, args=args, result=result, error=error)
     return result, error
 
 

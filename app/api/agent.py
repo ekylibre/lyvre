@@ -30,7 +30,7 @@ def agent_tools_call(name):
     try:
         result, is_error = agent_tools.run(name, args if args is not None else {}, key, channel="rest")
     except agent_tools.ToolRefused as exc:
-        status = 404 if exc.code == "unknown_tool" else 403
+        status = 404 if exc.code == "unknown_tool" else 429 if exc.code == "daily_cap" else 403
         raise ApiError(exc.code, exc.message, status) from None
     if is_error:
         return jsonify(error={"code": "tool_error", "message": result.get("error", "Erreur de l'outil."),
@@ -45,11 +45,16 @@ def agent_files_upload():
     from app.services import attachments
     from app.services.attachments import AttachmentError
     key = _key()
+    from app.services import api_journal
     if not key.writes:
         raise ApiError("domain_forbidden", f"La clé « {key.name} » n'écrit dans aucun domaine.", 403)
+    if api_journal.creations_today(key.id) >= key.creations_per_day:
+        raise ApiError("daily_cap", f"Plafond de {key.creations_per_day} créations par jour atteint pour la clé "
+                       f"« {key.name} » (dépôts de pièces compris).", 429)
     try:
         token = attachments.stage(request.files.get("file"))
     except AttachmentError as exc:
         raise ApiError("validation_error", str(exc), 422) from None
     _path, meta = attachments.staged(token)
+    g.api_upload = True       # compté comme une création au journal (plafond quotidien)
     return jsonify(file_token=token, name=meta["name"], mime=meta["mime"], size=meta["size"]), 201

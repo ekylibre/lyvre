@@ -13,6 +13,7 @@ from flask import Blueprint, current_app, g, jsonify, request
 bp = Blueprint("mcp", __name__)
 
 PROTOCOL_VERSIONS = ("2025-11-25", "2025-06-18", "2025-03-26")
+MAX_BATCH = 10
 SERVER_NAME = "lyvre"
 
 PARSE_ERROR, INVALID_REQUEST, METHOD_NOT_FOUND, INVALID_PARAMS, INTERNAL_ERROR = -32700, -32600, -32601, -32602, -32603
@@ -150,7 +151,22 @@ def endpoint():
         response.status_code = 400
         return response
     if isinstance(payload, list):
-        replies = [r for r in (_handle(m) for m in payload) if r is not None]
+        # Lots : 10 messages au plus, chacun compté dans le débit de la clé (revue de sécurité AK4).
+        if not payload or len(payload) > MAX_BATCH:
+            response = jsonify(_error(None, INVALID_REQUEST, f"Lot JSON-RPC : entre 1 et {MAX_BATCH} messages."))
+            response.status_code = 400
+            return response
+        from app.services import api_journal
+        replies = []
+        for index, message in enumerate(payload):
+            wait = api_journal.rate_check(g.api_key.id, g.api_key.rate_per_minute) if index else None
+            if wait is not None:
+                msg_id = message.get("id") if isinstance(message, dict) else None
+                replies.append(_error(msg_id, -32000, f"Trop de requêtes : réessayez dans {wait} s.", {"retry_after": wait}))
+                continue
+            reply = _handle(message)
+            if reply is not None:
+                replies.append(reply)
         return (jsonify(replies), 200) if replies else ("", 202)
     reply = _handle(payload)
     return (jsonify(reply), 200) if reply is not None else ("", 202)

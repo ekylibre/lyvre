@@ -151,6 +151,8 @@
     {"rule": "/configuration/integrations/<service>", "endpoint": "integrations.detail"},
     {"rule": "/configuration/access/", "endpoint": "access.index"},
     {"rule": "/configuration/api-keys/", "endpoint": "api_keys.index"},
+    {"rule": "/configuration/api-keys/help", "endpoint": "api_keys.help"},
+    {"rule": "/me/api-keys", "endpoint": "api_keys.mine"},
     {"rule": "/configuration/organization", "endpoint": "organization.index"},
     {"rule": "/instances/", "endpoint": "instances.index"},
     {"rule": "/instances/new", "endpoint": "instances.new"},

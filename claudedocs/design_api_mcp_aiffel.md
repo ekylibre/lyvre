@@ -336,6 +336,33 @@ Une dépense sans facture (Q3) passe par le même outil : la pièce est le ticke
   - `tests/api/test_agent_writes.py` (10 tests, dont le garde-fou « aucun outil d'écriture ne comptabilise, ne valide ni n'envoie ») ;
   - `OriginBadge.test.tsx`.
 
+**AK4 (08/11/2026)** :
+- `app/services/api_journal.py` :
+  - journal de chaque appel REST et de chaque outil MCP, refus compris ;
+  - purge des lignes de plus de 180 jours, une fois par jour ;
+  - débit sur une fenêtre glissante en mémoire ;
+  - plafond quotidien de créations (jour de Paris), dépôts de pièces compris ;
+  - `last_used_at` mis à jour au plus une fois par minute.
+- Hooks : `enforce_limits` (après le choix de l'instance : réponse 429 avec `Retry-After`, en JSON-RPC sur `/mcp`) et `log_rest_call` (`after_request` de l'API).
+- Taille des requêtes sur `/mcp` et `/api/v1/agent/*` : 15 Mo au plus.
+- Routes : `GET /api-keys/<id>/calls?kind=errors|creations` (administrateur ou utilisateur rattaché) et `GET /api-keys/help`.
+- Écrans :
+  - tiroir Journal dans Accès API ;
+  - page « Mes clés d'API » (`/me/api-keys`, menu de l'utilisateur) ;
+  - page « Aide API et MCP » (`/configuration/api-keys/help`), générée à partir du registre.
+- Revue de sécurité indépendante, faite à la fin d'AK4. Défauts corrigés :
+  1. une calculette préremplie par une clé exige le domaine Comptabilité en lecture ;
+  2. un lot MCP compte au plus 10 messages, chacun compté dans le débit ;
+  3. les dépôts de pièces comptent dans le plafond quotidien ;
+  4. `attach_document` n'agit que sur les brouillons de la même clé ;
+  5. les erreurs internes sont rendues à l'agent sous un message générique, le détail allant au journal du serveur ;
+  6. une clé d'expert-comptable peut appeler les outils de lecture par REST.
+- Points gardés :
+  - **par choix** : l'administrateur peut rattacher une clé à un autre membre, conformément à A3 ;
+  - **marge** : le plafond quotidien peut être dépassé d'au plus 8, le nombre de fils gunicorn (vérification et inscription non atomiques) ;
+  - **D4** : les écritures en brouillard créées par une clé comptent dans les soldes avant leur validation, comme une saisie manuelle.
+- Tests : `tests/api/test_api_journal.py` (14 tests), `help.test.ts`.
+
 ## 11. Sécurité (contrôle)
 - Le secret ne transite que dans l'en-tête. La clé n'apparaît ni dans une URL, ni dans un journal applicatif ; `api_calls` ne garde que `key_id`.
 - Comparaison en temps constant. Un `public_id` inconnu passe aussi par une comparaison factice (même durée).
