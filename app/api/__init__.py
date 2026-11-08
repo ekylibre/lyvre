@@ -30,7 +30,9 @@ READ_ONLY_ALLOWED = {"api.login", "api.logout", "api.select_instance", "api.upda
                      "api.notifications_mark_read", "api.change_password", "api.password_forgot",
                      "api.password_reset_check", "api.password_reset",
                      # Calculettes (lot AG12) : un calcul n'écrit rien.
-                     "api.calculators_compute"}
+                     "api.calculators_compute",
+                     # Clés d'API (lot AK1) : chacun révoque les siennes.
+                     "api.api_keys_revoke"}
 WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
 _HTTP_CODES = {
@@ -142,6 +144,13 @@ def _read_only_accountant():
     return None
 
 
+@bp.before_request
+def _api_key_scope():
+    """Clé d'API (lot AK1) : lecture seulement, dans les domaines de la clé (app/api_auth.py)."""
+    from app.api_auth import authorize
+    return authorize()
+
+
 def register_api(app):
     app.register_blueprint(bp)
 
@@ -186,7 +195,7 @@ def register_api(app):
 
 # Routes are attached to ``bp`` by these modules (import for side effects).
 from . import (  # noqa: E402,F401
-    access, activity_report, assets, brevo, data_import, associate_expenses, associates, bank_accounts, bank_statements,
+    access, activity_report, api_keys, assets, brevo, data_import, associate_expenses, associates, bank_accounts, bank_statements,
     budgets, calculators, cash, cash_forecast, chart, coop_statements, documents, ekylibre, entities, entries, ereporting, fiscal_years,
     impact, imports, lettering,
     instances, integrations, journals, leases, lookups, members, notifications, odoo, organization, payouts,

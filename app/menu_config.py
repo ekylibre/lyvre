@@ -325,7 +325,7 @@ MENUS = [
         "label": "Configuration",
         "charts": _ALL,
         "admin_only": True,
-        "active": ["organization", "integrations", "access", "receipts_settings", "simple_categories", "account_roles",
+        "active": ["organization", "integrations", "access", "api_keys", "receipts_settings", "simple_categories", "account_roles",
                    "lease_templates"],
         "items": [
             {"key": "organization", "label": "Structure", "icon": "building", "endpoint": "organization.index", "charts": _ALL},
@@ -337,6 +337,7 @@ MENUS = [
             {"key": "lease_templates", "label": "Modèles de bail", "icon": "file-pen-line", "endpoint": "lease_templates.index", "charts": _ALL},
             {"key": "integrations", "label": "Intégrations", "icon": "plug", "endpoint": "integrations.index", "charts": _ALL},
             {"key": "access", "label": "Accès", "icon": "shield-check", "endpoint": "access.index", "charts": _ALL},
+            {"key": "api_keys", "label": "Accès API", "icon": "key-round", "endpoint": "api_keys.index", "charts": _ALL},
         ],
     },
 ]

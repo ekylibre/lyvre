@@ -1,6 +1,7 @@
 from .user import User
 from .instance import Instance
 from .instance_membership import InstanceMembership
+from .api_key import ApiKey
 from .fiscal_year import FiscalYear
 from .account import Account
 from .journal import Journal
@@ -122,6 +123,7 @@ __all__ = [
     "ShareMovementLine",
     "User",
     "Instance",
+    "ApiKey",
     "FiscalYear",
     "Account",
     "Journal",

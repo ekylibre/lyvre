@@ -148,6 +148,19 @@ def register_tenant_hooks(app):
         if not current_user.is_authenticated:
             return None
 
+        api_key = getattr(g, "api_key", None)
+        if api_key is not None:
+            # Clé d'API (lot AK1) : l'instance est celle de la clé, jamais la session ; accès vérifié par la clé.
+            from app.access import role_for
+            inst = db.session.get(Instance, api_key.instance_id)
+            g.current_instance = inst
+            g.instance_role = role_for(current_user, inst)
+            g.tenant_engine = get_tenant_engine(inst)
+            if inst.integrations is None:
+                from app.services.external_config import ensure_initialized
+                ensure_initialized(inst)
+            return None
+
         # Re-check is_active on every request (cheap, catches admin deactivation).
         if not current_user.is_active:
             from flask_login import logout_user

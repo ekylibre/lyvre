@@ -26,6 +26,9 @@ def create_app(config_name=None):
             from .services.ekylibre.restore import MAX_UPLOAD
             request.max_content_length = MAX_UPLOAD + 1024 * 1024
 
+    # Clés d'API (lot AK1) : authentification avant le CSRF, qui ne s'applique pas à une requête par clé.
+    from .api_auth import register as register_api_auth
+    register_api_auth(app)
     csrf.init_app(app)
 
     login_manager.login_view = "auth.login"

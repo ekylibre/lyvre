@@ -113,7 +113,7 @@ def test_instance_admin_features(login_as):
     nav = treasurer.get("/api/v1/session").get_json()["nav"]
     config = next(m for m in nav if m["key"] == "configuration")
     assert [i["label"] for i in config["items"]] == ["Structure", "Reçus fiscaux", "Comptes par défaut", "Modèles de bail",
-                                                  "Intégrations", "Accès"]
+                                                  "Intégrations", "Accès", "Accès API"]
 
 
 @pytest.fixture()
