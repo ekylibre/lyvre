@@ -27,7 +27,8 @@ describe("Résumé du lundi", () => {
   it("carte du tableau de bord", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation((() => json({ item: SUMMARY })) as typeof fetch);
     renderWithProviders(<AgendaWeekCard />, { route: "/", session: SESSION });
-    expect(await screen.findByText(/semaine du 02\/11\/2026/)).toBeInTheDocument();
+    expect(await screen.findByText("Semaine du 02/11/2026")).toBeInTheDocument();
+    expect(screen.getByText("En retard")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Acompte de TVA" })).toHaveAttribute("href", "/vat-returns/");
     expect(screen.getByText("Relevés non rapprochés")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Tout l'échéancier" })).toBeInTheDocument();

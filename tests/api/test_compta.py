@@ -166,7 +166,7 @@ def test_dashboard(client, base):
     assert body["stats"]["resultat_courant_cents"] == -4200
     february = next(m for m in body["monthly"] if m["month"] == f"02/{date.today().year}")
     assert february["charges"] == 42.0 and february["net"] == -42.0
-    assert body["recent_entries"][0]["url"].startswith("/entries/")
+    assert "recent_entries" not in body                                     # retiré du tableau de bord (lot DB1)
 
 
 def test_dashboard_without_fiscal_year(client):

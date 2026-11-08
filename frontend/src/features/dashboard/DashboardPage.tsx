@@ -1,8 +1,7 @@
-// Tableau de bord : alerte de trésorerie négative prévue, indicateurs de l'exercice, suivi du budget
-// (s'il y en a un), résultat, ventes et
-// solde bancaire mensuels, dernières écritures. Graphiques Mantine Charts (FM6), couleurs de la charte.
+// Tableau de bord : « À traiter » et échéancier en tête (lot DB1), indicateurs de l'exercice, suivi du budget
+// (s'il y en a un), résultat, ventes et solde bancaire mensuels. Graphiques Mantine Charts (FM6), couleurs de la charte.
 import type { ReactNode } from "react";
-import { Alert, Anchor, Box, Center, Group, Loader, Paper, Select, SimpleGrid, Stack, Table, Text, Title } from "@mantine/core";
+import { Alert, Anchor, Center, Group, Loader, Paper, Select, SimpleGrid, Stack, Text, Title } from "@mantine/core";
 import { AreaChart, BarChart, CompositeChart } from "@mantine/charts";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/client";
@@ -15,9 +14,8 @@ import { EUROS_Y_AXIS, formatDate, formatEuros } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
 import type { ReportMeta } from "../reports/ReportFrame";
 import { RateBar, useTracking } from "../budget/BudgetTrackingPage";
-import { NegativeAlert, useForecast } from "../cash-forecast/CashForecastPage";
-import { IntegrationProposals } from "../integrations/IntegrationProposals";
 import { AgendaWeekCard } from "../agenda/AgendaWeekCard";
+import { AttentionCard } from "./AttentionCard";
 
 interface Month { month: string; produits: number; charges: number; net: number; ventes: number; pos: number; factures: number; solde: number }
 interface Dashboard {
@@ -27,7 +25,6 @@ interface Dashboard {
   /** Écritures en brouillard des exercices ouverts ; `old` : plus de 3 mois (lot F1). */
   drafts?: { drafts: number; old: number };
   monthly: Month[];
-  recent_entries: { id: number; url: string; reference: string | null; date: string; description: string; total_cents: number }[];
   meta: ReportMeta;
 }
 
@@ -80,11 +77,6 @@ function BudgetCard({ fyId }: { fyId: number }) {
   );
 }
 
-function ForecastAlert() {
-  const { data } = useForecast();
-  return data ? <NegativeAlert forecast={data} /> : null;
-}
-
 export default function DashboardPage() {
   const [params, setParams] = useUrlParams({ fy_id: "" });
   const can = useCan();
@@ -104,17 +96,15 @@ export default function DashboardPage() {
       <PageHeader title="Tableau de bord" description={fy ? `Exercice ${fy.label}` : undefined}
         actions={<Select aria-label="Exercice" data={data?.meta.fiscal_years ?? []} value={params.fy_id || (fy ? String(fy.id) : null)}
           w={180} allowDeselect={false} onChange={(v) => setParams({ fy_id: v ?? "" })} />} />
-      <IntegrationProposals />
-      {farm && <Box mb="lg"><AgendaWeekCard /></Box>}
       {isPending ? <Center h={300}><Loader /></Center> : !stats ? (
         <Alert color="paille">Aucun exercice : <Anchor component={AppLink} href="/fiscal-years/new">créer un exercice</Anchor> pour commencer.</Alert>
       ) : (
         <Stack gap="lg">
-          <ForecastAlert />
-          {!!data.drafts?.old && can.write && bookkeeping === "double" && (
-            <Alert color="paille" variant="light">{data.drafts.old} écriture(s) en brouillard depuis plus de 3 mois :{" "}
-              <Anchor component={AppLink} href="/entries/?state=draft">validez-les</Anchor> une fois vérifiées.</Alert>
-          )}
+          <SimpleGrid cols={{ base: 1, lg: farm ? 2 : 1 }}>
+            <AttentionCard drafts={can.write && bookkeeping === "double" ? data.drafts?.old ?? 0 : 0}
+              overdue={data.sales?.has_sales ? { count: data.sales.overdue_count, cents: data.sales.overdue_cents } : null} />
+            {farm && <AgendaWeekCard />}
+          </SimpleGrid>
           <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
             {odoo && <StatTile icon="store" label="Ventes de l'exercice" meta="Caisse et factures Odoo"><MoneyText cents={stats.total_sales_cents} /></StatTile>}
             {stats.new_members !== null && <StatTile icon="users" label="Adhésions" meta="Adhérents de l'exercice">{stats.new_members}</StatTile>}
@@ -156,22 +146,6 @@ export default function DashboardPage() {
                 series={[{ name: "solde", label: "Solde", color: "lichen.7" }]} />
             </ChartCard>
           </SimpleGrid>
-          <Paper p={0}>
-            <Group justify="space-between" p="md" pb="xs"><Title order={2} size="h3">Dernières écritures</Title>
-              <Anchor component={AppLink} href="/entries/">Toutes les écritures</Anchor></Group>
-            <Table verticalSpacing="xs">
-              <Table.Tbody>
-                {data.recent_entries.map((e) => (
-                  <Table.Tr key={e.id}>
-                    <Table.Td className="lv-num" w={110}>{formatDate(e.date)}</Table.Td>
-                    <Table.Td w={140}><Anchor component={AppLink} href={e.url} className="lv-num">{e.reference ?? `#${e.id}`}</Anchor></Table.Td>
-                    <Table.Td><Text size="sm" lineClamp={1}>{e.description}</Text></Table.Td>
-                    <Table.Td ta="right"><MoneyText cents={e.total_cents} /></Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </Paper>
         </Stack>
       )}
     </>

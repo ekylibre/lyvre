@@ -238,12 +238,10 @@ def _total_payouts_cents(fy):
 
 
 def dashboard_data(fy):
-    """Indicateurs, séries mensuelles (euros) et dernières écritures de l'exercice."""
+    """Indicateurs et séries mensuelles (euros) de l'exercice."""
     labels, produits, charges, nets = _monthly_result(fy)
     _, sales, pos_sales, inv_sales = _monthly_sales(fy)
     _, balances = _bank_balance_evolution(fy)
-    recent = (JournalEntry.query.filter_by(fiscal_year_id=fy.id)
-              .order_by(JournalEntry.entry_date.desc()).limit(10).all())
     return {
         "stats": {
             "total_sales_cents": _total_sales_cents(fy),
@@ -257,5 +255,4 @@ def dashboard_data(fy):
             for label, p, c, n, v, ps, inv, b in zip(labels, produits, charges, nets, sales,
                                                      pos_sales, inv_sales, balances)
         ],
-        "recent_entries": recent,
     }

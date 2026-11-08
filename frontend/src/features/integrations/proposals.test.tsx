@@ -7,7 +7,7 @@ import { notifications } from "@mantine/notifications";
 import { renderWithProviders, TEST_SESSION } from "../../test/render";
 import type { Session } from "../../api/session";
 import InstancesPage from "../instances/InstancesPage";
-import { IntegrationProposals } from "./IntegrationProposals";
+import { AttentionCard } from "../dashboard/AttentionCard";
 import IntegrationsPage from "./IntegrationsPage";
 import { sortIntegrations, type Integration } from "./types";
 
@@ -70,16 +70,17 @@ describe("page Intégrations", () => {
 describe("encart du tableau de bord", () => {
   it("propose Qonto et « Ne plus proposer » l'écarte", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<IntegrationProposals />, { session: ADMIN });
-    expect(screen.getByText("Activez Qonto")).toBeTruthy();
+    renderWithProviders(<AttentionCard drafts={0} overdue={null} />, { session: ADMIN });
+    expect(screen.getByText("Activer Qonto")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Configurer" }).getAttribute("href")).toBe("/configuration/integrations/qonto");
     await user.click(screen.getByRole("button", { name: "Ne plus proposer" }));
     await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.url === "/api/v1/integrations/qonto/dismiss")).toBe(true));
   });
 
   it("rien sans proposition", () => {
-    renderWithProviders(<IntegrationProposals />);
-    expect(screen.queryByText(/^Activez/)).toBeNull();
+    renderWithProviders(<AttentionCard drafts={0} overdue={null} />);
+    expect(screen.queryByText(/^Activer/)).toBeNull();
+    expect(screen.getByText("Rien en attente : la comptabilité est à jour.")).toBeTruthy();
   });
 });
 
