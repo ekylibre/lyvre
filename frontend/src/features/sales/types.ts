@@ -17,6 +17,8 @@ export interface SaleRow {
   due_cents: number; reminder_count: number; last_reminder_at: string | null;
   /** Émise (ou à émettre) par Qonto ; statut et erreur Qonto. */
   qonto_emit: boolean; qonto_status: string | null; qonto_error: string | null;
+  /** Lot PDP1 : facture électronique transmise par SUPER PDP (dernier statut de la réforme). */
+  pdp?: { id: string | null; status: string | null; status_label: string | null; error: string | null; sent_at: string | null } | null;
   /** Lot AG10.c : autofacture reçue (numéro du client) et son cycle de vie. */
   self_billed?: boolean; lifecycle?: Lifecycle | null;
 }
@@ -71,6 +73,8 @@ export interface SaleDetail extends Omit<SaleRow, "client"> {
   pdf_url: string; received_file_url?: string | null;
   /** Lot AG10.e : pourquoi la pièce n'a pas de Factur-X (RFA sans motif sourcé) ; client particulier (note BAR = B2C). */
   facturx_warning?: string | null; b2c?: boolean;
+  /** Lot PDP1 : transmission par SUPER PDP possible (refus motivé sinon). */
+  pdp_send?: { refusal: string | null } | null;
   lease: { id: number; unit_label: string } | null; recurrence_id: number | null;
   rent_receipts: { id: number; kind: "quittance" | "recu"; label: string; paid_cents: number; sent_at: string | null; pdf_url: string }[];
 }

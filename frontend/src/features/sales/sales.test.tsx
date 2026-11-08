@@ -65,6 +65,11 @@ beforeEach(() => {
     if (url === "/api/v1/sales/7/match") return json(200, { item: detail({ status: "paid", due_cents: 0 }), notices: [] });
     if (url === "/api/v1/sales/7/to-invoice") return json(201, { item: detail({ id: 12, status: "draft", number: null }), notices: [] });
     if (url === "/api/v1/sales/7/quote-status") return json(200, { item: detail({ kind: "quote", status: "accepted", number: "D-2026-0001" }), notices: [] });
+    if (url === "/api/v1/sales/7/superpdp") {
+      current = detail({ pdp: { id: "42", status: "api:uploaded", status_label: "Déposée", error: null, sent_at: "2026-11-08T10:00:00" },
+        pdp_send: { refusal: "Pièce déjà transmise à SUPER PDP (n° 42)." } });
+      return json(200, { item: current, notices: [] });
+    }
     if (url === "/api/v1/sales/7/credit-note") return json(201, { item: detail({ id: 9, kind: "credit_note", status: "draft", number: null }), notices: [] });
     return json(404, { error: { code: "not_found", message: "?" } });
   }) as typeof fetch);
@@ -179,5 +184,23 @@ describe("fiche d'une facture", () => {
     await waitFor(() => expect(calls.find((c) => c.url.endsWith("/quote-status"))?.body).toEqual({ status: "accepted" }));
     await user.click(screen.getByRole("button", { name: "Transformer en facture" }));
     await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.url.endsWith("/to-invoice"))).toBe(true));
+  });
+
+  it("transmission par SUPER PDP (lot PDP1)", async () => {
+    const user = userEvent.setup();
+    current = detail({ pdp_send: { refusal: null } });
+    page();
+    await user.click(await screen.findByRole("button", { name: "Transmettre (SUPER PDP)" }));
+    await user.click(await screen.findByRole("button", { name: "Transmettre" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.url === "/api/v1/sales/7/superpdp")).toBe(true));
+    expect(await screen.findByText("SUPER PDP : Déposée")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Transmettre (SUPER PDP)" })).toBeNull();
+  });
+
+  it("SUPER PDP : refus motivé (PDF sans Factur-X)", async () => {
+    current = detail({ pdp_send: { refusal: "PDF Factur-X impossible : TVA du vendeur manquante." } });
+    page();
+    expect(await screen.findByText("PDF Factur-X impossible : TVA du vendeur manquante.")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Transmettre (SUPER PDP)" }) as HTMLButtonElement).disabled).toBe(true);
   });
 });

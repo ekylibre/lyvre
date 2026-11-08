@@ -118,6 +118,7 @@ export default function SaleDetailPage() {
   const rentReceipt = useAction(() => api.post<{ item: { pdf_url: string }; notices: Notice[] }>(`/api/v1/sales/${id}/rent-receipt`),
     { invalidate: [SALES_KEY] });
   const unpay = useAction((paymentId: number) => api.delete<{ item: SaleDetail; notices: Notice[] }>(`/api/v1/sale-payments/${paymentId}`));
+  const pdpSend = useAction(() => api.post<{ item: SaleDetail; notices: Notice[] }>(`/api/v1/sales/${id}/superpdp`), { invalidate: [SALES_KEY] });
 
   if (error) return <Alert color="brique" mt="md">{(error as Error).message}</Alert>;
   if (!data) return <Center h={300}><Loader /></Center>;
@@ -139,6 +140,7 @@ export default function SaleDetailPage() {
           {quote && s.validity_date && <span>valable jusqu'au {formatDate(s.validity_date)}</span>}
           {(s.qonto_emit || s.source === "qonto") && <StatusBadge tone="info">{s.source === "qonto" ? "Créée dans Qonto" : "Qonto"}</StatusBadge>}
           {s.qonto_status && <span>Qonto : {s.qonto_status}</span>}
+          {s.pdp?.id && <StatusBadge tone={s.pdp.error ? "gap" : "info"}>{`SUPER PDP : ${s.pdp.status_label ?? "déposée"}`}</StatusBadge>}
           {s.b2c && <StatusBadge tone="neutral">Particulier (B2C)</StatusBadge>}
           {s.lifecycle && <StatusBadge tone={LIFECYCLE_TONES[s.lifecycle.status]}>{`Autofacture ${s.lifecycle.label.toLowerCase()}`}</StatusBadge>}
         </Group>}
@@ -157,6 +159,10 @@ export default function SaleDetailPage() {
               onConfirm={() => issue.mutate(undefined, { onSuccess: (r) => refresh(r.item) })}>Émettre</ConfirmButton>}
             {s.kind === "invoice" && s.due_cents > 0 && <Button onClick={() => setModal("pay")}>Encaisser</Button>}
             {!draft && <Button variant="default" onClick={smtp.guard(() => setModal("send"))}>Envoyer</Button>}
+            {s.pdp_send && !s.pdp?.id && <ConfirmButton danger={false} disabled={!!s.pdp_send.refusal} loading={pdpSend.isPending}
+              title="Transmettre par SUPER PDP ?" confirmLabel="Transmettre"
+              message="Le PDF Factur-X est déposé chez SUPER PDP, qui le valide et l'achemine à la plateforme du client. Le statut se met à jour à chaque synchronisation."
+              onConfirm={() => pdpSend.mutate(undefined, { onSuccess: (r) => refresh(r.item) })}>Transmettre (SUPER PDP)</ConfirmButton>}
             {s.lease && s.paid_cents > 0 && <Button variant="default" loading={rentReceipt.isPending}
               onClick={() => rentReceipt.mutate(undefined, { onSuccess: (r) => { window.open(r.item.pdf_url, "_blank"); void client.invalidateQueries({ queryKey: key }); } })}>
               {s.status === "paid" ? "Quittance" : "Reçu"}</Button>}
@@ -192,6 +198,8 @@ export default function SaleDetailPage() {
         </Alert>
       )}
       {s.qonto_error && <Alert color="brique" mb="md" title="Qonto">{s.qonto_error}</Alert>}
+      {s.pdp?.error && <Alert color="brique" mb="md" title="SUPER PDP">{s.pdp.error}</Alert>}
+      {s.pdp_send?.refusal && !s.pdp?.id && <Alert color="paille" mb="md" title="Transmission par SUPER PDP impossible">{s.pdp_send.refusal}</Alert>}
       {s.facturx_warning && <Alert color="paille" mb="md" title="Sans Factur-X">{s.facturx_warning}</Alert>}
       {draft && s.qonto_emit && <Alert color="ardoise" mb="md">À l'émission, la pièce est créée dans Qonto, qui lui donne son numéro et son PDF.</Alert>}
       {s.credit_reason && <Alert color="ardoise" mb="md">Motif de l'avoir : {s.credit_reason}</Alert>}

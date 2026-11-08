@@ -2,7 +2,7 @@ from datetime import datetime
 
 from app.extensions import db
 
-PURCHASE_SOURCES = ["qonto", "manual"]
+PURCHASE_SOURCES = ["qonto", "manual", "superpdp", "ekylibre"]
 
 
 class Purchase(db.Model):
@@ -13,6 +13,8 @@ class Purchase(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     source = db.Column(db.String(10), nullable=False, default="qonto", server_default="qonto")
     qonto_id = db.Column(db.String(36), unique=True)
+    pdp_id = db.Column(db.String(32), unique=True, index=True)   # lot PDP1 : facture reçue par SUPER PDP
+    pdp_status = db.Column(db.String(40))
     entity_id = db.Column(
         db.Integer, db.ForeignKey("entities.id", ondelete="SET NULL"), nullable=True, index=True
     )

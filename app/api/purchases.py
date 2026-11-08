@@ -59,7 +59,7 @@ def _state(p):
 
 def purchase_row(p: Purchase, state=None) -> dict:
     return {
-        "id": p.id, "source": p.source, "invoice_number": p.invoice_number, "issue_date": _iso(p.issue_date),
+        "id": p.id, "source": p.source, "pdp_status": p.pdp_status, "invoice_number": p.invoice_number, "issue_date": _iso(p.issue_date),
         "due_date": _iso(p.due_date), "is_credit_note": p.is_credit_note, "is_einvoice": p.is_einvoice,
         "is_hidden": p.is_hidden, "total_cents": p.total_cents,
         "supplier": ({"id": p.entity.id, "name": p.entity.name} if p.entity else None),
@@ -166,7 +166,25 @@ def purchases_list():
         "sync": {"from": _iso(purchase_sync.sync_from_date()), "synced_at": _iso(cursor.synced_at) if cursor else None,
                  "job": job_payload(job) if job else None},
         "qonto": _qonto(),
+        "superpdp": {**external_config.state("superpdp", "receive"), "job": _superpdp_job()},
     })
+
+
+def _superpdp_job():
+    from app.models import SyncJob
+    from app.models.sync_job import SYNC_KIND_SUPERPDP
+    job = SyncJob.query.filter_by(kind=SYNC_KIND_SUPERPDP).order_by(SyncJob.id.desc()).first()
+    return job_payload(job) if job else None
+
+
+@bp.route("/superpdp/sync", methods=["POST"])
+def superpdp_sync():
+    """Lot PDP1 : réception des factures d'achat et statuts des pièces transmises par SUPER PDP."""
+    from app.services import superpdp
+    if not (external_config.scope_enabled("superpdp", "receive") or external_config.scope_enabled("superpdp", "send")):
+        require_integration("superpdp", "receive")
+    require_integration("superpdp")
+    return jsonify(job=job_payload(superpdp.start_sync(current_app._get_current_object()))), 202
 
 
 @bp.route("/purchases/sync", methods=["POST"])

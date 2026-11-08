@@ -28,6 +28,10 @@ FIELD_META = {
     ("ekylibre", "url"):        ("Adresse de l'instance", "text", "https://ferme.ekylibre.farm"),
     ("ekylibre", "email"):      ("Email de l'utilisateur", "text", "Utilisateur Ekylibre dont le jeton est utilisé"),
     ("ekylibre", "token"):      ("Jeton d'API", "password", "Obtenu avec « Se connecter » (mot de passe non conservé)"),
+    ("superpdp", "client_id"):  ("Client ID de l'application", "text",
+                                 "SUPER PDP › Applications › Nouvelle application (une par entreprise)"),
+    ("superpdp", "client_secret"): ("Client Secret", "password",
+                                    "Affiché une seule fois à la création ; une clé bac à sable donne le bac à sable"),
     ("assistant", "model"):     ("Modèle", "text", "claude-haiku-5-5 par défaut ; claude-sonnet-5-5 ou claude-opus-5-5"),
     ("assistant", "monthly_tokens"): ("Quota mensuel (tokens)", "text", "2000000 par défaut ; 0 = sans limite"),
     ("assistant", "lexicon"):   ("Lexicon (MCP)", "text", "oui pour interroger Lexicon (prix, rendements, communes)"),
@@ -60,6 +64,7 @@ SYNC_LINK_LABELS = {
     "bank_accounts.index": "Comptes bancaires",
     "payouts.index": "Versements Stancer",
     "impact.index": "Visibilité & Impact",
+    "purchases.index": "Achats",
 }
 
 
@@ -213,6 +218,8 @@ def integrations_scopes(service):
         raise invalid("Liste attendue.", "scopes")
     try:
         external_config.set_scopes(service, values)
+    except external_config.PdpConflict as exc:
+        raise ApiError("conflict", str(exc), status=409) from None
     except ValueError as exc:
         raise invalid(str(exc), "scopes") from None
     labels = [external_config.SCOPES[service][v] for v in sorted(values)]

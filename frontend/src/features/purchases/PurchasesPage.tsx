@@ -60,6 +60,7 @@ export default function PurchasesPage() {
   const client = useQueryClient();
   const can = useCan();
   const qonto = useIntegration("qonto", "purchases");
+  const pdp = useIntegration("superpdp", "receive");
   const [params, setParams] = useUrlParams(FILTERS);
   const query = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
   const { data, isFetching } = useList<Purchase, PurchasesMeta>(PURCHASES_KEY, `/api/v1/purchases${query ? `?${query}` : ""}`);
@@ -68,6 +69,9 @@ export default function PurchasesPage() {
   const [job, setJob] = useState<Job | null>(null);
   const shown = qonto ? job ?? meta?.sync.job ?? null : null;
   const sync = useAction<void, { job: Job; notices?: Notice[] }>(() => api.post("/api/v1/purchases/sync"));
+  const [pdpJob, setPdpJob] = useState<Job | null>(null);
+  const pdpShown = pdp ? pdpJob ?? meta?.superpdp?.job ?? null : null;
+  const pdpSync = useAction<void, { job: Job; notices?: Notice[] }>(() => api.post("/api/v1/superpdp/sync"));
   const postReady = useAction(() => api.post<{ notices: Notice[] }>("/api/v1/purchases/post-ready"), { invalidate: [PURCHASES_KEY] });
   const remove = useAction((id: number) => api.delete<{ notices: Notice[] }>(`/api/v1/purchases/${id}`), { invalidate: [PURCHASES_KEY] });
   const filtered = Object.entries(params).some(([k, v]) => k !== "sort" && v);
@@ -79,6 +83,7 @@ export default function PurchasesPage() {
         <Anchor component={AppLink} href={`/purchases/${p.id}`} size="sm" className="lv-num">{p.invoice_number || "sans numéro"}</Anchor>
         {p.is_credit_note && <Badge size="xs" variant="light" color="gray">Avoir</Badge>}
         {p.source === "manual" && <Badge size="xs" variant="outline" color="gray" title={p.has_attachment ? "Saisie dans l'application — pièce jointe" : "Saisie dans l'application"}>saisie</Badge>}
+        {p.source === "superpdp" && <Badge size="xs" variant="outline" color="lichen" title={p.pdp_status ? `Statut SUPER PDP : ${p.pdp_status}` : undefined}>SUPER PDP</Badge>}
         {qonto && p.qonto_upload_status === "failed" && <Badge size="xs" color="brique" title={p.qonto_upload_error ?? undefined}>envoi Qonto en échec</Badge>}
         {p.is_einvoice && <Badge size="xs" variant="outline" color="gray" title="Facture électronique">e-facture</Badge>}
       </Group>
@@ -112,9 +117,14 @@ export default function PurchasesPage() {
         actions={<>
           <Can><Button component={AppLink} href="/purchases/new">Nouvelle facture</Button>
           {qonto && <Button variant="default" loading={sync.isPending} disabled={!meta?.qonto.available || shown?.status === "running"}
-            onClick={() => sync.mutate(undefined, { onSuccess: (r) => setJob(r.job) })}>Synchroniser les factures Qonto</Button>}</Can>
+            onClick={() => sync.mutate(undefined, { onSuccess: (r) => setJob(r.job) })}>Synchroniser les factures Qonto</Button>}
+          {pdp && <Button variant="default" loading={pdpSync.isPending} disabled={!meta?.superpdp?.available || pdpShown?.status === "running"}
+            onClick={() => pdpSync.mutate(undefined, { onSuccess: (r) => setPdpJob(r.job) })}>Recevoir (SUPER PDP)</Button>}</Can>
         </>} />
       <IntegrationNotice name="qonto" state={meta?.qonto} consequence="synchronisation impossible" />
+      {pdp && <IntegrationNotice name="superpdp" state={meta?.superpdp} consequence="réception impossible" />}
+      {pdpShown && <JobStatus key={pdpShown.id} job={pdpShown}
+        onDone={() => void client.invalidateQueries({ queryKey: PURCHASES_KEY })} />}
       {meta && qonto && (
         <Paper p="sm" mb="sm">
           <Group justify="space-between" gap="sm">
@@ -150,7 +160,8 @@ export default function PurchasesPage() {
         <SearchInput value={params.q} onChange={(q) => setParams({ q })} placeholder="Numéro, fournisseur…" />
         <Select label="État" placeholder="Tous" clearable data={meta?.states ?? []} value={params.state || null} onChange={(state) => setParams({ state: state ?? "" })} w={150} />
         {qonto && <Select label="Statut Qonto" placeholder="Tous" clearable data={meta?.statuses ?? []} value={params.status || null} onChange={(status) => setParams({ status: status ?? "" })} w={160} />}
-        <Select label="Origine" placeholder="Toutes" clearable data={[{ value: "qonto", label: "Qonto" }, { value: "manual", label: "Saisies" }]}
+        <Select label="Origine" placeholder="Toutes" clearable data={[{ value: "qonto", label: "Qonto" }, { value: "superpdp", label: "SUPER PDP" }, { value: "manual", label: "Saisies" },
+            { value: "ekylibre", label: "Reprises d'Ekylibre" }]}
           value={params.source || null} onChange={(source) => setParams({ source: source ?? "" })} w={120} />
         <Select label="Fournisseur" placeholder="Tous" clearable searchable data={meta?.suppliers ?? []} value={params.entity_id || null}
           onChange={(entity_id) => setParams({ entity_id: entity_id ?? "" })} w={200} />

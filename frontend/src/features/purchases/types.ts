@@ -11,7 +11,7 @@ export interface Option { value: string; label: string }
 export interface PurchaseState { code: "posted" | "ready" | "to_complete" | "hidden"; label: string; reasons: string[] }
 
 export interface Purchase {
-  id: number; source: "qonto" | "manual"; invoice_number: string | null; issue_date: string | null; due_date: string | null;
+  id: number; source: "qonto" | "manual" | "superpdp" | "ekylibre"; pdp_status?: string | null; invoice_number: string | null; issue_date: string | null; due_date: string | null;
   is_credit_note: boolean; is_einvoice: boolean; is_hidden: boolean; total_cents: number;
   supplier: { id: number; name: string } | null; supplier_name: string | null;
   qonto_status: string | null; qonto_status_label: string | null; review_reason: string | null; has_attachment: boolean;
@@ -36,6 +36,8 @@ export interface PurchasesMeta {
   suppliers: Option[]; states: Option[]; statuses: Option[]; months: MonthOption[];
   sync: { from: string; synced_at: string | null; job: Job | null };
   qonto: QontoState;
+  /** Lot PDP1 : réception par SUPER PDP (partie « Réception des factures d'achat »). */
+  superpdp?: IntegrationState & { job: Job | null };
 }
 
 /** Ligne de saisie : champs texte, comme le formulaire (montants « 33,33 »). */

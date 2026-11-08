@@ -69,6 +69,11 @@ class Sale(db.Model):
     qonto_status = db.Column(db.String(20))
     qonto_attachment_id = db.Column(db.String(36))
     qonto_error = db.Column(db.Text)
+    # Lot PDP1 : facture électronique transmise par SUPER PDP (identifiant, dernier statut de la réforme, erreur).
+    pdp_id = db.Column(db.String(32), unique=True, index=True)
+    pdp_status = db.Column(db.String(40))
+    pdp_error = db.Column(db.Text)
+    pdp_sent_at = db.Column(db.DateTime)
     issued_at = db.Column(db.DateTime)
     sent_at = db.Column(db.DateTime)
     last_reminder_at = db.Column(db.DateTime)

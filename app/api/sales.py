@@ -13,7 +13,7 @@ from app.models import Account, BankAccount, BankTransaction, Entity, Lease, Ren
 from app.models.sale import OPERATION_TYPES, PAYMENT_METHODS, QUOTE_STATUS_LABELS, STATUS_LABELS
 from app.services import (
     billing, catalog, external_config, projects, qonto_sales, sale_documents, sale_entry, sale_issue, sale_settlement,
-    self_billing, vat_codes,
+    self_billing, superpdp, vat_codes,
 )
 from app.services.sale_entry import SaleError
 from app.utils.list_filters import apply_month_filter, month_options_for_fy, parse_month
@@ -59,6 +59,8 @@ def sale_row(s: Sale) -> dict:
     return {"id": s.id, "kind": s.kind, "kind_label": KIND_LABELS.get(s.kind, s.kind), "status": status,
             "status_label": label, "number": s.number, "source": s.source, "validity_date": _iso(s.validity_date),
             "qonto_emit": s.qonto_emit, "qonto_status": s.qonto_status, "qonto_error": s.qonto_error,
+            "pdp": ({"id": s.pdp_id, "status": s.pdp_status, "status_label": superpdp.label(s.pdp_status),
+                     "error": s.pdp_error, "sent_at": _iso(s.pdp_sent_at)} if s.pdp_id or s.pdp_error else None),
             "client": {"id": s.entity_id, "name": s.entity.name}, "issue_date": _iso(s.issue_date),
             "due_date": _iso(s.due_date), "untaxed_cents": s.untaxed_cents, "tax_cents": s.tax_cents,
             "total_cents": s.total_cents, "paid_cents": s.paid_cents, "sent_at": _iso(s.sent_at),
@@ -100,6 +102,9 @@ def sale_detail(s: Sale) -> dict:
             "remaining_credit_cents": s.total_cents - sale_issue.credited_cents(s) if s.kind == "invoice" else 0,
             "issue_problems": sale_issue.issue_problems(s) if s.status == "draft" else [],
             "facturx_warning": sale_documents.facturx_warning(s), "b2c": sale_documents.is_b2c(s),
+            # Lot PDP1 : transmission par SUPER PDP proposée si la partie « Envoi » est disponible.
+            "pdp_send": ({"refusal": superpdp.sendable(s)} if superpdp.can_send() and s.kind in ("invoice", "credit_note")
+                         and s.status != "draft" else None),
             "recipients": sale_issue.recipients_of(s), "emails": [
                 {"sent_at": _iso(e.sent_at), "recipients": e.recipients, "subject": e.subject, "status": e.status,
                  "error": e.error, "purpose": e.purpose} for e in s.emails],
@@ -157,6 +162,7 @@ def sales_list():
                    "total_cents": sum(s.total_cents * (-1 if s.kind == "credit_note" else 1) for s in issued)},
         "drafts": sum(1 for s in rows if s.status == "draft"), "months": month_options_for_fy(),
         "qonto": {**external_config.state("qonto", "sales"), "job": _job(qonto_sales.latest_job())},
+        "superpdp": external_config.state("superpdp", "send"),
         "smtp": _smtp_state()})
 
 
@@ -607,3 +613,19 @@ def sales_received_file(sale_id):
         raise ApiError("not_found", "Fichier reçu introuvable.", status=404)
     mime = "application/pdf" if path.suffix == ".pdf" else "application/xml"
     return send_file(path, mimetype=mime, as_attachment=request.args.get("download") == "1", download_name=path.name)
+
+
+@bp.route("/sales/<int:sale_id>/superpdp", methods=["POST"])
+def sales_superpdp_send(sale_id):
+    """Lot PDP1 : transmission de la facture électronique (Factur-X) par SUPER PDP."""
+    sale = get_or_404(Sale, sale_id, "Pièce introuvable.")
+    require_integration("superpdp", "send")
+    try:
+        superpdp.send(sale)
+    except superpdp.PdpError as exc:
+        db.session.commit()                         # erreur gardée sur la pièce
+        raise ApiError("pdp_refused", exc.message, status=exc.status) from None
+    db.session.commit()
+    return jsonify(item=sale_detail(sale), notices=[notice(
+        f"{KIND_LABELS.get(sale.kind)} {sale.number} déposé{'e' if sale.kind == 'invoice' else ''} chez SUPER PDP "
+        f"({superpdp.label(sale.pdp_status)}) : le statut se met à jour à la synchronisation.")])

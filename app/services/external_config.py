@@ -35,6 +35,7 @@ SERVICE_KEYS: dict[str, list[str]] = {
     "brevo":     ["api_key", "list_id"],
     "assistant": ["api_key", "model", "monthly_tokens", "lexicon"],
     "ekylibre":  ["url", "email", "token"],
+    "superpdp":  ["client_id", "client_secret"],
 }
 
 SERVICE_LABELS: dict[str, str] = {
@@ -49,6 +50,7 @@ SERVICE_LABELS: dict[str, str] = {
     "brevo":     "Brevo",
     "assistant": "Assistant Claude",
     "ekylibre":  "Ekylibre",
+    "superpdp":  "SUPER PDP",
 }
 
 # Usage de chaque intégration dans l'application (page index des intégrations).
@@ -64,6 +66,7 @@ SERVICE_DESCRIPTIONS: dict[str, str] = {
     "brevo":     "Liste de contacts des adhérents (synchronisée depuis Lyvre)",
     "assistant": "Questions sur le dossier (échéances, TVA, fiscal, MSA, marges) et brouillons à valider (API Claude)",
     "ekylibre":  "Activités, surfaces, coûts des interventions et quantités en stock, lus dans Ekylibre (lecture seule)",
+    "superpdp":  "Plateforme agréée de facturation électronique : envoi des factures de vente, réception des factures d'achat, statuts",
 }
 
 # Structures (Instance.chart) pour lesquelles l'intégration existe ; absente = toutes.
@@ -79,8 +82,13 @@ SERVICE_CHARTS: dict[str, set[str]] = {
 # Périmètre d'une intégration (cases de sa fiche) ; défaut quand rien n'est enregistré.
 SCOPES: dict[str, dict[str, str]] = {
     "qonto": {"transactions": "Relevés de compte", "purchases": "Achats", "sales": "Ventes"},
+    "superpdp": {"send": "Envoi des factures de vente", "receive": "Réception des factures d'achat"},
 }
-DEFAULT_SCOPES: dict[str, set[str]] = {"qonto": {"transactions", "purchases"}}
+DEFAULT_SCOPES: dict[str, set[str]] = {"qonto": {"transactions", "purchases"}, "superpdp": {"send", "receive"}}
+
+# Lot PDP1 : une entreprise n'a qu'une plateforme agréée à un instant donné (réforme de la facturation
+# électronique). Qonto en tient lieu quand sa partie « Ventes » (émission Factur-X par Qonto) est cochée.
+PDP_ROLES: dict[str, set[str]] = {"qonto": {"sales"}, "superpdp": {"send", "receive"}}
 
 # Intégrations dont l'activation est proposée, par structure.
 RECOMMENDED: dict[str, list[str]] = {
@@ -105,6 +113,7 @@ SECRET_KEYS: set[tuple[str, str]] = {
     ("brevo",     "api_key"),
     ("assistant", "api_key"),
     ("ekylibre",  "token"),
+    ("superpdp",  "client_secret"),
 }
 
 # Champs à rendre en <textarea> (valeurs longues / secrets multilignes).
@@ -125,6 +134,7 @@ SERVICE_REQUIRED_KEYS: dict[str, list[str]] = {
     "brevo":     ["api_key", "list_id"],
     "assistant": ["api_key"],
     "ekylibre":  ["url", "email", "token"],
+    "superpdp":  ["client_id", "client_secret"],
 }
 
 ENV_FALLBACK: dict[tuple[str, str], str] = {
@@ -154,6 +164,8 @@ ENV_FALLBACK: dict[tuple[str, str], str] = {
     ("qonto",     "secret_key"):      "QONTO_SECRET_KEY",
     ("qonto",     "staging_token"):   "QONTO_STAGING_TOKEN",
     ("brevo",     "api_key"):         "BREVO_API_KEY",
+    ("superpdp",  "client_id"):       "SUPERPDP_CLIENT_ID",
+    ("superpdp",  "client_secret"):   "SUPERPDP_CLIENT_SECRET",
 }
 
 
@@ -326,8 +338,40 @@ def set_enabled(service: str, enabled: bool) -> None:
         raise ValueError("Intégration imposée par la configuration du serveur (.env) : elle ne se désactive pas ici.")
     if enabled and not applies(service, inst.chart):
         raise ValueError(f"Service not available for this structure: {service}")
+    if enabled:
+        _check_pdp(service, scopes(service, inst), inst)
     inst.set_integration(service, enabled)
     db.session.commit()
+
+
+def acting_pdp(inst=None) -> str | None:
+    """Plateforme agréée de la structure : SUPER PDP activée, ou Qonto avec sa partie « Ventes » (lot PDP1)."""
+    inst = inst if inst is not None else current_instance()
+    if inst is None:
+        return None
+    for service, roles in PDP_ROLES.items():
+        if applies(service, inst.chart) and service in inst.enabled_integrations() and roles & scopes(service, inst):
+            return service
+    return None
+
+
+class PdpConflict(ValueError):
+    """Deux plateformes agréées à la fois : refusé (une seule par entreprise à un instant donné)."""
+
+
+def _check_pdp(service: str, wanted: set[str], inst) -> None:
+    roles = PDP_ROLES.get(service, set())
+    if not roles & set(wanted):
+        return
+    for other, other_roles in PDP_ROLES.items():
+        if other == service or not applies(other, inst.chart) or other not in inst.enabled_integrations():
+            continue
+        if other_roles & scopes(other, inst):
+            parts = ", ".join(f"« {SCOPES[other][r]} »" for r in sorted(other_roles & scopes(other, inst)))
+            raise PdpConflict(
+                f"Une entreprise n'a qu'une plateforme agréée à la fois : {SERVICE_LABELS[other]} l'est déjà "
+                f"({parts}). Décochez cette partie de {SERVICE_LABELS[other]} ou désactivez-la avant de "
+                f"confier la facture électronique à {SERVICE_LABELS[service]}.")
 
 
 def scopes(service: str, inst=None) -> set[str]:
@@ -349,7 +393,10 @@ def set_scopes(service: str, values) -> None:
     unknown = set(values) - set(allowed)
     if unknown:
         raise ValueError(f"Unknown scopes: {sorted(unknown)}")
-    _instance_or_fail().set_integration_scopes(service, values)
+    inst = _instance_or_fail()
+    if service in inst.enabled_integrations():
+        _check_pdp(service, set(values), inst)
+    inst.set_integration_scopes(service, values)
     db.session.commit()
 
 
