@@ -14,7 +14,7 @@ Application web de comptabilité pour associations loi 1901 (plan comptable des 
 | [Modèles](models.md) | Schéma de base de données, tables, relations |
 | [Routes](routes.md) | Référence complète de toutes les URLs |
 | [Services](services.md) | Logique métier : comptabilité, imports, rapprochement |
-| [Imports](imports.md) | Guide import OFX (banque) et CSV Odoo |
+| [Imports](imports.md) | Guide import OFX (banque) et CSV Odoo, restauration d'une sauvegarde Ekylibre |
 | [Base documentaire](base_documentaire/README.md) | Cadrage (sans code) d'une base de connaissances comptables par référentiel (PCG, ANC 2018-06, SCI) et d'un assistant contextuel : besoins, fiches, règles YAML, architecture, plan |
 | [Déclarations de TVA](tva.md) | CA3 mensuelle calculée depuis les écritures codées (codes de TVA, autoliquidation, ventes hors de France), contrôles, liquidation 44551 / 44567, dépôt sur TeleDEC et verrouillage du mois |
 | [Échéancier des exploitations](agenda.md) | Résumé du lundi par e-mail (commande `flask agenda send-weekly`, timer systemd ou cron, relais SMTP Brevo), destinataires et désabonnement |
@@ -26,8 +26,9 @@ Application web de comptabilité pour associations loi 1901 (plan comptable des 
 | [Lettrage](lettrage.md) | Comptes de tiers : lettrage automatique des factures et règlements, à la main au clavier, partiel, écart, propositions, à-nouveaux détaillés, FEC |
 | [Ventes](ventes.md) | Devis, factures et avoirs (numérotation continue, PDF Factur-X, journal VE), encaissements et relances, factures récurrentes, baux et quittances, avec ou sans Qonto ; abonnements d'achat dans [Factures d'achat](achats.md#abonnements) |
 | [Sirene](sirene.md) | API Sirene v4 de l'INSEE : pré-remplissage de la Structure et des tiers, quota, cache, nomenclatures |
-| [Intégrations](integrations.md) | Qonto, SMTP, Stancer, Odoo, HelloAsso, Google Analytics, Facebook : proposées selon la structure, désactivées par défaut, silencieuses quand elles sont désactivées, message quand une action en a besoin |
+| [Intégrations](integrations.md) | Qonto, SMTP, Stancer, Odoo, SUPER PDP (une seule plateforme agréée à la fois), HelloAsso, Google Analytics, Facebook : proposées selon la structure, désactivées par défaut, silencieuses quand elles sont désactivées, message quand une action en a besoin |
 - [Signature électronique des baux : serveur Documenso](signature_documenso.md)
+| [Accès API et MCP](api_mcp.md) | Clés d'API par structure et par utilisateur, domaines en lecture / écriture, serveur MCP pour un agent (Aiffel), brouillons à vérifier, journal et limites |
 | [Associés](associes.md) | Sociétés (SCI, entreprises) : registre des parts (pleine propriété, usufruit, nue-propriété), comptes courants d'associés (factures payées par un associé, notes de frais, apports), intérêts et affectation du résultat à la clôture, import CSV |
 
 ## Fonctionnalités

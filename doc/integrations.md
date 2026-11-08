@@ -2,7 +2,7 @@
 
 Services externes qu'une instance peut utiliser : **Qonto** (banque, factures d'achat), **SMTP**
 (emails), **Stancer** (paiements par carte), **Odoo** (caisse, factures clients), **Documenso**
-(signature électronique des baux), et pour une
+(signature électronique des baux), **SUPER PDP** (plateforme agréée de facturation électronique), et pour une
 association seulement **HelloAsso** (adhésions), **Brevo** (liste de contacts des adhérents),
 **Google Analytics** et **Facebook** (Visibilité & Impact).
 
@@ -18,6 +18,7 @@ son logo, son état et son dernier test.
 | Stancer | ✔ | ✔ |
 | Odoo | ✔ | ✔ |
 | Documenso | ✔ | ✔ |
+| SUPER PDP | ✔ | ✔ |
 | HelloAsso | ✔ **recommandée** | — |
 | Google Analytics (GA4), Facebook (Page) | ✔ | — |
 | Brevo | ✔ | — |
@@ -86,6 +87,24 @@ La fiche de Qonto a trois cases : **Relevés de compte** (synchronisation des tr
 devis par Qonto, synchronisation des ventes). Par défaut : relevés et achats. Une partie décochée se
 comporte comme une intégration désactivée : ni bouton, ni bandeau, et une action qui en a besoin le
 dit.
+
+## SUPER PDP et plateforme agréée unique
+
+**SUPER PDP** est une plateforme agréée de facturation électronique : client OAuth « client credentials », dont
+l'identifiant et le secret sont créés dans SUPER PDP, un par entreprise. Elle a deux parties :
+
+- **Envoi des factures de vente** : bouton « Transmettre (SUPER PDP) » sur une facture ou un avoir émis, au PDF
+  Factur-X conforme, jamais d'envoi automatique ; le dernier statut (`api:*`, `fr:200` à `fr:213`) s'affiche sur la
+  pièce ;
+- **Réception des factures d'achat** : bouton « Recevoir (SUPER PDP) » dans Achats, en tâche de fond ; chaque facture
+  reçue est lue (Factur-X, CII, UBL) et devient une facture d'achat (badge « SUPER PDP »), fichier rangé avec les
+  pièces. Une autofacture reçue est signalée, pas importée.
+
+Une entreprise n'a **qu'une plateforme agréée à un instant donné** : SUPER PDP et la partie « Ventes » de Qonto
+(émission Factur-X par Qonto) ne peuvent pas être actives ensemble ; l'activation de l'une, ou le cochage de la partie
+concernée de l'autre, est refusé avec le motif (409). Qonto garde ses relevés et ses achats. Le test de la fiche
+affiche l'entreprise, le mode (bac à sable ou production) et l'état des adresses de réception (une adresse « en
+erreur » signale en général une portabilité depuis une autre plateforme). Conception : `claudedocs/design_superpdp.md`.
 
 ## Intégration désactivée
 

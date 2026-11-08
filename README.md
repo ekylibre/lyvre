@@ -168,7 +168,17 @@ budget, immobilisations, clôture et FEC pour l'expert-comptable. Hébergé chez
 
 - Tableau de bord, budget prévu / réalisé, comptabilité par projet, rapport d'activité.
 - Assistant de clôture en étapes, clôture provisoire puis définitive, affectation du résultat, FEC.
-- Reprise d'historique : FEC, tableur, export Ekylibre.
+- Reprise d'historique : FEC, tableur, export Ekylibre ; restauration d'une sauvegarde Ekylibre depuis Imports.
+- Tableau de bord avec une carte « À traiter » (trésorerie, factures échues, brouillards, saisies à vérifier).
+</details>
+
+<details>
+<summary><b>🤖 Agents et API</b></summary>
+
+- Clés d'API par structure et par utilisateur, domaines en lecture ou en écriture, expiration, révocation.
+- Serveur **MCP** pour un agent (Aiffel) : questions sur le dossier, saisie d'achats et de dépenses en brouillon,
+  jamais comptabilisées sans vérification.
+- Journal des appels, limites de débit et de créations, page d'aide générée ([doc/api_mcp.md](doc/api_mcp.md)).
 </details>
 
 ## Intégrations
@@ -185,6 +195,7 @@ Désactivées par défaut, proposées selon la structure, silencieuses tant qu'e
 | **Odoo** | Caisse, factures clients | toutes |
 | **SMTP** | Relances, reçus, factures par e-mail | toutes |
 | **Documenso** | Signature électronique des baux | toutes |
+| **SUPER PDP** | Facture électronique : envoi des ventes, réception des achats (une seule plateforme agréée à la fois, exclusive de l'émission par Qonto) | toutes |
 | **Google Analytics, Facebook** | Visibilité et impact | associations |
 | **Sirene (INSEE)** | Pré-remplissage de la structure et des tiers | toutes (clé du serveur) |
 

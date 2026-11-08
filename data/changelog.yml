@@ -4,6 +4,84 @@
 # text : pour l'utilisateur ; tech : précision pour CHANGELOG.md seulement.
 next:
 - kind: new
+  text: >-
+    Accès API et serveur MCP — Configuration › Accès API crée des clés par usage (par exemple « Aiffel — saisie
+    terrain »), rattachées à un membre de la structure et jamais plus puissantes que son rôle, avec les domaines lus ou
+    écrits (comptabilité, banque, achats, ventes, tiers, TVA et fiscal, immobilisations, agronomie, échéancier,
+    documents), une expiration et des limites ; la clé n'est affichée qu'une fois. Un agent (Aiffel) se branche sur le
+    serveur MCP de Lyvre pour répondre aux questions sur le dossier et saisir des factures d'achat et des dépenses en
+    brouillon, avec la photo du bon ; rien n'est comptabilisé avant « Marquer vérifiée ». Badge du nom de la clé,
+    saisies à vérifier dans « À traiter », journal des appels, « Mes clés d'API » et page d'aide.
+  tech: >-
+    app/api_auth.py (Bearer avant CSRF et tenant), app/mcp_server.py (POST /mcp, JSON-RPC sans état),
+    app/services/api_keys.py, api_domains.py, agent_tools.py, agent_writes.py, agent_review.py, api_journal.py ;
+    table api_keys (méta-base, seed_meta.py), migration a2c4e6f8b1d3 (api_calls, origin_*, external_ref, checked_*) ;
+    doc/api_mcp.md (lots AK1 à AK4).
+- kind: action
+  text: >-
+    Accès API et MCP — APP_BASE_URL doit être l'adresse publique HTTPS (elle donne l'adresse du serveur MCP) et le
+    proxy doit transmettre l'en-tête Authorization vers /mcp et /api/v1.
+- kind: new
+  text: >-
+    Intégration SUPER PDP (plateforme agréée de facturation électronique) — transmission des factures et avoirs de
+    vente au PDF Factur-X avec leur statut, réception des factures d'achat en tâche de fond ; une seule plateforme
+    agréée à la fois, SUPER PDP et l'émission des ventes par Qonto ne peuvent pas être actives ensemble.
+  tech: >-
+    app/services/superpdp_client.py, superpdp.py, external_config.PDP_ROLES, migration f1a3c5e7b9d2,
+    POST /api/v1/sales/<id>/superpdp, POST /api/v1/superpdp/sync (lot PDP1, claudedocs/design_superpdp.md).
+- kind: new
+  text: >-
+    Imports › Sauvegarde Ekylibre — restauration d'une sauvegarde Ekylibre dans une structure vide, depuis
+    l'application : analyse à blanc avec rapport, puis import tout-ou-rien en tâche de fond (exercices et à-nouveaux
+    calculés, écritures, TVA, tiers, pièces de la période, emprunts, TVA étrangère ; pour une exploitation, activités,
+    surfaces, dernier inventaire et reclassement des comptes de stock).
+  tech: >-
+    app/services/ekylibre/ (profils, restore.py), /api/v1/imports/ekylibre (lots RE1 à RE6).
+- kind: improved
+  text: >-
+    Tableau de bord — une seule carte « À traiter » (trésorerie négative prévue, factures échues, brouillards
+    anciens, intégrations recommandées) à côté de l'échéancier de la semaine ; le tableau des dernières écritures est
+    retiré. Page À propos mise à jour.
+  tech: >-
+    AttentionCard.tsx, AgendaWeekCard.tsx (lot DB1), AboutPage.tsx.
+- kind: improved
+  text: >-
+    Navigation — menus sur trois niveaux avec une icône par entrée (pictogrammes agricoles pour les exploitations),
+    menu Gestion (projets, budgets, échéancier, activités, marges), sous-menu Coopératives, onglets Écritures /
+    Lettrage et Baux / Indices, page des éditions comptables, SIG pour toutes les structures, barre latérale
+    repliable et consultation des documents.
+  tech: >-
+    app/menu_config.py imbriqué, PageTabs, /reports/, IconTile, Pictogram, page Documents (lots NV1 à NV5).
+- kind: new
+  structure: agri
+  text: >-
+    Outils › Calculettes — amortissement, acomptes de TVA, micro-BA ou réel, plafond DEP, révision des fermages,
+    cotisations MSA, marge brute, coût du matériel, remboursement forfaitaire, les 34 outils de la calculette de
+    l'exploitation (mesures, débit de chantier, semis, fertilisation, pulvérisation, récolte, élevage…), Certiphyto,
+    DUER, TO-DE, aides PAC, sous-activité, et une carte (parcelles PAC, zone vulnérable, Natura 2000, zone défavorisée)
+    ; paramètres datés et sourcés, préremplissage depuis le dossier, rien n'est enregistré.
+  tech: >-
+    app/services/calculators/, data/regulatory/tools.json, data/agri_less_favoured_areas.json (lots AG12.a à
+    AG12.e, CG5.e, CG6).
+- kind: new
+  structure: agri
+  text: >-
+    Facture électronique agricole — autofactures reçues (Factur-X, CII, UBL) enregistrées en ventes, acceptées,
+    contestées ou refusées ; décomptes de coopérative passés en une écriture ; mention B2C et e-reporting des ventes
+    directes sans facture ; reprise d'un FEC au plan agricole de 1986 et d'un fichier Isacompta avec ses sections
+    analytiques.
+  tech: >-
+    lots AG10.a à AG10.e (Ventes › Autofactures reçues, Ventes › Décomptes de coopérative, export B2C).
+- kind: improved
+  structure: agri
+  text: >-
+    Relecture du cabinet CEGARA — échéances du statut de conjoint collaborateur et de la MSA, avances aux cultures
+    au coût réel par méthode et barèmes 2019-2026, DEP (société, intérêts, délai d'épargne), assiette triennale MSA,
+    stocks (méthode forfaitaire, 72 B bis, provision quand le cours est sous le coût, stock d'entrée au réel),
+    plantations, part salariée des barèmes, exonération jeune agriculteur MSA et fiches de méthode de l'assistant.
+  tech: >-
+    lots CG1 à CG6 (claudedocs/fiabilisation_cegara.md).
+- kind: new
   structure: agri
   text: Listes de contrôle dans l'échéancier — clôture, campagne PAC, mois fiscal de mai et automne, avec un lien vers
     chaque écran et des étapes cochées d'après le dossier (relevés rapprochés, inventaire, écriture de stock…).
