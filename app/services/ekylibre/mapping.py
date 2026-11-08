@@ -66,7 +66,7 @@ class AccountTarget:
     eky_label: str
     code: str
     label: str
-    action: str            # existing, create, associate, vat (absorbée dans les achats)
+    action: str            # existing, create, associate, vat (absorbée dans les achats), reclass (stock, RE4)
     parent: str | None = None
     entity_id: str | None = None
 
@@ -82,7 +82,26 @@ def associate_codes(data: EkyData) -> dict[str, str]:
     return {n: f"4551{i:03d}" for i, n in enumerate(numbers, start=1)}
 
 
-def map_accounts(data: EkyData, chart: Chart, numbers: set[str], absorb_vat: bool = True) -> dict[str, AccountTarget]:
+# Lot RE4 : comptes de stock de l'ancien plan agricole d'Ekylibre (fr_pcga : 30 approvisionnements, 37 produits)
+# ramenés au plan agricole de Lyvre (31 / 32 approvisionnements, 33 en-cours, 35 produits, 37 marchandises).
+# Le préfixe le plus long l'emporte ; numéro sans ses zéros de fin.
+STOCK_RECLASS = {
+    "3011": "31111", "3012": "31112", "3013": "31113", "3014": "31114", "3015": "31115", "3016": "31116",
+    "3017": "321", "3019": "321", "301": "3111",
+    "3021": "3221", "3022": "3222", "3026": "322", "3027": "322", "302": "32",
+    "351": "33111", "373": "35113", "374": "35511", "376": "35513",
+    "71373": "71351", "71372": "71355", "71374": "71355", "71376": "71355",
+}
+
+
+def stock_reclass(number: str) -> str | None:
+    code = strip_zeros(number)
+    best = max((p for p in STOCK_RECLASS if code.startswith(p)), key=len, default=None)
+    return STOCK_RECLASS[best] if best else None
+
+
+def map_accounts(data: EkyData, chart: Chart, numbers: set[str], absorb_vat: bool = True,
+                 reclass_stock: bool = False) -> dict[str, AccountTarget]:
     accounts = {a["number"]: a for a in data.rows["accounts"]}
     tiers = {}
     for entity in data.rows["entities"]:
@@ -110,6 +129,11 @@ def map_accounts(data: EkyData, chart: Chart, numbers: set[str], absorb_vat: boo
             continue
         if absorb_vat and number.startswith("4456"):
             targets[number] = AccountTarget(number, label, strip_zeros(number), label, "vat", chart.parent_of(strip_zeros(number)))
+            continue
+        target_code = stock_reclass(number) if reclass_stock else None
+        if target_code is not None and chart.usable(target_code):
+            targets[number] = AccountTarget(number, label, target_code, chart.accounts[target_code][0], "reclass")
+            taken.add(target_code)
             continue
         code = strip_zeros(number)
         if chart.usable(code):

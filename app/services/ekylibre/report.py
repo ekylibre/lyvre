@@ -1,6 +1,7 @@
 """Rapport de reprise (Markdown) : source, période, volumes, contrôles, correspondances, corrections."""
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
+from decimal import Decimal
 
 from app.services.ekylibre import checks as checks_module
 from app.services.ekylibre.data import EkyData, cents, day
@@ -24,7 +25,8 @@ def plan(data: EkyData, chart: Chart, profile=None) -> dict:
             if entity["id"] in data.entities_used() and data.account_number(entity.get(key)):
                 numbers.add(data.account_number(entity.get(key)))
     absorb = profile.absorb_purchase_vat if profile is not None else True
-    accounts = map_accounts(data, chart, {n for n in numbers if n}, absorb_vat=absorb)
+    accounts = map_accounts(data, chart, {n for n in numbers if n}, absorb_vat=absorb,
+                            reclass_stock=profile is not None and profile.stock_reclass)
     entities = map_entities(data, accounts, dedupe=profile is not None and profile.dedupe_entity_names)
     journals = Counter(data.journal_code(e["journal_id"]) for e in data.entries())
     return {"accounts": accounts, "entities": entities, "opening": opening,
@@ -102,6 +104,56 @@ def foreign_vat_section(data: EkyData, accounts: dict, profile=None) -> list[str
     return out + [""]
 
 
+def agronomy_section(data: EkyData, accounts: dict, profile=None) -> list[str]:
+    """Lot RE4 : reclassement des stocks, activités et surfaces, dernier inventaire et son contrôle (D-R2 révisé)."""
+    from app.services.ekylibre import agronomy
+    out = []
+    reclassed = sorted((t for t in accounts.values() if t.action == "reclass"), key=lambda t: t.code)
+    if reclassed:
+        out += ["", "## Reclassement des comptes de stock", "",
+                "Ancien plan agricole d'Ekylibre (30 approvisionnements, 37 produits) ramené au plan agricole de Lyvre "
+                "(31 / 32 approvisionnements, 33 en-cours, 35 produits, 37 marchandises). Soldes inchangés et contrôlés.", ""]
+        out += _table(["Ekylibre", "Libellé", "Lyvre", "Libellé Lyvre"], [(t.eky_number, t.eky_label, t.code, t.label) for t in reclassed])
+    if profile is None or profile.is_sci or profile.chart != "agri" or not profile.agronomy:
+        return out + ([""] if out else [])
+    years = agronomy.campaign_years(data)
+    areas = agronomy.surfaces(data)
+    out += ["", "## Activités et surfaces", "", f"Campagnes : {', '.join(str(y) for y in years) or 'aucune'}.", ""]
+    rows = []
+    for activity in sorted(data.rows["activities"], key=lambda a: (a.get("name") or "").lower()):
+        cells = [str(areas[(activity["id"], y)].quantize(Decimal("0.01"))).replace(".", ",") if (activity["id"], y) in areas else ""
+                 for y in years]
+        rows.append((activity.get("name") or "—", activity.get("family") or "—", activity.get("nature") or "—",
+                     activity.get("production_cycle") or "—", *cells))
+    out += _table(["Activité", "Famille", "Nature", "Cycle", *[f"{y} (ha)" for y in years]], rows)
+    if "stock" not in profile.agronomy:
+        return out + [""]
+    inventory = agronomy.last_inventory(data)
+    out += ["", "## Dernier inventaire", ""]
+    if inventory is None:
+        return out + ["Aucun inventaire passé en comptabilité dans la période.", ""]
+    end = day(inventory.fiscal_year["stopped_on"])
+    out += [f"Inventaires de l'exercice clos le {end:%d/%m/%Y} : {', '.join(inventory.names)} — {len(inventory.lines)} "
+            f"ligne(s), {_euros(inventory.total)}. Repris en lignes d'inventaire de l'exercice, **sans écriture** : la "
+            "variation est dans les écritures d'inventaire d'Ekylibre.", "",
+            "Contrôle : valeur de l'inventaire et solde des comptes de stock à la clôture. Un écart signifie que "
+            "l'écriture de stock calculée par Lyvre pour cet exercice ne sera pas neutre (elle ramènera les comptes "
+            "à l'inventaire) : à examiner avec l'expert-comptable avant de la passer.", ""]
+    grouped = defaultdict(lambda: [set(), 0, 0])                 # compte Lyvre → (comptes Ekylibre, inventaire, solde)
+    for number, value, balance in agronomy.stock_control(data, inventory):
+        target = accounts.get(number)
+        row = grouped[target.code if target else number]
+        row[0].add(number)
+        row[1] += value
+        row[2] += balance
+    rows = [(f"{code} ({', '.join(sorted(numbers))})", _euros(value), _euros(balance),
+             _euros(balance - value) + (" ⚠️" if balance != value else "")) for code, (numbers, value, balance) in sorted(grouped.items())]
+    value, balance = sum(r[1] for r in grouped.values()), sum(r[2] for r in grouped.values())
+    rows.append(("**Total**", f"**{_euros(value)}**", f"**{_euros(balance)}**", f"**{_euros(balance - value)}**"))
+    out += _table(["Compte Lyvre (Ekylibre)", "Inventaire", "Solde du compte", "Écart"], rows)
+    return out + [""]
+
+
 def _table(headers, rows) -> list[str]:
     lines = ["| " + " | ".join(headers) + " |", "|" + "---|" * len(headers)]
     lines += ["| " + " | ".join(str(c) for c in row) + " |" for row in rows]
@@ -148,6 +200,7 @@ def render(data: EkyData, mapping: dict, results: list[checks_module.Check], sou
     out += ["", "## Comptes", "",
             f"{len(accounts)} compte(s) mouvementé(s) : {by_action['existing']} existant(s) dans le plan {chart_name.upper() if chart_name == 'sci' else chart_name}, "
             f"{by_action['create']} à créer, {by_action['associate']} compte(s) d'associé"
+            + (f", {by_action['reclass']} compte(s) de stock reclassé(s)" if by_action["reclass"] else "")
             + (f", {by_action['vat']} compte(s) de TVA absorbé(s) dans les achats." if by_action["vat"] else "."), ""]
     out += _table(["Ekylibre", "Libellé", "Lyvre", "Action", "Rattaché à"],
                   [(t.eky_number, t.eky_label, t.code, t.action, t.parent or "") for t in
@@ -180,7 +233,8 @@ def render(data: EkyData, mapping: dict, results: list[checks_module.Check], sou
         out.append("")
         out += ["### Remarques", ""] + [f"- {note}" for note in imported.notes]
     if profile is not None and not profile.is_sci:
-        out += loans_section(data, accounts) + foreign_vat_section(data, accounts, profile)
+        out += (loans_section(data, accounts) + foreign_vat_section(data, accounts, profile)
+                + agronomy_section(data, accounts, profile))
     corrections = []
     if profile is None or profile.absorb_purchase_vat:
         corrections.append("- TVA déductible des achats intégrée à la charge (EK3) : voir le contrôle « TVA ».")

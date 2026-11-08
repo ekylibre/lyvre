@@ -61,6 +61,8 @@ class Context:
     attachments: list = field(default_factory=list)                   # (n° de facture, fichier, empreinte)
     rules: list = field(default_factory=list)                         # (tiers, sorte, valeur)
     rules_skipped: list = field(default_factory=list)                 # (motif, raison)
+    activities: dict = field(default_factory=dict)                    # id d'activité Ekylibre → activité (RE4)
+    inventory: object = None                                          # dernier inventaire repris (RE4)
 
 
 # ------------------------------------------------------------------ E1 structure
@@ -105,7 +107,7 @@ def step_structure(ctx: Context) -> None:
             ctx.journals[code] = journal
     db.session.flush()
     for number, target in ctx.accounts_plan.items():
-        if target.action in ("existing", "create", "vat"):  # 4456x : soldes d'ouverture (lignes d'achat absorbées)
+        if target.action in ("existing", "create", "vat", "reclass"):  # 4456x : soldes d'ouverture (achats absorbés)
             ctx.accounts[number] = _account(ctx, target)
     for eky_id, target in ctx.entities_plan.items():
         entity = Entity.query.filter_by(name=target.name).first() or Entity(name=target.name)
@@ -964,6 +966,12 @@ def run(data: EkyData, accounts_plan, entities_plan, chart: Chart, source=None, 
     step_purchases(ctx)
     step_sales(ctx)
     step_assets(ctx)
+    if not ctx.profile.is_sci and ctx.profile.chart == "agri":           # lot RE4 : agronomie (Q7)
+        from app.services.ekylibre import agronomy
+        if ctx.profile.agronomy & {"activities", "surfaces"}:
+            agronomy.import_activities(ctx)
+        if "stock" in ctx.profile.agronomy:
+            agronomy.import_inventory(ctx)
     if source is not None and attachments_from:
         step_attachments(ctx, source, attachments_from)
     step_rules(ctx, source)

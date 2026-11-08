@@ -1,6 +1,6 @@
 """Restauration Ekylibre, lots RE1 à RE3 (claudedocs/design_restauration_ekylibre.md) : profils, référentiel détecté,
 TVA conservée, noms de tiers rendus uniques, états des écritures (Q4), script générique, à-nouveaux (RE2),
-pièces de la période, emprunt et TVA étrangère (RE3).
+pièces de la période, emprunt et TVA étrangère (RE3), agronomie et reclassement des stocks (RE4).
 Mini-dump fabriqué d'une ferme assujettie (aucune donnée réelle)."""
 import zipfile
 from datetime import date
@@ -45,7 +45,35 @@ def extras_sql():
     ]
 
 
-def build_sql(legal=None, extras=False):
+def agronomy_sql():
+    """Lot RE4 : activités, cultures, campagnes, inventaire 2025 passé en comptabilité (ancien plan agricole)."""
+    return [
+        copy_block("accounts", ["id", "number", "name"], [(13, "37600000", "Vin bouteille"), (14, "71376000", "Variation vin")]),
+        copy_block("journal_entries", ["id", "journal_id", "financial_year_id", "number", "state", "printed_on", "name"], [
+            (20, 1, 2, "INV1", "draft", "2025-12-31", "Inventaire 2025")]),
+        copy_block("journal_entry_items", ["id", "entry_id", "account_id", "name", "real_debit", "real_credit", "position"], [
+            (40, 20, 13, "Stock", "500.00", "0.00", 1), (41, 20, 14, "Variation", "0.00", "500.00", 2)]),
+        copy_block("activities", ["id", "name", "family", "nature", "production_cycle", "size_indicator_name",
+                                  "size_unit_name", "suspended"], [
+            (1, "Vignes", "vine_farming", "main", "perennial", "net_surface_area", "hectare", "f"),
+            (2, "Blé", "plant_farming", "main", "annual", "net_surface_area", "hectare", "f"),
+            (3, "Gestion", "administering", "auxiliary", "perennial", None, None, "f")]),
+        copy_block("campaigns", ["id", "harvest_year"], [(1, 2025), (2, 2026)]),
+        copy_block("activity_productions", ["id", "activity_id", "campaign_id", "started_on", "stopped_on", "size_value", "state"], [
+            (1, 1, None, "2010-11-01", "2040-10-31", "2.5000", "opened"), (2, 1, None, "2026-11-01", "2050-10-31", "1.0000", "opened"),
+            (3, 2, 1, "2024-10-01", "2025-08-31", "1.2000", "opened"), (4, 2, 2, "2025-10-01", "2026-08-31", "0.5000", "opened")]),
+        copy_block("product_nature_categories", ["id", "name", "stock_account_id", "stock_movement_account_id"], [(1, "Vin", 13, 14)]),
+        copy_block("product_nature_variants", ["id", "name", "unit_name", "default_unit_name"], [(1, "Bouteille 75 cl", "Unité", "unity"),
+                                                                                                 (2, "Vrac", "Hl", "liter")]),
+        copy_block("products", ["id", "name", "variant_id", "category_id"], [(1, "Cuvée 2024 75 cl", 1, 1), (2, "Vrac 2024", 2, 1)]),
+        copy_block("inventories", ["id", "name", "financial_year_id", "reflected", "journal_entry_id", "product_nature_category_id"], [
+            (1, "2025 - Vin", 2, "t", 20, 1)]),
+        copy_block("inventory_items", ["id", "inventory_id", "product_id", "actual_population", "unit_pretax_stock_amount"], [
+            (1, 1, 1, "100.0000", "5.0000"), (2, 1, 2, "0.0000", "90.0000")]),
+    ]
+
+
+def build_sql(legal=None, extras=False, agronomy=False):
     return "\n".join([
         copy_block("preferences", ["id", "name", "string_value", "user_id"], [
             (1, "accounting_system", "fr_pcga", None), (2, "fiscal_position", "fr_ba_ir", None)]),
@@ -88,13 +116,14 @@ def build_sql(legal=None, extras=False):
             (3, "V3", 4, "invoice", "f", "2025-04-03 00:00:00", "2025-04-03 00:00:00", "11.00", "10.00", 5)]),
         copy_block("cashes", ["id", "name", "nature", "main_account_id", "journal_id"], [(1, "Banque", "bank_account", 8, 1)]),
         *(extras_sql() if extras else []),
+        *(agronomy_sql() if agronomy else []),
     ]) + "\n"
 
 
-def _archive(tmp_path, legal=None, extras=False):
-    path = tmp_path / f"ferme-{legal or 'x'}{'-plus' if extras else ''}.zip"
+def _archive(tmp_path, legal=None, extras=False, agronomy=False):
+    path = tmp_path / f"ferme-{legal or 'x'}{'-plus' if extras else ''}{'-agro' if agronomy else ''}.zip"
     with zipfile.ZipFile(path, "w") as zf:
-        zf.writestr("ferme.sql", build_sql(legal, extras))
+        zf.writestr("ferme.sql", build_sql(legal, extras, agronomy))
         if extras:
             for doc, content in ((7, b"%PDF-1.4 facture"), (8, b"%PDF-1.4 releve"), (9, b"%PDF-1.4 ancien"), (10, b"%PDF-1.4 vente")):
                 zf.writestr(f"files/attachments/documents/000/000/{doc:03d}/original.pdf", content)
@@ -274,3 +303,45 @@ def test_period_documents_loan_and_foreign_vat(app, tmp_path, monkeypatch):
     oss = text.split("## TVA étrangère des ventes (OSS)")[1].split("##")[0]
     assert "| BE | 21 % | 1 | 10,00 € | 2,10 € | 44575992 |" in oss and "| FR" not in oss
     assert "Relevé 03/2025 — Banque" in text
+
+
+def test_agronomy_inventory_and_stock_reclass(app, tmp_path):
+    """Lot RE4 : activités, campagnes, surfaces, dernier inventaire sans écriture, comptes de stock reclassés."""
+    from app.extensions import db
+    from app.models import Account, Activity, ActivityProduction, Campaign, JournalEntry, StockLine
+    from app.services.ekylibre import importer
+    for code, label, header in (("101", "Capital", True), ("164", "Emprunts", True), ("401", "Fournisseurs", True),
+                                ("411", "Clients", True), ("445", "État TVA", True), ("512", "Banque", True),
+                                ("601", "Achats", True), ("701", "Ventes", True), ("355", "Produits finis", True),
+                                ("35513", "Produits finis transformés", False), ("713", "Variation", True),
+                                ("71355", "Produits finis", False)):
+        db.session.add(Account(code=code, label=label, account_type="OTHER", is_header=header))
+    db.session.commit()
+    archive = _archive(tmp_path, agronomy=True)
+    data = _data(archive)
+    std = profile.standard(data)
+    assert std.stock_reclass and std.agronomy == profile.AGRONOMY
+    data.set_period(std.start, std.until)
+    chart = Chart.from_database()
+    plan = report.plan(data, chart, std)
+    assert (plan["accounts"]["37600000"].code, plan["accounts"]["37600000"].action) == ("35513", "reclass")
+    assert plan["accounts"]["71376000"].code == "71355"
+    ctx = importer.run(data, plan["accounts"], plan["entities"], chart, profile=std)
+    db.session.commit()
+    inv = JournalEntry.query.filter_by(source_ref="INV1").one()
+    assert sorted((l.account.code, l.debit_cents, l.credit_cents) for l in inv.lines) == [("35513", 50000, 0), ("71355", 0, 50000)]
+    assert inv.source != "STOCK"                                              # D-R2 révisé : rien de marqué
+    vines = Activity.query.filter_by(ekylibre_id=1).one()
+    assert (vines.unit, vines.cycle, vines.workshop.family) == ("hectare", "perennial", "vine_farming")
+    assert Activity.query.filter_by(ekylibre_id=3).one().unit == "unity"
+    assert [c.year for c in Campaign.query.order_by(Campaign.year)] == [2025]
+    measures = {(p.activity.name, p.campaign.year): (float(p.measure), p.measure_source) for p in ActivityProduction.query}
+    assert measures == {("Vignes", 2025): (2.5, "ekylibre"), ("Blé", 2025): (1.2, "ekylibre")}
+    line = StockLine.query.one()                                              # article compté à zéro : écarté
+    assert (line.account.code, line.variation_account.code, float(line.quantity), line.unit, line.value_cents) == (
+        "35513", "71355", 100.0, "unit", 50000)
+    assert ctx.stats["stock_lines"] == 1 and any("compté(s) à zéro" in n for n in ctx.notes)
+    text = report.render(data, plan, [], str(archive), dry_run=False, imported=ctx, profile=std)
+    assert "## Reclassement des comptes de stock" in text and "| 37600000 | Vin bouteille | 35513 |" in text
+    assert "| Vignes | vine_farming | main | perennial | 2,50 |" in text
+    assert "| 35513 (37600000) | 500,00 € | 500,00 € | 0,00 € |" in text               # inventaire = solde : neutre

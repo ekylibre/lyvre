@@ -12,6 +12,7 @@ from datetime import date
 from app.services.ekylibre.data import EkyData, day
 
 CHARTS = ("agri", "sci", "societe", "asso")
+AGRONOMY = frozenset({"activities", "surfaces", "stock"})   # Q7 : activités et campagnes, surfaces, dernier inventaire
 
 
 @dataclass(frozen=True)
@@ -26,9 +27,10 @@ class Profile:
     sales_states: frozenset = field(default_factory=lambda: frozenset({"invoice", "draft", "estimate"}))
     attachments_from: int | None = None   # SCI : 2026 (achats) ; standard : 1re année reprise (Q8)
     associates_from_cashes: bool = True   # Q9 : comptes courants d'associés → associés sans parts (lot RE3)
-    agronomy: frozenset = field(default_factory=lambda: frozenset({"activities", "surfaces", "stock"}))
+    agronomy: frozenset = AGRONOMY
     copy_access_from: str | None = None
     dedupe_entity_names: bool = True      # Q5 : « nom (ville) », sinon « nom (#n° Ekylibre) »
+    stock_reclass: bool = False           # RE4 : comptes de stock de l'ancien plan agricole → plan agricole Lyvre
     notes: tuple = ()                     # raisons des réglages détectés, pour le rapport
 
     @property
@@ -93,8 +95,13 @@ def standard(data: EkyData, chart: str | None = None, start: date | None = None,
                      f"Période : à partir du premier exercice ouvert dans Ekylibre ({first.get('code') or start.year})")
     if until is None and years:
         until = day(years[-1]["stopped_on"])
+    reclass = chart == "agri"
+    if reclass:
+        notes.append("Comptes de stock reclassés de l'ancien plan agricole d'Ekylibre vers le plan agricole de Lyvre")
     return Profile(name="standard", chart=chart, start=start, until=until, absorb_purchase_vat=not subjected,
-                   attachments_from=start.year if start else None, notes=tuple(notes))
+                   attachments_from=start.year if start else None, stock_reclass=reclass,
+                   agronomy=AGRONOMY if chart == "agri" else frozenset(),
+                   notes=tuple(notes))
 
 
 def with_period(profile: Profile, start: date | None = None, until: date | None = None) -> Profile:

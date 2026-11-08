@@ -17,6 +17,9 @@ TABLES = {
     "bank_statement_items", "attachments", "documents", "associates", "fixed_assets", "taxes",
     "preferences",   # lot RE1 : référentiel détecté (accounting_system, fiscal_position)
     "loans", "loan_repayments",   # lot RE3 : emprunts au rapport (Lyvre n'a pas de fiche d'emprunt)
+    # lot RE4 : agronomie (Q7) et dernier inventaire
+    "activities", "activity_productions", "campaigns", "inventories", "inventory_items", "products",
+    "product_nature_variants", "product_nature_categories",
 }
 WIDE_START, WIDE_UNTIL = date(1900, 1, 1), date(2999, 12, 31)   # chargement avant la détection de la période
 
