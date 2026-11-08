@@ -24,6 +24,7 @@ from app.services.ledger import post_entry
 
 SOURCE_EKYLIBRE = "EKYLIBRE"
 NATURES = {"owner": "full", "usufructuary": "usufruct", "bare_owner": "bare"}
+VAT_PERIODS = {"monthly": "monthly", "quaterly": "quarterly", "quarterly": "quarterly", "yearly": "annual"}
 ACCOUNT_TYPES = {"1": "EQUITY", "2": "ASSET", "3": "ASSET", "4": "TIERS", "5": "ASSET", "6": "EXPENSE", "7": "REVENUE"}
 
 
@@ -38,6 +39,9 @@ class Context:
     accounts_plan: dict[str, AccountTarget]
     entities_plan: dict[str, EntityTarget]
     profile: object = None                                            # profil de restauration (lot RE1)
+    opening: object = None                                            # à-nouveaux calculés (lot RE2)
+    opening_entry: object = None
+    skipped_entries: list = field(default_factory=list)              # écritures de total nul, non reprises
     accounts: dict[str, Account] = field(default_factory=dict)        # numéro Ekylibre → compte Lyvre
     entities: dict[str, Entity] = field(default_factory=dict)         # id Ekylibre → tiers
     journals: dict[str, Journal] = field(default_factory=dict)        # code Lyvre → journal
@@ -85,6 +89,10 @@ def step_structure(ctx: Context) -> None:
         existing = FiscalYear.query.filter_by(start_date=start, end_date=end).first()
         ctx.years[fy["id"]] = existing or FiscalYear(label=label, start_date=start, end_date=end,
                                                      vat_liable=not ctx.profile.absorb_purchase_vat)
+        if not ctx.profile.is_sci and not ctx.profile.absorb_purchase_vat:      # lot RE2 : réglages de TVA
+            ctx.years[fy["id"]].vat_period = VAT_PERIODS.get(fy.get("tax_declaration_frequency"))
+            if fy.get("tax_declaration_mode") in ("payment", "debit"):
+                ctx.years[fy["id"]].vat_on_receipts = fy["tax_declaration_mode"] == "payment"
         db.session.add(ctx.years[fy["id"]])
     for entry in data.entries():
         code = map_journal(data.journal_code(entry["journal_id"]))
@@ -113,10 +121,49 @@ def step_structure(ctx: Context) -> None:
 # ------------------------------------------------------------------ E2 associés
 
 
+def _associate_account(code: str, label: str) -> Account:
+    account = Account.query.filter_by(code=code).first()
+    if account is None:
+        account = Account(code=code, label=label[:255], account_type="TIERS", parent=Account.query.filter_by(code="455").first())
+        db.session.add(account)
+        db.session.flush()
+    return account
+
+
+def step_associates_from_cashes(ctx: Context) -> None:
+    """Q9 (restauration) : sans registre des parts, un associé sans parts par compte courant d'associé d'Ekylibre
+    (caisse `associate_account`) ; les autres comptes 4551 restent de simples comptes."""
+    import re
+    data = ctx.data
+    if ctx.profile.associates_from_cashes:
+        for cash in data.rows["cashes"]:
+            if cash.get("nature") != "associate_account":
+                continue
+            number = data.account_number(cash.get("main_account_id"))
+            target = ctx.accounts_plan.get(number or "")
+            if target is None:
+                continue
+            name = re.sub(r"^compte\s+courant\s+(d'\s*)?associ[ée]s?\s*", "", cash["name"] or "", flags=re.I).strip() or cash["name"]
+            entity = Entity.query.filter_by(name=name[:200]).first() or Entity(name=name[:200], entity_type="AUTRE",
+                                                                           person_kind="individual")
+            db.session.add(entity)
+            account = _associate_account(target.code, f"Compte courant — {name}")
+            ctx.accounts[number] = account
+            if Associate.query.filter_by(account_id=account.id).first() is None:
+                db.session.add(Associate(entity=entity, account=account))
+                ctx.stats["associates"] += 1
+        db.session.flush()
+    for number, target in ctx.accounts_plan.items():
+        if target.action == "associate" and number not in ctx.accounts:
+            ctx.accounts[number] = _associate_account(target.code, target.label)
+
+
 def step_associates(ctx: Context) -> None:
     data = ctx.data
     rows = data.rows["associates"]
     if not rows:
+        if not ctx.profile.is_sci:
+            step_associates_from_cashes(ctx)
         return
     by_entity = {}
     for row in rows:
@@ -163,6 +210,64 @@ def step_associates(ctx: Context) -> None:
     db.session.flush()
     ctx.stats["associates"] = len(by_entity)
     ctx.stats["share_parts"] = sum(l.parts for l in lines if l.nature in ("full", "usufruct"))
+
+
+# ------------------------------------------------------------------ RE2 à-nouveaux calculés
+
+
+def _result_account(code: str, label: str) -> Account:
+    account = Account.query.filter_by(code=code).first()
+    if account is not None and not account.is_header:
+        return account
+    if account is not None:
+        raise ImportFailure(f"Compte {code} : compte de regroupement dans Lyvre, à-nouveaux impossibles.")
+    parent = next((Account.query.filter_by(code=code[:n]).first() for n in range(len(code) - 1, 0, -1)
+                   if Account.query.filter_by(code=code[:n]).first()), None)
+    account = Account(code=code, label=label, account_type="EQUITY", parent=parent)
+    db.session.add(account)
+    db.session.flush()
+    return account
+
+
+def step_opening(ctx: Context) -> None:
+    """Écriture d'ouverture au premier jour repris (design § 5), quand Ekylibre n'a pas de report : soldes cumulés
+    des comptes de bilan et résultats antérieurs (D-R1). Validée si l'exercice précédent est verrouillé (Q4)."""
+    from app.services.ekylibre import opening as opening_module
+    from datetime import timedelta
+    data = ctx.data
+    if not opening_module.needed(data, ctx.profile):
+        return
+    computed = ctx.opening or opening_module.compute(data)
+    ctx.opening = computed
+    if computed.total:
+        raise ImportFailure(f"À-nouveaux calculés déséquilibrés : {computed.total / 100:.2f} €.")
+    rows = []
+    for number, value in sorted(computed.balances.items()):
+        if number not in ctx.accounts:
+            raise ImportFailure(f"À-nouveaux : compte {number} sans correspondance.")
+        rows.append({"account_id": ctx.accounts[number].id, "label": "À-nouveaux (reprise Ekylibre)",
+                     "debit_cents": max(value, 0), "credit_cents": max(-value, 0)})
+    for code, label, amount in computed.results:
+        rows.append({"account_id": _result_account(code, label).id, "label": "Résultats antérieurs (reprise Ekylibre)",
+                     "debit_cents": max(amount, 0), "credit_cents": max(-amount, 0)})
+    fy = next(fy for fy in ctx.years.values() if fy.start_date <= data.start <= fy.end_date)
+    journal = ctx.journals.get("AN") or Journal.query.filter_by(code="AN").first()
+    if journal is None:
+        journal = Journal(code="AN", label=JOURNAL_LABELS["AN"])
+        db.session.add(journal)
+        db.session.flush()
+    ctx.journals["AN"] = journal
+    entry = post_entry(fy.id, journal.id, data.start, f"À-nouveaux au {data.start:%d/%m/%Y} calculés depuis Ekylibre",
+                       rows, source=SOURCE_OPENING, source_ref="AN-EKYLIBRE", commit=False)
+    ctx.opening_entry = entry
+    previous = data.fiscal_year(data.start - timedelta(days=1))
+    if previous is not None and previous.get("state") in ("locked", "closed"):
+        validation.validate(fy, [entry], "import", until=data.until)
+        ctx.stats["validated"] += 1
+    ctx.stats["opening_lines"] = len(rows)
+    ctx.notes += computed.notes
+    ctx.notes.append(f"À-nouveaux calculés au {data.start:%d/%m/%Y} : {len(rows)} ligne(s), "
+                     f"{'validés' if entry.is_validated else 'en brouillard'} ({entry.reference or entry.id}).")
 
 
 # ------------------------------------------------------------------ E3 écritures
@@ -214,6 +319,9 @@ def step_entries(ctx: Context) -> None:
             rows.append({"account_id": ctx.accounts[number].id, "label": (item.get("name") or "")[:300],
                          "debit_cents": max(signed, 0), "credit_cents": max(-signed, 0)})
             kept.append(item["id"])
+        if not any(r["debit_cents"] for r in rows):
+            ctx.skipped_entries.append(entry["number"])   # total nul : refusé par Lyvre, sans effet sur les soldes
+            continue
         fy = ctx.years[entry["financial_year_id"]]
         opening = code == "RG"
         reference = (entry.get("reference_number") or entry["number"] or "")[:50] or None
@@ -230,6 +338,10 @@ def step_entries(ctx: Context) -> None:
     for fy_id, entries in confirmed.items():
         validation.validate(db.session.get(FiscalYear, fy_id), entries, "import", until=ctx.data.until)
         ctx.stats["validated"] += len(entries)
+    if ctx.skipped_entries:
+        ctx.notes.append(f"{len(ctx.skipped_entries)} écriture(s) de total nul non reprise(s) (refusées par Lyvre, sans "
+                         f"effet sur les soldes) : {', '.join(ctx.skipped_entries[:20])}"
+                         + (" …" if len(ctx.skipped_entries) > 20 else "") + ".")
 
 
 # ------------------------------------------------------------------ E7 lettrage
@@ -265,7 +377,10 @@ def step_lettering(ctx: Context) -> None:
 
 
 def compare_balances(ctx: Context) -> list[str]:
-    """Balance Lyvre par compte = balance Ekylibre de la période corrigée (TVA) ; écarts inexpliqués."""
+    """Balance Lyvre par compte = balance Ekylibre de la période corrigée (TVA) ; écarts inexpliqués.
+    Avec des à-nouveaux calculés (RE-C6) : soldes cumulés à la fin de chaque exercice repris."""
+    if ctx.opening is not None:
+        return _compare_cumulative(ctx)
     expected = Counter()
     for entry in ctx.data.entries():
         for item in ctx.data.items_by_entry[entry["id"]]:
@@ -280,6 +395,38 @@ def compare_balances(ctx: Context) -> list[str]:
         actual[code] = value or 0
     return [f"{code} : attendu {expected[code] / 100:.2f} €, Lyvre {actual[code] / 100:.2f} €"
             for code in sorted(set(expected) | set(actual)) if expected[code] != actual[code]]
+
+
+def _compare_cumulative(ctx: Context) -> list[str]:
+    """RE-C6 : à chaque fin d'exercice repris, solde Lyvre par compte = solde Ekylibre cumulé depuis l'origine,
+    les résultats antérieurs au premier jour étant portés sur les comptes de D-R1."""
+    from app.models import JournalLine
+    data, gaps = ctx.data, []
+    base = Counter()
+    for number, value in ctx.opening.balances.items():
+        base[ctx.accounts[number].code] += value
+    for code, _label, amount in ctx.opening.results:
+        base[code] += amount
+    for fy in sorted({fy.id: fy for fy in ctx.years.values()}.values(), key=lambda f: f.end_date):
+        cutoff = min(fy.end_date, data.until)
+        expected = Counter(base)
+        for entry in data.entries():
+            if day(entry["printed_on"]) > cutoff:
+                continue
+            for item in data.items_by_entry[entry["id"]]:
+                target = ctx.accounts.get(data.account_number(item["account_id"]))
+                if target is not None:
+                    expected[target.code] += cents(item["real_debit"]) - cents(item["real_credit"]) + ctx.deltas[item["id"]]
+        actual = Counter()
+        rows = (db.session.query(Account.code, db.func.sum(JournalLine.debit_cents - JournalLine.credit_cents))
+                .join(JournalLine, JournalLine.account_id == Account.id)
+                .join(JournalEntry, JournalEntry.id == JournalLine.entry_id)
+                .filter(JournalEntry.entry_date <= cutoff).group_by(Account.code).all())
+        for code, value in rows:
+            actual[code] = value or 0
+        gaps += [f"{fy.label}, {code} : attendu {expected[code] / 100:.2f} €, Lyvre {actual[code] / 100:.2f} €"
+                 for code in sorted(set(expected) | set(actual)) if expected[code] != actual[code]]
+    return gaps
 
 
 # ------------------------------------------------------------------ E4 banque
@@ -339,6 +486,13 @@ def _transaction_of(ctx: Context, eky_entry_id):
     return ctx.transactions.get(item["id"]) if item else None
 
 
+def _rate_bp(ctx: Context, tax_id) -> int | None:
+    """Taux d'une taxe Ekylibre en points de base (20 % → 2000) ; None si inconnue."""
+    from decimal import Decimal
+    tax = ctx.data.get("taxes", tax_id)
+    return int((Decimal(tax["amount"]) * 100).to_integral_value()) if tax and tax.get("amount") is not None else None
+
+
 def step_purchases(ctx: Context) -> None:
     data = ctx.data
     payments_by_affair = defaultdict(list)
@@ -350,19 +504,25 @@ def step_purchases(ctx: Context) -> None:
         entity = ctx.entities.get(row["supplier_id"])
         total = sum(cents(i["amount"]) for i in data.purchase_items[row["id"]])
         credit = total < 0
+        # SCI (EK3) : TVA intégrée à la charge ; structure assujettie (RE2) : HT, TVA et taux d'Ekylibre.
+        keep_vat = not ctx.profile.absorb_purchase_vat
+        untaxed = sum(cents(i["pretax_amount"]) for i in data.purchase_items[row["id"]]) if keep_vat else total
         purchase = Purchase(source="ekylibre", entity=entity, supplier_name=entity.name if entity else None,
                             invoice_number=(row.get("reference_number") or row.get("number") or "")[:100] or None,
                             issue_date=day(row["invoiced_at"]), due_date=day(row.get("payment_at")),
-                            total_cents=abs(total), untaxed_cents=abs(total), tax_cents=0, payable_cents=abs(total),
+                            total_cents=abs(total), untaxed_cents=abs(untaxed), tax_cents=abs(total) - abs(untaxed),
+                            payable_cents=abs(total),
                             is_credit_note=credit, lines_edited=True,
                             journal_entry_id=entry.id if entry else None,
                             raw_payload=None)
         for position, item in enumerate(data.purchase_items[row["id"]]):
             account = ctx.accounts.get(data.account_number(item.get("account_id")))
             amount = abs(cents(item["amount"]))
+            pretax = abs(cents(item["pretax_amount"])) if keep_vat else amount
             purchase.lines.append(PurchaseLine(position=position, account_id=account.id if account else None,
-                                               label=(item.get("label") or "")[:300], untaxed_cents=amount, vat_rate_bp=0,
-                                               vat_cents=0, total_cents=amount))
+                                               label=(item.get("label") or "")[:300], untaxed_cents=pretax,
+                                               vat_rate_bp=(_rate_bp(ctx, item.get("tax_id")) or 0) if keep_vat else 0,
+                                               vat_cents=amount - pretax, total_cents=amount))
         db.session.add(purchase)
         db.session.flush()
         ctx.purchases[row["id"]] = purchase
@@ -382,7 +542,13 @@ def step_purchases(ctx: Context) -> None:
                 txn = _transaction_of(ctx, payment.get("journal_entry_id"))
                 link = PurchasePayment(purchase_id=purchase.id, origin="match", journal_entry_id=pay_entry.id,
                                        bank_transaction_id=txn.id if txn else None)
-            if not PurchasePayment.query.filter_by(purchase_id=purchase.id, journal_entry_id=pay_entry.id).first():
+            same_txn = link.bank_transaction_id is not None and PurchasePayment.query.filter_by(
+                purchase_id=purchase.id, bank_transaction_id=link.bank_transaction_id).first()
+            if link.origin == "associate" and PurchasePayment.query.filter_by(purchase_id=purchase.id, origin="associate").first():
+                same_txn = True   # un seul règlement par compte courant et par facture dans Lyvre : le suivant est listé
+                ctx.notes.append(f"Achat {row.get('number')} : règlement {payment.get('number')} par compte courant "
+                                 "d'associé non rattaché (un seul par facture dans Lyvre ; écriture reprise).")
+            if not same_txn and not PurchasePayment.query.filter_by(purchase_id=purchase.id, journal_entry_id=pay_entry.id).first():
                 db.session.add(link)
                 ctx.stats["purchase_payments"] += 1
             paid = day(payment.get("paid_at") or payment.get("to_bank_at"))
@@ -406,7 +572,11 @@ METHODS = {"virement": "transfer", "cheque": "check", "chèque": "check", "espec
 def step_sales(ctx: Context) -> None:
     from app.services.sale_settlement import refresh_status
     data = ctx.data
-    rows = sorted(data.sales(), key=lambda s: (s.get("invoiced_at") or s.get("created_at"), int(s["id"])))
+    skipped = Counter(s.get("state") for s in data.sales() if s.get("state") not in ctx.profile.sales_states)
+    rows = sorted((s for s in data.sales() if s.get("state") in ctx.profile.sales_states),
+                  key=lambda s: (s.get("invoiced_at") or s.get("created_at"), int(s["id"])))
+    for state, count in sorted(skipped.items()):
+        ctx.notes.append(f"{count} pièce(s) de vente à l'état « {state} » dans Ekylibre non reprise(s) (Q6).")
     for row in rows:
         entity = ctx.entities.get(row["client_id"])
         if entity is None:
@@ -430,7 +600,8 @@ def step_sales(ctx: Context) -> None:
                                        quantity_milli=int(round(quantity * 1000)),
                                        unit_price_cents=abs(cents(item.get("unit_pretax_amount"))),
                                        untaxed_cents=abs(cents(item.get("pretax_amount"))), vat_cents=abs(cents(item.get("amount"))) - abs(cents(item.get("pretax_amount"))),
-                                       total_cents=abs(cents(item.get("amount"))), account_id=account.id if account else None))
+                                       total_cents=abs(cents(item.get("amount"))), account_id=account.id if account else None,
+                                       vat_rate_bp=0 if ctx.profile.is_sci else (_rate_bp(ctx, item.get("tax_id")) or 0)))
         db.session.add(sale)
         db.session.flush()
         ctx.sales[row["id"]] = sale
@@ -736,6 +907,7 @@ def run(data: EkyData, accounts_plan, entities_plan, chart: Chart, source=None, 
     step_structure(ctx)
     step_organization(ctx)
     step_associates(ctx)
+    step_opening(ctx)
     step_entries(ctx)
     step_lettering(ctx)
     gaps = compare_balances(ctx)

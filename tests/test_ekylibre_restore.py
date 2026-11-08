@@ -1,4 +1,4 @@
-"""Restauration Ekylibre, lot RE1 (claudedocs/design_restauration_ekylibre.md) : profils, référentiel détecté,
+"""Restauration Ekylibre, lots RE1 et RE2 (claudedocs/design_restauration_ekylibre.md) : profils, référentiel détecté,
 TVA conservée, noms de tiers rendus uniques, états des écritures (Q4), script générique.
 Mini-dump fabriqué d'une ferme assujettie (aucune donnée réelle)."""
 import zipfile
@@ -19,22 +19,24 @@ ACCOUNTS = [(1, "10100000", "Capital"), (2, "40100000001", "Coop"), (3, "4110000
             (10, "44571000", "TVA collectée")]
 
 
-def build_sql():
+def build_sql(legal=None):
     return "\n".join([
         copy_block("preferences", ["id", "name", "string_value", "user_id"], [
             (1, "accounting_system", "fr_pcga", None), (2, "fiscal_position", "fr_ba_ir", None)]),
-        copy_block("financial_years", ["id", "code", "started_on", "stopped_on", "state", "closed"], [
-            (1, "EX2024", "2024-01-01", "2024-12-31", "locked", "f"), (2, "EX2025", "2025-01-01", "2025-12-31", "opened", "f")]),
+        copy_block("financial_years", ["id", "code", "started_on", "stopped_on", "state", "closed",
+                                       "tax_declaration_frequency", "tax_declaration_mode"], [
+            (1, "EX2024", "2024-01-01", "2024-12-31", "locked", "f", "quaterly", "debit"),
+            (2, "EX2025", "2025-01-01", "2025-12-31", "opened", "f", "quaterly", "payment")]),
         copy_block("journals", ["id", "code", "name", "nature"], [
             (1, "BANQ", "Banque", "bank"), (2, "ACHA", "Achats", "purchases"), (3, "VENT", "Ventes", "sales")]),
         copy_block("accounts", ["id", "number", "name"], ACCOUNTS),
         copy_block("entities", ["id", "number", "full_name", "nature", "supplier", "client", "supplier_account_id",
-                                "client_account_id", "of_company", "vat_subjected"], [
-            (1, "00000001", "Coop", "organization", "t", "f", 2, None, "f", None),
-            (2, "00000002", "Sarah", "contact", "f", "t", None, 3, "f", None),
-            (3, "00000003", "Sarah", "contact", "f", "t", None, 4, "f", None),
-            (4, "00000004", "sarah", "contact", "f", "t", None, 5, "f", None),
-            (9, "00000009", "Domaine d'essai", "organization", "f", "f", None, None, "t", "t")]),
+                                "client_account_id", "of_company", "vat_subjected", "legal_position_code"], [
+            (1, "00000001", "Coop", "organization", "t", "f", 2, None, "f", None, None),
+            (2, "00000002", "Sarah", "contact", "f", "t", None, 3, "f", None, None),
+            (3, "00000003", "Sarah", "contact", "f", "t", None, 4, "f", None, None),
+            (4, "00000004", "sarah", "contact", "f", "t", None, 5, "f", None, None),
+            (9, "00000009", "Domaine d'essai", "organization", "f", "f", None, None, "t", "t", legal)]),
         copy_block("entity_addresses", ["id", "entity_id", "canal", "by_default", "deleted_at", "mail_line_6"], [
             (1, 2, "mail", "t", None, "69001 LYON")]),
         copy_block("journal_entries", ["id", "journal_id", "financial_year_id", "number", "state", "printed_on", "name"], [
@@ -42,13 +44,15 @@ def build_sql():
             (2, 2, 2, "ACHA1", "draft", "2025-03-10", "Semences"),
             (3, 3, 2, "VENT1", "draft", "2025-04-01", "Vente Sarah"),
             (4, 3, 2, "VENT2", "confirmed", "2025-04-02", "Vente Sarah Lyon"),
-            (5, 3, 2, "VENT3", "draft", "2025-04-03", "Vente sarah")]),
+            (5, 3, 2, "VENT3", "draft", "2025-04-03", "Vente sarah"),
+            (6, 3, 1, "VENT0", "draft", "2024-06-01", "Vente 2024")]),
         copy_block("journal_entry_items", ["id", "entry_id", "account_id", "name", "real_debit", "real_credit", "position"], [
             (1, 1, 8, "Apport", "1000.00", "0.00", 1), (2, 1, 1, "Apport", "0.00", "1000.00", 2),
             (3, 2, 6, "Semences", "100.00", "0.00", 1), (4, 2, 7, "TVA", "20.00", "0.00", 2), (5, 2, 2, "Coop", "0.00", "120.00", 3),
             (6, 3, 3, "Sarah", "11.00", "0.00", 1), (7, 3, 9, "Vin", "0.00", "10.00", 2), (8, 3, 10, "TVA", "0.00", "1.00", 3),
             (9, 4, 4, "Sarah", "11.00", "0.00", 1), (10, 4, 9, "Vin", "0.00", "10.00", 2), (11, 4, 10, "TVA", "0.00", "1.00", 3),
-            (12, 5, 5, "sarah", "11.00", "0.00", 1), (13, 5, 9, "Vin", "0.00", "10.00", 2), (14, 5, 10, "TVA", "0.00", "1.00", 3)]),
+            (12, 5, 5, "sarah", "11.00", "0.00", 1), (13, 5, 9, "Vin", "0.00", "10.00", 2), (14, 5, 10, "TVA", "0.00", "1.00", 3),
+            (15, 6, 8, "Vente", "300.00", "0.00", 1), (16, 6, 9, "Vente", "0.00", "300.00", 2)]),
         copy_block("purchases", ["id", "supplier_id", "number", "amount", "pretax_amount", "invoiced_at", "journal_entry_id",
                                  "tax_payability"], [(1, 1, "A1", "120.00", "100.00", "2025-03-10 00:00:00", 2, "at_invoicing")]),
         copy_block("sales", ["id", "number", "client_id", "state", "credit", "invoiced_at", "created_at", "amount",
@@ -60,12 +64,16 @@ def build_sql():
     ]) + "\n"
 
 
+def _archive(tmp_path, legal=None):
+    path = tmp_path / f"ferme-{legal or 'x'}.zip"
+    with zipfile.ZipFile(path, "w") as zf:
+        zf.writestr("ferme.sql", build_sql(legal))
+    return path
+
+
 @pytest.fixture()
 def farm(tmp_path):
-    path = tmp_path / "ferme.zip"
-    with zipfile.ZipFile(path, "w") as zf:
-        zf.writestr("ferme.sql", build_sql())
-    return path
+    return _archive(tmp_path)
 
 
 def _data(farm):
@@ -147,3 +155,55 @@ def test_import_keeps_vat_and_marks_the_year_vat_liable(app, farm):
     assert JournalEntry.query.filter_by(source_ref="VENT2").one().is_validated     # confirmée
     assert not purchase.is_validated
     assert Account.query.filter_by(code="44566").one().parent.code == "445"
+    fy = FiscalYear.query.one()
+    assert (fy.vat_period, fy.vat_on_receipts) == ("quarterly", True)                # lot RE2 : réglages de TVA
+    opening = JournalEntry.query.filter_by(source_ref="AN-EKYLIBRE").one()           # à-nouveaux calculés
+    assert opening.entry_date == date(2025, 1, 1) and opening.source == "OPENING" and opening.is_validated  # 2024 verrouillé
+    assert sorted((l.account.code, l.debit_cents, l.credit_cents) for l in opening.lines) == [
+        ("101000", 0, 100000), ("12", 0, 30000), ("512000", 130000, 0)]
+    assert any("Forme juridique absente" in n for n in ctx.notes)
+
+
+def _import_with(app, archive):
+    from app.extensions import db
+    from app.models import Account
+    from app.services.ekylibre import importer
+    for code, label in (("101", "Capital"), ("108", "Exploitant"), ("11", "Report"), ("110", "RAN créditeur"),
+                        ("119", "RAN débiteur"), ("12", "Résultat"), ("120", "Bénéfice"), ("129", "Perte"),
+                        ("401", "Fournisseurs"), ("411", "Clients"), ("445", "État TVA"), ("512", "Banque"),
+                        ("601", "Achats"), ("701", "Ventes")):
+        db.session.add(Account(code=code, label=label, account_type="OTHER", is_header=code in ("101", "11", "401", "411", "445", "512", "601", "701")))
+    db.session.commit()
+    data = _data(archive)
+    std = profile.standard(data)
+    data.set_period(std.start, std.until)
+    chart = Chart.from_database()
+    plan = report.plan(data, chart, std)
+    return importer.run(data, plan["accounts"], plan["entities"], chart, profile=std)
+
+
+def test_opening_follows_the_legal_form(app, tmp_path):
+    from app.models import JournalEntry
+    ctx = _import_with(app, _archive(tmp_path, "EI"))
+    lines = {l.account.code: l.credit_cents for l in JournalEntry.query.filter_by(source_ref="AN-EKYLIBRE").one().lines}
+    assert lines["108"] == 30000 and "12" not in lines                                   # D-R1 : exploitant
+    assert ctx.stats["opening_lines"] == 3
+
+
+def test_opening_of_a_company(app, tmp_path):
+    from app.models import JournalEntry
+    _import_with(app, _archive(tmp_path, "EARL"))
+    lines = {l.account.code: l.credit_cents for l in JournalEntry.query.filter_by(source_ref="AN-EKYLIBRE").one().lines}
+    assert lines["120"] == 30000 and "110" not in lines                                  # bénéfice 2024 à affecter
+
+
+def test_opening_check_and_cumulative_control(farm):
+    from app.services.ekylibre import importer
+    data = _data(farm)
+    std = profile.standard(data)
+    data.set_period(std.start, std.until)
+    mapping = report.plan(data, Chart.from_file(chart_file("agri")), std)
+    assert mapping["opening"].balances == {"51200000": 130000, "10100000": -100000}
+    results = {c.key: c for c in checks.run(data, std, mapping["entities"])}
+    assert results["opening_computed"].ok and "12 Résultat de l'exercice : -300.00 €" in results["opening_computed"].details
+    assert importer.compare_balances.__doc__ and "RE-C6" in importer.compare_balances.__doc__

@@ -11,7 +11,14 @@ from app.services.ekylibre.mapping import (
 
 def plan(data: EkyData, chart: Chart, profile=None) -> dict:
     """Correspondances calculées sans rien écrire (analyse à blanc et préparation de l'import)."""
+    from app.services.ekylibre import opening as opening_module
+    opening = None
+    if opening_module.needed(data, profile):     # lot RE2 : comptes portés par les à-nouveaux calculés
+        opening = opening_module.compute(data)
+        data.opening_account_ids = opening_module.account_ids(data, opening)
     numbers = {data.account_number(i["account_id"]) for e in data.entries() for i in data.items_by_entry[e["id"]]}
+    if opening is not None:
+        numbers |= set(opening.balances)
     for entity in data.rows["entities"]:
         for key in ("supplier_account_id", "client_account_id"):
             if entity["id"] in data.entities_used() and data.account_number(entity.get(key)):
@@ -20,7 +27,7 @@ def plan(data: EkyData, chart: Chart, profile=None) -> dict:
     accounts = map_accounts(data, chart, {n for n in numbers if n}, absorb_vat=absorb)
     entities = map_entities(data, accounts, dedupe=profile is not None and profile.dedupe_entity_names)
     journals = Counter(data.journal_code(e["journal_id"]) for e in data.entries())
-    return {"accounts": accounts, "entities": entities,
+    return {"accounts": accounts, "entities": entities, "opening": opening,
             "journals": {code: (map_journal(code), n) for code, n in sorted(journals.items())}}
 
 
@@ -85,7 +92,11 @@ def render(data: EkyData, mapping: dict, results: list[checks_module.Check], sou
             out += ["", f"TVA intégrée à la charge : {len(imported.vat_corrections)} écriture(s), "
                     f"{sum(v for _n, v in imported.vat_corrections) / 100:.2f} €.", ""]
             out += _table(["Écriture", "TVA intégrée"], [(n, f"{v / 100:.2f} €") for n, v in imported.vat_corrections])
-        out += ["", "Contrôle : balance Lyvre = balance Ekylibre de la période, corrections de TVA comprises (aucun écart).", ""]
+        if getattr(imported, "opening", None) is not None:
+            out += ["", "Contrôle (RE-C6) : à la fin de chaque exercice repris, solde de chaque compte dans Lyvre = solde "
+                    "cumulé d'Ekylibre depuis l'origine, résultats antérieurs portés sur les comptes de D-R1 (aucun écart).", ""]
+        else:
+            out += ["", "Contrôle : balance Lyvre = balance Ekylibre de la période, corrections de TVA comprises (aucun écart).", ""]
         if imported.attachments:
             out += ["### Pièces reprises", ""]
             out += _table(["Facture", "Fichier", "SHA-256 (début)"], imported.attachments)

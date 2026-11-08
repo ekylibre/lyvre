@@ -75,6 +75,18 @@ def run(data: EkyData, profile=None, entities=None) -> list[Check]:
         checks.append(Check("opening", f"À-nouveaux du {data.start:%d/%m/%Y} = soldes de fin {previous['code']} "
                             "(affectation du résultat mise à part)", not unexpected, unexpected))
 
+    from app.services.ekylibre import opening as opening_module
+    if opening_module.needed(data, profile):
+        computed = opening_module.compute(data)
+        by_class = Counter()
+        for number, value in computed.balances.items():
+            by_class[number[0]] += value
+        details = [f"Classe {c} : {v / 100:.2f} €" for c, v in sorted(by_class.items())]
+        details += [f"{code} {label} : {amount / 100:.2f} €" for code, label, amount in computed.results] + computed.notes
+        checks.append(Check("opening_computed", f"À-nouveaux calculés au {data.start:%d/%m/%Y} (aucun report dans "
+                            f"Ekylibre) : {len(computed.balances)} compte(s) de bilan, équilibrés", computed.total == 0,
+                            details, blocking=True))
+
     bank = [c for c in data.rows["cashes"] if c.get("nature") == "bank_account"]
     for cash in bank:
         statements = {s["id"] for s in data.rows["bank_statements"] if s["cash_id"] == cash["id"]}

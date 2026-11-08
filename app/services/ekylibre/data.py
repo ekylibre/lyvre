@@ -3,7 +3,7 @@
 Montants Ekylibre (`numeric`, ex. « 1234.5600 ») convertis en centimes ; dates ISO conservées en
 `date`. Période : du 01/01 de l'exercice de départ à la date limite (`until`).
 """
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
@@ -35,6 +35,7 @@ class EkyData:
     start: date
     until: date
     rows: dict = field(default_factory=dict)
+    opening_account_ids: set = field(default_factory=set)   # comptes portés par les à-nouveaux calculés (RE2)
 
     # ---------------------------------------------------------------- chargement
 
@@ -89,6 +90,20 @@ class EkyData:
 
     def set_period(self, start: date, until: date) -> None:
         self.start, self.until = start, until
+
+    def balances_before(self, when: date, fiscal_year_id: str | None = None) -> Counter:
+        """Solde (débit − crédit, centimes) par numéro de compte des lignes datées avant `when`, tous états
+        confondus (lot RE2 : à-nouveaux calculés) ; `fiscal_year_id` : lignes de cet exercice seulement."""
+        result = Counter()
+        for entry in self.rows["journal_entries"]:
+            if day(entry["printed_on"]) >= when or (fiscal_year_id and entry["financial_year_id"] != fiscal_year_id):
+                continue
+            for item in self.items_by_entry[entry["id"]]:
+                result[self.account_number(item["account_id"])] += cents(item["real_debit"]) - cents(item["real_credit"])
+        return result
+
+    def has_history_before(self, when: date) -> bool:
+        return any(day(e["printed_on"]) < when for e in self.rows["journal_entries"])
 
     def account_number(self, account_id) -> str | None:
         account = self.get("accounts", account_id)
@@ -156,6 +171,7 @@ class EkyData:
         ids |= {o["payee_id"] for o in self.outgoing_payments()} | {o["payer_id"] for o in self.incoming_payments()}
         ids |= {a["entity_id"] for a in self.rows["associates"]}
         used_accounts = {i["account_id"] for e in self.entries() for i in self.items_by_entry[e["id"]]}
+        used_accounts |= self.opening_account_ids
         for entity in self.rows["entities"]:
             if {entity.get("supplier_account_id"), entity.get("client_account_id")} & used_accounts:
                 ids.add(entity["id"])
