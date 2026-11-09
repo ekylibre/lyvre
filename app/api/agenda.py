@@ -20,7 +20,8 @@ def _agri():
 @bp.route("/agri-profile")
 def agri_profile_get():
     _agri()
-    return jsonify(item=agri_profile.get(), meta=agri_profile.meta())
+    profile = agri_profile.get()
+    return jsonify(item=profile, meta=agri_profile.meta(), hints=agri_profile.hints(profile), uses=agri_profile.uses())
 
 
 @bp.route("/agri-profile", methods=["PUT"])
@@ -31,7 +32,8 @@ def agri_profile_update():
         profile = agri_profile.save(json_body())
     except agri_profile.ProfileError as exc:
         raise ApiError("validation_error", exc.message, 422, {exc.field: exc.message} if exc.field else None) from None
-    return jsonify(item=profile, meta=agri_profile.meta(), notices=[notice("Activités et démarches enregistrées.")])
+    return jsonify(item=profile, meta=agri_profile.meta(), hints=agri_profile.hints(profile), uses=agri_profile.uses(),
+                   notices=[notice("Activités et démarches enregistrées.")])
 
 
 @bp.route("/deadlines")

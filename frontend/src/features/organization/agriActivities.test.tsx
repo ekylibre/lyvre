@@ -29,4 +29,21 @@ describe("Activités et démarches", () => {
     expect(JSON.parse(String((put![1] as RequestInit).body))).toEqual({
       pac: true, leases: [{ label: "Grands Champs", due: "11-11", role: "tenant" }] });
   });
+
+  it("indice de la comptabilité, réponse proposée et compteur d'échéances", async () => {
+    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(((_url: string, init?: RequestInit) =>
+      json({ item: init?.method === "PUT" ? JSON.parse(String(init.body)) : { pac: false }, meta: META, notices: [],
+        hints: { pac: { text: "Compte 742 mouvementé : 10 000 €.", suggested: true, conflict: true },
+          employer: { text: "Compte 641 mouvementé : 500 €.", suggested: true, conflict: false } },
+        uses: { pac: ["PAC-01 Demande d'aides PAC (telepac)", "PAC-02 Aides animales couplées"] } })) as typeof globalThis.fetch);
+    renderWithProviders(<AgriActivities />, {
+      session: { ...TEST_SESSION, role: "admin" as const, permissions: { write: true, instance_admin: true } } });
+    expect(await screen.findByText("2 échéances")).toBeInTheDocument();
+    expect(screen.getByText(/la comptabilité indique le contraire : Compte 742/)).toBeInTheDocument();
+    expect(screen.getByText(/Indice dans la comptabilité : Compte 641/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Répondre oui" }));   // seulement pour la question sans réponse
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    const put = fetch.mock.calls.find(([, init]) => (init as RequestInit | undefined)?.method === "PUT");
+    expect(JSON.parse(String((put![1] as RequestInit).body))).toEqual({ pac: false, employer: true });
+  });
 });

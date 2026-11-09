@@ -3,8 +3,8 @@
 // Une réponse laissée vide vaut « non renseigné » : l'échéancier pose alors la question.
 import { useEffect, useState } from "react";
 import {
-  ActionIcon, Alert, Button, Center, Fieldset, Group, Loader, MultiSelect, SegmentedControl, Select, SimpleGrid, Stack,
-  Table, Text, TextInput,
+  ActionIcon, Alert, Badge, Button, Center, Fieldset, Group, Loader, MultiSelect, SegmentedControl, Select, SimpleGrid, Stack,
+  Table, Text, TextInput, Tooltip,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -20,9 +20,27 @@ export interface AgriProfile {
   productions?: string[]; msa_fund?: string; pacage?: string; leases?: Lease[];
 }
 interface Meta { booleans: Option[]; dates: Option[]; productions: Option[]; msa_funds: Option[]; lease_roles: Option[] }
-type Response = { item: AgriProfile; meta: Meta; notices?: Notice[] };
+export interface Hint { text: string; suggested: boolean; conflict: boolean }
+type Response = { item: AgriProfile; meta: Meta; hints?: Record<string, Hint>; uses?: Record<string, string[]>; notices?: Notice[] };
 
 export const AGRI_PROFILE_KEY = ["agri-profile"];
+// Nombre d'échéances qui dépendent d'une réponse, avec leur liste au survol.
+function Uses({ titles }: { titles?: string[] }) {
+  if (!titles?.length) return null;
+  return (
+    <Tooltip multiline w={320} withArrow label={titles.join(" · ")}>
+      <Badge variant="light" color="gray" size="sm" style={{ cursor: "help" }}>
+        {titles.length} échéance{titles.length > 1 ? "s" : ""}
+      </Badge>
+    </Tooltip>);
+}
+
+// Indice tiré de la comptabilité : jamais une réponse, l'utilisateur confirme.
+function HintText({ hint, conflict }: { hint?: Hint; conflict: boolean }) {
+  if (!hint) return null;
+  return <Text size="xs" c={conflict ? "brique" : "dimmed"}>{conflict ? "À vérifier, la comptabilité indique le contraire : " : "Indice dans la comptabilité : "}{hint.text}</Text>;
+}
+
 const TRI = [{ value: "yes", label: "Oui" }, { value: "no", label: "Non" }, { value: "", label: "Non renseigné" }];
 
 export function AgriActivities() {
@@ -36,6 +54,8 @@ export function AgriActivities() {
   useEffect(() => { if (data) setProfile(data.item); }, [data]);
   if (!data) return <Center h={200}><Loader /></Center>;
   const { meta } = data;
+  const hints = data.hints ?? {};
+  const uses = data.uses ?? {};
   const set = (key: string, value: AgriProfile[string]) => setProfile((p) => {
     const next = { ...p };
     if (value === undefined || value === "" || value === null) delete next[key]; else next[key] = value;
@@ -65,15 +85,30 @@ export function AgriActivities() {
       {error && <Alert color="brique" role="alert">{error}</Alert>}
       <Fieldset legend="Activités">
         <Stack>
-          {meta.booleans.map((b) => (
-            <Group key={b.value} justify="space-between" wrap="nowrap">
-              <Text size="sm">{b.label}</Text>
-              <SegmentedControl size="xs" data={TRI} disabled={readOnly} aria-label={b.label}
-                value={profile[b.value] === true ? "yes" : profile[b.value] === false ? "no" : ""}
-                onChange={(v) => set(b.value, v === "" ? undefined : v === "yes")} />
-            </Group>))}
-          <MultiSelect label="Productions" data={meta.productions} readOnly={readOnly} clearable
+          {meta.booleans.map((b) => {
+            const hint = hints[b.value];
+            const answer = profile[b.value];
+            const unanswered = answer !== true && answer !== false;
+            return (
+              <Group key={b.value} justify="space-between" wrap="nowrap" align="flex-start">
+                <Stack gap={2}>
+                  <Group gap="xs"><Text size="sm">{b.label}</Text><Uses titles={uses[b.value]} /></Group>
+                  <HintText hint={hint} conflict={!!hint && !unanswered && answer !== hint.suggested} />
+                </Stack>
+                <Group gap="xs" wrap="nowrap">
+                  {hint && unanswered && !readOnly && (
+                    <Button size="compact-xs" variant="subtle" onClick={() => set(b.value, hint.suggested)}>
+                      Répondre {hint.suggested ? "oui" : "non"}</Button>)}
+                  <SegmentedControl size="xs" data={TRI} disabled={readOnly} aria-label={b.label}
+                    value={answer === true ? "yes" : answer === false ? "no" : ""}
+                    onChange={(v) => set(b.value, v === "" ? undefined : v === "yes")} />
+                </Group>
+              </Group>);
+          })}
+          <MultiSelect label={<Group gap="xs" component="span">Productions <Uses titles={uses.productions} /></Group>}
+            data={meta.productions} readOnly={readOnly} clearable
             value={profile.productions ?? []} onChange={(v) => set("productions", v)} />
+          <HintText hint={hints.productions} conflict={!!hints.productions?.conflict} />
         </Stack>
       </Fieldset>
       <Fieldset legend="Organismes et dates">
@@ -90,7 +125,9 @@ export function AgriActivities() {
       </Fieldset>
       <Fieldset legend="Baux ruraux">
         <Stack>
-          <Text size="sm" c="dimmed">Échéance annuelle du fermage, par exemple 29/09 (Saint-Michel) ou 11/11 (Saint-Martin).</Text>
+          <Group gap="xs"><Text size="sm" c="dimmed">Échéance annuelle du fermage, par exemple 29/09 (Saint-Michel) ou 11/11 (Saint-Martin).</Text>
+            <Uses titles={uses.leases} /></Group>
+          <HintText hint={hints.leases} conflict={!!hints.leases?.conflict} />
           {leases.length > 0 && (
             <Table>
               <Table.Thead><Table.Tr><Table.Th>Bail</Table.Th><Table.Th>Échéance (MM-JJ)</Table.Th><Table.Th>Rôle</Table.Th><Table.Th /></Table.Tr></Table.Thead>

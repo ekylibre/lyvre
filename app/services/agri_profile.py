@@ -139,3 +139,115 @@ def meta() -> dict:
     options = lambda d: [{"value": k, "label": v} for k, v in d.items()]  # noqa: E731
     return {"booleans": options(BOOLEANS), "dates": options(DATES), "productions": options(PRODUCTIONS),
             "msa_funds": options(MSA_FUNDS), "lease_roles": options(LEASE_ROLES)}
+
+
+# ------------------------------------------------------------------ indices de la comptabilité et usages (essai 09/11/2026)
+
+# Comptes qui laissent présumer une réponse « oui » (préfixes, sens attendu : produit au crédit, charge au débit).
+EVIDENCE_ACCOUNTS = {
+    "pac": (("742", "743", "744", "745"), "credit"),
+    "employer": (("641", "645"), "debit"),
+    "plant_protection": (("60113", "31113"), "debit"),
+}
+ANIMAL_PRODUCTIONS = {"cattle", "sheep_goats", "pigs", "poultry"}
+PLANT_PRODUCTIONS = {"field_crops", "viticulture", "market_gardening", "arboriculture"}
+
+
+def _euros(cents: int) -> str:
+    return f"{cents / 100:,.0f} €".replace(",", " ")
+
+
+def _balances():
+    """Soldes par compte du dernier exercice, hors à-nouveaux : (fy, {code: débit − crédit}) ou (None, {})."""
+    from sqlalchemy import func
+
+    from app.models import Account, FiscalYear, JournalEntry, JournalLine
+    from app.models.journal_entry import SOURCE_OPENING
+
+    fy = FiscalYear.query.order_by(FiscalYear.start_date.desc()).first()
+    if fy is None:
+        return None, {}
+    rows = (db.session.query(Account.code, func.sum(JournalLine.debit_cents - JournalLine.credit_cents))
+            .join(JournalLine, JournalLine.account_id == Account.id).join(JournalEntry)
+            .filter(JournalEntry.fiscal_year_id == fy.id, JournalEntry.source != SOURCE_OPENING)
+            .group_by(Account.code).all())
+    return fy, {code: total or 0 for code, total in rows}
+
+
+def _sum(balances: dict, prefixes, side: str) -> tuple[int, list[str]]:
+    total, codes = 0, []
+    for code, amount in balances.items():
+        if code.startswith(tuple(prefixes)):
+            value = -amount if side == "credit" else amount
+            if value > 0:
+                total += value
+                codes.append(code)
+    return total, sorted(codes)
+
+
+def hints(profile: dict | None = None) -> dict:
+    """Indices tirés de la comptabilité, par question : {clé: {"text", "suggested", "conflict"}}. Jamais une réponse :
+    l'utilisateur confirme (le profil reste « non renseigné » tant qu'il n'a pas répondu)."""
+    from app.models import Account
+    from app.models.aid import Aid
+
+    profile = get() if profile is None else profile
+    fy, balances = _balances()
+    out: dict = {}
+
+    def add(key, text, suggested=True):
+        answer = flag(profile, key) if key in FLAGS else None
+        out[key] = {"text": text, "suggested": suggested, "conflict": answer is not None and answer != suggested}
+
+    where = f" (exercice {fy.label})" if fy is not None else ""
+    for key, (prefixes, side) in EVIDENCE_ACCOUNTS.items():
+        total, codes = _sum(balances, prefixes, side)
+        if total:
+            add(key, f"{'Comptes' if len(codes) > 1 else 'Compte'} {', '.join(codes)} "
+                     f"mouvementé{'s' if len(codes) > 1 else ''} : {_euros(total)}{where}.")
+    schemes = {a.scheme for a in Aid.query.all()}
+    if schemes and "pac" not in out:
+        add("pac", "Aides saisies dans le registre des aides.")
+    if "dja" in schemes:
+        add("young_farmer", "DJA saisie dans le registre des aides.")
+    accessory = {a.code for a in Account.query.filter_by(ba_income_class="accessory")}
+    total, codes = _sum(balances, tuple(accessory), "credit") if accessory else (0, [])
+    if total:
+        add("non_agricultural", f"Revenus accessoires repérés (Structure › Fiscalité) : {', '.join(codes)}, "
+                                f"{_euros(total)}{where}.")
+    rent, _ = _sum(balances, ("6131",), "debit")
+    if rent:
+        text = f"Fermages payés (6131) : {_euros(rent)}{where}."
+        leases = profile.get("leases")
+        tenant = isinstance(leases, list) and any(l.get("role") == "tenant" for l in leases)
+        out["leases"] = {"text": text + ("" if tenant else " Ajoutez les baux pour leurs échéances."),
+                         "suggested": True, "conflict": isinstance(leases, list) and not tenant}
+    productions = profile.get("productions")
+    notes = []
+    animals, _ = _sum(balances, ("7012", "7014"), "credit")
+    plants, _ = _sum(balances, ("7011",), "credit")
+    if animals and (productions is None or not set(productions) & ANIMAL_PRODUCTIONS):
+        notes.append(f"ventes d'animaux ou de produits animaux {_euros(animals)} sans production animale")
+    if plants and (productions is None or not set(productions) & PLANT_PRODUCTIONS):
+        notes.append(f"ventes de produits végétaux {_euros(plants)} sans production végétale")
+    if notes:
+        out["productions"] = {"text": f"Comptabilité{where} : " + " ; ".join(notes) + ".", "suggested": True,
+                              "conflict": productions is not None}
+    return out
+
+
+def uses() -> dict:
+    """Échéances qui dépendent de chaque question : {clé: [titres]} (conditions de la fiche ou de ses événements)."""
+    from app.services import deadlines
+
+    out: dict = {}
+    for fiche in deadlines.fiches():
+        keys: set = set()
+        for conditions in [fiche.get("applies"), *(e.get("applies") for e in fiche.get("events", []))]:
+            conditions = conditions or {}
+            keys.update(conditions.get("flags") or [])
+            if "production" in conditions:
+                keys.add("productions")
+        for key in keys:
+            out.setdefault(key, []).append(f"{fiche['id']} {fiche['title']}")
+    return out

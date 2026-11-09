@@ -5,6 +5,15 @@
 next:
 - kind: improved
   text: >-
+    Structure › Activités et démarches — indices tirés de la comptabilité sous chaque question (aides PAC 742 à 745,
+    salaires 641 et 645, produits phytosanitaires 60113, fermages 6131, DJA du registre des aides, revenus accessoires
+    repérés, ventes d'animaux ou de végétaux sans production cohérente), bouton « Répondre oui » pour une question non
+    renseignée, alerte quand une réponse contredit la comptabilité, et nombre d'échéances qui dépendent de chaque
+    réponse (liste au survol). Aucune réponse n'est remplie à votre place.
+  tech: >-
+    agri_profile.hints() / uses(), GET et PUT /api/v1/agri-profile (hints, uses), AgriActivities.
+- kind: improved
+  text: >-
     Structure › Fiscalité (exploitations agricoles) — seuils du micro-BA et du réel normal de 2023 à 2025 (91 900 €,
     puis 120 000 € ; 391 000 €), donc contrôle du régime de plein droit pour les exercices clos avant 2026 ; avertissement
     quand un seuil n'est pas paramétré ; date de création vide signalée au lieu d'être présumée postérieure à 1997 ;
