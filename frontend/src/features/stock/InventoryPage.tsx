@@ -48,7 +48,7 @@ export interface StockView {
     fiscal_year: { id: number; label: string; end_date: string; status: string }; editable: boolean; items: StockLineItem[];
     totals: Record<string, { value_cents: number; depreciation_cents: number; lines: number }>; total_cents: number;
     discounts: Record<string, number>; counted_on: string | null; flat_allowed: boolean; has_previous: boolean; opening_stock?: boolean;
-    opening: { code: string; label: string; balance_cents: number; counted: boolean }[]; purchases: Record<string, number | null>;
+    opening: { code: string; label: string; balance_cents: number; counted: boolean; grouping?: boolean }[]; purchases: Record<string, number | null>;
     lots: StockLotItem[]; crop_advances: CropAdvanceItem[];
     fiscal: { accounting_cents: number; fiscal_cents: number; gap_cents: number; missing: number; flat: boolean; frozen: boolean; frozen_since: string | null };
   };
@@ -281,6 +281,7 @@ export default function InventoryPage() {
   const [importError, setImportError] = useState<string | null>(null);
   const opts = { invalidate: [STOCK_KEY] };
   const copy = useAction(() => api.post<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fyId}/stock/copy-previous`), opts);
+  const copyOpening = useAction(() => api.post<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fyId}/stock/copy-opening`), opts);
   const remove = useAction((id: number) => api.delete<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fyId}/stock/lines/${id}`), opts);
   if (error) return <Alert color="paille">{errorOf(error)}</Alert>;
   if (!years || !view) return <Center h={300}><Loader /></Center>;
@@ -319,6 +320,8 @@ export default function InventoryPage() {
           {writable && ekylibreOn && <Button variant="default" onClick={() => setEkylibre(true)}>Quantités depuis Ekylibre</Button>}
           {writable && v.items.length === 0 && v.has_previous && <Button variant="default" loading={copy.isPending}
             onClick={() => copy.mutate(undefined)}>Reprendre l'exercice précédent</Button>}
+          {writable && v.items.length === 0 && !v.has_previous && v.opening.length > 0 && <Button variant="default"
+            loading={copyOpening.isPending} onClick={() => copyOpening.mutate(undefined)}>Partir des stocks initiaux</Button>}
           {writable && <FileButton onChange={(f) => void importFile(f)} accept=".csv,.xlsx,text/csv">
             {(props) => <Button variant="default" {...props}>Importer</Button>}</FileButton>}
           {writable && <Button onClick={() => setEditing("new")}>Ajouter une ligne</Button>}
@@ -334,7 +337,8 @@ export default function InventoryPage() {
       {fyId && <StockEntryBar fyId={fyId} status={view.entry} editable={v.editable} invalidate={[STOCK_KEY, ["closing", fyId]]} />}
       {missing.length > 0 && (
         <Alert color="paille" mb="sm" title="Stocks initiaux sans ligne d'inventaire">
-          {missing.map((o) => <Text key={o.code} size="sm">{o.code} {o.label} : <MoneyText cents={o.balance_cents} /> à l'ouverture</Text>)}
+          {missing.map((o) => <Text key={o.code} size="sm">{o.code} {o.label} : <MoneyText cents={o.balance_cents} /> à l'ouverture
+            {o.grouping && <Text span size="xs" c="dimmed"> — compte de regroupement : préférez un sous-compte</Text>}</Text>)}
           <Text size="xs" mt={4}>Sans ligne, l'écriture de stock annulera ce stock initial (stock final nul).</Text>
         </Alert>)}
       <SimpleGrid cols={{ base: 2, sm: 5 }} mb="md">
@@ -356,6 +360,7 @@ export default function InventoryPage() {
             <Table.Tr key={l.id} style={{ cursor: writable ? "pointer" : undefined }} onClick={() => writable && !l.crop_advance_id && setEditing(l)}>
               <Table.Td><Text size="sm">{l.label}</Text><Text size="xs" c="dimmed">{catLabel(l.category)}{l.production ? ` · ${l.production}` : ""}</Text>
                 {l.warnings.map((w) => <Text key={w} size="xs" c="var(--lv-paille-ink)">{w}</Text>)}
+                {l.notes && <Text size="xs" c="dimmed" lineClamp={2}>{l.notes}</Text>}
                 {l.depreciation_cents ? <Text size="xs" c="dimmed">dépréciation <MoneyText cents={l.depreciation_cents} /> ({l.depreciation_reason})</Text> : null}</Table.Td>
               <Table.Td className="lv-num">{l.account.code} / {l.variation_account.code}</Table.Td>
               <Table.Td ta="right" className="lv-num">{Number(l.quantity).toLocaleString("fr-FR")} {unitLabel(l.unit)}</Table.Td>

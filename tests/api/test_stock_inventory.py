@@ -54,7 +54,7 @@ def test_actual_cost_line_and_opening(farm):
     assert item["purchase_account"] == "60111"
     view = body["item"]
     assert view["totals"]["supplies"]["value_cents"] == 262500 and view["total_cents"] == 262500
-    assert view["opening"] == [{"code": "31111", "label": "Engrais et amendements", "balance_cents": 669266, "counted": True}]
+    assert view["opening"] == [{"code": "31111", "label": "Engrais et amendements", "balance_cents": 669266, "grouping": False, "counted": True}]
     assert body["meta"]["categories"][0]["key"] == "supplies"
 
 
@@ -188,3 +188,20 @@ def test_depreciation_suggestion_cg5b(farm):
     high = _line(farm, account_code="35511", label="Orge", quantity="10", unit="t", method="actual",
                  unit_value_cents=15000, market_price_cents=17000)
     assert _item(high, "Orge")["depreciation_suggested_cents"] is None             # cours au-dessus du prix de revient
+
+
+def test_copy_opening_for_a_first_inventory(farm):
+    """Essai de l'interface (09/11/2026) : premier inventaire dans Lyvre, une ligne par stock initial, rien en valeur."""
+    client, fy = farm["client"], farm["fy"]
+    acc = {c: Account.query.filter_by(code=c).one().id for c in ("31", "110")}
+    post_entry(fy.id, Journal.query.filter_by(code="AN").one().id, date(2026, 1, 1), "À-nouveaux", [
+        {"account_id": acc["31"], "label": "Divers", "debit_cents": 123432, "credit_cents": 0},
+        {"account_id": acc["110"], "label": "Report", "debit_cents": 0, "credit_cents": 123432}], source=SOURCE_OPENING)
+    view = client.get(farm["url"]).get_json()["item"]
+    assert {o["code"]: o["grouping"] for o in view["opening"]} == {"31": True, "31111": False}
+    body = client.post(f"{farm['url']}/copy-opening").get_json()
+    lines = {i["account"]["code"]: i for i in body["item"]["items"]}
+    assert set(lines) == {"31", "31111"}
+    assert lines["31111"]["quantity"] == "0.000" and lines["31111"]["value_cents"] in (0, None)
+    assert "stock initial 6 692,66 €" in lines["31111"]["notes"]
+    assert client.post(f"{farm['url']}/copy-opening").status_code == 409

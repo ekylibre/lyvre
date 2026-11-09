@@ -538,6 +538,45 @@ def copy_previous(fy: FiscalYear) -> int:
     return count
 
 
+def copy_opening(fy: FiscalYear) -> int:
+    """Premier inventaire dans Lyvre (reprise d'historique, essai de l'interface 09/11/2026) : une ligne par compte de
+    stock ouvert, quantité à zéro et valeur à saisir ; le stock initial figure dans la note pour mémoire. Rien n'est
+    recopié en valeur : sans comptage, l'écriture de stock constaterait l'ancien stock comme s'il était recompté."""
+    _editable(fy)
+    if StockLine.query.filter_by(fiscal_year_id=fy.id).first() is not None:
+        raise StockError("L'inventaire de l'exercice a déjà des lignes.", status=409)
+    count = 0
+    for row in opening_balances(fy):
+        if classify(row["code"]) is None:
+            continue
+        create_line(fy, {"account_code": row["code"], "label": row["label"][:200], "quantity": 0,
+                         "notes": _opening_note(row["balance_cents"])})
+        count += 1
+    if count == 0:
+        raise StockError("Aucun stock initial sur un compte de stock agricole.", status=404)
+    return count
+
+
+def _opening_note(cents: int) -> str:
+    amount = f"{cents / 100:,.2f}".replace(",", "\u202f").replace(".", ",")
+    return f"À recompter et à valoriser : stock initial {amount} € (repris de l'ouverture)."
+
+
+def opening_balances(fy: FiscalYear) -> list[dict]:
+    """Comptes de stock (31, 32, 33, 35, 37) ayant un solde dans l'exercice, à-nouveaux compris ; `grouping` : compte
+    qui a des sous-comptes (stock porté sur un compte de regroupement)."""
+    accounts = Account.query.filter(db.or_(*[Account.code.like(f"{p}%") for p in ("31", "32", "33", "35", "37")]),
+                                    Account.is_header.is_(False)).order_by(Account.code).all()
+    codes = [a.code for a in Account.query.filter(db.or_(*[Account.code.like(f"{p}%") for p in ("31", "32", "33", "35", "37")]))]
+    out = []
+    for account in accounts:
+        balance = _balance_before(fy, account.id)
+        if balance:
+            out.append({"id": account.id, "code": account.code, "label": account.label, "balance_cents": balance,
+                        "grouping": any(c != account.code and c.startswith(account.code) for c in codes)})
+    return out
+
+
 # ------------------------------------------------------------------ import (tableur)
 
 COLUMNS = {"compte": "account_code", "libellé": "label", "libelle": "label", "production": "production",
@@ -684,14 +723,8 @@ def overview(fy: FiscalYear) -> dict:
         row["value_cents"] += item["value_cents"] or 0
         row["depreciation_cents"] += item["depreciation_cents"] or 0
         row["lines"] += 1
-    stock_accounts = Account.query.filter(db.or_(*[Account.code.like(f"{p}%") for p in ("31", "32", "33", "35", "37")]),
-                                          Account.is_header.is_(False)).all()
-    opening = []
-    for account in stock_accounts:
-        balance = _balance_before(fy, account.id)
-        if balance:
-            opening.append({"code": account.code, "label": account.label, "balance_cents": balance,
-                            "counted": any(i["account"]["id"] == account.id for i in items)})
+    opening = [{"code": o["code"], "label": o["label"], "balance_cents": o["balance_cents"], "grouping": o["grouping"],
+                "counted": any(i["account"]["id"] == o["id"] for i in items)} for o in opening_balances(fy)]
     purchase_hints = {}
     for cat in categories():
         for rule in cat["accounts"]:

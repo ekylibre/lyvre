@@ -8,7 +8,10 @@ import { ApiError, api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
 import { useCan } from "../../api/session";
 import { AppLink } from "../../app/navigation";
+import { ConfirmButton } from "../../components/ConfirmButton";
 import { MoneyText } from "../../components/Money";
+
+const euros = (cents: number) => `${(cents / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 
 export interface StockEntryStatus {
   entry: { id: number; reference: string; validated: boolean } | null; stale: boolean; problems: string[];
@@ -25,6 +28,8 @@ export function StockEntryBar({ fyId, status, editable, invalidate, withLink = f
   const cancel = useAction(() => api.delete<{ notices: Notice[] }>(`/api/v1/fiscal-years/${fyId}/stock/entry`), opts);
   const run = (p: Promise<unknown>) => { setError(null); p.catch((e) => setError(e instanceof ApiError ? e.message : "Action impossible.")); };
   const writable = can.write && editable;
+  // Essai de l'interface (09/11/2026) : stock final nul ou moins de la moitié du stock initial → confirmation.
+  const drop = status.opening_cents > 0 && status.final_cents * 2 < status.opening_cents;
   return (
     <Paper withBorder p="sm" mb="md">
       <Group justify="space-between" align="start">
@@ -42,8 +47,15 @@ export function StockEntryBar({ fyId, status, editable, invalidate, withLink = f
         <Group gap="xs">
           {withLink && <Button size="xs" variant="default" component={AppLink} href={`/inventory/?fiscal_year=${fyId}`}>Inventaire</Button>}
           <Button size="xs" variant="default" component="a" href={`/fiscal-years/${fyId}/stock.xlsx`}>XLSX</Button>
-          {writable && <Button size="xs" loading={post.isPending} disabled={status.problems.length > 0 || (status.lines === 0 && status.opening_cents === 0)}
-            onClick={() => run(post.mutateAsync(undefined))}>{status.entry ? "Repasser l'écriture" : "Passer l'écriture"}</Button>}
+          {writable && (drop ? (
+            <ConfirmButton size="xs" variant="filled" danger={false} loading={post.isPending} disabled={status.problems.length > 0}
+              title={status.final_cents === 0 ? "Stock final nul : passer l'écriture ?" : "Stock en forte baisse : passer l'écriture ?"}
+              message={`Stock final ${euros(status.final_cents)} contre ${euros(status.opening_cents)} à l'ouverture : l'écriture constate une variation de ${euros(status.variation_cents)}. Vérifiez que tout est compté.`}
+              confirmLabel="Passer l'écriture" onConfirm={() => run(post.mutateAsync(undefined))}>
+              {status.entry ? "Repasser l'écriture" : "Passer l'écriture"}</ConfirmButton>
+          ) : (
+            <Button size="xs" loading={post.isPending} disabled={status.problems.length > 0 || (status.lines === 0 && status.opening_cents === 0)}
+              onClick={() => run(post.mutateAsync(undefined))}>{status.entry ? "Repasser l'écriture" : "Passer l'écriture"}</Button>))}
           {writable && status.entry && !status.entry.validated && <Button size="xs" variant="subtle" color="brique"
             onClick={() => run(cancel.mutateAsync(undefined))}>Annuler</Button>}
         </Group>

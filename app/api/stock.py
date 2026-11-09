@@ -93,6 +93,17 @@ def stock_copy_previous(fy_id):
     return jsonify(**_view(fy), notices=[notice(f"{count} ligne(s) reprise(s) de l'exercice précédent, quantités à zéro.")])
 
 
+@bp.route("/fiscal-years/<int:fy_id>/stock/copy-opening", methods=["POST"])
+def stock_copy_opening(fy_id):
+    """Premier inventaire : une ligne par compte de stock ouvert, quantité et valeur à saisir."""
+    fy = _fy(fy_id)
+    with _errors():
+        count = inv.copy_opening(fy)
+        db.session.commit()
+    return jsonify(**_view(fy), notices=[notice(f"{count} ligne(s) créée(s) depuis les stocks initiaux : comptez et "
+                                                "valorisez chacune avant de passer l'écriture.")])
+
+
 @bp.route("/fiscal-years/<int:fy_id>/stock/import", methods=["POST"])
 def stock_import(fy_id):
     fy = _fy(fy_id)
