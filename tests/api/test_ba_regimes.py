@@ -167,3 +167,37 @@ def test_stock_freeze_and_averaging_conflict_cg4b(farm):
     assert not any(c[0] == "freeze_averaging_conflict" for c in ba_regimes.checks(farm["fy"][2025]))
     assert tax_profile.CONFLICT_72_B_BIS_75_0_B in tax_profile.warnings(date(2026, 6, 1))
     assert any(c.key == "freeze_averaging_conflict" for c in closing._agri_checks(farm["fy"][2026]))
+
+
+def test_missing_creation_date_and_thresholds(farm):
+    """Essai de l'interface (09/11/2026) : date de création vide et seuils absents signalés, pas présumés."""
+    client = farm["client"]
+    farm["form"]("EARL")
+    old = FiscalYear(label="2022", start_date=date(2022, 1, 1), end_date=date(2022, 12, 31))
+    db.session.add(old)
+    db.session.commit()
+    post_entry(old.id, farm["od"].id, date(2022, 6, 30), "Ventes", [
+        {"account_id": _id("411"), "label": "x", "debit_cents": 50000000, "credit_cents": 0},
+        {"account_id": _id("7011"), "label": "x", "debit_cents": 0, "credit_cents": 50000000}])
+    reg = client.get(f"/api/v1/fiscal-years/{old.id}/ba-regime").get_json()["item"]["regime"]
+    assert "Date de création non renseignée" in reg["micro_reason"]
+    assert reg["thresholds"]["micro_cents"] is None and reg["expected"] is None
+    assert any("non paramétrés au 31/12/2022" in w for w in reg["warnings"])
+    # Exercice 2024 : seuils du millésime 2024-2025 (120 000 € et 391 000 €).
+    farm["sale"](2024, 800000)
+    reg = client.get(f"{farm['url'](2024)}/ba-regime").get_json()["item"]["regime"]
+    assert reg["thresholds"] == {"micro_cents": 12000000, "normal_cents": 39100000, "detail": None}
+    farm["form"]("EARL", date(2010, 3, 1))
+    reg = client.get(f"{farm['url'](2026)}/ba-regime").get_json()["item"]["regime"]
+    assert "créée le 01/03/2010" in reg["micro_reason"]
+    assert not any("non paramétrés" in w for w in reg["warnings"])
+
+
+def test_accessory_unknown_ratio_and_used_accounts(farm):
+    client = farm["client"]
+    farm["form"]("SCEA", date(2010, 1, 1))
+    farm["sale"](2026, 1000, account="7011")
+    acc = client.get(f"{farm['url'](2026)}/ba-regime").get_json()["item"]["accessory"]
+    assert acc["agricultural_avg_cents"] is None and acc["limit_ratio_cents"] is None and not acc["exceeded"]
+    used = {a["code"]: a["used"] for a in acc["accounts"]}
+    assert used["7011"] is True and used["7012"] is False

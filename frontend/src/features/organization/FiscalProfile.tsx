@@ -150,7 +150,7 @@ export function FiscalProfile({ siren, farm = false }: { siren: string | null; f
                 description={siren ? "Proposée par « Compléter depuis Sirene » (onglet Identité)." : undefined}
                 {...form.getInputProps("legal_form_code")} />
               <DateInput label="Date de création" clearable valueFormat="DD/MM/YYYY" readOnly={readOnly}
-                description="Société créée depuis 1997 : micro-BA impossible (sauf EARL unipersonnelle)."
+                description="Pour une société créée depuis le 01/01/1997, le micro-BA est impossible (sauf EARL unipersonnelle)."
                 {...form.getInputProps("created_on")} />
             </SimpleGrid>
             {!readOnly && <Group><Button type="submit" loading={saveIdentity.isPending}>Enregistrer</Button></Group>}

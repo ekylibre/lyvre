@@ -3,6 +3,16 @@
 # kind : new | improved | fixed | action ; structure : asso | sci (absent : toutes) ;
 # text : pour l'utilisateur ; tech : précision pour CHANGELOG.md seulement.
 next:
+- kind: improved
+  text: >-
+    Structure › Fiscalité (exploitations agricoles) — seuils du micro-BA et du réel normal de 2023 à 2025 (91 900 €,
+    puis 120 000 € ; 391 000 €), donc contrôle du régime de plein droit pour les exercices clos avant 2026 ; avertissement
+    quand un seuil n'est pas paramétré ; date de création vide signalée au lieu d'être présumée postérieure à 1997 ;
+    limite de 50 % des revenus accessoires « inconnue » tant que les recettes agricoles manquent ; libellés des recettes
+    retenues clarifiés ; tableau de repérage limité aux comptes mouvementés ou repérés (interrupteur pour tout voir).
+  tech: >-
+    data/regulatory/ba.json (millésimes 2023 et 2024-2025, validés par l'expert-comptable le 09/11/2026),
+    ba_regimes.micro_allowed / regime / accessory (limit_ratio_cents nul, accounts[].used), BaRegimePanel.
 - kind: new
   text: >-
     Accès API et serveur MCP — Configuration › Accès API crée des clés par usage (par exemple « Aiffel — saisie

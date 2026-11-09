@@ -3,6 +3,28 @@
  "values": [
   {
    "key": "ba.micro.threshold_cents",
+   "value": 9190000,
+   "valid_from": "2023-01-01",
+   "valid_to": "2023-12-31",
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 69 I (seuil 2023-2025 indexé)",
+   "verified_on": "2026-11-09",
+   "reliability": "V",
+   "note": "Moyenne des recettes HT 2020-2022. Validé par l'expert-comptable le 09/11/2026 (texte officiel à citer)."
+  },
+  {
+   "key": "ba.micro.threshold_cents",
+   "value": 12000000,
+   "valid_from": "2024-01-01",
+   "valid_to": "2025-12-31",
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 69 I (loi de finances pour 2024)",
+   "verified_on": "2026-11-09",
+   "reliability": "V",
+   "note": "Revalorisation exceptionnelle ; moyenne HT 2021-2023 pour 2024, 2022-2024 pour 2025. Validé par l'expert-comptable le 09/11/2026 (texte officiel à citer)."
+  },
+  {
+   "key": "ba.micro.threshold_cents",
    "value": 12920000,
    "valid_from": "2026-01-01",
    "valid_to": null,
@@ -55,6 +77,17 @@
    "verified_on": "2026-11-03",
    "reliability": "R",
    "note": "Société créée depuis cette date : réel obligatoire, sauf EARL dont l'associé unique personne physique dirige l'exploitation."
+  },
+  {
+   "key": "ba.normal.threshold_cents",
+   "value": 39100000,
+   "valid_from": "2023-01-01",
+   "valid_to": "2025-12-31",
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 69 III",
+   "verified_on": "2026-11-09",
+   "reliability": "V",
+   "note": "Moyenne triennale des recettes. Validé par l'expert-comptable le 09/11/2026 (texte officiel à citer)."
   },
   {
    "key": "ba.normal.threshold_cents",

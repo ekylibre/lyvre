@@ -131,8 +131,13 @@ def micro_allowed(on: date) -> tuple[bool, str | None]:
     if form in CIVIL_FORMS and form != "EARL_U":
         created = organization.get().created_on
         cutoff = _p("ba.micro.company_cutoff_date", on)
-        if created is None or cutoff is None or created >= date.fromisoformat(cutoff):
-            return False, "Société créée depuis le 01/01/1997 : réel obligatoire (art. 69 D)."
+        if created is None:
+            return False, ("Date de création non renseignée (Structure › Fiscalité) : micro-BA présumé impossible "
+                           "pour une société (art. 69 D), à confirmer.")
+        if cutoff is None:
+            return False, "Date limite de l'art. 69 D non paramétrée : micro-BA présumé impossible pour une société."
+        if created >= date.fromisoformat(cutoff):
+            return False, f"Société créée le {created:%d/%m/%Y}, depuis le {date.fromisoformat(cutoff):%d/%m/%Y} : réel obligatoire (art. 69 D)."
     return True, None
 
 
@@ -169,6 +174,9 @@ def regime(fy: FiscalYear) -> dict:
     warnings = []
     if any(y["threshold_cents"] is None for y in years):
         warnings.append("Recettes d'une année inconnues : saisissez-les (années antérieures à Lyvre) pour la moyenne.")
+    if average is not None and (limits["micro_cents"] is None or limits["normal_cents"] is None):
+        warnings.append(f"Seuils du micro-BA et du réel normal non paramétrés au {fy.end_date:%d/%m/%Y} : régime de plein "
+                        "droit non contrôlé (Administration › Paramètres réglementaires).")
     if (fy.end_date - fy.start_date).days < 360 or fy.end_date.month != 12:
         warnings.append("Exercice décalé ou incomplet : moyenne calculée sur les années civiles, à vérifier.")
     change = None
@@ -279,8 +287,8 @@ def accessory(fy: FiscalYear) -> dict:
     if _form() == "GAEC":
         multiplier = max(1, min(_associates_count(), _p("ba.associates.multiplier_cap", on, 4) or 4))
     limit_cap = cap * multiplier
-    limit_ratio = round((agri or 0) * ratio / 10000)
-    exceeded = acc is not None and acc > 0 and (acc > limit_ratio or acc > limit_cap)
+    limit_ratio = round(agri * ratio / 10000) if agri is not None else None
+    exceeded = acc is not None and acc > 0 and ((limit_ratio is not None and acc > limit_ratio) or acc > limit_cap)
     form = _form()
     consequence = None
     if exceeded:
@@ -288,11 +296,13 @@ def accessory(fy: FiscalYear) -> dict:
     current = lyvre_receipts(fy.end_date.year) or {}
     total_ht = sum(current.get(k, 0) for k in ("agricultural_ht", "custom_work_ht", "accessory_ht"))
     share_bp = round(current.get("accessory_ht", 0) * 10000 / total_ht) if total_ht > 0 else 0
+    used = {row[0] for row in db.session.query(JournalLine.account_id).distinct()}
     return {"applicable": True, "years": years, "span": span, "young": young, "agricultural_avg_cents": agri,
             "accessory_avg_cents": acc, "ratio_bp": ratio, "limit_ratio_cents": limit_ratio, "limit_cap_cents": limit_cap,
             "multiplier": multiplier, "exceeded": exceeded, "consequence": consequence,
             "current_share_bp": share_bp, "current_accessory_ht_cents": current.get("accessory_ht", 0),
-            "accounts": [{"id": a.id, "code": a.code, "label": a.label, "class": a.ba_income_class}
+            "accounts": [{"id": a.id, "code": a.code, "label": a.label, "class": a.ba_income_class,
+                          "used": a.id in used}
                          for a in Account.query.filter(Account.is_header.is_(False),
                                                        db.or_(Account.code.like("70%"), Account.code.like("74%")))
                          .order_by(Account.code)]}

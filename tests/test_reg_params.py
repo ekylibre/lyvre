@@ -40,7 +40,11 @@ def test_override_wins_for_covered_dates_only(app):
     assert reg_params.get("ba.micro.threshold_cents", date(2027, 5, 1)).origin == "override"
     assert reg_params.value("ba.micro.threshold_cents", date(2026, 5, 1)) == 12920000
     assert reg_params.value("ba.micro.threshold_cents", date(2028, 1, 1)) == 12920000
-    assert [p.origin for p in reg_params.history("ba.micro.threshold_cents")] == ["file", "override"]
+    assert reg_params.value("ba.micro.threshold_cents", date(2023, 6, 30)) == 9190000
+    assert reg_params.value("ba.micro.threshold_cents", date(2025, 1, 31)) == 12000000
+    assert reg_params.value("ba.normal.threshold_cents", date(2025, 1, 31)) == 39100000
+    assert reg_params.value("ba.micro.threshold_cents", date(2022, 12, 31), default=None) is None
+    assert [p.origin for p in reg_params.history("ba.micro.threshold_cents")] == ["file", "file", "file", "override"]
     reg_params.delete_override(row.id)
     assert reg_params.value("ba.micro.threshold_cents", date(2027, 5, 1)) == 12920000
 

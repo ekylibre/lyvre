@@ -2,7 +2,7 @@
 // recettes et régime de plein droit de l'exercice suivant (art. 69, 71), simulation micro ou réel, revenus accessoires
 // (art. 75) avec repérage des comptes de produits, saisie des années antérieures à Lyvre.
 import { useState } from "react";
-import { Alert, Badge, Button, Fieldset, Group, Select, SimpleGrid, Stack, Table, Text, TextInput } from "@mantine/core";
+import { Alert, Badge, Button, Fieldset, Group, Select, SimpleGrid, Stack, Switch, Table, Text, TextInput } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { ApiError, api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
@@ -20,8 +20,8 @@ export interface BaRegimeView {
   simulation: { micro_allowed: boolean; micro_reason: string | null; average_cents: number | null; micro_profit_cents: number | null;
     real_result_cents: number; real_basis: string; best: string | null; deadline: string; notes: string[] };
   accessory: { applicable: boolean; reason?: string; span?: number[]; young?: boolean; agricultural_avg_cents?: number | null; accessory_avg_cents?: number | null;
-    limit_ratio_cents?: number; limit_cap_cents?: number; multiplier?: number; exceeded?: boolean; consequence?: string | null;
-    current_share_bp?: number; accounts?: { id: number; code: string; label: string; class: string | null }[] };
+    limit_ratio_cents?: number | null; limit_cap_cents?: number; multiplier?: number; exceeded?: boolean; consequence?: string | null;
+    current_share_bp?: number; accounts?: { id: number; code: string; label: string; class: string | null; used: boolean }[] };
   history: HistoryRow[]; classes: Option[];
 }
 
@@ -37,6 +37,7 @@ export function BaRegimePanel({ editable }: { editable: boolean }) {
   const [draft, setDraft] = useState<{ year: string; agri: number | null; acc: number | null; result: number | null; note: string }>(
     { year: "", agri: null, acc: null, result: null, note: "" });
   const [failure, setFailure] = useState<string | null>(null);
+  const [allAccounts, setAllAccounts] = useState(false);
   const opts = { invalidate: [["ba-regime"], ["tax-result"]] };
   const saveYear = useAction((b: { year: number; [key: string]: unknown }) => api.put<{ notices: Notice[] }>(`/api/v1/ba-history/${b.year}`, b), opts);
   const tag = useAction((v: { id: number; value: string | null }) => api.put<{ notices: Notice[] }>(`/api/v1/accounts/${v.id}/ba-income-class`, { ba_income_class: v.value }), opts);
@@ -51,7 +52,7 @@ export function BaRegimePanel({ editable }: { editable: boolean }) {
         {r.warnings.map((w) => <Alert key={w} color="paille">{w}</Alert>)}
         {r.change && <Alert color={r.change.direction === "up" ? "brique" : "gray"}>{r.change.label}</Alert>}
         <Table>
-          <Table.Thead><Table.Tr><Table.Th>Année</Table.Th><Table.Th ta="right">Recettes (seuils, façon × 3)</Table.Th><Table.Th>Origine</Table.Th></Table.Tr></Table.Thead>
+          <Table.Thead><Table.Tr><Table.Th>Année</Table.Th><Table.Th ta="right">Recettes HT retenues (travaux à façon × 3)</Table.Th><Table.Th>Origine</Table.Th></Table.Tr></Table.Thead>
           <Table.Tbody>
             {r.years.map((y) => (
               <Table.Tr key={y.year}><Table.Td>{y.year}</Table.Td>
@@ -90,15 +91,18 @@ export function BaRegimePanel({ editable }: { editable: boolean }) {
             <Text size="sm">
               Moyenne TTC {a.young ? `de ${a.span?.[0]} (premières années)` : `${a.span?.[0]}–${a.span?.[a.span.length - 1]}`} :
               accessoires {a.accessory_avg_cents != null ? <MoneyText cents={a.accessory_avg_cents} /> : "inconnus"}, recettes agricoles{" "}
-              {a.agricultural_avg_cents != null ? <MoneyText cents={a.agricultural_avg_cents} /> : "inconnues"} ; limites{" "}
-              <MoneyText cents={a.limit_ratio_cents ?? 0} /> (50 % des recettes agricoles) et <MoneyText cents={a.limit_cap_cents ?? 0} />
+              {a.agricultural_avg_cents != null ? <MoneyText cents={a.agricultural_avg_cents} /> : "inconnues"} ; limites : 50 % des recettes agricoles,{" "}
+              {a.limit_ratio_cents != null ? <MoneyText cents={a.limit_ratio_cents} />
+                : `inconnue (recettes agricoles ${a.span?.[0]}–${a.span?.[a.span.length - 1]} à saisir ci-dessous)`}, et <MoneyText cents={a.limit_cap_cents ?? 0} />
               {a.multiplier && a.multiplier > 1 ? ` (× ${a.multiplier} associés)` : ""}.
               {a.current_share_bp ? ` Part accessoire des produits de l'exercice : ${(a.current_share_bp / 100).toLocaleString("fr-FR")} % (ventilation BA / BIC estimée).` : ""}
             </Text>
+            <Switch size="xs" checked={allAccounts} onChange={(e) => setAllAccounts(e.currentTarget.checked)}
+              label={`Afficher tous les comptes 70 et 74 (${(a.accounts ?? []).length}) ; sinon les comptes mouvementés ou repérés`} />
             <Table>
               <Table.Thead><Table.Tr><Table.Th>Compte de produits</Table.Th><Table.Th>Repérage</Table.Th></Table.Tr></Table.Thead>
               <Table.Tbody>
-                {(a.accounts ?? []).filter((x) => editable || x.class).map((x) => (
+                {(a.accounts ?? []).filter((x) => (editable || x.class) && (allAccounts || x.used || x.class)).map((x) => (
                   <Table.Tr key={x.id}><Table.Td><Text size="sm">{x.code} {x.label}</Text></Table.Td>
                     <Table.Td>{editable ? (
                       <Select aria-label={`Repérage ${x.code}`} size="xs" w={300} clearable placeholder="recette agricole" data={data.item.classes}
@@ -109,7 +113,7 @@ export function BaRegimePanel({ editable }: { editable: boolean }) {
           </>)}
 
         <Text fw={600} size="sm" mt="sm">Années antérieures à Lyvre</Text>
-        <Text size="xs" c="dimmed">Recettes retenues pour les seuils (HT, façon × 3), recettes accessoires (TTC) et bénéfice agricole de
+        <Text size="xs" c="dimmed">Recettes HT retenues pour les seuils (travaux à façon comptés × 3), recettes accessoires (TTC) et bénéfice agricole de
           l'exercice clos dans l'année ; une saisie l'emporte sur les écritures de Lyvre.</Text>
         {data.item.history.length > 0 && (
           <Table>
