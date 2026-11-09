@@ -30,7 +30,7 @@ export interface FormRow {
   note?: string;
 }
 
-export interface Check { level: "error" | "warning"; message: string; count: number | null }
+export interface Check { level: "error" | "warning"; message: string; count: number | null; key?: string | null }
 
 export interface VatReturnPreview {
   period: string; rows: FormRow[]; codes: Record<string, { base: number; tax: number; deductible: number }>;

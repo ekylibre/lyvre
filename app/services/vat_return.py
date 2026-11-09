@@ -42,6 +42,7 @@ FORM = "CA3"
 CA12A = "CA12A"
 INSTALLMENT = "ACOMPTE"
 FORM_DIRS = {FORM: "ca3", CA12A: "ca12a"}
+CREDIT_ACCOUNT = "44567"         # crédit de TVA à reporter : ligne sans code légitime (report)
 ON_RECEIPTS = "44574"          # TVA collectée en attente : déclarée à l'encaissement
 DEFAULT_DUE_DAY = 24           # dernier jour possible fixé par le SIE (du 15 au 24)
 RATE_TOLERANCE_CENTS = 100     # écart toléré entre la taxe et base × taux, par ligne
@@ -512,8 +513,8 @@ def checks(start: date, end: date, lines=None, today: date | None = None) -> lis
     today = today or date.today()
     found = []
 
-    def add(level, message, count=None):
-        found.append({"level": level, "message": message, "count": count})
+    def add(level, message, count=None, key=None):
+        found.append({"level": level, "message": message, "count": count, "key": key})
 
     fy = period_fiscal_year(start, end)
     if fy is None or not fy.vat_period:
@@ -537,14 +538,21 @@ def checks(start: date, end: date, lines=None, today: date | None = None) -> lis
     if drafts:
         add("warning", f"Écritures en brouillard jusqu'à {_end_of(word)} : elles seront validées avec la déclaration.",
             len(drafts))
-    uncoded = (JournalLine.query.join(JournalEntry, JournalEntry.id == JournalLine.entry_id)
-               .join(Account, Account.id == JournalLine.account_id)
-               .filter(JournalLine.vat_code.is_(None), JournalEntry.entry_date.between(start, end),
-                       db.or_(*[Account.code.like(f"{prefix}%") for prefix in VAT_ACCOUNTS]),
-                       ~Account.code.like(f"{ON_RECEIPTS}%"), JournalEntry.source != SOURCE_VAT_RETURN).count())
+    uncoded_query = (JournalLine.query.join(JournalEntry, JournalEntry.id == JournalLine.entry_id)
+                     .join(Account, Account.id == JournalLine.account_id)
+                     .filter(JournalLine.vat_code.is_(None), JournalEntry.entry_date.between(start, end),
+                             db.or_(*[Account.code.like(f"{prefix}%") for prefix in VAT_ACCOUNTS]),
+                             ~Account.code.like(f"{ON_RECEIPTS}%"), JournalEntry.source != SOURCE_VAT_RETURN))
+    # Essai de l'interface (09/11/2026) : une reprise d'historique (FEC) sans codes donnait une déclaration « néant »
+    # validable. Taxe collectée ou déductible sans code : bloquant ; crédit de TVA (44567) : simple avertissement.
+    uncoded = uncoded_query.filter(~Account.code.like(f"{CREDIT_ACCOUNT}%")).count()
     if uncoded:
-        add("warning", "Lignes de TVA sans code de TVA : elles ne sont pas déclarées (code à ajouter sur l'écriture).",
-            uncoded)
+        add("error", "Lignes de TVA sans code de TVA : la déclaration serait incomplète. Ajoutez le code sur les "
+            "écritures, ou déclarez cette période hors de Lyvre (reprise d'historique).", uncoded, key="uncoded")
+    uncoded_credit = uncoded_query.filter(Account.code.like(f"{CREDIT_ACCOUNT}%")).count()
+    if uncoded_credit:
+        add("warning", "Lignes de crédit de TVA (44567) sans code : vérifiez qu'il s'agit bien d'un report de crédit.",
+            uncoded_credit)
     inconsistent = 0
     for line in lines:
         role, amount, base = _signed(line)

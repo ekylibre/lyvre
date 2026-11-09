@@ -3,6 +3,14 @@
 # kind : new | improved | fixed | action ; structure : asso | sci (absent : toutes) ;
 # text : pour l'utilisateur ; tech : précision pour CHANGELOG.md seulement.
 next:
+- kind: improved
+  text: >-
+    Déclarations de TVA — des lignes de TVA collectée ou déductible sans code de TVA bloquent désormais la validation
+    (la déclaration aurait été incomplète, par exemple « néant » après la reprise d'un FEC sans codes) ; l'en-tête
+    indique « Déclaration incomplète ». Les lignes de crédit de TVA (44567) sans code restent un simple avertissement.
+  tech: >-
+    vat_return.checks : erreur clé « uncoded » (hors 44567, CREDIT_ACCOUNT), avertissement pour 44567 ; Check.key,
+    VatReturnPage.
 - kind: fixed
   text: >-
     Déclarations de TVA (exploitation à exercice décalé, rythme annuel) — la CA12A de l'année civile qui finit après la

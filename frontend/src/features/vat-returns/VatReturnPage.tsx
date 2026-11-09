@@ -128,7 +128,7 @@ export default function VatReturnPage() {
           <Group justify="space-between">
             <Text fw={700}>{data.due_cents ? <>TVA nette due : <MoneyText cents={data.due_cents} fw={700} /></>
               : data.credit_cents ? <>Crédit de TVA à reporter : <MoneyText cents={data.credit_cents} fw={700} /></>
-                : "Déclaration néant"}</Text>
+                : data.checks.some((c) => c.key === "uncoded") ? "Déclaration incomplète : lignes de TVA sans code" : "Déclaration néant"}</Text>
             <Group gap="md">
               {data.credit_carried_cents > 0 && <Text size="sm" c="dimmed">Crédit reporté de la période précédente :
                 {" "}<MoneyText cents={data.credit_carried_cents} /></Text>}
@@ -173,7 +173,7 @@ export default function VatReturnPage() {
         <Text size="xs" c="dimmed">Montants arrondis à l'euro, comme sur le formulaire. Code : identifiant de la case dans
           la saisie en ligne. {Object.keys(data.codes).length > 0 && <>Codes de TVA repris : {Object.keys(data.codes).map((c) =>
             <Badge key={c} size="xs" variant="light" mr={4}>{c}</Badge>)}</>}</Text>
-        {!ret && data.lines_count === 0 && <List size="sm"><List.Item>Aucune ligne codée sur la période : la déclaration
+        {!ret && data.lines_count === 0 && !data.checks.some((c) => c.key === "uncoded") && <List size="sm"><List.Item>Aucune ligne codée sur la période : la déclaration
           sera néant.</List.Item></List>}
       </Stack>
       <BoxLines period={period} box={box} onClose={() => setBox(null)} />
