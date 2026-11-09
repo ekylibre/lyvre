@@ -1,6 +1,7 @@
 // Lot AG2.e : écran du remboursement forfaitaire (3520).
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { renderWithProviders, TEST_SESSION } from "../../test/render";
 import RfaPage, { type RfaYear } from "./RfaPage";
 
@@ -16,7 +17,7 @@ const YEAR: RfaYear = {
   threshold: { threshold_cents: 4600000, factor: 1, average_cents: 1800000, over: false, years: [{ year: 2025, receipts_cents: 0 }, { year: 2026, receipts_cents: 1800000 }] },
   rates: [{ value: "high", label: "Taux de 5,59 %" }, { value: "low", label: "Taux de 4,43 %" }, { value: "excluded", label: "Exclu" }],
   buyers: [{ value: "professional", label: "Assujetti en France" }, { value: "none", label: "Particulier" }],
-  years_available: [2026, 2025], claim: null,
+  years_available: [2026, 2025], claim: null, applicable: { ok: true, reason: null },
 };
 
 afterEach(() => vi.restoreAllMocks());
@@ -31,5 +32,17 @@ describe("Remboursement forfaitaire", () => {
     expect(screen.getByRole("button", { name: "Saisir" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Marquer déposée" })).toBeEnabled();
     expect(screen.getByText("avant le 31/12/2027")).toBeInTheDocument();
+  });
+
+  it("non applicable : motif en tête, simulation repliée", async () => {
+    const year = { ...YEAR, high_bp: null, applicable: { ok: false, reason: "Remboursement forfaitaire non applicable en 2026 : le régime de TVA est « RSA : acomptes et CA12A »." } };
+    vi.spyOn(globalThis, "fetch").mockImplementation((() => json(year)) as typeof fetch);
+    renderWithProviders(<RfaPage />, { route: "/rfa/?year=2026",
+      session: { ...TEST_SESSION, role: "admin" as const, permissions: { write: true, instance_admin: true } } });
+    expect(await screen.findByText(/non applicable en 2026/)).toBeInTheDocument();
+    expect(screen.queryByText("Attestation d'achats manquante.")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Afficher la simulation quand même" }));
+    expect(screen.getByText("Attestation d'achats manquante.")).toBeInTheDocument();
+    expect(screen.getByText("Ventes (taux non paramétré)")).toBeInTheDocument();
   });
 });

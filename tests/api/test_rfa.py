@@ -167,3 +167,26 @@ def test_exports_and_chart_guard(farm):
     Instance.query.filter_by(slug="test").one().chart = "societe"
     db.session.commit()
     assert client.get("/api/v1/rfa/2026").status_code == 404
+
+
+def test_applicability_and_debit_balance(farm):
+    """Essai de l'interface (09/11/2026) : RFA non applicable en tête, solde débiteur d'un compte de ventes signalé."""
+    from app.models import TaxProfile
+    data = rfa.compute(2026, today=date(2027, 1, 2))
+    assert data["applicable"] == {"ok": True, "reason": None}
+    assert any("Régime de TVA de 2026 non renseigné (Configuration › Structure › Fiscalité)" in w for w in data["warnings"])
+    _sale(farm, date(2025, 6, 1), "dairy", "7012", 8000000)
+    data = rfa.compute(2026, today=date(2027, 1, 2))
+    assert not data["applicable"]["ok"] and "49 000,00 €" in data["applicable"]["reason"]
+    assert "46 000,00 €" in data["applicable"]["reason"]
+    db.session.add(TaxProfile(kind="vat_regime", value="rsa_installments", start_date=date(2025, 1, 1)))
+    db.session.commit()
+    data = rfa.compute(2026, today=date(2027, 1, 2))
+    assert "« RSA : acomptes et CA12A »" in data["applicable"]["reason"]
+    assert not any("non renseigné" in w for w in data["warnings"])
+    acc = farm["accounts"]
+    post_entry(farm["years"][2026].id, Journal.query.filter_by(code="OD").one().id, date(2026, 9, 1), "reclassement", [
+        {"account_id": acc["7013"].id, "label": "x", "debit_cents": 300000, "credit_cents": 0},
+        {"account_id": acc["7011"].id, "label": "x", "debit_cents": 0, "credit_cents": 300000}])
+    data = rfa.compute(2026, today=date(2027, 1, 2))
+    assert any(w.startswith("Compte 7013 : solde débiteur de 2 000,00 € sur 2026") for w in data["warnings"])

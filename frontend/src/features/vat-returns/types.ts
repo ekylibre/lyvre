@@ -19,6 +19,7 @@ export interface PeriodRow {
 
 export interface VatReturnsList {
   items: PeriodRow[]; fiscal_year: { id: number; label: string; vat_period?: string | null } | null; fiscal_years: { value: string; label: string }[];
+  setup?: { message: string; link: string; link_label: string } | null;
 }
 
 /** Ligne du formulaire : section, case (base HT pour les lignes de taux) ou total ; montants en euros. */

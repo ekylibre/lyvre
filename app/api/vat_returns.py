@@ -81,7 +81,8 @@ def vat_returns_list():
                          "deadline": _iso(row["deadline"]), "late": row["late"], "status": row["status"],
                          "status_label": STATUS_LABELS[row["status"]], "return": _return_payload(ret)})
     return jsonify(items=rows, fiscal_year={"id": fy.id, "label": fy.label, "vat_period": fy.vat_period} if fy else None,
-                   fiscal_years=[{"value": str(y.id), "label": y.label} for y in years])
+                   fiscal_years=[{"value": str(y.id), "label": y.label} for y in years],
+                   setup=None if fy is not None else vat_return.setup_hint())
 
 
 @bp.route("/vat-returns/preview")

@@ -87,9 +87,30 @@ def quarter_bounds(day: date) -> tuple[date, date]:
     return first, date(first.year, last_month, calendar.monthrange(first.year, last_month)[1])
 
 
+def _annual_year_overlapping(day: date) -> FiscalYear | None:
+    """Exercice au rythme annuel qui chevauche l'année civile de `day` : un exercice décalé (01/02–31/01) déclare des
+    CA12A civiles qui commencent avant lui ou finissent après lui (essai de l'interface, 09/11/2026)."""
+    return (FiscalYear.query.filter(FiscalYear.vat_period == ANNUAL, FiscalYear.start_date <= date(day.year, 12, 31),
+                                    FiscalYear.end_date >= date(day.year, 1, 1))
+            .order_by(FiscalYear.start_date).first())
+
+
+def period_fiscal_year(start: date, end: date | None = None) -> FiscalYear | None:
+    """Exercice d'une période déclarative : celui qui couvre son début, sinon sa fin, sinon (année civile d'un exercice
+    décalé) l'exercice annuel qui la chevauche."""
+    return fiscal_year_for(start) or (fiscal_year_for(end) if end else None) or _annual_year_overlapping(start)
+
+
 def kind_of(day: date) -> str:
-    """Rythme de déclaration de l'exercice qui couvre `day` (mensuel par défaut)."""
-    fy = fiscal_year_for(day)
+    """Rythme de déclaration de l'exercice qui couvre `day` (mensuel par défaut ; hors exercice, annuel si un exercice
+    annuel chevauche l'année civile)."""
+    fy = fiscal_year_for(day) or _annual_year_overlapping(day)
+    return fy.vat_period if fy is not None and fy.vat_period in PERIODS else MONTHLY
+
+
+def period_kind(start: date, end: date) -> str:
+    """Rythme d'une période : celui de son exercice (period_fiscal_year)."""
+    fy = period_fiscal_year(start, end)
     return fy.vat_period if fy is not None and fy.vat_period in PERIODS else MONTHLY
 
 
@@ -181,19 +202,21 @@ def _end_of(word: str) -> str:
     return "la fin de l'exercice" if word == "exercice" else f"la fin du {word}"
 
 
-def deadline(period_end: date) -> date:
+def deadline(period_end: date, kind: str | None = None) -> date:
     """Échéance. Mensuelle : jour fixé par le SIE (Structure), le mois suivant. Trimestrielle (RSA) : le 5 du
     deuxième mois après le trimestre (5 mai, 5 août, 5 novembre, 5 février ; paramètre `vat.rsa.quarterly_due_day`),
-    reportée au premier jour ouvré."""
+    reportée au premier jour ouvré. `kind` : rythme de l'exercice qui couvre le début de la période (une période
+    annuelle peut finir après la clôture d'un exercice décalé, hors de tout exercice)."""
+    kind = kind or kind_of(period_end)
     year, month = (period_end.year + 1, 1) if period_end.month == 12 else (period_end.year, period_end.month + 1)
-    if kind_of(period_end) == ANNUAL:
+    if kind == ANNUAL:
         # CA12A : 2e jour ouvré après le 1er mai de N+1 ; CA12AE : 5e jour du 5e mois après la clôture.
         from app.services import fr_calendar
         if (period_end.month, period_end.day) == (12, 31):
             return fr_calendar.nth_working_day_after(date(period_end.year + 1, 5, 1), 2)
         month_index = period_end.month + 5
         return fr_calendar.next_working_day(date(period_end.year + (month_index - 1) // 12, (month_index - 1) % 12 + 1, 5))
-    if kind_of(period_end) == QUARTERLY:
+    if kind == QUARTERLY:
         from app.services import fr_calendar, reg_params
         year, month = (year + 1, 1) if month == 12 else (year, month + 1)
         day = reg_params.value("vat.rsa.quarterly_due_day", period_end, default=5)
@@ -229,7 +252,7 @@ def periods(fy: FiscalYear, today: date | None = None) -> list[dict]:
     while start <= fy.end_date:
         _, end = bounds(start, kind)
         ret = return_for(start)
-        due = ret.deadline if ret is not None and ret.deadline else deadline(end)
+        due = ret.deadline if ret is not None and ret.deadline else deadline(end, kind)
         status = ret.status if ret is not None else ("in_progress" if end >= today else "to_prepare")
         rows.append({"period": period_key(start, end), "label": period_label(start, end), "start": start, "end": end,
                      "deadline": due, "status": status,
@@ -320,7 +343,7 @@ def _credit_carried(start: date, form: str = FORM) -> int:
                 .order_by(VatReturn.period_end.desc()).first())
     if previous is not None:
         return previous.credit_cents
-    fy = fiscal_year_for(start)
+    fy = period_fiscal_year(start)
     if fy is None:
         return 0
     balance = (db.session.query(db.func.coalesce(db.func.sum(JournalLine.debit_cents - JournalLine.credit_cents), 0))
@@ -492,7 +515,7 @@ def checks(start: date, end: date, lines=None, today: date | None = None) -> lis
     def add(level, message, count=None):
         found.append({"level": level, "message": message, "count": count})
 
-    fy = fiscal_year_for(start)
+    fy = period_fiscal_year(start, end)
     if fy is None or not fy.vat_period:
         add("error", "L'exercice de cette période ne déclare pas la TVA (réglage de l'exercice).")
     elif fy.closed:
@@ -557,7 +580,7 @@ def preview(start: date, end: date) -> dict:
     if result.get("refund_advice"):
         found.append({"level": "warning", "count": None, "message": "Excédent de versement supérieur aux 4/5 de la TVA "
                       "due : son remboursement immédiat est conseillé (notice 3517-AGR, cadre VII)."})
-    return {**result, "checks": found, "deadline": deadline(end)}
+    return {**result, "checks": found, "deadline": deadline(end, period_kind(start, end))}
 
 
 # ------------------------------------------------------------------ validation et liquidation
@@ -658,7 +681,7 @@ def validate(start: date, end: date, user_id=None, refund_cents: int = 0, extra:
     blocking = [c for c in checks(start, end) if c["level"] == "error"]
     if blocking:
         raise VatReturnError(blocking[0]["message"], problems=[c["message"] for c in blocking])
-    fy = fiscal_year_for(start)
+    fy = period_fiscal_year(start, end)
     form = form_for(start)
     # Une CA12A civile d'un exercice décalé couvre deux exercices : brouillards validés dans chacun.
     years = {y.id: y for y in (fy, fiscal_year_for(end)) if y is not None}
@@ -678,7 +701,7 @@ def validate(start: date, end: date, user_id=None, refund_cents: int = 0, extra:
                                            "rows": result["rows"], "codes": result["codes"]}, ensure_ascii=False),
                     credit_carried_cents=result["credit_carried_cents"], due_cents=result["due_cents"],
                     credit_cents=result["credit_cents"], refund_cents=result["refund_cents"],
-                    deadline=deadline(end), validated_at=datetime.utcnow(),
+                    deadline=deadline(end, period_kind(start, end)), validated_at=datetime.utcnow(),
                     validated_by_user_id=user_id)
     db.session.add(ret)
     db.session.flush()
@@ -755,3 +778,42 @@ def declare(ret: VatReturn, declared_on: date, reference: str | None = None, use
     ret.declared_on = declared_on
     ret.declared_reference = (reference or "").strip()[:50] or None
     db.session.flush()
+
+
+# ------------------------------------------------------------------ aucun exercice déclarant (essai de l'interface, 09/11/2026)
+
+EXPECTED_PERIOD = {"rsa_installments": ("annual", "annuelle (CA12A et acomptes)"),
+                   "rsa_quarterly": ("quarterly", "trimestrielle (CA3)"),
+                   "rsa_monthly": ("monthly", "mensuelle (CA3)"), "normal": ("monthly", "mensuelle (CA3)")}
+TAX_LINK = "/configuration/organization?tab=tax"
+
+
+def setup_hint() -> dict:
+    """Message de la page TVA quand aucun exercice ne prépare sa déclaration : selon le profil fiscal (exploitation)."""
+    from app.services import tax_profile
+    from app.tenant import current_chart
+
+    generic = {"message": "Aucun exercice ne prépare sa déclaration de TVA dans Lyvre : activez « Déclaration mensuelle "
+                          "(CA3) » sur l'exercice (Compta › Exercices), après l'avoir déclaré soumis à la TVA.",
+               "link": "/fiscal-years/", "link_label": "Paramétrer l'exercice"}
+    if current_chart() != "agri":
+        return generic
+    regime = tax_profile.current_value("vat_regime")
+    labels = tax_profile.KINDS["vat_regime"]["values"]
+    if regime is None:
+        return {"message": "Régime de TVA non renseigné : choisissez-le dans Configuration › Structure › Fiscalité "
+                           "(remboursement forfaitaire, RSA avec acomptes et CA12A, RSA avec CA3 trimestrielle ou "
+                           "mensuelle, réel normal). Les déclarations se préparent ensuite ici.",
+                "link": TAX_LINK, "link_label": "Renseigner le régime de TVA"}
+    if regime == "rfa":
+        return {"message": "Remboursement forfaitaire agricole : pas de déclaration de TVA, la demande annuelle 3520 se "
+                           "prépare dans Fiscal et social › Remboursement forfaitaire.",
+                "link": "/rfa/", "link_label": "Remboursement forfaitaire"}
+    if regime == "none":
+        return {"message": "Exploitation non assujettie à la TVA (Configuration › Structure › Fiscalité) : aucune "
+                           "déclaration.", "link": TAX_LINK, "link_label": "Voir le profil fiscal"}
+    _, period = EXPECTED_PERIOD.get(regime, ("monthly", "mensuelle (CA3)"))
+    return {"message": f"Régime de TVA : {labels.get(regime, regime)}. Aucun exercice ne prépare encore sa déclaration : "
+                       f"dans Compta › Exercices, déclarez l'exercice soumis à la TVA, période {period}.",
+            "link": "/fiscal-years/", "link_label": "Paramétrer l'exercice"}
+

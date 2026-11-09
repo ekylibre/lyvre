@@ -35,14 +35,15 @@ export interface RfaYear {
   high_base_cents: number; low_base_cents: number; excluded_cents: number; non_eligible_cents: number; unclassified_cents: number;
   high_bp: number | null; low_bp: number | null; amount_cents: number; deadline: string; late: boolean; can_declare: boolean;
   threshold: { threshold_cents: number | null; factor: number; average_cents: number; over: boolean; years: { year: number; receipts_cents: number }[] };
-  problems: string[]; warnings: string[]; rates: Option[]; buyers: Option[]; years_available: number[];
+  problems: string[]; warnings: string[]; applicable: { ok: boolean; reason: string | null }; rates: Option[]; buyers: Option[]; years_available: number[];
   claim: { id: number; status: "declared" | "refunded"; status_label: string; amount_cents: number; declared_on: string;
     refunded_on: string | null; entry: { id: number; reference: string } | null } | null;
 }
 
 const SOURCES: Record<string, string> = { category: "catégorie", products: "catalogue", proposed: "proposée" };
 const opts = { invalidate: [RFA_KEY] };
-const pct = (bp: number | null) => (bp == null ? "?" : `${(bp / 100).toLocaleString("fr-FR")} %`);
+const pct = (bp: number | null) => (bp == null ? "taux non paramétré" : `${(bp / 100).toLocaleString("fr-FR")} %`);
+const salesAt = (bp: number | null) => (bp == null ? "Ventes (taux non paramétré)" : `Ventes au taux de ${pct(bp)}`);
 
 function AttestationForm({ year, client, onDone }: { year: number; client: RfaClient; onDone: () => void }) {
   const queryClient = useQueryClient();
@@ -103,6 +104,7 @@ export default function RfaPage() {
   const year = Number(params.year);
   const [attesting, setAttesting] = useState<RfaClient | null>(null);
   const [dialog, setDialog] = useState<"declare" | "refunded" | null>(null);
+  const [showAnyway, setShowAnyway] = useState(false);
   const { data } = useQuery({ queryKey: [...RFA_KEY, year], queryFn: () => api.get<RfaYear>(`/api/v1/rfa/${year}`) });
   const setRate = useAction((v: { account: number; rate: string | null }) =>
     api.put<{ notices: Notice[] }>(`/api/v1/rfa/accounts/${v.account}/rate`, { rfa_rate: v.rate }), opts);
@@ -128,11 +130,18 @@ export default function RfaPage() {
           <Button size="xs" variant="light" component="a" target="_blank" href={`/rfa/${year}.pdf`} leftSection={<FileText size={14} />}>État récapitulatif</Button>
         </Group>
       </FilterBar>
+      {!data.applicable.ok && (
+        <Alert color="brique" mb="sm">
+          <Text size="sm">{data.applicable.reason}</Text>
+          {!claim && <Button mt="sm" size="xs" variant="light" onClick={() => setShowAnyway((v) => !v)}>
+            {showAnyway ? "Masquer la simulation" : "Afficher la simulation quand même"}</Button>}
+        </Alert>)}
+      {(data.applicable.ok || showAnyway || !!claim) && (<>
       {data.problems.map((p) => <Alert key={p} color="brique" mb="sm">{p}</Alert>)}
       {data.warnings.map((w) => <Alert key={w} color="paille" mb="sm">{w}</Alert>)}
       <SimpleGrid cols={{ base: 1, sm: 4 }} mb="lg">
-        <Paper withBorder p="md"><Text size="xs" c="dimmed">Ventes au taux de {pct(data.high_bp)}</Text><MoneyText cents={data.high_base_cents} /></Paper>
-        <Paper withBorder p="md"><Text size="xs" c="dimmed">Ventes au taux de {pct(data.low_bp)}</Text><MoneyText cents={data.low_base_cents} /></Paper>
+        <Paper withBorder p="md"><Text size="xs" c="dimmed">{salesAt(data.high_bp)}</Text><MoneyText cents={data.high_base_cents} /></Paper>
+        <Paper withBorder p="md"><Text size="xs" c="dimmed">{salesAt(data.low_bp)}</Text><MoneyText cents={data.low_base_cents} /></Paper>
         <Paper withBorder p="md"><Text size="xs" c="dimmed">Remboursement forfaitaire</Text>
           <Title order={3}><MoneyText cents={claim?.amount_cents ?? data.amount_cents} /></Title></Paper>
         <Paper withBorder p="md"><Text size="xs" c="dimmed">Dépôt</Text>
@@ -196,6 +205,7 @@ export default function RfaPage() {
         <MoneyText cents={data.threshold.average_cents} /> pour {data.threshold.threshold_cents !== null
           ? <MoneyText cents={data.threshold.threshold_cents * data.threshold.factor} /> : "?"}
         {data.threshold.factor > 1 && ` (${data.threshold.factor} associés de GAEC)`}.</Text>
+      </>)}
 
       <FormModal opened={!!attesting} onClose={() => setAttesting(null)} title={`Attestation d'achats ${year}`}>
         {attesting && <AttestationForm year={year} client={attesting} onDone={() => setAttesting(null)} />}

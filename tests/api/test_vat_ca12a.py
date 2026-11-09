@@ -149,3 +149,40 @@ def test_annual_only_for_farms(app, login_as):
     Instance.query.filter_by(slug="test").one().chart = "agri"
     db.session.commit()
     assert client.patch(f"/api/v1/fiscal-years/{fy.id}", json={"vat_period": "annual"}).status_code == 200
+
+
+def test_setup_hint_without_declaring_year(app, login_as):
+    """Essai de l'interface (09/11/2026) : sans exercice déclarant, la page TVA d'une exploitation part du profil fiscal."""
+    from app.models import Instance, TaxProfile
+    client = login_as(role="admin")
+    Instance.query.filter_by(slug="test").one().chart = "agri"
+    db.session.commit()
+    body = client.get("/api/v1/vat-returns").get_json()
+    assert body["fiscal_year"] is None and "Régime de TVA non renseigné" in body["setup"]["message"]
+    assert body["setup"]["link"] == "/configuration/organization?tab=tax"
+    import json
+    assert '"vat_returns"' in json.dumps(client.get("/api/v1/session").get_json()["nav"])   # menu visible
+    db.session.add(TaxProfile(kind="vat_regime", value="rsa_installments", start_date=date(2020, 1, 1)))
+    db.session.commit()
+    setup = client.get("/api/v1/vat-returns").get_json()["setup"]
+    assert "période annuelle (CA12A et acomptes)" in setup["message"] and setup["link"] == "/fiscal-years/"
+
+
+def test_offset_year_annual_deadlines(app):
+    """Essai de l'interface (09/11/2026) : exercice 01/02/2024–31/01/2025 au rythme annuel ; l'année civile 2025 finit
+    hors de tout exercice et gardait l'échéance mensuelle (24/01/2026) au lieu du 2e jour ouvré après le 1er mai."""
+    from app.services import fr_calendar
+    fy = FiscalYear(label="2024-2025", start_date=date(2024, 2, 1), end_date=date(2025, 1, 31), vat_liable=True,
+                    vat_period="annual")
+    db.session.add(fy)
+    db.session.commit()
+    rows = vat_return.periods(fy, today=date(2026, 11, 9))
+    assert [r["period"] for r in rows] == ["2024-A", "2025-A"]
+    assert [r["deadline"] for r in rows] == [fr_calendar.nth_working_day_after(date(2025, 5, 1), 2),
+                                             fr_calendar.nth_working_day_after(date(2026, 5, 1), 2)]
+    assert vat_return.period_kind(date(2024, 1, 1), date(2024, 12, 31)) == "annual"
+    # L'année civile 2024 commence avant l'exercice : CA12A et acomptes tout de même.
+    assert vat_return.form_for(date(2024, 1, 1)) == vat_return.CA12A
+    from app.services import vat_installments
+    assert vat_installments.schedule((date(2024, 1, 1), date(2024, 12, 31)))
+    assert vat_return.period_fiscal_year(date(2024, 1, 1)).id == fy.id

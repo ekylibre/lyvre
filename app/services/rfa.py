@@ -130,6 +130,11 @@ def _associates_factor() -> int:
     return 1
 
 
+def _fr(cents: int) -> str:
+    """Montant en euros au format français (espaces fines, virgule) : 46 000,00 €."""
+    return f"{cents / 100:,.2f} €".replace(",", "\u202f").replace(".", ",")
+
+
 def flat_amount(high_cents: int, low_cents: int, high_bp: int, low_bp: int) -> int:
     """Forfait : bases des deux classes × leurs taux, arrondi à l'euro. Règle unique (calculette 24, lot AG12.b)."""
     return _euro(high_cents * high_bp / 10000 + low_cents * low_bp / 10000)
@@ -204,9 +209,8 @@ def compute(year: int, today: date | None = None) -> dict:
     if any(c["entity_id"] is None for c in out_clients):
         warnings.append("Des ventes n'ont pas de client : elles ne comptent pas dans le forfait.")
     regime = tax_profile.current_value("vat_regime", on)
-    if regime != "rfa":
-        warnings.append("Le profil fiscal n'indique pas le remboursement forfaitaire pour cette année "
-                        "(Organisation › Profil fiscal).")
+    if regime is None:
+        warnings.append(f"Régime de TVA de {year} non renseigné (Configuration › Structure › Fiscalité).")
     inst = current_instance()
     if inst is not None and inst.bookkeeping == "double":
         warnings.append("Partie double : les recettes sont les ventes comptabilisées de l'année. Le forfait porte sur les "
@@ -218,9 +222,20 @@ def compute(year: int, today: date | None = None) -> dict:
     known = [y["receipts_cents"] for y in years if y["receipts_cents"]]
     average = round(sum(known) / len(known)) if known else 0
     over = bool(threshold) and average > threshold * factor
-    if over:
-        warnings.append(f"Moyenne des recettes de {year - 1} et {year} au-dessus de {threshold * factor // 100} € : passage "
-                        "obligatoire au régime simplifié agricole à compter du 1er janvier suivant (CGI art. 298 bis).")
+    for row in accounts.values():
+        if row["total_cents"] < 0:
+            warnings.append(f"Compte {row['code']} : solde débiteur de {_fr(-row['total_cents'])} sur {year} "
+                            "(reclassement, avoir ou erreur d'imputation ?) ; il réduit les ventes du forfait.")
+    labels = tax_profile.KINDS["vat_regime"]["values"]
+    applicable = {"ok": True, "reason": None}
+    if regime not in (None, "rfa"):
+        applicable = {"ok": False, "reason": f"Remboursement forfaitaire non applicable en {year} : le régime de TVA est "
+                                             f"« {labels.get(regime, regime)} » (Configuration › Structure › Fiscalité)."}
+    elif over:
+        applicable = {"ok": False, "reason": f"Remboursement forfaitaire non applicable : moyenne des recettes de "
+                                             f"{year - 1} et {year} de {_fr(average)}, au-dessus de "
+                                             f"{_fr(threshold * factor)} ; passage obligatoire au régime simplifié "
+                                             "agricole à compter du 1er janvier suivant (CGI art. 298 bis)."}
     claim = RfaClaim.query.filter_by(year=year).first()
     deadline = date(year + 1, 12, 31)
     return {"year": year, "regime": regime, "clients": out_clients, "accounts": sorted(accounts.values(), key=lambda a: a["code"]),
@@ -229,7 +244,7 @@ def compute(year: int, today: date | None = None) -> dict:
             "high_bp": high_bp, "low_bp": low_bp, "amount_cents": amount, "deadline": deadline,
             "late": claim is None and today > deadline, "can_declare": claim is None and today.year > year and not problems,
             "threshold": {"threshold_cents": threshold, "factor": factor, "years": years, "average_cents": average, "over": over},
-            "problems": problems, "warnings": warnings, "claim": claim}
+            "problems": problems, "warnings": warnings, "claim": claim, "applicable": applicable}
 
 
 def attestation_payload(attestation: RfaAttestation | None) -> dict | None:

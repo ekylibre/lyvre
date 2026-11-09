@@ -88,7 +88,7 @@ def reference(start: date) -> dict:
         return {"source": "ca12a", "return_id": previous.id, "due_cents": due * 100, "assets_cents": assets * 100,
                 "before_assets_cents": before * 100,
                 "label": vr.period_label(previous.period_start, previous.period_end)}
-    fy = vr.fiscal_year_for(start)
+    fy = vr.period_fiscal_year(start)
     if fy is not None and fy.vat_reference_cents is not None:
         assets = fy.vat_reference_assets_cents or 0
         return {"source": "entered", "return_id": None, "due_cents": fy.vat_reference_cents, "assets_cents": assets,
@@ -207,9 +207,9 @@ def save_reference(period: tuple[date, date], due_cents, assets_cents=None) -> N
     if any(VatReturn.query.filter(VatReturn.form == INSTALLMENT, VatReturn.period_start >= start,
                                   VatReturn.period_end <= period[1])):
         raise VatReturnError("Des acomptes de l'année sont enregistrés : annulez-les avant de changer la référence.")
-    fy = vr.fiscal_year_for(start)
+    fy = vr.period_fiscal_year(start, period[1])
     if fy is None:
-        raise VatReturnError("Aucun exercice ne couvre le début de la période.")
+        raise VatReturnError("Aucun exercice ne couvre la période.")
     for value, field in ((due_cents, "reference_cents"), (assets_cents, "assets_cents")):
         if value not in (None, "") and (not isinstance(value, int) or isinstance(value, bool) or value < 0):
             raise VatReturnError("Montant en centimes, positif ou nul.", field, status=422)

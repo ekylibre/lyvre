@@ -22,15 +22,18 @@ export default function VatReturnsPage() {
   return (
     <>
       <PageHeader title="Déclarations de TVA"
-        description={data.fiscal_year?.vat_period === "annual"
+        description={data.fiscal_year === null ? "Déclarations calculées depuis les écritures, à saisir sur l'espace professionnel puis à marquer déposées."
+          : data.fiscal_year.vat_period === "annual"
           ? "CA12A annuelle et acomptes trimestriels (3525 bis) calculés depuis les écritures, à saisir sur l'espace professionnel puis à marquer déposés."
           : "CA3 calculée depuis les écritures, à saisir sur TeleDEC puis à marquer déposée."}
         actions={data.fiscal_year && <Button variant="default" component={AppLink}
           href={data.fiscal_year.vat_period === "annual" ? `/vat-returns/books?period=${data.items[0]?.period ?? ""}` : "/vat-returns/books"}>
           Livres de TVA</Button>} />
       {data.fiscal_year === null ? (
-        <Alert color="paille">Aucun exercice ne prépare sa déclaration de TVA dans Lyvre : activez « Déclaration mensuelle
-          (CA3) » sur l'exercice (Compta › Exercices), après l'avoir déclaré soumis à la TVA.</Alert>
+        <Alert color="paille">
+          <Text size="sm">{data.setup?.message ?? "Aucun exercice ne prépare sa déclaration de TVA dans Lyvre."}</Text>
+          {data.setup && <Button mt="sm" size="xs" variant="light" component={AppLink} href={data.setup.link}>{data.setup.link_label}</Button>}
+        </Alert>
       ) : (
         <>
           <FilterBar>
@@ -39,7 +42,7 @@ export default function VatReturnsPage() {
               onChange={(v) => setParams({ fiscal_year_id: v ?? "" })} />
           </FilterBar>
           {late > 0 && <Alert color="brique" mb="md">{late} déclaration{late > 1 ? "s" : ""} en retard : préparez-les dans
-            l'ordre des mois, le crédit de chaque mois se reporte sur le suivant.</Alert>}
+            l'ordre, le crédit de chaque {data.fiscal_year.vat_period === "annual" ? "année" : data.fiscal_year.vat_period === "quarterly" ? "trimestre" : "mois"} se reporte sur la déclaration suivante.</Alert>}
           <DataGrid<PeriodRow> id="vat-returns" records={data.items} idAccessor="period" columns={[
             { accessor: "period", title: "Période", render: (row) => <AppLink href={`/vat-returns/${row.period}`}>{monthLabel(row.period)}</AppLink> },
             { accessor: "status", title: "Statut", render: (row) => (

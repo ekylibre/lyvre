@@ -3,6 +3,24 @@
 # kind : new | improved | fixed | action ; structure : asso | sci (absent : toutes) ;
 # text : pour l'utilisateur ; tech : précision pour CHANGELOG.md seulement.
 next:
+- kind: fixed
+  text: >-
+    Déclarations de TVA (exploitation à exercice décalé, rythme annuel) — la CA12A de l'année civile qui finit après la
+    clôture de l'exercice est due le 2e jour ouvré après le 1er mai (et non le mois suivant) ; les acomptes de l'année
+    civile qui commence avant l'exercice s'affichent de nouveau (erreur « Les acomptes concernent la déclaration
+    annuelle CA12A »).
+  tech: >-
+    vat_return.period_fiscal_year / period_kind / _annual_year_overlapping, deadline(end, kind) ; utilisés par
+    periods, preview, validate, _credit_carried, checks et vat_installments (reference, save_reference).
+- kind: improved
+  text: >-
+    TVA d'une exploitation — menu « Déclarations de TVA » toujours visible, avec le message adapté au régime de TVA du
+    profil fiscal (non renseigné, remboursement forfaitaire, non assujetti, ou exercice à paramétrer) ; remboursement
+    forfaitaire : motif de non-application en tête (régime de TVA, seuil dépassé) et simulation repliée, solde
+    débiteur d'un compte de ventes signalé, montants au format français, chemin du profil fiscal corrigé.
+  tech: >-
+    vat_return.setup_hint (GET /api/v1/vat-returns : setup), session._features (agri), rfa.compute : applicable,
+    avertissements de comptes débiteurs, _fr ; RfaPage, VatReturnsPage.
 - kind: improved
   text: >-
     Structure › Activités et démarches — indices tirés de la comptabilité sous chaque question (aides PAC 742 à 745,
