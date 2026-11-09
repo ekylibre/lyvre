@@ -4,7 +4,8 @@
   de Lyvre, ou saisie d'une année antérieure (`BaHistoryYear`, qui l'emporte). Les comptes repérés « façon » comptent
   × 3 pour les seuils (art. 69) ; les comptes repérés « accessoire » sont mis à part (art. 75). Le montant TTC ajoute
   la TVA collectée (4457) de la même écriture au prorata des produits.
-- **Moyenne triennale et régime** (art. 69, 71) : moyenne des 3 années civiles closes à la fin de l'exercice, seuils
+- **Moyenne triennale et régime** (art. 69, 71) : moyenne des 3 années civiles closes à la fin de l'exercice (exercice
+  décalé : recettes des exercices clos au cours de chacune de ces années, validé le 09/11/2026), seuils
   datés `ba.micro.*` / `ba.normal.*`, GAEC : × associés (60 % au-delà de `ba.gaec.threshold_cents`) ; régime de plein
   droit de l'exercice suivant comparé au régime en cours (Structure › Fiscalité), alerte de changement.
 - **Passage du micro au réel** (art. 72 E bis) : créances du bilan d'ouverture (41, 441) × (1 − abattement micro),
@@ -63,9 +64,9 @@ def _is_receipt(code: str) -> bool:
     return (code.startswith("70") or code.startswith("74")) and not code.startswith("747")
 
 
-def lyvre_receipts(year: int) -> dict | None:
-    """Recettes de l'année civile tirées des écritures (None si Lyvre n'a aucune écriture cette année-là)."""
-    start, end = date(year, 1, 1), date(year, 12, 31)
+def lyvre_receipts(year: int, start: date | None = None, end: date | None = None) -> dict | None:
+    """Recettes de l'année civile (ou de la période donnée) tirées des écritures (None si Lyvre n'y a aucune écriture)."""
+    start, end = start or date(year, 1, 1), end or date(year, 12, 31)
     if not db.session.query(JournalEntry.query.filter(JournalEntry.entry_date.between(start, end),
                                                       JournalEntry.source != SOURCE_OPENING).exists()).scalar():
         return None
@@ -95,12 +96,20 @@ def lyvre_receipts(year: int) -> dict | None:
     return out
 
 
-def year_receipts(year: int) -> dict:
-    """Recettes retenues d'une année : seuils (HT, façon × 3) et revenus accessoires (TTC). La saisie l'emporte."""
+def year_receipts(year: int, period: FiscalYear | None = None, by_fiscal_year: bool = False) -> dict:
+    """Recettes retenues d'une année : seuils (HT, façon × 3) et revenus accessoires (TTC). La saisie l'emporte.
+
+    `by_fiscal_year` (exercice décalé) : recettes de l'exercice `period` clos dans l'année, au lieu de l'année civile ;
+    sans exercice clos cette année-là dans Lyvre, seule la saisie compte.
+    """
     saved = BaHistoryYear.query.filter_by(year=year).first()
-    lyvre = lyvre_receipts(year)
+    if by_fiscal_year:
+        lyvre = lyvre_receipts(year, period.start_date, period.end_date) if period else None
+    else:
+        lyvre = lyvre_receipts(year)
     row = {"year": year, "threshold_cents": None, "agricultural_ttc_cents": None, "accessory_ttc_cents": None,
-           "source": "missing"}
+           "source": "missing", "period": ({"label": period.label, "start": period.start_date.isoformat(),
+                                             "end": period.end_date.isoformat()} if period else None)}
     if lyvre is not None:
         row.update(threshold_cents=lyvre["agricultural_ht"] + 3 * lyvre["custom_work_ht"],
                    agricultural_ttc_cents=lyvre["agricultural_ttc"], accessory_ttc_cents=lyvre["accessory_ttc"],
@@ -153,11 +162,18 @@ def thresholds(on: date, average: int | None) -> dict:
     return {"micro_cents": micro, "normal_cents": normal, "detail": detail}
 
 
+def _closed_in(year: int) -> FiscalYear | None:
+    """Exercice clos au cours de l'année civile (le dernier s'il y en a plusieurs)."""
+    return (FiscalYear.query.filter(FiscalYear.end_date.between(date(year, 1, 1), date(year, 12, 31)))
+            .order_by(FiscalYear.end_date.desc()).first())
+
+
 def regime(fy: FiscalYear) -> dict:
     """Moyenne triennale des recettes et régime de plein droit de l'exercice suivant."""
     from app.services import tax_profile
     year = fy.end_date.year
-    years = [year_receipts(y) for y in (year - 2, year - 1, year)]
+    offset = (fy.end_date.month, fy.end_date.day) != (12, 31)
+    years = [year_receipts(y, _closed_in(y), by_fiscal_year=True) if offset else year_receipts(y) for y in (year - 2, year - 1, year)]
     average = _average([y["threshold_cents"] for y in years])
     limits = thresholds(fy.end_date, average)
     current = tax_profile.current_value("ba_regime", fy.end_date)
@@ -177,8 +193,14 @@ def regime(fy: FiscalYear) -> dict:
     if average is not None and (limits["micro_cents"] is None or limits["normal_cents"] is None):
         warnings.append(f"Seuils du micro-BA et du réel normal non paramétrés au {fy.end_date:%d/%m/%Y} : régime de plein "
                         "droit non contrôlé (Administration › Paramètres réglementaires).")
-    if (fy.end_date - fy.start_date).days < 360 or fy.end_date.month != 12:
-        warnings.append("Exercice décalé ou incomplet : moyenne calculée sur les années civiles, à vérifier.")
+    if offset:
+        warnings.append("Exercice décalé : moyenne des recettes des exercices clos au cours de chacune des trois années "
+                        "(saisie d'une année antérieure : recettes de l'exercice clos cette année-là).")
+    short = [y["period"]["label"] for y in years if y["period"] and
+             (date.fromisoformat(y["period"]["end"]) - date.fromisoformat(y["period"]["start"])).days < 360]
+    if short or (not offset and (fy.end_date - fy.start_date).days < 360):
+        warnings.append("Exercice de moins de 12 mois dans la moyenne" + (f" ({', '.join(short)})" if short else "")
+                        + " : recettes à ramener à 12 mois si nécessaire, à vérifier.")
     change = None
     if expected and current and expected != current:
         if REGIME_ORDER[expected] > REGIME_ORDER[current]:

@@ -67,3 +67,21 @@ def test_create_from_ledger_and_link(farm):
     # Supprimer le dossier libère les lignes, sans toucher aux écritures.
     assert client.delete(f"/api/v1/aids/{aid['id']}").status_code in (200, 204)
     assert len(client.get("/api/v1/aids?campaign=2024").get_json()["ledger"]) == 3
+
+
+def test_split_one_line_between_dossiers(farm):
+    """Une écriture 745 globale (DPB + redistributif + écorégime) se ventile entre plusieurs dossiers."""
+    client = farm["client"]
+    line = next(l for l in client.get("/api/v1/aids?campaign=2024").get_json()["ledger"] if l["amount_cents"] == 921018)
+    too_much = client.post("/api/v1/aids/from-ledger", json={"scheme": "basic_income", "campaign": 2024,
+                                                             "line_ids": [line["id"]], "amounts": {str(line["id"]): 921019}})
+    assert too_much.status_code == 422 and "Montant à rattacher" in too_much.get_json()["error"]["message"]
+    first = client.post("/api/v1/aids/from-ledger", json={"scheme": "basic_income", "campaign": 2024,
+                                                          "line_ids": [line["id"]], "amounts": {str(line["id"]): 600000}})
+    assert first.status_code == 201 and first.get_json()["item"]["paid_cents"] == 600000
+    rest = next(l for l in client.get("/api/v1/aids?campaign=2024").get_json()["ledger"] if l["id"] == line["id"])
+    assert rest["amount_cents"] == 321018 and rest["total_cents"] == 921018
+    second = client.post("/api/v1/aids/from-ledger", json={"scheme": "basic_income", "campaign": 2024, "label": "Écorégime",
+                                                           "line_ids": [line["id"]]})
+    assert second.status_code == 201 and second.get_json()["item"]["paid_cents"] == 321018
+    assert all(l["id"] != line["id"] for l in client.get("/api/v1/aids?campaign=2024").get_json()["ledger"])

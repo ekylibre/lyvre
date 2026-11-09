@@ -278,28 +278,44 @@ def _ledger_excluded_sources():
     return (SOURCE_OPENING, SOURCE_CLOSING, SOURCE_INVENTORY, SOURCE_REVERSAL, SOURCE_AID_GRANT, SOURCE_AID_RELEASE)
 
 
+def _allocated():
+    """Montant déjà rattaché par ligne d'écriture (une ligne peut être ventilée entre plusieurs dossiers)."""
+    return (db.session.query(AidPayment.journal_line_id.label("line_id"),
+                             db.func.sum(AidPayment.amount_cents).label("cents"))
+            .filter(AidPayment.journal_line_id.isnot(None)).group_by(AidPayment.journal_line_id).subquery())
+
+
 def _aid_lines_query(year: int | None = None):
-    """Lignes 74 d'aides non rattachées : ni versement lié à la ligne, ni virement rattaché dans la même écriture."""
+    """Lignes 74 d'aides pas entièrement rattachées (reste non nul), sans virement rattaché dans la même écriture."""
     from app.models import BankTransaction, JournalEntry, JournalLine
-    linked_lines = db.session.query(AidPayment.journal_line_id).filter(AidPayment.journal_line_id.isnot(None))
+    allocated = _allocated()
     bank_entries = (db.session.query(JournalLine.entry_id)
                     .join(BankTransaction, BankTransaction.journal_line_id == JournalLine.id)
                     .join(AidPayment, AidPayment.bank_transaction_id == BankTransaction.id))
     query = (JournalLine.query.join(JournalEntry, JournalEntry.id == JournalLine.entry_id)
              .join(Account, Account.id == JournalLine.account_id)
+             .outerjoin(allocated, allocated.c.line_id == JournalLine.id)
              .filter(Account.code.like("74%"), *[~Account.code.like(f"{p}%") for p in LEDGER_EXCLUDED_PREFIXES],
                      db.or_(JournalEntry.source.is_(None), JournalEntry.source.notin_(_ledger_excluded_sources())),
-                     JournalLine.id.notin_(linked_lines), JournalLine.entry_id.notin_(bank_entries)))
+                     JournalLine.credit_cents - JournalLine.debit_cents - db.func.coalesce(allocated.c.cents, 0) != 0,
+                     JournalLine.entry_id.notin_(bank_entries)))
     if year is not None:
         query = query.filter(JournalEntry.entry_date.between(date(year, 1, 1), date(year, 12, 31)))
     return query.order_by(JournalEntry.entry_date, JournalLine.id)
 
 
+def _remaining(line) -> int:
+    done = (db.session.query(db.func.coalesce(db.func.sum(AidPayment.amount_cents), 0))
+            .filter(AidPayment.journal_line_id == line.id).scalar())
+    return line.credit_cents - line.debit_cents - done
+
+
 def ledger_line_payload(line) -> dict:
+    """`amount_cents` : reste à rattacher ; `total_cents` : montant de la ligne."""
     entry = line.entry
     return {"id": line.id, "entry_id": entry.id, "reference": entry.reference, "date": _iso(entry.entry_date),
             "account": _account_payload(line.account), "label": line.label or entry.description or "",
-            "amount_cents": line.credit_cents - line.debit_cents}
+            "amount_cents": _remaining(line), "total_cents": line.credit_cents - line.debit_cents}
 
 
 def ledger_lines(year: int) -> list[dict]:
@@ -317,11 +333,39 @@ def _lines(line_ids) -> list:
     return [found[i] for i in line_ids]
 
 
-def link_lines(aid: Aid, line_ids) -> list[AidPayment]:
-    """Rattache des lignes 74 déjà comptabilisées à un dossier : un versement par ligne, sans nouvelle écriture."""
+def _amounts(lines, amounts) -> dict[int, int]:
+    """Montant rattaché par ligne : le reste de la ligne, ou une part (ventilation entre dossiers), de même signe."""
+    if amounts is not None and not isinstance(amounts, dict):
+        raise AidError("Montants par écriture attendus.", "amounts")
+    out = {}
+    for line in lines:
+        remaining = _remaining(line)
+        value = (amounts or {}).get(str(line.id), (amounts or {}).get(line.id))
+        if value is None:
+            out[line.id] = remaining
+            continue
+        if isinstance(value, bool) or not isinstance(value, int) or value == 0 or (value > 0) != (remaining > 0) \
+                or abs(value) > abs(remaining):
+            raise AidError(f"Montant à rattacher : entre 0 et {_euros(remaining)} pour l'écriture du "
+                           f"{line.entry.entry_date:%d/%m/%Y}.", "amounts")
+        out[line.id] = value
+    return out
+
+
+def _euros(cents: int) -> str:
+    return f"{cents / 100:,.2f} €".replace(",", " ").replace(".", ",")
+
+
+def link_lines(aid: Aid, line_ids, amounts=None) -> list[AidPayment]:
+    """Rattache des lignes 74 déjà comptabilisées à un dossier : un versement par ligne, sans nouvelle écriture.
+
+    `amounts` ({id de ligne: centimes}) ventile une ligne entre plusieurs dossiers ; par défaut, tout le reste.
+    """
     out = []
-    for line in _lines(line_ids):
-        amount = line.credit_cents - line.debit_cents
+    lines = _lines(line_ids)
+    parts = _amounts(lines, amounts)
+    for line in lines:
+        amount = parts[line.id]
         if amount == 0:
             continue
         payment = AidPayment(aid=aid, paid_on=line.entry.entry_date, amount_cents=amount,
@@ -337,12 +381,13 @@ def create_from_ledger(data: dict) -> Aid:
     """Dossier créé depuis des écritures d'aides : dispositif et campagne choisis, compte de la première ligne."""
     line_ids = data.get("line_ids")
     lines = _lines(line_ids)
+    _amounts(lines, data.get("amounts"))                 # montants vérifiés avant de créer le dossier
     accounts = {line.account_id for line in lines}
     if len(accounts) > 1:
         raise AidError("Les écritures choisies portent sur plusieurs comptes : un dossier par compte.", "line_ids")
     aid = create({"scheme": data.get("scheme"), "campaign": data.get("campaign"),
                   "account_code": lines[0].account.code, **({"label": data["label"]} if data.get("label") else {})})
-    payments = link_lines(aid, line_ids)
+    payments = link_lines(aid, line_ids, data.get("amounts"))
     # Reprise d'historique : les versements sont connus, la notification rarement. Montant notifié présumé égal aux
     # versements et dossier soldé, sinon le reste à percevoir serait négatif ; modifiable dans la fiche.
     total = sum(p.amount_cents for p in payments)

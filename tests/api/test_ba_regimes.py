@@ -201,3 +201,29 @@ def test_accessory_unknown_ratio_and_used_accounts(farm):
     assert acc["agricultural_avg_cents"] is None and acc["limit_ratio_cents"] is None and not acc["exceeded"]
     used = {a["code"]: a["used"] for a in acc["accounts"]}
     assert used["7011"] is True and used["7012"] is False
+
+
+def test_offset_year_average_uses_fiscal_years_closed_in_each_year(app, login_as):
+    """Exercice décalé (validé le 09/11/2026) : recettes des exercices clos au cours de chacune des trois années."""
+    from app.services import ba_regimes
+    login_as(role="admin")
+    _agri_instance()
+    years = [FiscalYear(label=f"{y - 1}-{y}", start_date=date(y - 1, 7, 1), end_date=date(y, 6, 30)) for y in (2024, 2025)]
+    od = Journal(code="OD", label="OD")
+    db.session.add_all([*years, od])
+    db.session.commit()
+
+    def sale(fy, day, euros):
+        post_entry(fy.id, od.id, day, "Ventes", [
+            {"account_id": _id("411"), "label": "x", "debit_cents": euros * 100, "credit_cents": 0},
+            {"account_id": _id("7011"), "label": "x", "debit_cents": 0, "credit_cents": euros * 100}])
+
+    sale(years[0], date(2023, 9, 1), 100_000)   # exercice clos en 2024, vente de 2023
+    sale(years[1], date(2024, 9, 1), 50_000)    # exercice clos en 2025, vente de 2024
+    r = ba_regimes.regime(years[1])
+    by_year = {y["year"]: y for y in r["years"]}
+    assert by_year[2024]["threshold_cents"] == 100_000_00
+    assert by_year[2024]["period"]["label"] == "2023-2024"
+    assert by_year[2025]["threshold_cents"] == 50_000_00
+    assert by_year[2023]["source"] == "missing"
+    assert any("Exercice décalé" in w for w in r["warnings"])

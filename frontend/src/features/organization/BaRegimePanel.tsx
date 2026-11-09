@@ -10,7 +10,8 @@ import { MoneyInput, MoneyText } from "../../components/Money";
 import { formatDate } from "../../lib/format";
 
 type Option = { value: string; label: string };
-type YearRow = { year: number; threshold_cents: number | null; agricultural_ttc_cents: number | null; accessory_ttc_cents: number | null; source: string };
+type YearRow = { year: number; threshold_cents: number | null; agricultural_ttc_cents: number | null; accessory_ttc_cents: number | null; source: string;
+  period?: { label: string; start: string; end: string } | null };
 type HistoryRow = { year: number; agricultural_receipts_cents: number | null; accessory_receipts_cents: number | null; fiscal_result_cents: number | null; note: string | null };
 export interface BaRegimeView {
   fiscal_year: { id: number; label: string; end_date: string };
@@ -55,7 +56,7 @@ export function BaRegimePanel({ editable }: { editable: boolean }) {
           <Table.Thead><Table.Tr><Table.Th>Année</Table.Th><Table.Th ta="right">Recettes HT retenues (travaux à façon × 3)</Table.Th><Table.Th>Origine</Table.Th></Table.Tr></Table.Thead>
           <Table.Tbody>
             {r.years.map((y) => (
-              <Table.Tr key={y.year}><Table.Td>{y.year}</Table.Td>
+              <Table.Tr key={y.year}><Table.Td>{y.year}{y.period && <Text size="xs" c="dimmed">exercice {y.period.label}</Text>}</Table.Td>
                 <Table.Td ta="right">{y.threshold_cents !== null ? <MoneyText cents={y.threshold_cents} /> : "—"}</Table.Td>
                 <Table.Td><Text size="xs" c="dimmed">{SOURCE[y.source] ?? y.source}</Text></Table.Td></Table.Tr>))}
           </Table.Tbody>

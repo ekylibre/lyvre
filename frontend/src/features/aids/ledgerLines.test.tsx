@@ -31,6 +31,24 @@ describe("Aides comptabilisées sans dossier", () => {
     expect(JSON.parse(String((post![1] as RequestInit).body))).toEqual({ scheme: "basic_income", campaign: 2024, line_ids: [11, 12] });
   });
 
+  it("ventile une écriture : une part seulement est rattachée", async () => {
+    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(((url: string) => String(url).includes("schemes")
+      ? json({ items: [{ key: "basic_income", label: "Aide de base au revenu (DPB)", accounts: [{ code: "745" }] }] })
+      : json({ item: {}, notices: [] }, 201)) as typeof fetch);
+    renderWithProviders(<LedgerLinesCard lines={LINES} campaign={2024} aids={[]} canWrite invalidate={[["aids"]]} />,
+      { session: { ...TEST_SESSION, role: "admin" as const, permissions: { write: true, instance_admin: true } } });
+    await userEvent.click(screen.getByLabelText("Choisir l'écriture du 05/03/2024"));
+    const input = screen.getByLabelText("Montant à rattacher");
+    await userEvent.clear(input);
+    await userEvent.type(input, "6000");
+    await userEvent.click(await screen.findByRole("combobox", { name: "Dispositif du nouveau dossier" }));
+    await userEvent.click(await screen.findByRole("option", { name: "Aide de base au revenu (DPB)" }));
+    await userEvent.click(screen.getByRole("button", { name: "Créer le dossier" }));
+    const post = fetch.mock.calls.find(([url]) => String(url).includes("from-ledger"));
+    expect(JSON.parse(String((post![1] as RequestInit).body))).toEqual(
+      { scheme: "basic_income", campaign: 2024, line_ids: [11], amounts: { "11": 600000 } });
+  });
+
   it("rien à afficher sans écriture", () => {
     const { container } = renderWithProviders(<LedgerLinesCard lines={[]} campaign={2024} aids={[]} canWrite={false} invalidate={[]} />);
     expect(container.textContent).not.toMatch(/sans dossier/);

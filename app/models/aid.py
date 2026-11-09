@@ -69,7 +69,8 @@ class AidPayment(db.Model):
     kind = db.Column(db.String(12), nullable=False, default="other")
     bank_transaction_id = db.Column(db.Integer, db.ForeignKey("bank_transactions.id", ondelete="SET NULL"), index=True)
     # Ligne d'écriture 74 déjà comptabilisée (reprise d'historique, FEC) : le versement la couvre, sans nouvelle écriture.
-    journal_line_id = db.Column(db.Integer, db.ForeignKey("journal_lines.id", ondelete="SET NULL"), unique=True, index=True)
+    # Une ligne peut être ventilée entre plusieurs dossiers (DPB, paiement redistributif, écorégime…).
+    journal_line_id = db.Column(db.Integer, db.ForeignKey("journal_lines.id", ondelete="SET NULL"), index=True)
     note = db.Column(db.String(300))
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 

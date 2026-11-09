@@ -78,7 +78,8 @@ def aid_link_ledger(aid_id):
     _agri()
     aid = get_or_404(Aid, aid_id)
     with _errors():
-        payments = aids.link_lines(aid, json_body().get("line_ids"))
+        body = json_body()
+        payments = aids.link_lines(aid, body.get("line_ids"), body.get("amounts"))
         db.session.commit()
     count = len(payments)
     return jsonify(item=aids.payload(aid), notices=[notice(
