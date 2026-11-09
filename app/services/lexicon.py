@@ -39,7 +39,7 @@ def cap_by_year(siren: str) -> list[dict] | None:
     if not key:
         raise LexiconUnavailable("Lexicon n'est pas configuré sur ce serveur (clé LEXICON_API_KEY).")
     if not (isinstance(siren, str) and len(siren) == 9 and siren.isdigit()):
-        raise LexiconUnavailable("SIREN de neuf chiffres attendu (Structure › Organisation).")
+        raise LexiconUnavailable("SIREN de neuf chiffres attendu (Configuration › Structure › Identité).")
     base = current_app.config.get("LEXICON_URL") or "https://lexicon.osfarm.org"
     try:
         response = requests.get(f"{base.rstrip('/')}/links/enterprises/{siren}.json", timeout=TIMEOUT,

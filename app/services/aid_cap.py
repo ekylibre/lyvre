@@ -70,7 +70,7 @@ def check(year: int, force: bool = False) -> dict:
         out["message"] = "Lexicon n'est pas configuré sur ce serveur : contrôle indisponible."
         return out
     if siren is None:
-        out["message"] = "Renseignez le SIREN de l'exploitation (Structure › Organisation) pour lire les aides publiées."
+        out["message"] = "Renseignez le SIREN de l'exploitation (Configuration › Structure › Identité) pour lire les aides publiées."
         return out
     cached = CapPublished.query.filter_by(siren=siren).all()
     if force or not cached:

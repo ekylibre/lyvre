@@ -20,6 +20,7 @@ import { StatusBadge, type Tone } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { InvestmentSection, type AidInvestment } from "./InvestmentSection";
 import { CapCheckCard } from "./CapCheckCard";
+import { LedgerLinesCard, type LedgerLine } from "./LedgerLinesCard";
 import { AnalyticSelect, useAnalyticTargets } from "../../components/AnalyticSelect";
 
 export const AIDS_KEY = ["aids"];
@@ -29,6 +30,7 @@ type AccountRef = { id: number; code: string; label: string };
 export interface AidPayment {
   id: number; paid_on: string; amount_cents: number; kind: string; kind_label: string; note: string | null;
   bank_transaction: { id: number; label: string; transaction_date: string; amount_cents: number } | null;
+  journal_line?: { id: number; entry_id: number; reference: string | null } | null;
 }
 export interface Aid {
   id: number; scheme: string; scheme_label: string; label: string; campaign: number; payer: string | null;
@@ -44,7 +46,8 @@ export interface Aid {
 }
 export interface AidList {
   items: Aid[]; totals: { requested_cents: number; acquired_cents: number; paid_cents: number; remaining_cents: number };
-  meta: { natures: Option[]; triggers: Option[]; statuses: Option[]; payment_kinds: Option[]; campaigns: number[] };
+  meta: { natures: Option[]; triggers: Option[]; statuses: Option[]; payment_kinds: Option[]; campaigns: number[]; default_campaign?: number };
+  campaign?: number; ledger?: LedgerLine[];
 }
 interface Scheme {
   key: string; label: string; nature: string; trigger: string; payer: string | null;
@@ -231,12 +234,13 @@ function AidDrawer({ aidId, meta, onClose }: { aidId: number | null; meta: AidLi
                 {(aid.payments ?? []).map((p) => (
                   <Table.Tr key={p.id}>
                     <Table.Td>{formatDate(p.paid_on)}</Table.Td>
-                    <Table.Td>{p.kind_label}{p.bank_transaction && <Text size="xs" c="dimmed">{p.bank_transaction.label}</Text>}</Table.Td>
+                    <Table.Td>{p.kind_label}{p.bank_transaction && <Text size="xs" c="dimmed">{p.bank_transaction.label}</Text>}
+                      {p.journal_line && <Text size="xs" c="dimmed">écriture {p.journal_line.reference ?? p.journal_line.entry_id} (déjà comptabilisée)</Text>}</Table.Td>
                     <Table.Td ta="right"><MoneyText cents={p.amount_cents} /></Table.Td>
                     <Table.Td>{can.write && (
                       <Button size="xs" variant="subtle" color="brique" onClick={() => removePayment.mutate(p.id)}
-                        title={p.bank_transaction ? "Détache le virement du dossier ; son écriture est conservée" : undefined}>
-                        {p.bank_transaction ? "Détacher" : "Supprimer"}</Button>)}</Table.Td>
+                        title={p.bank_transaction || p.journal_line ? "Détache du dossier ; l'écriture est conservée" : undefined}>
+                        {p.bank_transaction || p.journal_line ? "Détacher" : "Supprimer"}</Button>)}</Table.Td>
                   </Table.Tr>))}
               </Table.Tbody>
             </Table>)}
@@ -253,13 +257,14 @@ function AidDrawer({ aidId, meta, onClose }: { aidId: number | null; meta: AidLi
 
 export default function AidsPage() {
   const can = useCan();
-  const [params, setParams] = useUrlParams({ campaign: String(new Date().getFullYear()) });
-  const campaign = Number(params.campaign);
+  const [params, setParams] = useUrlParams({ campaign: "" });
+  const asked = params.campaign || "default";
   const [dialog, setDialog] = useState<"new" | "pac" | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
-  const { data } = useQuery({ queryKey: [...AIDS_KEY, "list", campaign],
-    queryFn: () => api.get<AidList>(`/api/v1/aids?campaign=${campaign}`) });
+  const { data } = useQuery({ queryKey: [...AIDS_KEY, "list", asked],
+    queryFn: () => api.get<AidList>(`/api/v1/aids?campaign=${asked}`) });
   if (!data) return <Center h={300}><Loader /></Center>;
+  const campaign = data.campaign ?? Number(params.campaign);
   const { totals } = data;
   return (
     <>
@@ -299,6 +304,7 @@ export default function AidsPage() {
               </Table.Tr>))}
           </Table.Tbody>
         </Table>)}
+      <LedgerLinesCard lines={data.ledger ?? []} campaign={campaign} aids={data.items} canWrite={can.write} invalidate={[AIDS_KEY]} />
       <CapCheckCard year={campaign} />
       <FormModal opened={dialog === "new"} onClose={() => setDialog(null)} title="Nouveau dossier d'aide">
         {dialog === "new" && <NewAidForm campaign={campaign} onDone={() => setDialog(null)} />}

@@ -5,6 +5,17 @@
 next:
 - kind: improved
   text: >-
+    Aides et subventions — encart « Aides comptabilisées sans dossier » : les écritures d'aides de l'année (comptes 74
+    hors 741 et 747) qu'aucun dossier ne couvre, par exemple après la reprise d'un FEC ; on les coche pour créer le
+    dossier (dispositif proposé d'après le compte, soldé, montant notifié présumé égal aux versements) ou pour les
+    rattacher à un dossier de la campagne ou de la précédente, sans nouvelle écriture. Campagnes proposées : aussi
+    celles des exercices ; campagne ouverte par défaut : la plus récente avec un dossier ou une écriture d'aide.
+  tech: >-
+    aid_payments.journal_line_id (migration b3d5f7a9c1e4), aids.ledger_lines / link_lines / create_from_ledger /
+    default_campaign, GET /api/v1/aids?campaign=default (ledger, campaign), POST /api/v1/aids/from-ledger,
+    POST /api/v1/aids/<id>/ledger-lines ; LedgerLinesCard ; chemin du SIREN corrigé (aid_cap, lexicon).
+- kind: improved
+  text: >-
     Déclarations de TVA — des lignes de TVA collectée ou déductible sans code de TVA bloquent désormais la validation
     (la déclaration aurait été incomplète, par exemple « néant » après la reprise d'un FEC sans codes) ; l'en-tête
     indique « Déclaration incomplète ». Les lignes de crédit de TVA (44567) sans code restent un simple avertissement.

@@ -37,7 +37,8 @@ def _options(mapping):
 
 def _meta():
     return {"natures": _options(AID_NATURES), "triggers": _options(AID_TRIGGERS), "statuses": _options(AID_STATUSES),
-            "payment_kinds": _options(AID_PAYMENT_KINDS), "campaigns": aids.campaigns()}
+            "payment_kinds": _options(AID_PAYMENT_KINDS), "campaigns": aids.campaigns(),
+            "default_campaign": aids.default_campaign()}
 
 
 @bp.route("/aids/schemes")
@@ -49,12 +50,39 @@ def aid_schemes():
 @bp.route("/aids")
 def aid_list():
     _agri()
-    campaign = request.args.get("campaign", type=int)
+    raw = request.args.get("campaign")
+    campaign = aids.default_campaign() if raw == "default" else request.args.get("campaign", type=int)
     status = request.args.get("status") or None
     if status and status not in AID_STATUSES:
         raise ApiError("validation_error", "Statut inconnu.", 422)
     rows = aids.listing(campaign, status)
-    return jsonify(items=[aids.payload(a, with_payments=False) for a in rows], totals=aids.totals(rows), meta=_meta())
+    return jsonify(items=[aids.payload(a, with_payments=False) for a in rows], totals=aids.totals(rows), meta=_meta(),
+                   ledger=aids.ledger_lines(campaign) if campaign else [], campaign=campaign)
+
+
+@bp.route("/aids/from-ledger", methods=["POST"])
+def aid_from_ledger():
+    """Dossier créé depuis des écritures d'aides déjà comptabilisées (reprise d'historique) : versements rattachés."""
+    _agri()
+    with _errors():
+        aid = aids.create_from_ledger(json_body())
+        db.session.commit()
+    count = len(aid.payments)
+    return jsonify(item=aids.payload(aid), notices=[notice(
+        f"Dossier « {aid.label} » {aid.campaign} créé avec {count} versement{'s' if count > 1 else ''} rattaché"
+        f"{'s' if count > 1 else ''}.")]), 201
+
+
+@bp.route("/aids/<int:aid_id>/ledger-lines", methods=["POST"])
+def aid_link_ledger(aid_id):
+    _agri()
+    aid = get_or_404(Aid, aid_id)
+    with _errors():
+        payments = aids.link_lines(aid, json_body().get("line_ids"))
+        db.session.commit()
+    count = len(payments)
+    return jsonify(item=aids.payload(aid), notices=[notice(
+        f"{count} écriture{'s' if count > 1 else ''} rattachée{'s' if count > 1 else ''} à « {aid.label} ».")])
 
 
 @bp.route("/aids", methods=["POST"])

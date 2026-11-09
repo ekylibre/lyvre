@@ -164,7 +164,10 @@ def payment_payload(payment: AidPayment) -> dict:
     return {"id": payment.id, "paid_on": _iso(payment.paid_on), "amount_cents": payment.amount_cents,
             "kind": payment.kind, "kind_label": AID_PAYMENT_KINDS.get(payment.kind, payment.kind), "note": payment.note,
             "bank_transaction": {"id": tx.id, "label": tx.label, "transaction_date": _iso(tx.transaction_date),
-                                 "amount_cents": tx.amount_cents} if tx is not None else None}
+                                 "amount_cents": tx.amount_cents} if tx is not None else None,
+            "journal_line": ({"id": payment.journal_line.id, "entry_id": payment.journal_line.entry_id,
+                              "reference": payment.journal_line.entry.reference}
+                             if payment.journal_line is not None else None)}
 
 
 def _analytic_label(target):
@@ -242,9 +245,112 @@ def listing(campaign: int | None = None, status: str | None = None) -> list[Aid]
 
 
 def campaigns() -> list[int]:
+    """Campagnes proposées : celles des dossiers, l'année en cours et la précédente, et les années couvertes par les
+    exercices (une reprise d'historique doit pouvoir rattacher ses aides)."""
+    from app.models import FiscalYear
     years = {c for (c,) in db.session.query(Aid.campaign).distinct()}
+    for fy in FiscalYear.query.all():
+        years.update(range(fy.start_date.year, fy.end_date.year + 1))
     current = date.today().year
     return sorted(years | {current, current - 1}, reverse=True)
+
+
+def default_campaign() -> int:
+    """Campagne ouverte par défaut : la plus récente avec un dossier ou une écriture d'aide sans dossier, sinon
+    l'année en cours."""
+    years = {c for (c,) in db.session.query(Aid.campaign).distinct()}
+    years |= {line.entry.entry_date.year for line in _aid_lines_query()}
+    current = date.today().year
+    candidates = [y for y in years if y <= current]
+    return max(candidates) if candidates else current
+
+
+# ------------------------------------------------------------------ aides comptabilisées sans dossier (essai 09/11/2026)
+
+# Comptes 74 hors remboursement forfaitaire (741) et quote-part des subventions d'investissement (747).
+LEDGER_EXCLUDED_PREFIXES = ("741", "747")
+
+
+def _ledger_excluded_sources():
+    from app.models.journal_entry import (
+        SOURCE_AID_GRANT, SOURCE_AID_RELEASE, SOURCE_CLOSING, SOURCE_INVENTORY, SOURCE_OPENING, SOURCE_REVERSAL,
+    )
+    return (SOURCE_OPENING, SOURCE_CLOSING, SOURCE_INVENTORY, SOURCE_REVERSAL, SOURCE_AID_GRANT, SOURCE_AID_RELEASE)
+
+
+def _aid_lines_query(year: int | None = None):
+    """Lignes 74 d'aides non rattachées : ni versement lié à la ligne, ni virement rattaché dans la même écriture."""
+    from app.models import BankTransaction, JournalEntry, JournalLine
+    linked_lines = db.session.query(AidPayment.journal_line_id).filter(AidPayment.journal_line_id.isnot(None))
+    bank_entries = (db.session.query(JournalLine.entry_id)
+                    .join(BankTransaction, BankTransaction.journal_line_id == JournalLine.id)
+                    .join(AidPayment, AidPayment.bank_transaction_id == BankTransaction.id))
+    query = (JournalLine.query.join(JournalEntry, JournalEntry.id == JournalLine.entry_id)
+             .join(Account, Account.id == JournalLine.account_id)
+             .filter(Account.code.like("74%"), *[~Account.code.like(f"{p}%") for p in LEDGER_EXCLUDED_PREFIXES],
+                     db.or_(JournalEntry.source.is_(None), JournalEntry.source.notin_(_ledger_excluded_sources())),
+                     JournalLine.id.notin_(linked_lines), JournalLine.entry_id.notin_(bank_entries)))
+    if year is not None:
+        query = query.filter(JournalEntry.entry_date.between(date(year, 1, 1), date(year, 12, 31)))
+    return query.order_by(JournalEntry.entry_date, JournalLine.id)
+
+
+def ledger_line_payload(line) -> dict:
+    entry = line.entry
+    return {"id": line.id, "entry_id": entry.id, "reference": entry.reference, "date": _iso(entry.entry_date),
+            "account": _account_payload(line.account), "label": line.label or entry.description or "",
+            "amount_cents": line.credit_cents - line.debit_cents}
+
+
+def ledger_lines(year: int) -> list[dict]:
+    return [ledger_line_payload(line) for line in _aid_lines_query(year)]
+
+
+def _lines(line_ids) -> list:
+    if not isinstance(line_ids, list) or not line_ids or not all(isinstance(i, int) for i in line_ids):
+        raise AidError("Choisissez au moins une écriture.", "line_ids")
+    from app.models import JournalLine
+    found = {line.id: line for line in _aid_lines_query().filter(JournalLine.id.in_(line_ids))}
+    missing = [i for i in line_ids if i not in found]
+    if missing:
+        raise AidError("Écriture introuvable, hors comptes d'aides ou déjà rattachée.", "line_ids", 409)
+    return [found[i] for i in line_ids]
+
+
+def link_lines(aid: Aid, line_ids) -> list[AidPayment]:
+    """Rattache des lignes 74 déjà comptabilisées à un dossier : un versement par ligne, sans nouvelle écriture."""
+    out = []
+    for line in _lines(line_ids):
+        amount = line.credit_cents - line.debit_cents
+        if amount == 0:
+            continue
+        payment = AidPayment(aid=aid, paid_on=line.entry.entry_date, amount_cents=amount,
+                             kind="clawback" if amount < 0 else "other", journal_line_id=line.id,
+                             note=_text(f"Écriture {line.entry.reference or line.entry.id} : {line.label or ''}", 300))
+        db.session.add(payment)
+        out.append(payment)
+    db.session.flush()
+    return out
+
+
+def create_from_ledger(data: dict) -> Aid:
+    """Dossier créé depuis des écritures d'aides : dispositif et campagne choisis, compte de la première ligne."""
+    line_ids = data.get("line_ids")
+    lines = _lines(line_ids)
+    accounts = {line.account_id for line in lines}
+    if len(accounts) > 1:
+        raise AidError("Les écritures choisies portent sur plusieurs comptes : un dossier par compte.", "line_ids")
+    aid = create({"scheme": data.get("scheme"), "campaign": data.get("campaign"),
+                  "account_code": lines[0].account.code, **({"label": data["label"]} if data.get("label") else {})})
+    payments = link_lines(aid, line_ids)
+    # Reprise d'historique : les versements sont connus, la notification rarement. Montant notifié présumé égal aux
+    # versements et dossier soldé, sinon le reste à percevoir serait négatif ; modifiable dans la fiche.
+    total = sum(p.amount_cents for p in payments)
+    if total > 0 and aid.notified_cents is None:
+        aid.notified_cents, aid.status = total, "closed"
+        aid.notes = _text("Créé depuis des écritures déjà comptabilisées : montant notifié présumé égal aux versements "
+                          "(à corriger d'après la notification).", 2000)
+    return aid
 
 
 def totals(aids: list[Aid]) -> dict:

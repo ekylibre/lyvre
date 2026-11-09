@@ -68,11 +68,14 @@ class AidPayment(db.Model):
     amount_cents = db.Column(db.Integer, nullable=False)
     kind = db.Column(db.String(12), nullable=False, default="other")
     bank_transaction_id = db.Column(db.Integer, db.ForeignKey("bank_transactions.id", ondelete="SET NULL"), index=True)
+    # Ligne d'écriture 74 déjà comptabilisée (reprise d'historique, FEC) : le versement la couvre, sans nouvelle écriture.
+    journal_line_id = db.Column(db.Integer, db.ForeignKey("journal_lines.id", ondelete="SET NULL"), unique=True, index=True)
     note = db.Column(db.String(300))
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     aid = db.relationship("Aid", back_populates="payments")
     bank_transaction = db.relationship("BankTransaction")
+    journal_line = db.relationship("JournalLine")
 
 
 AID_ACCRUAL_STATUSES = {"posted": "Passée", "dismissed": "Écartée"}
