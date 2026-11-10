@@ -371,3 +371,26 @@ def test_calculator_tools(farm):
     assert call("run_calculator", code="micro-ba", prefill="oui")[1]                 # booléen attendu
     prefilled, err = call("run_calculator", code="acompte-tva", prefill=True, values=[{"key": "due", "value": "8400"}])
     assert not err and prefilled["origins"].get("year") == "année en cours" and "due" not in prefilled["origins"]
+
+
+def test_stream_with_a_fresh_session_and_agenda_checks(farm, monkeypatch):
+    """Essai de l'interface (10/11/2026) : en service, le flux tourne après la vue avec une session neuve ; la
+    conversation chargée par la vue était détachée (DetachedInstanceError, réponse vide). L'outil d'échéancier
+    transmet aussi le bloc « À vérifier »."""
+    import flask
+
+    from app.api import assistant as api_assistant
+    from app.extensions import db
+
+    def detached(gen):
+        db.session.expunge_all()                             # comme la session retirée après la vue
+        return flask.stream_with_context(gen)
+
+    monkeypatch.setattr(api_assistant, "stream_with_context", detached)
+    client, fake = farm["client"], farm["fake"]
+    fake.replies += [_message([_tool("get_agenda", {})], stop="tool_use"), _message([_text("Voici.")])]
+    conv = client.post("/api/v1/assistant/conversations").get_json()["item"]
+    events = _events(client.post(f"/api/v1/assistant/conversations/{conv['id']}/messages", json={"text": "Échéances ?"}))
+    assert [e["type"] for e in events][-1] == "done" and not [e for e in events if e["type"] == "error"]
+    result = json.loads(fake.calls[1]["messages"][3]["content"][0]["content"])
+    assert "checks" in result and all({"level", "title", "detail"} <= set(c) for c in result["checks"])

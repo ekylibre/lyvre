@@ -1,7 +1,7 @@
 // Assistant Claude (lot AG9b.a, claudedocs/design_assistant_agricole.md § 7, AGD26) : bouton d'en-tête et tiroir
 // de conversation. Réponse diffusée au fil de l'eau (SSE) ; l'assistant lit le dossier et ne passe aucune écriture.
-import { Fragment, useEffect, useRef, useState } from "react";
-import { ActionIcon, Alert, Badge, Box, Button, Drawer, Group, Loader, Paper, ScrollArea, Select, Stack, Text, Textarea, Tooltip } from "@mantine/core";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
+import { ActionIcon, Alert, Badge, Box, Button, Drawer, Group, Loader, Paper, ScrollArea, Select, Stack, Table, Text, Textarea, Tooltip } from "@mantine/core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router";
 import { ApiError, api, postEventStream } from "../../api/client";
@@ -71,7 +71,20 @@ const TOOL_LABELS: Record<string, string> = {
 };
 const CITATION = /(\[[A-Z]{2,4}-\d{2}\]|\[[a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+\]|\*\*[^*]+\*\*)/g;
 
-/** Rendu simple du Markdown de l'assistant : paragraphes, listes, gras. */
+function MarkdownTable({ lines, inline }: { lines: string[]; inline: (line: string) => ReactNode }) {
+  const cells = (l: string) => l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+  const rows = lines.filter((l) => !/^\s*\|[\s:|-]+\|\s*$/.test(l)).map(cells);
+  const hasHeader = lines.length > 1 && /^\s*\|[\s:|-]+\|\s*$/.test(lines[1]);
+  const [head, body] = hasHeader ? [rows[0], rows.slice(1)] : [null, rows];
+  return (
+    <Table fz="xs" withTableBorder withColumnBorders striped>
+      {head && <Table.Thead><Table.Tr>{head.map((c, j) => <Table.Th key={j}>{inline(c)}</Table.Th>)}</Table.Tr></Table.Thead>}
+      <Table.Tbody>{body.map((r, j) => <Table.Tr key={j}>{r.map((c, k) => <Table.Td key={k}>{inline(c)}</Table.Td>)}</Table.Tr>)}</Table.Tbody>
+    </Table>
+  );
+}
+
+/** Rendu simple du Markdown de l'assistant : paragraphes, listes, gras, tableaux. */
 export function AssistantText({ text }: { text: string }) {
   const inline = (line: string) => line.split(CITATION).map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) return <b key={i}>{part.slice(2, -2)}</b>;
@@ -86,9 +99,21 @@ export function AssistantText({ text }: { text: string }) {
       {text.split(/\n{2,}/).map((para, i) => {
         const lines = para.split("\n");
         if (lines.every((l) => /^\s*[-*] /.test(l))) {
-          return <Box key={i} component="ul" m={0} pl="md">{lines.map((l, j) => <li key={j}><Text size="sm" span>{inline(l.replace(/^\s*[-*] /, ""))}</Text></li>)}</Box>;
+          return <Box key={i} component="ul" m={0} pl="md">{lines.map((l, j) => <li key={j}><Text size="sm" component="div">{inline(l.replace(/^\s*[-*] /, ""))}</Text></li>)}</Box>;
         }
-        return <Text key={i} size="sm">{lines.map((l, j) => <Fragment key={j}>{j > 0 && <br />}{inline(l.replace(/^#+\s*/, ""))}</Fragment>)}</Text>;
+        // Essai de l'interface (10/11/2026) : tableaux Markdown (lignes « | … | ») rendus en tableau ; paragraphes en
+        // <div> (les badges de fiche sont des blocs, interdits dans un <p>).
+        const blocks: { table: boolean; lines: string[] }[] = [];
+        for (const l of lines) {
+          const table = /^\s*\|.*\|\s*$/.test(l);
+          const last = blocks[blocks.length - 1];
+          if (last && last.table === table) last.lines.push(l); else blocks.push({ table, lines: [l] });
+        }
+        return (
+          <Fragment key={i}>
+            {blocks.map((b, k) => b.table ? <MarkdownTable key={k} lines={b.lines} inline={inline} /> : (
+              <Text key={k} size="sm" component="div">{b.lines.map((l, j) => <Fragment key={j}>{j > 0 && <br />}{inline(l.replace(/^#+\s*/, ""))}</Fragment>)}</Text>))}
+          </Fragment>);
       })}
     </Stack>
   );
@@ -166,8 +191,10 @@ export function AssistantPanel({ status, initial, onConsumed, onClose }: { statu
       const answerId = `a${Date.now()}`;
       setMessages((m) => [...m, { id: `q${Date.now()}`, role: "user", text, tools: [] }, { id: answerId, role: "assistant", text: "", tools: [] }]);
       const fyId = Number(new URLSearchParams(location.search).get("fiscal_year")) || undefined;
+      let received = false;
       await postEventStream(`/api/v1/assistant/conversations/${id}/messages`,
         { text, explain, page: { route: location.pathname, ...(fyId ? { fiscal_year_id: fyId } : {}) } }, (event) => {
+          received = true;
           if (event.type === "text") {
             setBusy(null);
             setMessages((m) => m.map((msg) => (msg.id === answerId ? { ...msg, text: msg.text + String(event.text) } : msg)));
@@ -182,6 +209,10 @@ export function AssistantPanel({ status, initial, onConsumed, onClose }: { statu
             setError(String(event.message));
           }
         });
+      if (!received) {
+        setMessages((m) => m.filter((msg) => msg.id !== answerId));
+        setError("La réponse s'est interrompue sans message : réessayez ; si cela persiste, prévenez l'administrateur.");
+      }
       client.invalidateQueries({ queryKey: ["assistant"] });
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Assistant indisponible.");

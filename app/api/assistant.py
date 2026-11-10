@@ -99,7 +99,7 @@ def assistant_conversation_delete(conversation_id):
 def assistant_ask(conversation_id):
     """Question → flux `text/event-stream` (événements text, tool, error, done)."""
     _require()
-    row = _conversation(conversation_id)
+    row_id = _conversation(conversation_id).id
     body = json_body()
     text, page, explain = body.get("text"), body.get("page"), body.get("explain") is True
     role, can_propose = current_role(), _can_propose()
@@ -113,8 +113,14 @@ def assistant_ask(conversation_id):
                        "réessayez dans un instant.", 409)
 
     def events():
+        # Essai de l'interface (10/11/2026) : le flux tourne après le retour de la vue, avec une session neuve ; la
+        # conversation chargée par la vue y serait détachée (DetachedInstanceError, réponse vide) : la relire ici.
         try:
-            for event in loop.ask(row, text, page, role, can_propose, explain):
+            conversation = db.session.get(AssistantConversation, row_id)
+            if conversation is None:
+                yield f"event: error\ndata: {json.dumps({'type': 'error', 'message': 'Conversation introuvable.'})}\n\n"
+                return
+            for event in loop.ask(conversation, text, page, role, can_propose, explain):
                 yield f"event: {event['type']}\ndata: {json.dumps(event, ensure_ascii=False)}\n\n"
         finally:
             loop.release(instance_key)

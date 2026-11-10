@@ -102,8 +102,12 @@ def get_agenda(args: dict) -> dict:
                       "amount_estimated": item["amount_proposed"], "to_confirm": item["to_confirm"],
                       "reliability": item["reliability"], "payment": item["payment"],
                       "reminder_only": item["reminder_only"], "link": item["link"]})
+    # Essai de l'interface (10/11/2026) : le bloc « À vérifier » (exercice manquant, TVA non paramétrée…) aussi.
+    from app.services import agenda_checks
+    checks = [{"level": "à traiter" if d["level"] == "warning" else "pour information", "title": d["title"],
+               "detail": d["detail"]} for d in agenda_checks.detections(today, items=data["items"])]
     return {"from": start.isoformat(), "to": end.isoformat(), "today": today.isoformat(), "items": items,
-            "questions": data.get("questions", [])}
+            "checks": checks, "questions": data.get("questions", [])}
 
 
 # ------------------------------------------------------------------ lecture (lot AG9b.b)
@@ -573,7 +577,8 @@ TOOLS: tuple[Tool, ...] = (
                                "date_from": {"type": "string"}, "date_to": {"type": "string"}}), search_entries, strict=False),
     Tool("get_agenda",
          "Échéancier de l'exploitation (TVA, impôts, MSA, PAC, baux…) entre deux dates : date, fiche, organisme, statut "
-         "(à venir, à préparer, prête, faite, en retard), montant connu ou estimé, fiabilité. Par défaut, de J-30 à J+60.",
+         "(à venir, à préparer, prête, faite, en retard), montant connu ou estimé, fiabilité ; et les points « À vérifier » "
+         "du dossier (checks : à traiter ou pour information), à signaler en premier. Par défaut, de J-30 à J+60.",
          _schema({"from": {"type": "string", "description": "Début, AAAA-MM-JJ (facultatif)"},
                   "to": {"type": "string", "description": "Fin, AAAA-MM-JJ (facultatif)"}}),
          get_agenda),

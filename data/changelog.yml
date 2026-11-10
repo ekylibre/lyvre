@@ -5,6 +5,15 @@
 next:
 - kind: fixed
   text: >-
+    Assistant — en service, la réponse restait vide sans message : la conversation n'était plus lisible pendant la
+    diffusion. Elle est relue au moment de répondre, et une réponse interrompue est désormais signalée. Les tableaux
+    de l'assistant s'affichent en tableau ; il lit aussi le bloc « À vérifier » de l'échéancier (exercice manquant…)
+    et le signale en premier.
+  tech: >-
+    api/assistant.assistant_ask (relecture dans le flux) ; AssistantDrawer (fin de flux sans événement, MarkdownTable,
+    paragraphes en div) ; tools.get_agenda « checks » ; PageHeader et ChecklistsPanel (pas de bloc dans un p).
+- kind: fixed
+  text: >-
     Échéancier — quand aucun exercice ne couvre la date du jour, « À vérifier » le signale : la CA12A et les acomptes
     de TVA ne peuvent pas être calculés. Les rappels silencieux passés (acomptes du prélèvement à la source, prélevés
     automatiquement ; fins de fenêtres d'option) ne s'affichent plus en retard. La date de la facturation électronique

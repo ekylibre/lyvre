@@ -40,7 +40,7 @@ export function ChecklistsPanel() {
                   <Checkbox aria-label={s.label} size="xs" mt={2} checked={s.done} disabled={!can.write || (s.auto && !!s.auto_done)}
                     onChange={(e) => mark.mutate({ c, step: s.id, done: e.currentTarget.checked })} />
                 </Tooltip>
-                <Text size="sm" td={s.done ? "line-through" : undefined} c={s.done ? "dimmed" : undefined}>
+                <Text size="sm" component="div" td={s.done ? "line-through" : undefined} c={s.done ? "dimmed" : undefined}>
                   {s.link ? <Anchor component={AppLink} href={s.link} size="sm" inherit>{s.label}</Anchor> : s.label}
                   {s.fiche && <Badge ml={6} size="xs" variant="outline" color="gray">{s.fiche}</Badge>}
                   {s.auto && <Text span size="xs" c="dimmed"> · auto</Text>}

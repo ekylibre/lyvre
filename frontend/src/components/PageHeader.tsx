@@ -14,7 +14,7 @@ export function PageHeader({ title, description, actions, icon }: {
   const heading = (
     <Stack gap={2}>
       <Title order={1}>{title}</Title>
-      {description && <Text c="dimmed" size="sm">{description}</Text>}
+      {description && <Text c="dimmed" size="sm" component={typeof description === "string" ? "p" : "div"}>{description}</Text>}
     </Stack>
   );
   return (

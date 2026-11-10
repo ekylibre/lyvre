@@ -69,4 +69,12 @@ describe("Assistant", () => {
     expect(screen.getByText("FIS-03").closest("a")).toHaveAttribute("href", "/agenda/");
     expect(screen.getByText("vat.rsa.threshold_cents")).toBeInTheDocument();
   });
+
+  it("rend un tableau Markdown en tableau", () => {
+    renderWithProviders(<AssistantText text={"Détail\n| Date | Échéance |\n|---|---|\n| 15/10/2026 | Taxe foncière [FIS-06] |"} />);
+    expect(screen.getByRole("columnheader", { name: "Échéance" })).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "15/10/2026" })).toBeInTheDocument();
+    expect(screen.queryByText(/\|---/)).not.toBeInTheDocument();
+    expect(screen.getByText("Détail")).toBeInTheDocument();
+  });
 });
