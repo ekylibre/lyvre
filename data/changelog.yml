@@ -3,6 +3,15 @@
 # kind : new | improved | fixed | action ; structure : asso | sci (absent : toutes) ;
 # text : pour l'utilisateur ; tech : précision pour CHANGELOG.md seulement.
 next:
+- kind: fixed
+  text: >-
+    Échéancier — quand aucun exercice ne couvre la date du jour, « À vérifier » le signale : la CA12A et les acomptes
+    de TVA ne peuvent pas être calculés. Les rappels silencieux passés (acomptes du prélèvement à la source, prélevés
+    automatiquement ; fins de fenêtres d'option) ne s'affichent plus en retard. La date de la facturation électronique
+    suit la taille d'entreprise déclarée.
+  tech: >-
+    agenda_checks._vat_setup (vat_no_fiscal_year) ; agenda.occurrences (quiet passé → done) ; deadlines règle once
+    avec param (TVA-07, einvoice.issue_start.{company_size}).
 - kind: new
   text: >-
     Facturation électronique — l'écran e-reporting indique la date à laquelle l'émission et l'e-reporting deviennent

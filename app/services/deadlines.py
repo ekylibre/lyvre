@@ -10,7 +10,8 @@ profil des démarches), une règle de date un type connu :
   la règle pour une clôture au 31/12 ; `edi_days` : délai supplémentaire de la télédéclaration ;
 - `in_fiscal_year` : jour `day` des mois `months` de l'exercice (1 = premier mois) ;
 - `monthly` : jour `day` de chaque mois ;
-- `once` : une date ;
+- `once` : une date ; avec `param`, la date du paramètre réglementaire (`{champ}` remplacé par le profil fiscal du
+  jour, `default` sinon), `date` restant la date de repli ;
 - `annual_param` : dates du paramètre réglementaire de l'année (`{champ}` remplacé par le profil), sinon `fallback`,
   marqué « date à confirmer » ;
 - `profile` : date du profil des démarches, décalée de `offset_months` ;
@@ -371,6 +372,22 @@ def _year_dates(rule: dict, year: int, ctx: Context) -> list[Occurrence]:
     return []
 
 
+def _once_param(rule: dict, ctx: Context, fallback: date) -> tuple[date, str | None]:
+    """Date d'une règle `once` lue dans un paramètre réglementaire (ex. obligation selon la taille d'entreprise)."""
+    from app.services import reg_params, tax_profile
+    key = rule["param"]
+    note = None
+    if "{" in key:
+        kind = key[key.index("{") + 1:key.index("}")]
+        value = ctx.tax_value(kind, date.today()) or rule.get("default")
+        if not value:
+            return fallback, None
+        key = key.replace("{" + kind + "}", value)
+        note = tax_profile.KINDS.get(kind, {}).get("values", {}).get(value)
+    found = reg_params.value(key, default=None)
+    return (date.fromisoformat(found) if found else fallback), note
+
+
 def dates(rule: dict, start: date, end: date, ctx: Context) -> list[Occurrence]:
     """Occurrences d'une règle entre `start` et `end` (inclus), triées."""
     kind = rule["type"]
@@ -384,7 +401,10 @@ def dates(rule: dict, start: date, end: date, ctx: Context) -> list[Occurrence]:
             out.append(Occurrence(_shift(date(year, month, rule["day"]), rule), f"{year}-{month:02d}"))
             year, month = (year + 1, 1) if month == 12 else (year, month + 1)
     elif kind == "once":
-        out.append(Occurrence(date.fromisoformat(str(rule["date"])), str(rule["date"])[:4]))
+        day, note = date.fromisoformat(str(rule["date"])), None
+        if rule.get("param"):
+            day, note = _once_param(rule, ctx, day)
+        out.append(Occurrence(day, str(day.year), note=note))
     elif kind == "after_close":
         for fy_start, close in fiscal_years(ctx, end):
             label = str(close.year) if fy_start.year == close.year else f"{fy_start.year}-{close.year}"

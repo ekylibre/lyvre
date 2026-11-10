@@ -136,7 +136,7 @@ function ListView({ items, data, onOpen }: { items: Occurrence[]; data: AgendaRe
   return (
     <Stack>
       {BLOCKS.map((block) => {
-        const rows = items.filter((o) => block.status.includes(o.status) && !(o.quiet && o.status === "upcoming"));
+        const rows = items.filter((o) => block.status.includes(o.status) && !(o.quiet && (o.status === "upcoming" || (o.status === "done" && !o.state))));
         if (rows.length === 0) return null;
         return (
           <Paper key={block.title} withBorder p="md">

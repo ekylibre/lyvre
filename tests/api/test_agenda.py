@@ -87,3 +87,23 @@ def test_manual_states(farm):
                                                          "period": tva["period"], "status": "done"})
     assert managed.status_code == 409
     assert client.get("/api/v1/agenda?from=2026-12-01&to=2026-11-01").status_code == 422
+
+
+def test_trial_missing_fiscal_year_quiet_past_and_einvoice_by_size(farm):
+    """Essai de l'interface (10/11/2026) : exercice manquant signalé (TVA non calculée) ; acompte du PAS passé non en
+    retard ; date de facturation électronique selon la taille d'entreprise."""
+    from app.services import agenda_checks
+    later = date(2028, 3, 1)                                      # après le dernier exercice de la base de test
+    found = [d for d in agenda_checks.detections(later) if d["id"] == "vat_no_fiscal_year"]
+    assert found and "Aucun exercice ne couvre le 01/03/2028" in found[0]["detail"]
+    assert not [d for d in agenda_checks.detections(MONDAY) if d["id"] == "vat_no_fiscal_year"]
+    items = agenda.occurrences(date(2026, 8, 1), date(2027, 12, 31), MONDAY)["items"]
+    pas = [i for i in items if i["label"] == "Acompte du prélèvement à la source"]
+    assert pas and all(i["status"] == "done" for i in pas if i["date"] < MONDAY)
+    assert all(i["status"] != "done" for i in pas if i["date"] > MONDAY)
+    (einvoice,) = _find(items, "TVA-07")
+    assert einvoice["date"] == date(2027, 9, 1) and einvoice["note"] == "PME ou micro-entreprise"
+    db.session.add(TaxProfile(kind="company_size", value="large", start_date=date(2020, 1, 1)))
+    db.session.commit()
+    (einvoice,) = _find(agenda.occurrences(date(2026, 8, 1), date(2027, 12, 31), MONDAY)["items"], "TVA-07")
+    assert einvoice["date"] == date(2026, 9, 1) and einvoice["note"] == "Grande entreprise ou ETI"

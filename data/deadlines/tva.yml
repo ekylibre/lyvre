@@ -108,11 +108,11 @@
   title: Facturation électronique
   domain: tva
   organism: DGFiP
-  summary: Réception obligatoire depuis le 1/9/2026 ; émission et e-reporting au 1/9/2027 pour les PME, TPE et micro-entreprises. Situation des exploitants au remboursement forfaitaire à confirmer.
+  summary: Réception obligatoire depuis le 1/9/2026 ; émission et e-reporting au 1/9/2026 pour les grandes entreprises et les ETI, au 1/9/2027 pour les PME et micro-entreprises (taille déclarée dans Structure › Fiscalité, PME par défaut). Situation des exploitants au remboursement forfaitaire à confirmer.
   applies: {vat_regime: [rsa_installments, rsa_quarterly, rsa_monthly, normal]}
   events:
-    - label: Émission de factures électroniques et e-reporting (PME)
-      rule: {type: once, date: "2027-09-01"}
+    - label: Émission de factures électroniques et e-reporting
+      rule: {type: once, date: "2027-09-01", param: "einvoice.issue_start.{company_size}", default: sme}
       reminders: [90, 30]
   prepare:
     - Plateforme agréée choisie

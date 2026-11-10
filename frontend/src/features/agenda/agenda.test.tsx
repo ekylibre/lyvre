@@ -66,6 +66,16 @@ describe("Échéancier", () => {
     expect(screen.getByRole("button", { name: "Détacher le paiement" })).toBeInTheDocument();
   });
 
+  it("un rappel silencieux passé ne s'affiche ni en retard ni parmi les faites", async () => {
+    const data = { ...DATA, items: [...DATA.items, occ({ key: "k3", fiche_id: "FIS-06", label: "Acompte du prélèvement à la source",
+      date: "2026-10-15", status: "done", quiet: true, state: null, managed: false })] };
+    vi.spyOn(globalThis, "fetch").mockImplementation((() => json(data)) as typeof fetch);
+    renderWithProviders(<AgendaPage />, { route: "/agenda/",
+      session: { ...TEST_SESSION, role: "admin" as const, permissions: { write: true, instance_admin: true } } });
+    expect(await screen.findByText("Taxe foncière non bâtie")).toBeInTheDocument();
+    expect(screen.queryByText("Acompte du prélèvement à la source")).not.toBeInTheDocument();
+  });
+
   it("rattache un débit à la main", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(((url: string) => json(String(url).includes("candidates")
       ? { items: [{ id: 9, bank_account_id: 1, date: "2026-10-16", label: "PRLV SIP TFNB", amount_cents: -45000, amount_matches: false }] }

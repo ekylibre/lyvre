@@ -155,6 +155,8 @@ def occurrences(start: date, end: date, today: date | None = None, ctx: deadline
                     status = "done"
                 elif lyvre_status == "validated":
                     status = "ready"
+                elif event.get("quiet") and occ["date"] < today:
+                    status = "done"                     # rappel silencieux passé (prélèvement automatique) : rien à faire
                 else:
                     status = _timing(occ["date"], today)
                 reminders = event.get("reminders") or list(deadlines.DEFAULT_REMINDERS)

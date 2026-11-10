@@ -46,7 +46,14 @@ def _vat_setup(today: date, ctx: deadlines.Context) -> list[dict]:
     if regime not in VAT_DECLARING:
         return []
     fy = FiscalYear.query.filter(FiscalYear.start_date <= today, FiscalYear.end_date >= today).first()
-    if fy is None or fy.vat_period:
+    if fy is None:
+        # Essai de l'interface (10/11/2026) : sans exercice, la CA12A et les acomptes ne sont pas calculés ; le dire.
+        last = FiscalYear.query.order_by(FiscalYear.end_date.desc()).first()
+        since = f" (dernier : {last.label}, clos le {_fr(last.end_date)})" if last else ""
+        return [_item("vat_no_fiscal_year", "warning", "Exercice manquant : TVA non calculée",
+                      f"Aucun exercice ne couvre le {_fr(today)}{since} : les déclarations et acomptes de TVA ne sont "
+                      "pas calculés dans l'échéancier. Créez les exercices manquants.", "/fiscal-years/", "Exercices")]
+    if fy.vat_period:
         return []
     return [_item("vat_setup", "warning", "TVA de l'exercice non paramétrée",
                   f"Le profil fiscal indique un régime de TVA déclaratif, mais l'exercice {fy.label} ne prépare pas sa TVA "
