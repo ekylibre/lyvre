@@ -25,7 +25,6 @@ import yaml
 from app.extensions import db
 from app.models import Activity, ActivityProduction, AnalyticKey, Campaign, FiscalYear, StockLine
 from app.models.analytic import ACTIVITY_UNITS
-from app.models.journal_entry import SOURCE_DEPRECIATION
 from app.services import analytic, analytic_allocation as alloc
 
 DATA = Path(__file__).resolve().parents[2] / "data" / "analytic" / "margin_classes.yml"
@@ -69,7 +68,7 @@ def _cents(value: Decimal) -> int:
 def _lines(fy: FiscalYear, buckets: dict, unallocated: dict, deferred: dict, warnings: set) -> None:
     activities = {a.id: a for a in Activity.query.all()}
     for item in alloc.resolve_all(fy):
-        if item["entry"].source == SOURCE_DEPRECIATION:
+        if item["replaced"]:
             continue                                            # remplacées par les dotations des fiches
         code, amount = item["account"].code, Decimal(item["amount_cents"])
         day = item["entry"].entry_date
@@ -122,14 +121,18 @@ def _stocks(fy: FiscalYear, buckets: dict, unallocated: dict, warnings: set) -> 
     for year, sign in ((fy, 1), (_previous(fy), -1)):
         if year is None:
             continue
+        missing = []
         for line in StockLine.query.filter_by(fiscal_year_id=year.id):
             _unit, value = stock_tax._accounting(line, year)  # noqa: SLF001
             if value is None:
-                warnings.add(f"Inventaire {year.label} : ligne « {line.label} » sans valeur.")
+                missing.append(f"« {line.label} »")
                 continue
             side, cls = _stock_side(line)
             delta = Decimal(value) * sign * (1 if side == "production" else -1)
             values[(line.activity_id, cls)] += delta
+        if missing:
+            warnings.add(f"Inventaire {year.label} : {len(missing)} ligne(s) sans valeur, écartée(s) des marges "
+                         f"({', '.join(missing)}) — valorisez-les (Compta › Immobilisations et stocks › Inventaire de clôture).")
     for (activity_id, cls), delta in values.items():
         if not delta:
             continue
@@ -233,6 +236,7 @@ def reconciliation(fy: FiscalYear, rows: list[dict], unalloc: dict) -> dict:
     accounting = closing.result(fy)["result_cents"]
     activities = sum(r["result_after_cents"] for r in rows)
     excluded = stock_lines = depreciation_lines = 0
+    records = alloc.records_depreciation(fy)
     query = (db.session.query(JournalLine, JournalEntry.source, Account.code)
              .join(JournalEntry, JournalEntry.id == JournalLine.entry_id).join(Account, Account.id == JournalLine.account_id)
              .filter(JournalEntry.fiscal_year_id == fy.id, db.or_(Account.code.like("6%"), Account.code.like("7%"))))
@@ -240,7 +244,7 @@ def reconciliation(fy: FiscalYear, rows: list[dict], unalloc: dict) -> dict:
         value = line.credit_cents - line.debit_cents                       # contribution au résultat
         if code.startswith(("603", "713")):
             stock_lines += value
-        elif source == SOURCE_DEPRECIATION:
+        elif alloc.replaced_by_records(source, code, records):
             depreciation_lines += value
         elif not alloc.eligible_code(code) or source in alloc.EXCLUDED_SOURCES:
             excluded += value

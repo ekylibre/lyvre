@@ -7,7 +7,10 @@
   sinon règle de compte (préfixe le plus long). Une cible est une **activité** ou une **clé de répartition**.
 - **Clés** : surface ou effectif des activités membres sur la campagne de la ligne (déduite des dates de chaque
   activité), pourcentages saisis ramenés à 100, ou marge brute (calculée par l'état des marges, AG8.e).
-- **Couverture** : part des charges et des produits affectés.
+- **Couverture** : part des charges et des produits affectés, sur les montants nets (avoirs et rabais déduits).
+- **Dotations remplacées** : quand des fiches d'immobilisation donnent une dotation pour l'exercice, les lignes de dotation
+  aux amortissements (681, 6811x, et les écritures générées par Lyvre) sont remplacées par les fiches : ni à ventiler, ni
+  comptées dans la couverture ni dans les marges (sinon double compte avec une reprise de FEC).
 """
 from __future__ import annotations
 
@@ -21,7 +24,8 @@ from app.extensions import db
 from app.models import (Account, Activity, ActivityProduction, AnalyticAllocation, AnalyticKey, AnalyticKeyMember,
                         AnalyticRule, Campaign, FiscalYear, JournalEntry, JournalLine)
 from app.models.analytic import ALLOCATION_ORIGINS, KEY_BASES
-from app.models.journal_entry import SOURCE_ALLOCATION, SOURCE_CLOSING, SOURCE_OPENING, SOURCE_STOCK
+from app.models.journal_entry import (SOURCE_ALLOCATION, SOURCE_CLOSING, SOURCE_DEPRECIATION, SOURCE_OPENING,
+                                      SOURCE_STOCK)
 from app.services.analytic import AnalyticError, campaign_year
 
 EXCLUDED_SOURCES = (SOURCE_OPENING, SOURCE_CLOSING, SOURCE_ALLOCATION, SOURCE_STOCK)
@@ -231,6 +235,27 @@ def amount(line: JournalLine, code: str) -> int:
     return (line.debit_cents - line.credit_cents) if code.startswith("6") else (line.credit_cents - line.debit_cents)
 
 
+def is_depreciation_code(code: str) -> bool:
+    """Dotation aux amortissements d'exploitation (681 non détaillé ou 6811x)."""
+    return code == "681" or code.startswith("6811")
+
+
+def records_depreciation(fy: FiscalYear) -> bool:
+    """Des fiches d'immobilisation donnent-elles une dotation pour l'exercice ?"""
+    from app.models import Asset
+    from app.services.assets import leaves, schedule
+    for asset in Asset.query.filter(Asset.parent_id.is_(None)):
+        for leaf in leaves(asset):
+            if any(r.fiscal_year_id == fy.id and r.amount_cents for r in schedule(leaf)):
+                return True
+    return False
+
+
+def replaced_by_records(source: str | None, code: str, records: bool) -> bool:
+    """Ligne de dotation remplacée par les dotations des fiches (marges, couverture, liste à ventiler)."""
+    return source == SOURCE_DEPRECIATION or (records and is_depreciation_code(code))
+
+
 def _manual(line_ids) -> dict[int, list[AnalyticAllocation]]:
     out: dict[int, list[AnalyticAllocation]] = defaultdict(list)
     if line_ids:
@@ -245,6 +270,7 @@ def resolve_all(fy: FiscalYear) -> list[dict]:
     rows = eligible_query(fy).order_by(JournalEntry.entry_date, JournalLine.id).all()
     manual = _manual([l.id for l, _e, _a in rows])
     rules = _rules()
+    records = records_depreciation(fy)
     out = []
     for line, entry, account in rows:
         allocs = manual.get(line.id)
@@ -258,18 +284,19 @@ def resolve_all(fy: FiscalYear) -> list[dict]:
                        if rule is not None else [])
             origin = "account" if rule is not None else None
         out.append({"line": line, "entry": entry, "account": account, "amount_cents": amount(line, account.code),
-                    "origin": origin, "targets": targets, "share_bp": sum(t["share_bp"] for t in targets)})
+                    "origin": origin, "targets": targets, "share_bp": sum(t["share_bp"] for t in targets),
+                    "replaced": replaced_by_records(entry.source, account.code, records)})
     return out
 
 
 def coverage(items: list[dict]) -> dict:
     out = {}
     for side, prefix in (("charges", "6"), ("products", "7")):
-        rows = [i for i in items if i["account"].code.startswith(prefix)]
-        total = sum(abs(i["amount_cents"]) for i in rows)
-        allocated = sum(round(abs(i["amount_cents"]) * i["share_bp"] / FULL) for i in rows)
+        rows = [i for i in items if i["account"].code.startswith(prefix) and not i.get("replaced")]
+        total = sum(i["amount_cents"] for i in rows)                          # net : avoirs et rabais déduits
+        allocated = sum(round(i["amount_cents"] * min(i["share_bp"], FULL) / FULL) for i in rows)
         out[side] = {"total_cents": total, "allocated_cents": allocated,
-                     "ratio_bp": round(allocated * FULL / total) if total else None}
+                     "ratio_bp": round(allocated * FULL / total) if total > 0 else None}
     return out
 
 
@@ -284,7 +311,14 @@ def _line_payload(item: dict) -> dict:
 def unallocated(fy: FiscalYear, account: str | None = None, include_allocated: bool = False) -> dict:
     items = resolve_all(fy)
     groups: dict[str, dict] = {}
+    replaced: dict[str, dict] = {}
     for item in items:
+        if item["replaced"]:
+            acc = item["account"]
+            row = replaced.setdefault(acc.code, {"account": acc.code, "label": acc.label, "count": 0, "amount_cents": 0})
+            row["count"] += 1
+            row["amount_cents"] += item["amount_cents"]
+            continue
         if item["share_bp"] >= FULL and not include_allocated:
             continue
         acc = item["account"]
@@ -294,11 +328,12 @@ def unallocated(fy: FiscalYear, account: str | None = None, include_allocated: b
         group["amount_cents"] += round(item["amount_cents"] * (FULL - min(item["share_bp"], FULL)) / FULL) \
             if not include_allocated else item["amount_cents"]
         group["partial"] += 1 if 0 < item["share_bp"] < FULL else 0
-    lines = [_line_payload(i) for i in items if account and i["account"].code == account
+    lines = [_line_payload(i) for i in items if account and i["account"].code == account and not i["replaced"]
              and (include_allocated or i["share_bp"] < FULL)]
     return {"fiscal_year": {"id": fy.id, "label": fy.label}, "coverage": coverage(items),
             "groups": sorted(groups.values(), key=lambda g: g["account"]), "lines": lines,
-            "suggestions": suggestions(fy)}
+            "suggestions": suggestions(fy),
+            "replaced": sorted(replaced.values(), key=lambda g: g["account"])}
 
 
 def allocate(fy: FiscalYear, line_ids, targets, campaign=None) -> int:

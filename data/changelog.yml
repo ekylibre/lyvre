@@ -5,6 +5,22 @@
 next:
 - kind: fixed
   text: >-
+    Ventilation analytique — le taux de couverture se calcule sur les montants nets (avoirs et rabais déduits), comme
+    la liste des comptes. Sans activité ni clé, l'écran invite à les créer au lieu d'offrir un choix vide ; le
+    formulaire d'affectation est en tête des lignes du compte. Quand des fiches d'immobilisation donnent la dotation de
+    l'exercice, les dotations reprises d'un FEC (681, 6811x) ne sont plus à ventiler ni comptées deux fois dans les
+    marges par activité.
+  tech: >-
+    analytic_allocation.coverage (net), records_depreciation, replaced_by_records (resolve_all « replaced », unallocated
+    « replaced ») ; analytic_margins._lines et reconciliation ; AnalyticPage.
+- kind: fixed
+  text: >-
+    Inventaire de clôture — une ligne à quantité nulle vaut 0 € sans valeur unitaire à saisir. Les marges par activité
+    regroupent les lignes sans valeur en une seule alerte par inventaire.
+  tech: >-
+    stock_inventory.evaluate (quantité nulle) ; analytic_margins._stocks.
+- kind: fixed
+  text: >-
     Cotisations MSA — l'exploitant ou un associé exploitant ne peut plus être déclaré collaborateur d'exploitation ; une
     fiche déjà ainsi renseignée est signalée et estimée en chef d'exploitation. Les taux s'écrivent à la française
     (14,87 %), les assiettes forfaitaires en heures de SMIC ; le formulaire d'ajustement est dans le cadre de

@@ -217,7 +217,9 @@ def evaluate(line: StockLine, fy: FiscalYear, discount_map: dict | None = None) 
         quantity = Decimal(line.quantity or 0)
         unit = int((Decimal(total) / quantity).quantize(Decimal(1), ROUND_HALF_UP)) if total is not None and quantity else None
         return unit, total, advance_warnings
-    if line.method == "actual":
+    if not Decimal(line.quantity or 0):
+        unit = line.unit_value_cents                # quantité nulle : valeur nulle, rien à valoriser
+    elif line.method == "actual":
         unit = line.unit_value_cents
         if unit is None:
             warnings.append("Valeur unitaire à saisir.")
@@ -258,7 +260,8 @@ def evaluate(line: StockLine, fy: FiscalYear, discount_map: dict | None = None) 
         elif summary["gap"] and not line.gap_reason:
             warnings.append(f"Écart de {summary['gap']:+d} tête(s) avec l'effectif théorique ({summary['theoretical']}) : "
                             "motif à saisir.")
-    value = _times(Decimal(line.quantity or 0), unit) if unit is not None else None
+    quantity = Decimal(line.quantity or 0)
+    value = 0 if not quantity else _times(quantity, unit) if unit is not None else None
     if line.method == "flat" and not flat_allowed(fy):
         warnings.append("Option de la méthode forfaitaire non enregistrée (Structure › Fiscalité) à la clôture.")
     return unit, value, warnings

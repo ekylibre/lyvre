@@ -25,6 +25,18 @@ describe("Ventilation analytique", () => {
     expect(screen.getByText("83,3 %")).toBeInTheDocument();
     expect(screen.getByText("Gazole")).toBeInTheDocument();
     expect(screen.getByText("70111 Ventes de blé → Grandes cultures › Blé")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Affecter/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Affecter les lignes cochées" })).toBeDisabled();
+    expect(screen.getByText("1 ligne")).toBeInTheDocument();
+  });
+
+  it("sans activité : invite à créer les activités, pas de formulaire ; dotations remplacées", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(((url: string) => json(String(url).includes("/analytic/")
+      ? { item: { ...VIEW, replaced: [{ account: "68112", label: "Immobilisations corporelles", count: 3, amount_cents: 120000 }] }, meta: { targets: [] } }
+      : { items: [{ id: 7, label: "2026", status: "open" }] })) as typeof globalThis.fetch);
+    renderWithProviders(<AnalyticPage />, { route: "/analytic/?fiscal_year=7&account=60614",
+      session: { ...TEST_SESSION, role: "admin" as const, permissions: { write: true, instance_admin: true } } });
+    expect(await screen.findByText(/Aucune activité ni clé de répartition/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Affecter/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/68112 Immobilisations corporelles \(3 lignes\)/)).toBeInTheDocument();
   });
 });
