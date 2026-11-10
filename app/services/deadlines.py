@@ -253,7 +253,8 @@ def context() -> Context:
 def _has_msa_collaborator() -> bool:
     """Drapeau dérivé `msa_collaborator` : une personne suivie pour la MSA au statut de collaborateur d'exploitation."""
     from app.models.msa import MsaPerson
-    return MsaPerson.query.filter_by(status="collaborator").first() is not None
+    from app.services import msa
+    return any(msa.effective_status(p) == "collaborator" for p in MsaPerson.query.filter_by(status="collaborator"))
 
 
 def applies(conditions: dict | None, ctx: Context, on: date) -> bool | None:

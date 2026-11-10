@@ -5,6 +5,15 @@
 next:
 - kind: fixed
   text: >-
+    Cotisations MSA — l'exploitant ou un associé exploitant ne peut plus être déclaré collaborateur d'exploitation ; une
+    fiche déjà ainsi renseignée est signalée et estimée en chef d'exploitation. Les taux s'écrivent à la française
+    (14,87 %), les assiettes forfaitaires en heures de SMIC ; le formulaire d'ajustement est dans le cadre de
+    l'exploitant ; en exercice décalé, les appels s'ouvrent sur l'année civile qui couvre l'essentiel de l'exercice.
+  tech: >-
+    msa.collaborator_conflict, effective_status (estimation, drapeau SOC-06) ; msa_estimate._pct, _int ;
+    MsaPage mainCivilYear.
+- kind: fixed
+  text: >-
     Aide à la liasse 2139 — le compte 212 tenu sans sous-compte (reprise d'un FEC) est repris en constructions, avec
     son amortissement 2812 ; l'actif ne s'écarte plus du passif. Tout compte de bilan qu'aucune case ne reprend est
     désormais nommé dans un avertissement, avec son solde.

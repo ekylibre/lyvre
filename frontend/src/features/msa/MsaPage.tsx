@@ -22,7 +22,8 @@ import { CalculatorLink } from "../tools/CalculatorLink";
 type Option = { value: string; label: string };
 interface MsaLine { key: string; id?: number; kind?: string; label: string; amount_cents: number; basis?: string; reason?: string | null }
 interface MsaPersonView {
-  person: { id: number; name: string; status: string; base_option: string; option_since: string | null; atexa_category?: string | null };
+  person: { id: number; name: string; status: string; base_option: string; option_since: string | null; atexa_category?: string | null;
+    collaborator_allowed?: boolean };
   share_bp: number; fiscal_result_cents: number; lines: MsaLine[]; income_cents: number; base_cents: number | null;
   abatement: { amount_cents?: number; raw_cents?: number; floor_cents?: number; ceiling_cents?: number; pass_cents?: number;
     bound?: string | null; error?: string };
@@ -36,6 +37,13 @@ interface Meta { statuses: Option[]; base_options: Option[]; adjustment_kinds: O
 
 const euros = (c: number) => `${(c / 100).toLocaleString("fr-FR")} €`;
 
+/** Année civile qui couvre la plus grande partie de l'exercice (exercice décalé : 02/2024-01/2025 → 2024), pour les appels. */
+function mainCivilYear(fy: { start_date: string; end_date: string } | undefined): number | null {
+  if (!fy) return null;
+  const start = new Date(fy.start_date).getTime(), end = new Date(fy.end_date).getTime();
+  return new Date(start + (end - start) / 2).getUTCFullYear();
+}
+
 export default function MsaPage() {
   const can = useCan();
   const { data: years } = useQuery({ queryKey: ["fiscal-years"], queryFn: () => api.get<{ items: FiscalYear[] }>("/api/v1/fiscal-years") });
@@ -43,7 +51,7 @@ export default function MsaPage() {
   const fyId = Number(params.fiscal_year) || years?.items.find((y) => y.status === "open")?.id || years?.items[0]?.id;
   const url = `/api/v1/fiscal-years/${fyId}/msa`;
   const { data, error } = useQuery({ queryKey: ["msa", fyId], enabled: !!fyId, queryFn: () => api.get<{ item: MsaView; meta: Meta }>(url) });
-  const [draft, setDraft] = useState<{ person: string | null; kind: string; amount: number | null; reason: string }>({ person: null, kind: "avaloir", amount: null, reason: "" });
+  const [draft, setDraft] = useState<{ person: number | null; kind: string; amount: number | null; reason: string }>({ person: null, kind: "avaloir", amount: null, reason: "" });
   const [formError, setFormError] = useState<string | null>(null);
   const opts = { invalidate: [["msa"]] };
   const add = useAction((b: object) => api.post<{ notices: Notice[] }>(`${url}/adjustments`, b), opts);
@@ -53,8 +61,8 @@ export default function MsaPage() {
   if (!years || !data) return <Center h={300}><Loader /></Center>;
   const v = data.item;
   const writable = can.write && v.fiscal_year.status !== "closed";
+  const callsYear = mainCivilYear(years.items.find((y) => y.id === fyId)) ?? v.year;
   const run = (x: Promise<unknown>, after?: () => void) => { setFormError(null); x.then(after, (e) => setFormError(e instanceof ApiError ? e.message : "Action impossible.")); };
-  const personId = draft.person ?? (v.people[0] ? String(v.people[0].person.id) : null);
   return (
     <>
       <PageHeader title="Cotisations MSA" description="Assiette sociale des non-salariés agricoles : du résultat fiscal BA à l'assiette des cotisations, par exploitant (réforme 2026)."
@@ -73,7 +81,7 @@ export default function MsaPage() {
           <Group justify="space-between" mb="xs">
             <Title order={4}>{p.person.name}{p.share_bp !== 10000 && <Text span size="sm" c="dimmed"> · quote-part {(p.share_bp / 100).toLocaleString("fr-FR")} %</Text>}</Title>
             <Group gap="xs">
-              <Select aria-label="Statut" w={300} size="xs" data={data.meta.statuses} value={p.person.status} allowDeselect={false} disabled={!can.write}
+              <Select aria-label="Statut" w={300} size="xs" data={data.meta.statuses.filter((o) => o.value !== "collaborator" || p.person.collaborator_allowed !== false || p.person.status === "collaborator")} value={p.person.status} allowDeselect={false} disabled={!can.write}
                 onChange={(x) => x && patch.mutate({ id: p.person.id, status: x })} />
               <Select aria-label="Option d'assiette" w={280} size="xs" data={data.meta.base_options} value={p.person.base_option} allowDeselect={false} disabled={!can.write}
                 onChange={(x) => x && patch.mutate({ id: p.person.id, base_option: x })} />
@@ -100,23 +108,25 @@ export default function MsaPage() {
                 <Table.Td ta="right">{p.base_cents === null ? "—" : <MoneyText cents={p.base_cents} fw={700} />}</Table.Td><Table.Td /></Table.Tr>
             </Table.Tbody>
           </Table>
+          {writable && (
+            <Group align="end" gap="xs" mt="xs">
+              <Select label="Ligne" w={280} data={data.meta.adjustment_kinds} value={draft.person === p.person.id ? draft.kind : "avaloir"} allowDeselect={false}
+                onChange={(x) => setDraft({ ...(draft.person === p.person.id ? draft : { amount: null, reason: "" }), person: p.person.id, kind: x ?? "avaloir" })} />
+              <MoneyInput label="Montant" w={140} value={draft.person === p.person.id ? draft.amount : null}
+                onChange={(x) => setDraft({ ...(draft.person === p.person.id ? draft : { kind: "avaloir", reason: "" }), person: p.person.id, amount: x })} />
+              <TextInput label="Motif" w={260} value={draft.person === p.person.id ? draft.reason : ""}
+                placeholder={(draft.person === p.person.id ? draft.kind : "avaloir") === "avaloir" ? "facultatif" : "obligatoire"}
+                onChange={(e) => setDraft({ ...(draft.person === p.person.id ? draft : { kind: "avaloir", amount: null }), person: p.person.id, reason: e.currentTarget.value })} />
+              <Button variant="light" loading={add.isPending} disabled={draft.person !== p.person.id || !draft.amount}
+                onClick={() => run(add.mutateAsync({ person_id: p.person.id, kind: draft.kind, amount_cents: draft.amount, reason: draft.reason }),
+                  () => setDraft({ ...draft, amount: null, reason: "" }))}>Ajouter</Button>
+            </Group>)}
           {p.comparison && <MsaOptionPanel personId={p.person.id} comparison={p.comparison} history={p.history ?? []} editable={can.write} />}
           {p.estimate && <MsaEstimatePanel estimate={p.estimate} category={p.person.atexa_category ?? null} editable={can.write}
             onCategory={(x) => patch.mutate({ id: p.person.id, atexa_category: x })} />}
         </Paper>))}
-      {writable && v.people.length > 0 && (
-        <Group align="end" gap="xs" mb="md">
-          {v.people.length > 1 && <Select label="Exploitant" w={220} data={v.people.map((p) => ({ value: String(p.person.id), label: p.person.name }))}
-            value={personId} allowDeselect={false} onChange={(x) => setDraft({ ...draft, person: x })} />}
-          <Select label="Ligne" w={280} data={data.meta.adjustment_kinds} value={draft.kind} allowDeselect={false} onChange={(x) => setDraft({ ...draft, kind: x ?? "avaloir" })} />
-          <MoneyInput label="Montant" w={140} value={draft.amount} onChange={(x) => setDraft({ ...draft, amount: x })} />
-          <TextInput label="Motif" w={260} value={draft.reason} placeholder={draft.kind === "avaloir" ? "facultatif" : "obligatoire"}
-            onChange={(e) => setDraft({ ...draft, reason: e.currentTarget.value })} />
-          <Button variant="light" loading={add.isPending} onClick={() => run(add.mutateAsync({ person_id: Number(personId), kind: draft.kind,
-            amount_cents: draft.amount, reason: draft.reason }), () => setDraft({ ...draft, amount: null, reason: "" }))}>Ajouter</Button>
-        </Group>)}
       {formError && <Alert color="brique" mb="md">{formError}</Alert>}
-      <MsaCallsPanel key={v.year} defaultYear={v.year} editable={can.write} />
+      <MsaCallsPanel key={callsYear} defaultYear={callsYear} editable={can.write} />
       {fyId && <MsaVentilationPanel fyId={fyId} editable={writable} />}
       <Text size="xs" c="dimmed">Point de départ : <AppLink href={`/tax-result/?fiscal_year=${fyId}`}>résultat fiscal</AppLink>. DEP, provision 73 A, étalement 75-0 A,
         abattage 75-0 D et plus-values y restent comme au fiscal (CSS L.136-4). La rente du sol n'est pas calculée.</Text>

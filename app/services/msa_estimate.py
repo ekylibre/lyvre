@@ -58,9 +58,9 @@ def _amexa(base: int, p: dict) -> tuple[int, str]:
     if base * 10000 >= 30000 * pass_cents:
         top = 3 * pass_cents
         amount = top * t5 / 10000 + (base - top) * p["msa.amexa.top_rate_bp"] / 10000
-        return round(amount), f"{t5 / 100:.2f} % jusqu'à 300 % du PASS, {p['msa.amexa.top_rate_bp'] / 100:.2f} % au-delà"
+        return round(amount), f"{_pct(t5)} % jusqu'à 300 % du PASS, {_pct(p['msa.amexa.top_rate_bp'])} % au-delà"
     rate = _interpolate(base, pass_cents, [(2000, 0), (4000, t1), (6000, t2), (11000, t3), (20000, t4), (30000, t5)])
-    return round(base * rate / 10000), f"taux progressif {rate / 100:.3f} %"
+    return round(base * rate / 10000), f"taux progressif {_pct(rate)} %"
 
 
 def _rco_extra(base: int, p: dict) -> tuple[int, str]:
@@ -68,14 +68,23 @@ def _rco_extra(base: int, p: dict) -> tuple[int, str]:
         return 0, "assiette nulle"
     t1, t2, t3, t4 = p["msa.rco_extra.rates"]
     rate = _interpolate(base, p["msa.pass_cents"], [(0, 0), (4000, t1), (6000, t2), (10000, t3), (20000, t4)])
-    return round(base * rate / 10000), f"taux progressif {rate / 100:.3f} %"
+    return round(base * rate / 10000), f"taux progressif {_pct(rate)} %"
 
 
 def _pfa(base: int, p: dict) -> tuple[int, str]:
     if base <= 0:
         return 0, "assiette nulle"
     rate = _interpolate(base, p["msa.pass_cents"], [(11000, 0), (14000, p["msa.pfa.rate_bp"])])
-    return round(base * rate / 10000), f"taux {rate / 100:.3f} % (nul jusqu'à 110 % du PASS)"
+    return round(base * rate / 10000), f"taux {_pct(rate)} % (nul jusqu'à 110 % du PASS)"
+
+
+def _pct(bp) -> str:
+    """Taux en points de base, à la française : 1487 → « 14,87 », 400 → « 4 », 17 → « 0,17 »."""
+    return f"{bp / 100:.3f}".rstrip("0").rstrip(".").replace(".", ",")
+
+
+def _int(value: int) -> str:
+    return f"{value:,}".replace(",", " ")
 
 
 def _fmt(cents: int) -> str:
@@ -110,10 +119,10 @@ def collaborator(year: int, atexa_category: str | None = None, secondary: bool =
     pension_base = p["msa.collaborator.pension_base_smic"] * smic
     rate = p["msa.collaborator.pension_rates"][kind]
     add("pension", "Retraite de base (forfaitaire)", round(pension_base * rate / 10000),
-        f"{rate / 100:.2f} % de {_fmt(pension_base)} ({p['msa.collaborator.pension_base_smic']} SMIC)")
+        f"{_pct(rate)} % de {_fmt(pension_base)} ({_int(p['msa.collaborator.pension_base_smic'])} h de SMIC)")
     rco_base = p["msa.collaborator.rco_base_smic"] * smic
     add("rco", "Retraite complémentaire (RCO)", round(rco_base * p["msa.rco.rate_bp"] / 10000),
-        f"{p['msa.rco.rate_bp'] / 100:.2f} % de {_fmt(rco_base)} ({p['msa.collaborator.rco_base_smic']} SMIC)")
+        f"{_pct(p['msa.rco.rate_bp'])} % de {_fmt(rco_base)} ({_int(p['msa.collaborator.rco_base_smic'])} h de SMIC)")
     add("invalidity", "Invalidité", p["msa.collaborator.invalidity_cents"], "forfait")
     if not secondary:
         add("ij", "Indemnités journalières AMEXA", p["msa.ij.amount_cents"], "forfait")
@@ -122,7 +131,7 @@ def collaborator(year: int, atexa_category: str | None = None, secondary: bool =
         add("atexa", f"Accidents du travail (ATEXA, catégorie {atexa_category})",
             amounts[ATEXA_CATEGORIES.index(atexa_category)], "forfait du collaborateur")
     add("vivea", "Formation professionnelle (VIVEA)", round(p["msa.pass_cents"] * p["msa.family.vivea_pass_bp"] / 10000),
-        f"{p['msa.family.vivea_pass_bp'] / 100:.2f} % du PASS", "third_party")
+        f"{_pct(p['msa.family.vivea_pass_bp'])} % du PASS", "third_party")
     warnings = [w for w in (warning,) if w]
     if atexa_category not in ATEXA_CATEGORIES:
         warnings.append("Catégorie de risques ATEXA à choisir : cotisation non comptée.")
@@ -176,22 +185,22 @@ def solidarity(base: int | None, year: int, installation: bool = False) -> dict:
 
     rate = p["msa.solidarity.rate_bp"]
     add("solidarity", "Cotisation de solidarité", round(assiette * rate / 10000),
-        f"{rate / 100:.0f} % de {_fmt(assiette)}", "cotisations")
+        f"{_pct(rate)} % de {_fmt(assiette)}", "cotisations")
     add("atexa", "Accidents du travail (ATEXA)", p["msa.solidarity.atexa_cents"], "forfait du cotisant de solidarité",
         "cotisations")
     csg_d = round(assiette * p["msa.csg.deductible_bp"] / 10000)
     csg_n = round(assiette * p["msa.csg.non_deductible_bp"] / 10000)
     crds = round(assiette * p["msa.crds_bp"] / 10000)
-    add("csg_deductible", "CSG déductible", csg_d, f"{p['msa.csg.deductible_bp'] / 100:.1f} %", "contributions")
-    add("csg_non_deductible", "CSG non déductible", csg_n, f"{p['msa.csg.non_deductible_bp'] / 100:.1f} %",
+    add("csg_deductible", "CSG déductible", csg_d, f"{_pct(p['msa.csg.deductible_bp'])} %", "contributions")
+    add("csg_non_deductible", "CSG non déductible", csg_n, f"{_pct(p['msa.csg.non_deductible_bp'])} %",
         "contributions", deductible=False)
-    add("crds", "CRDS", crds, f"{p['msa.crds_bp'] / 100:.1f} %", "contributions", deductible=False)
+    add("crds", "CRDS", crds, f"{_pct(p['msa.crds_bp'])} %", "contributions", deductible=False)
     add("vivea", "Formation professionnelle (VIVEA)", round(p["msa.pass_cents"] * p["msa.family.vivea_pass_bp"] / 10000),
-        f"{p['msa.family.vivea_pass_bp'] / 100:.2f} % du PASS", "third_party")
+        f"{_pct(p['msa.family.vivea_pass_bp'])} % du PASS", "third_party")
     total = sum(l["amount_cents"] for l in lines)
     warnings = [w for w in (warning,) if w]
     if installation:
-        warnings.append(f"Sans revenus : assiette forfaitaire de {p['msa.solidarity.install_base_smic']} SMIC, régularisée "
+        warnings.append(f"Sans revenus : assiette forfaitaire de {p['msa.solidarity.install_base_smic']} h de SMIC, régularisée "
                         "ensuite.")
     return {"available": True, "year": year, "base_cents": assiette, "status": "solidarity", "lines": lines,
             "totals": {"total_cents": total,
@@ -237,19 +246,19 @@ def estimate(base: int | None, year: int, status: str = "principal", atexa_categ
     inv_base = inv_min if installation else max(positive, inv_min)
     if status == "principal":
         add("invalidity", "Invalidité", round(inv_base * p["msa.invalidity.rate_bp"] / 10000),
-            f"{p['msa.invalidity.rate_bp'] / 100:.2f} % de {_fmt(inv_base)} (minimum 11,5 % du PASS)", "cotisations")
+            f"{_pct(p['msa.invalidity.rate_bp'])} % de {_fmt(inv_base)} (minimum 11,5 % du PASS)", "cotisations")
         add("ij", "Indemnités journalières AMEXA", p["msa.ij.amount_cents"], "forfait", "cotisations")
     pension_min = p["msa.pension.min_smic"] * smic
     capped_rate = p["msa.pension.capped_rate_bp"] if status == "principal" else p["msa.pension.capped_secondary_rate_bp"]
     capped_base = min(max(positive, pension_min), pass_cents)
     add("pension_capped", "Retraite de base plafonnée (AVI / AVA)", round(capped_base * capped_rate / 10000),
-        f"{capped_rate / 100:.2f} % de {_fmt(capped_base)} (entre 600 SMIC et le PASS)", "cotisations")
+        f"{_pct(capped_rate)} % de {_fmt(capped_base)} (entre 600 h de SMIC et le PASS)", "cotisations")
     uncapped_base = max(positive, pension_min)
     add("pension_uncapped", "Retraite de base déplafonnée", round(uncapped_base * p["msa.pension.uncapped_rate_bp"] / 10000),
-        f"{p['msa.pension.uncapped_rate_bp'] / 100:.2f} % de {_fmt(uncapped_base)}", "cotisations")
+        f"{_pct(p['msa.pension.uncapped_rate_bp'])} % de {_fmt(uncapped_base)}", "cotisations")
     rco_base = p["msa.rco.min_smic"] * smic if installation else max(positive, p["msa.rco.min_smic"] * smic)
     add("rco", "Retraite complémentaire (RCO)", round(rco_base * p["msa.rco.rate_bp"] / 10000),
-        f"{p['msa.rco.rate_bp'] / 100:.2f} % de {_fmt(rco_base)} (minimum 1 820 SMIC)", "cotisations")
+        f"{_pct(p['msa.rco.rate_bp'])} % de {_fmt(rco_base)} (minimum 1 820 h de SMIC)", "cotisations")
     extra, detail = _rco_extra(positive, p)
     add("rco_extra", "RCO complémentaire", extra, detail, "cotisations")
     pfa, detail = _pfa(positive, p)
@@ -261,14 +270,14 @@ def estimate(base: int | None, year: int, status: str = "principal", atexa_categ
     csg_d = round(positive * p["msa.csg.deductible_bp"] / 10000)
     csg_n = round(positive * p["msa.csg.non_deductible_bp"] / 10000)
     crds = round(positive * p["msa.crds_bp"] / 10000)
-    add("csg_deductible", "CSG déductible", csg_d, f"{p['msa.csg.deductible_bp'] / 100:.1f} %", "contributions")
-    add("csg_non_deductible", "CSG non déductible", csg_n, f"{p['msa.csg.non_deductible_bp'] / 100:.1f} %", "contributions",
+    add("csg_deductible", "CSG déductible", csg_d, f"{_pct(p['msa.csg.deductible_bp'])} %", "contributions")
+    add("csg_non_deductible", "CSG non déductible", csg_n, f"{_pct(p['msa.csg.non_deductible_bp'])} %", "contributions",
         deductible=False)
-    add("crds", "CRDS", crds, f"{p['msa.crds_bp'] / 100:.1f} %", "contributions", deductible=False)
+    add("crds", "CRDS", crds, f"{_pct(p['msa.crds_bp'])} %", "contributions", deductible=False)
     vivea_base = install["msa.install.vivea_base_smic"] * smic if installation else positive
     vivea = min(max(round(vivea_base * p["msa.vivea.rate_bp"] / 10000), round(pass_cents * p["msa.vivea.min_pass_bp"] / 10000)),
                 round(pass_cents * p["msa.vivea.max_pass_bp"] / 10000))
-    add("vivea", "Formation professionnelle (VIVEA)", vivea, f"{p['msa.vivea.rate_bp'] / 100:.2f} % entre 0,17 % et 0,89 % du PASS",
+    add("vivea", "Formation professionnelle (VIVEA)", vivea, f"{_pct(p['msa.vivea.rate_bp'])} % entre 0,17 % et 0,89 % du PASS",
         "third_party")
     add("fmse", "FMSE (cotisation commune)", p["msa.fmse.amount_cents"], "forfait", "third_party")
     if ja_year:                                          # lot CG5.f : exonération jeunes agriculteurs (années 1 à 5)
@@ -278,7 +287,7 @@ def estimate(base: int | None, year: int, status: str = "principal", atexa_categ
             scope = sum(l["amount_cents"] for l in lines if l["key"] in JA_SCOPE)
             exemption = min(round(scope * rates[ja_year - 1] / 10000), caps[ja_year - 1])
             add("ja_exemption", f"Exonération jeune agriculteur ({ja_year}e année)", -exemption,
-                f"{rates[ja_year - 1] / 100:.0f} % de {_fmt(scope)} (AMEXA, invalidité, retraite de base, prestations "
+                f"{_pct(rates[ja_year - 1])} % de {_fmt(scope)} (AMEXA, invalidité, retraite de base, prestations "
                 f"familiales), plafond {_fmt(caps[ja_year - 1])}", "cotisations")
     total = sum(l["amount_cents"] for l in lines)
     warnings = [w for w in (warning,) if w]
@@ -287,8 +296,8 @@ def estimate(base: int | None, year: int, status: str = "principal", atexa_categ
     if ja_year and not any(l["key"] == "ja_exemption" for l in lines):
         warnings.append("Exonération jeune agriculteur : barème de l'année ou année d'exonération (1 à 5) introuvable.")
     if installation:
-        warnings.append(f"Nouvel installé : assiettes forfaitaires provisoires ({install['msa.install.base_smic']} SMIC, "
-                        f"{install['msa.install.vivea_base_smic']} SMIC en formation, 1 820 SMIC en RCO, 11,5 % du PASS "
+        warnings.append(f"Nouvel installé : assiettes forfaitaires provisoires ({install['msa.install.base_smic']} h de SMIC, "
+                        f"{install['msa.install.vivea_base_smic']} h de SMIC en formation, 1 820 h de SMIC en RCO, 11,5 % du PASS "
                         "en invalidité), régularisées sur les revenus réels.")
         base = positive
     return {"available": True, "year": year, "base_cents": base, "status": status, "lines": lines,

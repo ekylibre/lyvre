@@ -165,8 +165,19 @@ def test_api_profile_and_deadlines(app, login_as):
     assert items["PAC-01"]["applicable"] == "yes" and items["DIV-01"]["applicable"] == "yes"
     assert items["SOC-05"]["applicable"] == "unknown"
     assert items["SOC-06"]["applicable"] == "no"
+    from app.models import Account, Associate, Entity
     from app.models.msa import MsaPerson
-    db.session.add(MsaPerson(status="collaborator"))
+    db.session.add(MsaPerson(status="collaborator"))                              # l'exploitant lui-même : incohérent
+    db.session.commit()
+    items = {f["id"]: f for f in client.get("/api/v1/deadlines").get_json()["items"]}
+    assert items["SOC-06"]["applicable"] == "no"
+    entity, account = Entity(name="Conjoint"), Account(code="4559", label="Conjoint", account_type="TIERS")
+    db.session.add_all([entity, account])
+    db.session.flush()
+    spouse = Associate(entity_id=entity.id, account_id=account.id)                # ni exploitant, ni parts
+    db.session.add(spouse)
+    db.session.flush()
+    db.session.add(MsaPerson(associate_id=spouse.id, status="collaborator"))
     db.session.commit()
     items = {f["id"]: f for f in client.get("/api/v1/deadlines").get_json()["items"]}
     assert items["SOC-06"]["applicable"] == "yes"                                 # drapeau dérivé du statut MSA

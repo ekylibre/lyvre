@@ -379,3 +379,18 @@ def test_young_farmer_exemption_cg5f(farm):
     fifth = {l["key"]: l["amount_cents"] for l in msa_estimate.estimate(3000000, 2026, "principal", "A", ja_year=5)["lines"]}
     assert fifth["ja_exemption"] == -min(round(scope * 1500 / 10000), 94400)
     assert "ja_exemption" not in {l["key"] for l in msa_estimate.estimate(3000000, 2026, "principal", "A", ja_year=6)["lines"]}
+
+
+def test_operator_cannot_be_collaborator(farm):
+    """Essai de l'interface (10/11/2026) : l'exploitant suivi n'est pas collaborateur ; une fiche ancienne ainsi
+    renseignée est signalée et estimée en chef d'exploitation."""
+    from app.models.msa import MsaPerson
+    client, url = farm["client"], farm["url"]
+    pid = client.get(f"{url}/msa").get_json()["item"]["people"][0]["person"]["id"]
+    resp = client.patch(f"/api/v1/msa/people/{pid}", json={"status": "collaborator"})
+    assert resp.status_code == 422 and "chef d'exploitation" in resp.get_json()["error"]["message"]
+    db.session.get(MsaPerson, pid).status = "collaborator"
+    db.session.commit()
+    body = client.get(f"{url}/msa").get_json()["item"]
+    assert any("Statut MSA incohérent" in w for w in body["warnings"])
+    assert body["people"][0]["estimate"].get("status") != "collaborator"

@@ -112,12 +112,30 @@ def person_name(person: MsaPerson) -> str:
     return f"Exploitant ({organization.get().name})"
 
 
+def collaborator_conflict(person: MsaPerson) -> str | None:
+    """Essai de l'interface (10/11/2026) : une personne suivie ici est l'exploitant ou un associé exploitant ; le statut
+    de collaborateur d'exploitation (conjoint sans parts, L.321-5 CRPM) ne lui convient pas."""
+    name = person_name(person)
+    if person.associate_id is None:
+        return f"{name} : l'exploitant individuel est chef d'exploitation, pas collaborateur."
+    associate = person.associate
+    if associate.is_operator or (associate.profit_share_bp or 0) > 0:
+        return (f"{name} : associé exploitant ou détenteur de parts, donc chef d'exploitation ; le statut de collaborateur "
+                "d'exploitation est réservé au conjoint qui travaille sans être associé (simulation : bouton Simuler).")
+    return None
+
+
+def effective_status(person: MsaPerson) -> str:
+    return "principal" if person.status == "collaborator" and collaborator_conflict(person) else person.status
+
+
 def person_payload(person: MsaPerson) -> dict:
     return {"id": person.id, "associate_id": person.associate_id, "name": person_name(person), "status": person.status,
             "status_label": MSA_STATUSES.get(person.status, person.status), "base_option": person.base_option,
             "base_option_label": MSA_BASE_OPTIONS.get(person.base_option, person.base_option),
             "option_since": person.option_since.isoformat() if person.option_since else None,
-            "atexa_category": person.atexa_category, "note": person.note}
+            "atexa_category": person.atexa_category, "note": person.note,
+            "collaborator_allowed": collaborator_conflict(person) is None}
 
 
 # ------------------------------------------------------------------ éléments de l'exploitation
@@ -200,6 +218,8 @@ def compute(fy: FiscalYear) -> dict:
         adjustments.setdefault(adj.person_id, []).append(adj)
     out = []
     for person, row in pairs:
+        if person.status == "collaborator" and (conflict := collaborator_conflict(person)):
+            warnings.append(f"Statut MSA incohérent — {conflict} Estimation faite en chef d'exploitation ; corrigez le statut.")
         lines = []
         if row is None:
             fiscal = tr["fiscal_result_cents"]
@@ -287,7 +307,7 @@ def view(fy: FiscalYear) -> dict:
         item["comparison"] = comparison(person, data["year"], item["base_cents"], current_income=item["income_cents"])
         from app.services import msa_estimate                     # lot AG7.e : estimation indicative
         item["estimate"] = msa_estimate.estimate(item["comparison"]["retained_cents"],
-                                                 item["comparison"]["contribution_year"], person.status,
+                                                 item["comparison"]["contribution_year"], effective_status(person),
                                                  person.atexa_category,
                                                  ja_year=_ja_year(person, item["comparison"]["contribution_year"]))
     db.session.commit()
@@ -448,6 +468,8 @@ def update_person(person_id: int, data: dict) -> MsaPerson:
     if "status" in data:
         if data["status"] not in MSA_STATUSES:
             raise MsaError("Statut inconnu.", "status")
+        if data["status"] == "collaborator" and (conflict := collaborator_conflict(person)):
+            raise MsaError(conflict, "status")
         person.status = data["status"]
     if "base_option" in data:
         if data["base_option"] not in MSA_BASE_OPTIONS:

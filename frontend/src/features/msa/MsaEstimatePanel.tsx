@@ -29,7 +29,8 @@ export function MsaEstimatePanel({ estimate: e, category, editable, onCategory }
                 <Table.Tr key={l.key}><Table.Td>{l.label}{!l.deductible && <Text span size="xs" c="dimmed"> · non déductible</Text>}</Table.Td>
                   <Table.Td><Text size="xs" c="dimmed">{l.detail}</Text></Table.Td>
                   <Table.Td ta="right"><MoneyText cents={l.amount_cents} /></Table.Td></Table.Tr>))}
-              <Table.Tr><Table.Td fw={700}>Total estimé sur une assiette de <MoneyText cents={e.base_cents ?? 0} /></Table.Td><Table.Td />
+              <Table.Tr><Table.Td fw={700}>{e.base_cents === null || e.base_cents === undefined ? "Total estimé sur les assiettes forfaitaires"
+                : <>Total estimé sur une assiette de <MoneyText cents={e.base_cents} /></>}</Table.Td><Table.Td />
                 <Table.Td ta="right"><MoneyText cents={e.totals?.total_cents ?? 0} fw={700} /></Table.Td></Table.Tr>
             </Table.Tbody>
           </Table>

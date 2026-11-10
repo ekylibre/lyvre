@@ -57,3 +57,18 @@ describe("Cotisations MSA", () => {
     expect(await screen.findByRole("button", { name: "Passer la charge à payer" })).toBeInTheDocument();
   });
 });
+
+describe("Cotisations MSA, exercice décalé", () => {
+  it("appels de l'année civile qui couvre l'essentiel de l'exercice", async () => {
+    const calls: string[] = [];
+    vi.spyOn(globalThis, "fetch").mockImplementation(((url: string) => {
+      calls.push(String(url));
+      return json(String(url).includes("/ventilation") ? { item: VENT } : String(url).includes("/msa/calls") ? { item: CALLS } : String(url).includes("/msa") ? { item: VIEW, meta: META }
+        : { items: [{ id: 7, label: "2024-2025", status: "open", start_date: "2024-02-01", end_date: "2025-01-31" }] });
+    }) as typeof globalThis.fetch);
+    renderWithProviders(<MsaPage />, { route: "/msa/", session: { ...TEST_SESSION, role: "admin" as const, permissions: { write: true, instance_admin: true } } });
+    expect(await screen.findByText("Exploitant (Ferme)")).toBeInTheDocument();
+    await screen.findAllByText("1er appel provisionnel");
+    expect(calls.some((u) => u.includes("/msa/calls?year=2024"))).toBe(true);
+  });
+});
