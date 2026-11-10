@@ -4,12 +4,13 @@ agricole seulement."""
 import csv
 import io
 import json
-from datetime import date
+from datetime import date, timedelta
 
 from flask import Response, jsonify, request
 from flask_login import current_user
 
-from app.models import EreportingExport, SimpleCategory
+from app.extensions import db
+from app.models import EreportingExport, JournalEntry, SimpleCategory
 from app.services import ereporting
 from app.services.ereporting import EreportingError
 
@@ -23,11 +24,10 @@ def _agri_only():
 
 
 def _period(source) -> tuple[date, date]:
-    today = date.today()
-    first = today.replace(day=1)
+    end_of_last_month = date.today().replace(day=1) - timedelta(days=1)       # dernier mois terminé (export mensuel)
     try:
-        start = date.fromisoformat(source.get("start")) if source.get("start") else first
-        end = date.fromisoformat(source.get("end")) if source.get("end") else today
+        start = date.fromisoformat(source.get("start")) if source.get("start") else end_of_last_month.replace(day=1)
+        end = date.fromisoformat(source.get("end")) if source.get("end") else end_of_last_month
     except (TypeError, ValueError):
         raise invalid("Date invalide (AAAA-MM-JJ).", "start") from None
     if end < start:
@@ -44,6 +44,8 @@ def ereporting_view():
     data = ereporting.aggregate(start, end)
     data["categories"] = [{"id": c.id, "label": c.label, "account": c.account.code, "direct_sale": c.direct_sale}
                           for c in SimpleCategory.query.filter_by(kind="income", active=True).order_by(SimpleCategory.position)]
+    last = db.session.query(db.func.max(JournalEntry.entry_date)).scalar()
+    data["last_entry_date"] = last.isoformat() if last else None
     data["exports"] = [{"id": e.id, "start": e.start_date.isoformat(), "end": e.end_date.isoformat(),
                         "transactions": e.transactions, "base_cents": e.base_cents, "tax_cents": e.tax_cents,
                         "exported_at": e.exported_at.isoformat()}

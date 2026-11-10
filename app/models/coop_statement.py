@@ -31,6 +31,7 @@ class CoopStatement(db.Model):
     label = db.Column(db.String(200))
     status = db.Column(db.String(8), nullable=False, default="draft")
     journal_entry_id = db.Column(db.Integer, db.ForeignKey("journal_entries.id", ondelete="SET NULL"))
+    journal_id = db.Column(db.Integer, db.ForeignKey("journals.id", ondelete="SET NULL"))   # vide : journal des ventes
     attachment_path = db.Column(db.String(300))
     attachment_name = db.Column(db.String(200))
     attachment_mime = db.Column(db.String(50))
@@ -39,6 +40,7 @@ class CoopStatement(db.Model):
 
     entity = db.relationship("Entity")
     journal_entry = db.relationship("JournalEntry")
+    journal = db.relationship("Journal")
     lines = db.relationship("CoopStatementLine", back_populates="statement", cascade="all, delete-orphan",
                             order_by="CoopStatementLine.position")
 

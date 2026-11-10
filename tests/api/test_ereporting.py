@@ -146,3 +146,12 @@ def test_aggregate_and_export(farm):
 
 def test_not_agri(app, login_as):
     assert login_as(role="admin").get(API).status_code == 404
+
+
+def test_default_period_is_last_full_month(farm):
+    """Essai de l'interface (10/11/2026) : période par défaut = dernier mois terminé ; date de la dernière écriture."""
+    from datetime import date, timedelta
+    data = farm.get(API).get_json()
+    end = date.today().replace(day=1) - timedelta(days=1)
+    assert (data["start"], data["end"]) == (end.replace(day=1).isoformat(), end.isoformat())
+    assert "last_entry_date" in data

@@ -20,7 +20,7 @@ interface Day {
 }
 
 export interface EreportingData {
-  start: string; end: string; days: Day[]; base_cents: number; tax_cents: number; pending_days: string[]; warnings: string[];
+  start: string; end: string; last_entry_date?: string | null; days: Day[]; base_cents: number; tax_cents: number; pending_days: string[]; warnings: string[];
   categories: { id: number; label: string; account: string; direct_sale: boolean }[];
   exports: { id: number; start: string; end: string; transactions: number; base_cents: number; tax_cents: number; exported_at: string }[];
 }
@@ -35,6 +35,10 @@ export function DirectSaleCategories({ categories }: { categories: EreportingDat
   return (
     <Paper p="md">
       <Title order={3} mb={4}>Catégories de vente directe</Title>
+      {categories.length === 0 ? (
+        <Text size="sm" c="dimmed">Pas de catégorie de recette (elles servent à la comptabilité simplifiée) : en partie double,
+          les ventes directes sont celles du journal de caisse (CA), comptes 70 ; les ventes facturées partent comme factures
+          (note B2C).</Text>) : (<>
       <Text size="sm" c="dimmed" mb="xs">Recettes encaissées sans facture auprès de particuliers. Les ventes du journal de caisse
         (comptes 70) sont toujours comptées ; les ventes facturées partent comme factures (note B2C).</Text>
       <Checkbox.Group value={ids} onChange={setIds}>
@@ -42,15 +46,21 @@ export function DirectSaleCategories({ categories }: { categories: EreportingDat
           <Checkbox key={c.id} value={String(c.id)} label={`${c.label} (${c.account})`} />)}</SimpleGrid>
       </Checkbox.Group>
       <Can><Button mt="sm" size="compact-sm" loading={save.isPending} onClick={() => save.mutate()}>Enregistrer</Button></Can>
+      </>)}
     </Paper>
   );
+}
+
+/** Dernier mois terminé : l'export se fait mois par mois, une fois le mois clos. */
+export function lastMonth(today = new Date()): { start: string; end: string } {
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return { start: iso(new Date(today.getFullYear(), today.getMonth() - 1, 1)), end: iso(new Date(today.getFullYear(), today.getMonth(), 0)) };
 }
 
 export default function EreportingPage() {
   const client = useQueryClient();
   const params = new URLSearchParams(window.location.search);
-  const today = new Date().toISOString().slice(0, 10);
-  const [period, setPeriod] = useState({ start: params.get("start") ?? `${today.slice(0, 8)}01`, end: params.get("end") ?? today });
+  const [period, setPeriod] = useState({ start: params.get("start") ?? lastMonth().start, end: params.get("end") ?? lastMonth().end });
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
   const { data } = useQuery({ queryKey: [...KEY, period.start, period.end],
@@ -81,6 +91,8 @@ export default function EreportingPage() {
         {error != null && <Alert color="brique">{error instanceof ApiError ? error.message : "Échec."}</Alert>}
         {data && <>
           {data.warnings.map((w) => <Alert key={w} color="paille">{w}</Alert>)}
+          {data.last_entry_date && data.last_entry_date < period.start && (
+            <Alert color="ardoise">Aucune écriture sur la période : la dernière écriture date du {formatDate(data.last_entry_date)}.</Alert>)}
           {data.pending_days.length > 0 && <Alert color="ardoise">{data.pending_days.length} jour(s) non exporté(s) sur la période.</Alert>}
           <SimpleGrid cols={{ base: 2, md: 3 }}>
             <Paper p="sm"><Text size="sm" c="dimmed">Base HT</Text><MoneyText cents={data.base_cents} fw={700} /></Paper>

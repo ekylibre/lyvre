@@ -9,7 +9,8 @@ const json = (body: unknown) => Promise.resolve(new Response(JSON.stringify(body
 afterEach(() => vi.restoreAllMocks());
 
 const OPTIONS = {
-  entities: [{ value: "4", label: "Coopérative Fictive" }],
+  entities: [{ value: "4", label: "Coopérative Fictive", group: "Coopératives et négoces", journal: "KB" }],
+  journals: [{ value: "KB", label: "KB — Coopérative B" }, { value: "VE", label: "VE — Ventes" }],
   kinds: [{ value: "delivery" as const, label: "Apport" }, { value: "shares" as const, label: "Parts sociales retenues" }],
   accounts: [{ value: "7011", label: "7011 — Ventes de produits végétaux" }], activities: [{ value: "2", label: "Blé tendre" }],
 };
@@ -37,7 +38,7 @@ describe("Décomptes de coopérative", () => {
     const [url, init] = spy.mock.calls[0];
     expect(url).toBe("/api/v1/coop-statements");
     const body = JSON.parse(String((init as RequestInit).body));
-    expect([body.entity_id, body.number, body.statement_date]).toEqual(["4", "DEC-7", "2026-09-30"]);
+    expect([body.entity_id, body.number, body.statement_date, body.journal_code]).toEqual(["4", "DEC-7", "2026-09-30", "KB"]);
     expect(body.lines).toEqual([{ kind: "delivery", label: "Blé tendre", quantity: "", unit: "", amount: "6000", vat_rate: "",
       account_code: "", activity_id: "", campaign_year: "" }]);
   });

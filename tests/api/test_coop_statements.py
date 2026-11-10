@@ -119,3 +119,38 @@ def test_refusals(farm):
 def test_not_agri(app, login_as):
     client = login_as(role="admin")
     assert client.get(API).status_code == 404
+
+
+def test_coop_journal_and_entity_groups(farm):
+    """Essai de l'interface (10/11/2026) : un journal par coopérative (reprise d'un FEC), associés écartés de la liste."""
+    from app.models import Associate, Journal
+    from app.services.ledger import post_entry
+    coop = _coop()
+    coop.customer_account_code = "411900"
+    kb = Journal(code="KB", label="Coopérative B")
+    partner = Entity(name="Associée Fictive")
+    db.session.add_all([kb, partner, Account(code="411900", label="Coop", account_type="TIERS"),
+                        Account(code="455100", label="Associée", account_type="TIERS")])
+    db.session.flush()
+    db.session.add(Associate(entity_id=partner.id, account_id=Account.query.filter_by(code="455100").one().id))
+    db.session.commit()
+    fy = FiscalYear.query.one()
+    ids = {c: Account.query.filter_by(code=c).one().id for c in ("411900", "7011")}
+    post_entry(fy.id, kb.id, date(2026, 3, 1), "apport", [
+        {"account_id": ids["411900"], "label": "x", "debit_cents": 1000, "credit_cents": 0},
+        {"account_id": ids["7011"], "label": "x", "debit_cents": 0, "credit_cents": 1000}])
+    options = farm.get(f"{API}/form-options").get_json()
+    entities = {e["label"]: e for e in options["entities"]}
+    assert "Associée Fictive" not in entities
+    assert entities["Coopérative Fictive"]["journal"] == "KB" and options["entities"][0]["label"] == "Coopérative Fictive"
+    assert entities["Coopérative Fictive"]["group"] == "Coopératives et négoces"
+    assert "OD" not in {j["value"] for j in options["journals"]}
+    assert farm.post(API, json=_body(journal_code="OD")).status_code == 422
+    item = farm.post(API, json=_body(journal_code="KB")).get_json()["item"]
+    assert item["journal_code"] == "KB"
+    if Account.query.filter_by(code="6226").first() is None:
+        db.session.add(Account(code="6226", label="Honoraires", account_type="CHARGE"))
+        db.session.commit()
+    resp = farm.post(f"{API}/{item['id']}/post")
+    assert resp.status_code == 200, resp.get_json()
+    assert db.session.get(JournalEntry, resp.get_json()["item"]["journal_entry"]["id"]).journal.code == "KB"

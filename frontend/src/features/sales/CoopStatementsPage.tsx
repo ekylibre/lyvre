@@ -40,12 +40,12 @@ export interface CoopRow extends Totals {
 }
 
 export interface CoopDetail extends CoopRow {
-  entity_id: string; lines: (CoopLine & { id: number; amount_cents: number; vat_cents: number })[]; problems: string[];
+  entity_id: string; journal_code?: string; lines: (CoopLine & { id: number; amount_cents: number; vat_cents: number })[]; problems: string[];
   journal_entry: { id: number; reference: string } | null; attachment: { name: string; url: string } | null;
 }
 
 interface Options {
-  entities: { value: string; label: string }[]; kinds: { value: Kind; label: string }[];
+  entities: { value: string; label: string; group?: string; journal?: string }[]; journals?: { value: string; label: string }[]; kinds: { value: Kind; label: string }[];
   accounts: { value: string; label: string }[]; activities: { value: string; label: string }[];
 }
 
@@ -71,8 +71,15 @@ export function CoopTotals({ t }: { t: Totals }) {
 export function CoopForm({ statement, options, onDone }: { statement?: CoopDetail; options: Options; onDone: (s?: CoopDetail) => void }) {
   const [head, setHead] = useState({
     entity_id: statement?.entity_id ?? "", number: statement?.number ?? "", statement_date: statement?.statement_date ?? "",
-    label: statement?.label ?? "",
+    label: statement?.label ?? "", journal_code: statement?.journal_code ?? "",
   });
+  const groups = options.entities.reduce<{ group: string; items: { value: string; label: string }[] }[]>((acc, e) => {
+    const name = e.group ?? "Tiers";
+    const g = acc.find((x) => x.group === name);
+    if (g) g.items.push({ value: e.value, label: e.label }); else acc.push({ group: name, items: [{ value: e.value, label: e.label }] });
+    return acc;
+  }, []);
+  const journalOf = (id: string) => options.entities.find((e) => e.value === id)?.journal ?? "";
   const [lines, setLines] = useState<CoopLine[]>(statement?.lines.map(({ id: _id, amount_cents: _a, vat_cents: _v, ...l }) => l) ?? [blank()]);
   const [file, setFile] = useState<File | null>(null);
   const set = (i: number, patch: Partial<CoopLine>) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
@@ -90,9 +97,12 @@ export function CoopForm({ statement, options, onDone }: { statement?: CoopDetai
   return (
     <form onSubmit={(e) => { e.preventDefault(); save.mutate(undefined, { onSuccess: (r) => onDone(r.item) }); }}>
       <Stack>
-        <SimpleGrid cols={{ base: 1, md: 4 }}>
-          <Select label="Coopérative" required searchable data={options.entities} value={head.entity_id || null}
-            onChange={(v) => setHead({ ...head, entity_id: v ?? "" })} />
+        <SimpleGrid cols={{ base: 1, md: 5 }}>
+          <Select label="Coopérative" required searchable data={groups} value={head.entity_id || null}
+            onChange={(v) => setHead({ ...head, entity_id: v ?? "", journal_code: v ? journalOf(v) : head.journal_code })} />
+          {options.journals && (
+            <Select label="Journal" placeholder="Ventes (VE)" data={options.journals}
+              value={head.journal_code || null} onChange={(v) => setHead({ ...head, journal_code: v ?? "" })} clearable />)}
           <TextInput label="N° du décompte" required value={head.number} onChange={(e) => setHead({ ...head, number: e.currentTarget.value })} />
           <TextInput label="Date" type="date" required value={head.statement_date}
             onChange={(e) => setHead({ ...head, statement_date: e.currentTarget.value })} />
@@ -171,7 +181,7 @@ export default function CoopStatementsPage() {
   return (
     <>
       <PageHeader title="Décomptes de coopérative"
-        description="Apports, compléments de prix, ristournes, acomptes, parts sociales et frais : une écriture au journal des ventes, sur le compte de la coopérative ; activité et campagne par apport."
+        description="Apports, compléments de prix, ristournes, acomptes, parts sociales et frais : une écriture au journal des ventes ou à celui de la coopérative, sur le compte de la coopérative ; activité et campagne par apport."
         actions={<Can><Button onClick={() => setEditing("new")}>Nouveau décompte</Button></Can>} />
       <DataGrid id="coop-statements" records={data?.items} columns={columns} fetching={isFetching} emptyText="Aucun décompte saisi." />
 

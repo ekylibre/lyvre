@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "../../test/render";
-import EreportingPage, { DirectSaleCategories, type EreportingData } from "./EreportingPage";
+import EreportingPage, { DirectSaleCategories, lastMonth, type EreportingData } from "./EreportingPage";
 
 const json = (body: unknown) => Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
 afterEach(() => vi.restoreAllMocks());
@@ -38,5 +38,16 @@ describe("E-reporting B2C", () => {
     const [url, init] = spy.mock.calls[0];
     expect(url).toBe("/api/v1/ereporting/categories");
     expect(JSON.parse(String((init as RequestInit).body))).toEqual({ ids: [3] });
+  });
+
+  it("période par défaut : dernier mois terminé ; dernière écriture ; partie double sans catégorie", async () => {
+    expect(lastMonth(new Date(2026, 10, 10))).toEqual({ start: "2026-10-01", end: "2026-10-31" });
+    expect(lastMonth(new Date(2027, 0, 5))).toEqual({ start: "2026-12-01", end: "2026-12-31" });
+    vi.spyOn(globalThis, "fetch").mockImplementation((() => json({ ...DATA, days: [], pending_days: [], categories: [],
+      last_entry_date: "2025-01-31" })) as typeof fetch);
+    renderWithProviders(<EreportingPage />);
+    expect(await screen.findByText(/la dernière écriture date du 31\/01\/2025/)).toBeInTheDocument();
+    expect(screen.getByText(/en partie double,\s+les ventes directes sont celles du journal de caisse/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Enregistrer" })).not.toBeInTheDocument();
   });
 });

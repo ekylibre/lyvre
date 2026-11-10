@@ -5,6 +5,21 @@
 next:
 - kind: fixed
   text: >-
+    E-reporting B2C — l'écran s'ouvre sur le dernier mois terminé, celui qu'on exporte, et signale quand la période
+    suit la dernière écriture. En partie double, le cadre des catégories explique que les ventes directes sont celles
+    du journal de caisse au lieu d'afficher un bouton sans case à cocher.
+  tech: >-
+    api/ereporting._period (mois précédent), last_entry_date ; EreportingPage lastMonth, DirectSaleCategories.
+- kind: improved
+  text: >-
+    Décomptes de coopérative — un dossier tenu avec un journal par coopérative (KA, KB… repris d'un FEC) passe ses
+    décomptes dans ce journal, proposé d'après les écritures de la coopérative. La liste des coopératives les présente
+    d'abord, puis les clients et les autres tiers, sans les associés.
+  tech: >-
+    coop_statements.journal_id (migration e6a8c0d2f4b7), suggested_journals, _journal ; form-options entities
+    (group, journal) et journals ; CoopForm.
+- kind: fixed
+  text: >-
     Ventilation analytique — le taux de couverture se calcule sur les montants nets (avoirs et rabais déduits), comme
     la liste des comptes. Sans activité ni clé, l'écran invite à les créer au lieu d'offrir un choix vide ; le
     formulaire d'affectation est en tête des lignes du compte. Quand des fiches d'immobilisation donnent la dotation de

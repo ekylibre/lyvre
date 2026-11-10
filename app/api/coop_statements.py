@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from flask import jsonify, request, send_file
 
 from app.extensions import db
-from app.models import Account, Activity, CoopStatement, Entity
+from app.models import Account, Activity, Associate, CoopStatement, Entity, Journal
 from app.models.coop_statement import LINE_KINDS, STATUSES
 from app.services import attachments, coop_statements
 from app.services.sale_entry import SaleError
@@ -42,7 +42,7 @@ def _row(st: CoopStatement) -> dict:
 
 
 def _detail(st: CoopStatement) -> dict:
-    return {**_row(st), "entity_id": str(st.entity_id),
+    return {**_row(st), "entity_id": str(st.entity_id), "journal_code": st.journal.code if st.journal else "",
             "lines": [{"id": l.id, "kind": l.kind, "label": l.label, "amount": _money(l.amount_cents),
                        "amount_cents": l.amount_cents, "vat_rate": f"{l.vat_rate_bp / 100:g}".replace(".", ","),
                        "vat_cents": l.vat_cents,
@@ -64,6 +64,25 @@ def coop_statements_list():
     return jsonify(items=[_row(st) for st in rows])
 
 
+def _entities() -> list[dict]:
+    """Coopératives d'abord (journal propre ou décompte déjà saisi), puis clients, puis autres tiers ; sans les associés.
+    `journal` : journal proposé pour le décompte."""
+    journals = coop_statements.suggested_journals()
+    used = {i for (i,) in db.session.query(CoopStatement.entity_id).distinct()}
+    last = {st.entity_id: st.journal.code for st in CoopStatement.query.order_by(CoopStatement.id) if st.journal}
+    associates = {i for (i,) in db.session.query(Associate.entity_id)}
+    out = []
+    for e in Entity.query.order_by(Entity.name):
+        if e.id in associates:
+            continue
+        journal = last.get(e.id) or journals.get(e.id) or "VE"
+        group = ("Coopératives et négoces" if e.id in used or journal != "VE"
+                 else "Clients" if e.customer_account_code else "Autres tiers")
+        out.append({"value": str(e.id), "label": e.name, "group": group, "journal": journal})
+    order = {"Coopératives et négoces": 0, "Clients": 1, "Autres tiers": 2}
+    return sorted(out, key=lambda x: order[x["group"]])
+
+
 @bp.route("/coop-statements/form-options")
 def coop_statements_options():
     _agri_only()
@@ -71,7 +90,9 @@ def coop_statements_options():
                                                                          Account.code.like("26%")))
                 .order_by(Account.code))
     return jsonify(
-        entities=[{"value": str(e.id), "label": e.name} for e in Entity.query.order_by(Entity.name)],
+        entities=_entities(),
+        journals=[{"value": j.code, "label": f"{j.code} — {j.label}"} for j in Journal.query.order_by(Journal.code)
+                  if j.code not in coop_statements.NOT_COOP_JOURNALS],
         kinds=[{"value": k, "label": label} for k, (label, _) in LINE_KINDS.items()],
         accounts=[{"value": a.code, "label": f"{a.code} — {a.label}"} for a in accounts],
         activities=[{"value": str(a.id), "label": a.name}

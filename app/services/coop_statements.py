@@ -24,7 +24,7 @@ from datetime import date
 from decimal import Decimal
 
 from app.extensions import db
-from app.models import Account, Activity, CoopStatement, CoopStatementLine, Entity
+from app.models import Account, Activity, CoopStatement, CoopStatementLine, Entity, Journal, JournalEntry, JournalLine
 from app.models.coop_statement import LINE_KINDS, SALE_KINDS
 from app.models.journal_entry import SOURCE_COOP_STATEMENT
 from app.services import vat_codes
@@ -159,6 +159,44 @@ def _lines(rows, entity: Entity, day: date) -> list[CoopStatementLine]:
     return lines
 
 
+NOT_COOP_JOURNALS = ("OD", "AN", "EX", "TV", "IM", "AC")
+
+
+def suggested_journals() -> dict[int, str]:
+    """Journal habituel de chaque tiers client, pour un dossier tenu avec un journal par coopérative : le journal le plus
+    fréquent des écritures qui touchent son compte 411 sans toucher la trésorerie (5…), hors OD, à-nouveaux, achats…"""
+    customers = {e.customer_account_code: e.id for e in Entity.query.filter(Entity.customer_account_code.isnot(None))}
+    if not customers:
+        return {}
+    treasury = (db.session.query(JournalLine.entry_id).join(Account, Account.id == JournalLine.account_id)
+                .filter(Account.code.like("5%")))
+    rows = (db.session.query(Account.code, Journal.code, db.func.count(db.distinct(JournalEntry.id)))
+            .select_from(JournalLine).join(Account, Account.id == JournalLine.account_id)
+            .join(JournalEntry, JournalEntry.id == JournalLine.entry_id).join(Journal, Journal.id == JournalEntry.journal_id)
+            .filter(Account.code.in_(list(customers)), JournalEntry.id.notin_(treasury),
+                    Journal.code.notin_(NOT_COOP_JOURNALS))
+            .group_by(Account.code, Journal.code).all())
+    best: dict[int, tuple[int, str]] = {}
+    for account, journal, count in rows:
+        entity_id = customers[account]
+        if count > best.get(entity_id, (0, ""))[0]:
+            best[entity_id] = (count, journal)
+    return {entity_id: journal for entity_id, (_c, journal) in best.items()}
+
+
+def _journal(data: dict) -> Journal | None:
+    code = str(data.get("journal_code") or "").strip()
+    if not code:
+        return None
+    journal = Journal.query.filter_by(code=code).first()
+    if journal is None:
+        raise SaleError(f"Journal {code} inconnu.", "journal_code")
+    if code in NOT_COOP_JOURNALS:
+        raise SaleError(f"Le journal {code} ne reçoit pas de décompte : choisissez le journal des ventes ou celui de la "
+                        "coopérative.", "journal_code")
+    return journal
+
+
 def save(st: CoopStatement | None, data: dict) -> CoopStatement:
     if st is not None and st.status != "draft":
         raise SaleError("Décompte comptabilisé : repassez-le en brouillon pour le modifier.", status=409)
@@ -181,6 +219,7 @@ def save(st: CoopStatement | None, data: dict) -> CoopStatement:
         db.session.flush()
     st.entity, st.number, st.statement_date = entity, number, day
     st.label = str(data.get("label") or "").strip()[:200] or None
+    st.journal = _journal(data)
     st.lines = lines
     db.session.flush()
     token = data.get("attachment_token")
@@ -268,7 +307,7 @@ def post(st: CoopStatement) -> CoopStatement:
     fy = fiscal_year_for(st.statement_date)
     try:
         entry = post_entry(
-            fiscal_year_id=fy.id, journal_id=sale_posting._journal().id, entry_date=st.statement_date,  # noqa: SLF001
+            fiscal_year_id=fy.id, journal_id=(st.journal or sale_posting._journal()).id, entry_date=st.statement_date,  # noqa: SLF001
             description=f"Décompte {st.number} — {st.entity.name}"[:500], lines=entry_lines(st, fy.vat_liable),
             source=SOURCE_COOP_STATEMENT, source_ref=f"COOP:{st.id}", commit=False)
     except LedgerError as exc:
