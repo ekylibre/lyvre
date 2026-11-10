@@ -407,3 +407,34 @@ def test_mutual_aid_per_hectare_and_capital_cost_cg6(farm):
     assert any(d["label"] == "dont rémunération du capital" for d in with_capital["details"])
     with pytest.raises(calculators.CalculatorError):
         calculators.run(cost, {**base, "capital_rate": "3"})
+
+
+def test_trial_prefills_offset_year_msa_fallback_and_empty_hint(farm, monkeypatch):
+    """Essai de l'interface (10/11/2026) : simulation micro-BA d'un exercice décalé sur l'exercice clos dans l'année ;
+    assiette MSA reprise de l'écran MSA sans historique ; calculette « préremplie » sans rien à reprendre."""
+    from app.models import Journal, MsaPerson
+    from app.services import msa
+    from app.services.ledger import post_entry
+    fy = FiscalYear(label="2024-2025", start_date=date(2024, 2, 1), end_date=date(2025, 1, 31), vat_liable=True)
+    od = Journal(code="OD", label="OD")
+    db.session.add_all([fy, od])
+    db.session.commit()
+    ids = {c: Account.query.filter_by(code=c).one().id for c in ("512", "7011")}
+    for day, cents in ((date(2024, 3, 1), 10000000), (date(2025, 1, 15), 2000000)):
+        post_entry(fy.id, od.id, day, "vente", [
+            {"account_id": ids["512"], "label": "x", "debit_cents": cents, "credit_cents": 0},
+            {"account_id": ids["7011"], "label": "x", "debit_cents": 0, "credit_cents": cents}])
+    rows = {r["year"]: r for r in ba_regimes.simulation(fy)["receipts"]}
+    assert rows[2025]["receipts_cents"] == 12000000 and rows[2025]["label"] == "exercice 2024-2025"
+    assert rows[2024]["receipts_cents"] is None and rows[2024]["label"] == "clos en 2024"
+    person = MsaPerson(status="principal", base_option="annual")
+    db.session.add(person)
+    db.session.commit()
+    monkeypatch.setattr(msa, "compute", lambda f: {"year": 2025, "people": [
+        {"person": {"id": person.id}, "base_cents": 261136, "income_cents": 261136}]})
+    pre = farm.get(f"{API}/msa?choice={person.id}").get_json()["item"]["prefill"]
+    assert pre["year"]["value"] == "2026" and pre["base"]["value"] == "2611.36"
+    assert "écran MSA" in pre["base"]["origin"]
+    item = farm.get(f"{API}/marge-brute").get_json()["item"]
+    assert item["prefill_options"] == [] and "aucune activité" in item["prefill_empty"]
+    assert farm.get(f"{API}/micro-ba").get_json()["item"]["prefill_empty"] is None

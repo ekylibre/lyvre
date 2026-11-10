@@ -39,6 +39,9 @@ SPEC = Spec(
 )
 
 
+# Essai de l'interface (10/11/2026) : affiché quand rien n'est à reprendre du dossier.
+PREFILL_EMPTY = "aucun bien au registre des immobilisations (Compta › Immobilisations et stocks › Immobilisations)"
+
 def prefill_options(ctx: Context) -> list[dict]:
     from app.models import Asset
     rows = Asset.query.filter(Asset.method != "none", Asset.status == "in_use").order_by(Asset.label)

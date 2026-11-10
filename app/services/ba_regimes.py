@@ -265,12 +265,20 @@ def simulation(fy: FiscalYear) -> dict:
     year = fy.end_date.year
     allowed, why = micro_allowed(fy.end_date)
     receipts = []
+    # Essai de l'interface (10/11/2026) : exercice décalé → recettes de l'exercice clos dans l'année, comme regime()
+    # (règle validée le 09/11/2026), et non l'année civile (un mois pour l'une, onze pour l'autre).
+    offset = (fy.end_date.month, fy.end_date.day) != (12, 31)
     for y in (year - 2, year - 1, year):
-        data = lyvre_receipts(y)
+        period = _closed_in(y) if offset else None
+        if offset:
+            data = lyvre_receipts(y, period.start_date, period.end_date) if period else None
+        else:
+            data = lyvre_receipts(y)
         saved = BaHistoryYear.query.filter_by(year=y).first()
         value = saved.agricultural_receipts_cents if saved and saved.agricultural_receipts_cents is not None else (
             data["agricultural_ht"] + data["custom_work_ht"] if data else None)
-        receipts.append({"year": y, "receipts_cents": value})
+        label = f"exercice {period.label}" if period is not None else _year_label(fy, y)
+        receipts.append({"year": y, "receipts_cents": value, "label": label})
     average = _average([r["receipts_cents"] for r in receipts])
     allowance = _p("ba.micro.allowance_bp", fy.end_date)
     micro = micro_profit(average, fy.end_date)

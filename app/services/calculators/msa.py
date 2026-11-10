@@ -48,6 +48,9 @@ def on_date(values: dict) -> date:
     return latest or wanted
 
 
+# Essai de l'interface (10/11/2026) : affiché quand rien n'est à reprendre du dossier.
+PREFILL_EMPTY = "aucun exploitant (Compta › Fiscal et social › Cotisations MSA)"
+
 def prefill_options(ctx: Context) -> list[dict]:
     from app.models import MsaPerson
     from app.services import msa
@@ -65,13 +68,31 @@ def prefill(ctx: Context) -> dict:
     out = {"status": {"value": person.status, "origin": origin}}
     if person.atexa_category:
         out["atexa"] = {"value": person.atexa_category, "origin": origin}
+    label = "assiette annuelle" if person.base_option == "annual" else "moyenne triennale"
     last = MsaBase.query.filter_by(person_id=person.id).order_by(MsaBase.year.desc()).first()
     if last is not None:
         comp = msa.comparison(person, last.year, None)
         out["year"] = {"value": str(comp["contribution_year"]), "origin": f"revenus {last.year}"}
         if comp["retained_cents"] is not None:
-            label = "assiette annuelle" if person.base_option == "annual" else "moyenne triennale"
             out["base"] = {"value": f"{comp['retained_cents'] / 100:.2f}", "origin": f"{label} (historique MSA)"}
+        return out
+    # Essai de l'interface (10/11/2026) : sans historique enregistré (résultat fiscal non figé), l'assiette calculée
+    # par l'écran MSA sur le dernier exercice.
+    from app.models import FiscalYear
+    fy = FiscalYear.query.order_by(FiscalYear.end_date.desc()).first()
+    if fy is None:
+        return out
+    try:
+        data = msa.compute(fy)
+    except Exception:  # noqa: BLE001 — préremplissage facultatif
+        return out
+    item = next((i for i in data["people"] if i["person"]["id"] == person.id), None)
+    if item is None or item["base_cents"] is None:
+        return out
+    comp = msa.comparison(person, data["year"], item["base_cents"], current_income=item["income_cents"])
+    out["year"] = {"value": str(comp["contribution_year"]), "origin": f"revenus {data['year']} (exercice {fy.label})"}
+    if comp["retained_cents"] is not None:
+        out["base"] = {"value": f"{comp['retained_cents'] / 100:.2f}", "origin": f"{label} (écran MSA, exercice {fy.label})"}
     return out
 
 

@@ -33,6 +33,9 @@ SPEC = Spec(
 )
 
 
+# Essai de l'interface (10/11/2026) : affiché quand rien n'est à reprendre du dossier.
+PREFILL_EMPTY = "aucun bail actif avec un indice de révision (Ventes › Baux et quittances)"
+
 def prefill_options(ctx: Context) -> list[dict]:
     from app.models import Lease
     rows = Lease.query.filter(Lease.status == "active", Lease.index_code.isnot(None)).order_by(Lease.unit_label)

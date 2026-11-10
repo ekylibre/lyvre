@@ -5,6 +5,15 @@
 next:
 - kind: fixed
   text: >-
+    Calculettes — pour un exercice décalé, « Micro-BA ou réel » (et la simulation de Structure › Fiscalité) prend les
+    recettes de l'exercice clos dans chaque année, et non un mois d'une année civile et onze de l'autre. « Cotisations
+    MSA » reprend l'année et l'assiette calculées par l'écran MSA tant que l'historique est vide. Une calculette qui ne
+    trouve rien à reprendre du dossier le dit et indique où créer l'activité, le bien ou le bail.
+  tech: >-
+    ba_regimes.simulation (exercice clos dans l'année, label) ; calculators.msa.prefill (repli sur msa.compute) ;
+    PREFILL_EMPTY et prefill_empty (API) ; CalculatorPage.
+- kind: fixed
+  text: >-
     Assistant — en service, la réponse restait vide sans message : la conversation n'était plus lisible pendant la
     diffusion. Elle est relue au moment de répondre, et une réponse interrompue est désormais signalée. Les tableaux
     de l'assistant s'affichent en tableau ; il lit aussi le bloc « À vérifier » de l'échéancier (exercice manquant…)

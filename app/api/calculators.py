@@ -44,8 +44,10 @@ def calculators_detail(code):
         ctx = Context(chart=_chart(), choice=request.args.get("choice") or None)
         data["prefill_options"] = module.prefill_options(ctx) if hasattr(module, "prefill_options") else None
         data["prefill"] = module.prefill(ctx)
+        data["prefill_empty"] = (getattr(module, "PREFILL_EMPTY", None)
+                                 if data["prefill_options"] == [] and not data["prefill"] else None)
     else:
-        data["prefill_options"], data["prefill"] = None, {}
+        data["prefill_options"], data["prefill"], data["prefill_empty"] = None, {}, None
     data["params"] = calculators.params(spec, date.today())
     return jsonify(item=data)
 

@@ -16,7 +16,7 @@ export interface CalcSpec {
   code: string; number: string; title: string; category: string; category_label: string; summary: string;
   charts: string[]; prefillable: boolean; inputs: CalcInput[]; example: Record<string, string>; method: string;
   sources: { label: string; url: string }[]; prefill_label: string | null;
-  prefill?: Record<string, { value: string; origin: string }>; prefill_options?: { value: string; label: string }[] | null;
+  prefill?: Record<string, { value: string; origin: string }>; prefill_options?: { value: string; label: string }[] | null; prefill_empty?: string | null;
   params?: CalcParam[];
 }
 

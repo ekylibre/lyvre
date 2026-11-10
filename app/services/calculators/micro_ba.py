@@ -47,7 +47,7 @@ def prefill(ctx: Context) -> dict:
     out = {"year": {"value": str(fy.end_date.year), "origin": f"exercice {fy.label}"}}
     for key, row in zip(("receipts_n2", "receipts_n1", "receipts_n"), data["receipts"]):
         if row["receipts_cents"] is not None:
-            out[key] = {"value": f"{row['receipts_cents'] / 100:.2f}", "origin": f"recettes {row['year']} (comptabilité)"}
+            out[key] = {"value": f"{row['receipts_cents'] / 100:.2f}", "origin": f"recettes {row.get('label') or row['year']} (comptabilité)"}
     if data.get("real_result_cents") is not None:
         out["real_result"] = {"value": f"{data['real_result_cents'] / 100:.2f}", "origin": data["real_basis"]}
     return out

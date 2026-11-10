@@ -35,6 +35,9 @@ def _fy():
     return open_fiscal_year_for(date.today()) or FiscalYear.query.order_by(FiscalYear.end_date.desc()).first()
 
 
+# Essai de l'interface (10/11/2026) : affiché quand rien n'est à reprendre du dossier.
+PREFILL_EMPTY = "aucune activité (Gestion › Activités)"
+
 def prefill_options(ctx: Context) -> list[dict]:
     from app.services import analytic_margins
     fy = _fy()

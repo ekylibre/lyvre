@@ -150,6 +150,8 @@ export default function CalculatorPage() {
       {spec.prefill_options && spec.prefill_options.length > 0 && (
         <Select mb="md" w={360} label={`Préremplir depuis : ${(spec.prefill_label ?? "").toLowerCase()}`} clearable
           data={spec.prefill_options} value={choice} onChange={setChoice} />)}
+      {spec.prefill_empty && (
+        <Text size="sm" c="dimmed" mb="md">Rien à reprendre du dossier : {spec.prefill_empty}. Saisissez les valeurs à la main.</Text>)}
       <CalculatorForm key={JSON.stringify(spec.prefill ?? {})} spec={spec} />
     </>
   );
