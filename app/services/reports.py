@@ -337,9 +337,25 @@ BILAN_LAYOUTS = {
 }
 
 
+def _depreciation_of(prefixes):
+    """Comptes d'amortissement et de dépréciation d'immobilisations brutes (213 → 2813, 2913), ou None si la ligne
+    n'est pas une ligne d'immobilisations (classe 2 hors 28 / 29)."""
+    if not prefixes or not all(p.startswith("2") and p[:2] not in ("28", "29") for p in prefixes):
+        return None
+    return [f"{head}{p[1:]}" for p in prefixes for head in ("28", "29")]
+
+
+def _is_depreciation_row(prefixes):
+    return bool(prefixes) and all(p[:2] in ("28", "29") for p in prefixes)
+
+
 def _build_bilan_side(lines, default_mode, fy, fy_prev):
+    """Actif : chaque ligne d'immobilisations porte son brut et ses amortissements (213 / 2813…), la valeur nette en
+    `n` ; la ligne globale des amortissements ne garde que ce qui n'a pu être rapproché d'une ligne (essai de
+    l'interface, 10/11/2026)."""
     out = []
     n_rows, p_rows = [], []
+    allocated = {"n": 0, "p": 0}
     for line in lines:
         kind, label = line[0], line[1]
         if kind == "section":
@@ -350,9 +366,22 @@ def _build_bilan_side(lines, default_mode, fy, fy_prev):
             exclude = line[5] if len(line) > 5 else None
             n = _amount(mode, prefixes, fy.id, exclude) if fy else 0
             p = _amount(mode, prefixes, fy_prev.id, exclude) if fy_prev else None
-            n_rows.append(n)
-            p_rows.append(p)
-            out.append({"kind": "row", "label": label, "indent": indent, "n": n, "p": p})
+            row = {"kind": "row", "label": label, "indent": indent, "n": n, "p": p}
+            depreciation = _depreciation_of(prefixes) if default_mode == "debit" and mode == "debit" else None
+            if depreciation:
+                dep_exclude = _depreciation_of(exclude) if exclude else None
+                dep_n = _amount("debit", depreciation, fy.id, dep_exclude) if fy else 0
+                dep_p = _amount("debit", depreciation, fy_prev.id, dep_exclude) if fy_prev else None
+                row.update(gross=n, depreciation=-dep_n, n=n + dep_n, p=None if p is None else p + (dep_p or 0))
+                allocated["n"] += dep_n
+                allocated["p"] += dep_p or 0
+            elif default_mode == "debit" and _is_depreciation_row(prefixes):
+                row.update(n=n - allocated["n"], p=None if p is None else p - allocated["p"], unallocated=True)
+                if allocated["n"] or allocated["p"]:
+                    row["label"] = f"{label} non rapprochés d'une ligne"
+            n_rows.append(row["n"])
+            p_rows.append(row["p"])
+            out.append(row)
         elif kind == "total":
             out.append({"kind": "total", "label": label,
                         "n": sum(n_rows), "p": _sum_opt(p_rows)})

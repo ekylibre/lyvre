@@ -83,6 +83,21 @@ class FecEntry:
         return sum(line.debit - line.credit for line in self.lines)
 
 
+# Journaux d'à-nouveaux usuels des logiciels comptables (FEC : JournalCode).
+OPENING_JOURNALS = {"AN", "RAN", "ANO", "ANX", "AN0", "ANOUV", "ANV"}
+
+
+def is_opening(entry: FecEntry, start: date) -> bool:
+    """À-nouveaux du fichier (essai de l'interface, 10/11/2026) : écriture du premier jour de l'exercice, en journal
+    d'à-nouveaux (code usuel ou libellé « à-nouveau »), qui ne touche que les comptes de bilan (classes 1 à 5).
+    Marquée comme ouverture, elle est écartée des calculs de flux (TVA, trésorerie, analytique, stocks, annexes…)."""
+    if entry.day != start or not entry.lines:
+        return False
+    label = (entry.lines[0].journal_label or "").lower().replace("-", " ")
+    named = entry.journal.strip().upper() in OPENING_JOURNALS or "a nouveau" in label or "à nouveau" in label
+    return named and all((line.account or "")[:1] in "12345" for line in entry.lines)
+
+
 # ------------------------------------------------------------------ lecture
 
 
@@ -397,7 +412,7 @@ def import_history(content: bytes, filename: str, start: date, end: date, overri
                      "credit_cents": l.credit} for l in entry.lines]
             created = post_entry(fy.id, journals[entry.journal[:10] or "OD"].id, entry.day,
                                  (entry.lines[0].label or entry.piece or entry.number)[:500], rows,
-                                 source=SOURCE_FEC_IMPORT, source_ref=f"{entry.journal}{entry.number}"[:200],
+                                 source=SOURCE_OPENING if is_opening(entry, fy.start_date) else SOURCE_FEC_IMPORT, source_ref=f"{entry.journal}{entry.number}"[:200],
                                  reference=(entry.piece or None) and entry.piece[:50], commit=False)
             posted.append(created)
             for line, model in zip(entry.lines, sorted(created.lines, key=lambda x: x.id)):

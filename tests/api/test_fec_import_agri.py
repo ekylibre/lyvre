@@ -125,3 +125,31 @@ def test_not_agri(app, login_as):
     analysis = _post(client, "/api/v1/imports/fec/analyze", _fec(ROWS)).get_json()
     assert analysis["pcga1986"] is False
     assert {r["key"]: r for r in analysis["accounts"]}["60110000"]["target_code"] == "60110000"
+
+
+def test_history_opening_entry_is_marked_as_opening(farm):
+    """Les à-nouveaux du fichier (journal AN, premier jour, comptes de bilan) deviennent l'ouverture (10/11/2026)."""
+    from datetime import date
+    from app.models import JournalEntry
+    from app.models.journal_entry import SOURCE_FEC_IMPORT, SOURCE_OPENING
+    rows = [_row("AN", "0", "20250101", "24100000", "Animaux reproducteurs", "500,00", "0,00"),
+            _row("AN", "0", "20250101", "10100000", "Capital", "0,00", "500,00"),
+            # Écriture du premier jour hors journal d'à-nouveaux : mouvement ordinaire.
+            _row("OD", "9", "20250101", "51200100", "Banque", "10,00", "0,00"),
+            _row("OD", "9", "20250101", "10100000", "Capital", "0,00", "10,00"), *ROWS]
+    resp = _post(farm, "/api/v1/imports/fec", _fec(rows), mode="history", start_date="2025-01-01", end_date="2025-12-31")
+    assert resp.status_code == 200, resp.get_json()
+    sources = {e.journal.code: e.source for e in JournalEntry.query.filter_by(entry_date=date(2025, 1, 1))}
+    assert sources["AN"] == SOURCE_OPENING and sources["OD"] == SOURCE_FEC_IMPORT
+    assert JournalEntry.query.filter_by(source=SOURCE_OPENING).count() == 1
+
+
+def test_is_opening_rule():
+    from datetime import date
+    line = lambda account, journal_label="A nouveaux": fec_import.FecLine(  # noqa: E731
+        "RAN", journal_label, "1", date(2025, 1, 1), account, "", "", "", "", "", 100, 0, "", None)
+    entry = fec_import.FecEntry("RAN", "1", date(2025, 1, 1), "", [line("411"), line("101")])
+    assert fec_import.is_opening(entry, date(2025, 1, 1))
+    assert not fec_import.is_opening(entry, date(2025, 2, 1))
+    entry.lines.append(line("7011"))
+    assert not fec_import.is_opening(entry, date(2025, 1, 1))

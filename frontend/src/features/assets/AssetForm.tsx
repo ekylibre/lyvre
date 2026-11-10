@@ -11,8 +11,14 @@ import { useProjectOptions } from "../projects/LineProjectModal";
 import { ASSETS_KEY, isLivingAccount, type AssetItem, type AssetsMeta } from "./types";
 import { ActivitySelect, useAnalyticTargets } from "../../components/AnalyticSelect";
 
-export function AssetForm({ asset, meta, parentId, onDone }: {
-  asset: AssetItem | null; meta: AssetsMeta; parentId?: number; onDone: (item?: AssetItem) => void;
+/** Valeurs proposées pour une nouvelle fiche (reprise d'une immobilisation déjà comptabilisée). */
+export interface AssetDraft {
+  label?: string; account_id?: string; acquired_on?: string; acquisition_cents?: number | null;
+  prior_depreciation_cents?: number; prior_as_of?: string; notes?: string;
+}
+
+export function AssetForm({ asset, meta, parentId, onDone, draft }: {
+  asset: AssetItem | null; meta: AssetsMeta; parentId?: number; onDone: (item?: AssetItem) => void; draft?: AssetDraft;
 }) {
   const [error, setError] = useState<string | null>(null);
   const projects = useProjectOptions().data?.items ?? [];
@@ -28,6 +34,7 @@ export function AssetForm({ asset, meta, parentId, onDone }: {
     living_kind: asset?.living?.kind ?? "", species: asset?.living?.species ?? "", age_class: asset?.living?.age_class ?? "",
     units: asset?.living?.units != null ? String(asset.living.units) : "", origin: asset?.living?.origin ?? "",
     full_first_year: asset ? !!asset.full_first_year : true,
+    ...(asset ? {} : draft),
   } });
   const accountLabel = meta.accounts.find((o) => o.value === form.values.account_id)?.label;
   const living = isLivingAccount(accountLabel);

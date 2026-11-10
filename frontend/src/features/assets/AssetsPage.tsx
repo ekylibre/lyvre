@@ -12,7 +12,9 @@ import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink, useGoTo } from "../../app/navigation";
-import { AssetForm } from "./AssetForm";
+import { AssetForm, type AssetDraft } from "./AssetForm";
+import { LedgerGapsCard } from "./LedgerGapsCard";
+import { useCan } from "../../api/session";
 import { ReinvestmentsPanel } from "./ReinvestmentsPanel";
 import { ASSETS_KEY, STATUS_TONES, type AssetItem, type AssetsMeta } from "./types";
 import { CalculatorLink } from "../tools/CalculatorLink";
@@ -35,7 +37,10 @@ export default function AssetsPage() {
   const query = new URLSearchParams({ ...(params.status ? { status: params.status } : {}), ...(params.living ? { living: "1" } : {}) }).toString();
   const { data, isFetching } = useList<AssetItem, AssetsMeta>(ASSETS_KEY, `/api/v1/assets${query ? `?${query}` : ""}`);
   const [creating, setCreating] = useState(false);
+  const [draft, setDraft] = useState<AssetDraft | undefined>();
+  const can = useCan();
   const goTo = useGoTo();
+  const close = () => { setCreating(false); setDraft(undefined); };
   return (
     <>
       <PageHeader title="Immobilisations" description="Registre des immobilisations : plan d'amortissement par fiche (linéaire ou dégressif, année de 360 jours), dotations passées à la clôture."
@@ -49,10 +54,11 @@ export default function AssetsPage() {
         {data?.meta?.living_kinds && data.items.some((a) => a.living) || params.living ? (
           <Checkbox label="Biens vivants" checked={!!params.living} onChange={(e) => setParams({ living: e.currentTarget.checked ? "1" : "" })} />) : null}
       </FilterBar>
+      <LedgerGapsCard canWrite={can.write} onCreate={(d) => { setDraft(d); setCreating(true); }} />
       <DataGrid id="assets" records={data?.items} columns={COLUMNS} fetching={isFetching} emptyText="Aucune immobilisation." />
       {params.living && <ReinvestmentsPanel />}
-      <FormModal opened={creating} onClose={() => setCreating(false)} title="Nouvelle immobilisation" size="xl">
-        {creating && data?.meta && <AssetForm asset={null} meta={data.meta} onDone={(item) => { setCreating(false); if (item) goTo(`/assets/${item.id}`); }} />}
+      <FormModal opened={creating} onClose={close} title={draft ? "Fiche de reprise" : "Nouvelle immobilisation"} size="xl">
+        {creating && data?.meta && <AssetForm asset={null} meta={data.meta} draft={draft} onDone={(item) => { close(); if (item) goTo(`/assets/${item.id}`); }} />}
       </FormModal>
     </>
   );

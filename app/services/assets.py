@@ -725,3 +725,84 @@ def annex(fy: FiscalYear) -> list[dict]:
         row["gross_end"] = row["gross_start"] + row["increases"] - row["decreases"]
         row["depr_end"] = row["depr_start"] + row["dotations"] - row["depr_decreases"]
     return [r for _, r in sorted(rows.items()) if any(isinstance(v, int) and v for v in r.values())]
+
+
+# ------------------------------------------------------------------ immobilisations comptabilisées sans fiche
+# Essai de l'interface (10/11/2026) : reprise d'un FEC, le grand livre porte des immobilisations que le registre ignore.
+
+LEDGER_PREFIXES = ("20", "21", "22", "24")
+# Comptes dont on attend des amortissements (bâtiments, matériel, autres corporels, biens vivants immobilisés).
+DEPRECIABLE_PREFIXES = ("213", "214", "215", "218", "241", "243", "246")
+
+
+def _ledger_balances(prefixes, until: date, opening_of: "FiscalYear | None" = None) -> dict[int, int]:
+    """Solde débiteur par compte jusqu'à `until` ; avec `opening_of`, à-nouveaux de cet exercice seulement."""
+    from app.models import JournalEntry, JournalLine
+    from app.models.journal_entry import SOURCE_OPENING
+    query = (db.session.query(JournalLine.account_id, db.func.sum(JournalLine.debit_cents - JournalLine.credit_cents))
+             .join(JournalEntry, JournalEntry.id == JournalLine.entry_id)
+             .join(Account, Account.id == JournalLine.account_id)
+             .filter(db.or_(*[Account.code.like(f"{p}%") for p in prefixes])))
+    if opening_of is not None:
+        query = query.filter(JournalEntry.fiscal_year_id == opening_of.id, JournalEntry.source == SOURCE_OPENING)
+    else:
+        query = query.filter(JournalEntry.entry_date <= until)
+    return {account_id: int(total or 0) for account_id, total in query.group_by(JournalLine.account_id)}
+
+
+def _depreciation_owner(dep_code: str, gross_codes: list[str]) -> str | None:
+    """Compte brut d'un compte d'amortissement : le plus long dont l'image (213 → 2813) préfixe le compte (28135 → 2135
+    s'il existe, sinon 213)."""
+    candidates = [c for c in gross_codes if dep_code.startswith(f"{dep_code[:2]}{c[1:]}")]
+    if candidates:
+        return max(candidates, key=len)
+    # Amortissement tenu sur un compte plus court que le brut (2815 pour 2154) : le premier compte brut couvert.
+    covered = sorted(c for c in gross_codes if f"{dep_code[:2]}{c[1:]}".startswith(dep_code))
+    return covered[0] if covered else None
+
+
+def _related(dep_code: str, code: str) -> bool:
+    image = f"{dep_code[:2]}{code[1:]}"
+    return dep_code.startswith(image) or image.startswith(dep_code)
+
+
+def ledger_gaps(fy: "FiscalYear") -> list[dict]:
+    """Comptes d'immobilisations (20, 21, 22, 24) dont le brut du grand livre à la clôture diffère du registre.
+
+    Pour chacun : brut du grand livre et du registre, écart, amortissements du grand livre (à la clôture et aux
+    à-nouveaux, proposés comme cumul antérieur d'une fiche de reprise), et `no_depreciation` pour un compte
+    amortissable sans aucun amortissement.
+    """
+    gross = _ledger_balances(LEDGER_PREFIXES, fy.end_date)
+    if not any(gross.values()):
+        return []
+    accounts = {a.id: a for a in Account.query.filter(Account.id.in_(list(gross)))}
+    dep_accounts = {a.id: a.code for a in Account.query.filter(db.or_(Account.code.like("28%"), Account.code.like("29%")))}
+    dep_end = _ledger_balances(("28", "29"), fy.end_date)
+    dep_open = _ledger_balances(("28", "29"), fy.start_date, opening_of=fy)
+    codes = [a.code for a in accounts.values()]
+    owner = {i: _depreciation_owner(c, codes) for i, c in dep_accounts.items() if dep_end.get(i) or dep_open.get(i)}
+    registered: dict[int, int] = {}
+    for asset in Asset.query.filter(~Asset.components.any(), Asset.acquired_on <= fy.end_date):
+        if asset.status in ("sold", "scrapped") and asset.disposal_date and asset.disposal_date <= fy.end_date:
+            continue
+        registered[asset.account_id] = registered.get(asset.account_id, 0) + (asset.acquisition_cents or 0)
+    out = []
+    for account_id, ledger in sorted(gross.items(), key=lambda kv: accounts[kv[0]].code):
+        account = accounts[account_id]
+        register = registered.get(account_id, 0)
+        if ledger == register:
+            continue
+        dep_ids = [i for i, o in owner.items() if o == account.code]
+        depreciation = -sum(dep_end.get(i, 0) for i in dep_ids)
+        opening_depreciation = -sum(dep_open.get(i, 0) for i in dep_ids)
+        related = any(_related(dep_accounts[i], account.code) for i in owner)
+        # Comptes bruts couverts par les mêmes amortissements (2813 pour 213 et 2135) : à lire ensemble.
+        shared = sorted({c for i in dep_ids for c in codes if c != account.code and _related(dep_accounts[i], c)})
+        out.append({"account": {"id": account.id, "code": account.code, "label": account.label},
+                    "ledger_cents": ledger, "register_cents": register, "gap_cents": ledger - register,
+                    "depreciation_cents": depreciation, "opening_depreciation_cents": opening_depreciation,
+                    "depreciation_accounts": sorted(dep_accounts[i] for i in dep_ids), "shared_with": shared,
+                    "prior_as_of": (fy.start_date - timedelta(days=1)).isoformat(),
+                    "no_depreciation": ledger > 0 and not related and account.code.startswith(DEPRECIABLE_PREFIXES)})
+    return out

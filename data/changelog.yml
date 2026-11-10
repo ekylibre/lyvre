@@ -3,6 +3,43 @@
 # kind : new | improved | fixed | action ; structure : asso | sci (absent : toutes) ;
 # text : pour l'utilisateur ; tech : précision pour CHANGELOG.md seulement.
 next:
+- kind: fixed
+  text: >-
+    Reprise d'un FEC — les à-nouveaux du fichier (journal AN, RAN ou ANO du premier jour, comptes de bilan seulement)
+    sont désormais reconnus comme écritures d'ouverture ; ils ne comptent plus comme des mouvements de l'exercice
+    (annexe des biens vivants, TVA, trésorerie, analytique, stocks…). Les à-nouveaux déjà importés sont requalifiés,
+    sans changer les montants.
+  tech: >-
+    fec_import.is_opening (OPENING_JOURNALS), source OPENING à l'import de l'historique ; migration d5f7b9c1e3a6.
+- kind: improved
+  text: >-
+    Bilan — l'actif détaille chaque ligne d'immobilisations en brut, amortissements et dépréciations, et net (comme la
+    liasse) ; la ligne globale des amortissements ne garde que ce qui ne se rapproche d'aucune ligne.
+  tech: >-
+    reports._build_bilan_side : gross / depreciation par ligne de classe 2 (213 → 2813, 2913), ligne 28 / 29
+    « unallocated » ; StatementTable (colonnes Brut, Amort. et dépréc.), BilanPage (actif plus large).
+- kind: improved
+  text: >-
+    Immobilisations — encart « Immobilisations comptabilisées sans fiche » : par compte, brut du grand livre et du
+    registre, écart et amortissements du grand livre ; « Créer la fiche » ouvre une fiche de reprise préremplie (valeur
+    d'origine, cumul amorti des à-nouveaux), sans écriture. Les comptes amortissables sans aucun amortissement (biens
+    vivants immobilisés, bâtiments, matériel) sont signalés.
+  tech: >-
+    assets.ledger_gaps, GET /api/v1/assets/ledger-gaps ; LedgerGapsCard, AssetForm (draft).
+- kind: improved
+  text: >-
+    Aides et subventions — une écriture d'aide globale (aide de base, paiement redistributif, écorégime…) se ventile
+    entre plusieurs dossiers : on en rattache une part, le reste demeure dans « Aides comptabilisées sans dossier ».
+  tech: >-
+    aid_payments.journal_line_id non unique (migration c4e6a8b0d2f5), montants par ligne (amounts) à la création et au
+    rattachement, reste par ligne (total_cents).
+- kind: improved
+  text: >-
+    Régime des bénéfices agricoles (exercice décalé) — la moyenne triennale des recettes porte sur les exercices clos
+    au cours de chacune des trois années, et non plus sur les années civiles ; un exercice de moins de 12 mois dans la
+    moyenne est signalé.
+  tech: >-
+    ba_regimes.year_receipts(by_fiscal_year), _closed_in ; période affichée par année (BaRegimePanel).
 - kind: improved
   text: >-
     Inventaire de clôture — « Partir des stocks initiaux » pour un premier inventaire dans Lyvre (reprise d'historique) :

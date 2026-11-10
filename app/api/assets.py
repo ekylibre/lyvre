@@ -53,6 +53,18 @@ def assets_list():
     return jsonify(items=items, meta=_meta())
 
 
+@bp.route("/assets/ledger-gaps")
+def assets_ledger_gaps():
+    """Immobilisations comptabilisées sans fiche : écart entre le grand livre et le registre, par compte."""
+    fy_id = request.args.get("fy_id", type=int)
+    fy = (db.session.get(FiscalYear, fy_id) if fy_id else None) or (
+        FiscalYear.query.filter(FiscalYear.start_date <= date.today()).order_by(FiscalYear.start_date.desc()).first()
+        or FiscalYear.query.order_by(FiscalYear.start_date.desc()).first())
+    if fy is None:
+        return jsonify(items=[], fiscal_year=None)
+    return jsonify(items=assets.ledger_gaps(fy), fiscal_year={"id": fy.id, "label": fy.label, "end_date": fy.end_date.isoformat()})
+
+
 @bp.route("/assets", methods=["POST"])
 def assets_create():
     try:
