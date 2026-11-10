@@ -20,7 +20,8 @@ interface Day {
 }
 
 export interface EreportingData {
-  start: string; end: string; last_entry_date?: string | null; days: Day[]; base_cents: number; tax_cents: number; pending_days: string[]; warnings: string[];
+  start: string; end: string; last_entry_date?: string | null;
+  obligation?: { size: string; size_label: string; defaulted: boolean; start: string | null; mandatory: boolean }; days: Day[]; base_cents: number; tax_cents: number; pending_days: string[]; warnings: string[];
   categories: { id: number; label: string; account: string; direct_sale: boolean }[];
   exports: { id: number; start: string; end: string; transactions: number; base_cents: number; tax_cents: number; exported_at: string }[];
 }
@@ -91,6 +92,13 @@ export default function EreportingPage() {
         {error != null && <Alert color="brique">{error instanceof ApiError ? error.message : "Échec."}</Alert>}
         {data && <>
           {data.warnings.map((w) => <Alert key={w} color="paille">{w}</Alert>)}
+          {data.obligation?.start && (
+            <Text size="sm" c="dimmed">
+              {data.obligation.mandatory ? "E-reporting obligatoire depuis le " : "E-reporting obligatoire à partir du "}
+              {formatDate(data.obligation.start)} pour votre entreprise ({data.obligation.size_label}
+              {data.obligation.defaulted ? ", par défaut : précisez la taille dans Structure › Fiscalité" : ""}).
+              {!data.obligation.mandatory && " D'ici là, l'export reste possible si vous entrez plus tôt dans le dispositif."}
+            </Text>)}
           {data.last_entry_date && data.last_entry_date < period.start && (
             <Alert color="ardoise">Aucune écriture sur la période : la dernière écriture date du {formatDate(data.last_entry_date)}.</Alert>)}
           {data.pending_days.length > 0 && <Alert color="ardoise">{data.pending_days.length} jour(s) non exporté(s) sur la période.</Alert>}

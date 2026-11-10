@@ -44,6 +44,9 @@ KINDS = {
     "vat_regime": {"label": "Régime de TVA", "values": {
         "none": "Non assujetti", "rfa": "Remboursement forfaitaire agricole", "rsa_installments": "RSA : acomptes et CA12A",
         "rsa_quarterly": "RSA : CA3 trimestrielle", "rsa_monthly": "RSA : CA3 mensuelle", "normal": "Réel normal (CA3)"}},
+    # Essai de l'interface (10/11/2026) : date d'obligation d'émission et d'e-reporting (data/regulatory/einvoice.json).
+    "company_size": {"label": "Taille d'entreprise (facturation électronique)", "values": {
+        "sme": "PME ou micro-entreprise", "large": "Grande entreprise ou ETI"}},
 }
 ORIGINS = {"law": "De plein droit", "option": "Sur option"}
 OPTIONS = {

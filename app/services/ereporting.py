@@ -88,6 +88,17 @@ def lines(start: date, end: date) -> tuple[list[dict], list[str]]:
     return out, warnings
 
 
+def obligation(on: date | None = None) -> dict:
+    """Date d'obligation de l'e-reporting selon la taille déclarée (Structure › Fiscalité), PME par défaut."""
+    from app.services import reg_params, tax_profile
+    on = on or date.today()
+    size = tax_profile.current_value("company_size", on)
+    key = size or "sme"
+    start = reg_params.value(f"einvoice.issue_start.{key}", on, default=None)
+    return {"size": key, "size_label": tax_profile.KINDS["company_size"]["values"][key], "defaulted": size is None,
+            "start": start, "mandatory": bool(start) and on.isoformat() >= start}
+
+
 def _tax(base: int, rate_bp: int) -> int:
     return int((Decimal(base) * rate_bp / 10000).quantize(Decimal("1")))
 

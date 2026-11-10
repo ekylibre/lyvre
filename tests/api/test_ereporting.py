@@ -155,3 +155,18 @@ def test_default_period_is_last_full_month(farm):
     end = date.today().replace(day=1) - timedelta(days=1)
     assert (data["start"], data["end"]) == (end.replace(day=1).isoformat(), end.isoformat())
     assert "last_entry_date" in data
+
+
+def test_obligation_by_company_size(farm):
+    """Dates d'obligation (data/regulatory/einvoice.json) : PME par défaut, grande entreprise ou ETI déclarée."""
+    from datetime import date
+    from app.extensions import db
+    from app.models import TaxProfile
+    from app.services import ereporting
+    sme = ereporting.obligation(date(2026, 11, 10))
+    assert (sme["size"], sme["defaulted"], sme["start"], sme["mandatory"]) == ("sme", True, "2027-09-01", False)
+    db.session.add(TaxProfile(kind="company_size", value="large", start_date=date(2020, 1, 1)))
+    db.session.commit()
+    large = ereporting.obligation(date(2026, 11, 10))
+    assert (large["start"], large["mandatory"], large["defaulted"]) == ("2026-09-01", True, False)
+    assert farm.get(API).get_json()["obligation"]["size"] == "large"

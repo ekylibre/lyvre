@@ -45,6 +45,7 @@ def ereporting_view():
     data["categories"] = [{"id": c.id, "label": c.label, "account": c.account.code, "direct_sale": c.direct_sale}
                           for c in SimpleCategory.query.filter_by(kind="income", active=True).order_by(SimpleCategory.position)]
     last = db.session.query(db.func.max(JournalEntry.entry_date)).scalar()
+    data["obligation"] = ereporting.obligation()
     data["last_entry_date"] = last.isoformat() if last else None
     data["exports"] = [{"id": e.id, "start": e.start_date.isoformat(), "end": e.end_date.isoformat(),
                         "transactions": e.transactions, "base_cents": e.base_cents, "tax_cents": e.tax_cents,

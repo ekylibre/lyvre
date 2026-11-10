@@ -3,6 +3,14 @@
 # kind : new | improved | fixed | action ; structure : asso | sci (absent : toutes) ;
 # text : pour l'utilisateur ; tech : précision pour CHANGELOG.md seulement.
 next:
+- kind: new
+  text: >-
+    Facturation électronique — l'écran e-reporting indique la date à laquelle l'émission et l'e-reporting deviennent
+    obligatoires pour l'entreprise : 1er septembre 2026 pour une grande entreprise ou une ETI, 1er septembre 2027 pour
+    une PME ou une micro-entreprise (taille à déclarer dans Structure › Fiscalité, PME par défaut).
+  tech: >-
+    data/regulatory/einvoice.json (einvoice.reception_start, issue_start.large, issue_start.sme) ;
+    tax_profile.KINDS company_size ; ereporting.obligation.
 - kind: fixed
   text: >-
     E-reporting B2C — l'écran s'ouvre sur le dernier mois terminé, celui qu'on exporte, et signale quand la période
