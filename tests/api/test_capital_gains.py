@@ -92,3 +92,16 @@ def test_tax_credits(farm):
     assert items == {"organic": 0, "replacement": 84000, "hve": 250000}       # HVE 2 500 € (exercice clos en 2026)
     assert client.put(f"{url}/tax-credits/other", json={}).status_code == 422
     assert client.delete(f"{url}/tax-credits/hve").status_code == 200
+
+
+def test_151_septies_with_a_missing_year(farm):
+    """Essai de l'interface (10/11/2026) : une année inconnue n'est pas une moyenne ; elle compte pour 0 et ne conclut
+    que si les recettes connues dépassent déjà le seuil haut (0 %, même sans ancienneté connue)."""
+    client, url = farm["client"], farm["url"]
+    client.put("/api/v1/ba-history/2025", json={"agricultural_receipts_cents": 20000000})
+    s = client.get(f"{url}/capital-gains").get_json()["item"]["septies"]
+    assert s["average_cents"] is None and s["rate_bp"] is None and s["missing_years"] == [2024] and "2024" in s["detail"]
+    client.put("/api/v1/ba-history/2025", json={"agricultural_receipts_cents": 140000000})
+    client.put(f"{url}/capital-gains", json={"activity_since": "2023-01-01"})                 # moins de 5 ans
+    s = client.get(f"{url}/capital-gains").get_json()["item"]["septies"]
+    assert s["rate_bp"] == 0 and "pour 0" in s["detail"]

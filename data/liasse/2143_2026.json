@@ -10,6 +10,10 @@
  ],
  "read_on": "2026-11-05",
  "reliability": "I",
+ "balance_sheet_tables": [
+  "2144-SD",
+  "2145-SD"
+ ],
  "tables": [
   {
    "code": "2143-SD",

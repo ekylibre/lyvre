@@ -11,6 +11,9 @@
  ],
  "read_on": "2026-11-05",
  "reliability": "I",
+ "balance_sheet_tables": [
+  "2139-A-SD"
+ ],
  "tables": [
   {
    "code": "2139-SD",
@@ -131,7 +134,10 @@
      "accounts": [
       "213",
       "214",
-      "2121"
+      "212"
+     ],
+     "exclude": [
+      "2125"
      ],
      "mode": "debit"
     },

@@ -227,3 +227,16 @@ def test_offset_year_average_uses_fiscal_years_closed_in_each_year(app, login_as
     assert by_year[2025]["threshold_cents"] == 50_000_00
     assert by_year[2023]["source"] == "missing"
     assert any("Exercice décalé" in w for w in r["warnings"])
+
+
+def test_averaging_history_columns_in_order_for_an_offset_year(app, login_as):
+    """Essai de l'interface (10/11/2026) : un seul exercice dans Lyvre (02/2024-01/2025) ; les années saisies viennent
+    avant lui, de la plus ancienne à la plus récente, et se lisent « clos en »."""
+    from app.services import ba_regimes
+    login_as(role="admin")
+    _agri_instance()
+    fy = FiscalYear(label="2024-2025", start_date=date(2024, 2, 1), end_date=date(2025, 1, 31))
+    db.session.add(fy)
+    db.session.commit()
+    assert ba_regimes.averaging_history(fy)["labels"] == ["clos en 2023", "clos en 2024", "2024-2025"]
+    assert [p["label"] for p in ba_regimes.previous_results(fy)] == ["clos en 2024", "clos en 2023", "clos en 2022"]

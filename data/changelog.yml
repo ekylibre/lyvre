@@ -5,6 +5,21 @@
 next:
 - kind: fixed
   text: >-
+    Aide à la liasse 2139 — le compte 212 tenu sans sous-compte (reprise d'un FEC) est repris en constructions, avec
+    son amortissement 2812 ; l'actif ne s'écarte plus du passif. Tout compte de bilan qu'aucune case ne reprend est
+    désormais nommé dans un avertissement, avec son solde.
+  tech: >-
+    2139_2026.json case AJ (212 hors 2125) ; balance_sheet_tables et liasse.uncovered_accounts.
+- kind: fixed
+  text: >-
+    Résultat fiscal — l'historique de la moyenne triennale (75-0 B) présente les années dans l'ordre ; en exercice
+    décalé, une année saisie se lit « clos en ». L'exonération 151 septies montre les recettes de chacune des deux
+    années civiles et ne présente plus une seule année comme une moyenne ; quand les recettes connues dépassent déjà le
+    seuil haut, elle conclut à l'absence d'exonération.
+  tech: >-
+    ba_regimes.averaging_history, _year_label ; capital_gains.septies (missing_years, minimum à 0 pour l'année inconnue).
+- kind: fixed
+  text: >-
     Reprise d'un FEC — les à-nouveaux du fichier (journal AN, RAN ou ANO du premier jour, comptes de bilan seulement)
     sont désormais reconnus comme écritures d'ouverture ; ils ne comptent plus comme des mouvements de l'exercice
     (annexe des biens vivants, TVA, trésorerie, analytique, stocks…). Les à-nouveaux déjà importés sont requalifiés,

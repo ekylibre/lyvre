@@ -100,7 +100,7 @@ export default function TaxResultPage() {
       {!r.company_is && fyId && <LiassePanel fyId={fyId} />}
       {r.company_is && <Text size="sm" c="dimmed">Société à l'impôt sur les sociétés : pas de répartition entre associés.</Text>}
       {r.associates.length > 0 && (
-        <>
+        <Paper withBorder p="md" mt="lg">
           <Title order={4} mb="xs">Répartition par associé</Title>
           <Table>
             <Table.Thead><Table.Tr><Table.Th>Associé</Table.Th><Table.Th>Base</Table.Th><Table.Th ta="right">Quote-part</Table.Th><Table.Th ta="right">Abattement JA</Table.Th><Table.Th ta="right">Résultat fiscal</Table.Th></Table.Tr></Table.Thead>
@@ -113,7 +113,7 @@ export default function TaxResultPage() {
                   <Table.Td ta="right"><MoneyText cents={a.fiscal_result_cents} /></Table.Td></Table.Tr>))}
             </Table.Tbody>
           </Table>
-        </>)}
+        </Paper>)}
     </>
   );
 }

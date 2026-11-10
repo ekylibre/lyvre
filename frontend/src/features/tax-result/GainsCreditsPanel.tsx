@@ -14,6 +14,7 @@ export interface GainsView {
     gain_cents: number; short_cents: number; long_cents: number; long_held: boolean; excluded: boolean; excluded_reason: string | null }[];
   short_cents: number; long_cents: number; long_exempt_cents: number; long_taxable_cents: number; short_exempt_cents: number;
   septies: { activity_since: string | null; young_farmer_buyer: boolean; average_cents: number | null; rate_bp: number | null; detail: string;
+    receipts: { year: number; threshold_cents: number | null }[];
     reason: string | null; applied: boolean; associates: { associate_id: number; name: string; receipts_cents: number | null; rate_bp: number | null }[] };
 }
 export interface CreditsView {
@@ -60,9 +61,13 @@ export function GainsCreditsPanel({ fyId, editable }: { fyId: number; editable: 
       <Text size="sm">Nets : court terme <MoneyText cents={g.short_cents} />, long terme <MoneyText cents={g.long_cents} />
         {g.long_cents > 0 && <> (imposable à part <MoneyText cents={g.long_taxable_cents} />, exonéré <MoneyText cents={g.long_exempt_cents} />)</>}.</Text>
       <Text fw={600} size="sm" mt="sm">Exonération de l'art. 151 septies</Text>
-      {s.reason && <Alert color="gray" my="xs">{s.reason}</Alert>}
-      <Text size="sm">Recettes moyennes des 2 années précédentes {s.average_cents !== null ? <MoneyText cents={s.average_cents} /> : "inconnues"} : taux {pct(s.rate_bp)} ({s.detail}).</Text>
-      {s.associates.length > 0 && <Text size="xs" c="dimmed">{s.associates.map((a) => `${a.name} : ${pct(a.rate_bp)}`).join(" · ")}</Text>}
+      {s.reason && s.rate_bp !== 0 && <Alert color="gray" my="xs">{s.reason}</Alert>}
+      <Text size="sm">
+        Recettes des 2 années civiles précédentes : {(s.receipts ?? []).map((r, i) => (
+          <span key={r.year}>{i > 0 && " · "}{r.year} {r.threshold_cents === null ? "inconnues" : <MoneyText cents={r.threshold_cents} />}</span>))}
+        {s.average_cents !== null && <> ; moyenne <MoneyText cents={s.average_cents} /></>} : taux {pct(s.rate_bp)} ({s.detail}).
+      </Text>
+      {s.associates.length > 1 && <Text size="xs" c="dimmed">{s.associates.map((a) => `${a.name} : ${pct(a.rate_bp)}`).join(" · ")}</Text>}
       {editable && (
         <Group gap="md" mt="xs" align="end">
           <Checkbox label="Appliquer l'exonération" checked={s.applied} onChange={(e) => run(choose.mutateAsync({ apply_151_septies: e.currentTarget.checked }))} />

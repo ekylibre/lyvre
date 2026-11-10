@@ -94,6 +94,34 @@ def _account_value(fy: FiscalYear, row: dict) -> int:
     return reports._amount(mode, row["accounts"], fy.id, row.get("exclude"))  # noqa: SLF001
 
 
+def _eur(cents: int) -> str:
+    return f"{cents / 100:,.2f} €".replace(",", " ").replace(".", ",")
+
+
+def _covers(row: dict, code: str) -> bool:
+    return (any(code.startswith(p) for p in row["accounts"])
+            and not any(code.startswith(p) for p in row.get("exclude") or ()))
+
+
+def uncovered_accounts(fy: FiscalYear, spec: dict) -> list[dict]:
+    """Comptes de bilan (classes 1 à 5) soldés à la clôture qu'aucune case du bilan ne reprend : cause d'un écart
+    actif / passif à montrer telle quelle (le résultat, classes 6 et 7, passe par la case du résultat)."""
+    from app.extensions import db
+    from app.models import Account, JournalEntry, JournalLine
+
+    rows = [r for t in spec["tables"] if t["code"] in spec.get("balance_sheet_tables", ())
+            for r in t["rows"] if "accounts" in r and not r.get("detail")]
+    if not rows:
+        return []
+    balances = (db.session.query(Account.code, db.func.sum(JournalLine.debit_cents - JournalLine.credit_cents))
+                .join(JournalLine, JournalLine.account_id == Account.id)
+                .join(JournalEntry, JournalEntry.id == JournalLine.entry_id)
+                .filter(JournalEntry.fiscal_year_id == fy.id)
+                .group_by(Account.code).order_by(Account.code))
+    return [{"code": code, "balance_cents": balance} for code, balance in balances
+            if balance and code[:1] in "12345" and not any(_covers(r, code) for r in rows)]
+
+
 def compute(fy: FiscalYear) -> dict:
     form, notice = form_for(fy)
     if form is None:
@@ -139,10 +167,14 @@ def compute(fy: FiscalYear) -> dict:
             right = pick(right_case) or 0
             results.append({"label": check["label"], "ok": left == right, "difference_cents": left - right})
             if left != right:
-                warnings.append(f"{table['code']} : {check['label']} — écart de {(left - right) / 100:,.2f} €."
-                                .replace(",", " ").replace(".", ","))
+                warnings.append(f"{table['code']} : {check['label']} — écart de {_eur(left - right)}.")
         table["checks"] = results
+    uncovered = uncovered_accounts(fy, spec)
+    if uncovered:
+        listed = ", ".join(f"{u['code']} ({_eur(u['balance_cents'])})" for u in uncovered[:10])
+        more = f" et {len(uncovered) - 10} autres" if len(uncovered) > 10 else ""
+        warnings.append(f"Comptes de bilan non repris dans les cases : {listed}{more}.")
     return {"form": form, "millesime": spec["millesime"], "title": spec["title"], "reliability": spec.get("reliability"),
             "sources": spec.get("sources", []), "read_on": spec.get("read_on"), "not_covered": spec.get("not_covered", []),
             "fiscal_year": {"id": fy.id, "label": fy.label, "end_date": fy.end_date.isoformat()},
-            "warnings": warnings, "tables": tables}
+            "warnings": warnings, "tables": tables, "uncovered": uncovered}

@@ -114,25 +114,43 @@ def septies(fy: FiscalYear) -> dict:
     year = fy.end_date.year
     receipts = [ba_regimes.year_receipts(y) for y in (year - 2, year - 1)]
     known = [r["threshold_cents"] for r in receipts if r["threshold_cents"] is not None]
-    average = round(sum(known) / len(known)) if known else None
+    missing = [r["year"] for r in receipts if r["threshold_cents"] is None]
+    # Moyenne des 2 années civiles ; une année inconnue compte pour 0 : la moyenne n'est alors qu'un minimum, qui ne
+    # conclut que s'il dépasse déjà le seuil haut (pas d'exonération, quelle que soit l'année manquante).
+    average = round(sum(known) / 2) if known and not missing else None
+    floor = round(sum(known) / 2) if known and missing else None
+
+    def rate_for(part_avg, part_floor):
+        if part_avg is not None:
+            return exemption_rate(part_avg, fy, young)
+        if part_floor is not None:
+            rate, detail = exemption_rate(part_floor, fy, young)
+            if rate is None:                                         # barème absent pour la date de clôture
+                return None, detail
+            if rate == 0:
+                return 0, f"recettes au-delà du seuil même en comptant {', '.join(map(str, missing))} pour 0 : pas d'exonération"
+        return None, f"recettes {', '.join(map(str, missing))} inconnues : saisissez-les (Structure › Fiscalité)"
+
     associates = []
     company_is = tax_result._is_company_is(fy)  # noqa: SLF001
     rows, _ = ([], []) if company_is else tax_result.shares(fy)
     if rows:                                                         # art. 70 : quote-part de recettes par associé
         for r in rows:
-            part = round(average * r["share_bp"] / 10000) if average is not None else None
-            rate, detail = exemption_rate(part, fy, young)
+            share = lambda v: round(v * r["share_bp"] / 10000) if v is not None else None  # noqa: E731
+            part = share(average)
+            rate, detail = rate_for(part, share(floor))
             associates.append({"associate_id": r["associate_id"], "name": r["name"], "share_bp": r["share_bp"],
-                               "receipts_cents": part, "rate_bp": None if reason else rate, "detail": detail})
+                               "receipts_cents": part, "rate_bp": None if reason and rate != 0 else rate, "detail": detail})
         rated = [a for a in associates if a["rate_bp"] is not None]
         rate = round(sum(a["rate_bp"] * a["share_bp"] for a in rated) / 10000) if rated and len(rated) == len(associates) else None
-        detail = "taux moyen pondéré des associés (recettes au prorata des droits)"
+        detail = (associates[0]["detail"] if len(associates) == 1
+                  else "taux moyen pondéré des associés (recettes au prorata des droits)")
     else:
-        rate, detail = exemption_rate(average, fy, young)
-    if reason:
+        rate, detail = rate_for(average, floor)
+    if reason and rate != 0:                                         # 0 % : acquis quelle que soit l'ancienneté
         rate = None
     return {"activity_since": since.isoformat() if since else None, "young_farmer_buyer": young, "receipts": receipts,
-            "average_cents": average, "rate_bp": rate, "detail": detail, "reason": reason, "associates": associates,
+            "average_cents": average, "missing_years": missing, "rate_bp": rate, "detail": detail, "reason": reason, "associates": associates,
             "applied": bool(row and row.apply_151_septies)}
 
 

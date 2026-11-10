@@ -95,3 +95,38 @@ def test_2143_normal_regime(farm):
     cases = _cases(item)
     assert cases["WA"] == 4000000 and cases["WO"] == 50000 and cases["XB"] == 4050000 and cases["ligne 1 col. 1"] == 4050000
     assert all(c["ok"] for t in item["tables"] for c in t["checks"]), [c for t in item["tables"] for c in t["checks"]]
+
+
+def test_ledger_212_without_subaccount_and_uncovered_accounts(farm):
+    """Essai de l'interface (10/11/2026) : un 212 tenu sans sous-compte (reprise FEC) va en constructions ; un compte de
+    bilan qu'aucune case ne reprend est nommé, avec l'écart, au lieu d'un écart muet."""
+    client = farm["client"]
+    _regime("simplified")
+    fy, od = farm["fy"], Journal.query.filter_by(code="OD").one()
+    for code, cents in (("212", 645000), ("2125", 100000)):
+        post_entry(fy.id, od.id, date(2026, 3, 1), "Aménagement", [
+            {"account_id": _id(code), "label": "x", "debit_cents": cents, "credit_cents": 0},
+            {"account_id": _id("401"), "label": "x", "debit_cents": 0, "credit_cents": cents}])
+    cases = _cases(client.get(f"{farm['url']}/liasse").get_json()["item"])
+    assert cases["AJ"] == 645000 and cases["AE"] == 100000 and cases["BR"] - cases["BS"] == cases["CP"]
+
+    import json
+    from app.services import liasse
+    spec = json.loads((liasse.DATA_DIR / "2139_2026.json").read_text(encoding="utf-8"))
+    for table in spec["tables"]:
+        for row in table["rows"]:
+            if row["case"] == "AJ":
+                row["accounts"] = ["213", "214"]
+    assert liasse.uncovered_accounts(fy, spec) == [{"code": "212", "balance_cents": 645000}]
+    item = liasse.compute(fy)
+    assert item["uncovered"] == [] and not any("non repris" in w for w in item["warnings"])
+
+
+def test_balance_sheet_tables_exist():
+    import json
+    from app.services import liasse
+
+    for path in liasse.DATA_DIR.glob("*.json"):
+        spec = json.loads(path.read_text(encoding="utf-8"))
+        codes = {t["code"] for t in spec["tables"]}
+        assert spec["balance_sheet_tables"] and set(spec["balance_sheet_tables"]) <= codes, path.name

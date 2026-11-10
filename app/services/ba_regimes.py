@@ -336,6 +336,11 @@ def _years() -> list[FiscalYear]:
     return FiscalYear.query.order_by(FiscalYear.start_date).all()
 
 
+def _year_label(fy: FiscalYear, year: int) -> str:
+    """Année saisie (antérieure à Lyvre) : l'année de clôture, dite comme telle quand l'exercice est décalé."""
+    return str(year) if (fy.end_date.month, fy.end_date.day) == (12, 31) else f"clos en {year}"
+
+
 def fiscal_result_of(fy: FiscalYear) -> int | None:
     """Résultat fiscal d'un exercice : saisi pour l'année de clôture (année antérieure à Lyvre) ou calculé."""
     from app.services import tax_result
@@ -360,7 +365,7 @@ def previous_results(fy: FiscalYear, count: int = 3) -> list[dict]:
         else:
             saved = BaHistoryYear.query.filter_by(year=target).first()
             value = saved.fiscal_result_cents if saved else None
-            out.append({"year": target, "label": str(target), "fiscal_result_cents": value,
+            out.append({"year": target, "label": _year_label(fy, target), "fiscal_result_cents": value,
                         "source": "entered" if value is not None else "missing"})
     return out
 
@@ -499,11 +504,11 @@ def averaging_history(fy: FiscalYear) -> dict:
         columns.append({"label": y.label, "fiscal_result_cents": total,
                         "associates": {a["associate_id"]: a.get("fiscal_result_cents") for a in (data or {}).get("associates", [])}})
     missing = 3 - len(columns)
-    for offset in range(missing, 0, -1):
+    for offset in range(1, missing + 1):                            # du plus récent au plus ancien, insérés en tête
         target = (years[0].end_date.year if years else fy.end_date.year + 1) - offset
         saved = BaHistoryYear.query.filter_by(year=target).first()
-        columns.insert(0, {"label": str(target), "fiscal_result_cents": saved.fiscal_result_cents if saved else None,
-                           "associates": {}})
+        columns.insert(0, {"label": _year_label(fy, target),
+                           "fiscal_result_cents": saved.fiscal_result_cents if saved else None, "associates": {}})
     names = {a.id: a.name for a in Associate.query.order_by(Associate.id)}
     ids = sorted({i for c in columns for i in c["associates"]})
     rows = []

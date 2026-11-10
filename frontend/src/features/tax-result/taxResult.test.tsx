@@ -46,7 +46,8 @@ const LIASSE = { form: "2139", millesime: 2026, title: "BA réel simplifié", re
 const GAINS = { disposals: [{ asset_id: 1, label: "Parcelle", account: "2111", acquired_on: "2015-01-01", disposed_on: "2026-06-30", net_cents: 1000000,
   price_cents: 2500000, gain_cents: 1500000, short_cents: 0, long_cents: 1500000, long_held: true, excluded: false, excluded_reason: null }],
   short_cents: 0, long_cents: 1500000, long_exempt_cents: 0, long_taxable_cents: 1500000, short_exempt_cents: 0,
-  septies: { activity_since: "2010-01-01", young_farmer_buyer: false, average_cents: 20000000, rate_bp: 10000, detail: "exonération totale", reason: null, applied: false, associates: [] } };
+  septies: { activity_since: "2010-01-01", young_farmer_buyer: false, average_cents: 20000000, rate_bp: 10000, detail: "exonération totale", reason: null, applied: false, associates: [],
+    receipts: [{ year: 2024, threshold_cents: null }, { year: 2025, threshold_cents: 40000000 }] } };
 const CREDITS = { items: [{ id: 1, kind: "hve", label: "Crédit d'impôt certification HVE", data: {}, amount_cents: 250000, detail: "certification", associates: [] }],
   total_cents: 250000, kinds: [{ value: "hve", label: "HVE" }], notes: [] };
 
@@ -78,5 +79,6 @@ describe("Résultat fiscal", () => {
     expect(await screen.findByText("Plus-values professionnelles")).toBeInTheDocument();
     expect(screen.getByText("2111 Parcelle")).toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "Appliquer l'exonération" })).not.toBeChecked();
+    expect(screen.getByText(/2024 inconnues/)).toBeInTheDocument();
   });
 });
