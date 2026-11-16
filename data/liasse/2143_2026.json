@@ -1,0 +1,1811 @@
+{
+ "_comment": "Aide à la liasse BA, réel normal (lot AG6.f, claudedocs/design_fiscalite_ba.md § 8). Cases lues sur les formulaires 2026 fournis (claudedocs/compta_agricole/liasse_BA/, hors git) ; correspondance comptes → cases proposée par Lyvre d'après le plan agricole (ANC 2020-04) et le bilan / compte de résultat agricoles de Lyvre, À VALIDER par l'expert-comptable. Règles : accounts + mode (debit, credit, debit_only, credit_only, debit_movements, credit_movements), sum / minus (cases), tax (résultat fiscal), sinon saisie. detail : ligne « dont », hors totaux. Colonnes France / Exportation du 2146-SD non reprises (seule la colonne Total l'est).",
+ "form": "2143",
+ "millesime": 2026,
+ "regime": "normal",
+ "title": "Bénéfices agricoles, régime du bénéfice réel normal",
+ "sources": [
+  "2143-SD (cerfa 11148*28) : 2143-sd_5402.pdf",
+  "2144-SD à 2154-D-SD (cerfa 15947*08) : 2143-sd_5403.pdf"
+ ],
+ "read_on": "2026-11-05",
+ "reliability": "I",
+ "balance_sheet_tables": [
+  "2144-SD",
+  "2145-SD"
+ ],
+ "tables": [
+  {
+   "code": "2143-SD",
+   "title": "Cadre B : récapitulation des éléments d'imposition",
+   "rows": [
+    {
+     "case": "ligne 1 col. 1",
+     "label": "Résultat fiscal : bénéfice (report de XB du 2151-SD)",
+     "tax": "fiscal_profit_before_ja",
+     "note": "Ligne 1, colonne 1 : la ligne n'a pas de case imprimée, code de position comme pour le 2139-SD."
+    },
+    {
+     "case": "ligne 1 col. 2",
+     "label": "Résultat fiscal : déficit (report de XC du 2151-SD)",
+     "tax": "fiscal_loss_before_ja",
+     "note": "Ligne 1, colonne 2 : la ligne n'a pas de case imprimée, code de position comme pour le 2139-SD."
+    },
+    {
+     "case": "e",
+     "label": "Abattement en faveur des jeunes agriculteurs (report de XJ)",
+     "tax": "ja"
+    },
+    {
+     "case": "l",
+     "label": "Déduction pour épargne de précaution (art. 73, report de XP)",
+     "tax": "dep"
+    },
+    {
+     "case": "g",
+     "label": "Bénéfice (col. 1 − col. 2)",
+     "tax": "fiscal_profit"
+    },
+    {
+     "case": "h",
+     "label": "Déficit (col. 2 − col. 1)",
+     "tax": "fiscal_loss"
+    }
+   ]
+  },
+  {
+   "code": "2144-SD",
+   "title": "Bilan – actif",
+   "rows": [
+    {
+     "case": "AA",
+     "label": "Capital souscrit non appelé",
+     "accounts": [
+      "109"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "AB",
+     "label": "Frais d'établissement (brut)",
+     "accounts": [
+      "201"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "AC",
+     "label": "Frais d'établissement (amortissements)",
+     "accounts": [
+      "2801",
+      "2901"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "AD",
+     "label": "Autres immobilisations incorporelles (brut)",
+     "accounts": [
+      "20",
+      "232"
+     ],
+     "mode": "debit",
+     "exclude": [
+      "201"
+     ]
+    },
+    {
+     "case": "AE",
+     "label": "Autres immobilisations incorporelles (amortissements, provisions)",
+     "accounts": [
+      "280",
+      "290",
+      "2932"
+     ],
+     "mode": "credit",
+     "exclude": [
+      "2801",
+      "2901"
+     ]
+    },
+    {
+     "case": "AF",
+     "label": "Immobilisations incorporelles : avances et acomptes (brut)",
+     "accounts": [
+      "237"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "AG",
+     "label": "Immobilisations incorporelles : avances et acomptes (provisions)"
+    },
+    {
+     "case": "AH",
+     "label": "Terrains (brut)",
+     "accounts": [
+      "211"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "AI",
+     "label": "Terrains (provisions)",
+     "accounts": [
+      "2911"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "AJ",
+     "label": "Aménagements fonciers (brut)",
+     "accounts": [
+      "212"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "AK",
+     "label": "Aménagements fonciers (amortissements, provisions)",
+     "accounts": [
+      "2812",
+      "2912"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "AL",
+     "label": "Améliorations du fonds (brut)",
+     "accounts": [
+      "217"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "AM",
+     "label": "Améliorations du fonds (amortissements, provisions)"
+    },
+    {
+     "case": "AN",
+     "label": "Constructions (brut)",
+     "accounts": [
+      "213",
+      "214"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "AO",
+     "label": "Constructions (amortissements, provisions)",
+     "accounts": [
+      "2813",
+      "2814",
+      "2913",
+      "2914"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "AP",
+     "label": "Installations techniques, matériel et outillage (brut)",
+     "accounts": [
+      "215"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "AQ",
+     "label": "Installations techniques, matériel et outillage (amortissements, provisions)",
+     "accounts": [
+      "2815",
+      "2915"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "AR",
+     "label": "Autres immobilisations corporelles (brut)",
+     "accounts": [
+      "218",
+      "22"
+     ],
+     "mode": "debit",
+     "exclude": [
+      "229"
+     ]
+    },
+    {
+     "case": "AS",
+     "label": "Autres immobilisations corporelles (amortissements, provisions)",
+     "accounts": [
+      "2818",
+      "282",
+      "2918",
+      "292"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "AT",
+     "label": "Animaux reproducteurs (brut)",
+     "accounts": [
+      "241"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "AU",
+     "label": "Animaux reproducteurs (amortissements, provisions)",
+     "accounts": [
+      "2841",
+      "2941"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "AV",
+     "label": "Animaux de service (brut)",
+     "accounts": [
+      "243"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "AW",
+     "label": "Animaux de service (amortissements, provisions)",
+     "accounts": [
+      "2843",
+      "2943"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "AX",
+     "label": "Plantations pérennes et autres végétaux immobilisés (brut)",
+     "accounts": [
+      "24"
+     ],
+     "mode": "debit",
+     "exclude": [
+      "241",
+      "243"
+     ]
+    },
+    {
+     "case": "AY",
+     "label": "Plantations pérennes et autres végétaux immobilisés (amortissements, provisions)",
+     "accounts": [
+      "284",
+      "294"
+     ],
+     "mode": "credit",
+     "exclude": [
+      "2841",
+      "2843",
+      "2941",
+      "2943"
+     ],
+     "note": "Un 284 / 294 non subdivisé tombe ici : subdiviser 2841 / 2843 pour les animaux."
+    },
+    {
+     "case": "AZ",
+     "label": "Immobilisations corporelles en cours, dont biens vivants (brut)",
+     "accounts": [
+      "231",
+      "234"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "BA",
+     "label": "Immobilisations corporelles en cours (provisions)",
+     "accounts": [
+      "2931"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "BB",
+     "label": "Immobilisations corporelles : avances et acomptes (brut)",
+     "accounts": [
+      "238"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "BC",
+     "label": "Immobilisations corporelles : avances et acomptes (provisions)"
+    },
+    {
+     "case": "BD",
+     "label": "Participations et créances rattachées (brut)",
+     "accounts": [
+      "26"
+     ],
+     "mode": "debit",
+     "exclude": [
+      "269"
+     ]
+    },
+    {
+     "case": "BE",
+     "label": "Participations et créances rattachées (provisions)",
+     "accounts": [
+      "296"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "BF",
+     "label": "Prêts (brut)",
+     "accounts": [
+      "274"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "BG",
+     "label": "Prêts (provisions)",
+     "accounts": [
+      "2974"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "BH",
+     "label": "Autres immobilisations financières (brut)",
+     "accounts": [
+      "27"
+     ],
+     "mode": "debit",
+     "exclude": [
+      "274",
+      "279"
+     ]
+    },
+    {
+     "case": "BI",
+     "label": "Autres immobilisations financières (provisions)",
+     "accounts": [
+      "297"
+     ],
+     "mode": "credit",
+     "exclude": [
+      "2974"
+     ]
+    },
+    {
+     "case": "BJ",
+     "label": "Total I (brut)",
+     "sum": [
+      "AB",
+      "AD",
+      "AF",
+      "AH",
+      "AJ",
+      "AL",
+      "AN",
+      "AP",
+      "AR",
+      "AT",
+      "AV",
+      "AX",
+      "AZ",
+      "BB",
+      "BD",
+      "BF",
+      "BH"
+     ]
+    },
+    {
+     "case": "BK",
+     "label": "Total I (amortissements, provisions)",
+     "sum": [
+      "AC",
+      "AE",
+      "AG",
+      "AI",
+      "AK",
+      "AM",
+      "AO",
+      "AQ",
+      "AS",
+      "AU",
+      "AW",
+      "AY",
+      "BA",
+      "BC",
+      "BE",
+      "BG",
+      "BI"
+     ]
+    },
+    {
+     "case": "BL",
+     "label": "Approvisionnements et marchandises (brut)",
+     "accounts": [
+      "31",
+      "32",
+      "37",
+      "38"
+     ],
+     "mode": "debit",
+     "exclude": [
+      "3112",
+      "3113",
+      "3114",
+      "3115"
+     ]
+    },
+    {
+     "case": "BM",
+     "label": "Approvisionnements et marchandises (provisions)",
+     "accounts": [
+      "391",
+      "392",
+      "397"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "BN",
+     "label": "Animaux et végétaux en terre, cycle long (brut)",
+     "accounts": [
+      "3112",
+      "3114"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "BO",
+     "label": "Animaux et végétaux en terre, cycle long (provisions)"
+    },
+    {
+     "case": "BP",
+     "label": "En-cours de production de biens et services, cycle long (brut)",
+     "accounts": [
+      "3311"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "BQ",
+     "label": "En-cours de production, cycle long (provisions)"
+    },
+    {
+     "case": "BR",
+     "label": "Animaux et végétaux en terre, cycle court (brut)",
+     "accounts": [
+      "3113",
+      "3115"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "BS",
+     "label": "Animaux et végétaux en terre, cycle court (provisions)"
+    },
+    {
+     "case": "BT",
+     "label": "En-cours de production de biens et services, cycle court (brut)",
+     "accounts": [
+      "33",
+      "34"
+     ],
+     "mode": "debit",
+     "exclude": [
+      "3311"
+     ]
+    },
+    {
+     "case": "BU",
+     "label": "En-cours de production, cycle court (provisions)",
+     "accounts": [
+      "393",
+      "394"
+     ],
+     "mode": "credit",
+     "note": "Dépréciations des en-cours sans distinction de cycle : la part cycle long est à reporter en BQ."
+    },
+    {
+     "case": "BV",
+     "label": "Produits intermédiaires, finis et résiduels (brut)",
+     "accounts": [
+      "35",
+      "36"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "BW",
+     "label": "Produits intermédiaires, finis et résiduels (provisions)",
+     "accounts": [
+      "395"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "BX",
+     "label": "Avances et acomptes versés sur commande (brut)",
+     "accounts": [
+      "4091"
+     ],
+     "mode": "debit_only"
+    },
+    {
+     "case": "BY",
+     "label": "Avances et acomptes versés sur commande (provisions)"
+    },
+    {
+     "case": "BZ",
+     "label": "Clients et comptes rattachés (brut)",
+     "accounts": [
+      "41"
+     ],
+     "mode": "debit_only",
+     "exclude": [
+      "412",
+      "4191"
+     ]
+    },
+    {
+     "case": "CA",
+     "label": "Clients et comptes rattachés (provisions)",
+     "accounts": [
+      "491"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "CB",
+     "label": "Autres clients et comptes rattachés, conventions de compte courant (brut)",
+     "accounts": [
+      "412"
+     ],
+     "mode": "debit_only"
+    },
+    {
+     "case": "CC",
+     "label": "Autres clients, conventions de compte courant (provisions)"
+    },
+    {
+     "case": "CD",
+     "label": "Autres créances (brut)",
+     "accounts": [
+      "40",
+      "42",
+      "43",
+      "44",
+      "45",
+      "46",
+      "47"
+     ],
+     "mode": "debit_only",
+     "exclude": [
+      "4091",
+      "476",
+      "477"
+     ]
+    },
+    {
+     "case": "CE",
+     "label": "Autres créances (provisions)",
+     "accounts": [
+      "49"
+     ],
+     "mode": "credit",
+     "exclude": [
+      "491"
+     ]
+    },
+    {
+     "case": "CF",
+     "label": "Valeurs mobilières de placement (brut)",
+     "accounts": [
+      "50"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "CG",
+     "label": "Valeurs mobilières de placement (provisions)",
+     "accounts": [
+      "59"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "CH",
+     "label": "Disponibilités",
+     "accounts": [
+      "51",
+      "52",
+      "53",
+      "54",
+      "58"
+     ],
+     "mode": "debit_only"
+    },
+    {
+     "case": "CI",
+     "label": "Disponibilités (provisions)"
+    },
+    {
+     "case": "CJ",
+     "label": "Charges constatées d'avance",
+     "accounts": [
+      "486"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "CK",
+     "label": "Charges constatées d'avance (colonne 2)"
+    },
+    {
+     "case": "CL",
+     "label": "Total II (brut)",
+     "sum": [
+      "BL",
+      "BN",
+      "BP",
+      "BR",
+      "BT",
+      "BV",
+      "BX",
+      "BZ",
+      "CB",
+      "CD",
+      "CF",
+      "CH",
+      "CJ"
+     ]
+    },
+    {
+     "case": "CM",
+     "label": "Total II (provisions)",
+     "sum": [
+      "BM",
+      "BO",
+      "BQ",
+      "BS",
+      "BU",
+      "BW",
+      "BY",
+      "CA",
+      "CC",
+      "CE",
+      "CG",
+      "CI",
+      "CK"
+     ]
+    },
+    {
+     "case": "IE",
+     "label": "Frais d'émission d'emprunt à étaler (III)",
+     "accounts": [
+      "48",
+      "169"
+     ],
+     "mode": "debit",
+     "exclude": [
+      "486",
+      "487"
+     ],
+     "note": "Les primes de remboursement des emprunts (169), sans ligne propre, sont jointes ici comme au bilan agricole de Lyvre."
+    },
+    {
+     "case": "CO",
+     "label": "Écarts de conversion actif (IV)",
+     "accounts": [
+      "476"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "CP",
+     "label": "Total général (brut)",
+     "sum": [
+      "AA",
+      "BJ",
+      "CL",
+      "IE",
+      "CO"
+     ]
+    },
+    {
+     "case": "IA",
+     "label": "Total général (amortissements, provisions)",
+     "sum": [
+      "BK",
+      "CM"
+     ]
+    },
+    {
+     "case": "CQ",
+     "label": "Renvoi (1) : part à moins d'un an des immobilisations financières nettes",
+     "detail": true
+    },
+    {
+     "case": "CR",
+     "label": "Renvoi (2) : part à plus d'un an des créances",
+     "detail": true
+    }
+   ]
+  },
+  {
+   "code": "2145-SD",
+   "title": "Bilan – passif",
+   "rows": [
+    {
+     "case": "DA",
+     "label": "Capital social ou individuel",
+     "accounts": [
+      "101",
+      "108"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "DB",
+     "label": "Primes d'émission, de fusion, d'apport",
+     "accounts": [
+      "104"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "DC",
+     "label": "Écarts de réévaluation",
+     "accounts": [
+      "105"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "DE",
+     "label": "Réserves statutaires ou contractuelles",
+     "accounts": [
+      "1063"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "DF",
+     "label": "Réserves réglementées",
+     "accounts": [
+      "1064"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "DG",
+     "label": "Autres réserves",
+     "accounts": [
+      "10"
+     ],
+     "mode": "credit",
+     "exclude": [
+      "101",
+      "104",
+      "105",
+      "108",
+      "109",
+      "1063",
+      "1064"
+     ]
+    },
+    {
+     "case": "DH",
+     "label": "Report à nouveau",
+     "accounts": [
+      "11"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "DI",
+     "label": "Résultat de l'exercice (bénéfice ou perte)",
+     "accounts": [
+      "12",
+      "6",
+      "7"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "DJ",
+     "label": "Subventions d'investissement",
+     "accounts": [
+      "13"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "DK",
+     "label": "Provisions réglementées",
+     "accounts": [
+      "14"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "DL",
+     "label": "Total I (capitaux propres)",
+     "sum": [
+      "DA",
+      "DB",
+      "DC",
+      "DE",
+      "DF",
+      "DG",
+      "DH",
+      "DI",
+      "DJ",
+      "DK"
+     ]
+    },
+    {
+     "case": "DM",
+     "label": "Provisions pour risques",
+     "accounts": [
+      "151"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "DN",
+     "label": "Provisions pour charges",
+     "accounts": [
+      "15"
+     ],
+     "mode": "credit",
+     "exclude": [
+      "151"
+     ]
+    },
+    {
+     "case": "DO",
+     "label": "Total II (provisions pour risques et charges)",
+     "sum": [
+      "DM",
+      "DN"
+     ]
+    },
+    {
+     "case": "DP",
+     "label": "Emprunts et dettes auprès des établissements de crédit",
+     "accounts": [
+      "164"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "EE",
+     "label": "dont emprunts fonciers",
+     "accounts": [
+      "1641"
+     ],
+     "mode": "credit",
+     "detail": true,
+     "note": "Traité comme « dont » de DP (comme CS au 2139-A) : à confirmer sur la notice 2142-NOT-SD."
+    },
+    {
+     "case": "DQ",
+     "label": "Concours bancaires courants et découverts bancaires",
+     "accounts": [
+      "51",
+      "52",
+      "53",
+      "54",
+      "58"
+     ],
+     "mode": "credit_only"
+    },
+    {
+     "case": "DR",
+     "label": "Autres dettes financières",
+     "accounts": [
+      "16",
+      "17",
+      "18"
+     ],
+     "mode": "credit",
+     "exclude": [
+      "164",
+      "169"
+     ],
+     "note": "Comprend les autres fonds propres (1671, 1674), sans ligne propre au 2145-SD. Les comptes courants d'associés (455) créditeurs vont en DX."
+    },
+    {
+     "case": "DS",
+     "label": "Avances et acomptes reçus sur commande en cours",
+     "accounts": [
+      "4191"
+     ],
+     "mode": "credit_only"
+    },
+    {
+     "case": "DT",
+     "label": "Dettes fournisseurs et comptes rattachés",
+     "accounts": [
+      "40"
+     ],
+     "mode": "credit_only",
+     "exclude": [
+      "402",
+      "404",
+      "405",
+      "4091"
+     ]
+    },
+    {
+     "case": "DU",
+     "label": "Dettes autres fournisseurs et comptes rattachés (conventions de compte courant)",
+     "accounts": [
+      "402"
+     ],
+     "mode": "credit_only"
+    },
+    {
+     "case": "DV",
+     "label": "Dettes fiscales et sociales",
+     "accounts": [
+      "42",
+      "43",
+      "44"
+     ],
+     "mode": "credit_only"
+    },
+    {
+     "case": "DW",
+     "label": "Dettes sur immobilisations et comptes rattachés",
+     "accounts": [
+      "404",
+      "405"
+     ],
+     "mode": "credit_only"
+    },
+    {
+     "case": "DX",
+     "label": "Autres dettes (libellé imprimé : « Autres dettes financières »)",
+     "accounts": [
+      "41",
+      "45",
+      "46",
+      "47"
+     ],
+     "mode": "credit_only",
+     "exclude": [
+      "4191",
+      "476",
+      "477"
+     ]
+    },
+    {
+     "case": "DY",
+     "label": "Produits constatés d'avance",
+     "accounts": [
+      "487"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "DZ",
+     "label": "Total III (dettes)",
+     "sum": [
+      "DP",
+      "DQ",
+      "DR",
+      "DS",
+      "DT",
+      "DU",
+      "DV",
+      "DW",
+      "DX",
+      "DY"
+     ]
+    },
+    {
+     "case": "EA",
+     "label": "Écarts de conversion passif (IV)",
+     "accounts": [
+      "477"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "EB",
+     "label": "Total général (I à IV)",
+     "sum": [
+      "DL",
+      "DO",
+      "DZ",
+      "EA"
+     ]
+    },
+    {
+     "case": "1B",
+     "label": "dont réserve spéciale de réévaluation (1959)",
+     "detail": true
+    },
+    {
+     "case": "1C",
+     "label": "dont écart de réévaluation libre",
+     "detail": true
+    },
+    {
+     "case": "1D",
+     "label": "dont réserve de réévaluation (1976)",
+     "detail": true
+    },
+    {
+     "case": "EC",
+     "label": "dont dettes et produits constatés d'avance à moins d'un an",
+     "detail": true
+    },
+    {
+     "case": "ED",
+     "label": "dont dettes et produits constatés d'avance à plus d'un an",
+     "detail": true
+    }
+   ],
+   "checks": [
+    {
+     "equal": [
+      "CP",
+      "EB"
+     ],
+     "minus": [
+      "IA"
+     ],
+     "label": "Total de l'actif net (CP − IA, 2144-SD) égal au total du passif (EB)"
+    }
+   ]
+  },
+  {
+   "code": "2146-SD",
+   "title": "Compte de résultat de l'exercice (2146-SD et 2146-bis-SD)",
+   "rows": [
+    {
+     "case": "FC",
+     "label": "Ventes d'origine végétale (total)",
+     "accounts": [
+      "7011"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "FF",
+     "label": "Ventes d'origine animale (total)",
+     "accounts": [
+      "7012"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "FI",
+     "label": "Ventes de produits transformés (total)",
+     "accounts": [
+      "7013"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "FL",
+     "label": "Ventes d'animaux (total), y compris cessions d'animaux reproducteurs",
+     "accounts": [
+      "7014",
+      "7571"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "FO",
+     "label": "Autre production vendue (total)",
+     "accounts": [
+      "70"
+     ],
+     "mode": "credit",
+     "exclude": [
+      "7011",
+      "7012",
+      "7013",
+      "7014"
+     ]
+    },
+    {
+     "case": "FR",
+     "label": "Montant net du chiffre d'affaires (total)",
+     "sum": [
+      "FC",
+      "FF",
+      "FI",
+      "FL",
+      "FO"
+     ]
+    },
+    {
+     "case": "FS",
+     "label": "Variation d'inventaire : animaux reproducteurs immobilisés",
+     "note": "Lyvre immobilise les biens vivants au coût (production immobilisée 7222 / 724 en FU) : case à saisir seulement si l'expert retient la variation d'inventaire."
+    },
+    {
+     "case": "FT",
+     "label": "Variation d'inventaire de la production stockée",
+     "accounts": [
+      "71"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "FU",
+     "label": "Production immobilisée",
+     "accounts": [
+      "72"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "FV",
+     "label": "Production autoconsommée",
+     "accounts": [
+      "73"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "FW",
+     "label": "Indemnités et subventions d'exploitation",
+     "accounts": [
+      "74"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "FX",
+     "label": "Reprises sur provisions et amortissements",
+     "accounts": [
+      "781"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "GZ",
+     "label": "Autres produits",
+     "accounts": [
+      "75"
+     ],
+     "mode": "credit",
+     "exclude": [
+      "757"
+     ]
+    },
+    {
+     "case": "FY",
+     "label": "Total des produits d'exploitation (I)",
+     "sum": [
+      "FR",
+      "FS",
+      "FT",
+      "FU",
+      "FV",
+      "FW",
+      "FX",
+      "GZ"
+     ]
+    },
+    {
+     "case": "FZ",
+     "label": "Achats de marchandises et d'approvisionnements",
+     "accounts": [
+      "601",
+      "602",
+      "607",
+      "6091",
+      "6092",
+      "6097"
+     ],
+     "mode": "debit",
+     "exclude": [
+      "60117"
+     ]
+    },
+    {
+     "case": "GA",
+     "label": "Variation de stock (marchandises et approvisionnements)",
+     "accounts": [
+      "603"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "GB",
+     "label": "Achats d'animaux",
+     "accounts": [
+      "60117"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "GC",
+     "label": "Autres achats et charges externes, y compris valeur comptable des animaux reproducteurs cédés",
+     "accounts": [
+      "604",
+      "605",
+      "606",
+      "608",
+      "609",
+      "61",
+      "62",
+      "6571"
+     ],
+     "mode": "debit",
+     "exclude": [
+      "6091",
+      "6092",
+      "6097"
+     ]
+    },
+    {
+     "case": "GD",
+     "label": "Impôts, taxes et versements assimilés",
+     "accounts": [
+      "63"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "GE",
+     "label": "Rémunérations",
+     "accounts": [
+      "641",
+      "644",
+      "648",
+      "649"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "GF",
+     "label": "Cotisations sociales personnelles de l'exploitant",
+     "accounts": [
+      "646"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "CG",
+     "label": "Autres charges sociales",
+     "accounts": [
+      "645",
+      "647"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "GH",
+     "label": "Dotations aux amortissements sur immobilisations",
+     "accounts": [
+      "6811"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "GG",
+     "label": "dont amortissement du fonds (art. 39, 1-2°, al. 3)",
+     "detail": true
+    },
+    {
+     "case": "GI",
+     "label": "Dotations aux provisions sur immobilisations",
+     "accounts": [
+      "6816"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "GJ",
+     "label": "Dotations aux provisions sur actif circulant",
+     "accounts": [
+      "6817"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "GK",
+     "label": "Dotations aux provisions pour risques et charges",
+     "accounts": [
+      "6815"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "GL",
+     "label": "Autres charges",
+     "accounts": [
+      "65"
+     ],
+     "mode": "debit",
+     "exclude": [
+      "657"
+     ]
+    },
+    {
+     "case": "GM",
+     "label": "Total des charges d'exploitation (II)",
+     "sum": [
+      "FZ",
+      "GA",
+      "GB",
+      "GC",
+      "GD",
+      "GE",
+      "GF",
+      "CG",
+      "GH",
+      "GI",
+      "GJ",
+      "GK",
+      "GL"
+     ]
+    },
+    {
+     "case": "GN",
+     "label": "Résultat d'exploitation (I − II)",
+     "sum": [
+      "FY"
+     ],
+     "minus": [
+      "GM"
+     ]
+    },
+    {
+     "case": "GO",
+     "label": "Produits financiers de participations",
+     "accounts": [
+      "761"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "GP",
+     "label": "Produits d'autres valeurs mobilières et créances de l'actif immobilisé",
+     "accounts": [
+      "762"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "GQ",
+     "label": "Autres intérêts, produits assimilés et différences positives de change",
+     "accounts": [
+      "763",
+      "764",
+      "765",
+      "766",
+      "767",
+      "768"
+     ],
+     "mode": "credit",
+     "exclude": [
+      "7673"
+     ]
+    },
+    {
+     "case": "GR",
+     "label": "Reprises sur provisions (financières)",
+     "accounts": [
+      "786"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "GS",
+     "label": "Produits nets sur cessions de valeurs mobilières de placement",
+     "accounts": [
+      "7673"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "GT",
+     "label": "Total des produits financiers (IV)",
+     "sum": [
+      "GO",
+      "GP",
+      "GQ",
+      "GR",
+      "GS"
+     ]
+    },
+    {
+     "case": "GU",
+     "label": "Dotations financières aux amortissements et provisions",
+     "accounts": [
+      "686"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "GV",
+     "label": "Intérêts, charges assimilées et différences négatives de change",
+     "accounts": [
+      "66"
+     ],
+     "mode": "debit",
+     "exclude": [
+      "6673"
+     ]
+    },
+    {
+     "case": "GW",
+     "label": "Charges nettes sur cessions de valeurs mobilières de placement",
+     "accounts": [
+      "6673"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "GX",
+     "label": "Total des charges financières (V)",
+     "sum": [
+      "GU",
+      "GV",
+      "GW"
+     ]
+    },
+    {
+     "case": "GY",
+     "label": "Résultat financier (IV − V)",
+     "sum": [
+      "GT"
+     ],
+     "minus": [
+      "GX"
+     ]
+    },
+    {
+     "case": "HE",
+     "label": "Produits exceptionnels (VII), dont cessions des autres immobilisations",
+     "accounts": [
+      "77",
+      "7578",
+      "787"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "HJ",
+     "label": "Charges exceptionnelles (VIII), dont valeur comptable des autres immobilisations cédées",
+     "accounts": [
+      "67",
+      "6578",
+      "687"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "HK",
+     "label": "Résultat exceptionnel (VII − VIII)",
+     "sum": [
+      "HE"
+     ],
+     "minus": [
+      "HJ"
+     ]
+    },
+    {
+     "case": "HL",
+     "label": "Participation des salariés aux résultats (X)",
+     "accounts": [
+      "69"
+     ],
+     "mode": "debit",
+     "note": "Compte 69 entier pour que HO égale le résultat du bilan ; seul le 691 relève de cette ligne."
+    },
+    {
+     "case": "HM",
+     "label": "Total des produits (I + IV + VII)",
+     "sum": [
+      "FY",
+      "GT",
+      "HE"
+     ]
+    },
+    {
+     "case": "HN",
+     "label": "Total des charges (II + V + VIII + X)",
+     "sum": [
+      "GM",
+      "GX",
+      "HJ",
+      "HL"
+     ]
+    },
+    {
+     "case": "HO",
+     "label": "Bénéfice ou perte (total des produits − total des charges)",
+     "sum": [
+      "HM"
+     ],
+     "minus": [
+      "HN"
+     ]
+    },
+    {
+     "case": "HP",
+     "label": "dont produit de cessions d'animaux reproducteurs",
+     "accounts": [
+      "7571"
+     ],
+     "mode": "credit",
+     "detail": true
+    },
+    {
+     "case": "HT",
+     "label": "dont opérations de nature commerciale ou non commerciale",
+     "detail": true
+    },
+    {
+     "case": "HR",
+     "label": "dont remboursement forfaitaire de TVA",
+     "accounts": [
+      "741"
+     ],
+     "mode": "credit",
+     "detail": true
+    },
+    {
+     "case": "HS",
+     "label": "dont quotes-parts de bénéfice sur opérations faites en commun",
+     "accounts": [
+      "755"
+     ],
+     "mode": "credit",
+     "detail": true
+    },
+    {
+     "case": "HU",
+     "label": "dont produits d'exploitation afférents à des exercices antérieurs",
+     "detail": true
+    },
+    {
+     "case": "HQ",
+     "label": "dont valeur comptable des animaux reproducteurs cédés",
+     "accounts": [
+      "6571"
+     ],
+     "mode": "debit",
+     "detail": true
+    },
+    {
+     "case": "HV",
+     "label": "dont rémunérations du travail de l'exploitant",
+     "accounts": [
+      "644"
+     ],
+     "mode": "debit",
+     "detail": true
+    },
+    {
+     "case": "HW",
+     "label": "dont quotes-parts de pertes sur opérations faites en commun",
+     "accounts": [
+      "655"
+     ],
+     "mode": "debit",
+     "detail": true
+    },
+    {
+     "case": "HX",
+     "label": "dont charges d'exploitation afférentes à des exercices antérieurs",
+     "detail": true
+    },
+    {
+     "case": "HY",
+     "label": "dont différences positives de change",
+     "accounts": [
+      "766"
+     ],
+     "mode": "credit",
+     "detail": true
+    },
+    {
+     "case": "HZ",
+     "label": "dont différences négatives de change",
+     "accounts": [
+      "666"
+     ],
+     "mode": "debit",
+     "detail": true
+    }
+   ],
+   "checks": [
+    {
+     "equal": [
+      "HO",
+      "DI"
+     ],
+     "label": "Bénéfice ou perte (HO) égal au résultat du bilan (DI, 2145-SD)"
+    }
+   ]
+  },
+  {
+   "code": "2151-SD",
+   "title": "Détermination du résultat fiscal",
+   "rows": [
+    {
+     "case": "WA",
+     "label": "Bénéfice comptable de l'exercice",
+     "tax": "accounting_profit"
+    },
+    {
+     "case": "WB",
+     "label": "Rémunération du travail de l'exploitant ou des associés",
+     "note": "Rémunération de l'exploitant (644) à réintégrer : à saisir en ligne de passage pour qu'elle entre dans le résultat fiscal."
+    },
+    {
+     "case": "WD",
+     "label": "Avantages personnels non déductibles (sauf amortissements)"
+    },
+    {
+     "case": "WE",
+     "label": "Amortissements et charges des animaux reproducteurs et de service non fiscalement immobilisables"
+    },
+    {
+     "case": "WF",
+     "label": "Amortissements excédentaires (art. 39-4) et autres amortissements non déductibles"
+    },
+    {
+     "case": "WG",
+     "label": "Autres charges et dépenses somptuaires (art. 39-4)"
+    },
+    {
+     "case": "WI",
+     "label": "Intérêts excédentaires des comptes courants d'associés"
+    },
+    {
+     "case": "WJ",
+     "label": "Provisions et charges à payer non déductibles (2151-bis, cadre II)"
+    },
+    {
+     "case": "WK",
+     "label": "Amendes et pénalités"
+    },
+    {
+     "case": "WL",
+     "label": "Quote-part dans les bénéfices d'une société de personnes ou d'un GIE"
+    },
+    {
+     "case": "WM",
+     "label": "Moins-values nettes à long terme"
+    },
+    {
+     "case": "WN",
+     "label": "Fraction imposable des plus-values nettes à court terme des exercices antérieurs"
+    },
+    {
+     "case": "WO",
+     "label": "Réintégrations diverses (lignes de passage de Lyvre)",
+     "tax": "reintegrations"
+    },
+    {
+     "case": "WP",
+     "label": "Total I (réintégrations)",
+     "sum": [
+      "WA",
+      "WB",
+      "WD",
+      "WE",
+      "WF",
+      "WG",
+      "WI",
+      "WJ",
+      "WK",
+      "WL",
+      "WM",
+      "WN",
+      "WO"
+     ]
+    },
+    {
+     "case": "WQ",
+     "label": "Perte comptable de l'exercice",
+     "tax": "accounting_loss"
+    },
+    {
+     "case": "WR",
+     "label": "Quote-part dans les pertes d'une société de personnes ou d'un GIE"
+    },
+    {
+     "case": "WS",
+     "label": "Provisions et charges à payer non déductibles antérieurement taxées, réintégrées dans le résultat comptable"
+    },
+    {
+     "case": "WT",
+     "label": "Plus-values nettes à long terme imposées au taux de 12,8 %"
+    },
+    {
+     "case": "WU",
+     "label": "Plus-values nettes à long terme imputées sur les moins-values nettes à long terme antérieures"
+    },
+    {
+     "case": "WV",
+     "label": "Plus-values nettes à long terme imputées sur les déficits antérieurs"
+    },
+    {
+     "case": "A2",
+     "label": "Plus-values nettes à long terme exonérées d'impôt sur le revenu"
+    },
+    {
+     "case": "WX",
+     "label": "Fraction des plus-values nettes à court terme de l'exercice dont l'imposition est différée"
+    },
+    {
+     "case": "WY",
+     "label": "Régime particulier des départements d'outre-mer"
+    },
+    {
+     "case": "KB",
+     "label": "Zone franche DOM"
+    },
+    {
+     "case": "WZ",
+     "label": "Déductions diverses (lignes de passage de Lyvre)",
+     "tax": "deductions"
+    },
+    {
+     "case": "A5",
+     "label": "dont déduction exceptionnelle en faveur de l'investissement (art. 39 decies)",
+     "detail": true
+    },
+    {
+     "case": "XA",
+     "label": "Total II (déductions)",
+     "sum": [
+      "WQ",
+      "WR",
+      "WS",
+      "WT",
+      "WU",
+      "WV",
+      "A2",
+      "WX",
+      "WY",
+      "KB",
+      "WZ"
+     ]
+    },
+    {
+     "case": "XB",
+     "label": "Résultat fiscal : bénéfice (I − II)",
+     "tax": "fiscal_profit_before_ja"
+    },
+    {
+     "case": "XC",
+     "label": "Résultat fiscal : déficit (II − I)",
+     "tax": "fiscal_loss_before_ja"
+    },
+    {
+     "case": "XJ",
+     "label": "Abattement jeunes agriculteurs",
+     "tax": "ja"
+    },
+    {
+     "case": "XP",
+     "label": "Déduction pour épargne de précaution (art. 73)",
+     "tax": "dep"
+    }
+   ]
+  }
+ ],
+ "not_covered": [
+  "2146-SD, colonnes France et Exportation (FA/FB, FD/FE, FG/FH, FJ/FK, FM/FN, FP/FQ) : à ventiler à la main, seule la colonne Total est alimentée",
+  "2146-SD, dont cotisations obligatoires hors CSG/CRDS et dont cotisations facultatives Madelin (pas de case imprimée) et dont cotisations aux nouveaux plans d'épargne retraite (case GZ imprimée en double avec « Autres produits »)",
+  "2146-bis-SD, renvois (12) et (13) : détail des produits et charges exceptionnels et sur exercices antérieurs",
+  "2151-SD, cadre V : déductions pour investissement et pour aléas imputées sur les plus-values (XL, XM, XQ, XR)",
+  "2143-SD, cadre B lignes 2, 5bis, 6 à 10 (revenus mobiliers a à d, m, n, k, plus-values), cadres C à E",
+  "2147-SD (immobilisations), 2148-SD (amortissements), 2149-SD (provisions), 2150-SD (créances et dettes), 2151-bis-SD (déficits et provisions non déductibles), 2151-ter-SD (renseignements divers), 2152-SD et 2152-bis-SD (plus et moins-values), 2153-SD (composition du capital), 2154-D-SD (filiales et participations) : à remplir depuis le registre des immobilisations et les annexes"
+ ]
+}

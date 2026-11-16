@@ -113,6 +113,8 @@ def purchase_state(p: Purchase) -> State:
     if p.is_hidden:
         return State("hidden")
     reasons = []
+    if p.origin_key_id is not None and p.checked_at is None:   # lot AK3 : brouillon d'agent
+        reasons.append(f"Saisie par « {p.origin_label} » : à vérifier, puis marquer vérifiée.")
     if p.currency != "EUR":
         reasons.append(f"Devise {p.currency} non gérée.")
     if p.entity is None:
@@ -206,13 +208,14 @@ def entry_lines(p: Purchase, fy: FiscalYear, supplier: Account) -> list[dict]:
     for line in p.lines:
         amount = line.untaxed_cents if fy.vat_liable else line.total_cents
         if amount:
-            debits.append((line.account_id, line.label or label, amount, line.project_id, None, None))
+            debits.append((line.account_id, line.label or label, amount, line.project_id, None, None, line.analytic_target))
     if fy.vat_liable:
-        debits += [(acc, text, amount, None, code, base) for acc, text, amount, code, base in _vat_lines(p, label)]
+        debits += [(acc, text, amount, None, code, base, None) for acc, text, amount, code, base in _vat_lines(p, label)]
     # Une ligne négative (remise obtenue, 609) passe au crédit.
     lines = [{"account_id": acc, "label": text, "debit_cents": max(amount, 0),
-              "credit_cents": max(-amount, 0), "project_id": project_id, "vat_code": code, "vat_base_cents": base}
-             for acc, text, amount, project_id, code, base in debits]
+              "credit_cents": max(-amount, 0), "project_id": project_id, "vat_code": code, "vat_base_cents": base,
+              "analytic": analytic, "analytic_origin": "purchase"}
+             for acc, text, amount, project_id, code, base, analytic in debits]
     lines.append({"account_id": supplier.id, "label": label, "debit_cents": 0,
                   "credit_cents": p.total_cents})
     if p.is_credit_note:
@@ -398,7 +401,16 @@ def build_lines(rows) -> list[PurchaseLine]:
             project = projects.resolve(row.get("project_id"))
         except ValueError as exc:
             raise LedgerError(str(exc)) from None
+        analytic = None
+        if row.get("analytic"):                                    # lot AG8.c
+            from app.services.analytic import AnalyticError
+            from app.services.analytic_allocation import parse_target
+            try:
+                analytic = parse_target(row.get("analytic"))
+            except AnalyticError as exc:
+                raise LedgerError(exc.message) from None
         lines.append(PurchaseLine(
+            analytic_target=analytic,
             position=len(lines), product_id=product.id if product else None,
             account_id=account.id if account else None,
             label=(row.get("label") or (product.name if product else "")).strip()[:300] or None,

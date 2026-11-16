@@ -12,6 +12,10 @@ SYNC_KIND_RECEIPTS_ISSUE = "donation_receipts"
 SYNC_KIND_RECEIPTS_SEND = "donation_receipts_send"
 SYNC_KIND_SIRENE_REFRESH = "sirene_refresh"
 SYNC_KIND_BREVO = "brevo_sync"
+SYNC_KIND_EKYLIBRE = "ekylibre_sync"
+SYNC_KIND_EKYLIBRE_ANALYSIS = "ekylibre_restore_analysis"   # lot RE6 : analyse d'une sauvegarde
+SYNC_KIND_EKYLIBRE_RESTORE = "ekylibre_restore"
+SYNC_KIND_SUPERPDP = "superpdp_sync"                         # lot PDP1 : réception et statuts            # lot RE6 : restauration
 
 SYNC_STATUS_RUNNING = "running"
 SYNC_STATUS_DONE = "done"

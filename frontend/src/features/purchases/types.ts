@@ -2,6 +2,7 @@
 import type { IntegrationState } from "../../components/IntegrationNotice";
 import type { Job } from "../../components/JobStatus";
 import type { MonthOption } from "../../components/MonthSelect";
+import type { AgentOrigin } from "../../components/OriginBadge";
 import type { Tone } from "../../components/StatusBadge";
 
 export const PURCHASES_KEY = ["purchases"];
@@ -11,12 +12,14 @@ export interface Option { value: string; label: string }
 export interface PurchaseState { code: "posted" | "ready" | "to_complete" | "hidden"; label: string; reasons: string[] }
 
 export interface Purchase {
-  id: number; source: "qonto" | "manual"; invoice_number: string | null; issue_date: string | null; due_date: string | null;
+  id: number; source: "qonto" | "manual" | "superpdp" | "ekylibre"; pdp_status?: string | null; invoice_number: string | null; issue_date: string | null; due_date: string | null;
   is_credit_note: boolean; is_einvoice: boolean; is_hidden: boolean; total_cents: number;
   supplier: { id: number; name: string } | null; supplier_name: string | null;
   qonto_status: string | null; qonto_status_label: string | null; review_reason: string | null; has_attachment: boolean;
   qonto_upload_status: "sent" | "failed" | null; qonto_upload_error: string | null; in_qonto: boolean;
   state: PurchaseState; journal_entry_id: number | null;
+  /** Lot AK3 : saisie par une clé d'API (Aiffel…). */
+  origin?: AgentOrigin | null;
 }
 
 /** Confirmation de suppression : écriture supprimée aussi ; facture présente dans Qonto (reçue de Qonto ou
@@ -32,15 +35,19 @@ export interface QontoState extends IntegrationState { upload: boolean }
 
 export interface PurchasesMeta {
   counters: { to_complete: number; to_review: number; to_replace: number; supplier_proposals: number; hidden: number;
-    without_supplier: number; ready: number };
+    without_supplier: number; ready: number; from_key?: number };
   suppliers: Option[]; states: Option[]; statuses: Option[]; months: MonthOption[];
   sync: { from: string; synced_at: string | null; job: Job | null };
   qonto: QontoState;
+  /** Lot PDP1 : réception par SUPER PDP (partie « Réception des factures d'achat »). */
+  superpdp?: IntegrationState & { job: Job | null };
 }
 
 /** Ligne de saisie : champs texte, comme le formulaire (montants « 33,33 »). */
 export interface LineRow {
   product_id: string; account_code: string; label: string; untaxed: string; vat_rate: string; vat: string; project_id?: string;
+  /** Lot AG8.c : affectation analytique (« activity:ID » ou « key:ID »). */
+  analytic?: string;
 }
 
 export interface ProductOption extends Option { account: string; rate: string }

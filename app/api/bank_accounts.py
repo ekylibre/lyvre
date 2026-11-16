@@ -23,7 +23,7 @@ def _iso(value):
 def bank_account_payload(ba: BankAccount, stats=True, fy=False) -> dict:
     """`fy` : exercice du solde bancaire (False : exercice affiché, recherché ici)."""
     payload = {
-        "id": ba.id, "label": ba.label, "iban": ba.iban, "kind": ba.kind,
+        "id": ba.id, "label": ba.label, "iban": ba.iban, "kind": ba.kind, "dep_savings": ba.dep_savings,
         "account": {"id": ba.account.id, "code": ba.account.code, "label": ba.account.label},
         "qonto": {"account_id": ba.qonto_account_id, "sync_from": _iso(ba.qonto_sync_from),
                   "synced_at": _iso(ba.qonto_synced_at)} if ba.qonto_account_id else None,

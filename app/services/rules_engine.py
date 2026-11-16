@@ -90,7 +90,7 @@ def _counterpart(account_code):
     return counterpart
 
 
-def _post_entry_for_transaction(txn, account_code, description, project_id=None):
+def _post_entry_for_transaction(txn, account_code, description, project_id=None, analytic=None):
     """Create a balanced journal entry for a categorized bank transaction.
 
     Convention:
@@ -142,7 +142,8 @@ def _post_entry_for_transaction(txn, account_code, description, project_id=None)
             {"account_id": bank_gl_id, "label": label,
              "debit_cents": bank_debit, "credit_cents": bank_credit},
             {"account_id": counterpart.id, "label": label,
-             "debit_cents": cp_debit, "credit_cents": cp_credit, "project_id": project_id},
+             "debit_cents": cp_debit, "credit_cents": cp_credit, "project_id": project_id,
+             "analytic": analytic, "analytic_origin": "rule"},
         ],
         source="QONTO_IMPORT" if txn.source == "qonto" else "OFX_IMPORT",
         source_ref=f"FITID:{txn.fitid}",
@@ -233,15 +234,16 @@ def apply_rules(transactions=None, overwrite=False):
             try:
                 if rule_entries.simple_mode():
                     bank_line = _post_entry_for_transaction(
-                        txn, matched_rule.account_code, description, matched_rule.project_id
-                    )
+                        txn, matched_rule.account_code, description, matched_rule.project_id,
+                        matched_rule.analytic_target)
                     txn.journal_line_id = bank_line.id
                     txn.reconciled = True
                     created_entry_ids.append(bank_line.entry_id)
                 else:
                     counterpart = _counterpart(matched_rule.account_code)
                     document, settlement = rule_entries.post(
-                        txn, counterpart, description, matched_rule.project_id, entity)
+                        txn, counterpart, description, matched_rule.project_id, entity,
+                        analytic=matched_rule.analytic_target)
                     created_entry_ids += [document.id, settlement.id]
                 posted += 1
             except LedgerError as e:
@@ -344,6 +346,16 @@ def validate_rule_data(form) -> dict:
         raise RuleValidationError(str(exc)) from None
     if project is not None and not account_code:
         raise RuleValidationError("Le projet s'applique à l'écriture générée : renseignez aussi le compte.")
+    analytic = None
+    if form.get("analytic"):                                       # lot AG8.c : affectation analytique
+        from app.services.analytic import AnalyticError
+        from app.services.analytic_allocation import parse_target
+        try:
+            analytic = parse_target(form.get("analytic"))
+        except AnalyticError as exc:
+            raise RuleValidationError(exc.message) from None
+        if not account_code:
+            raise RuleValidationError("L'affectation analytique s'applique à l'écriture générée : renseignez aussi le compte.")
 
     return {
         "name": name,
@@ -357,5 +369,6 @@ def validate_rule_data(form) -> dict:
         "category": _clean(form.get("category")),
         "account_code": account_code,
         "project_id": project.id if project else None,
+        "analytic_target": analytic,
         "is_active": bool(form.get("is_active")),
     }

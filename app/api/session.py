@@ -33,18 +33,23 @@ def _current_instance():
 
 
 def _resolve_nav(menus):
-    """Menus de menu_config avec les URL résolues (url_for) pour la SPA."""
+    """Menus de menu_config avec les URL résolues (url_for) pour la SPA, sur trois niveaux (lot NV1), avec l'icône
+    Lucide (`icon`) et le pictogramme agric (`pictogram`) de chaque entrée."""
     resolved = []
     for menu in menus:
+        if menu.get("divider"):
+            resolved.append({"divider": True})
+            continue
         entry = {"key": menu["key"], "label": menu["label"]}
+        for field in ("icon", "pictogram"):
+            if menu.get(field):
+                entry[field] = menu[field]
         if "items" in menu:
-            entry["items"] = [
-                {"divider": True} if item.get("divider")
-                else {"key": item["key"], "label": item["label"], "url": url_for(item["endpoint"])}
-                for item in menu["items"]
-            ]
+            entry["items"] = _resolve_nav(menu["items"])
         else:
             entry["url"] = url_for(menu["endpoint"])
+            if menu.get("also"):                       # lot NV2 : onglets rattachés à l'entrée
+                entry["also_urls"] = [url_for(e) for e in menu["also"]]
         resolved.append(entry)
     return resolved
 
@@ -90,9 +95,11 @@ def _integrations(inst, role) -> dict:
 
 def _features(inst) -> set[str]:
     """Options de l'instance qui conditionnent des menus : module Associés, intégrations activées,
-    déclarations de TVA (un exercice les prépare dans Lyvre, lot T3)."""
-    return {*(["associates"] if inst.has_associates else []), *(["vat_returns"] if _vat_prepared(inst) else []),
-            *_enabled_integrations(inst)}
+    déclarations de TVA (un exercice les prépare dans Lyvre, lot T3 ; toujours pour une exploitation, dont la page
+    indique le régime à renseigner), calculettes (au moins une pour ce type de structure)."""
+    from app.services.calculators import charts_covered
+    return {*(["associates"] if inst.has_associates else []), *(["vat_returns"] if inst.chart == "agri" or _vat_prepared(inst) else []),
+            *(["calculators"] if inst.chart in charts_covered() else []), *_enabled_integrations(inst)}
 
 
 def _vat_prepared(inst) -> bool:
@@ -141,7 +148,8 @@ def session_payload() -> dict:
         if inst else [],
         # Menu de l'utilisateur (en-tête) : administration réservée aux admins.
         "admin_links": ([{"label": "Utilisateurs", "url": url_for("users.index")},
-                         {"label": "Instances", "url": url_for("instances.index")}] if is_admin else []),
+                         {"label": "Instances", "url": url_for("instances.index")},
+                         {"label": "Paramètres réglementaires", "url": url_for("regulatory.index")}] if is_admin else []),
         "preferences": _initial_changelog_seen(current_user),
         # Services du serveur (pas d'interrupteur par instance) : Sirene si la clé est configurée.
         "services": {"sirene": sirene.available()},

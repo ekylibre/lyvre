@@ -1,0 +1,10 @@
+# Payeurs des aides (lot AG3.b, claudedocs/design_aides_pac.md § 5) : mots du libellé ou de la contrepartie d'un
+# virement reçu, normalisés comme data/deadlines/payees.yml (majuscules sans accents, ponctuation en espace).
+# La clé est le payeur porté par le dossier (`payer` de data/aids/schemes.yml).
+#
+# La DGFiP n'y figure pas : ses virements sont surtout des remboursements de TVA (44583), pas des aides.
+payers:
+  ASP: [ASP, AGENCE DE SERVICES ET DE PAIEMENT, AGENCE SERVICES PAIEMENT]
+  FranceAgriMer: [FRANCEAGRIMER, FRANCE AGRIMER]
+  Région: [REGION, CONSEIL REGIONAL]
+  DDT: [DRFIP, DDT, DDTM]

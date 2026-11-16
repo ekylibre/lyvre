@@ -90,6 +90,11 @@ html, body { background: var(--lv-paper); }
 .lv-nav .mantine-NavLink-root[data-active] { background: #DDE8DF; color: #1E2421; font-weight: 600; }
 .lv-nav .mantine-NavLink-root:focus-visible { outline-color: var(--lv-paille); }
 .lv-nav .mantine-Divider-root { border-color: rgba(255, 255, 255, 0.15); }
+/* Menu en rail (lot NV4) : colonne d'icônes, sous-menus en menu flottant. */
+.lv-rail-btn { color: var(--lv-on-night); width: 44px; height: 44px; border-radius: 10px; }
+.lv-rail-btn:hover { background: rgba(255, 255, 255, 0.08); }
+.lv-rail-btn[data-active] { background: #DDE8DF; color: #1E2421; }
+.lv-rail-btn:focus-visible { outline: 2px solid var(--lv-paille); }
 .lv-nav-foot { font: 500 11px/16px var(--mantine-font-family-monospace); opacity: 0.75; letter-spacing: 0.06em; }
 
 /* Tableaux (LedgerTable) : en-tête sauge en capitales, survol paper. */
@@ -113,3 +118,22 @@ html, body { background: var(--lv-paper); }
   html, body, .mantine-AppShell-main { background: #fff !important; }
   .lv-print-only { display: block; }
 }
+
+/* Tableau de bord : lignes « À traiter » et échéancier (filet de gravité à gauche, une action par ligne). */
+.lv-signal { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px;
+  padding: 10px 12px 10px 14px; border-left: 3px solid var(--lv-signal, var(--lv-line-strong));
+  background: var(--lv-paper); border-radius: 0 10px 10px 0; }
+.lv-signal[data-tone="brique"] { --lv-signal: var(--lv-brique); }
+.lv-signal[data-tone="paille"] { --lv-signal: var(--lv-paille); }
+.lv-signal[data-tone="lichen"] { --lv-signal: var(--lv-lichen); }
+.lv-signal[data-tone="ardoise"] { --lv-signal: var(--lv-ardoise); }
+@media (max-width: 36em) { .lv-signal { grid-template-columns: auto 1fr; } .lv-signal > :last-child { grid-column: 2; } }
+.lv-count { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: 10px;
+  background: var(--lv-paper); border-top: 3px solid var(--lv-signal, var(--lv-line)); }
+.lv-count[data-tone="brique"][data-on] { --lv-signal: var(--lv-brique); }
+.lv-count[data-tone="paille"][data-on] { --lv-signal: var(--lv-paille); }
+.lv-count[data-tone="ardoise"][data-on] { --lv-signal: var(--lv-ardoise); }
+.lv-count[data-tone="lichen"][data-on] { --lv-signal: var(--lv-lichen); }
+.lv-due { display: grid; grid-template-columns: 52px 1fr auto; gap: 10px; align-items: baseline; padding: 6px 0;
+  border-bottom: 1px solid var(--lv-line); }
+.lv-due:last-child { border-bottom: 0; }

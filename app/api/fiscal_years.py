@@ -45,6 +45,11 @@ def fiscal_years_create():
     start, end = _date(data, "start_date", "Début"), _date(data, "end_date", "Fin")
     if end < start:
         raise invalid("La fin de l'exercice doit suivre son début.", "end_date")
+    from app.tenant import current_chart, current_instance
+    instance = current_instance()
+    if current_chart() == "agri" and instance is not None and instance.bookkeeping == "simple" and \
+            ((start.month, start.day, end.month, end.day) != (1, 1, 12, 31) or start.year != end.year):
+        raise invalid("Micro-BA : l'exercice est l'année civile (du 01/01 au 31/12).", "end_date")  # lot AG1.d
     fy = FiscalYear(label=label[:50], start_date=start, end_date=end,
                     vat_liable=bool(data.get("vat_liable")))
     db.session.add(fy)
@@ -297,13 +302,24 @@ def fiscal_years_update(fy_id):
         notices.append(notice(f"TVA des prestations de services exigible {mode} (exercice « {fy.label} »). "
                               "S'applique aux factures de vente émises à partir de maintenant."))
     if "vat_period" in data:  # lot T3 : déclaration mensuelle (CA3) préparée dans Lyvre
-        if data["vat_period"] not in (None, "", "monthly"):
+        if data["vat_period"] not in (None, "", "monthly", "quarterly", "annual"):
             raise invalid("Période de déclaration inconnue.", "vat_period")
+        from app.tenant import current_chart
+        if data["vat_period"] == "annual" and current_chart() != "agri":  # lot AG2.b : CA12A, régime agricole
+            raise invalid("La déclaration annuelle CA12A est propre au régime simplifié agricole.", "vat_period")
         if data["vat_period"] and not fy.vat_liable:
             raise invalid("Déclarez d'abord l'exercice soumis à la TVA.", "vat_period")
-        fy.vat_period = data["vat_period"] or None
+        new_period = data["vat_period"] or None
+        if new_period != fy.vat_period and fy.vat_period and new_period:
+            from app.models import VatReturn
+            if VatReturn.query.filter_by(fiscal_year_id=fy.id).first() is not None:  # lot AG2.a
+                raise invalid("Des déclarations de l'exercice sont déjà validées : annulez-les avant de changer de "
+                              "rythme de déclaration.", "vat_period")
+        fy.vat_period = new_period
+        labels = {"monthly": "mensuelle (CA3) préparée dans Lyvre", "quarterly": "trimestrielle (CA3) préparée dans Lyvre",
+                  "annual": "annuelle (CA12A, acomptes trimestriels) préparée dans Lyvre"}
         notices.append(notice(f"Exercice « {fy.label} » : déclaration de TVA "
-                              f"{'mensuelle (CA3) préparée dans Lyvre' if fy.vat_period else 'non préparée dans Lyvre'}."))
+                              f"{labels.get(fy.vat_period, 'non préparée dans Lyvre')}."))
     if not fy.vat_liable:
         fy.vat_period = None
     db.session.commit()

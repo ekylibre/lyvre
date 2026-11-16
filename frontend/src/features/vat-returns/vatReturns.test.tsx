@@ -63,3 +63,15 @@ describe("liste des mois", () => {
     expect(screen.getByText("À préparer — en retard")).toBeInTheDocument();
   });
 });
+
+describe("Déclarations de TVA sans exercice déclarant", () => {
+  it("affiche le message du profil fiscal et son lien", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation((() => Promise.resolve(new Response(JSON.stringify({
+      items: [], fiscal_year: null, fiscal_years: [],
+      setup: { message: "Régime de TVA non renseigné : choisissez-le dans Configuration › Structure › Fiscalité.",
+        link: "/configuration/organization?tab=tax", link_label: "Renseigner le régime de TVA" } }), { status: 200 }))) as typeof fetch);
+    renderWithProviders(<VatReturnsPage />, { route: "/vat-returns/" });
+    expect(await screen.findByText(/Régime de TVA non renseigné/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Renseigner le régime de TVA" })).toHaveAttribute("href", "/configuration/organization?tab=tax");
+  });
+});

@@ -18,4 +18,15 @@ app/static/dist/
 
 # Sources comptables (PDF ANC, guides, modèle Word) : volumineuses, URL dans doc/base_documentaire (registre des sources)
 doc/ref_compta/*.pdf
+doc/ref_compta/outils cegara/
 doc/ref_compta/*.doc
+# Sauvegardes Ekylibre réelles (données personnelles et bancaires) : jamais versionnées
+doc/ref_compta/*.zip
+
+# Documents de tiers (comptabilité agricole, AGD16) : sources lues sur place, non redistribuées.
+claudedocs/compta_agricole/*.pdf
+claudedocs/compta_agricole/*.zip
+claudedocs/compta_agricole/liasse_BA/
+claudedocs/compta_agricole/fiches_pratiques/
+claudedocs/compta_agricole/msa/*.pdf
+claudedocs/compta_agricole/RICA/

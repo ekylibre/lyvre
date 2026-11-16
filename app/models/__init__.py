@@ -1,6 +1,8 @@
 from .user import User
 from .instance import Instance
 from .instance_membership import InstanceMembership
+from .api_key import ApiKey
+from .api_call import ApiCall
 from .fiscal_year import FiscalYear
 from .account import Account
 from .journal import Journal
@@ -8,7 +10,7 @@ from .journal_entry import JournalEntry
 from .journal_line import JournalLine
 from .validation import EntryEvent, ValidationBatch
 from .lettering import AccountRole, Lettering
-from .asset import Asset, AssetDepreciation
+from .asset import Asset, AssetDepreciation, AssetImpairment, AssetLivingExit, LivingReinvestment, LivingWipCost
 from .data_import import AccountMapping, ImportProfile
 from .bank_account import BankAccount
 from .bank_statement import BankStatement
@@ -55,14 +57,75 @@ from .report_asset import ReportAsset
 from .report_archive import ReportArchive
 from .associate import Associate, AssociateExpense, ShareMovement, ShareMovementLine
 from .brevo_link import BrevoLink
+from .tax_profile import TaxOption, TaxProfile
+from .regulatory_value import RegulatoryValue
+from .micro_receipts import MicroReceiptsYear
+from .rfa import RfaAttestation, RfaClaim
+from .stock import CropAdvance, CropAdvanceCost, CropStandard, CropStandardRow, OpeningStockLine, StockCountFile, StockLine, StockLot, StockLotMovement, StockSettings, StockStandard
+from .tax_result import (BaHistoryYear, CapitalGainChoice, TaxCredit, CowProvision, CowProvisionRelease, DepEntry, DepMovement, DepSubstitute, IncomeSpread,
+                         TaxResult, TaxResultLine)
+from .analytic import (Activity, ActivityProduction, AnalyticAllocation, AnalyticKey, AnalyticKeyMember, AnalyticRule, AnalyticSnapshot,
+                       Campaign, Workshop)
+from .assistant import AssistantConversation, AssistantMessage, AssistantProposal
+from .checklist import ChecklistMark
+from .coop_statement import CoopStatement, CoopStatementLine
+from .ereporting import EreportingExport
+from .ekylibre import EkylibreSnapshot, EkylibreVariantLink
+from .msa import MsaAdjustment, MsaBase, MsaCall, MsaPerson
+from .aid import Aid, AidAccrual, AidAsset, AidPayment, AidRelease, CapPublished
+from .deadline_state import DeadlineState
+from .agenda_subscription import AgendaSubscription
 
 __all__ = [
+    "ChecklistMark",
+    "CoopStatement", "CoopStatementLine", "EreportingExport", "EkylibreSnapshot", "EkylibreVariantLink",
+    "AssistantConversation", "AssistantMessage", "AssistantProposal",
+    "Activity", "ActivityProduction", "AnalyticAllocation", "AnalyticKey", "AnalyticKeyMember", "AnalyticRule", "AnalyticSnapshot", "Campaign", "Workshop",
+    "MsaAdjustment", "MsaBase", "MsaCall", "MsaPerson",
+    "DeadlineState",
+    "AgendaSubscription",
+    "RfaAttestation",
+    "RfaClaim",
+    "Aid",
+    "AidPayment",
+    "AidAccrual",
+    "AidAsset",
+    "AidRelease",
+    "CapPublished",
+    "TaxResult",
+    "TaxResultLine",
+    "DepEntry",
+    "DepMovement",
+    "DepSubstitute",
+    "CowProvision",
+    "CowProvisionRelease",
+    "BaHistoryYear",
+    "IncomeSpread",
+    "CapitalGainChoice",
+    "TaxCredit",
+    "CropAdvance",
+    "CropAdvanceCost",
+    "CropStandard",
+    "CropStandardRow",
+    "StockCountFile",
+    "StockLine",
+    "OpeningStockLine",
+    "StockLot",
+    "StockLotMovement",
+    "StockSettings",
+    "StockStandard",
+    "MicroReceiptsYear",
+    "TaxOption",
+    "TaxProfile",
+    "RegulatoryValue",
     "Associate",
     "AssociateExpense",
     "ShareMovement",
     "ShareMovementLine",
     "User",
     "Instance",
+    "ApiKey",
+    "ApiCall",
     "FiscalYear",
     "Account",
     "Journal",
@@ -74,6 +137,10 @@ __all__ = [
     "AccountMapping",
     "ImportProfile",
     "AssetDepreciation",
+    "LivingWipCost",
+    "AssetImpairment",
+    "AssetLivingExit",
+    "LivingReinvestment",
     "Lettering",
     "ValidationBatch",
     "BankAccount",

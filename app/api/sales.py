@@ -13,7 +13,7 @@ from app.models import Account, BankAccount, BankTransaction, Entity, Lease, Ren
 from app.models.sale import OPERATION_TYPES, PAYMENT_METHODS, QUOTE_STATUS_LABELS, STATUS_LABELS
 from app.services import (
     billing, catalog, external_config, projects, qonto_sales, sale_documents, sale_entry, sale_issue, sale_settlement,
-    vat_codes,
+    self_billing, superpdp, vat_codes,
 )
 from app.services.sale_entry import SaleError
 from app.utils.list_filters import apply_month_filter, month_options_for_fy, parse_month
@@ -59,11 +59,14 @@ def sale_row(s: Sale) -> dict:
     return {"id": s.id, "kind": s.kind, "kind_label": KIND_LABELS.get(s.kind, s.kind), "status": status,
             "status_label": label, "number": s.number, "source": s.source, "validity_date": _iso(s.validity_date),
             "qonto_emit": s.qonto_emit, "qonto_status": s.qonto_status, "qonto_error": s.qonto_error,
+            "pdp": ({"id": s.pdp_id, "status": s.pdp_status, "status_label": superpdp.label(s.pdp_status),
+                     "error": s.pdp_error, "sent_at": _iso(s.pdp_sent_at)} if s.pdp_id or s.pdp_error else None),
             "client": {"id": s.entity_id, "name": s.entity.name}, "issue_date": _iso(s.issue_date),
             "due_date": _iso(s.due_date), "untaxed_cents": s.untaxed_cents, "tax_cents": s.tax_cents,
             "total_cents": s.total_cents, "paid_cents": s.paid_cents, "sent_at": _iso(s.sent_at),
             "due_cents": sale_settlement.due_cents(s), "reminder_count": s.reminder_count,
-            "last_reminder_at": _iso(s.last_reminder_at),
+            "last_reminder_at": _iso(s.last_reminder_at), "self_billed": s.self_billed,
+            "lifecycle": self_billing.lifecycle_payload(s),
             "overdue": s.kind == "invoice" and s.status in ("issued", "partially_paid") and bool(s.due_date)
             and s.due_date < date.today()}
 
@@ -98,6 +101,10 @@ def sale_detail(s: Sale) -> dict:
                              for c in credit_notes],
             "remaining_credit_cents": s.total_cents - sale_issue.credited_cents(s) if s.kind == "invoice" else 0,
             "issue_problems": sale_issue.issue_problems(s) if s.status == "draft" else [],
+            "facturx_warning": sale_documents.facturx_warning(s), "b2c": sale_documents.is_b2c(s),
+            # Lot PDP1 : transmission par SUPER PDP proposée si la partie « Envoi » est disponible.
+            "pdp_send": ({"refusal": superpdp.sendable(s)} if superpdp.can_send() and s.kind in ("invoice", "credit_note")
+                         and s.status != "draft" else None),
             "recipients": sale_issue.recipients_of(s), "emails": [
                 {"sent_at": _iso(e.sent_at), "recipients": e.recipients, "subject": e.subject, "status": e.status,
                  "error": e.error, "purpose": e.purpose} for e in s.emails],
@@ -109,6 +116,7 @@ def sale_detail(s: Sale) -> dict:
                           "journal_entry": {"id": p.journal_entry_id, "reference": p.journal_entry.reference}
                           if p.journal_entry else None} for p in s.payments],
             "pdf_url": f"/api/v1/sales/{s.id}/pdf",
+            "received_file_url": f"/api/v1/sales/{s.id}/received-file" if s.received_file else None,
             "lease": {"id": s.lease_id, "unit_label": db.session.get(Lease, s.lease_id).unit_label}
             if s.lease_id and db.session.get(Lease, s.lease_id) else None,
             "recurrence_id": s.recurrence_id,
@@ -134,6 +142,8 @@ def sales_list():
         query = query.filter(Sale.status == status)
     if args.get("entity_id", "").isdigit():
         query = query.filter(Sale.entity_id == int(args["entity_id"]))
+    if args.get("self_billed") == "1":
+        query = query.filter(Sale.self_billed.is_(True))
     if args.get("overdue") == "1":
         query = query.filter(Sale.kind == "invoice", Sale.status.in_(("issued", "partially_paid")),
                              Sale.due_date < date.today())
@@ -152,6 +162,7 @@ def sales_list():
                    "total_cents": sum(s.total_cents * (-1 if s.kind == "credit_note" else 1) for s in issued)},
         "drafts": sum(1 for s in rows if s.status == "draft"), "months": month_options_for_fy(),
         "qonto": {**external_config.state("qonto", "sales"), "job": _job(qonto_sales.latest_job())},
+        "superpdp": external_config.state("superpdp", "send"),
         "smtp": _smtp_state()})
 
 
@@ -271,6 +282,9 @@ def sales_pdf(sale_id):
     sale = get_or_404(Sale, sale_id, "Pièce introuvable.")
     path = sale_documents.pdf_file(sale)
     download = request.args.get("download") == "1"
+    received = self_billing.received_path(sale) if sale.self_billed else None
+    if received is not None and received.suffix == ".pdf":  # autofacture : le PDF du client, tel que reçu
+        return send_file(received, mimetype="application/pdf", as_attachment=download, download_name=received.name)
     if path is None and sale.qonto_id and qonto_sales.available():
         from app.services.qonto_client import QontoError
         try:  # PDF Qonto produit en différé : récupéré à la première demande
@@ -523,3 +537,95 @@ def sales_qonto_sync():
     from flask import current_app
     from .session import job_payload
     return jsonify(job=job_payload(qonto_sales.start_sync(current_app._get_current_object())))
+
+
+# ------------------------------------------------------------------ autofactures reçues (lot AG10.c)
+
+def _received_upload():
+    file = request.files.get("file")
+    if not file or not file.filename:
+        raise invalid("Choisissez un fichier (Factur-X PDF, XML CII ou UBL).", "file")
+    body = file.stream.read(self_billing.MAX_SIZE + 1)
+    if len(body) > self_billing.MAX_SIZE:
+        raise invalid("Fichier trop volumineux (maximum 10 Mo).", "file")
+    return file.filename, body
+
+
+def _form_json(name, kind):
+    import json
+    raw = request.form.get(name)
+    if not raw:
+        return kind()
+    try:
+        value = json.loads(raw)
+    except ValueError:
+        raise invalid("Données invalides.", name) from None
+    if not isinstance(value, kind):
+        raise invalid("Données invalides.", name)
+    return value
+
+
+@bp.route("/sales/self-billed/analyze", methods=["POST"])
+def sales_self_billed_analyze():
+    """Lecture et contrôle d'une autofacture déposée ; rien n'est enregistré."""
+    _, body = _received_upload()
+    with _errors():
+        return jsonify(self_billing.analyze(body))
+
+
+@bp.route("/sales/self-billed", methods=["POST"])
+def sales_self_billed_create():
+    """Autofacture reçue enregistrée en vente (statut « reçue », sans écriture) ; `accounts` : {indice: compte}."""
+    filename, body = _received_upload()
+    with _errors():
+        sale = self_billing.create(body, filename, _form_json("accounts", dict))
+    return jsonify(item=sale_detail(sale), notices=[notice(
+        f"Autofacture {sale.number} de « {sale.entity.name} » enregistrée : acceptez-la ou contestez-la.")]), 201
+
+
+@bp.route("/sales/<int:sale_id>/lifecycle", methods=["POST"])
+def sales_lifecycle(sale_id):
+    """`{status: accepted | disputed | refused, reason?, accounts?: {id de ligne: compte}}`."""
+    sale = get_or_404(Sale, sale_id, "Pièce introuvable.")
+    data = json_body()
+    accounts = data.get("accounts") if isinstance(data.get("accounts"), dict) else None
+    with _errors():
+        self_billing.set_status(sale, str(data.get("status") or ""), data.get("reason"), accounts)
+    info = self_billing.lifecycle_payload(sale)
+    text = {"accepted": f"Autofacture {sale.number} acceptée et comptabilisée.",
+            "disputed": f"Autofacture {sale.number} contestée.",
+            "refused": f"Autofacture {sale.number} refusée : rien n'est comptabilisé."}[sale.lifecycle_status]
+    notices = [notice(f"{text} Statut à transmettre par votre plateforme : {info['code']} ({info['label'].lower()}).")]
+    if sale.lifecycle_status == "accepted":
+        txn = sale_settlement.auto_match_sale(sale)
+        if txn is not None:
+            notices.append(notice(f"Autofacture {sale.number} encaissée par la transaction du "
+                                  f"{txn.transaction_date.strftime('%d/%m/%Y')}.", "success"))
+            db.session.refresh(sale)
+    return jsonify(item=sale_detail(sale), notices=notices)
+
+
+@bp.route("/sales/<int:sale_id>/received-file")
+def sales_received_file(sale_id):
+    sale = get_or_404(Sale, sale_id, "Pièce introuvable.")
+    path = self_billing.received_path(sale)
+    if path is None:
+        raise ApiError("not_found", "Fichier reçu introuvable.", status=404)
+    mime = "application/pdf" if path.suffix == ".pdf" else "application/xml"
+    return send_file(path, mimetype=mime, as_attachment=request.args.get("download") == "1", download_name=path.name)
+
+
+@bp.route("/sales/<int:sale_id>/superpdp", methods=["POST"])
+def sales_superpdp_send(sale_id):
+    """Lot PDP1 : transmission de la facture électronique (Factur-X) par SUPER PDP."""
+    sale = get_or_404(Sale, sale_id, "Pièce introuvable.")
+    require_integration("superpdp", "send")
+    try:
+        superpdp.send(sale)
+    except superpdp.PdpError as exc:
+        db.session.commit()                         # erreur gardée sur la pièce
+        raise ApiError("pdp_refused", exc.message, status=exc.status) from None
+    db.session.commit()
+    return jsonify(item=sale_detail(sale), notices=[notice(
+        f"{KIND_LABELS.get(sale.kind)} {sale.number} déposé{'e' if sale.kind == 'invoice' else ''} chez SUPER PDP "
+        f"({superpdp.label(sale.pdp_status)}) : le statut se met à jour à la synchronisation.")])

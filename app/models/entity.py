@@ -36,6 +36,8 @@ class Entity(db.Model):
     vat_number = db.Column(db.String(30), index=True)
     # Lot T2 : régime TVA (fr | eu | world) : autoliquidation des achats, ventes sans TVA française.
     vat_regime = db.Column(db.String(8), nullable=False, default="fr", server_default="fr")
+    # Lot AG2.e : client du remboursement forfaitaire (professional, eu, export, none ; nul : déduit de la fiche).
+    rfa_buyer = db.Column(db.String(12))
     siret = db.Column(db.String(14), index=True)
     # SIREN : 9 premiers chiffres du SIRET (tenu à jour avec lui), ou seul (unité légale sans
     # établissement connu). Rapprochement des fournisseurs et mise à jour depuis Sirene (lot G).
@@ -55,6 +57,12 @@ class Entity(db.Model):
     billing_emails = db.Column(db.Text)
     qonto_client_id = db.Column(db.String(36), index=True)  # client Qonto (ventes, lot S4)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # Lot AK3 : objet créé par une clé d'API (brouillon d'agent) et référence externe (Fourmy…).
+    origin_key_id = db.Column(db.Integer, index=True)
+    origin_label = db.Column(db.String(80))
+    external_ref = db.Column(db.String(120), index=True)
+    checked_at = db.Column(db.DateTime)        # vérification humaine d'un objet créé par clé
+    checked_by_id = db.Column(db.Integer)
 
     @validates("siret")
     def _derive_siren(self, _key, value):

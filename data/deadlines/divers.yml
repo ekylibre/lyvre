@@ -1,0 +1,106 @@
+# Autres (audit_calendrier.md § 2.6).
+- id: DIV-01
+  title: Baux ruraux (fermage)
+  domain: divers
+  organism: Bailleur ou preneur
+  summary: Échéances fixées par le bail, souvent à la Saint-Michel (29/9) ou à la Saint-Martin (11/11) ; fermage indexé au 1er octobre sur l'indice national des fermages (fermage N = fermage N-1 × indice N / indice N-1).
+  applies: {flags: [leases]}
+  events:
+    - label: Échéance de fermage
+      rule: {type: leases}
+      reminders: [15]
+    - label: Indexation des fermages (nouvel indice)
+      rule: {type: fixed, days: ["10-01"], shift: none}
+      reminders: [15]
+  lyvre_data: Compte 6132 contre 401 ; refacturation de la taxe foncière au preneur (FIS-06).
+  reliability: R
+
+- id: DIV-02
+  title: Assemblée générale et dépôt des comptes
+  domain: divers
+  organism: Associés, greffe
+  summary: AG dans les 6 mois de la clôture (EARL, SARL, SAS ; selon les statuts pour les SCEA et GAEC) ; dépôt au greffe pour les seules sociétés commerciales, dans le mois qui suit l'AG (2 mois en dépôt électronique).
+  applies: {company: true}
+  events:
+    - label: Assemblée générale d'approbation des comptes
+      rule: {type: after_close, months: 6, day: end, shift: none}
+      reminders: [45, 15]
+    - label: Dépôt des comptes au greffe (au plus tard un mois après une AG tenue à la date limite)
+      applies: {commercial: true}
+      rule: {type: after_close, months: 7, day: end, shift: none}
+      reminders: [30, 7]
+  prepare:
+    - Comptes annuels, rapport de gestion, affectation du résultat, procès-verbal
+  reliability: R
+
+- id: DIV-03
+  title: Inventaire et clôture
+  domain: divers
+  organism: Exploitation
+  summary: À la clôture - stocks, avances aux cultures, cheptel, travaux en cours, produits à recevoir (PAC, assurances), charges à payer (MSA, fermage), DEP.
+  applies: {bookkeeping: [double]}
+  events:
+    - label: Clôture de l'exercice et inventaire
+      rule: {type: after_close, months: 0, day: end, shift: none}
+      reminders: [30, 7]
+      action: {label: Ouvrir les exercices, route: /fiscal-years/}
+  reliability: R
+
+- id: DIV-04
+  title: Assurances
+  domain: divers
+  organism: Assureur
+  summary: Renouvellement à l'échéance anniversaire ; préavis de résiliation de 2 mois en général ; prime d'assurance récolte avant le 31/10 (PAC-04).
+  events: []
+  reliability: R
+
+- id: DIV-05
+  title: GNR et TICPE
+  domain: divers
+  organism: Douane
+  summary: Fiscalité du gazole non routier agricole modifiée par la loi de finances pour 2024 (hausse progressive, remboursement partiel) ; dispositif et date limite à vérifier.
+  events: []
+  reliability: I
+
+- id: DIV-06
+  title: Reconstitution du cheptel après abattage sanitaire
+  domain: divers
+  organism: Exploitation
+  summary: Indemnité d'abattage sanitaire exonérée si elle est réinvestie dans la reconstitution du cheptel dans les 2 ans ; la part non réinvestie est réintégrée (art. 75-0 D, à vérifier ; calcul en AG6).
+  applies: {bookkeeping: [double]}
+  events:
+    - label: Date limite de reconstitution du cheptel
+      rule: {type: lyvre, source: living_reinvestments}
+      reminders: [180, 60, 15]
+      action: {label: Voir les biens vivants, route: "/assets/?living=1"}
+  lyvre_data: Registre des abattages sanitaires (indemnité, valeur nette, montant réinvesti).
+  reliability: A
+
+- id: DIV-07
+  title: Autofactures contestées
+  domain: divers
+  organism: Exploitation
+  summary: Autofacture reçue d'une coopérative, d'une laiterie ou d'un négociant (mandat de facturation) contestée et non encore réglée ; le statut « en litige » (fr:207) et son motif se transmettent par la plateforme agréée.
+  applies: {bookkeeping: [double]}
+  events:
+    - label: Échéance de l'autofacture contestée
+      rule: {type: lyvre, source: self_billing_disputes}
+      reminders: [15, 5]
+      action: {label: Voir les autofactures, route: "/sales/self-billed"}
+  lyvre_data: Autofactures reçues (statut, motif de la contestation).
+  reliability: A
+
+- id: DIV-08
+  title: E-reporting des ventes directes
+  domain: divers
+  organism: Plateforme agréée
+  summary: Ventes à des particuliers sans facture (vente directe, marchés) à transmettre par la plateforme agréée, agrégées par jour, catégorie et taux ; la plateforme fixe le calendrier selon le régime de TVA. Rappel en fin de mois tant que des jours ne sont pas exportés (aucune date réglementaire).
+  applies: {bookkeeping: [double, simple]}
+  events:
+    - label: Exporter l'e-reporting des ventes directes
+      rule: {type: lyvre, source: ereporting_pending}
+      reminders: [5]
+      action: {label: Voir l'e-reporting, route: "/ereporting/"}
+  lyvre_data: Recettes des catégories « vente directe » et ventes du journal de caisse.
+  reliability: A
+

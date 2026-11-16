@@ -1,0 +1,45 @@
+# Classes de produits et de charges de l'état des marges par activité (lot AG8.d,
+# claudedocs/design_analytique_agricole.md § 6, AGD25 Q-A4). Définitions du RICA (Agreste, « Chiffres et données »
+# n° 14, septembre 2025 : charges spécifiques végétaux et animaux ; production nette des achats d'animaux), comptes
+# du questionnaire RICA 2024 (feuillets 9 et 10) transposés au plan comptable agricole de Lyvre.
+# Le préfixe le plus long l'emporte. « by_family » : classe selon la famille de l'atelier de l'activité affectée.
+classes:
+  sales: {label: Ventes, side: production}
+  other_products: {label: Autres produits, side: production}
+  aids: {label: Aides et subventions d'exploitation, side: production}
+  stock_production: {label: Variation des stocks de produits et en-cours, side: production}
+  animal_purchases: {label: Achats d'animaux (déduits de la production), side: production_deduction}
+  plant_specific: {label: Charges spécifiques végétaux, side: operational}
+  animal_specific: {label: Charges spécifiques animaux, side: operational}
+  structure: {label: Charges de structure, side: structure}
+  depreciation: {label: Amortissements des biens rattachés, side: structure}
+prefixes:
+  "70": sales
+  "71": other_products
+  "72": other_products
+  "74": aids
+  "75": other_products
+  "78": other_products
+  "79": other_products
+  "60111": plant_specific      # engrais et amendements
+  "60112": plant_specific      # semences et plants
+  "60113": plant_specific      # produits de défense des végétaux
+  "60615": plant_specific      # eau d'irrigation
+  "60114": animal_specific     # aliments du bétail
+  "60115": animal_specific     # produits vétérinaires
+  "60116": animal_specific     # produits de reproduction animale
+  "6134": animal_specific      # locations d'animaux
+  "60117": animal_purchases    # achats d'animaux
+  "6051": by_family            # travaux et services incorporés à la production : cultures ou élevage
+  "60": structure
+  "61": structure
+  "62": structure
+  "63": structure
+  "64": structure
+  "65": structure
+  "66": structure
+  "68": structure
+families:
+  plant_farming: plant_specific
+  vine_farming: plant_specific
+  animal_farming: animal_specific

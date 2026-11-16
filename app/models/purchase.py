@@ -2,7 +2,7 @@ from datetime import datetime
 
 from app.extensions import db
 
-PURCHASE_SOURCES = ["qonto", "manual"]
+PURCHASE_SOURCES = ["qonto", "manual", "superpdp", "ekylibre"]
 
 
 class Purchase(db.Model):
@@ -13,6 +13,8 @@ class Purchase(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     source = db.Column(db.String(10), nullable=False, default="qonto", server_default="qonto")
     qonto_id = db.Column(db.String(36), unique=True)
+    pdp_id = db.Column(db.String(32), unique=True, index=True)   # lot PDP1 : facture reçue par SUPER PDP
+    pdp_status = db.Column(db.String(40))
     entity_id = db.Column(
         db.Integer, db.ForeignKey("entities.id", ondelete="SET NULL"), nullable=True, index=True
     )
@@ -60,6 +62,12 @@ class Purchase(db.Model):
     )
     # Changement dans Qonto après comptabilisation (montant, date, statut) : à revoir.
     review_reason = db.Column(db.Text)
+    # Lot AK3 : objet créé par une clé d'API (brouillon d'agent) et référence externe (Fourmy…).
+    origin_key_id = db.Column(db.Integer, index=True)
+    origin_label = db.Column(db.String(80))
+    external_ref = db.Column(db.String(120), index=True)
+    checked_at = db.Column(db.DateTime)        # vérification humaine d'un objet créé par clé
+    checked_by_id = db.Column(db.Integer)
     source_updated_at = db.Column(db.DateTime)
     raw_payload = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -85,6 +93,7 @@ class PurchaseLine(db.Model):
     __tablename__ = "purchase_lines"
 
     id = db.Column(db.Integer, primary_key=True)
+    analytic_target = db.Column(db.String(24))                       # lot AG8.c : « activity:ID » ou « key:ID »
     purchase_id = db.Column(
         db.Integer, db.ForeignKey("purchases.id", ondelete="CASCADE"), nullable=False, index=True
     )

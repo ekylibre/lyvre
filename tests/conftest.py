@@ -33,11 +33,14 @@ def app():
     app.config.update(
         TESTING=True,
         WTF_CSRF_ENABLED=False,
+        ANTHROPIC_API_KEY="",          # clé du serveur absente des tests (Assistant Claude, AG9b)
     )
 
     ctx = app.app_context()
     ctx.push()
     db.create_all()
+    from app.services import api_journal
+    api_journal.reset()   # débit et caches des clés d'API (lot AK4) : en mémoire, les ids repartent à 1
     try:
         yield app
     finally:

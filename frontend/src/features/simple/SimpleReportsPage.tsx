@@ -8,6 +8,8 @@ import { FilterBar, useUrlParams } from "../../components/FilterBar";
 import { MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
 import { formatDate } from "../../lib/format";
+import { useCurrentSession } from "../../api/session";
+import { MicroBaSummary, ReceiptsBook, YearSelect } from "./MicroBaPanels";
 
 type Option = { value: string; label: string };
 interface Statement {
@@ -23,7 +25,8 @@ interface Treasury {
 }
 
 export default function SimpleReportsPage() {
-  const [params, setParams] = useUrlParams({ fiscal_year_id: "", tab: "result" });
+  const [params, setParams] = useUrlParams({ fiscal_year_id: "", tab: "result", year: String(new Date().getFullYear()) });
+  const agri = useCurrentSession().instance?.chart === "agri";
   const query = params.fiscal_year_id ? `?fiscal_year_id=${params.fiscal_year_id}` : "";
   const statement = useQuery({ queryKey: ["simple-reports", "result", query], placeholderData: (p) => p,
     queryFn: () => api.get<Statement>(`/api/v1/simple/reports/income-statement${query}`) });
@@ -37,11 +40,16 @@ export default function SimpleReportsPage() {
       <PageHeader title="États" description={`Exercice ${data.fiscal_year}`}
         actions={<Button variant="default" leftSection={<Printer size={16} />} onClick={() => window.print()}>Imprimer</Button>} />
       <FilterBar>
-        <Select aria-label="Exercice" w={150} allowDeselect={false} data={data.fiscal_years}
-          value={params.fiscal_year_id || String(data.fiscal_year_id)} onChange={(v) => setParams({ ...params, fiscal_year_id: v ?? "" })} />
+        {agri && (params.tab === "book" || params.tab === "micro")
+          ? <YearSelect value={params.year} onChange={(year) => setParams({ ...params, year })} />
+          : <Select aria-label="Exercice" w={150} allowDeselect={false} data={data.fiscal_years}
+            value={params.fiscal_year_id || String(data.fiscal_year_id)} onChange={(v) => setParams({ ...params, fiscal_year_id: v ?? "" })} />}
       </FilterBar>
       <Tabs value={params.tab} onChange={(v) => setParams({ ...params, tab: v ?? "result" })}>
-        <Tabs.List mb="md"><Tabs.Tab value="result">Compte de résultat</Tabs.Tab><Tabs.Tab value="treasury">Situation de trésorerie</Tabs.Tab></Tabs.List>
+        <Tabs.List mb="md"><Tabs.Tab value="result">Compte de résultat</Tabs.Tab><Tabs.Tab value="treasury">Situation de trésorerie</Tabs.Tab>
+          {agri && <><Tabs.Tab value="book">Livre des recettes</Tabs.Tab><Tabs.Tab value="micro">Micro-BA</Tabs.Tab></>}</Tabs.List>
+        {agri && <Tabs.Panel value="book">{params.tab === "book" && <ReceiptsBook year={params.year} />}</Tabs.Panel>}
+        {agri && <Tabs.Panel value="micro">{params.tab === "micro" && <MicroBaSummary year={params.year} />}</Tabs.Panel>}
         <Tabs.Panel value="result">
           <Paper p={0}>
             <Table verticalSpacing={5}>

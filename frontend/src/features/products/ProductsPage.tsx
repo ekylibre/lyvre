@@ -13,6 +13,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { Can } from "../../components/Can";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useRouteModal } from "../../app/useRouteModal";
+import { useCurrentSession } from "../../api/session";
 
 interface AccountRef { id: number; code: string; label: string }
 export interface Product {
@@ -94,6 +95,8 @@ function ProductForm({ product, meta, onDone }: { product: Product | null; meta:
 
 export default function ProductsPage() {
   const modal = useRouteModal("/products/", "product_id");
+  const agri = useCurrentSession().instance?.chart === "agri";
+  const seedAgri = useAction(() => api.post<{ notices: Notice[] }>("/api/v1/products/agri-catalog", {}), { invalidate: [KEY] });
   const [params, setParams] = useUrlParams({ archived: "" });
   const archived = params.archived === "1";
   const url = `/api/v1/products${archived ? "?archived=1" : ""}`;
@@ -137,7 +140,10 @@ export default function ProductsPage() {
   return (
     <>
       <PageHeader title="Catalogue" description="Produits et services : comptes et taux de TVA proposés sur les lignes de facture."
-        actions={<Can><Button onClick={modal.openNew}>Créer un produit</Button></Can>} />
+        actions={<Can><Group gap="xs">
+          {agri && <Button variant="default" loading={seedAgri.isPending} onClick={() => seedAgri.mutate(undefined)}>
+            Ajouter les articles agricoles</Button>}
+          <Button onClick={modal.openNew}>Créer un produit</Button></Group></Can>} />
       <FilterBar>
         <Switch label="Afficher les archivés" checked={archived}
           onChange={(e) => setParams({ archived: e.currentTarget.checked ? "1" : "" })} />

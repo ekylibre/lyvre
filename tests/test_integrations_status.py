@@ -134,7 +134,7 @@ def test_disabling_keeps_last_check(app, monkeypatch):
 
 def test_overview_lists_every_service_in_order(app):
     views = integrations.overview()
-    assert [v.slug for v in views] == list(external_config.SERVICE_KEYS)
+    assert [v.slug for v in views] == external_config.applicable()          # assistant : agricole seulement
     smtp = next(v for v in views if v.slug == "smtp")
     assert smtp.status == integrations.STATUS_UNTESTED  # configuré par .env
     assert smtp.status_label == "Non testée"

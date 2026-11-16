@@ -136,3 +136,32 @@ def test_sci_registry_only(books, login_as):
     db.session.commit()
     _asset()
     assert "registre" in _error(login_as().post(f"/api/v1/fiscal-years/{books.id}/closing/depreciation"), 409)["message"]
+
+
+def test_ledger_gaps_after_a_fec_takeover(books):
+    """Essai de l'interface (10/11/2026) : immobilisations du grand livre sans fiche, amortissements rapprochés."""
+    from app.models.journal_entry import SOURCE_OPENING
+    from app.services.ledger import post_entry
+    extra = [Account(code=c, label=f"Compte {c}", account_type="OTHER") for c in ("2815", "241", "101")]
+    db.session.add_all(extra)
+    db.session.commit()
+    od = Journal.query.filter_by(code="OD").one()
+    post_entry(books.id, od.id, date(2026, 1, 1), "À-nouveaux", [
+        {"account_id": _acc("2154").id, "label": "x", "debit_cents": 1000000, "credit_cents": 0},
+        {"account_id": _acc("241").id, "label": "x", "debit_cents": 500000, "credit_cents": 0},
+        {"account_id": _acc("2815").id, "label": "x", "debit_cents": 0, "credit_cents": 400000},
+        {"account_id": _acc("101").id, "label": "x", "debit_cents": 0, "credit_cents": 1100000}], source=SOURCE_OPENING)
+    _asset(acquisition_cents=180000)                       # une fiche couvre déjà une partie du 2154
+    gaps = {g["account"]["code"]: g for g in assets.ledger_gaps(books)}
+    assert set(gaps) == {"2154", "241"}
+    machine = gaps["2154"]
+    assert (machine["ledger_cents"], machine["register_cents"], machine["gap_cents"]) == (1000000, 180000, 820000)
+    assert machine["depreciation_accounts"] == ["2815"] and machine["opening_depreciation_cents"] == 400000
+    assert machine["prior_as_of"] == "2025-12-31" and not machine["no_depreciation"]
+    assert gaps["241"]["no_depreciation"]
+
+
+def test_ledger_gaps_endpoint(client, login_as, books):
+    client = login_as(role="admin")
+    body = client.get(f"/api/v1/assets/ledger-gaps?fy_id={books.id}").get_json()
+    assert body["items"] == [] and body["fiscal_year"]["label"] == "2026"

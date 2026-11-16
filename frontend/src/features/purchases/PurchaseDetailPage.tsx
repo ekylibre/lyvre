@@ -14,6 +14,7 @@ import { FormModal } from "../../components/FormModal";
 import { MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
 import { Can } from "../../components/Can";
+import { OriginBadge } from "../../components/OriginBadge";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink, useGoTo } from "../../app/navigation";
@@ -48,6 +49,8 @@ export default function PurchaseDetailPage() {
   const opts = { invalidate: [PURCHASES_KEY] };
   const post = useAction(() => api.post<{ notices: Notice[] }>(`/api/v1/purchases/${id}/post`), opts);
   const unpost = useAction(() => api.post<{ notices: Notice[] }>(`/api/v1/purchases/${id}/unpost`), opts);
+  // Lot AK3 : saisie par clé d'API, vérifiée par l'utilisateur (comptabilisée si elle est prête).
+  const check = useAction(() => api.post<{ notices: Notice[] }>(`/api/v1/purchases/${id}/check`), { invalidate: [PURCHASES_KEY, ["dashboard"]] });
   const saveLines = useAction((r: LineRow[]) => api.put<{ notices: Notice[] }>(`/api/v1/purchases/${id}/lines`, { rows: r }), opts);
   const setRegime = useAction((regime: string | null) => api.put<{ notices: Notice[] }>(`/api/v1/purchases/${id}/vat-regime`,
     { vat_regime: regime }), opts);
@@ -78,6 +81,7 @@ export default function PurchaseDetailPage() {
                 {p.supplier_account_code && <> · compte <Code>{p.supplier_account_code}</Code></>}</span>
               : <span>{p.supplier_name || "Fournisseur inconnu"} <StatusBadge tone="todo">à rattacher</StatusBadge></span>}
             {p.source === "manual" && <Badge size="sm" variant="outline" color="gray">Saisie</Badge>}
+            <OriginBadge origin={p.origin} />
             {(p.in_qonto || fromQonto) && <span>Qonto : {p.qonto_status_label ?? "—"}</span>}
           </Group>
         }
@@ -90,6 +94,15 @@ export default function PurchaseDetailPage() {
         </>} />
 
       {qonto && p.review_reason && <Alert color="brique" mb="sm" title="À revoir.">{p.review_reason} Annulez la comptabilisation pour reprendre les données de Qonto.</Alert>}
+      {p.origin?.pending && p.state.code !== "posted" && (
+        <Alert color="paille" mb="sm" title={`Saisie par « ${p.origin.label} »`}>
+          <Group justify="space-between" gap="sm" wrap="nowrap">
+            <Text size="sm">Vérifiez le fournisseur, les montants et les lignes (modifiez-les au besoin), puis marquez la facture
+              vérifiée : elle sera comptabilisée si elle est complète.{p.origin.external_ref && <> Référence : <Code>{p.origin.external_ref}</Code>.</>}</Text>
+            <Can><Button loading={check.isPending} onClick={() => check.mutate()}>Marquer vérifiée</Button></Can>
+          </Group>
+        </Alert>
+      )}
       {p.state.reasons.length > 0 && (
         <Alert color="paille" mb="sm" title="À compléter avant comptabilisation :">
           <List size="sm">{p.state.reasons.map((r) => <List.Item key={r}>{r}</List.Item>)}</List>

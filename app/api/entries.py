@@ -6,7 +6,7 @@ from flask import g, jsonify, request, url_for
 from flask_login import login_required
 
 from app.extensions import db
-from app.models import BankTransaction, FiscalYear, Journal, JournalEntry
+from app.models import Account, BankTransaction, FiscalYear, Journal, JournalEntry
 import json
 
 from flask_login import current_user
@@ -14,7 +14,7 @@ from flask_login import current_user
 from app.access import instance_admin_required
 from app.models import EntryEvent
 from app.models.journal_entry import SALE_LOCKED_MESSAGE, SOURCE_CANCELLATION, SOURCE_SALE
-from app.services import projects, validation, vat_codes
+from app.services import agent_review, projects, validation, vat_codes
 from app.services.ledger import (
     MANAGED_SOURCES, VALIDATED_MESSAGE, LedgerError, delete_entries, entry_is_reconciled, post_validated_entry,
     period_locked, reversal_of, reverse, update_entry, validate_entry_payload,
@@ -34,6 +34,20 @@ def api_base_url():
     return url_for("api.session_info").rsplit("/", 1)[0]
 
 
+def _analytic_targets():
+    from app.services import analytic
+    if not analytic.enabled():
+        return []
+    from app.services.analytic_allocation import targets_options
+    return targets_options()
+
+
+def _line_analytic(line):
+    from app.services.analytic_allocation import line_target, target_label
+    target = line_target(line)
+    return target, target_label(target)
+
+
 def entry_form_options(project_ids=()):
     """Exercices ouverts, journaux, projets et portée des comptes récents du formulaire de saisie."""
     fiscal_years = FiscalYear.query.filter_by(closed=False).order_by(FiscalYear.start_date.desc()).all()
@@ -45,6 +59,7 @@ def entry_form_options(project_ids=()):
                      for j in Journal.query.order_by(Journal.code).all()],
         "recentsScope": instance.slug if instance else "default",
         "projects": projects.options(project_ids),
+        "analyticTargets": _analytic_targets(),                       # lot AG8.c : activités et clés (agricole)
         # Lot T2 : codes de TVA des lignes 445… (saisie manuelle).
         "vatCodes": [{"value": code, "label": f"{code} — {spec['label']}", "on": spec["on"], "rate_bp": spec["rate_bp"]}
                      for code, spec in vat_codes.codes().items()],
@@ -75,6 +90,7 @@ def serialize_entry(entry):
         "description": entry.description or "",
         "source": entry.source,
         "source_ref": entry.source_ref,
+        "origin": agent_review.origin_payload(entry),       # lot AK3 : saisie par clé d'API
         "is_balanced": entry.is_balanced,
         "total_debit_cents": entry.total_debit,
         "total_credit_cents": entry.total_credit,
@@ -96,6 +112,7 @@ def serialize_entry(entry):
              "account_label": l.account.label, "label": l.label or "",
              "debit_cents": l.debit_cents, "credit_cents": l.credit_cents,
              "project_id": l.project_id, "project": l.project.name if l.project else None,
+             "analytic": _line_analytic(l)[0], "analytic_label": _line_analytic(l)[1],
              "service_start": l.service_start.isoformat() if l.service_start else None,
              "service_end": l.service_end.isoformat() if l.service_end else None,
              "vat_code": l.vat_code, "vat_label": vat_codes.label(l.vat_code) or None,
@@ -276,7 +293,27 @@ def entries_form():
             "lines": [{"account": _account_json(l.account), "label": l.label or "",
                        "debit_cents": l.debit_cents, "credit_cents": l.credit_cents,
                        "project_id": str(l.project_id) if l.project_id else None,
+                       "analytic": _line_analytic(l)[0],
                        "vat_code": l.vat_code, "vat_base_cents": l.vat_base_cents} for l in entry.lines]})
+    proposal_id = request.args.get("proposal_id", type=int)
+    if proposal_id:
+        # Lot AG9b.c : brouillon proposé par l'assistant ; l'utilisateur le relit et l'enregistre lui-même.
+        from app.api.assistant import proposal_of_user
+        proposal = proposal_of_user(proposal_id)
+        if proposal.kind != "entry":
+            raise ApiError("not_found", "Brouillon d'écriture introuvable.", 404)
+        draft = json.loads(proposal.payload_json)
+        journal = next((j for j in journals if j.code == draft.get("journal")), journals[0] if journals else None)
+        fy = _default_fiscal_year(date.fromisoformat(draft["date"]))
+        lines = []
+        for line in draft.get("lines", []):
+            account = Account.query.filter_by(code=line["account"]).first()
+            if account is not None:
+                lines.append({"account": _account_json(account), "label": line.get("label") or draft.get("label") or "",
+                              "debit_cents": line.get("debit_cents", 0), "credit_cents": line.get("credit_cents", 0)})
+        return jsonify(mode="create", options=options, proposal={"id": proposal.id, "status": proposal.status}, initial={
+            "fiscal_year_id": fy.id if fy else None, "journal_id": journal.id if journal else None,
+            "entry_date": draft["date"], "description": draft.get("label") or "", "lines": lines})
     if bt_id:
         bt = db.session.get(BankTransaction, bt_id)
         if bt is None:

@@ -116,6 +116,7 @@ def line_rows(lines) -> list[dict]:
         if line.vat_rate_bp is not None else "",
         "vat": fmt_cents(line.vat_cents),
         "project_id": str(line.project_id or ""),
+        "analytic": line.analytic_target or "",
     } for line in lines]
 
 
@@ -322,12 +323,17 @@ def _lines(p: Purchase, rows) -> list[PurchaseLine]:
     return purchase_sync.default_lines(p, catalog.product_for(p.entity), [])
 
 
-def create(clean, rows, token=None, bank_transaction=None) -> tuple[Purchase, dict]:
+def create(clean, rows, token=None, bank_transaction=None, post=True, origin=None) -> tuple[Purchase, dict]:
     """Crée la facture, range la pièce, comptabilise si elle est prête. LedgerError sur les lignes.
     `bank_transaction` : transaction Qonto dont la facture vient (justificatif), reliée avant la
-    comptabilisation pour que le règlement porte sur elle."""
+    comptabilisation pour que le règlement porte sur elle.
+    `post=False` et `origin` (lot AK3) : brouillon d'agent `{key_id, label, external_ref}`, jamais comptabilisé
+    avant sa vérification humaine (`purchase_posting.purchase_state`)."""
     p = Purchase(source="manual", lines_edited=True, currency="EUR",
                  idempotency_key=str(uuid.uuid4()))
+    if origin:
+        p.origin_key_id, p.origin_label = origin["key_id"], origin["label"][:80]
+        p.external_ref = origin.get("external_ref")
     db.session.add(p)
     with db.session.no_autoflush:
         _apply(p, clean)
@@ -340,6 +346,8 @@ def create(clean, rows, token=None, bank_transaction=None) -> tuple[Purchase, di
         from app.services import transaction_invoice
         transaction_invoice.link(p, bank_transaction)
     db.session.commit()
+    if not post:
+        return p, {"posted": 0, "settled": 0, "errors": []}
     return p, purchase_posting.post_ready([p])
 
 

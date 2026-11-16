@@ -6,7 +6,7 @@ from app.extensions import db
 from app.menu_config import build_nav
 from app.models import Account, Instance, SimpleCategory
 
-DOUBLE_ONLY = {"Écritures", "Balance", "Grand livre", "Bilan", "Compte de résultat", "Plan comptable", "Journaux",
+DOUBLE_ONLY = {"Écritures", "Éditions comptables", "Plan comptable", "Journaux",
                "Catalogue", "Rapprochement", "Factures d'achat"}
 
 
@@ -18,8 +18,9 @@ def _error(resp, status):
 def _labels(nav):
     out = set()
     for menu in nav:
-        out.add(menu["label"])
-        out.update(i["label"] for i in menu.get("items", []) if "label" in i)
+        if "label" in menu:
+            out.add(menu["label"])
+        out |= _labels(menu.get("items", []))                  # trois niveaux (lot NV1)
     return out
 
 

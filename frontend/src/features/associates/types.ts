@@ -17,6 +17,8 @@ export interface Associate {
   /** Solde du compte courant, créditeur positif : la société doit à l'associé. */
   balance_cents: number;
   interest_rate: string; notes: string | null; is_out: boolean; is_manager: boolean; email: string | null;
+  /** Exploitation agricole (lot AG6.a) : associé exploitant, première aide JA, droits aux bénéfices (%). */
+  is_operator?: boolean; young_farmer_since?: string | null; profit_share?: string;
 }
 
 export interface AssociatesMeta {

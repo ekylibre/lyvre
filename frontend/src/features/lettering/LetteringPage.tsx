@@ -11,6 +11,7 @@ import { Can } from "../../components/Can";
 import { useUrlParams } from "../../components/FilterBar";
 import { MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
+import { ENTRY_TABS, PageTabs } from "../../components/PageTabs";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
 
@@ -78,6 +79,7 @@ export default function LetteringPage() {
       <PageHeader title="Lettrage" description="Rapprochez les lignes d'un compte de tiers qui se soldent : facture et règlement, avoir, acompte. Les factures de Lyvre se lettrent seules à l'encaissement."
         actions={can.instanceAdmin ? <Button variant="default" loading={reprise.isPending} onClick={() => reprise.mutate(undefined)}
           title="Factures de vente et d'achat déjà payées avant le lettrage">Lettrer les pièces déjà payées</Button> : undefined} />
+      <PageTabs tabs={ENTRY_TABS} />
       <Group align="flex-end" mb="md">
         <Select label="Compte" searchable data={accountOptions} value={accountId || null} w={420} nothingFoundMessage="Aucun compte"
           onChange={(v) => { setSelected([]); setParams({ account: v ?? "" }); }} />

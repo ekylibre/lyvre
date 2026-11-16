@@ -1,0 +1,119 @@
+# PAC et aides (audit_calendrier.md § 2.4) : rappels seulement (AGD9), sauf le rattachement comptable des aides (AG3).
+- id: PAC-01
+  title: Demande d'aides PAC (telepac)
+  domain: pac
+  organism: DDT(M), ASP
+  reminder_only: true
+  summary: Ouverture le 1er avril ; date limite sans pénalité vers le 15 mai (publiée chaque année) ; dépôt tardif avec 1 % de pénalité par jour ouvré ; corrections jusqu'au 20 septembre.
+  applies: {flags: [pac]}
+  events:
+    - label: Date limite de la demande PAC
+      rule: {type: annual_param, key: agenda.pac.deadline, fallback: {type: fixed, days: ["05-15"]}}
+      reminders: [45, 15, 5]
+      action: {label: Ouvrir telepac, url: "https://www.telepac.agriculture.gouv.fr"}
+    - label: Fin du dépôt tardif
+      rule: {type: annual_param, key: agenda.pac.late_deadline, fallback: {type: fixed, days: ["06-09"]}}
+      quiet: true
+    - label: Fin des corrections et retraits
+      rule: {type: fixed, days: ["09-20"], shift: none}
+      quiet: true
+  prepare:
+    - Parcelles et assolement, écorégime, BCAE, engagements MAEC et bio, ICHN, case de l'aide à l'assurance récolte
+  links:
+    - https://www.telepac.agriculture.gouv.fr
+    - https://agriculture.gouv.fr/telepac-2026
+  reliability: A
+
+- id: PAC-02
+  title: Aides animales couplées
+  domain: pac
+  organism: DDT(M), ASP
+  reminder_only: true
+  summary: Ovins et caprins du 1er janvier à début février ; bovins du 1er janvier au 15 mai (animaux lus dans la BDNI, notifications à jour).
+  applies: {flags: [pac]}
+  events:
+    - label: Fin de la demande d'aides ovines et caprines
+      applies: {production: [sheep_goats]}
+      rule: {type: annual_param, key: agenda.pac.small_ruminants_deadline, fallback: {type: fixed, days: ["02-01"]}}
+      reminders: [30, 7]
+    - label: Fin de la demande d'aides bovines
+      applies: {production: [cattle]}
+      rule: {type: annual_param, key: agenda.pac.cattle_deadline, fallback: {type: fixed, days: ["05-15"]}}
+      reminders: [30, 7]
+  links:
+    - https://www2.telepac.agriculture.gouv.fr/telepac/pdf/taa/2026/AO-2026_notice.pdf
+  reliability: A
+
+- id: PAC-03
+  title: Paiements PAC (avance et solde)
+  domain: pac
+  organism: ASP
+  summary: Avance à partir du 16 octobre (75 % du 1er pilier, 85 % de l'ICHN) ; solde à partir de début décembre ; MAEC et bio souvent au printemps suivant.
+  applies: {flags: [pac]}
+  events:
+    - label: Avance des aides PAC
+      rule: {type: annual_param, key: agenda.pac.advance_payment, fallback: {type: fixed, days: ["10-16"], shift: none}}
+      quiet: true
+      action: {label: Rattacher les virements, route: /aids/}
+    - label: Solde des aides PAC
+      rule: {type: fixed, days: ["12-01"], shift: none}
+      quiet: true
+      action: {label: Rattacher les virements, route: /aids/}
+  lyvre_data: Produits à recevoir des aides PAC (441, 745) ; virements de l'ASP rapprochés des relevés.
+  links:
+    - https://www.terre-net.fr/aides-pac/article/904926/les-premiers-versements-de-la-pac-2026-arrivent-sur-les-comptes-des-agriculteurs
+  reliability: A
+
+- id: PAC-04
+  title: Aide à l'assurance récolte
+  domain: pac
+  organism: ASP
+  reminder_only: true
+  summary: Demande cochée dans la demande PAC ; prime payée au plus tard le 31 octobre ; subvention jusqu'à 70 % de la prime.
+  applies: {flags: [pac]}
+  events:
+    - label: Paiement de la prime d'assurance récolte
+      rule: {type: fixed, days: ["10-31"], shift: none}
+      reminders: [15]
+  links:
+    - https://www4.telepac.agriculture.gouv.fr/telepac/pdf/tas/2026/Dossier-PAC-2026_notice_assurance-recolte.pdf
+  reliability: A
+
+- id: PAC-05
+  title: Contrôles et conditionnalité
+  domain: pac
+  organism: DDT(M), ASP
+  reminder_only: true
+  summary: Contrôles sur place et suivi par satellite de mai à l'automne ; répondre aux sollicitations telepac (photos géolocalisées) dans le délai indiqué.
+  applies: {flags: [pac]}
+  events: []
+  reliability: A
+
+- id: PAC-06
+  title: Aide aux jeunes agriculteurs (DJA)
+  domain: pac
+  organism: Région, ASP
+  reminder_only: true
+  summary: Plan d'entreprise sur 4 ans, versement en 2 fractions, contrôle de fin de plan ; exonérations TFNB et MSA à suivre.
+  applies: {flags: [young_farmer]}
+  events:
+    - label: Fin du plan d'entreprise JA
+      rule: {type: profile, field: young_farmer_since, offset_months: 48}
+      reminders: [180, 60]
+  lyvre_data: DJA en subvention étalable (BA).
+  reliability: A
+
+- id: PAC-07
+  title: Aides FranceAgriMer et régionales
+  domain: pac
+  organism: FranceAgriMer, Région
+  reminder_only: true
+  summary: Appels à projets ponctuels ; demande de paiement dans le délai fixé par la décision d'attribution (registre des aides, lot AG3).
+  events:
+    - label: Date limite de la demande de paiement
+      rule: {type: lyvre, source: aids}
+      reminders: [60, 15]
+      action: {label: Voir le dossier, route: /aids/}
+  links:
+    - https://www.franceagrimer.fr
+  reliability: A

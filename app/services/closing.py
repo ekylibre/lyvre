@@ -56,7 +56,7 @@ MIN_NOTE = 5
 # Type d'écriture d'inventaire → (classe du compte de charge / produit, contreparties possibles,
 # la charge / le produit est-il au débit ?)
 INVENTORY_KINDS = {
-    "accrued_expense": {"label": "Charge à payer", "classes": ("6",), "counterparts": ("408", "4686"),
+    "accrued_expense": {"label": "Charge à payer", "classes": ("6",), "counterparts": ("408", "4686", "4311"),
                         "account_debit": True},
     "accrued_income": {"label": "Produit à recevoir", "classes": ("7",), "counterparts": ("4687", "418", "441"),
                        "account_debit": False},
@@ -64,6 +64,12 @@ INVENTORY_KINDS = {
                         "account_debit": False},
     "deferred_income": {"label": "Produit constaté d'avance", "classes": ("7",), "counterparts": ("487",),
                         "account_debit": True},
+    # Exploitation agricole (lot AG1.d) : chaque convention de compte courant (472x) se solde à la clôture en 412
+    # (solde débiteur) ou en 402 (solde créditeur), titre 5 art. 132-1 ; extournée à l'ouverture comme les autres.
+    "compensation_debit": {"label": "Convention de compte courant : solde débiteur → 412", "classes": ("472",),
+                           "counterparts": ("412",), "account_debit": False, "charts": ("agri",)},
+    "compensation_credit": {"label": "Convention de compte courant : solde créditeur → 402", "classes": ("472",),
+                            "counterparts": ("402",), "account_debit": True, "charts": ("agri",)},
 }
 
 
@@ -153,8 +159,12 @@ def checks(fy) -> list[Check]:
         found.append(Check("purchases_unpaid", f"{len(unpaid)} facture(s) d'achat non réglée(s) à la clôture : dette "
                            "fournisseur au bilan", len(unpaid), "info", "/purchases/?unpaid=1"))
 
+    from app.tenant import current_chart
+    agri = current_chart() == "agri"
+    if agri:
+        found += _agri_checks(fy)
     for code, balance in sorted(_balances(fy, ("47",)).items()):
-        if balance:
+        if balance and not (agri and code.startswith("472")):
             found.append(Check(f"suspense_{code}", f"Compte d'attente {code} non soldé ({fec.amount(balance)} €)", 1,
                                "anomaly", "/reports/balance"))
     for code, balance in sorted(_balances(fy, ("58",)).items()):
@@ -165,6 +175,86 @@ def checks(fy) -> list[Check]:
         if balance < 0:
             found.append(Check(f"credit_{code}", f"Compte {code} créditeur en fin d'exercice ({fec.amount(balance)} €) :"
                                " trésorerie négative ou écriture manquante", 1, "anomaly", "/reports/balance"))
+    return found
+
+
+def _agri_checks(fy) -> list[Check]:
+    """Contrôles de l'exploitation agricole (lot AG1.d, design § 6.5)."""
+    from app.models import Asset
+    from app.models.journal_entry import SOURCE_OPENING
+
+    found = []
+    for code, balance in sorted(_balances(fy, ("472",)).items()):
+        if balance:
+            side = "débiteur : en 412" if balance > 0 else "créditeur : en 402"
+            found.append(Check(f"compensation_{code}", f"Convention de compte courant {code} non soldée "
+                               f"({fec.amount(balance)} €) : soldez le solde {side} (écriture d'inventaire)", 1,
+                               "anomaly", f"/fiscal-years/{fy.id}/closing"))
+    credited = (db.session.query(func.coalesce(func.sum(JournalLine.credit_cents), 0))
+                .join(Account, Account.id == JournalLine.account_id)
+                .join(JournalEntry, JournalEntry.id == JournalLine.entry_id)
+                .filter(JournalEntry.fiscal_year_id == fy.id, JournalEntry.source != SOURCE_OPENING,
+                        Account.code.like("24%")).scalar())
+    disposals = _balances(fy, ("6571", "7571"))
+    if credited and not any(disposals.values()):
+        found.append(Check("living_disposal", "Biens vivants immobilisés sortis (compte 24 crédité) sans cession en "
+                           "7571 / 6571 : la cession d'un bien vivant se porte en résultat d'exploitation", 1,
+                           "anomaly", "/reports/grand-livre"))
+    living = {code: v for code, v in _balances(fy, ("24",)).items() if v > 0}
+    registered = {a.account_id for a in Asset.query.join(Account, Account.id == Asset.account_id)
+                  .filter(Account.code.like("24%"))}
+    accounts = {a.code: a.id for a in Account.query.filter(Account.code.in_(living))} if living else {}
+    missing = [code for code in living if accounts.get(code) not in registered]
+    if missing:
+        found.append(Check("living_register", f"Biens vivants immobilisés sans fiche au registre des immobilisations "
+                           f"({', '.join(missing)})", len(missing), "info", "/assets/"))
+    from app.services import aid_payments    # lot AG3.b
+
+    unlinked = aid_payments.unlinked_credits(fy.start_date, fy.end_date)
+    if unlinked:
+        found.append(Check("aid_unlinked", "Virements reçus d'un payeur d'aides (ASP, FranceAgriMer, Région…) rattachés "
+                           "à aucun dossier d'aide", len(unlinked), "info", "/aids/"))
+    from app.services import stock_entry    # lot AG4.d
+
+    from app.services import stock_tax    # lot AG4.e
+
+    for key, label, count, severity in [*stock_entry.checks(fy), *stock_tax.checks(fy)]:
+        found.append(Check(key, label, count, severity, f"/inventory/?fiscal_year={fy.id}"))
+    from app.services import living_assets    # lot AG5.b
+
+    from app.services import living_exits    # lot AG5.c
+
+    from app.services import dep    # lot AG6.c
+
+    from app.services import cow_provision    # lot AG6.d
+
+    for key, label, count, severity in [*dep.checks(fy), *cow_provision.checks(fy)]:
+        found.append(Check(key, label, count, severity, f"/tax-result/?fiscal_year={fy.id}"))
+    from app.services import ba_regimes    # lot AG6.e
+
+    for key, label, count, severity in ba_regimes.checks(fy):
+        url = f"/tax-result/?fiscal_year={fy.id}" if key == "income_spread" else "/configuration/organization/?tab=tax"
+        found.append(Check(key, label, count, severity, url))
+    from app.services import stock_lots    # lot AG5.d
+
+    for key, label, count, severity in stock_lots.checks(fy):
+        found.append(Check(key, label, count, severity, f"/inventory/?fiscal_year={fy.id}&group=animals"))
+    for key, label, count, severity in [*living_assets.checks(fy), *living_exits.checks(fy)]:
+        found.append(Check(key, label, count, severity, f"/fiscal-years/{fy.id}/closing"))
+    from app.services import aid_closing    # lot AG3.c
+
+    for key, label, count, severity in aid_closing.checks(fy):
+        url = "/aids/" if key == "aid_issues" else f"/fiscal-years/{fy.id}/closing"
+        found.append(Check(key, label, count, severity, url))
+    from app.services import analytic_margins    # lot AG8.e
+
+    for key, label, count, severity in analytic_margins.checks(fy):
+        url = "/activities/" if key in ("analytic_measures", "analytic_keys", "analytic_auxiliaries") else f"/analytic/?fiscal_year={fy.id}"
+        found.append(Check(key, label, count, severity, url))
+    from app.services import msa_ventilation    # lot AG7.d
+
+    for key, label, count, severity in msa_ventilation.checks(fy):
+        found.append(Check(key, label, count, severity, f"/msa/?fiscal_year={fy.id}"))
     return found
 
 
@@ -198,7 +288,7 @@ def add_inventory(fy, kind, account_code, amount_cents, label, counterpart_code=
     if fy.status != FY_OPEN:
         raise ClosingError("Exercice clôturé : rouvrez-le pour ajouter une écriture d'inventaire.")
     spec = INVENTORY_KINDS.get(kind)
-    if spec is None:
+    if spec is None or not _kind_applies(spec):
         raise ClosingError("Type d'écriture d'inventaire inconnu.", 422)
     if not isinstance(amount_cents, int) or amount_cents <= 0:
         raise ClosingError("Montant positif attendu.", 422)
@@ -675,6 +765,11 @@ def inventory_options():
     return {kind: {"label": spec["label"], "classes": spec["classes"],
                    "counterparts": [{"value": c, "label": f"{c} — {existing[c]}"} for c in spec["counterparts"]
                                     if c in existing]}
-            for kind, spec in INVENTORY_KINDS.items()}
+            for kind, spec in INVENTORY_KINDS.items() if _kind_applies(spec)}
+
+
+def _kind_applies(spec) -> bool:
+    from app.tenant import current_chart
+    return "charts" not in spec or current_chart() in spec["charts"]
 
 

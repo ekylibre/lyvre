@@ -104,6 +104,18 @@ def validate(data: dict) -> tuple[dict, dict]:
             clean["jei_since"] = date.fromisoformat(text) if text else None
         except ValueError:
             errors["jei_since"] = "Date attendue (AAAA-MM-JJ)."
+    if "legal_form_code" in data:  # lot AG1.a : forme codée (régimes, modèle de bilan)
+        from app.services.tax_profile import LEGAL_FORMS
+        code = str(data.get("legal_form_code") or "").strip().upper()
+        if code and code not in LEGAL_FORMS:
+            errors["legal_form_code"] = "Forme juridique inconnue."
+        clean["legal_form_code"] = code or None
+    if "created_on" in data:
+        text = str(data.get("created_on") or "").strip()
+        try:
+            clean["created_on"] = date.fromisoformat(text) if text else None
+        except ValueError:
+            errors["created_on"] = "Date attendue (AAAA-MM-JJ)."
     if "vat_due_day" in data:  # lot T3 : échéance de la CA3 fixée par le SIE (15 à 24)
         text = str(data.get("vat_due_day") or "").strip()
         if not text:

@@ -1,0 +1,276 @@
+{
+ "_comment": "Calculettes du groupe C (lot AG12.d, claudedocs/design_calculettes_agricoles.md § 10) : paramètres sourcés le 07/11/2026 et validés par l'utilisateur (AGD5). Légifrance refuse les accès automatisés : un texte cité par une page officielle est en R ; un texte lu (ou fourni par l'utilisateur depuis Légifrance) est en V.",
+ "values": [
+  {
+   "key": "phyto.certiphyto.validity_years",
+   "value": 5,
+   "valid_from": "2016-10-01",
+   "valid_to": null,
+   "source": "https://entreprendre.service-public.gouv.fr/vosdroits/F31192",
+   "source_label": "CRPM art. R254-8 ; fiche service-public F31192 (vérifiée le 26/03/2026)",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Durée de validité d'un certificat individuel, toutes catégories."
+  },
+  {
+   "key": "phyto.certiphyto.renewal_window_months",
+   "value": 12,
+   "valid_from": "2016-10-01",
+   "valid_to": null,
+   "source": "https://entreprendre.service-public.gouv.fr/vosdroits/F31192",
+   "source_label": "Fiche service-public F31192",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Renouvellement conseillé dans les 12 mois avant la fin de validité, pour éviter une rupture."
+  },
+  {
+   "key": "phyto.certiphyto.extensions",
+   "value": {
+    "categories": ["dea", "densa"],
+    "periods": [
+     {"from": "2024-04-10", "to": "2024-04-30", "years": 3},
+     {"from": "2024-05-01", "to": "2025-05-01", "years": 2},
+     {"from": "2025-05-02", "to": "2026-05-01", "years": 1}
+    ]
+   },
+   "valid_from": "2024-04-10",
+   "valid_to": null,
+   "source": "https://entreprendre.service-public.gouv.fr/vosdroits/F31192",
+   "source_label": "Décrets n° 2024-326 du 9 avril 2024 et n° 2025-222 du 7 mars 2025 (fiche F31192)",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Prorogation automatique des certificats DEA et DENSA selon leur date d'échéance ; exemple officiel : échéance 11/10/2024, valide jusqu'au 10/10/2026."
+  },
+  {
+   "key": "labour.duer.annual_threshold",
+   "value": 11,
+   "valid_from": "2022-03-31",
+   "valid_to": null,
+   "source": "https://code.travail.gouv.fr/code-du-travail/r4121-2",
+   "source_label": "Code du travail art. R4121-2",
+   "verified_on": "2026-11-07",
+   "reliability": "V",
+   "note": "Mise à jour au moins chaque année dans les entreprises d'au moins onze salariés ; dans tous les cas, lors de tout aménagement important et de toute information supplémentaire sur un risque."
+  },
+  {
+   "key": "msa.tode.full_ceiling_smic_bp",
+   "value": 12500,
+   "valid_from": "2025-06-15",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/id/LEGISCTA000006198003",
+   "source_label": "CRPM art. D741-60 (décret n° 2025-537 du 12 juin 2025), texte fourni par l'utilisateur",
+   "verified_on": "2026-11-07",
+   "reliability": "V",
+   "note": "Exonération totale jusqu'au SMIC majoré de 25 % (plafond porté de 1,20 à 1,25 SMIC depuis le 01/05/2024, msa.fr)."
+  },
+  {
+   "key": "msa.tode.zero_ceiling_smic_bp",
+   "value": 16000,
+   "valid_from": "2025-06-15",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/id/LEGISCTA000006198003",
+   "source_label": "CRPM art. D741-60 (décret n° 2025-537 du 12 juin 2025)",
+   "verified_on": "2026-11-07",
+   "reliability": "V",
+   "note": "Terme 1,6 × SMIC de la formule : l'exonération s'annule à 1,6 SMIC."
+  },
+  {
+   "key": "msa.tode.formula_divisor_bp",
+   "value": 3500,
+   "valid_from": "2025-06-15",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/id/LEGISCTA000006198003",
+   "source_label": "CRPM art. D741-60 (décret n° 2025-537 du 12 juin 2025)",
+   "verified_on": "2026-11-07",
+   "reliability": "V",
+   "note": "Formule : 1,25 × C / 0,35 × (1,6 × SMIC mensuel / rémunération mensuelle brute − 1)."
+  },
+  {
+   "key": "pac.redistributive.amount_cents",
+   "value": 4850,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.legifrance.gouv.fr/jorf/jo/2026/10/01/0229",
+   "source_label": "Arrêté du 16 septembre 2026 (JORF n° 0229 du 1er octobre 2026), validé par l'utilisateur",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Montant provisoire, par hectare, sur les premiers hectares (48,58 € était l'estimation du printemps)."
+  },
+  {
+   "key": "pac.redistributive.max_ha",
+   "value": 52,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.legifrance.gouv.fr/jorf/jo/2026/10/01/0229",
+   "source_label": "Arrêté du 16 septembre 2026, validé par l'utilisateur",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Hectares admissibles ouvrant droit à l'aide redistributive (par exploitation ; transparence GAEC non calculée)."
+  },
+  {
+   "key": "pac.ecoregime.base_cents",
+   "value": 4546,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000054930379",
+   "source_label": "Arrêté du 16 septembre 2026 fixant les montants unitaires de l'écorégime, validé par l'utilisateur",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Niveau de base, par hectare admissible."
+  },
+  {
+   "key": "pac.ecoregime.higher_cents",
+   "value": 6205,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000054930379",
+   "source_label": "Arrêté du 16 septembre 2026 (écorégime), validé par l'utilisateur",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Niveau supérieur, par hectare admissible."
+  },
+  {
+   "key": "pac.ecoregime.organic_cents",
+   "value": 11000,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000054930379",
+   "source_label": "Arrêté du 16 septembre 2026 (écorégime), validé par l'utilisateur",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Niveau agriculture biologique, par hectare admissible."
+  },
+  {
+   "key": "pac.ecoregime.hedges_bonus_cents",
+   "value": 2000,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000054930379",
+   "source_label": "Arrêté du 16 septembre 2026 (écorégime), validé par l'utilisateur",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Bonus haies, par hectare, en plus du niveau de base ou supérieur."
+  },
+  {
+   "key": "pac.young_farmer.amount_cents",
+   "value": 370000,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.legifrance.gouv.fr/jorf/jo/2026/10/01/0229",
+   "source_label": "Arrêté du 16 septembre 2026 (aide complémentaire au revenu des jeunes agriculteurs), validé par l'utilisateur",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Forfait par exploitation."
+  },
+  {
+   "key": "pac.bovine.base_cents",
+   "value": 5100,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.legifrance.gouv.fr/jorf/jo/2026/10/01/0229",
+   "source_label": "Arrêtés du 16 septembre 2026, validé par l'utilisateur",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Aide aux bovins de plus de 16 mois, montant de base par UGB."
+  },
+  {
+   "key": "pac.bovine.higher_cents",
+   "value": 9400,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.legifrance.gouv.fr/jorf/jo/2026/10/01/0229",
+   "source_label": "Arrêtés du 16 septembre 2026, validé par l'utilisateur",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Aide aux bovins de plus de 16 mois, montant supérieur par UGB."
+  },
+  {
+   "key": "pac.ovine.amount_cents",
+   "value": 2054,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.legifrance.gouv.fr/jorf/jo/2026/10/01/0229",
+   "source_label": "Arrêtés du 16 septembre 2026, validé par l'utilisateur",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Aide ovine par brebis."
+  },
+  {
+   "key": "pac.ovine.bonus_cents",
+   "value": 200,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.legifrance.gouv.fr/jorf/jo/2026/10/01/0229",
+   "source_label": "Arrêtés du 16 septembre 2026, validé par l'utilisateur",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Majoration par brebis sur les premières brebis (voir pac.ovine.bonus_heads)."
+  },
+  {
+   "key": "pac.ovine.bonus_heads",
+   "value": 500,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.legifrance.gouv.fr/jorf/jo/2026/10/01/0229",
+   "source_label": "Arrêtés du 16 septembre 2026, validé par l'utilisateur",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Nombre de premières brebis majorées."
+  },
+  {
+   "key": "pac.caprine.amount_cents",
+   "value": 1383,
+   "valid_from": "2026-01-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.legifrance.gouv.fr/jorf/jo/2026/10/01/0229",
+   "source_label": "Arrêtés du 16 septembre 2026, validé par l'utilisateur",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Aide caprine par chèvre."
+  },
+  {
+   "key": "energy.gnr.agri_rate_cents_per_hl",
+   "value": 386,
+   "valid_from": "2024-07-01",
+   "valid_to": null,
+   "source": "https://www.douane.gouv.fr/professionnels/energie/gazole-non-routier-gnr",
+   "source_label": "CIBS art. L312-35 ; page douane « Gazole non routier (GNR) »",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Tarif réduit d'accise du GNR à usage agricole ou forestier, appliqué dès la facture sur attestation depuis le 01/07/2024 (sinon remboursement par la DGFiP)."
+  },
+  {
+   "key": "energy.gnr.crisis_aid_cents_per_hl",
+   "value": 386,
+   "valid_from": "2026-04-01",
+   "valid_to": "2026-04-30",
+   "source": "https://www.impots.gouv.fr/aide-pour-les-entreprises-realisant-des-travaux-agricoles-et-forestiers-touchees-par-la-hausse-du",
+   "source_label": "Aide exceptionnelle GNR travaux agricoles et forestiers (impots.gouv.fr)",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Avril 2026 : 3,86 centimes par litre de GNR livré, plafonné (voir energy.gnr.crisis_aid_cap_cents)."
+  },
+  {
+   "key": "energy.gnr.crisis_aid_cents_per_hl",
+   "value": 1500,
+   "valid_from": "2026-05-01",
+   "valid_to": "2026-12-31",
+   "source": "https://www.impots.gouv.fr/aide-pour-les-entreprises-realisant-des-travaux-agricoles-et-forestiers-touchees-par-la-hausse-du",
+   "source_label": "Aide exceptionnelle GNR (décrets n° 2026-477 du 10 juin 2026 et n° 2026-982 du 23 octobre 2026, impots.gouv.fr)",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Mai à décembre 2026 : 15 centimes par litre de GNR livré dans le mois."
+  },
+  {
+   "key": "energy.gnr.crisis_aid_cap_cents",
+   "value": 5000000,
+   "valid_from": "2026-04-01",
+   "valid_to": "2026-04-30",
+   "source": "https://www.impots.gouv.fr/aide-pour-les-entreprises-realisant-des-travaux-agricoles-et-forestiers-touchees-par-la-hausse-du",
+   "source_label": "Aide exceptionnelle GNR (impots.gouv.fr)",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Plafond de l'aide d'avril 2026 par entreprise."
+  }
+ ]
+}

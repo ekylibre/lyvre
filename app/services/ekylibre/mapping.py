@@ -7,15 +7,26 @@ Comptes (design § 4.1) :
 - autres → zéros de droite retirés : compte Lyvre de ce code s'il existe et n'est pas un regroupement ;
   regroupement → sous-compte `<code>000` créé ; absent → créé sous le regroupement le plus proche ;
 - comptes de TVA déductible 4456x des achats : absorbés dans la charge (EK3), leur correspondance
-  reste calculée pour les autres journaux.
+  reste calculée pour les autres journaux ; repris comme les autres comptes pour une structure
+  assujettie (lot RE1, profil `standard`).
+
+Tiers : noms rendus uniques (Q5 de la restauration) : « nom (ville) », sinon « nom (#n° Ekylibre) ».
 """
 import json
+import unicodedata
+from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
 from app.services.ekylibre.data import EkyData
 
-CHART_FILE = Path(__file__).resolve().parents[3] / "data" / "plan_comptable_sci.json"
+DATA_DIR = Path(__file__).resolve().parents[3] / "data"
+CHART_FILE = DATA_DIR / "plan_comptable_sci.json"
+
+
+def chart_file(chart: str) -> Path:
+    """Plan comptable du référentiel visé (lot RE1)."""
+    return DATA_DIR / f"plan_comptable_{chart}.json"
 
 JOURNALS = {"BANQ": "BQ", "ACHA": "AC", "VENT": "VE", "ODGE": "OD", "IMMO": "OD", "RG": "AN"}
 JOURNAL_LABELS = {"BQ": "Banque", "AC": "Achats", "VE": "Ventes", "OD": "Opérations diverses", "AN": "À-nouveaux",
@@ -55,7 +66,7 @@ class AccountTarget:
     eky_label: str
     code: str
     label: str
-    action: str            # existing, create, associate, vat (absorbée dans les achats)
+    action: str            # existing, create, associate, vat (absorbée dans les achats), reclass (stock, RE4)
     parent: str | None = None
     entity_id: str | None = None
 
@@ -71,7 +82,26 @@ def associate_codes(data: EkyData) -> dict[str, str]:
     return {n: f"4551{i:03d}" for i, n in enumerate(numbers, start=1)}
 
 
-def map_accounts(data: EkyData, chart: Chart, numbers: set[str]) -> dict[str, AccountTarget]:
+# Lot RE4 : comptes de stock de l'ancien plan agricole d'Ekylibre (fr_pcga : 30 approvisionnements, 37 produits)
+# ramenés au plan agricole de Lyvre (31 / 32 approvisionnements, 33 en-cours, 35 produits, 37 marchandises).
+# Le préfixe le plus long l'emporte ; numéro sans ses zéros de fin.
+STOCK_RECLASS = {
+    "3011": "31111", "3012": "31112", "3013": "31113", "3014": "31114", "3015": "31115", "3016": "31116",
+    "3017": "321", "3019": "321", "301": "3111",
+    "3021": "3221", "3022": "3222", "3026": "322", "3027": "322", "302": "32",
+    "351": "33111", "373": "35113", "374": "35511", "376": "35513",
+    "71373": "71351", "71372": "71355", "71374": "71355", "71376": "71355",
+}
+
+
+def stock_reclass(number: str) -> str | None:
+    code = strip_zeros(number)
+    best = max((p for p in STOCK_RECLASS if code.startswith(p)), key=len, default=None)
+    return STOCK_RECLASS[best] if best else None
+
+
+def map_accounts(data: EkyData, chart: Chart, numbers: set[str], absorb_vat: bool = True,
+                 reclass_stock: bool = False) -> dict[str, AccountTarget]:
     accounts = {a["number"]: a for a in data.rows["accounts"]}
     tiers = {}
     for entity in data.rows["entities"]:
@@ -97,8 +127,13 @@ def map_accounts(data: EkyData, chart: Chart, numbers: set[str]) -> dict[str, Ac
                                             entity["id"] if entity else None)
             taken.add(code)
             continue
-        if number.startswith("4456"):
+        if absorb_vat and number.startswith("4456"):
             targets[number] = AccountTarget(number, label, strip_zeros(number), label, "vat", chart.parent_of(strip_zeros(number)))
+            continue
+        target_code = stock_reclass(number) if reclass_stock else None
+        if target_code is not None and chart.usable(target_code):
+            targets[number] = AccountTarget(number, label, target_code, chart.accounts[target_code][0], "reclass")
+            taken.add(target_code)
             continue
         code = strip_zeros(number)
         if chart.usable(code):
@@ -132,6 +167,7 @@ class EntityTarget:
     city: str | None
     supplier_code: str | None
     customer_code: str | None
+    original_name: str | None = None   # nom d'Ekylibre quand il a été rendu unique (Q5)
 
 
 def _address(data: EkyData, entity_id: str) -> tuple[str | None, str | None, str | None]:
@@ -147,7 +183,36 @@ def _address(data: EkyData, entity_id: str) -> tuple[str | None, str | None, str
     return street, postal, city
 
 
-def map_entities(data: EkyData, accounts: dict[str, AccountTarget]) -> dict[str, EntityTarget]:
+def _key(name: str) -> str:
+    folded = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
+    return " ".join(folded.lower().split())
+
+
+def dedupe_names(targets: dict[str, EntityTarget], numbers: dict[str, str] | None = None) -> list[tuple[str, str, str]]:
+    """Rend les noms uniques (Q5) : « nom (ville) », puis « nom (#n°) » si la ville ne suffit pas.
+    Retourne les renommages (id Ekylibre, ancien nom, nouveau nom)."""
+    numbers = numbers or {}
+    groups = defaultdict(list)
+    for target in targets.values():
+        groups[_key(target.name)].append(target)
+    renamed = []
+    for group in groups.values():
+        if len(group) < 2:
+            continue
+        by_city = defaultdict(list)
+        for target in group:
+            by_city[_key(f"{target.name} ({target.city})") if target.city else None].append(target)
+        for city_key, members in by_city.items():
+            for target in members:
+                old = target.name
+                suffix = target.city if city_key is not None and len(members) == 1 else f"#{numbers.get(target.eky_id) or target.eky_id}"
+                target.name = f"{old[:200 - len(suffix) - 3]} ({suffix})"
+                target.original_name = old
+                renamed.append((target.eky_id, old, target.name))
+    return renamed
+
+
+def map_entities(data: EkyData, accounts: dict[str, AccountTarget], dedupe: bool = False) -> dict[str, EntityTarget]:
     targets = {}
     for entity_id in sorted(data.entities_used(), key=int):
         entity = data.get("entities", entity_id)
@@ -165,4 +230,6 @@ def map_entities(data: EkyData, accounts: dict[str, AccountTarget]) -> dict[str,
             (entity.get("iban") or "").replace(" ", "")[:34] or None,
             street, postal, city,
             supplier.code if supplier else None, customer.code if customer else None)
+    if dedupe:
+        dedupe_names(targets, {i: (data.get("entities", i) or {}).get("number") for i in targets})
     return targets

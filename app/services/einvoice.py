@@ -20,6 +20,9 @@ INVOICE, CREDIT_NOTE = "380", "381"
 SEPA_TRANSFER = "58"
 # Motif d'exonération des structures non assujetties (franchise en base).
 FRANCHISE = ("VATEX-FR-FRANCHISE", "TVA non applicable, art. 293 B du CGI")
+# Lot AG10.e : facture à un particulier, note BAR « B2C » (documentation SUPER PDP, article « E-reporting » :
+# la plateforme en tire l'e-reporting).
+B2C_NOTE = {"BT-21": "BAR", "BT-22": "B2C"}
 
 
 @dataclass
@@ -66,6 +69,9 @@ class Document:
     period_start: date | None = None
     period_end: date | None = None
     delivery_date: date | None = None     # livraison ou fin de prestation ; défaut : date d'émission
+    b2c: bool = False                     # client particulier : note BAR = B2C (lot AG10.e)
+    # Motif d'exonération d'une pièce sans TVA autre que la franchise (code, libellé) : RFA sourcé (lot AG10.e).
+    exempt_reason: tuple[str, str] | None = None
 
 
 # La bibliothèque attend des nombres en chaîne (ou float) : chaînes exactes, jamais de float.
@@ -110,7 +116,7 @@ def _breakdown(doc: Document) -> tuple[list[dict], int]:
         row = {"BT-116": _amount(base), "BT-117": _amount(tax), "BT-118": _category(doc, rate_bp, exemption),
                "BT-119": _rate(0 if doc.vat_exempt else rate_bp)}
         if doc.vat_exempt:
-            row["BT-121"], row["BT-120"] = FRANCHISE
+            row["BT-121"], row["BT-120"] = doc.exempt_reason or FRANCHISE
         elif exemption is not None:
             row["BT-121"], row["BT-120"] = exemption[1], exemption[2]
         rows.append(row)
@@ -146,8 +152,9 @@ def data_dict(doc: Document) -> dict:
         data["BT-81"], data["BT-84"] = SEPA_TRANSFER, doc.iban.replace(" ", "")
     if doc.payment_terms:
         data["BT-20"] = doc.payment_terms
-    if doc.notes:
-        data["BG-1"] = [{"BT-22": note} for note in doc.notes]
+    notes = [{"BT-22": note} for note in doc.notes] + ([dict(B2C_NOTE)] if doc.b2c else [])
+    if notes:
+        data["BG-1"] = notes
     if doc.preceding_number:
         data["BG-3"] = [{"BT-25": doc.preceding_number,
                          **({"BT-26": doc.preceding_date} if doc.preceding_date else {})}]

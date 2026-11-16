@@ -21,12 +21,14 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { formatEuros } from "../../lib/format";
 import { useRouteModal } from "../../app/useRouteModal";
 import { RuleSuggestions } from "./RuleSuggestions";
+import { AnalyticSelect, useAnalyticTargets } from "../../components/AnalyticSelect";
 
 export interface Rule {
   id: number; position: number; name: string; label_contains: string | null; label_regex: string | null;
   amount_min_cents: number | null; amount_max_cents: number | null; raw_type: string | null;
   entity_name: string | null; entity_type: string | null; category: string | null;
   account_code: string | null; is_active: boolean; project_id: number | null; project: string | null;
+  analytic?: string | null;
 }
 interface Option { value: string; label: string }
 
@@ -84,6 +86,7 @@ function RuleForm({ rule, entityTypes, projects, onDone }: {
   const categories = useQuery({ queryKey: CATEGORIES_KEY, enabled: simple,
     queryFn: () => api.get<{ items: Category[] }>("/api/v1/simple-categories") });
   const [error, setError] = useState<string | null>(null);
+  const targets = useAnalyticTargets();
   const form = useForm({
     initialValues: {
       name: rule?.name ?? "", label_contains: rule?.label_contains ?? "", label_regex: rule?.label_regex ?? "",
@@ -91,6 +94,7 @@ function RuleForm({ rule, entityTypes, projects, onDone }: {
       raw_type: rule?.raw_type ?? "", entity_name: rule?.entity_name ?? "", entity_type: rule?.entity_type ?? "",
       category: rule?.category ?? "", account_code: rule?.account_code ?? "", is_active: rule?.is_active ?? true,
       project_id: rule?.project_id ? String(rule.project_id) : null as string | null,
+      analytic: rule?.analytic ?? null as string | null,
     },
   });
   const save = useAction((values: typeof form.values) => rule
@@ -141,6 +145,9 @@ function RuleForm({ rule, entityTypes, projects, onDone }: {
           <Select label="Projet" data={projects} clearable searchable placeholder="Aucun"
             description="Porté sur la ligne de charge ou de produit de l'écriture générée." {...form.getInputProps("project_id")} />
         )}
+        <AnalyticSelect label="Affectation analytique" targets={targets} value={form.values.analytic}
+          description="Activité ou clé de répartition de la ligne de charge ou de produit générée." error={form.errors.analytic}
+          onChange={(v) => form.setFieldValue("analytic", v)} />
         <Switch label="Règle active" {...form.getInputProps("is_active", { type: "checkbox" })} />
       </FormBody>
     </form>

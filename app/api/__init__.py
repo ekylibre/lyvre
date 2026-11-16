@@ -24,8 +24,17 @@ PUBLIC_ENDPOINTS = {"api.login", "api.logout", "api.password_forgot", "api.passw
 
 # Écritures permises en lecture seule (expert-comptable) : session et préférences personnelles.
 READ_ONLY_ALLOWED = {"api.login", "api.logout", "api.select_instance", "api.update_preferences",
+                     # Assistant Claude (lot AG9b) : conversations seulement, sans outil de proposition.
+                     "api.assistant_conversation_create", "api.assistant_conversation_delete", "api.assistant_ask",
+                     "api.assistant_proposal_update",
                      "api.notifications_mark_read", "api.change_password", "api.password_forgot",
-                     "api.password_reset_check", "api.password_reset"}
+                     "api.password_reset_check", "api.password_reset",
+                     # Calculettes (lot AG12) : un calcul n'écrit rien.
+                     "api.calculators_compute",
+                     # Clés d'API (lot AK1) : chacun révoque les siennes.
+                     "api.api_keys_revoke",
+                     # Outils d'agent par REST (lot AK4) : l'écriture est refusée outil par outil à une clé d'expert-comptable.
+                     "api.agent_tools_call"}
 WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
 _HTTP_CODES = {
@@ -137,6 +146,20 @@ def _read_only_accountant():
     return None
 
 
+@bp.before_request
+def _api_key_scope():
+    """Clé d'API (lot AK1) : lecture seulement, dans les domaines de la clé (app/api_auth.py)."""
+    from app.api_auth import authorize
+    return authorize()
+
+
+@bp.after_request
+def _api_key_journal(response):
+    """Clé d'API (lot AK4) : appel inscrit au journal de la clé."""
+    from app.api_auth import log_rest_call
+    return log_rest_call(response)
+
+
 def register_api(app):
     app.register_blueprint(bp)
 
@@ -181,14 +204,15 @@ def register_api(app):
 
 # Routes are attached to ``bp`` by these modules (import for side effects).
 from . import (  # noqa: E402,F401
-    access, activity_report, assets, brevo, data_import, associate_expenses, associates, bank_accounts, bank_statements,
-    budgets, cash, cash_forecast, chart, entities, entries, fiscal_years,
+    access, activity_report, agent, api_keys, assets, brevo, data_import, associate_expenses, associates, bank_accounts, bank_statements,
+    budgets, calculators, cash, cash_forecast, chart, coop_statements, documents, ekylibre, entities, entries, ereporting, fiscal_years,
     impact, imports, lettering,
     instances, integrations, journals, leases, lookups, members, notifications, odoo, organization, payouts,
-    products, projects, purchases, receipts, reconciliation, reports, rules, sales, search, session, share_movements,
+    products, projects, purchases, receipts, reconciliation, regulatory, reports, rules, sales, search, session,
+    share_movements, tax_profiles,
     sirene,
     simple_categories, subscriptions,
     simple_operations, simple_reports,
-    task_types, users, vat_returns,
+    task_types, users, agenda, aids, analytic, assistant, checklists, msa, rfa, stock, tax_result, vat_books, vat_returns,
     work_times,
 )

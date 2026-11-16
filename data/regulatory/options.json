@@ -1,0 +1,295 @@
+{
+ "_comment": "Options fiscales : durée et règle de renonciation (lot AG1.a, § 3.3). `renounce` : {month_day: MM-JJ, year: 'last' (dernière année de la période) | 'after_end' (année qui suit la période)} ; null : pas de date calculée (la renonciation se fait avec la déclaration, voir la note).",
+ "values": [
+  {
+   "key": "option.vat_quarterly.duration_years",
+   "value": 5,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/node/10637",
+   "source_label": "BOI-TVA-SECT-80-30-60-20",
+   "verified_on": "2026-11-03",
+   "reliability": "R",
+   "note": "CA3 trimestrielle au RSA, reconduction tacite."
+  },
+  {
+   "key": "option.vat_quarterly.renounce",
+   "value": {
+    "month_day": "02-05",
+    "year": "after_end"
+   },
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/node/10637",
+   "source_label": "BOI-TVA-SECT-80-30-60-20",
+   "verified_on": "2026-11-03",
+   "reliability": "R",
+   "note": "Avant le 5 février de l'année du retour au régime des acomptes."
+  },
+  {
+   "key": "option.vat_monthly.duration_years",
+   "value": 5,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/node/10637",
+   "source_label": "BOI-TVA-SECT-80-30-60-20",
+   "verified_on": "2026-11-03",
+   "reliability": "R",
+   "note": ""
+  },
+  {
+   "key": "option.vat_monthly.renounce",
+   "value": {
+    "month_day": "01-31",
+    "year": "after_end"
+   },
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/node/10637",
+   "source_label": "BOI-TVA-SECT-80-30-60-20",
+   "verified_on": "2026-11-03",
+   "reliability": "R",
+   "note": "Avant le 31 janvier de l'année du retour."
+  },
+  {
+   "key": "option.rsa_option.duration_years",
+   "value": 5,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 298 bis",
+   "verified_on": "2026-11-03",
+   "reliability": "I",
+   "note": "Option pour le RSA sous le seuil du remboursement forfaitaire : durée à valider (3 ou 5 ans)."
+  },
+  {
+   "key": "option.rsa_option.renounce",
+   "value": {
+    "months_before_end": 2
+   },
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/doctrine/pgp/201-PGP",
+   "source_label": "CGI art. 298 bis ; BOI-TVA-SECT-80-20",
+   "verified_on": "2026-11-03",
+   "reliability": "R",
+   "note": "Par lettre recommandée, deux mois au moins avant l'expiration de l'option (lot CG3.e)."
+  },
+  {
+   "key": "option.is_option.duration_years",
+   "value": null,
+   "valid_from": "2019-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 239",
+   "verified_on": "2026-11-03",
+   "reliability": "I",
+   "note": "Option IS d'une société de personnes : révocable jusqu'à la fin du 5e exercice suivant."
+  },
+  {
+   "key": "option.is_option.renounce",
+   "value": {
+    "month_day": "02-28",
+    "year": "fifth"
+   },
+   "valid_from": "2019-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 239",
+   "verified_on": "2026-11-03",
+   "reliability": "I",
+   "note": "Renonciation avant la fin du 2e mois du 5e exercice suivant celui de l'option ; règle à valider."
+  },
+  {
+   "key": "option.ba_simplified_option.duration_years",
+   "value": 1,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044978423",
+   "source_label": "CGI art. 64 bis V (lu le 07/11/2026)",
+   "verified_on": "2026-11-03",
+   "reliability": "V",
+   "note": "1 an, reconduite tacitement chaque année (lot CG3.e)."
+  },
+  {
+   "key": "option.ba_simplified_option.renounce",
+   "value": null,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044978423",
+   "source_label": "CGI art. 64 bis V (lu le 07/11/2026)",
+   "verified_on": "2026-11-03",
+   "reliability": "V",
+   "note": "Dans le délai de dépôt de la déclaration des résultats de la période qui précède celle pour laquelle on renonce (le « 1er février » du guide de 2019 est périmé)."
+  },
+  {
+   "key": "option.ba_normal_option.duration_years",
+   "value": 2,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000054373846",
+   "source_label": "CGI art. 69 III ; impots.gouv.fr (option valable 2 exercices, reconduite tacitement par période de 2)",
+   "verified_on": "2026-11-03",
+   "reliability": "R",
+   "note": "Réel normal sur option : 2 exercices, reconduction tacite par période de 2 (lot CG3.e, Q9)."
+  },
+  {
+   "key": "option.averaging_75_0_b.duration_years",
+   "value": 3,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 75-0 B",
+   "verified_on": "2026-11-03",
+   "reliability": "R",
+   "note": "Moyenne triennale : 3 ans, reconduction tacite ; 3 ans d'attente après renonciation."
+  },
+  {
+   "key": "option.stock_freeze_72_b_bis.duration_years",
+   "value": 5,
+   "valid_from": "2019-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 72 B bis, rétabli par la loi 2018-1317 (LF 2019), art. 58 : exercices ouverts à compter du 01/01/2019",
+   "verified_on": "2026-11-07",
+   "reliability": "R",
+   "note": "Blocage des stocks à rotation lente (lot CG2.e : date de départ corrigée)."
+  },
+  {
+   "key": "option.flat_stock_method.duration_years",
+   "value": 5,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/doctrine/pgp/4562-PGP",
+   "source_label": "CGI art. 74 b ; ann. III art. 38 sexdecies JC ; BOI-BA-BASE-20-20-20-20 § 80 et § 90",
+   "verified_on": "2026-11-07",
+   "reliability": "V",
+   "note": "Méthode forfaitaire des stocks (réel simplifié) : 5 exercices, reconduction tacite par période de 5 ; dénonciation dans le délai de déclaration du dernier exercice de la période (lot CG2.e)."
+  },
+  {
+   "key": "option.flat_stock_no_capping.duration_years",
+   "value": 5,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/doctrine/pgp/4562-PGP",
+   "source_label": "BOI-BA-BASE-20-20-20-20 § 130",
+   "verified_on": "2026-11-07",
+   "reliability": "V",
+   "note": "Renonciation à l'écrêtement : mêmes conditions et même durée que l'option pour la méthode forfaitaire (lot CG3.d)."
+  },
+  {
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "verified_on": "2026-11-07",
+   "key": "option.ba_normal_option.renounce",
+   "value": null,
+   "reliability": "R",
+   "source": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000054373846",
+   "source_label": "CGI art. 69 IV ; impots.gouv.fr",
+   "note": "Dans le délai de dépôt de la déclaration de résultats du dernier exercice de la période."
+  },
+  {
+   "key": "option.ba_simplified_option.elect",
+   "value": {
+    "with_return": "previous"
+   },
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000054373846",
+   "source_label": "CGI art. 69 IV (lu le 07/11/2026)",
+   "reliability": "V",
+   "note": "Dans le délai de déclaration des résultats de l'année ou de l'exercice qui précède ; en début d'activité, avec la déclaration de la première période.",
+   "verified_on": "2026-11-07"
+  },
+  {
+   "key": "option.ba_normal_option.elect",
+   "value": {
+    "with_return": "previous"
+   },
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000054373846",
+   "source_label": "CGI art. 69 IV (lu le 07/11/2026)",
+   "reliability": "V",
+   "note": "Dans le délai de déclaration des résultats de l'année ou de l'exercice qui précède ; en début d'activité, avec la déclaration de la première période.",
+   "verified_on": "2026-11-07"
+  },
+  {
+   "key": "option.rsa_fiscal_year.duration_years",
+   "value": 5,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "reliability": "I",
+   "source": "https://bofip.impots.gouv.fr/doctrine/pgp/201-PGP",
+   "source_label": "CGI art. 298 bis I-1 ; BOI-TVA-SECT-80-20 — durée à confirmer",
+   "note": "Déclaration annuelle sur l'exercice : renonciation possible à l'issue de cinq ans (à confirmer).",
+   "verified_on": "2026-11-07"
+  },
+  {
+   "key": "option.crop_advance_method.duration_years",
+   "value": null,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "reliability": "R",
+   "source": "https://bofip.impots.gouv.fr/bofip/4563-PGP.html/identifiant=BOI-BA-BASE-20-20-20-30-20190703",
+   "source_label": "CGI art. 72 A ; BOI-BA-BASE-20-20-20-30 (version du 03/07/2019)",
+   "note": "Selon la méthode : M (M1, M2) 10 ans reconduits tacitement ; F 3 ans renouvelable une fois, réservée au passage au réel simplifié ; T 3 ans non renouvelable ; R irrévocable. Saisir la durée de la méthode choisie.",
+   "verified_on": "2026-11-07"
+  },
+  {
+   "key": "option.fuel_flat_74c.duration_years",
+   "value": null,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "reliability": "I",
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 74 c — non relu",
+   "note": "Durée et délai d'option à vérifier sur le texte (lot CG3.e : source primaire non lue).",
+   "verified_on": "2026-11-07"
+  },
+  {
+   "key": "option.recurring_expenses_74d.duration_years",
+   "value": null,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "reliability": "I",
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 74 d — non relu",
+   "note": "Durée et délai d'option à vérifier sur le texte (lot CG3.e : source primaire non lue).",
+   "verified_on": "2026-11-07"
+  },
+  {
+   "key": "option.income_spread_75_0_a.duration_years",
+   "value": null,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "reliability": "I",
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 75-0 A — non relu",
+   "note": "Durée et délai d'option à vérifier sur le texte (lot CG3.e : source primaire non lue).",
+   "verified_on": "2026-11-07"
+  },
+  {
+   "key": "option.land_on_balance_sheet.duration_years",
+   "value": null,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "reliability": "I",
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI ann. III art. 38 sexdecies D — non relu",
+   "note": "Durée et délai d'option à vérifier sur le texte (lot CG3.e : source primaire non lue).",
+   "verified_on": "2026-11-07"
+  },
+  {
+   "key": "option.landlord_vat.duration_years",
+   "value": null,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "reliability": "I",
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 260 6° — non relu",
+   "note": "Durée et délai d'option à vérifier sur le texte (lot CG3.e : source primaire non lue).",
+   "verified_on": "2026-11-07"
+  }
+ ]
+}

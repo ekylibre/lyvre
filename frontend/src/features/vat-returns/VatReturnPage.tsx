@@ -14,7 +14,7 @@ import { useAction, type Notice } from "../../api/resources";
 import { useCan } from "../../api/session";
 import { ConfirmButton } from "../../components/ConfirmButton";
 import { FormModal } from "../../components/FormModal";
-import { MoneyText } from "../../components/Money";
+import { MoneyInput, MoneyText } from "../../components/Money";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { AppLink } from "../../app/navigation";
@@ -81,7 +81,11 @@ export default function VatReturnPage() {
   const { data } = useQuery({ queryKey: [...VAT_RETURNS_KEY, "preview", period],
     queryFn: () => api.get<VatReturnPreview>(`/api/v1/vat-returns/preview?period=${period}`) });
   const opts = { invalidate: [VAT_RETURNS_KEY] };
-  const validate = useAction(() => api.post<{ notices: Notice[] }>("/api/v1/vat-returns", { period }), opts);
+  const [refund, setRefund] = useState<number | null>(null);
+  const [tca, setTca] = useState<number | null>(null);
+  const validate = useAction(() => api.post<{ notices: Notice[] }>("/api/v1/vat-returns",
+    { period, ...(refund ? { refund_cents: Math.round(refund / 100) * 100 } : {}),
+      ...(tca ? { tca_euros: Math.round(tca / 100) } : {}) }), opts);
   const unvalidate = useAction((id: number) => api.post<{ notices: Notice[] }>(`/api/v1/vat-returns/${id}/unvalidate`), opts);
   if (!data) return <Center h={300}><Loader /></Center>;
   const ret = data.vat_return;
@@ -91,7 +95,7 @@ export default function VatReturnPage() {
   return (
     <>
       <PageHeader title={`TVA — ${monthLabel(period)}`}
-        description={<Group gap="xs">{status}<Text size="sm" c="dimmed">Formulaire 3310-CA3-SD {data.form_year} · échéance
+        description={<Group gap="xs">{status}<Text size="sm" c="dimmed">Formulaire {data.form ?? "3310-CA3-SD"} {data.form_year} · échéance
           {" "}{formatDate(data.deadline)}{ret?.declared_on && ` · déposée le ${formatDate(ret.declared_on)}`}
           {ret?.declared_reference && ` (réf. ${ret.declared_reference})`}</Text></Group>}
         actions={<>
@@ -102,7 +106,7 @@ export default function VatReturnPage() {
           {can.write && !ret && (
             <ConfirmButton danger={false} variant="filled" disabled={blocked} loading={validate.isPending}
               title={`Valider la déclaration de ${monthLabel(period)} ?`}
-              message="Les écritures en brouillard jusqu'à la fin du mois sont validées, les cases figées et l'écriture de liquidation passée (TVA à décaisser ou crédit à reporter)."
+              message={`Les écritures en brouillard jusqu'à la fin de la période sont validées, les cases figées et l'écriture de liquidation passée (TVA à décaisser ou crédit à reporter)${refund ? `, avec un remboursement de ${formatWholeEuros(Math.round(refund / 100))} demandé` : ""}.`}
               confirmLabel="Valider" onConfirm={() => validate.mutate(undefined)}>Valider</ConfirmButton>
           )}
           {can.write && ret?.status === "validated" && (
@@ -124,14 +128,25 @@ export default function VatReturnPage() {
           <Group justify="space-between">
             <Text fw={700}>{data.due_cents ? <>TVA nette due : <MoneyText cents={data.due_cents} fw={700} /></>
               : data.credit_cents ? <>Crédit de TVA à reporter : <MoneyText cents={data.credit_cents} fw={700} /></>
-                : "Déclaration néant"}</Text>
+                : data.checks.some((c) => c.key === "uncoded") ? "Déclaration incomplète : lignes de TVA sans code" : "Déclaration néant"}</Text>
             <Group gap="md">
-              {data.credit_carried_cents > 0 && <Text size="sm" c="dimmed">Crédit reporté du mois précédent :
+              {data.credit_carried_cents > 0 && <Text size="sm" c="dimmed">Crédit reporté de la période précédente :
                 {" "}<MoneyText cents={data.credit_carried_cents} /></Text>}
               {ret?.liquidation_entry && <Anchor component={AppLink} href={`/entries/${ret.liquidation_entry.id}`} size="sm">
                 Liquidation {ret.liquidation_entry.reference}</Anchor>}
             </Group>
           </Group>
+                  {!ret && can.write && data.refund?.possible && (
+            <MoneyInput mt="sm" w={360} label={data.form_code === "CA12A" ? "Remboursement à demander (cadre VII, ligne 45)"
+              : "Remboursement de crédit à demander (formulaire 3519)"}
+              description={`De ${formatWholeEuros(data.refund.minimum_cents / 100)} à ${formatWholeEuros(data.refund.maximum_cents / 100)} ; vide : tout le crédit est reporté.`}
+              value={refund} onChange={setRefund} />)}
+          {ret && ret.refund_cents > 0 && <Text size="sm" mt="xs">Remboursement demandé (3519) : <MoneyText cents={ret.refund_cents} /></Text>}
+          {!ret && can.write && data.form_code === "CA12A" && (
+            <MoneyInput mt="sm" w={360} label="Ligne 31 — taxe sur le chiffre d'affaires des exploitants agricoles"
+              description="Saisie libre, en euros (art. 302 bis MB) ; à comptabiliser à part." value={tca} onChange={setTca} />)}
+          {data.form_code === "CA12A" && !!data.installments_cents && <Text size="sm" mt="xs" c="dimmed">Acomptes imputés
+            (ligne 25) : <MoneyText cents={data.installments_cents} /></Text>}
         </Paper>
         <Table>
           <Table.Thead><Table.Tr><Table.Th w={60}>Ligne</Table.Th><Table.Th w={70}>Code</Table.Th><Table.Th>Libellé</Table.Th>
@@ -158,7 +173,7 @@ export default function VatReturnPage() {
         <Text size="xs" c="dimmed">Montants arrondis à l'euro, comme sur le formulaire. Code : identifiant de la case dans
           la saisie en ligne. {Object.keys(data.codes).length > 0 && <>Codes de TVA repris : {Object.keys(data.codes).map((c) =>
             <Badge key={c} size="xs" variant="light" mr={4}>{c}</Badge>)}</>}</Text>
-        {!ret && data.lines_count === 0 && <List size="sm"><List.Item>Aucune ligne codée sur la période : la déclaration
+        {!ret && data.lines_count === 0 && !data.checks.some((c) => c.key === "uncoded") && <List size="sm"><List.Item>Aucune ligne codée sur la période : la déclaration
           sera néant.</List.Item></List>}
       </Stack>
       <BoxLines period={period} box={box} onClose={() => setBox(null)} />

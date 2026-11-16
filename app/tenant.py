@@ -41,6 +41,10 @@ _TENANT_FREE_ENDPOINTS = {
     # Version de Lyvre (page À propos, publique) et nouveautés (méta-base seulement).
     "api.app_version",
     "api.changelog",
+    # Désabonnement du résumé de l'échéancier par le lien de l'e-mail : instance lue dans le jeton.
+    "agenda_mail.unsubscribe",
+    # Calendrier iCal de l'échéancier (URL secrète) : instance lue dans l'URL.
+    "agenda_mail.ical",
 }
 
 # Seules routes ouvertes à un compte dont le mot de passe est à changer (F5.4) : la session,
@@ -108,13 +112,20 @@ def is_association() -> bool:
     return current_chart() == "asso"
 
 
+def is_agri() -> bool:
+    """Instance courante tenue au plan « Exploitation agricole » (lot AG1.b)."""
+    return current_chart() == "agri"
+
+
 def _is_tenant_free_endpoint() -> bool:
     if request.endpoint is None:
         return True
     if request.endpoint in _TENANT_FREE_ENDPOINTS:
         return True
     # /users/* and /instances/* admin pages (and their API) run on meta only.
-    return request.endpoint.startswith(("users.", "instances.", "api.users_", "api.instances_"))
+    # Paramètres réglementaires (lot AG1.a) : communs à toutes les instances, méta-base seulement.
+    return request.endpoint.startswith(("users.", "instances.", "api.users_", "api.instances_",
+                                        "regulatory.", "api.regulatory_values"))
 
 
 def _relative_next():
@@ -135,6 +146,19 @@ def register_tenant_hooks(app):
         g.instance_role = None
 
         if not current_user.is_authenticated:
+            return None
+
+        api_key = getattr(g, "api_key", None)
+        if api_key is not None:
+            # Clé d'API (lot AK1) : l'instance est celle de la clé, jamais la session ; accès vérifié par la clé.
+            from app.access import role_for
+            inst = db.session.get(Instance, api_key.instance_id)
+            g.current_instance = inst
+            g.instance_role = role_for(current_user, inst)
+            g.tenant_engine = get_tenant_engine(inst)
+            if inst.integrations is None:
+                from app.services.external_config import ensure_initialized
+                ensure_initialized(inst)
             return None
 
         # Re-check is_active on every request (cheap, catches admin deactivation).

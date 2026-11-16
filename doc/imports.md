@@ -216,6 +216,26 @@ leur date (journal OD si la colonne manque).
 
 ---
 
+## Restaurer une sauvegarde Ekylibre (Imports › Sauvegarde Ekylibre)
+
+Pour une structure **vide** (aucune écriture) : déposer l'archive `.zip` de sauvegarde Ekylibre (dump et pièces,
+4 Go au plus), lancer l'**analyse à blanc** puis, si les contrôles passent, l'**import**. Les deux tournent en tâche de
+fond ; le rapport (contrôles, correspondances de comptes et de tiers, remarques) se lit à l'écran et se télécharge.
+L'import est tout-ou-rien : en cas d'échec, rien n'est gardé, pas même les pièces rangées.
+
+Le profil est détecté (SCI, exploitation agricole…) :
+
+- exercices et **à-nouveaux calculés** ;
+- écritures et TVA des achats et des ventes ;
+- tiers aux noms uniques ;
+- pièces de la période ;
+- emprunts et échéances (comparées aux écritures) ;
+- TVA étrangère (OSS) ;
+- pour une exploitation : activités, campagnes, surfaces et dernier inventaire, avec le contrôle des comptes de stock
+  et leur reclassement.
+
+Le même moteur sert au script (`scripts/import_ekylibre_sci.py`, `app/services/ekylibre/`).
+
 ## Reprise de la SCI Chênes Verts depuis Ekylibre (ponctuel, avant la mise en production)
 
 Script : `scripts/import_ekylibre_sci.py` (besoins et conception : `claudedocs/besoins_import_ekylibre_sci.md`,

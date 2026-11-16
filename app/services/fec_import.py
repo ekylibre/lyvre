@@ -7,6 +7,14 @@
   (`account_mappings`), sinon création (rattaché au compte de regroupement le plus proche) ; comptes
   auxiliaires (`CompAuxNum`) : sous-compte du tiers (401NNN, 411NNN…) et fiche du tiers, retrouvés
   ou créés ; l'utilisateur peut faire correspondre un compte du fichier à un compte existant.
+- **Ancien plan agricole** (lot AG10.a, AGD27) : dans une instance agricole, un FEC de cabinet en numérotation
+  PCGA 1986 (comptes généraux sur 8 chiffres, `agri_chart.old_numbering`) passe par `agri_chart.resolve_pcga1986` :
+  le compte du plan agri s'il existe ; un **sous-compte** de ce compte pour les sous-comptes repliés (cultures,
+  produits, banques : `70117111` « Maïs grain » sous 7011), qui garde son numéro quand il commence par celui du
+  compte, sinon le premier numéro libre. Ces correspondances sont mémorisées pour les exercices suivants.
+- **Activités proposées** (`import_activities.proposals`) : sous-comptes de ventes de produits (7011 à 7014) sans règle
+  analytique, rapprochés d'une production Lexicon par leur libellé ; à la création, atelier par famille,
+  activité et règle « compte → activité » (AG8).
 - **Import tout-ou-rien**, deux modes :
   - `history` : l'exercice du fichier est créé, ses écritures importées (source `FEC_IMPORT`,
     `source_ref` = numéro d'origine), validées (lot `import`), les lettrages repris (`EcritureLet`),
@@ -73,6 +81,21 @@ class FecEntry:
     @property
     def balance(self) -> int:
         return sum(line.debit - line.credit for line in self.lines)
+
+
+# Journaux d'à-nouveaux usuels des logiciels comptables (FEC : JournalCode).
+OPENING_JOURNALS = {"AN", "RAN", "ANO", "ANX", "AN0", "ANOUV", "ANV"}
+
+
+def is_opening(entry: FecEntry, start: date) -> bool:
+    """À-nouveaux du fichier (essai de l'interface, 10/11/2026) : écriture du premier jour de l'exercice, en journal
+    d'à-nouveaux (code usuel ou libellé « à-nouveau »), qui ne touche que les comptes de bilan (classes 1 à 5).
+    Marquée comme ouverture, elle est écartée des calculs de flux (TVA, trésorerie, analytique, stocks, annexes…)."""
+    if entry.day != start or not entry.lines:
+        return False
+    label = (entry.lines[0].journal_label or "").lower().replace("-", " ")
+    named = entry.journal.strip().upper() in OPENING_JOURNALS or "a nouveau" in label or "à nouveau" in label
+    return named and all((line.account or "")[:1] in "12345" for line in entry.lines)
 
 
 # ------------------------------------------------------------------ lecture
@@ -188,19 +211,58 @@ def _free_code(prefix: str, reserved: set) -> str:
     raise ImportError_(f"Plus de code libre sous {prefix}.")
 
 
+def pcga1986_applies(sources: dict[str, dict]) -> bool:
+    """Ancienne numérotation agricole à reprendre : instance agricole et fichier en comptes sur 8 chiffres."""
+    from app.services import agri_chart
+    from app.tenant import is_agri
+    return is_agri() and agri_chart.old_numbering({s["code"] for s in sources.values()})
+
+
+def _pcga1986(row: dict, reserved: set) -> bool:
+    """Correspondance par l'ancien plan agricole ; False si le numéro n'en a pas (règle générale)."""
+    from app.services import agri_chart
+    code = row["code"]
+    found = agri_chart.resolve_pcga1986(code) if code.isdigit() and len(code) == 8 else None
+    if found is None:
+        return False
+    target, folded = found
+    account = Account.query.filter_by(code=target).first()
+    row.update(origin="pcga1986", pcga_target=target)
+    if account is not None and not account.is_header and not folded:
+        row.update(action="mapped", account_id=account.id, target_code=account.code)
+        return True
+    if not folded:                                                   # compte du plan absent de l'instance
+        row["target_code"] = target
+        return True
+    own = agri_chart.normalize(code)
+    sub = Account.query.filter_by(code=own).first() if own.startswith(target) else None
+    if sub is not None and not sub.is_header:                        # sous-compte d'un import précédent
+        row.update(action="mapped", account_id=sub.id, target_code=sub.code)
+    elif own.startswith(target) and sub is None and own not in reserved:
+        row["target_code"] = own
+    else:
+        row["target_code"] = _free_code(target, reserved)
+    return True
+
+
 def plan_accounts(sources: dict[str, dict], overrides: dict | None = None) -> list[dict]:
-    """Proposition par compte du fichier : `{key, code, label, aux, aux_label, action, account_id, target_code}`.
-    `action` : `existing` (même code), `mapped` (correspondance mémorisée ou choisie), `create`."""
+    """Proposition par compte du fichier : `{key, code, label, aux, aux_label, action, account_id, target_code,
+    origin}`. `action` : `existing` (même code), `mapped` (correspondance mémorisée, choisie ou par l'ancien plan
+    agricole), `create`. `origin` : `pcga1986` quand l'ancien plan agricole a servi (`pcga_target` : compte du plan)."""
     overrides = overrides or {}
     memo = {m.source_code: m.account_id for m in AccountMapping.query.all()}
+    old_plan = pcga1986_applies(sources)
     reserved, plan = set(), []
     for key, src in sorted(sources.items()):
         row = {"key": key, "code": src["code"], "label": src["label"], "aux": src.get("aux", ""),
-               "aux_label": src.get("aux_label", ""), "action": "create", "account_id": None, "target_code": None}
+               "aux_label": src.get("aux_label", ""), "action": "create", "account_id": None, "target_code": None,
+               "origin": None}
         chosen = overrides.get(key) or memo.get(key)
         account = db.session.get(Account, chosen) if chosen else None
         if account is not None and not account.is_header:
             row.update(action="mapped", account_id=account.id, target_code=account.code)
+        elif not row["aux"] and old_plan and _pcga1986(row, reserved):
+            pass
         elif not row["aux"]:
             existing = Account.query.filter_by(code=src["code"]).first()
             if existing is not None and not existing.is_header:
@@ -233,8 +295,11 @@ def apply_plan(plan: list[dict]) -> dict[str, Account]:
             accounts[row["key"]] = db.session.get(Account, row["account_id"])
         else:
             label = (row["aux_label"] or row["label"] or row["target_code"])[:255]
-            account = Account(code=row["target_code"], label=label, account_type="TIERS" if row["aux"] else "OTHER",
-                              parent=_parent_of(row["target_code"]))
+            parent = _parent_of(row["target_code"])
+            kind = "TIERS" if row["aux"] else "OTHER"
+            if row.get("origin") == "pcga1986" and parent is not None:     # sous-compte du plan agri : même nature
+                kind = parent.account_type
+            account = Account(code=row["target_code"], label=label, account_type=kind, parent=parent)
             db.session.add(account)
             db.session.flush()
             kind = TIERS_ENTITY.get(row["code"][:3])
@@ -246,7 +311,7 @@ def apply_plan(plan: list[dict]) -> dict[str, Account]:
                 if not getattr(entity, kind[1]):
                     setattr(entity, kind[1], account.code)
             accounts[row["key"]] = account
-        if row["action"] == "mapped" or row["aux"]:
+        if row["action"] == "mapped" or row["aux"] or row.get("origin") == "pcga1986":
             memo = AccountMapping.query.filter_by(source_code=row["key"]).first()
             if memo is None:
                 db.session.add(AccountMapping(source_code=row["key"], account_id=accounts[row["key"]].id))
@@ -283,8 +348,9 @@ def _journals(entries) -> dict[str, Journal]:
 # ------------------------------------------------------------------ analyse
 
 
-def analyze(content: bytes, filename: str = "", overrides: dict | None = None) -> dict:
-    entries, problems = parse(content)
+def analyze(content: bytes, filename: str = "", overrides: dict | None = None, parser=None) -> dict:
+    """`parser` : autre lecteur rendant (écritures, anomalies), comme l'import `.ISA` (lot AG10.b)."""
+    entries, problems = (parser or parse)(content)
     if not entries:
         raise ImportError_("Aucune écriture dans le fichier.", problems)
     days = [e.day for e in entries]
@@ -303,6 +369,7 @@ def analyze(content: bytes, filename: str = "", overrides: dict | None = None) -
         "letterings": len({(l.key, l.letter) for e in entries for l in e.lines if l.letter}),
         "accounts": plan, "problems": problems[:50],
         "to_create": sum(1 for r in plan if r["action"] == "create"),
+        "pcga1986": any(r.get("origin") == "pcga1986" for r in plan),
     }
 
 
@@ -315,11 +382,12 @@ def _log(fy, action, user_id, **details):
 
 
 def import_history(content: bytes, filename: str, start: date, end: date, overrides: dict | None = None,
-                   user_id=None) -> dict:
-    """Historique complet d'un exercice (tout-ou-rien, commit)."""
+                   user_id=None, parser=None, after=None, source_label: str = "fec_history") -> dict:
+    """Historique complet d'un exercice (tout-ou-rien, commit). `after(fy, paires)` : traitement complémentaire
+    dans la même transaction, avec les paires (ligne du fichier, ligne importée) (import `.ISA`, AG10.b)."""
     from app.services import lettering, validation
     from app.services.ledger import post_entry
-    entries, problems = parse(content)
+    entries, problems = (parser or parse)(content)
     if problems:
         raise ImportError_(f"{len(problems)} anomalie(s) dans le fichier : rien n'est importé.", problems)
     outside = [e for e in entries if not (start <= e.day <= end)]
@@ -338,16 +406,17 @@ def import_history(content: bytes, filename: str, start: date, end: date, overri
             db.session.flush()
         journals = _journals(entries)
         accounts = apply_plan(plan_accounts(_sources(entries), overrides))
-        posted, letters = [], {}
+        posted, letters, pairs = [], {}, []
         for entry in sorted(entries, key=lambda e: (e.day, e.journal, e.number)):
             rows = [{"account_id": accounts[l.key].id, "label": (l.label or "")[:300], "debit_cents": l.debit,
                      "credit_cents": l.credit} for l in entry.lines]
             created = post_entry(fy.id, journals[entry.journal[:10] or "OD"].id, entry.day,
                                  (entry.lines[0].label or entry.piece or entry.number)[:500], rows,
-                                 source=SOURCE_FEC_IMPORT, source_ref=f"{entry.journal}{entry.number}"[:200],
+                                 source=SOURCE_OPENING if is_opening(entry, fy.start_date) else SOURCE_FEC_IMPORT, source_ref=f"{entry.journal}{entry.number}"[:200],
                                  reference=(entry.piece or None) and entry.piece[:50], commit=False)
             posted.append(created)
             for line, model in zip(entry.lines, sorted(created.lines, key=lambda x: x.id)):
+                pairs.append((line, model))
                 if line.letter:
                     letters.setdefault((model.account_id, line.letter), []).append(model)
         validation.validate(fy, posted, "import", user_id, until=end)
@@ -357,10 +426,12 @@ def import_history(content: bytes, filename: str, start: date, end: date, overri
             item = lettering.letter(group, origin="import", user_id=user_id)
             if not Lettering.query.filter_by(account_id=account_id, code=code[:6]).first():
                 item.code = code[:6]  # code d'origine conservé (EcritureLet)
+        if after is not None:
+            after(fy, pairs)
         fy.status = "provisional"
         fy.provisional_at = datetime.utcnow()
         fy.locked_until = end
-        _log(fy, "fec_history", user_id, entries=len(posted), file=filename)
+        _log(fy, source_label, user_id, entries=len(posted), file=filename)
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -368,11 +439,12 @@ def import_history(content: bytes, filename: str, start: date, end: date, overri
     return {"fiscal_year_id": fy.id, "fiscal_year": fy.label, "entries": len(posted), "letterings": len(letters)}
 
 
-def import_opening(content: bytes, filename: str, fy: FiscalYear, overrides: dict | None = None, user_id=None) -> dict:
+def import_opening(content: bytes, filename: str, fy: FiscalYear, overrides: dict | None = None, user_id=None,
+                   parser=None) -> dict:
     """Soldes de fin du fichier en à-nouveaux du premier jour de l'exercice (tout-ou-rien, commit)."""
     from app.services.closing import ClosingError, _result_account
     from app.services.ledger import post_entry
-    entries, problems = parse(content)
+    entries, problems = (parser or parse)(content)
     if problems:
         raise ImportError_(f"{len(problems)} anomalie(s) dans le fichier : rien n'est importé.", problems)
     if fy.closed:

@@ -6,20 +6,27 @@ import { useForm } from "@mantine/form";
 import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
 import { applyApiError, FormBody } from "../../components/ApiForm";
+import { useCurrentSession } from "../../api/session";
 import { ASSOCIATES_KEY, type Associate, type AssociatesMeta } from "./types";
 
 export function AssociateForm({ associate, meta, accountLocked = false, onDone }: {
   associate: Associate | null; meta: AssociatesMeta | undefined; accountLocked?: boolean; onDone: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
+  const agri = useCurrentSession().instance?.chart === "agri";
   const form = useForm({ initialValues: {
     kind: (meta?.entities.length ?? 0) > 0 ? "existing" : "new", entity_id: null as string | null, new_name: "",
     account_code: associate?.account_code ?? "", interest_rate: associate?.interest_rate ?? "", notes: associate?.notes ?? "",
     is_manager: associate?.is_manager ?? false,
+    is_operator: associate?.is_operator ?? false, young_farmer_since: associate?.young_farmer_since ?? "",
+    profit_share: associate?.profit_share ?? "",
   } });
-  const save = useAction(({ kind, entity_id, new_name, ...values }: typeof form.values) => associate
-    ? api.patch<{ notices: Notice[] }>(`/api/v1/associates/${associate.id}`, values)
-    : api.post<{ notices: Notice[] }>("/api/v1/associates", kind === "existing" ? { entity_id, ...values } : { new_name, ...values }),
+  const save = useAction(({ kind, entity_id, new_name, is_operator, young_farmer_since, profit_share, ...base }: typeof form.values) => {
+    const values = agri ? { ...base, is_operator, young_farmer_since: young_farmer_since || null, profit_share } : base;
+    return associate
+      ? api.patch<{ notices: Notice[] }>(`/api/v1/associates/${associate.id}`, values)
+      : api.post<{ notices: Notice[] }>("/api/v1/associates", kind === "existing" ? { entity_id, ...values } : { new_name, ...values });
+  },
   { invalidate: [ASSOCIATES_KEY], silent: true });
   return (
     <form onSubmit={form.onSubmit((values) => save.mutate(values, {
@@ -49,6 +56,15 @@ export function AssociateForm({ associate, meta, accountLocked = false, onDone }
           {...form.getInputProps("interest_rate")} />
         <Checkbox label="Gérant" description="Signe les baux au nom de la société (e-mail de sa fiche tiers)."
           {...form.getInputProps("is_manager", { type: "checkbox" })} />
+        {agri && (
+          <>
+            <Checkbox label="Associé exploitant" description="Compte pour les plafonds × associés (DEP, 73 A) et l'abattement JA."
+              {...form.getInputProps("is_operator", { type: "checkbox" })} />
+            <TextInput label="Première aide jeune agriculteur (date d'octroi)" type="date" w={260} {...form.getInputProps("young_farmer_since")} />
+            <TextInput label="Droits aux bénéfices (%)" w={260} inputMode="decimal" placeholder="selon les parts"
+              description="Vide : parts en pleine propriété et en usufruit. À saisir pour tous les associés si les statuts en disposent autrement."
+              {...form.getInputProps("profit_share")} />
+          </>)}
         <Textarea label="Notes" autosize minRows={2} {...form.getInputProps("notes")} />
       </FormBody>
     </form>

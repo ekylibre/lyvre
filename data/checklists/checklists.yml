@@ -1,0 +1,58 @@
+# Listes de contrôle guidées (lot AG9b.e, AG9.6, claudedocs/design_assistant_agricole.md, AGD26 Q-C7) : sans IA.
+# window : closing (J - before_days à J + after_days autour de la clôture de chaque exercice) ou months (MM-JJ → MM-JJ
+# de chaque année). applies : mêmes conditions que les fiches d'échéances (data/deadlines). Étape : link (écran Lyvre,
+# {fy} = id de l'exercice), fiche (échéance liée), auto (contrôle calculé par Lyvre, sinon case à cocher).
+- id: closing
+  title: Clôture de l'exercice
+  summary: De J-30 à J+60 autour de la date de clôture, dans l'ordre où les travaux s'enchaînent.
+  window: {type: closing, before_days: 30, after_days: 60}
+  applies: {bookkeeping: [double]}
+  steps:
+    - {id: bank, label: "Rapprocher les relevés bancaires jusqu'à la date de clôture", link: "/reconciliation/", auto: bank_reconciled}
+    - {id: inventory, label: "Saisir l'inventaire : stocks, avances aux cultures, lots d'animaux", link: "/inventory/?fiscal_year={fy}", auto: inventory_lines}
+    - {id: stock_entry, label: "Passer l'écriture de stock", link: "/inventory/?fiscal_year={fy}", auto: stock_entry}
+    - {id: aids, label: "Produits à recevoir et reprises des aides (441, 139)", link: "/aids/"}
+    - {id: msa, label: "Appels MSA de l'exercice et charge à payer", link: "/msa/?fiscal_year={fy}", auto: msa_calls_fy}
+    - {id: assets, label: "Immobilisations et biens vivants : entrées, sorties, amortissements", link: "/assets/"}
+    - {id: checks, label: "Contrôles de clôture sans anomalie", link: "/fiscal-years/{fy}/closing", auto: closing_checks_clear}
+    - {id: tax_result, label: "Résultat fiscal : JA, DEP, provision 73 A, plus-values", link: "/tax-result/?fiscal_year={fy}"}
+    - {id: vat, label: "Déclaration annuelle de TVA (CA12A) de l'exercice", link: "/vat-returns/", auto: vat_annual_fy, applies: {vat_regime: [rsa_installments]}}
+    - {id: liasse, label: "Liasse BA (2139 ou 2143) préparée pour l'expert-comptable", link: "/tax-result/?fiscal_year={fy}", fiche: FIS-01}
+    - {id: closed, label: "Clôture définitive de l'exercice", link: "/fiscal-years/{fy}/closing", auto: fiscal_year_closed}
+
+- id: pac
+  title: Campagne PAC
+  summary: Avril et mai, avant la date limite de dépôt de la déclaration de surfaces.
+  window: {type: months, start: "04-01", end: "05-31"}
+  applies: {flags: [pac]}
+  steps:
+    - {id: surfaces, label: "Mettre à jour les surfaces et effectifs des activités de la campagne", link: "/activities/", auto: activity_measures}
+    - {id: previous, label: "Vérifier les versements des aides de la campagne précédente", link: "/aids/", auto: aids_previous_campaign}
+    - {id: telepac, label: "Déposer la déclaration PAC sur telepac (hors Lyvre)", fiche: PAC-01}
+    - {id: new_aid, label: "Ouvrir le dossier d'aides de la campagne", link: "/aids/", auto: aids_current_campaign}
+    - {id: advances, label: "Rattacher les avances PAC reçues à leur dossier", link: "/aids/"}
+
+- id: may
+  title: Mois fiscal de mai
+  summary: Déclarations de l'année écoulée (liasse, revenus, TVA annuelle) et options à exercer.
+  window: {type: months, start: "05-01", end: "05-31"}
+  applies: {income_tax: [IR]}
+  steps:
+    - {id: liasse, label: "Liasse BA de l'exercice clos déposée (avec l'expert-comptable)", link: "/tax-result/", fiche: FIS-01}
+    - {id: income, label: "Bénéfice agricole reporté sur la déclaration de revenus (2042 C PRO), par associé", link: "/tax-result/"}
+    - {id: vat, label: "Déclaration annuelle de TVA (CA12A) déposée", link: "/vat-returns/", auto: vat_annual_previous, applies: {vat_regime: [rsa_installments]}}
+    - {id: regime, label: "Régime BA et options vérifiés (micro, réel, TVA)", link: "/configuration/organization/?tab=tax", auto: fiscal_profile}
+    - {id: msa_option, label: "Option pour l'assiette annuelle MSA à décider avant le 30 juin", link: "/msa/", fiche: SOC-03}
+    - {id: dep, label: "Épargne de précaution (DEP) constituée sur le compte dédié", link: "/tax-result/"}
+
+- id: autumn
+  title: Automne
+  summary: Fermages, acompte de TVA, solde MSA et préparation de la clôture d'hiver.
+  window: {type: months, start: "09-01", end: "11-30"}
+  steps:
+    - {id: leases, label: "Fermages : indexation au 1er octobre, échéances de la Saint-Michel et de la Saint-Martin", link: "/agenda/", fiche: DIV-01, applies: {flags: [leases]}}
+    - {id: vat_installment, label: "Acompte de TVA de novembre (régime simplifié agricole)", link: "/vat-returns/", applies: {vat_regime: [rsa_installments]}}
+    - {id: msa_balance, label: "Appel de solde MSA enregistré, modulation demandée si besoin", link: "/msa/", auto: msa_calls_year}
+    - {id: margins, label: "Marges de la campagne récoltée", link: "/activities/margins"}
+    - {id: estimate, label: "Estimation du résultat de l'exercice et décision de DEP", link: "/tax-result/"}
+    - {id: inventory_prep, label: "Préparer l'inventaire de clôture (comptages, cours, avances)", link: "/inventory/"}

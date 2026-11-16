@@ -4,6 +4,7 @@
 import { ActionIcon, Autocomplete, Button, Group, Select, Stack, Table, Text, TextInput, Textarea } from "@mantine/core";
 import { Plus, X } from "lucide-react";
 import { MoneyText } from "../../components/Money";
+import { useCurrentSession } from "../../api/session";
 import type { Option } from "../purchases/types";
 import { EMPTY_SALE_LINE, estimate, fromProduct, lineUntaxed, type SaleLineRow, type SaleProductOption } from "./types";
 
@@ -11,6 +12,13 @@ export function SaleLinesEditor({ rows, onChange, products, accounts, defaultAcc
   rows: SaleLineRow[]; onChange: (rows: SaleLineRow[]) => void; products: SaleProductOption[]; accounts: Option[];
   defaultAccount: string; units: string[]; projects: Option[]; exempt: boolean;
 }) {
+  // Exploitation agricole (lot AG1.e) : taux de la ligne différent de celui de l'article du catalogue → alerte.
+  const agri = useCurrentSession().instance?.chart === "agri";
+  const rateHint = (row: SaleLineRow) => {
+    const product = agri ? products.find((p) => p.value === row.product_id) : undefined;
+    const norm = (v: string) => Number(String(v).replace(",", ".").replace("%", "").trim());
+    return product?.rate && row.vat_rate !== "" && norm(row.vat_rate) !== norm(product.rate) ? product.rate : null;
+  };
   const set = (index: number, patch: Partial<SaleLineRow>) => onChange(rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
   const pick = (index: number, id: string | null) =>
     onChange(rows.map((row, i) => (i === index ? fromProduct(row, products.find((p) => p.value === id), defaultAccount) : row)));
@@ -49,7 +57,9 @@ export function SaleLinesEditor({ rows, onChange, products, accounts, defaultAcc
                 <Table.Td><TextInput aria-label={`Remise${n(index)}`} w={70} value={row.discount} placeholder="0" {...numeric}
                   onChange={(e) => set(index, { discount: e.currentTarget.value })} /></Table.Td>
                 {!exempt && <Table.Td><TextInput aria-label={`Taux de TVA${n(index)}`} w={70} value={row.vat_rate} placeholder="20" {...numeric}
-                  onChange={(e) => set(index, { vat_rate: e.currentTarget.value })} /></Table.Td>}
+                  onChange={(e) => set(index, { vat_rate: e.currentTarget.value })} />
+                  {rateHint(row) && <Text size="xs" c="var(--lv-brique)" role="status" maw={90}>
+                    Taux habituel de l'article : {rateHint(row)} %</Text>}</Table.Td>}
                 <Table.Td><Select aria-label={`Compte de vente${n(index)}`} w={150} data={accounts} value={row.account_code || null}
                   searchable placeholder={defaultAccount || "7…"} onChange={(v) => set(index, { account_code: v ?? "" })} /></Table.Td>
                 {projects.length > 0 && <Table.Td><Select aria-label={`Projet${n(index)}`} data={projects} value={row.project_id || null}

@@ -110,8 +110,17 @@ def validate_entry_payload(data):
             errors[f"lines[{i}].vat_code"] = f"Code de TVA inconnu : {vat_code}."
         if vat_base is not None and (vat_base < 0 or vat_code is None):
             errors[f"lines[{i}].vat_base_cents"] = "Base HT : un montant positif, avec un code de TVA."
+        analytic = None
+        if raw.get("analytic"):                                  # lot AG8.c : affectation analytique de la ligne
+            from app.services.analytic import AnalyticError
+            from app.services.analytic_allocation import parse_target
+            try:
+                analytic = parse_target(raw.get("analytic"))
+            except AnalyticError as exc:
+                errors[f"lines[{i}].analytic"] = exc.message
         lines.append({
             "index": i,
+            "analytic": analytic,
             "account_id": account_id,
             "label": (raw.get("label") or "").strip(),
             "debit_cents": debit or 0,
@@ -229,8 +238,9 @@ def post_entry(fiscal_year_id, journal_id, entry_date, description, lines, sourc
     db.session.add(entry)
     db.session.flush()
 
+    created = []
     for l in lines:
-        db.session.add(JournalLine(
+        line = JournalLine(
             entry_id=entry.id,
             account_id=l["account_id"],
             label=l.get("label", ""),
@@ -243,13 +253,29 @@ def post_entry(fiscal_year_id, journal_id, entry_date, description, lines, sourc
             service_end=l.get("service_end"),
             vat_code=l.get("vat_code"),
             vat_base_cents=l.get("vat_base_cents"),
-        ))
+        )
+        db.session.add(line)
+        created.append((line, l))
+    _attach_analytic(created)
 
     if commit:
         db.session.commit()
     else:
         db.session.flush()
     return entry
+
+
+def _attach_analytic(created) -> None:
+    """Lot AG8.c : ventilation analytique des lignes passées avec une clé « analytic » (« activity:ID » / « key:ID »)."""
+    wanted = [(line, l) for line, l in created if l.get("analytic")]
+    if not wanted:
+        return
+    from app.services.analytic_allocation import attach
+    db.session.flush()
+    for line, l in wanted:
+        row = attach(line, l["analytic"], l.get("analytic_origin", "manual"))
+        if row is not None and l.get("analytic_campaign"):
+            row.campaign_year = l["analytic_campaign"]
 
 
 def post_validated_entry(clean, bank_transaction=None):
@@ -317,8 +343,9 @@ def update_entry(entry, clean):
         entry.entry_date = clean["entry_date"]
         entry.description = clean["description"]
         entry.is_balanced = True
+        created = []
         for l in clean["lines"]:
-            db.session.add(JournalLine(
+            line = JournalLine(
                 entry_id=entry.id,
                 account_id=l["account_id"],
                 label=l["label"],
@@ -329,7 +356,10 @@ def update_entry(entry, clean):
                 service_end=l.get("service_end"),
                 vat_code=l.get("vat_code"),
                 vat_base_cents=l.get("vat_base_cents"),
-            ))
+            )
+            db.session.add(line)
+            created.append((line, l))
+        _attach_analytic(created)
         db.session.commit()
     except Exception:
         db.session.rollback()

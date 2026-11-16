@@ -22,6 +22,7 @@ class BankAccount(db.Model):
     opening_balance_cents = db.Column(db.Integer, nullable=True)
     opening_balance_date = db.Column(db.Date, nullable=True)
     opening_entry_id = db.Column(db.Integer, db.ForeignKey("journal_entries.id", ondelete="SET NULL"), nullable=True)
+    dep_savings = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())  # AG6.c : épargne DEP
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     account = db.relationship("Account", back_populates="bank_accounts")

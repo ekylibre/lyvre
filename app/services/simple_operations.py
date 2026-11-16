@@ -79,20 +79,33 @@ def _clean(data: dict, *, need_treasury=True):
     return when, label, amount, category, treasury, entity, project
 
 
-def _lines(category, treasury_account_id, amount, label, entity, project):
+def _analytic(data: dict) -> str | None:
+    """Lot AG8.c : affectation analytique de l'opération (« activity:ID » ou « key:ID »), instances agricoles."""
+    if not data.get("analytic"):
+        return None
+    from app.services.analytic import AnalyticError
+    from app.services.analytic_allocation import parse_target
+    try:
+        return parse_target(data.get("analytic"))
+    except AnalyticError as exc:
+        raise OperationError(exc.message, "analytic") from None
+
+
+def _lines(category, treasury_account_id, amount, label, entity, project, analytic=None):
     income = category.kind == "income"
     return [
         {"account_id": treasury_account_id, "label": label,
          "debit_cents": amount if income else 0, "credit_cents": 0 if income else amount},
         {"account_id": category.account_id, "label": label, "debit_cents": 0 if income else amount,
-         "credit_cents": amount if income else 0, "project_id": project.id if project else None},
+         "credit_cents": amount if income else 0, "project_id": project.id if project else None,
+         "analytic": analytic, "analytic_origin": "simple"},
     ], entity
 
 
 def create(data: dict) -> JournalEntry:
     when, label, amount, category, treasury, entity, project = _clean(data)
     fy = _fiscal_year(when)
-    lines, entity = _lines(category, treasury.account_id, amount, label, entity, project)
+    lines, entity = _lines(category, treasury.account_id, amount, label, entity, project, _analytic(data))
     entry = post_entry(fy.id, _journal(treasury.kind).id, when, label, lines, source=SOURCE_SIMPLE, commit=False)
     _set_entity(entry, category, entity)
     db.session.commit()
@@ -121,7 +134,7 @@ def categorize(transaction_id: int, data: dict) -> JournalEntry:
     if (bt.amount_cents > 0) != (category.kind == "income"):
         raise OperationError("Un encaissement va dans une catégorie de recette, un débit dans une dépense.", "category_id")
     fy = _fiscal_year(when)
-    lines, entity = _lines(category, bt.bank_account.account_id, amount, label, entity, project)
+    lines, entity = _lines(category, bt.bank_account.account_id, amount, label, entity, project, _analytic(data))
     entry = post_entry(fy.id, _journal("bank").id, when, label, lines, source=SOURCE_SIMPLE, commit=False)
     _set_entity(entry, category, entity)
     treasury_line = next(l for l in entry.lines if l.account_id == bt.bank_account.account_id)
@@ -160,8 +173,19 @@ def update(entry_id: int, data: dict) -> JournalEntry:
     category_line.entity_id = entity.id if entity else None
     for line in (treasury_line, category_line):
         line.label = label
+    if "analytic" in data:                                          # lot AG8.c : remplace l'affectation
+        from app.services.analytic_allocation import attach
+        target = _analytic(data)
+        category_line.analytic_allocations = []
+        db.session.flush()
+        attach(category_line, target, "simple")
     db.session.commit()
     return entry
+
+
+def _line_target(line) -> str | None:
+    from app.services.analytic_allocation import line_target
+    return line_target(line)
 
 
 def delete(entry_id: int) -> str:
@@ -227,6 +251,7 @@ def operations(start: date, end: date, *, category_id=None, kind=None, bank_acco
             "bank_account_id": treasury.id, "bank_account": treasury.label, "treasury_kind": treasury.kind,
             "entity_id": entity.id if entity else None, "entity": entity.name if entity else None,
             "project_id": line.project_id, "project": line.project.name if line.project else None,
+            "analytic": _line_target(line),
             "reconciled": entry_is_reconciled(line.entry),
             "editable": line.entry.source == SOURCE_SIMPLE and not line.entry.fiscal_year.closed,
         })

@@ -4,6 +4,7 @@ fournisseurs à valider. Les pièces restent servies par Flask (`purchases.attac
 `purchases.staged`). Les champs de saisie gardent les noms et le format texte du formulaire
 (montants « 39,99 ») : ils passent par purchase_entry.validate_header."""
 from flask import current_app, jsonify, request, url_for
+from flask_login import current_user
 
 from app.access import current_role, instance_admin_required
 from app.extensions import db
@@ -11,6 +12,7 @@ from app.models import Account, Associate, BankTransaction, Entity, Project, Pur
 from app.models.instance_membership import ROLE_ACCOUNTANT
 from app.models.purchase import PURCHASE_SOURCES
 from app.services import (
+    agent_review,
     associate_operations, associates, attachments, catalog, counterparties, external_config, projects,
     purchase_entry, purchase_posting,
     purchase_settlement, purchase_sync, vat_codes,
@@ -26,7 +28,22 @@ from .session import job_payload
 
 KEY_FIELDS = ("entity_id", "new_name", "supplier_name", "supplier_vat", "supplier_siret", "supplier_iban",
               "invoice_number", "issue_date", "due_date", "is_credit_note", "total", "untaxed", "tax")
-ROW_FIELDS = ("product_id", "account_code", "label", "untaxed", "vat_rate", "vat", "project_id")
+ROW_FIELDS = ("product_id", "account_code", "label", "untaxed", "vat_rate", "vat", "project_id", "analytic")
+
+
+def _analytic_targets():
+    from app.services import analytic
+    if not analytic.enabled():
+        return []
+    from app.services.analytic_allocation import targets_options
+    return targets_options()
+
+
+def _analytic_label(target):
+    if not target:
+        return None
+    from app.services.analytic_allocation import target_label
+    return target_label(target)
 
 
 def _iso(value):
@@ -44,7 +61,7 @@ def _state(p):
 
 def purchase_row(p: Purchase, state=None) -> dict:
     return {
-        "id": p.id, "source": p.source, "invoice_number": p.invoice_number, "issue_date": _iso(p.issue_date),
+        "id": p.id, "source": p.source, "pdp_status": p.pdp_status, "invoice_number": p.invoice_number, "issue_date": _iso(p.issue_date),
         "due_date": _iso(p.due_date), "is_credit_note": p.is_credit_note, "is_einvoice": p.is_einvoice,
         "is_hidden": p.is_hidden, "total_cents": p.total_cents,
         "supplier": ({"id": p.entity.id, "name": p.entity.name} if p.entity else None),
@@ -54,6 +71,7 @@ def purchase_row(p: Purchase, state=None) -> dict:
         "qonto_upload_status": p.qonto_upload_status, "qonto_upload_error": p.qonto_upload_error,
         "in_qonto": bool(p.qonto_id),
         "state": state or _state(p), "journal_entry_id": p.journal_entry_id,
+        "origin": agent_review.origin_payload(p),            # lot AK3 : saisie par clé d'API
     }
 
 
@@ -117,6 +135,8 @@ def purchases_list():
         settled = db.session.query(PurchasePayment.purchase_id).filter(PurchasePayment.journal_entry_id.isnot(None))
         query = query.filter(db.or_(Purchase.qonto_status.is_(None), Purchase.qonto_status != "paid"),
                              Purchase.id.notin_(settled))
+    if args.get("from_key") == "1":                       # lot AK3 : saisies par clé à vérifier
+        query = query.filter(Purchase.origin_key_id.isnot(None), Purchase.checked_at.is_(None))
     if args.get("no_supplier") == "1":
         query = query.filter(Purchase.entity_id.is_(None))
     q = (args.get("q") or "").strip()
@@ -142,6 +162,7 @@ def purchases_list():
             "hidden": Purchase.query.filter(Purchase.is_hidden.is_(True)).count(),
             "without_supplier": Purchase.query.filter(Purchase.entity_id.is_(None), Purchase.is_hidden.is_(False)).count(),
             "ready": len(purchase_posting.ready_purchases()),
+            "from_key": agent_review.counts()["purchases"],
         },
         "suppliers": [{"value": str(e.id), "label": e.name} for e in
                       Entity.query.join(Purchase, Purchase.entity_id == Entity.id).distinct().order_by(Entity.name)],
@@ -151,7 +172,25 @@ def purchases_list():
         "sync": {"from": _iso(purchase_sync.sync_from_date()), "synced_at": _iso(cursor.synced_at) if cursor else None,
                  "job": job_payload(job) if job else None},
         "qonto": _qonto(),
+        "superpdp": {**external_config.state("superpdp", "receive"), "job": _superpdp_job()},
     })
+
+
+def _superpdp_job():
+    from app.models import SyncJob
+    from app.models.sync_job import SYNC_KIND_SUPERPDP
+    job = SyncJob.query.filter_by(kind=SYNC_KIND_SUPERPDP).order_by(SyncJob.id.desc()).first()
+    return job_payload(job) if job else None
+
+
+@bp.route("/superpdp/sync", methods=["POST"])
+def superpdp_sync():
+    """Lot PDP1 : réception des factures d'achat et statuts des pièces transmises par SUPER PDP."""
+    from app.services import superpdp
+    if not (external_config.scope_enabled("superpdp", "receive") or external_config.scope_enabled("superpdp", "send")):
+        require_integration("superpdp", "receive")
+    require_integration("superpdp")
+    return jsonify(job=job_payload(superpdp.start_sync(current_app._get_current_object()))), 202
 
 
 @bp.route("/purchases/sync", methods=["POST"])
@@ -247,7 +286,8 @@ def purchase_detail(p: Purchase) -> dict:
                         "account": l.account.code if l.account else None, "label": l.label or "",
                         "untaxed_cents": l.untaxed_cents, "vat_rate": catalog.format_rate(l.vat_rate_bp) or None,
                         "vat_cents": l.vat_cents, "total_cents": l.total_cents,
-                        "project": db.session.get(Project, l.project_id).name if l.project_id else None}
+                        "project": db.session.get(Project, l.project_id).name if l.project_id else None,
+                        "analytic": _analytic_label(l.analytic_target)}
                        for l in p.lines],
         "payments": [_payment(pay) for pay in p.payments],
         "awaiting_payment": awaiting,
@@ -262,13 +302,28 @@ def purchase_detail(p: Purchase) -> dict:
         "associate_payment": _associate_payment(p),
         "meta": {"products": _products(), "charge_accounts": _charge_accounts(), "qonto": _qonto(),
                  "vat_regimes": [{"value": k, "label": v} for k, v in vat_codes.regime_labels().items()],
-                 "projects": projects.options([l.project_id for l in p.lines if l.project_id])},
+                 "projects": projects.options([l.project_id for l in p.lines if l.project_id]),
+                 "analytic_targets": _analytic_targets()},
     }
 
 
 @bp.route("/purchases/<int:purchase_id>")
 def purchases_detail(purchase_id):
     return jsonify(purchase_detail(get_or_404(Purchase, purchase_id, "Facture introuvable.")))
+
+
+@bp.route("/purchases/<int:purchase_id>/check", methods=["POST"])
+def purchases_check(purchase_id):
+    """Lot AK3 : facture saisie par une clé d'API, vérifiée par l'utilisateur ; comptabilisée si elle est prête."""
+    p = get_or_404(Purchase, purchase_id, "Facture introuvable.")
+    try:
+        outcome = agent_review.check_purchase(p, current_user)
+    except ValueError as exc:
+        raise ApiError("conflict", str(exc), 409) from None
+    number = f" {p.invoice_number}" if p.invoice_number else ""
+    notices = [notice(f"{_kind(p)}{number} marquée vérifiée" + (" et comptabilisée." if outcome["posted"] else "."))]
+    notices += [notice(e, "danger") for e in outcome["errors"]]
+    return jsonify(item=purchase_detail(p), notices=notices)
 
 
 @bp.route("/purchases/<int:purchase_id>/lines", methods=["PUT"])

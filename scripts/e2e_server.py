@@ -190,6 +190,30 @@ def _seed_simple(engine):
                      {"b": ba, "d": f"{year}-02-10"})
 
 
+def _seed_agri(spec):
+    """Exploitation fictive de tests/fixtures/agri chargée par les services de Lyvre (plan agri, profil, FEC ou
+    recettes et dépenses), dans le contexte de son instance."""
+    from flask import g
+
+    from scripts.agri_fixtures.load import FIXTURES as AGRI_FIXTURES, load
+    from seed_accounts import load_chart
+
+    from app.models import Account, Journal
+
+    inst = db.session.query(Instance).filter_by(slug=spec["slug"]).one()
+    saved = g.get("current_instance"), g.get("tenant_engine")
+    g.current_instance, g.tenant_engine = inst, create_engine(inst.database_url)
+    try:
+        db.session.add_all([Account(code=a["code"], label=a["label"], account_type=a["account_type"],
+                                    is_header=a["is_header"]) for a in load_chart("agri")])
+        db.session.add(Journal(code="OD", label="Opérations diverses"))
+        db.session.commit()
+        load(AGRI_FIXTURES / spec["agri_fixture"])
+    finally:
+        g.tenant_engine.dispose()
+        g.current_instance, g.tenant_engine = saved
+
+
 def seed(app):
     with app.app_context():
         db.create_all()
@@ -223,6 +247,10 @@ def seed(app):
             engine.dispose()
             db.session.add(Instance(slug=spec["slug"], label=spec["label"], chart=spec["chart"], database_url=url,
                                     integrations=json.dumps({"enabled": ["brevo"], "dismissed": ["helloasso"]})))
+        db.session.flush()
+        for spec in FIXTURES["instances"]:
+            if spec.get("agri_fixture"):  # lot AG1.f : exploitation fictive du jeu d'essai agricole
+                _seed_agri(spec)
         for name in FIXTURES.get("spare_databases", []):
             engine = create_engine(f"sqlite:///{os.path.join(TMPDIR, name + '.db')}")
             db.metadata.create_all(engine)

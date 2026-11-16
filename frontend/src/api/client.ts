@@ -133,3 +133,43 @@ export function query(params: Record<string, string | number | boolean | null | 
 export function getCsrfToken(): string {
   return csrfToken;
 }
+
+/** Lot AG9b : POST dont la réponse est un flux `text/event-stream` (assistant). Chaque événement `data:` (JSON)
+ * est passé à `onEvent` au fil de l'eau ; une erreur HTTP avant le flux devient une ApiError. */
+export async function postEventStream(url: string, body: unknown, onEvent: (event: Record<string, unknown>) => void,
+  signal?: AbortSignal): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: "POST", credentials: "same-origin", signal, body: JSON.stringify(body),
+      headers: { Accept: "text/event-stream", "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+    });
+  } catch (err) {
+    if ((err as Error).name === "AbortError") throw err;
+    throw new ApiError("network_error", "Serveur injoignable. Vérifiez la connexion.", 0);
+  }
+  if (!response.ok || !response.body) {
+    let payload: { error?: { code?: string; message?: string; fields?: FieldErrors } } = {};
+    try { payload = await response.json(); } catch { /* corps non JSON */ }
+    throw new ApiError(payload.error?.code ?? "http_error", payload.error?.message ?? `Erreur ${response.status}`,
+      response.status, payload.error?.fields ?? {});
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let index = buffer.indexOf("\n\n");
+    while (index >= 0) {
+      const chunk = buffer.slice(0, index);
+      buffer = buffer.slice(index + 2);
+      const data = chunk.split("\n").filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trimStart()).join("\n");
+      if (data) {
+        try { onEvent(JSON.parse(data)); } catch { /* événement illisible ignoré */ }
+      }
+      index = buffer.indexOf("\n\n");
+    }
+  }
+}

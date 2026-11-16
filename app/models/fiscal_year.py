@@ -41,6 +41,11 @@ class FiscalYear(db.Model):
     locked_until = db.Column(db.Date)
     # Lot T3 : déclaration de TVA de l'exercice (`monthly` : CA3 mensuelle ; nul : aucune dans Lyvre).
     vat_period = db.Column(db.String(10))
+    egalim_contract = db.Column(db.Boolean)   # AG6.d : contrat pluriannuel EGALIM en cours à la clôture (art. 73 A)
+    # Lot AG2.c : acomptes du RSA (3525 bis) sans CA12A précédente dans Lyvre : TVA due l'année précédente
+    # (ligne 23) et TVA sur immobilisations qu'elle a déduite (ligne 17), saisies ; nulles : nouvel assujetti.
+    vat_reference_cents = db.Column(db.Integer)
+    vat_reference_assets_cents = db.Column(db.Integer)
     lock_before_close = db.Column(db.Date)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

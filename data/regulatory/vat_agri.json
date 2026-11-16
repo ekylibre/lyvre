@@ -1,0 +1,120 @@
+{
+ "_comment": "TVA agricole : paramètres datés (lot AG1.a ; utilisés à partir d'AG2). Même format que ba.json.",
+ "values": [
+  {
+   "key": "vat.rfa.threshold_cents",
+   "value": 4600000,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.impots.gouv.fr/professionnel/questions/comment-obtenir-un-remboursement-forfaitaire-agricole",
+   "source_label": "CGI art. 298 bis, 298 quater",
+   "verified_on": "2026-11-03",
+   "reliability": "V",
+   "note": "Moyenne des recettes sur 2 années civiles consécutives ; au-delà, RSA obligatoire (× associés en GAEC)."
+  },
+  {
+   "key": "vat.rfa.rate_high_bp",
+   "value": 559,
+   "valid_from": "2026-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 298 quater",
+   "verified_on": "2026-11-03",
+   "reliability": "A",
+   "note": "Lait, animaux de basse-cour, œufs, animaux de boucherie et de charcuterie, céréales, oléo-protéagineux."
+  },
+  {
+   "key": "vat.rfa.rate_low_bp",
+   "value": 443,
+   "valid_from": "2026-01-01",
+   "valid_to": null,
+   "source": "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577",
+   "source_label": "CGI art. 298 quater",
+   "verified_on": "2026-11-03",
+   "reliability": "A",
+   "note": "Autres produits."
+  },
+  {
+   "key": "vat.rsa.installment_exemption_cents",
+   "value": 100000,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/node/10637",
+   "source_label": "CGI art. 1693 bis I",
+   "verified_on": "2026-11-03",
+   "reliability": "R",
+   "note": "Pas d'acomptes si la TVA due l'année précédente, avant déduction de la TVA sur immobilisations, est inférieure."
+  },
+  {
+   "key": "vat.rsa.installment_share_bp",
+   "value": 2000,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/node/10637",
+   "source_label": "CGI art. 1693 bis I",
+   "verified_on": "2026-11-03",
+   "reliability": "R",
+   "note": "Chaque acompte : au moins 1/5 de la TVA de l'année précédente."
+  },
+  {
+   "key": "vat.rsa.installment_calendar",
+   "value": [
+    "02-05",
+    "05-05",
+    "08-05",
+    "11-05"
+   ],
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/node/10637",
+   "source_label": "CGI art. 1693 bis I ; BOI-TVA-SECT-80-30-60-20",
+   "verified_on": "2026-11-04",
+   "reliability": "R",
+   "note": "Jours (MM-JJ) des acomptes du RSA, 3525 bis. Chaque acompte couvre trois mois de la période annuelle et échoit à la première de ces dates après leur fin (CA12A : 5 mai, 5 août, 5 novembre, 5 février N+1). CA12AE : rattachement à vérifier sur le tableau du BOFiP pour un exercice qui ne commence pas un 1er janvier, avril, juillet ou octobre."
+  },
+  {
+   "key": "vat.rsa.installment_tolerance_bp",
+   "value": 3000,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/node/10637",
+   "source_label": "CGI art. 1693 bis I, 1727 et 1731",
+   "verified_on": "2026-11-04",
+   "reliability": "R",
+   "note": "Acomptes réduits ou suspendus : intérêt de retard et majoration si la TVA de l'année les dépasse de plus de 30 %."
+  },
+  {
+   "key": "vat.rsa.refund_min_annual_cents",
+   "value": 15000,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.impots.gouv.fr/formulaire/3517-agr-sd/tva-regime-simplifie-de-lagriculture",
+   "source_label": "Notice 3517-AGR-SD (remboursement de crédit)",
+   "verified_on": "2026-11-03",
+   "reliability": "V",
+   "note": ""
+  },
+  {
+   "key": "vat.rsa.refund_min_period_cents",
+   "value": 76000,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://www.impots.gouv.fr/formulaire/3517-agr-sd/tva-regime-simplifie-de-lagriculture",
+   "source_label": "Notice 3517-AGR-SD (remboursement de crédit)",
+   "verified_on": "2026-11-03",
+   "reliability": "V",
+   "note": "Option trimestrielle ou mensuelle seulement : aucun remboursement infra-annuel au régime des acomptes."
+  },
+  {
+   "key": "vat.rsa.quarterly_due_day",
+   "value": 5,
+   "valid_from": "2016-01-01",
+   "valid_to": null,
+   "source": "https://bofip.impots.gouv.fr/node/10637",
+   "source_label": "BOI-TVA-SECT-80-30-60-20 (option trimestrielle du RSA)",
+   "verified_on": "2026-11-04",
+   "reliability": "I",
+   "note": "CA3 trimestrielle du RSA déposée le 5 du mois qui suit le trimestre (5 mai, août, novembre, février), à confirmer sur le BOFiP en vigueur."
+  }
+ ]
+}

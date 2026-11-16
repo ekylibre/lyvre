@@ -26,7 +26,7 @@ def test_asso_only_menus_hidden_for_sci():
     assert "payouts" not in banque_items
     assert not sci["banque"]["items"][-1].get("divider")
     imports_items = [i.get("key") for i in sci["imports"]["items"]]
-    assert imports_items == ["ofx", "reprise"]  # import de tonnages (associations) masqué
+    assert imports_items == ["ofx", "reprise", "ekylibre"]  # import de tonnages (associations) masqué
 
 
 def test_asso_keeps_all_menus():
@@ -89,3 +89,124 @@ def test_chart_only_menu_is_filtered():
         assert "Compta" in _labels(build_nav("sci", is_admin=True))
     finally:
         compta["charts"] = original
+
+
+# ---------------------------------------------------------------- lot NV1 (claudedocs/design_navigation.md)
+
+def _keys(items):
+    return [i.get("key") for i in items if not i.get("divider")]
+
+
+def test_every_endpoint_is_a_spa_route():
+    import json
+    from pathlib import Path
+
+    from app.menu_config import endpoints
+    routes = {r["endpoint"] for r in json.loads((Path(__file__).parents[1] / "app" / "spa_routes.json").read_text())["routes"]}
+    missing = [e for e in endpoints() if e not in routes]
+    assert missing == []
+
+
+def test_farm_compta_has_three_submenus_and_gestion_menu():
+    nav = {m["key"]: m for m in build_nav("agri", is_admin=True, features={"vat_returns"})}
+    compta = {i["key"]: i for i in nav["compta"]["items"] if not i.get("divider")}
+    assert _keys(nav["compta"]["items"]) == ["entries", "editions", "fixed_and_stock", "tax_social",
+                                             "accounting_settings"]
+    assert compta["entries"]["also"] == ["lettering.index"]              # lot NV2 : onglet
+    assert compta["editions"]["endpoint"] == "reports.index" and "reports.sig" in compta["editions"]["also"]  # NV3
+    assert _keys(compta["fixed_and_stock"]["items"]) == ["assets", "stock"]
+    assert "vat_returns" in _keys(compta["tax_social"]["items"]) and "msa" in _keys(compta["tax_social"]["items"])
+    assert _keys(nav["gestion"]["items"]) == ["projects", "budgets", "budget_tracking", "agenda", "activities",
+                                              "analytic", "activity_margins"]
+    sales = {i["key"]: i for i in nav["sales"]["items"] if not i.get("divider")}
+    assert _keys(sales["cooperatives"]["items"]) == ["sales_self_billed", "sales_coop_statements"]
+    assert "rent_indices" not in sales and sales["leases"]["also"] == ["rent_indices.index"]
+    assert list(nav)[:4] == ["dashboard", "compta", "gestion", "banque"]
+
+
+def test_single_entry_submenu_collapses_and_empty_one_disappears():
+    nav = {m["key"]: m for m in build_nav("asso", is_admin=True)}
+    keys = _keys(nav["compta"]["items"])
+    assert "fixed_and_stock" not in keys and "assets" in keys          # une seule entrée : remontée
+    assert "tax_social" not in keys and "vat_returns" not in keys      # TVA désactivée : sous-menu vide
+    with_vat = {m["key"]: m for m in build_nav("asso", is_admin=True, features={"vat_returns"})}
+    assert "vat_returns" in _keys(with_vat["compta"]["items"])         # une seule entrée : remontée
+    assert _keys(nav["gestion"]["items"]) == ["projects", "budgets", "budget_tracking"]
+    assert "cooperatives" not in _keys(nav["sales"]["items"])
+
+
+def test_top_level_menus_have_icons():
+    assert all(m.get("icon") for m in MENUS)
+
+
+def test_session_nav_is_nested_with_icons(app, login_as):
+    client = login_as(role="admin")
+    nav = {m["key"]: m for m in client.get("/api/v1/session").get_json()["nav"]}
+    compta = {i.get("key"): i for i in nav["compta"]["items"]}
+    assert nav["compta"]["icon"] == "calculator" and compta["entries"]["url"].endswith("/entries/")
+    editions = compta["editions"]
+    assert editions["url"].endswith("/reports/") and editions["also_urls"][-1].endswith("/reports/sig")  # lot NV3
+    assert compta["entries"]["also_urls"] == ["/lettering/"]
+
+
+def test_every_icon_is_in_the_frontend_table():
+    import re
+    from pathlib import Path
+    table = (Path(__file__).parents[1] / "frontend" / "src" / "app" / "navIcons.tsx").read_text()
+    known = set(re.findall(r'"([a-z0-9-]+)":', table)) | set(re.findall(r"\b([a-z]+): [A-Z]", table))
+
+    def icons(entries):
+        for e in entries:
+            if e.get("icon"):
+                yield e["icon"]
+            yield from icons(e.get("items", []))
+    from app.api.reports import EDITIONS  # cartes de la page des éditions (lot NV3)
+    assert sorted((set(icons(MENUS)) | {icon for _, _, icon, _, _ in EDITIONS}) - known) == []
+
+
+def test_tools_menu_only_where_a_calculator_applies():
+    """Pas de menu Outils menant à une page vide (association, SCI, société : aucune calculette)."""
+    from app.services.calculators import charts_covered
+    assert charts_covered() == {"agri"}
+    for chart in ("asso", "sci", "societe", "agri"):
+        features = {"calculators"} if chart in charts_covered() else set()
+        nav = {m["key"]: m for m in build_nav(chart, is_admin=True, features=features)}
+        assert ("tools" in nav) is (chart == "agri"), chart
+
+
+def test_session_hides_tools_for_an_association(app, login_as):
+    client = login_as(role="admin")  # instance de test : plan asso
+    assert "tools" not in {m["key"] for m in client.get("/api/v1/session").get_json()["nav"]}
+
+
+# ---------------------------------------------------------------- lot NV4 (claudedocs/design_navigation.md § 5)
+def _generated_pictograms():
+    import re
+    from pathlib import Path
+    text = (Path(__file__).parents[1] / "frontend" / "src" / "components" / "pictograms.generated.ts").read_text()
+    return set(re.findall(r'^  "([a-z-]+)": \{', text, re.M))
+
+
+def test_every_entry_has_an_icon_and_pictograms_exist():
+    pictos = _generated_pictograms()
+
+    def walk(entries):
+        for e in entries:
+            if e.get("divider"):
+                continue
+            assert e.get("icon"), e["key"]
+            assert e.get("pictogram") is None or e["pictogram"] in pictos, e["key"]
+            walk(e.get("items", []))
+    walk(MENUS)
+
+
+def test_tool_categories_have_a_tile():
+    import re
+    from pathlib import Path
+
+    from app.services.calculators import CATEGORIES
+    table = (Path(__file__).parents[1] / "frontend" / "src" / "app" / "navIcons.tsx").read_text()
+    block = table[table.index("TOOL_CATEGORY_ICONS"):]
+    tiles = dict(re.findall(r"(\w+): \{ (?:icon|pictogram): \"([a-z-]+)\" \}", block))
+    assert set(CATEGORIES) <= set(tiles)
+    assert {"cow", "wheat", "tractor"} <= _generated_pictograms()

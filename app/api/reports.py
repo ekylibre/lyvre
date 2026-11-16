@@ -5,7 +5,8 @@ from flask import jsonify, request, url_for
 from app.models import Account, FiscalYear
 from app.queries.dashboard import dashboard_data
 from app.services.ledger import general_ledger, trial_balance
-from app.services.reports import build_bilan, build_compte_resultat, compte_resultat_rows
+from app.services import agri_reports
+from app.services.reports import bilan_layout_key, build_bilan, build_compte_resultat, compte_resultat_rows
 
 from . import ApiError, bp
 
@@ -50,6 +51,40 @@ def _meta(years, fy, prev=None):
             "fiscal_year": _fy(fy), "previous": _fy(prev)}
 
 
+# Page d'accueil des éditions comptables (lot NV3, claudedocs/design_navigation.md § 4) : une carte par état.
+EDITIONS = [
+    ("balance", "Balance", "scale", "reports.balance",
+     "Mouvements et soldes de chaque compte sur l'exercice."),
+    ("grand_livre", "Grand livre", "book-text", "reports.grand_livre",
+     "Détail des écritures d'un compte, avec le solde progressif."),
+    ("bilan", "Bilan", "landmark", "reports.bilan",
+     "Actif et passif à la clôture, comparés à l'exercice précédent."),
+    ("compte_resultat", "Compte de résultat", "chart-line", "reports.compte_resultat",
+     "Produits et charges de l'exercice, jusqu'au résultat net."),
+    ("sig", "Soldes intermédiaires de gestion", "chart-no-axes-column", "reports.sig",
+     "Marge, valeur ajoutée, excédent brut d'exploitation et résultats successifs."),
+]
+
+
+@bp.route("/reports/")
+def report_index():
+    years = _fiscal_years()
+    fy = _selected(years)
+    chart = current_chart()
+    items = []
+    for key, title, icon, endpoint, summary in EDITIONS:
+        exports = []
+        if fy and key == "compte_resultat":
+            exports = [{"label": "CSV", "url": url_for("reports.compte_resultat_csv", fy_id=fy.id)},
+                       {"label": "ODS", "url": url_for("reports.compte_resultat_ods", fy_id=fy.id)}]
+        if fy and chart == "agri" and key in ("bilan", "compte_resultat", "sig"):
+            exports.append({"label": "Classeur des états agricoles",
+                            "url": url_for("exports.agri_statements_xlsx", fy_id=fy.id)})
+        items.append({"key": key, "title": title, "icon": icon, "summary": summary,
+                      "url": url_for(endpoint), "exports": exports})
+    return jsonify(items=items, meta=_meta(years, fy, _previous(fy)))
+
+
 @bp.route("/reports/balance")
 def report_balance():
     years = _fiscal_years()
@@ -86,8 +121,40 @@ def report_bilan():
     years = _fiscal_years()
     fy = _selected(years)
     prev = _previous(fy)
-    data = build_bilan(fy, prev, current_chart()) if fy else {"actif": [], "passif": []}
-    return jsonify(actif=data["actif"], passif=data["passif"], meta=_meta(years, fy, prev))
+    layout = bilan_layout_key(current_chart())
+    data = build_bilan(fy, prev, layout) if fy else {"actif": [], "passif": []}
+    return jsonify(actif=data["actif"], passif=data["passif"], meta={**_meta(years, fy, prev), "layout": layout})
+
+
+def _agri_only():
+    if current_chart() != "agri":
+        raise ApiError("not_found", "État réservé aux exploitations agricoles.", 404)
+
+
+@bp.route("/reports/sig")
+def report_sig():
+    """Soldes intermédiaires de gestion (lot AG1.c ; tous les référentiels depuis le lot NV3, Q5)."""
+    from app.services import sig
+
+    chart = current_chart()
+    years = _fiscal_years()
+    fy = _selected(years)
+    prev = _previous(fy)
+    rows = sig.compute(fy, prev, chart) if fy else []
+    export = url_for("exports.agri_statements_xlsx", fy_id=fy.id) if fy and chart == "agri" else None
+    return jsonify(items=rows, meta={**_meta(years, fy, prev), "export_url": export,
+                                     "method": None if chart == "agri" else sig.METHOD})
+
+
+@bp.route("/reports/living-assets")
+def report_living_assets():
+    """Tableau des biens vivants et en-cours (annexe, art. 121-4 du titre 5)."""
+    _agri_only()
+    years = _fiscal_years()
+    fy = _selected(years)
+    prev = _previous(fy)
+    data = agri_reports.living_assets_table(fy, prev) if fy else {"groups": [], "total": {"opening": 0, "closing": 0}}
+    return jsonify(item=data, meta=_meta(years, fy, prev))
 
 
 @bp.route("/reports/compte-de-resultat")
@@ -112,18 +179,16 @@ def dashboard():
     years = _fiscal_years()
     fy = _selected(years, default_open=False)
     if fy is None:
-        return jsonify(stats=None, monthly=[], recent_entries=[], meta=_meta(years, None))
+        return jsonify(stats=None, monthly=[], meta=_meta(years, None))
     data = dashboard_data(fy)
-    from app.services import sale_settlement, validation
+    from app.services import agent_review, sale_settlement, validation
     return jsonify(
         stats=data["stats"], monthly=data["monthly"],
         # Ventes : CA facturé de l'exercice, encours clients, échues (tuiles seulement s'il y a des factures).
         sales=sale_settlement.receivables_summary(fy.start_date, fy.end_date),
         # Écritures en brouillard des exercices ouverts (rappel au-delà de 3 mois, lot F1).
         drafts=validation.draft_counts(),
-        recent_entries=[{"id": e.id, "url": url_for("entries.detail", entry_id=e.id),
-                         "reference": e.reference, "date": e.entry_date.isoformat(),
-                         "description": e.description or "", "total_cents": e.total_debit}
-                        for e in data["recent_entries"]],
+        # Saisies par clé d'API à vérifier (lot AK3).
+        agent=agent_review.counts(),
         meta=_meta(years, fy),
     )

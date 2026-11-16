@@ -1,4 +1,5 @@
 import type { IntegrationState } from "../../components/IntegrationNotice";
+import type { AgentOrigin } from "../../components/OriginBadge";
 
 export interface Entity {
   id: number; name: string; entity_type: string; email: string | null; account_code: string | null;
@@ -12,6 +13,8 @@ export interface Entity {
   address_line1: string | null; address_line2: string | null; postal_code: string | null; city: string | null;
   country: string | null; person_kind: "individual" | "company" | null;
   last_helloasso_membership: string | null; last_pos_membership: string | null; transactions: number;
+  /** Lot AK3 : créé par une clé d'API, à vérifier. */
+  origin?: AgentOrigin | null;
 }
 
 export interface Option { value: string; label: string }

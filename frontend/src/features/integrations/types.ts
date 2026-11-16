@@ -20,12 +20,14 @@ export function sortIntegrations(items: Integration[]): Integration[] {
 
 export interface Field {
   key: string; label: string; input: "text" | "password" | "textarea" | "brevo_list"; help: string; required: boolean; secret: boolean;
-  source: "db" | "env" | "none"; value: string; env_value: string | null;
+  source: "db" | "env" | "server" | "none"; value: string; env_value: string | null;
 }
 
 export interface IntegrationDetail {
   item: Integration & {
     sync_tracked: boolean;
+    /** Assistant Claude : clé imposée par le serveur (.env), intégration active et non désactivable. */
+    server_locked?: boolean;
     /** Périmètre (Qonto : relevés de compte, achats, ventes) ; vide si l'intégration n'en a pas. */
     scopes?: { value: string; label: string; checked: boolean }[];
     last_sync: { status: string; started_at: string | null; finished_at: string | null; message: string | null;

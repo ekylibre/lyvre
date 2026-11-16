@@ -260,6 +260,9 @@ def build_proposal(unit: dict, est: dict | None, *, for_entity: bool, associatio
         naf = unit.get("activitePrincipaleUniteLegale")
         nomenclature = unit.get("nomenclatureActivitePrincipaleUniteLegale")
         values["legal_form"] = nomenclatures.legal_form_label(category) if category else None
+        from app.services.tax_profile import legal_form_from_insee
+        values["legal_form_code"] = legal_form_from_insee(category)  # lot AG1.a
+        values["created_on"] = unit.get("dateCreationUniteLegale")
         if association and unit.get("identifiantAssociationUniteLegale"):
             values["rna"] = unit["identifiantAssociationUniteLegale"]
     values["naf_code"] = (naf or "").replace(".", "") or None

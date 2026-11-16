@@ -85,7 +85,8 @@ def test_structure_proposal_from_siren(login_as, insee):
         "name": "INSTITUT NATIONAL DE LA STATISTIQUE ET DES ETUDES ECONOMIQUES", "siren": "120027016",
         "siret": "12002701600563", "address_line1": "88 avenue Verdier", "address_line2": "IMMEUBLE WHITE",
         "postal_code": "92120", "city": "Montrouge", "country": "France", "legal_form": "Service central d'un ministère",
-        "naf_code": "8411Z", "naf_nomenclature": "NAFRev2", "vat_number": sirene.vat_number("120027016")}
+        "naf_code": "8411Z", "naf_nomenclature": "NAFRev2", "vat_number": sirene.vat_number("120027016"),
+        "created_on": "1983-03-01"}  # lot AG1.a ; catégorie 7120 : pas de forme codée (legal_form_code absent)
     assert body["computed"] == ["vat_number"] and body["state"] == "active" and body["warnings"] == []
     assert body["labels"] == {"legal_form": "Service central d'un ministère", "naf": "Administration publique générale"}
     assert body["existing_entity"] is None

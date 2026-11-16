@@ -1,0 +1,148 @@
+# Social, MSA (audit_calendrier.md § 2.3).
+- id: SOC-01
+  title: Déclaration des revenus professionnels (DRP)
+  domain: social
+  organism: MSA
+  summary: Le plus souvent fusionnée avec la déclaration de revenus ; DRP propre à la MSA pour les associés de sociétés à l'IS et des cas particuliers, à la date fixée par la caisse (en général début juin). Dépôt dématérialisé ; majoration de 5 % en cas de retard.
+  applies: {income_tax: [IS]}
+  events:
+    - label: DRP à la MSA
+      rule: {type: annual_param, key: agenda.msa.drp_deadline, fallback: {type: fixed, days: ["06-01"]}}
+      reminders: [30, 7]
+  lyvre_data: BA fiscal, cotisations personnelles (646), DJA, plus-values exonérées.
+  reliability: A
+
+- id: SOC-02
+  title: Appels de cotisations des exploitants (NSA)
+  domain: social
+  organism: MSA
+  summary: Premier appel provisionnel (mars-avril), deuxième appel (juin ou octobre selon la caisse), solde (fin novembre à mi-décembre) ; prélèvement mensuel sur option.
+  events:
+    - label: Appel de cotisations MSA
+      rule: {type: annual_param, key: "agenda.msa.calls.{msa_fund}", fallback: {type: fixed, days: ["04-30", "10-15", "12-10"]}}
+      payment: true
+      reminders: [15, 5]
+  prepare: Modulation des appels provisionnels si le revenu baisse ou monte, à demander au plus tard 15 jours avant la date d'exigibilité de l'appel. Mensualisation sur demande, à adresser à la caisse (une demande reçue entre le 1er et le 15 du mois prend effet en général au mois suivant ; règles propres à chaque caisse).
+  lyvre_data: Compte 646 (cotisations de l'exploitant).
+  links:
+    - https://nord-pasdecalais.msa.fr/lfp/documents/98870/427241435/Exploitants+calendrier+des+%C3%A9ch%C3%A9ances+2026
+    - https://cotesnormandes.msa.fr/lfp/documents/98930/2199260/CALENDRIER+2026+exploitants+MSA+CN.pdf
+  reliability: A
+
+- id: SOC-03
+  title: Option pour l'assiette annuelle des cotisations
+  domain: social
+  organism: MSA
+  summary: Assiette triennale (moyenne des revenus des 3 années précédentes) par défaut ; option pour l'assiette annuelle (revenus N-1) à demander au plus tard le 30 juin, pour 5 ans reconduits tacitement ; dénonciation au plus tard le 30 novembre, effet au 1er janvier suivant, puis 6 ans sans nouvelle option (CRPM L.731-15, D.731-26). Rente du sol - option ou dénonciation avant le 30 juin. Exonération jeunes agriculteurs cumulable avec le taux réduit AMEXA (barème MSA 2026), sans option à exercer.
+  events:
+    - label: Date limite de l'option pour l'assiette annuelle
+      rule: {type: fixed, days: ["06-30"], shift: none}
+      reminders: [30]
+      quiet: true
+    - label: Date limite de dénonciation de l'option annuelle
+      rule: {type: fixed, days: ["11-30"], shift: none}
+      reminders: [30]
+      quiet: true
+    - label: "Rente du sol : demande ou dénonciation de la déduction"
+      rule: {type: fixed, days: ["06-30"], shift: none}
+      reminders: [30]
+      quiet: true
+  lyvre_data: Comparaison triennale / annuelle par exploitant (Compta › Cotisations MSA).
+  links:
+    - https://www.msa.fr/lfp/web/msa/exploitant/reforme-assiette-sociale
+    - https://nord-pasdecalais.msa.fr/lfp/documents/98870/470755434/Informations+et+dates+importantes+2026
+  reliability: R
+
+- id: SOC-04
+  title: Cotisants de solidarité
+  domain: social
+  organism: MSA
+  summary: >-
+    Assujettissement au régime des non-salariés agricoles (CRPM L.722-5, L.731-23). Chef d'exploitation dès que
+    l'activité atteint 1 surface minimale d'assujettissement (SMA), ou 1 200 heures de travail par an pour les activités
+    sans surface, ou un revenu professionnel d'au moins 800 SMIC horaires. Cotisant de solidarité entre 1/4 et 1 SMA, ou
+    entre 150 et 1 200 heures. La SMA est fixée par arrêté préfectoral (schéma directeur régional, avec des équivalences
+    par production) : la lire dans l'arrêté du département, Lyvre ne la connaît pas. Cotisation de solidarité appelée
+    chaque année sur les revenus déclarés avec la déclaration de revenus.
+  events: []
+  links:
+    - https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006071367
+    - https://www.msa.fr/lfp/web/msa/exploitant/affiliation
+  reliability: R
+
+- id: SOC-05
+  title: Salariés (DPAE, DSN, TESA)
+  domain: social
+  organism: MSA
+  summary: DPAE avant toute embauche ; DSN le 15 du mois suivant (le 5 à partir de 50 salariés) ; TESA simplifié pour les contrats courts ; régularisations dans la DSN de décembre.
+  applies: {flags: [employer]}
+  events:
+    - label: DSN
+      rule: {type: monthly, day: 15}
+      reminders: [3]
+  lyvre_data: Comptes 641, 645, 421, 431.
+  reliability: R
+
+- id: SOC-06
+  title: Fin du statut de conjoint collaborateur
+  domain: social
+  organism: MSA
+  summary: >-
+    Le statut de conjoint collaborateur d'exploitation est limité à 5 ans (CRPM L.321-5, modifié par la LFSS pour
+    2022). Pour un conjoint déjà collaborateur au 1er janvier 2022, il prend fin le 31 décembre 2026. Avant cette date,
+    le chef d'exploitation fait choisir un autre statut au conjoint (chef d'exploitation ou associé, salarié) et le
+    déclare au guichet unique ; sans choix, la MSA peut affilier d'office. Exception liée à l'âge (proche de la
+    retraite, avant 2032) : conditions à vérifier sur le texte en vigueur ou auprès de la caisse. Le drapeau suit les
+    personnes au statut de collaborateur dans Compta › Cotisations MSA ; un conjoint qui n'y est pas suivi est aussi
+    concerné.
+  applies: {flags: [msa_collaborator]}
+  events:
+    - label: Fin du statut de conjoint collaborateur (choix d'un nouveau statut)
+      rule: {type: once, date: "2026-12-31"}
+      reminders: [90, 30, 7]
+  lyvre_data: Statut des personnes suivies (Compta › Cotisations MSA) ; estimation des cotisations après changement de statut.
+  links:
+    - https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006071367
+    - https://www.reussir.fr/vigne/anticiper-la-fin-du-statut-de-conjoint-collaborateur
+  reliability: R
+
+- id: SOC-07
+  title: À-valoir sur les cotisations MSA
+  domain: social
+  organism: MSA
+  summary: >-
+    Versement anticipé des cotisations de l'année suivante (CRPM L.731-22-1) : demande et paiement en une fois auprès
+    de la caisse avant le 31 décembre, pour un montant plafonné (au plus 50 % des dernières cotisations selon
+    service-public ; montant maximal communiqué par la caisse). Au réel, l'à-valoir est déductible du résultat de
+    l'exercice de versement (CGI art. 72 F) et ne l'est plus l'année où les cotisations sont appelées. Compter le délai
+    d'acheminement.
+  applies: {ba_regime: [simplified, normal]}
+  events:
+    - label: Date limite de demande et de paiement de l'à-valoir MSA
+      rule: {type: fixed, days: ["12-31"], shift: none}
+      reminders: [45, 15]
+      payment: true
+  lyvre_data: Ligne « À-valoir social (art. 72 F) déduit » de l'assiette MSA ; compte 646.
+  links:
+    - https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577
+    - https://www.service-public.fr/particuliers/vosdroits/F23787
+    - https://charentes.msa.fr/lfp/documents/98870/78473535/Questions+r%C3%A9ponses+A+VALOIR
+  reliability: R
+
+- id: SOC-08
+  title: Cotisations calculées sur les revenus de l'année (expérimentation)
+  domain: social
+  organism: MSA
+  summary: >-
+    Expérimentation de la LFSS pour 2026 : l'exploitant peut demander que ses cotisations provisionnelles soient
+    calculées sur une estimation de ses revenus de l'année en cours, puis régularisées. Fenêtre de demande du
+    1er octobre au 31 mars ; caisses participantes, conditions et date d'effet à vérifier auprès de la caisse.
+  events:
+    - label: Fin de la fenêtre de demande (revenus estimés de l'année)
+      rule: {type: fixed, days: ["03-31"], shift: none}
+      reminders: [30]
+      quiet: true
+  lyvre_data: Estimation des cotisations (Compta › Cotisations MSA).
+  links:
+    - https://www.msa.fr/lfp/web/msa/exploitant/reforme-assiette-sociale
+  reliability: I

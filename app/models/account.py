@@ -29,6 +29,8 @@ class Account(db.Model):
     is_header = db.Column(db.Boolean, default=False, nullable=False)
     parent_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), nullable=True)
     lettrable = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
+    # Lot AG6.e : produits repérés pour les régimes BA (recette accessoire BIC / BNC, recette à façon × 3).
+    ba_income_class = db.Column(db.String(12))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     parent = db.relationship("Account", remote_side=[id], backref="children")

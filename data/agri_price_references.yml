@@ -1,0 +1,39 @@
+# Ordres de grandeur des cours du jour (lot AG4.a, design_inventaire_agricole.md § 4.2, AGD21 Q-S3).
+#
+# Tirés des cotations hebdomadaires de la viande fournies par l'utilisateur (fichier
+# COT-VIA-cotations_csv-A26-S44.zip, semaine 44 du 26/10 au 01/11/2026, hors git) : bornes arrondies des cotations
+# nationales et régionales publiées cette semaine-là. Sert à avertir quand un cours saisi en sort largement (moins de
+# la moitié du minimum ou plus du double du maximum), jamais à refuser ni à proposer un prix.
+source: Cotations hebdomadaires de la viande, semaine 44 de 2026 (26/10 au 01/11/2026)
+week: "2026-W44"
+references:
+  - key: pig_carcass
+    label: Porc charcutier
+    unit: €/kg de carcasse
+    min: 1.70
+    max: 1.90
+  - key: cattle_slaughter
+    label: Gros bovins entrée abattoir (jeunes bovins, vaches, génisses, bœufs)
+    unit: €/kg net
+    min: 5.10
+    max: 8.70
+  - key: cattle_store
+    label: Bovins maigres (broutards)
+    unit: €/kg vif
+    min: 3.60
+    max: 5.10
+  - key: lamb_carcass
+    label: Agneaux de boucherie
+    unit: €/kg de carcasse
+    min: 8.20
+    max: 10.30
+  - key: veal_carcass
+    label: Veaux de boucherie
+    unit: €/kg de carcasse
+    min: 5.40
+    max: 12.60
+  - key: calf_head
+    label: Petits veaux de 14 jours à 4 semaines
+    unit: €/tête
+    min: 36
+    max: 306

@@ -8,8 +8,8 @@ from app.access import current_role
 from app.extensions import db
 from app.models import FiscalYear
 from app.models.instance_membership import ROLE_ADMIN
-from app.services import simple_reports
-from app.tenant import current_instance
+from app.services import micro_ba, simple_reports
+from app.tenant import current_chart, current_instance
 
 from . import ApiError, bp, get_or_404, json_body, notice
 from .fiscal_years import fiscal_year_payload
@@ -43,6 +43,48 @@ def simple_treasury():
     """Situation de trésorerie `?fiscal_year_id=` : soldes cumulés début / fin d'exercice."""
     fy = _fiscal_year()
     return jsonify(fiscal_year_id=fy.id, fiscal_years=_years(), **simple_reports.treasury_situation(fy))
+
+
+def _micro_year() -> int:
+    """Exploitation agricole en comptabilité simplifiée (micro-BA) ; année civile `?year=` (défaut : en cours)."""
+    instance = current_instance()
+    if current_chart() != "agri" or instance is None or instance.bookkeeping != "simple":
+        raise ApiError("not_found", "État réservé aux exploitations agricoles au micro-BA.", 404)
+    year = request.args.get("year", type=int) or date.today().year
+    if not 1990 <= year <= 2100:
+        raise ApiError("validation_error", "Année invalide.", 422, fields={"year": "Année invalide."})
+    return year
+
+
+@bp.route("/simple/reports/receipts-book")
+def simple_receipts_book():
+    """Livre des recettes du micro-BA `?year=&group_small=1` (lot AG1.d)."""
+    year = _micro_year()
+    book = micro_ba.receipts_book(year, group_small=request.args.get("group_small", "1") != "0")
+    from flask import url_for
+    return jsonify(**book, export_url=url_for("exports.receipts_book_xlsx", year=year,
+                                              group_small=request.args.get("group_small", "1")))
+
+
+@bp.route("/simple/reports/micro-ba")
+def simple_micro_ba():
+    """Récapitulatif du micro-BA : recettes de N, N-1, N-2, moyenne, bénéfice forfaitaire (lot AG1.d)."""
+    return jsonify(micro_ba.summary(_micro_year()))
+
+
+@bp.route("/simple/reports/micro-ba/carryover", methods=["PUT"])
+def simple_micro_ba_carryover():
+    """`{year, receipts_cents, note}` : recettes retenues d'une année antérieure à Lyvre (vide : retirées)."""
+    year = _micro_year()
+    from app.access import permissions
+    if not permissions(current_role())["write"]:
+        raise ApiError("forbidden", "Lecture seule : modification réservée au trésorier ou à l'administrateur.", 403)
+    data = json_body()
+    try:
+        micro_ba.save_carryover(data.get("year"), data.get("receipts_cents"), data.get("note"))
+    except micro_ba.MicroError as exc:
+        raise ApiError("validation_error", exc.message, exc.status, fields={exc.field: exc.message}) from None
+    return jsonify(item=micro_ba.summary(year), notices=[notice("Recettes de l'année antérieure enregistrées.")])
 
 
 @bp.route("/fiscal-years/<int:fy_id>/lock", methods=["POST"])

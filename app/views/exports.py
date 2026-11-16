@@ -97,6 +97,57 @@ def project_statement_xlsx(project_id):
     return _response(wb, f"projet-{project.name}-{data['start']}-{data['end']}.xlsx".replace(" ", "-"))
 
 
+@bp.route("/simple/reports/receipts-book.xlsx")
+@login_required
+def receipts_book_xlsx():
+    """Livre des recettes du micro-BA (lot AG1.d) : une ligne par recette, totaux par trimestre et pour l'année."""
+    from app.services import micro_ba
+    from app.tenant import current_chart
+
+    if current_chart() != "agri":
+        abort(404)
+    year = request.args.get("year", type=int) or date.today().year
+    book = micro_ba.receipts_book(year, group_small=request.args.get("group_small", "1") != "0")
+    wb = Workbook()
+    wb.remove(wb.active)
+    rows = [[i["date"], i["label"], i["entity"] or "", i["category"], "Exclue" if i["excluded"] else "",
+             i["amount_cents"] / 100] for i in book["items"]]
+    rows += [[]] + [[f"Trimestre {q['quarter']}", "", "", "Recettes retenues", "", q["retained_cents"] / 100]
+                    for q in book["quarters"]]
+    rows += [["Année", "", "", "Recettes retenues", "", book["total"]["retained_cents"] / 100],
+             ["Année", "", "", "Recettes exclues du micro-BA", "", book["total"]["excluded_cents"] / 100]]
+    _sheet(wb, f"Livre des recettes {year}", ["Date", "Libellé", "Client", "Catégorie", "Micro-BA", "Montant"], rows, (6,))
+    return _response(wb, f"livre-des-recettes-{year}.xlsx")
+
+
+@bp.route("/reports/agri-statements.xlsx")
+@login_required
+def agri_statements_xlsx():
+    """Soldes intermédiaires de gestion et tableau des biens vivants d'une exploitation (lot AG1.c)."""
+    from app.services import agri_reports
+    from app.tenant import current_chart
+
+    if current_chart() != "agri":
+        abort(404)
+    fy = db.session.get(FiscalYear, request.args.get("fy_id", type=int) or 0) or abort(404)
+    prev = (FiscalYear.query.filter(FiscalYear.start_date < fy.start_date)
+            .order_by(FiscalYear.start_date.desc()).first())
+    wb = Workbook()
+    wb.remove(wb.active)
+    euros = lambda cents: None if cents is None else cents / 100  # noqa: E731
+    _sheet(wb, "Soldes intermédiaires", ["Solde", fy.label, prev.label if prev else "N-1"],
+           [[r["label"], euros(r["n"]), euros(r["p"])] for r in agri_reports.sig(fy, prev)], (2, 3))
+    table = agri_reports.living_assets_table(fy, prev)
+    rows = []
+    for group in table["groups"]:
+        rows.append([group["label"], None, None])
+        rows += [[f"  {r['label']}", euros(r["opening"]), euros(r["closing"])] for r in group["rows"]]
+        rows.append([f"Total {group['label'].lower()}", euros(group["total"]["opening"]), euros(group["total"]["closing"])])
+    rows.append(["TOTAL GÉNÉRAL", euros(table["total"]["opening"]), euros(table["total"]["closing"])])
+    _sheet(wb, "Biens vivants", ["Nature", "Valeur nette à l'ouverture", "Valeur nette à la clôture"], rows, (2, 3))
+    return _response(wb, f"etats-agricoles-{fy.label}.xlsx".replace(" ", "-"))
+
+
 @bp.route("/receipts/signature")
 @login_required
 def receipts_signature():
@@ -174,16 +225,19 @@ def _vat_return(period):
     except vat_return.VatReturnError:
         abort(404)
     ret = vat_return.return_for(start)
+    form = "3310-CA3-SD"
     if ret is not None:
         detail = ret.detail
+        form = detail.get("form", form)
         rows, form_year, due, credit, deadline = (detail["rows"], detail["form_year"], ret.due_cents // 100,
                                                   ret.credit_cents // 100, ret.deadline)
     else:
         result = vat_return.compute(start, end)
+        form = result["form"]
         rows, form_year, due, credit, deadline = (result["rows"], result["form_year"], result["due_cents"] // 100,
                                                   result["credit_cents"] // 100, vat_return.deadline(end))
-    return {"org": organization.get(), "period": vat_return.period_key(start), "start": f"{start:%d/%m/%Y}",
-            "end": f"{end:%d/%m/%Y}", "form": "3310-CA3-SD", "form_year": form_year, "rows": rows, "due": due,
+    return {"org": organization.get(), "period": vat_return.period_key(start, end), "start": f"{start:%d/%m/%Y}",
+            "end": f"{end:%d/%m/%Y}", "form": form, "form_year": form_year, "rows": rows, "due": due,
             "credit": credit, "deadline": f"{deadline:%d/%m/%Y}", "validated": ret is not None,
             "declared_on": f"{ret.declared_on:%d/%m/%Y}" if ret is not None and ret.declared_on else None,
             "reference": ret.declared_reference if ret is not None else None}
@@ -239,3 +293,308 @@ def vat_return_pdf(period):
     response.headers["Content-Disposition"] = f'inline; filename="CA3-{data["period"]}.pdf"'
     return response
 
+
+
+# ------------------------------------------------------------------ livres de TVA (lot AG2.d)
+
+def _vat_book(kind):
+    from app.services import organization, vat_books
+
+    if kind not in ("sales", "purchases"):
+        abort(404)
+    try:
+        start, end = vat_books.parse_bounds(request.args.get("start"), request.args.get("end"), request.args.get("period"))
+    except vat_books.BookError:
+        abort(400)
+    book = vat_books.sales_book(start, end) if kind == "sales" else vat_books.purchases_book(start, end)
+    title = "Livre des ventes" if kind == "sales" else "Livre des achats"
+    return book, title, organization.get(), f"{'livre-des-ventes' if kind == 'sales' else 'livre-des-achats'}-{start}-{end}"
+
+
+@bp.route("/vat-books/<kind>.xlsx")
+@login_required
+def vat_book_xlsx(kind):
+    book, title, _, name = _vat_book(kind)
+    wb = Workbook()
+    wb.remove(wb.active)
+    if kind == "sales":
+        rows = [[i["date"], i["reference"] or "", i["label"], i["entity"], i["code"], i["line"] or "", i["category"],
+                 i["base_cents"] / 100, i["tax_cents"] / 100] for i in book["items"]]
+        _sheet(wb, title, ["Date", "Pièce", "Libellé", "Client", "Code TVA", "Ligne CA12A", "Catégorie", "Base HT",
+                           "TVA"], rows, (8, 9))
+        _sheet(wb, "Totaux", ["Ligne CA12A", "Catégorie", "Base HT", "TVA"],
+               [[t["line"] or "", t["category"], t["base_cents"] / 100, t["tax_cents"] / 100] for t in book["totals"]],
+               (3, 4))
+    else:
+        rows = [[i["date"], i["reference"] or "", i["label"], i["entity"], i["group_label"], ", ".join(i["codes"]),
+                 i["ht_cents"] / 100, i["deductible_cents"] / 100, i["reverse_charge_cents"] / 100,
+                 "Non déductible" if i["non_deductible"] else ""] for i in book["items"]]
+        _sheet(wb, title, ["Date", "Pièce", "Libellé", "Fournisseur", "Nature", "Codes TVA", "Montant HT",
+                           "TVA déductible", "TVA autoliquidée", "Mention"], rows, (7, 8, 9))
+        _sheet(wb, "Totaux", ["Nature", "Montant HT", "TVA déductible", "TVA autoliquidée", "HT sans TVA déductible"],
+               [[t["label"], t["ht_cents"] / 100, t["deductible_cents"] / 100, t["reverse_charge_cents"] / 100,
+                 t["non_deductible_ht_cents"] / 100] for t in book["totals"]], (2, 3, 4, 5))
+    return _response(wb, f"{name}.xlsx")
+
+
+@bp.route("/vat-books/<kind>.pdf")
+@login_required
+def vat_book_pdf(kind):
+    from weasyprint import HTML
+
+    book, title, org, name = _vat_book(kind)
+    money = lambda cents: f"{(cents or 0) / 100:,.2f}".replace(",", " ").replace(".", ",")  # noqa: E731
+    html = render_template("vat_returns/book.html", kind=kind, book=book, title=title, org=org, money=money)
+    response = Response(HTML(string=html).write_pdf(), mimetype="application/pdf")
+    response.headers["Content-Disposition"] = f'inline; filename="{name}.pdf"'
+    return response
+
+
+# ------------------------------------------------------------------ remboursement forfaitaire (lot AG2.e)
+
+def _rfa(year):
+    from app.services import organization, rfa
+    from app.tenant import current_chart
+
+    if current_chart() != "agri":
+        abort(404)
+    return rfa.compute(year), rfa, organization.get()
+
+
+@bp.route("/fiscal-years/<int:fy_id>/tax-result.xlsx")
+@login_required
+def tax_result_xlsx(fy_id):
+    """Tableau de passage du résultat comptable au résultat fiscal et répartition par associé (lot AG6.a)."""
+    from app.models import FiscalYear
+    from app.services import tax_result
+
+    if not tax_result.enabled():
+        abort(404)
+    fy = db.session.get(FiscalYear, fy_id) or abort(404)
+    data = tax_result.view(fy)
+    wb = Workbook()
+    wb.remove(wb.active)
+    rows = [["Résultat comptable", data["accounting_result_cents"] / 100, ""]]
+    rows += [[l["label"], l["amount_cents"] / 100, l.get("reason") or ""] for l in data["lines"]]
+    rows.append(["Résultat fiscal", data["fiscal_result_cents"] / 100, "figé" if data["frozen"] else ""])
+    _sheet(wb, f"Passage {fy.label}", ["Ligne", "Montant", "Motif"], rows, (2,))
+    if data["associates"]:
+        _sheet(wb, "Associés", ["Associé", "Exploitant", "Quote-part (%)", "Base", "Résultat fiscal"],
+               [[a["name"], "oui" if a["is_operator"] else "non", a["share_bp"] / 100, a["basis"],
+                 a["fiscal_result_cents"] / 100] for a in data["associates"]], (3, 5))
+    return _response(wb, f"resultat-fiscal-{fy.label}.xlsx")
+
+
+
+@bp.route("/fiscal-years/<int:fy_id>/msa.xlsx")
+@login_required
+def msa_xlsx(fy_id):
+    """Assiette sociale MSA par exploitant (lot AG7.a)."""
+    from app.models import FiscalYear
+    from app.services import msa
+
+    if not msa.enabled():
+        abort(404)
+    fy = db.session.get(FiscalYear, fy_id) or abort(404)
+    data = msa.view(fy)
+    wb = Workbook()
+    wb.remove(wb.active)
+    for item in data["people"]:
+        abat = item["abatement"]
+        rows = [["Résultat fiscal BA (quote-part)", item["fiscal_result_cents"] / 100, ""]]
+        rows += [[l["label"], l["amount_cents"] / 100, l.get("reason") or l.get("basis") or ""] for l in item["lines"]]
+        rows.append(["Revenu professionnel avant abattement", item["income_cents"] / 100, ""])
+        if "amount_cents" in abat:
+            rows.append(["Abattement forfaitaire", -abat["amount_cents"] / 100, abat.get("bound") or ""])
+        rows.append(["Assiette sociale", (item["base_cents"] or 0) / 100, ""])
+        _sheet(wb, item["person"]["name"][:31], ["Ligne", "Montant", "Fondement"], rows, (2,))
+    if not data["people"]:
+        _sheet(wb, "MSA", ["Information"], [[data.get("reason") or "Aucun exploitant."]], ())
+    return _response(wb, f"assiette-msa-{fy.label}.xlsx")
+
+
+def _margins(fy_id):
+    from app.models import FiscalYear
+    from app.services import analytic, analytic_margins, organization
+
+    if not analytic.enabled():
+        abort(404)
+    fy = db.session.get(FiscalYear, fy_id) or abort(404)
+    raw = request.args.get("campaign")
+    campaign = int(raw) if raw and raw.isdigit() else None
+    return analytic_margins.view(fy, campaign), organization.get()
+
+
+@bp.route("/fiscal-years/<int:fy_id>/activity-margins.xlsx")
+@login_required
+def activity_margins_xlsx(fy_id):
+    """Marges par activité et par atelier (lot AG8.d)."""
+    data, _org = _margins(fy_id)
+    wb = Workbook()
+    wb.remove(wb.active)
+    classes = data["classes"]
+    head = ["Atelier", "Activité", "Campagne", "Mesure", "Unité", *[c["label"] for c in classes], "Production",
+            "Charges opérationnelles", "Marge brute", "Marge brute / unité", "Structure directe", "Résultat",
+            "Auxiliaires", "Résultat après répartition"]
+    rows = [[p["workshop"], p["activity"], p["campaign_year"], float(p["measure"]) if p["measure"] else None, p["unit_label"],
+             *[p["classes"][c["key"]] / 100 for c in classes], p["production_cents"] / 100, p["operational_cents"] / 100,
+             p["gross_margin_cents"] / 100,
+             p["gross_margin_per_unit_cents"] / 100 if p["gross_margin_per_unit_cents"] is not None else None,
+             p["structure_cents"] / 100, p["result_cents"] / 100, p.get("auxiliary_cents", 0) / 100,
+             p.get("result_after_cents", p["result_cents"]) / 100] for p in data["productions"]]
+    u = data["unallocated"]
+    rows.append(["Non affecté", "", "", None, "", *[u["classes"][c["key"]] / 100 for c in classes], u["production_cents"] / 100,
+                 u["operational_cents"] / 100, u["gross_margin_cents"] / 100, None, u["structure_cents"] / 100,
+                 u["result_cents"] / 100, 0, u["result_cents"] / 100])
+    rec = data.get("reconciliation")
+    if rec:
+        rows.append([])
+        rows += [[label, "", "", None, "", *[None] * len(classes), None, None, None, None, None, None, None, value / 100]
+                 for label, value in (("Rapprochement — résultat des activités", rec["activities_cents"]),
+                                      ("Non affecté", rec["unallocated_cents"]), ("Hors analytique", rec["excluded_cents"]),
+                                      ("Écart de méthode", rec["method_gap_cents"]),
+                                      ("Résultat comptable", rec["accounting_result_cents"]))]
+    money_cols = tuple(range(6, len(head) + 1))
+    _sheet(wb, f"Activités {data['fiscal_year']['label']}"[:31], head, rows, money_cols)
+    _sheet(wb, "Ateliers", ["Atelier", "Production", "Charges opérationnelles", "Marge brute", "Mesure", "Marge brute / unité",
+                            "Structure directe", "Résultat"],
+           [[w["workshop"], w["production_cents"] / 100, w["operational_cents"] / 100, w["gross_margin_cents"] / 100,
+             float(w["measure"]) if w["measure"] else None,
+             w["gross_margin_per_unit_cents"] / 100 if w["gross_margin_per_unit_cents"] is not None else None,
+             w["structure_cents"] / 100, w["result_cents"] / 100] for w in data["workshops"]], (2, 3, 4, 6, 7, 8))
+    return _response(wb, f"marges-activites-{data['fiscal_year']['label']}.xlsx")
+
+
+@bp.route("/fiscal-years/<int:fy_id>/activity-margins.pdf")
+@login_required
+def activity_margins_pdf(fy_id):
+    from weasyprint import HTML
+    data, org = _margins(fy_id)
+    euros = lambda cents: "" if cents is None else f"{round(cents / 100):,}".replace(",", "\u202f")  # noqa: E731
+    html = render_template("analytic/margins.html", data=data, org=org, euros=euros)
+    response = Response(HTML(string=html).write_pdf(), mimetype="application/pdf")
+    response.headers["Content-Disposition"] = f'inline; filename="marges-activites-{data["fiscal_year"]["label"]}.pdf"'
+    return response
+
+def _liasse(fy_id):
+    from app.models import FiscalYear
+    from app.services import liasse, organization, tax_result
+
+    if not tax_result.enabled():
+        abort(404)
+    fy = db.session.get(FiscalYear, fy_id) or abort(404)
+    try:
+        data = liasse.compute(fy)
+    except liasse.LiasseError:
+        abort(404)
+    if not data["form"]:
+        abort(404)
+    return data, organization.get()
+
+
+@bp.route("/fiscal-years/<int:fy_id>/liasse.xlsx")
+@login_required
+def liasse_xlsx(fy_id):
+    """Aide à la liasse 2139 / 2143 : une feuille par tableau, case → montant (lot AG6.f)."""
+    data, _org = _liasse(fy_id)
+    wb = Workbook()
+    wb.remove(wb.active)
+    for table in data["tables"]:
+        rows = [[r["case"], ("    dont " if r["detail"] and not r["label"].startswith("dont") else "") + r["label"],
+                 None if r["amount_cents"] is None else r["amount_cents"] / 100,
+                 "à saisir" if r["kind"] == "manual" else ", ".join(r["accounts"] or []) if r["kind"] == "accounts"
+                 else "résultat fiscal" if r["kind"] == "tax" else "total"] for r in table["rows"]]
+        _sheet(wb, table["code"], ["Case", "Libellé", "Montant", "Origine"], rows, (3,))
+    _sheet(wb, "Avertissements", ["Avertissement"], [[w] for w in data["warnings"] + data["not_covered"]], ())
+    return _response(wb, f"liasse-{data['form']}-{data['fiscal_year']['label']}.xlsx")
+
+
+@bp.route("/fiscal-years/<int:fy_id>/liasse.pdf")
+@login_required
+def liasse_pdf(fy_id):
+    from weasyprint import HTML
+
+    data, org = _liasse(fy_id)
+    euros = lambda cents: "" if cents is None else f"{round(cents / 100):,}".replace(",", "\u202f")  # noqa: E731
+    html = render_template("tax_result/liasse.html", data=data, org=org, euros=euros)
+    response = Response(HTML(string=html).write_pdf(), mimetype="application/pdf")
+    response.headers["Content-Disposition"] = f'inline; filename="liasse-{data["form"]}-{data["fiscal_year"]["label"]}.pdf"'
+    return response
+
+
+@bp.route("/fiscal-years/<int:fy_id>/stock.xlsx")
+@login_required
+def stock_xlsx(fy_id):
+    """État d'inventaire de clôture (lot AG4.d) : lignes, méthodes, valeurs, dépréciations, total par catégorie."""
+    from app.models import FiscalYear, StockLine
+    from app.models.stock import STOCK_METHODS, STOCK_UNITS
+    from app.models.stock import FISCAL_METHODS
+    from app.services import stock_entry, stock_inventory as inv, stock_tax
+
+    if not inv.enabled():
+        abort(404)
+    fy = db.session.get(FiscalYear, fy_id) or abort(404)
+    discount_map = inv.discounts(fy)
+    labels = {c["key"]: c["label"] for c in inv.categories()}
+    wb = Workbook()
+    wb.remove(wb.active)
+    rows, totals = [], {}
+    for line in StockLine.query.filter_by(fiscal_year_id=fy.id).order_by(StockLine.position, StockLine.id):
+        unit, value, warnings = inv.evaluate(line, fy, discount_map)
+        fiscal = stock_tax.fiscal_value(line, fy)
+        rows.append([labels.get(line.category, line.category), line.account.code, line.variation_account.code, line.label,
+                     line.production, float(line.quantity or 0), STOCK_UNITS.get(line.unit, line.unit),
+                     STOCK_METHODS.get(line.method, line.method), (unit or 0) / 100 if unit is not None else None,
+                     (value or 0) / 100 if value is not None else None, (line.depreciation_cents or 0) / 100 or None,
+                     line.depreciation_reason, FISCAL_METHODS.get(fiscal["fiscal_method"], ""),
+                     fiscal["fiscal_value_cents"] / 100 if fiscal["fiscal_value_cents"] is not None else None,
+                     fiscal["gap_cents"] / 100 if fiscal["gap_cents"] is not None else None,
+                     "; ".join([*warnings, *fiscal["warnings"]])])
+        totals[line.category] = totals.get(line.category, 0) + (value or 0)
+    _sheet(wb, f"Inventaire {fy.label}", ["Catégorie", "Compte", "Variation", "Libellé", "Production", "Quantité", "Unité",
+                                          "Méthode", "Valeur unitaire", "Valeur", "Dépréciation", "Motif",
+                                          "Méthode fiscale", "Valeur fiscale", "Écart fiscal", "Contrôles"],
+           rows, (9, 10, 11, 14, 15))
+    status = stock_entry.status(fy)
+    summary = [[labels.get(k, k), v / 100] for k, v in totals.items()]
+    summary += [["Stock final", status["final_cents"] / 100], ["Stock initial (avant écriture)", status["opening_cents"] / 100],
+                ["Variation", status["variation_cents"] / 100], ["Dépréciations", status["depreciation_cents"] / 100]]
+    tax = stock_tax.totals(fy)
+    summary += [["Valeur fiscale des stocks", tax["fiscal_cents"] / 100],
+                ["Écart fiscal (tableau de passage)", tax["gap_cents"] / 100]]
+    _sheet(wb, "Totaux", ["Élément", "Montant"], summary, (2,))
+    return _response(wb, f"inventaire-{fy.label}.xlsx")
+
+
+@bp.route("/rfa/<int:year>.xlsx")
+@login_required
+def rfa_xlsx(year):
+    data, rfa, _ = _rfa(year)
+    wb = Workbook()
+    wb.remove(wb.active)
+    rows = [[c["name"], rfa.BUYERS.get(c["buyer"], "Inconnu"), "oui" if c["eligible"] else "non", c["high_cents"] / 100,
+             c["low_cents"] / 100, c["excluded_cents"] / 100, c["unclassified_cents"] / 100,
+             (c["attestation"] or {}).get("amount_cents", 0) / 100 if c["attestation"] else None, "; ".join(c["issues"])]
+            for c in data["clients"]]
+    _sheet(wb, f"Clients {year}", ["Client", "Type", "Éligible", "Taux 5,59 %", "Taux 4,43 %", "Exclues", "Sans classe",
+                                   "Attesté", "Contrôles"], rows, (4, 5, 6, 7, 8))
+    summary = [["Base au taux de 5,59 %", data["high_base_cents"] / 100],
+               ["Base au taux de 4,43 %", data["low_base_cents"] / 100],
+               ["Ventes exclues (classe)", data["excluded_cents"] / 100],
+               ["Ventes à des non-assujettis", data["non_eligible_cents"] / 100],
+               ["Remboursement forfaitaire", data["amount_cents"] / 100]]
+    _sheet(wb, "Forfait", ["Élément", "Montant"], summary, (2,))
+    return _response(wb, f"remboursement-forfaitaire-{year}.xlsx")
+
+
+@bp.route("/rfa/<int:year>.pdf")
+@login_required
+def rfa_pdf(year):
+    from weasyprint import HTML
+
+    data, rfa, org = _rfa(year)
+    money = lambda cents: f"{(cents or 0) / 100:,.2f}".replace(",", " ").replace(".", ",")  # noqa: E731
+    html = render_template("vat_returns/rfa.html", data=data, org=org, money=money, buyers=rfa.BUYERS)
+    response = Response(HTML(string=html).write_pdf(), mimetype="application/pdf")
+    response.headers["Content-Disposition"] = f'inline; filename="remboursement-forfaitaire-{year}.pdf"'
+    return response

@@ -42,7 +42,7 @@ beforeEach(() => {
       work_times: sci ? null : [], helloasso: sci ? null : { orders: [], items: [], payments: [] } });
     if (url.startsWith("/api/v1/dashboard")) return json({
       stats: { total_sales_cents: 0, new_members: sci ? null : 4, resultat_courant_cents: 0, total_payouts_cents: 0 },
-      monthly: [], recent_entries: [],
+      monthly: [],
       meta: { fiscal_years: [{ value: "1", label: "2026" }], fiscal_year: { id: 1, label: "2026" }, previous: null } });
     return json({ items: [] });
   }) as typeof fetch);

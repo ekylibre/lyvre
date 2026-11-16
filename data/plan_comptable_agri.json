@@ -1,0 +1,5822 @@
+[
+  {
+    "code": "1",
+    "label": "COMPTES DE CAPITAUX",
+    "account_type": "EQUITY",
+    "is_header": true
+  },
+  {
+    "code": "10",
+    "label": "Capital et réserves",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "101",
+    "label": "Capital",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1011",
+    "label": "Capital souscrit - non appelé",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1012",
+    "label": "Capital souscrit - appelé, non versé",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1013",
+    "label": "Capital souscrit - appelé, versé",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "10131",
+    "label": "Capital non amorti",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "10132",
+    "label": "Capital amorti",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1018",
+    "label": "Capital souscrit soumis à des réglementations particulières",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "102",
+    "label": "Fonds fiduciaires",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "104",
+    "label": "Primes liées au capital",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1041",
+    "label": "Primes d'émission",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1042",
+    "label": "Primes de fusion",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1043",
+    "label": "Primes d'apport",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1044",
+    "label": "Primes de conversion d'obligations en actions",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1045",
+    "label": "Bons de souscription de titres en capital",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "105",
+    "label": "Écarts de réévaluation",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "106",
+    "label": "Réserves",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1061",
+    "label": "Réserve légale",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1062",
+    "label": "Réserves indisponibles",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1063",
+    "label": "Réserves statutaires ou contractuelles",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1064",
+    "label": "Réserves réglementées",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1068",
+    "label": "Autres réserves",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "107",
+    "label": "Écart d'équivalence",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "108",
+    "label": "Compte de l'exploitant",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "109",
+    "label": "Actionnaires : capital souscrit - non appelé",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "11",
+    "label": "Report à nouveau",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "110",
+    "label": "Report à nouveau - solde créditeur",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "119",
+    "label": "Report à nouveau - solde débiteur",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "12",
+    "label": "Résultat de l'exercice",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "120",
+    "label": "Résultat de l'exercice - bénéfice",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1209",
+    "label": "Acomptes sur dividendes",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "129",
+    "label": "Résultat de l'exercice – perte",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "13",
+    "label": "Subventions d'investissement",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "131",
+    "label": "Subventions d'investissement octroyées",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "139",
+    "label": "Subventions d'investissement inscrites au compte de résultat",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "14",
+    "label": "Provisions réglementées",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "143",
+    "label": "Provisions réglementées pour hausse de prix",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "145",
+    "label": "Amortissements dérogatoires",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "148",
+    "label": "Autres provisions réglementées",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "15",
+    "label": "Provisions",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "151",
+    "label": "Provisions pour risques",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1511",
+    "label": "Provisions pour litiges",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1512",
+    "label": "Provisions pour garanties données aux clients",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1514",
+    "label": "Provisions pour amendes et pénalités",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1515",
+    "label": "Provisions pour pertes de change",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1516",
+    "label": "Provisions pour pertes sur contrats",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1518",
+    "label": "Autres provisions pour risques",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "152",
+    "label": "Provisions pour charges",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1521",
+    "label": "Provisions pour pensions et obligations similaires",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1522",
+    "label": "Provisions pour restructurations",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1523",
+    "label": "Provisions pour impôts",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1524",
+    "label": "Provisions pour renouvellement des immobilisations - entreprises concessionnaires",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1525",
+    "label": "Provisions pour gros entretien ou grandes révisions",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1526",
+    "label": "Provisions pour remise en état",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1527",
+    "label": "Autres provisions pour charges",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "16",
+    "label": "Emprunts et dettes assimilées",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "161",
+    "label": "Emprunts obligataires convertibles si non-inscrits dans le compte 167",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1618",
+    "label": "Intérêts courus sur emprunts obligataires convertibles",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "162",
+    "label": "Obligations représentatives de passifs nets remis en fiducie si non-inscrites dans le compte 167",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "163",
+    "label": "Autres emprunts obligataires si non-inscrits dans le compte 167",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1638",
+    "label": "Intérêts courus sur autres emprunts obligataires",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "164",
+    "label": "Emprunts auprès des établissements de crédit",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1641",
+    "label": "Emprunts fonciers",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1642",
+    "label": "Autres emprunts à moyen et long terme",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1643",
+    "label": "Emprunts à court terme",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1648",
+    "label": "Intérêts courus sur emprunts auprès des établissements de crédit",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "165",
+    "label": "Dépôts et cautionnements reçus",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1651",
+    "label": "Dépôts",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1655",
+    "label": "Cautionnements",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1658",
+    "label": "Intérêts courus sur dépôts et cautionnements reçus",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "166",
+    "label": "Participation des salariés aux résultats",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1661",
+    "label": "Comptes bloqués",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1662",
+    "label": "Fonds de participation",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1668",
+    "label": "Intérêts courus sur participation des salariés aux résultats",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "167",
+    "label": "Fonds non remboursables et avances conditionnées",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1671",
+    "label": "Fonds non remboursables montant principal",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "16711",
+    "label": "Titres participatifs montant principal",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "16712",
+    "label": "Autres fonds non remboursables montant principal",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1673",
+    "label": "Avances conditionnées montant principal",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1674",
+    "label": "Avances conditionnées intérêts courus",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "168",
+    "label": "Autres emprunts et dettes assimilées",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1681",
+    "label": "Autres emprunts",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1682",
+    "label": "Emprunts participatifs",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1685",
+    "label": "Rentes viagères capitalisées",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1687",
+    "label": "Autres dettes",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "1688",
+    "label": "Intérêts courus sur autres emprunts et dettes assimilées",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "169",
+    "label": "Primes de remboursement des emprunts",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "17",
+    "label": "Dettes rattachées à des participations",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "171",
+    "label": "Dettes rattachées à des participations - groupe",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "172",
+    "label": "Dettes rattachées à des participations à des organismes professionnels agricoles (autres que les établissements de crédit)",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "174",
+    "label": "Dettes rattachées à des participations - hors groupe",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "178",
+    "label": "Dettes rattachées à des sociétés en participation",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "18",
+    "label": "Comptes de liaison des établissements et sociétés en participation",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "181",
+    "label": "Comptes de liaison des établissements",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "186",
+    "label": "Biens et prestations de services échangés entre établissements - charges",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "187",
+    "label": "Biens et prestations de services échangés entre établissements - produits",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "188",
+    "label": "Comptes de liaison des sociétés en participation",
+    "account_type": "EQUITY",
+    "is_header": false
+  },
+  {
+    "code": "2",
+    "label": "COMPTES D'IMMOBILISATIONS",
+    "account_type": "ASSET",
+    "is_header": true
+  },
+  {
+    "code": "20",
+    "label": "Immobilisations incorporelles",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "201",
+    "label": "Frais d'établissement",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2011",
+    "label": "Frais de constitution",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2012",
+    "label": "Frais de premier établissement",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "20121",
+    "label": "Frais de prospection",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "20122",
+    "label": "Frais de publicité",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2013",
+    "label": "Frais d'augmentation de capital et d'opérations diverses - fusions, scissions, transformations",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "203",
+    "label": "Frais de développement",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "205",
+    "label": "Concessions et droits similaires, brevets, licences, marques, procédés, solutions informatiques, droits et valeurs similaires",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "206",
+    "label": "Droit au bail",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "207",
+    "label": "Fonds commercial",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2071",
+    "label": "Fonds agricole résiduel",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "208",
+    "label": "Autres immobilisations incorporelles",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2081",
+    "label": "Mali de fusion sur actifs incorporels",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "21",
+    "label": "Immobilisations corporelles",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "211",
+    "label": "Terrains",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2111",
+    "label": "Terrains nus",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2112",
+    "label": "Terrains aménagés",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2113",
+    "label": "Sous-sols et sur-sols",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2114",
+    "label": "Terrains de carrières (Tréfonds)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2115",
+    "label": "Terrains bâtis",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "212",
+    "label": "Agencements et aménagements de terrains",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2121",
+    "label": "Amortissables",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2125",
+    "label": "Non amortissables",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "213",
+    "label": "Constructions",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2131",
+    "label": "Bâtiments",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2135",
+    "label": "Installations générales - agencements - aménagements des constructions",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2138",
+    "label": "Ouvrages d'infrastructure",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "214",
+    "label": "Constructions sur sol d'autrui (même ventilation que celle du compte 213)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "215",
+    "label": "Installations techniques, matériels et outillages industriels",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2151",
+    "label": "Installations complexes spécialisées",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "21511",
+    "label": "Installations complexes spécialisées sur sol propre",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "21514",
+    "label": "Installations complexes spécialisées sur sol d'autrui",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2153",
+    "label": "Installations à caractère spécifique",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "21531",
+    "label": "Installations à caractère spécifique sur sol propre",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "21534",
+    "label": "Installations à caractère spécifique sur sol d'autrui",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2154",
+    "label": "Matériels industriels",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2155",
+    "label": "Outillages industriels",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2157",
+    "label": "Agencements et aménagements des matériels et outillages industriels",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "217",
+    "label": "Améliorations des sols et des milieux",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "218",
+    "label": "Autres immobilisations corporelles",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2181",
+    "label": "Installations générales, agencements, aménagements divers",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2182",
+    "label": "Matériel de transport",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2183",
+    "label": "Matériel de bureau et matériel informatique",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2184",
+    "label": "Mobilier",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2185",
+    "label": "Cheptel",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2186",
+    "label": "Emballages récupérables",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2187",
+    "label": "Mali de fusion sur actifs corporels",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "22",
+    "label": "Immobilisations mises en concession",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "229",
+    "label": "Droits du concédant (présentés dans la rubrique autres fonds propres)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "23",
+    "label": "Immobilisations en cours et avances et acomptes",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "231",
+    "label": "Immobilisations corporelles en cours",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "232",
+    "label": "Immobilisations incorporelles en cours",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "234",
+    "label": "Immobilisations corporelles en cours - biens vivants",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2341",
+    "label": "Animaux reproducteurs",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2343",
+    "label": "Animaux de service",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2346",
+    "label": "Plantations pérennes",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2347",
+    "label": "Autres végétaux immobilisés",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "237",
+    "label": "Avances et acomptes versés sur commandes d'immobilisations incorporelles",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "238",
+    "label": "Avances et acomptes versés sur commandes d'immobilisations corporelles",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "24",
+    "label": "Immobilisations corporelles (biens vivants)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "241",
+    "label": "Animaux reproducteurs",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "243",
+    "label": "Animaux de service",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "246",
+    "label": "Plantations pérennes",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "247",
+    "label": "Autres végétaux immobilisés",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "26",
+    "label": "Participations et créances rattachées à des participations",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "261",
+    "label": "Titres de participation",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2611",
+    "label": "Actions",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2618",
+    "label": "Autres titres",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "262",
+    "label": "Participations à des organismes professionnels agricoles (autres que les établissements de crédit)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2621",
+    "label": "Sociétés coopératives agricoles (sauf C.U.M.A.)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2622",
+    "label": "C.U.M.A.",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2624",
+    "label": "S.I.C.A.",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2628",
+    "label": "Autres",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "266",
+    "label": "Autres formes de participation",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2661",
+    "label": "Droits représentatifs d'actifs nets remis en fiducie",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "267",
+    "label": "Créances rattachées à des participations",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2671",
+    "label": "Créances rattachées à des participations - groupe",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2672",
+    "label": "Créances rattachées à des participations à des organismes professionnels agricoles (autres que les établissements de crédit)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "26721",
+    "label": "Sociétés coopératives agricoles (sauf C.U.M.A.)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "26722",
+    "label": "C.U.M.A.",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "26724",
+    "label": "S.I.C.A.",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "26728",
+    "label": "Autres",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2674",
+    "label": "Créances rattachées à des participations - hors groupe",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2675",
+    "label": "Versements représentatifs d'apports non capitalisés - appel de fonds",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2676",
+    "label": "Avances consolidables",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2677",
+    "label": "Autres créances rattachées à des participations",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2678",
+    "label": "Intérêts courus",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "268",
+    "label": "Créances rattachées à des sociétés en participation",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2681",
+    "label": "Principal",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2688",
+    "label": "Intérêts courus",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "269",
+    "label": "Versements restant à effectuer sur titres de participation non libérés",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "27",
+    "label": "Autres immobilisations financières",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "271",
+    "label": "Titres immobilisés autres que les titres immobilisés de l'activité de portefeuille (droit de propriété)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2711",
+    "label": "Actions",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2715",
+    "label": "Parts dans les établissements de crédit",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2718",
+    "label": "Autres titres",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "272",
+    "label": "Titres immobilisés - droit de créance",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2721",
+    "label": "Obligations",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2722",
+    "label": "Bons",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2723",
+    "label": "Certificats de fonds de développement coopératif",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "273",
+    "label": "Titres immobilisés de l'activité de portefeuille",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "274",
+    "label": "Prêts",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2741",
+    "label": "Prêts participatifs",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2742",
+    "label": "Prêts aux associés",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2743",
+    "label": "Prêts au personnel",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2748",
+    "label": "Autres prêts",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "275",
+    "label": "Dépôts et cautionnements versés",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2751",
+    "label": "Dépôts",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2755",
+    "label": "Cautionnements",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "276",
+    "label": "Autres créances immobilisées",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2761",
+    "label": "Créances diverses",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2768",
+    "label": "Intérêts courus",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "27682",
+    "label": "Intérêts courus sur titres immobilisés (droit de créance)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "27684",
+    "label": "Intérêts courus sur prêts",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "27685",
+    "label": "Intérêts courus sur dépôts et cautionnements",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "27688",
+    "label": "Intérêts courus sur créances diverses",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "277",
+    "label": "Actions propres ou parts propres",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2771",
+    "label": "Actions propres ou parts propres",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2772",
+    "label": "Actions propres ou parts propres en voie d'annulation",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "278",
+    "label": "Mali de fusion sur actifs financiers",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "279",
+    "label": "Versements restant à effectuer sur titres immobilisés non libérés",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "28",
+    "label": "Amortissements des immobilisations",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "280",
+    "label": "Amortissements des immobilisations incorporelles et des frais d'établissement (même ventilation que celle du compte 20)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2801",
+    "label": "Frais d'établissement (même ventilation que celle du compte 201)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2803",
+    "label": "Frais de développement",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2805",
+    "label": "Concessions et droits similaires, brevets, licences, solutions informatiques, droits et valeurs similaires",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2806",
+    "label": "Droit au bail",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2807",
+    "label": "Fonds commercial",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2808",
+    "label": "Autres immobilisations incorporelles",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "281",
+    "label": "Amortissements des immobilisations corporelles (même ventilation que celle du compte 21)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2812",
+    "label": "Agencements, aménagements de terrains (même ventilation que celle du compte 212)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2813",
+    "label": "Constructions (même ventilation que celle du compte 213)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2814",
+    "label": "Constructions sur sol d'autrui (même ventilation que celle du compte 214)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2815",
+    "label": "Installations, matériel et outillage industriels (même ventilation que celle du compte 215)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2818",
+    "label": "Autres immobilisations corporelles (même ventilation que celle du compte 218)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "28187",
+    "label": "Amortissement du mali de fusion sur actifs corporels",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "282",
+    "label": "Amortissements des immobilisations mises en concession",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "284",
+    "label": "Amortissements des immobilisations corporelles (biens vivants)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "29",
+    "label": "Dépréciations des immobilisations",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "290",
+    "label": "Dépréciations des immobilisations incorporelles",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2901",
+    "label": "Frais d'établissement",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2903",
+    "label": "Frais de développement",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2905",
+    "label": "Marques, procédés, droits et valeurs similaires",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2906",
+    "label": "Droit au bail",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2907",
+    "label": "Fonds commercial",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2908",
+    "label": "Autres immobilisations incorporelles",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "29081",
+    "label": "Dépréciation du mali de fusion sur actifs incorporels",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "291",
+    "label": "Dépréciations des immobilisations corporelles",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2911",
+    "label": "Terrains",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2912",
+    "label": "Agencements et aménagements de terrains",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2913",
+    "label": "Constructions",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2914",
+    "label": "Constructions sur sol d'autrui",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2915",
+    "label": "Installations techniques, matériels et outillages industriels",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2918",
+    "label": "Autres immobilisations corporelles",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "29187",
+    "label": "Dépréciation du mali de fusion sur actifs corporels",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "292",
+    "label": "Dépréciations des immobilisations mises en concession",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "293",
+    "label": "Dépréciations des immobilisations en cours",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2931",
+    "label": "Immobilisations corporelles en cours",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2932",
+    "label": "Immobilisations incorporelles en cours",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "294",
+    "label": "Dépréciations des immobilisations corporelles (biens vivants) Dépréciations des participations et créances rattachées à des participations (même ventilation que celle du",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "296",
+    "label": "Dépréciations des participations et créances rattachées à des participations",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2961",
+    "label": "Titres de participation",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2962",
+    "label": "Participation à des organismes professionnels agricoles (autres que les établissements de crédit) (même ventilation que celle du compte 262)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2966",
+    "label": "Autres formes de participation",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2967",
+    "label": "Créances rattachées à des participations (même ventilation que celle du compte 267)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2968",
+    "label": "Créances rattachées à des sociétés en participation (même ventilation que celle du compte 268)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "297",
+    "label": "Dépréciations des autres immobilisations financières",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2971",
+    "label": "Titres immobilisés autres que les titres immobilisés de l'activité de portefeuille (droit de propriété)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2972",
+    "label": "Titres immobilisés (droit de créance)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2973",
+    "label": "Titres immobilisés de l'activité de portefeuille",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2974",
+    "label": "Prêts",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2975",
+    "label": "Dépôts et cautionnements versés",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "2976",
+    "label": "Autres créances immobilisées",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3",
+    "label": "COMPTES DE STOCKS ET EN-COURS",
+    "account_type": "ASSET",
+    "is_header": true
+  },
+  {
+    "code": "31",
+    "label": "Matières premières (et fournitures)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "311",
+    "label": "Stocks des activités agricoles",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3111",
+    "label": "Approvisionnements",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "31111",
+    "label": "Engrais et amendements",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "31112",
+    "label": "Semences et plants",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "31113",
+    "label": "Produits de défense des végétaux",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "31114",
+    "label": "Aliments de bétail",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "31115",
+    "label": "Produits de défense des animaux",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "31116",
+    "label": "Produits de reproduction animale",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3112",
+    "label": "Animaux (cycle long)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3113",
+    "label": "Animaux (cycle court)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3114",
+    "label": "Végétaux (cycle long)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "31141",
+    "label": "Avances aux cultures",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "31142",
+    "label": "Pépinières",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "31148",
+    "label": "Autres végétaux",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3115",
+    "label": "Végétaux (cycle court)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "31151",
+    "label": "Avances aux cultures",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "31152",
+    "label": "Pépinières",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "31158",
+    "label": "Autres végétaux",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "32",
+    "label": "Autres approvisionnements",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "321",
+    "label": "Matières consommables",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "322",
+    "label": "Fournitures consommables",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3221",
+    "label": "Combustibles",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3222",
+    "label": "Produits d'entretien",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3223",
+    "label": "Fournitures d'atelier et d'usine",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3224",
+    "label": "Fournitures de magasin",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3225",
+    "label": "Fournitures de bureau",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "326",
+    "label": "Emballages",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3261",
+    "label": "Emballages perdus",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3265",
+    "label": "Emballages récupérables non identifiables",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3267",
+    "label": "Emballages à usage mixte",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "33",
+    "label": "En-cours de production de biens",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "331",
+    "label": "Produits en cours",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3311",
+    "label": "Activité agricole - Cycle long",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "33111",
+    "label": "Vins",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "33112",
+    "label": "Alcools",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3312",
+    "label": "Activité agricole - Cycle court",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "33121",
+    "label": "Produits végétaux",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "33122",
+    "label": "Produits animaux",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "33123",
+    "label": "Vins",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "33124",
+    "label": "Alcools",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "33125",
+    "label": "Autres produits transformés",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "33126",
+    "label": "Autres biens (activités annexes)",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "335",
+    "label": "Travaux en cours",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "34",
+    "label": "En-cours de production de services",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "341",
+    "label": "Études en cours",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "345",
+    "label": "Prestations de services en cours",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "35",
+    "label": "Stocks de produits",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "351",
+    "label": "Produits intermédiaires",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3511",
+    "label": "Activité agricole",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "35111",
+    "label": "Produits intermédiaires végétaux",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "35112",
+    "label": "Produits intermédiaires animaux",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "35113",
+    "label": "Produits intermédiaires transformés",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "355",
+    "label": "Produits finis",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3551",
+    "label": "Activité agricole",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "35511",
+    "label": "Produits finis végétaux",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "35512",
+    "label": "Produits finis animaux",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "35513",
+    "label": "Produits finis transformés",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "358",
+    "label": "Produits résiduels ou matières de récupération",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3581",
+    "label": "Déchets",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3585",
+    "label": "Rebuts",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "3586",
+    "label": "Matières de récupération",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "36",
+    "label": "Stocks provenant d'immobilisations",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "37",
+    "label": "Stocks de marchandises",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "38",
+    "label": "Stocks en voie d'acheminement, mis en dépôt ou donnés en consignation",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "39",
+    "label": "Dépréciations des stocks et en-cours",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "391",
+    "label": "Dépréciations des matières premières et fournitures",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "392",
+    "label": "Dépréciations des autres approvisionnements",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "393",
+    "label": "Dépréciations des en-cours de production de biens",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "394",
+    "label": "Dépréciations des en-cours de production de services",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "395",
+    "label": "Dépréciations des stocks de produits",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "397",
+    "label": "Dépréciations des stocks de marchandises",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "4",
+    "label": "COMPTES DE TIERS",
+    "account_type": "TIERS",
+    "is_header": true
+  },
+  {
+    "code": "40",
+    "label": "Fournisseurs et comptes rattachés",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "401",
+    "label": "Fournisseurs",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4011",
+    "label": "Fournisseurs - Achats de biens et prestations de services",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4017",
+    "label": "Fournisseurs - Retenues de garantie",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "402",
+    "label": "Fournisseurs – Soldes après compensation",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "403",
+    "label": "Fournisseurs - Effets à payer",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "404",
+    "label": "Fournisseurs d'immobilisations",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4041",
+    "label": "Fournisseurs - Achats d'immobilisations",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4047",
+    "label": "Fournisseurs d'immobilisations - Retenues de garantie",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "405",
+    "label": "Fournisseurs d'immobilisations - Effets à payer",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "408",
+    "label": "Fournisseurs - Factures non parvenues",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4081",
+    "label": "Fournisseurs",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4084",
+    "label": "Fournisseurs d'immobilisations",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4088",
+    "label": "Fournisseurs - Intérêts courus",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "409",
+    "label": "Fournisseurs débiteurs",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4091",
+    "label": "Fournisseurs - Avances et acomptes versés sur commandes",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4096",
+    "label": "Fournisseurs - Créances pour emballages et matériel à rendre",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4097",
+    "label": "Fournisseurs - Autres avoirs",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "40971",
+    "label": "Fournisseurs d'exploitation",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "40974",
+    "label": "Fournisseurs d'immobilisations",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4098",
+    "label": "Rabais, remises, ristournes à obtenir et autres avoirs non encore reçus",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "41",
+    "label": "Clients et comptes rattachés",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "411",
+    "label": "Clients",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4111",
+    "label": "Clients - Ventes de biens ou de prestations de services",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4117",
+    "label": "Clients - Retenues de garantie",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "412",
+    "label": "Clients – Soldes après compensation",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "413",
+    "label": "Clients - Effets à recevoir",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "416",
+    "label": "Clients douteux ou litigieux",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "418",
+    "label": "Clients - Produits non encore facturés",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4181",
+    "label": "Clients - Factures à établir",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4188",
+    "label": "Clients - Intérêts courus",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "419",
+    "label": "Clients créditeurs",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4191",
+    "label": "Clients - Avances et acomptes reçus sur commandes",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4196",
+    "label": "Clients - Dettes sur emballages et matériels consignés",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4197",
+    "label": "Clients - Autres avoirs",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4198",
+    "label": "Rabais, remises, ristournes à accorder et autres avoirs à établir",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "42",
+    "label": "Personnel et comptes rattachés",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "421",
+    "label": "Personnel - Rémunérations dues",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "422",
+    "label": "Comité social et économique",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "424",
+    "label": "Participation des salariés aux résultats",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4246",
+    "label": "Réserve spéciale",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4248",
+    "label": "Comptes courants",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "425",
+    "label": "Personnel - Avances et acomptes et autres comptes débiteurs",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "426",
+    "label": "Personnel - Dépôts",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "427",
+    "label": "Personnel - Oppositions",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "428",
+    "label": "Personnel - Charges à payer",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4282",
+    "label": "Dettes provisionnées pour congés à payer",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4284",
+    "label": "Dettes provisionnées pour participation des salariés aux résultats",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4286",
+    "label": "Autres charges à payer",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "43",
+    "label": "Sécurité sociale et autres organismes sociaux",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "431",
+    "label": "Sécurité sociale",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4311",
+    "label": "Mutualité sociale agricole",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "437",
+    "label": "Autres organismes sociaux",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "438",
+    "label": "Organismes sociaux - Charges à payer",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4382",
+    "label": "Charges sociales sur congés à payer",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4386",
+    "label": "Autres charges à payer",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "439",
+    "label": "Organismes sociaux - Produits à recevoir",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "44",
+    "label": "État et autres collectivités publiques",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "441",
+    "label": "État - Subventions et aides à recevoir",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "442",
+    "label": "Contributions, impôts et taxes recouvrés pour le compte de l'État",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4421",
+    "label": "Prélèvements à la source (Impôt sur le revenu)",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4422",
+    "label": "Prélèvements forfaitaires non libératoires",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4423",
+    "label": "Retenues et prélèvements sur les distributions",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "444",
+    "label": "État - Impôts sur les bénéfices",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "445",
+    "label": "État - Taxes sur le chiffre d'affaires",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4452",
+    "label": "TVA due intracommunautaire",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4455",
+    "label": "Taxes sur le chiffre d'affaires à décaisser",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "44551",
+    "label": "TVA à décaisser",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "44558",
+    "label": "Taxes assimilées à la TVA",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4456",
+    "label": "Taxes sur le chiffre d'affaires déductibles",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "44562",
+    "label": "TVA sur immobilisations",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "44563",
+    "label": "TVA transférée par d'autres entités",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "44566",
+    "label": "TVA sur autres biens et services",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "44567",
+    "label": "Crédit de TVA à reporter",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "44568",
+    "label": "Taxes assimilées à la TVA",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4457",
+    "label": "Taxes sur le chiffre d'affaires collectées",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "44571",
+    "label": "TVA collectée",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "44574",
+    "label": "TVA collectée à encaisser",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "44578",
+    "label": "Taxes assimilées à la TVA",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4458",
+    "label": "Taxes sur le chiffre d'affaires à régulariser ou en attente",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "44581",
+    "label": "Acomptes - Régime simplifié d'imposition",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "44583",
+    "label": "Remboursement de taxes sur le chiffre d'affaires demandé",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "44584",
+    "label": "TVA récupérée d'avance",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "44586",
+    "label": "Taxes sur le chiffre d'affaires sur factures non parvenues",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "44587",
+    "label": "Taxes sur le chiffre d'affaires sur factures à établir",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "446",
+    "label": "Obligations cautionnées",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "447",
+    "label": "Autres impôts, taxes et versements assimilés",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "448",
+    "label": "État - Charges à payer et produits à recevoir",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4481",
+    "label": "État - Charges à Payer",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "44811",
+    "label": "Charges fiscales sur congés à payer",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "44812",
+    "label": "Charges à payer",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4482",
+    "label": "État - Produits à recevoir",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "449",
+    "label": "Quotas d'émission à acquérir",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "45",
+    "label": "Groupe et associés",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "451",
+    "label": "Groupe",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "455",
+    "label": "Associés - Comptes courants",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4551",
+    "label": "Principal",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4552",
+    "label": "Activité agricole - Associés \"Comptes bloqués\" (principal)",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4558",
+    "label": "Intérêts courus",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "45582",
+    "label": "Activité agricole - Associés \"Comptes bloqués\" (intérêts courus)",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "456",
+    "label": "Associés - Opérations sur le capital",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4561",
+    "label": "Associés - Comptes d'apport en société",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "45611",
+    "label": "Apports en nature",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "45615",
+    "label": "Apports en numéraire",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4562",
+    "label": "Apporteurs - Capital appelé, non versé",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "45621",
+    "label": "Actionnaires - Capital souscrit et appelé, non versé",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "45625",
+    "label": "Associés - Capital appelé, non versé",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4563",
+    "label": "Associés - Versements reçus sur augmentation de capital",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4564",
+    "label": "Associés - Versements anticipés",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4566",
+    "label": "Actionnaires défaillants",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4567",
+    "label": "Associés - Capital à rembourser",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "457",
+    "label": "Associés - Dividendes à payer",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "458",
+    "label": "Associés - Opérations faites en commun et en GIE",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4581",
+    "label": "Opérations courantes",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4588",
+    "label": "Intérêts courus",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "46",
+    "label": "Débiteurs divers et créditeurs divers",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "461",
+    "label": "Caisse de péréquation des prix",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "462",
+    "label": "Créances sur cessions d'immobilisations",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "464",
+    "label": "Dettes sur acquisitions de valeurs mobilières de placement",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "465",
+    "label": "Créances sur cessions de valeurs mobilières de placement",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "467",
+    "label": "Divers comptes débiteurs et produits à recevoir",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "468",
+    "label": "Divers comptes créditeurs et charges à payer",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "47",
+    "label": "Comptes transitoires ou d'attente",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "471",
+    "label": "Comptes d'attente",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "472",
+    "label": "Opérations de compensation (convention de compte courant)",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "474",
+    "label": "Différences d'évaluation – Actif",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4741",
+    "label": "Différences d'évaluation sur instruments financiers à terme - Actif",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4742",
+    "label": "Différences d'évaluation sur jetons détenus - Actif",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4746",
+    "label": "Différences d'évaluation de jetons sur des passifs - Actif",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "475",
+    "label": "Différences d'évaluation – Passif",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4751",
+    "label": "Différences d'évaluation sur instruments financiers à terme - Passif",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4752",
+    "label": "Différences d'évaluation sur jetons détenus - Passif",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4756",
+    "label": "Différences d'évaluation de jetons sur des passifs - Passif",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "476",
+    "label": "Différence de conversion - Actif",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4761",
+    "label": "Diminution des créances",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4762",
+    "label": "Augmentation des dettes",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4768",
+    "label": "Différences compensées par couverture de change",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "477",
+    "label": "Différences de conversion - Passif",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4771",
+    "label": "Augmentation des créances",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4772",
+    "label": "Diminution des dettes",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4778",
+    "label": "Différences compensées par couverture de change",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "478",
+    "label": "Autres comptes transitoires",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4781",
+    "label": "Mali de fusion sur actif circulant",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "48",
+    "label": "Comptes de régularisation",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "481",
+    "label": "Frais d'émission des emprunts",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "486",
+    "label": "Charges constatées d'avance",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "487",
+    "label": "Produits constatés d'avance",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4871",
+    "label": "Produits constatés d'avance sur jetons émis",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "488",
+    "label": "Comptes de répartition périodique des charges et des produits",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4886",
+    "label": "Charges",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4887",
+    "label": "Produits",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "49",
+    "label": "Dépréciations des comptes de tiers",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "491",
+    "label": "Dépréciations des comptes de clients",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "495",
+    "label": "Dépréciations des comptes du groupe et des associés",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4951",
+    "label": "Comptes du groupe",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4952",
+    "label": "Opérations faites en commun (G.A.E.C. partiels)",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4953",
+    "label": "Opérations faites en commun et en G.I.E. (banques de travail)",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4954",
+    "label": "Opérations faites en commun (autres communautés d'exploitation à objets particuliers)",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4955",
+    "label": "Comptes courants des associés",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4958",
+    "label": "Opérations faites en commun et en GIE",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "496",
+    "label": "Dépréciations des comptes de débiteurs divers",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4962",
+    "label": "Créances sur cessions d'immobilisations",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4965",
+    "label": "Créances sur cessions de valeurs mobilières de placement",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "4967",
+    "label": "Autres comptes débiteurs",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "497",
+    "label": "Caisse de péréquation des prix",
+    "account_type": "TIERS",
+    "is_header": false
+  },
+  {
+    "code": "5",
+    "label": "COMPTES FINANCIERS",
+    "account_type": "ASSET",
+    "is_header": true
+  },
+  {
+    "code": "50",
+    "label": "Valeurs mobilières de placement",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "502",
+    "label": "Actions propres",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5021",
+    "label": "Actions destinées à être attribuées aux employés et affectées à des plans déterminés",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5022",
+    "label": "Actions disponibles pour être attribuées aux employés ou pour la régularisation des cours de bourse",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "503",
+    "label": "Actions",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5031",
+    "label": "Titres cotés",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5035",
+    "label": "Titres non cotés",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "504",
+    "label": "Autres titres conférant un droit de propriété",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "505",
+    "label": "Obligations et bons émis par la société et rachetés par elle",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "506",
+    "label": "Obligations",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5061",
+    "label": "Titres cotés",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5065",
+    "label": "Titres non cotés",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "507",
+    "label": "Bons du Trésor et bons de caisse à court terme",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "508",
+    "label": "Autres valeurs mobilières de placement et autres créances assimilées",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5081",
+    "label": "Autres valeurs mobilières",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5082",
+    "label": "Bons de souscription",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5088",
+    "label": "Intérêts courus sur obligations, bons et valeurs assimilés",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "509",
+    "label": "Versements restant à effectuer sur valeurs mobilières de placement non libérées",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "51",
+    "label": "Banques, établissements financiers et assimilés",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "511",
+    "label": "Valeurs à l'encaissement",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5111",
+    "label": "Coupons échus à l'encaissement",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5112",
+    "label": "Chèques à encaisser",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5113",
+    "label": "Effets à l'encaissement",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5114",
+    "label": "Effets à l'escompte",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "512",
+    "label": "Banques",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5121",
+    "label": "Comptes en euros",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5124",
+    "label": "Comptes en devises",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "517",
+    "label": "Autres organismes financiers",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "518",
+    "label": "Intérêts courus",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5181",
+    "label": "Intérêts courus à payer",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5188",
+    "label": "Intérêts courus à recevoir",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "519",
+    "label": "Concours bancaires courants",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5191",
+    "label": "Crédit de mobilisation de créances commerciales",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5193",
+    "label": "Mobilisation de créances nées à l'étranger",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5198",
+    "label": "Intérêts courus sur concours bancaires courants",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "52",
+    "label": "Instruments financiers à terme et jetons détenus",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "521",
+    "label": "Instruments financiers à terme",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "522",
+    "label": "Jetons détenus",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "523",
+    "label": "Jetons auto-détenus",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "524",
+    "label": "Jetons empruntés",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "53",
+    "label": "Caisse",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "58",
+    "label": "Virements internes",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "59",
+    "label": "Dépréciations des comptes financiers",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "590",
+    "label": "Dépréciations des valeurs mobilières de placement",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5903",
+    "label": "Actions",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5904",
+    "label": "Autres titres conférant un droit de propriété",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5906",
+    "label": "Obligations",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "5908",
+    "label": "Autres valeurs mobilières de placement et créances assimilées",
+    "account_type": "ASSET",
+    "is_header": false
+  },
+  {
+    "code": "6",
+    "label": "COMPTES DE CHARGES",
+    "account_type": "EXPENSE",
+    "is_header": true
+  },
+  {
+    "code": "60",
+    "label": "Achats (sauf 603)",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "601",
+    "label": "Achats stockés - Matières premières et fournitures",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6011",
+    "label": "Activité agricole",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60111",
+    "label": "Engrais et amendements",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60112",
+    "label": "Semences et plants",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60113",
+    "label": "Produits de défense des végétaux",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60114",
+    "label": "Aliments du bétail",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60115",
+    "label": "Produits vétérinaires",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60116",
+    "label": "Produits de reproduction animale",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60117",
+    "label": "Achats d'animaux (biens vivants non immobilisés)",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "602",
+    "label": "Achats stockés - Autres approvisionnements",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6021",
+    "label": "Matières consommables",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6022",
+    "label": "Fournitures consommables",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60221",
+    "label": "Combustibles",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60222",
+    "label": "Produits d'entretien",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60223",
+    "label": "Fournitures d'atelier et d'usine",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60224",
+    "label": "Fournitures de magasin",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60225",
+    "label": "Fourniture de bureau",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6026",
+    "label": "Emballages",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60261",
+    "label": "Emballages perdus",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60262",
+    "label": "Malis sur emballage",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60265",
+    "label": "Emballages récupérables non identifiables",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60267",
+    "label": "Emballages à usage mixte",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "603",
+    "label": "Variation des stocks d'approvisionnements et de marchandises",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6031",
+    "label": "Variation des stocks de matières premières et fournitures",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6032",
+    "label": "Variation des stocks des autres approvisionnements",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6037",
+    "label": "Variation des stocks de marchandises",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "604",
+    "label": "Achats d'études et prestations de services",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "605",
+    "label": "Achats de matériel, équipements et travaux",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6051",
+    "label": "Achats de travaux et de services incorporés à la production agricole",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "606",
+    "label": "Achats non stockés de fournitures",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6061",
+    "label": "Fournitures non stockables - eau, énergie",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60611",
+    "label": "Eau",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60612",
+    "label": "Gaz",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60613",
+    "label": "Électricité",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60614",
+    "label": "Carburants et lubrifiants",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "60615",
+    "label": "Eau d'irrigation",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6063",
+    "label": "Fournitures d'entretien et de petit équipement",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6064",
+    "label": "Fournitures administratives",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6068",
+    "label": "Autres matières et fournitures",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "607",
+    "label": "Achats de marchandises",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "608",
+    "label": "Frais accessoires incorporés aux achats",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "609",
+    "label": "Rabais, remises et ristournes obtenus sur achats (même ventilation que celle du compte 60)",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6098",
+    "label": "Rabais, remises et ristournes non affectés",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "61",
+    "label": "Services extérieurs",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "611",
+    "label": "Sous-traitance générale",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "612",
+    "label": "Redevances de crédit-bail",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6122",
+    "label": "Crédit-bail mobilier",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6125",
+    "label": "Crédit-bail immobilier",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "613",
+    "label": "Locations",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6131",
+    "label": "Fermages et loyers du foncier",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6132",
+    "label": "Locations de matériel",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6134",
+    "label": "Locations d'animaux",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6135",
+    "label": "Locations mobilières",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "614",
+    "label": "Charges locatives et de copropriété",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6141",
+    "label": "Charges locatives du foncier",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6142",
+    "label": "Charges locatives du matériel",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6144",
+    "label": "Charges locatives des animaux",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "615",
+    "label": "Entretien et réparation",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6152",
+    "label": "Entretien et réparation sur biens immobiliers",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6155",
+    "label": "Entretien et réparation sur biens mobiliers",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6156",
+    "label": "Maintenance",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "616",
+    "label": "Primes d'assurances",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6161",
+    "label": "Multirisques",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6162",
+    "label": "Assurance obligatoire dommage construction",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6163",
+    "label": "Assurance - transport",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "61636",
+    "label": "sur achats",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "61637",
+    "label": "sur ventes",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "61638",
+    "label": "sur autres biens",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6164",
+    "label": "Risques d'exploitation",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6165",
+    "label": "Insolvabilité clients",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "617",
+    "label": "Études et recherches",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "618",
+    "label": "Divers",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6181",
+    "label": "Documentation générale",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6183",
+    "label": "Documentation technique",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6185",
+    "label": "Frais de colloques, séminaires, conférences",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "619",
+    "label": "Rabais, remises et ristournes obtenus sur services extérieurs",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "62",
+    "label": "Autres services extérieurs",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "621",
+    "label": "Personnel extérieur à l'entité",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6211",
+    "label": "Personnel intérimaire",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6214",
+    "label": "Personnel détaché ou prêté à l'entité",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "622",
+    "label": "Rémunérations d'intermédiaires et honoraires",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6221",
+    "label": "Commissions et courtages sur achats",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6222",
+    "label": "Commissions et courtages sur ventes",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6224",
+    "label": "Rémunérations des transitaires",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6225",
+    "label": "Rémunérations d'affacturage",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6226",
+    "label": "Honoraires",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6227",
+    "label": "Frais d'actes et de contentieux",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6228",
+    "label": "Divers",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "623",
+    "label": "Publicité, publications, relations publiques",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6231",
+    "label": "Annonces et insertions",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6232",
+    "label": "Échantillons",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6233",
+    "label": "Foires et expositions",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6234",
+    "label": "Cadeaux à la clientèle",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6235",
+    "label": "Primes",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6236",
+    "label": "Catalogues et imprimés",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6237",
+    "label": "Publications",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6238",
+    "label": "Divers (pourboires, dons courants)",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "624",
+    "label": "Transports de biens et transports collectifs du personnel",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6241",
+    "label": "Transports sur achats",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6242",
+    "label": "Transports sur ventes",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6243",
+    "label": "Transports entre établissements ou chantiers",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6244",
+    "label": "Transports administratifs",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6247",
+    "label": "Transports collectifs du personnel",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6248",
+    "label": "Divers",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "625",
+    "label": "Déplacements, missions et réceptions",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6251",
+    "label": "Voyages et déplacements",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6255",
+    "label": "Frais de déménagement",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6256",
+    "label": "Missions",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6257",
+    "label": "Réceptions",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "626",
+    "label": "Frais postaux et de télécommunications",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "627",
+    "label": "Services bancaires et assimilés",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6271",
+    "label": "Frais sur titres (achat, vente, garde)",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6272",
+    "label": "Commissions et frais sur émission d'emprunts",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6275",
+    "label": "Frais sur effets",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6276",
+    "label": "Location de coffres",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6278",
+    "label": "Autres frais et commissions sur prestations de services",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "628",
+    "label": "Divers",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6281",
+    "label": "Concours divers (cotisations)",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6284",
+    "label": "Frais de recrutement de personnel",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "629",
+    "label": "Rabais, remises et ristournes obtenus sur autres services extérieurs",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "63",
+    "label": "Impôts, taxes et versements assimilés",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "631",
+    "label": "Impôts, taxes et versements assimilés sur rémunérations (administrations des impôts)",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6311",
+    "label": "Taxe sur les salaires",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6314",
+    "label": "Cotisation pour défaut d'investissement obligatoire dans la construction",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6318",
+    "label": "Autres",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "633",
+    "label": "Impôts, taxes et versements assimilés sur rémunérations (autres organismes)",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6331",
+    "label": "Versement de transport",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6332",
+    "label": "Allocations logement",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6333",
+    "label": "Contribution unique des employeurs à la formation professionnelle",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6334",
+    "label": "Participation des employeurs à l'effort de construction",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6335",
+    "label": "Versements libératoires ouvrant droit à l'exonération de la taxe d'apprentissage",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6338",
+    "label": "Autres",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "634",
+    "label": "Taxes spécifiques sur les produits de l'exploitation",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6341",
+    "label": "Produits végétaux",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6342",
+    "label": "Produits animaux",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6343",
+    "label": "Produits transformés",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6344",
+    "label": "Animaux",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6348",
+    "label": "Autres produits",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "635",
+    "label": "Autres impôts, taxes et versements assimilés (administrations des impôts)",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6351",
+    "label": "Impôts directs (sauf impôts sur les bénéfices)",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "63511",
+    "label": "Contribution économique territoriale",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "63512",
+    "label": "Taxes foncières",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "63513",
+    "label": "Autres impôts locaux",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "63514",
+    "label": "Taxe sur les véhicules des sociétés",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6352",
+    "label": "Taxe sur le chiffre d'affaires non récupérables",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6353",
+    "label": "Impôts indirects",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6354",
+    "label": "Droits d'enregistrement et de timbre",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "63541",
+    "label": "Droits de mutation",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6358",
+    "label": "Autres droits",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "637",
+    "label": "Autres impôts, taxes et versements assimilés (autres organismes)",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6371",
+    "label": "Contribution sociale de solidarité à la charge des sociétés",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6372",
+    "label": "Taxes perçues par les organismes publics internationaux",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6374",
+    "label": "Impôts et taxes exigibles à l'étranger",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6378",
+    "label": "Taxes diverses",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "638",
+    "label": "Rappel d'impôts (autres qu'impôts sur les bénéfices)",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "64",
+    "label": "Charges de personnel",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "641",
+    "label": "Rémunérations du personnel",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6411",
+    "label": "Salaires, appointements",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "64111",
+    "label": "Personnel permanent ou régulier",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "64115",
+    "label": "Personnel temporaire ou occasionnel",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "64116",
+    "label": "Rémunérations (associés d'exploitation)",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "64117",
+    "label": "Rémunérations (administrateurs, gérants, associés)",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6412",
+    "label": "Congés payés",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6413",
+    "label": "Primes et gratifications",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6414",
+    "label": "Indemnités et avantages divers",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6415",
+    "label": "Supplément familial",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "644",
+    "label": "Rémunération du travail de l'exploitant",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "645",
+    "label": "Cotisations de sécurité sociale et de prévoyance",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6451",
+    "label": "Cotisations à la Mutualité Sociale Agricole",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6452",
+    "label": "Cotisations aux mutuelles",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6453",
+    "label": "Cotisations aux caisses de retraites",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6454",
+    "label": "Cotisations à Pôle emploi",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6458",
+    "label": "Cotisations aux autres organismes sociaux",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "646",
+    "label": "Cotisations sociales personnelles de l'exploitant",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "647",
+    "label": "Autres cotisations sociales",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6471",
+    "label": "Prestations directes",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6472",
+    "label": "Versements au comité social et économique",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6474",
+    "label": "Versements aux autres œuvres sociales",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6475",
+    "label": "Médecine du travail, pharmacie",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "648",
+    "label": "Autres charges de personnel",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "649",
+    "label": "Remboursements de charges de personnel",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "65",
+    "label": "Autres charges de gestion courante",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "651",
+    "label": "Redevances pour concessions, brevets, licences, marques, procédés, solutions informatiques, droits et valeurs similaires",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6511",
+    "label": "Redevances pour concessions, brevets, licences, marques, procédés, solutions informatiques",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6516",
+    "label": "Droits d'auteur et de reproduction",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6518",
+    "label": "Autres droits et valeurs similaires",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "653",
+    "label": "Rémunérations de l'activité des administrateurs et des gérants",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "654",
+    "label": "Pertes sur créances irrécouvrables",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6541",
+    "label": "Créances de l'exercice",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6544",
+    "label": "Créances des exercices antérieurs",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "655",
+    "label": "Quote-part de résultat sur opérations faites en commun",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6551",
+    "label": "Quote-part de bénéfice transférée - comptabilité du gérant",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6555",
+    "label": "Quote-part de perte supportée - comptabilité des associés non gérants",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "656",
+    "label": "Pertes de change sur créances et dettes commerciales",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "657",
+    "label": "Valeurs comptables des immobilisations incorporelles et corporelles cédées",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6571",
+    "label": "Valeur comptable des biens vivants immobilisés cédés",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6578",
+    "label": "Valeurs comptables des autres immobilisations incorporelles et corporelles cédées",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "658",
+    "label": "Pénalités et autres charges",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6581",
+    "label": "Pénalités sur marchés (et dédits payés sur achats et ventes)",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6582",
+    "label": "Pénalités, amendes fiscales et pénales",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6583",
+    "label": "Malis provenant de clauses d'indexation",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6584",
+    "label": "Lots",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6588",
+    "label": "Opérations de constitution ou liquidation des fiducies",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "66",
+    "label": "Charges financières",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "661",
+    "label": "Charges d'intérêts",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6611",
+    "label": "Intérêts des emprunts et dettes",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "66116",
+    "label": "Intérêts des emprunts et dettes assimilées",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "66117",
+    "label": "Intérêts des dettes rattachées à des participations",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6612",
+    "label": "Charges de la fiducie, résultat de la période",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6615",
+    "label": "Intérêts des comptes courants et des dépôts créditeurs",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6616",
+    "label": "Intérêts bancaires et sur opérations de financement (escompte…)",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6617",
+    "label": "Intérêts des obligations cautionnées",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6618",
+    "label": "Intérêts des autres dettes",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "66181",
+    "label": "Intérêts des dettes commerciales",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "66188",
+    "label": "Intérêts des dettes diverses",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "664",
+    "label": "Pertes sur créances liées à des participations",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "665",
+    "label": "Escomptes accordés",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "666",
+    "label": "Pertes de change financières",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "667",
+    "label": "Charges sur cession d'éléments financiers",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6671",
+    "label": "Valeurs comptables des immobilisations financières cédées",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6672",
+    "label": "Charges nettes sur cessions de titres immobilisés de l'activité de portefeuille",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6673",
+    "label": "Charges nettes sur cessions de valeurs mobilières de placement",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6674",
+    "label": "Charges nettes sur cessions de jetons",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "668",
+    "label": "Autres charges financières",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6683",
+    "label": "Mali provenant du rachat par l'entité d'actions et obligations émises par elle-même",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "67",
+    "label": "Charges exceptionnelles",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "672",
+    "label": "Charges sur exercices antérieurs",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "678",
+    "label": "Autres charges exceptionnelles",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "68",
+    "label": "Dotations aux amortissements, aux dépréciations et aux provisions",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "681",
+    "label": "Dotations aux amortissements, aux dépréciations et aux provisions - Charges d'exploitation",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6811",
+    "label": "Dotations aux amortissements sur immobilisations incorporelles et corporelles",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "68111",
+    "label": "Immobilisations incorporelles et frais d'établissement",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "68112",
+    "label": "Immobilisations corporelles",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "68114",
+    "label": "Biens vivants immobilisés",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6815",
+    "label": "Dotations aux provisions d'exploitation",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6816",
+    "label": "Dotations pour dépréciations des immobilisations incorporelles et corporelles",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "68161",
+    "label": "Immobilisations incorporelles",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "68162",
+    "label": "Immobilisations corporelles",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "68164",
+    "label": "Biens vivants immobilisés",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6817",
+    "label": "Dotations pour dépréciations des actifs circulants",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "68173",
+    "label": "Stocks et en-cours",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "68174",
+    "label": "Créances",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "686",
+    "label": "Dotations aux amortissements, aux dépréciations et aux provisions (à inscrire dans les charges financières)",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6861",
+    "label": "Dotations aux amortissements des primes de remboursement des emprunts",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6862",
+    "label": "Dotations aux amortissements des frais d'émission des emprunts",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6865",
+    "label": "Dotations aux provisions financières",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6866",
+    "label": "Dotations pour dépréciation des éléments financiers",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "68662",
+    "label": "Immobilisations financières",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "68665",
+    "label": "Valeurs mobilières de placement",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "687",
+    "label": "Dotations aux amortissements, aux dépréciations et aux provisions (à inscrire dans les charges exceptionnelles)",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6871",
+    "label": "Dotations aux amortissements exceptionnels des immobilisations",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6872",
+    "label": "Dotations aux provisions réglementées (immobilisations)",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "68725",
+    "label": "Amortissements dérogatoires",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6873",
+    "label": "Dotations aux provisions réglementées (stocks)",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6874",
+    "label": "Dotations aux autres provisions réglementées",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6875",
+    "label": "Dotations aux provisions exceptionnelles",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6876",
+    "label": "Dotations pour dépréciations exceptionnelles",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "69",
+    "label": "Participation des salariés - Impôts sur les bénéfices et assimilés",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "691",
+    "label": "Participation des salariés aux résultats",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "695",
+    "label": "Impôts sur les bénéfices",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6951",
+    "label": "Impôts dus en France",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6952",
+    "label": "Contribution additionnelle à l'impôt sur les bénéfices",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6954",
+    "label": "Impôts dus à l'étranger",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "696",
+    "label": "Suppléments d'impôt sur les sociétés liés aux distributions",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "698",
+    "label": "Intégration fiscale",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6981",
+    "label": "Intégration fiscale - Charges",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "6989",
+    "label": "Intégration fiscale - Produits",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "699",
+    "label": "Produits - Reports en arrière des déficits",
+    "account_type": "EXPENSE",
+    "is_header": false
+  },
+  {
+    "code": "7",
+    "label": "COMPTES DE PRODUITS",
+    "account_type": "REVENUE",
+    "is_header": true
+  },
+  {
+    "code": "70",
+    "label": "Ventes de produits fabriqués, prestations de services, marchandises",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "701",
+    "label": "Ventes de produits finis",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7011",
+    "label": "Ventes de produits végétaux",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7012",
+    "label": "Ventes de produits animaux",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7013",
+    "label": "Ventes de produits transformés",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7014",
+    "label": "Ventes d'animaux",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "702",
+    "label": "Ventes de produits intermédiaires",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "703",
+    "label": "Ventes de produits résiduels",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "704",
+    "label": "Travaux",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7041",
+    "label": "Travaux à façon",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7042",
+    "label": "Produits sur contrat d'intégration",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "705",
+    "label": "Études",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "706",
+    "label": "Prestations de services",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "707",
+    "label": "Ventes de marchandises",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "708",
+    "label": "Produits des activités annexes",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7081",
+    "label": "Produits des services exploités dans l'intérêt du personnel",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7082",
+    "label": "Commissions et courtages",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7083",
+    "label": "Locations diverses",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7084",
+    "label": "Mise à disposition de personnel facturée",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7085",
+    "label": "Ports et frais accessoires facturés",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7086",
+    "label": "Bonis sur reprises d'emballages consignés",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7087",
+    "label": "Bonifications obtenues des clients et primes sur ventes",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7088",
+    "label": "Autres produits d'activités annexes (cessions d'approvisionnements)",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "709",
+    "label": "Rabais, remises et ristournes accordés",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7091",
+    "label": "Rabais, remises et ristournes accordés sur ventes de produits finis",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7092",
+    "label": "Rabais, remises et ristournes accordés sur ventes de produits intermédiaires",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7094",
+    "label": "Rabais, remises et ristournes accordés sur travaux",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7095",
+    "label": "Rabais, remises et ristournes accordés sur études",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7096",
+    "label": "Rabais, remises et ristournes accordés sur prestations de services",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7097",
+    "label": "Rabais, remises et ristournes accordés sur ventes de marchandises",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7098",
+    "label": "Rabais, remises et ristournes accordés sur produits des activités annexes",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "71",
+    "label": "Production stockée (ou déstockage)",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "713",
+    "label": "Variation des stocks en-cours de production, produits",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7133",
+    "label": "Variation des en-cours de production de biens",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "71331",
+    "label": "Produits en cours",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "713311",
+    "label": "Cycle long",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "713312",
+    "label": "Cycle court",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "71335",
+    "label": "Travaux en cours",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7134",
+    "label": "Variation des en-cours de production de services",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "71341",
+    "label": "Études en cours",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "71345",
+    "label": "Prestations de services en cours",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7135",
+    "label": "Variation des stocks de produits",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "71351",
+    "label": "Produits intermédiaires",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "71355",
+    "label": "Produits finis",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "713551",
+    "label": "Animaux (cycle long)",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "713552",
+    "label": "Animaux (cycle court)",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "713553",
+    "label": "Végétaux (cycle long)",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "713554",
+    "label": "Végétaux (cycle court)",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "71358",
+    "label": "Produits résiduels",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "72",
+    "label": "Production immobilisée",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "721",
+    "label": "Immobilisations incorporelles",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "722",
+    "label": "Immobilisations corporelles",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7221",
+    "label": "Production immobilisée - Immobilisations corporelles (hors biens vivants)",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7222",
+    "label": "Production immobilisée - Immobilisations corporelles (biens vivants)",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "724",
+    "label": "Biens vivants immobilisés",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "73",
+    "label": "Production autoconsommée",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "74",
+    "label": "Subventions d'exploitation",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "741",
+    "label": "Remboursement forfaitaire de TVA",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "742",
+    "label": "Indemnités liées à la production agricole",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "743",
+    "label": "Subventions aux produits",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "744",
+    "label": "Subventions aux structures",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "745",
+    "label": "Subventions au revenu",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "747",
+    "label": "Quote-part des subventions d'investissement virée au résultat de l'exercice",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "748",
+    "label": "Autres subventions d'exploitation",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "75",
+    "label": "Autres produits de gestion courante",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "751",
+    "label": "Redevances pour concessions, brevets, licences, marques, procédés, solutions informatiques, droits et valeurs similaires",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7511",
+    "label": "Redevances pour concessions, brevets, licences, marques, procédés, solutions informatiques",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7516",
+    "label": "Droits d'auteur et de reproduction",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7518",
+    "label": "Autres droits et valeurs similaires",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "752",
+    "label": "Revenus des immeubles non affectés à des activités professionnelles",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "753",
+    "label": "Rémunérations de l'activité des administrateurs et des gérants",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "754",
+    "label": "Ristournes perçues des coopératives provenant des excédents",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "755",
+    "label": "Quote-part de résultat sur opérations faites en commun",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7551",
+    "label": "Quote-part de perte transférée - comptabilité du gérant",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7555",
+    "label": "Quote-part de bénéfice attribuée - comptabilité des associés non-gérants",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "756",
+    "label": "Gains de change sur créances et dettes commerciales",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "757",
+    "label": "Produits des cessions d'immobilisations incorporelles et corporelles",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7571",
+    "label": "Produits de cessions des biens vivants immobilisés",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7578",
+    "label": "Produits des cessions des autres immobilisations incorporelles et corporelles",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "758",
+    "label": "Indemnités et autres produits",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7581",
+    "label": "Dédits et pénalités perçus sur achats et ventes",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7582",
+    "label": "Libéralités reçues",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7583",
+    "label": "Rentrées sur créances amorties",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7584",
+    "label": "Dégrèvements d'impôts autres qu'impôts sur les bénéfices",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7585",
+    "label": "Bonis provenant de clauses d'indexation",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7586",
+    "label": "Lots",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7587",
+    "label": "Indemnités d'assurance",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7588",
+    "label": "Opérations de constitution ou liquidation des fiducies",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "76",
+    "label": "Produits financiers",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "761",
+    "label": "Produits de participations",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7611",
+    "label": "Revenus des titres de participation",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7612",
+    "label": "Produits de la fiducie, résultat de la période",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7616",
+    "label": "Revenus sur autres formes de participation",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7617",
+    "label": "Revenus des créances rattachées à des participations",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "762",
+    "label": "Produits des autres immobilisations financières",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7621",
+    "label": "Revenus des titres immobilisés",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7626",
+    "label": "Revenus des prêts",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7627",
+    "label": "Revenus des créances immobilisées",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "763",
+    "label": "Revenus des autres créances",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7631",
+    "label": "Revenus des créances commerciales",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7638",
+    "label": "Revenus des créances diverses",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "764",
+    "label": "Revenus des valeurs mobilières de placement",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "765",
+    "label": "Escomptes obtenus",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "766",
+    "label": "Gains de change financiers",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "767",
+    "label": "Produits sur cession d'éléments financiers",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7671",
+    "label": "Produits des cessions d'immobilisations financières",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7672",
+    "label": "Produits nets sur cessions de titres immobilisés de l'activité de portefeuille",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7673",
+    "label": "Produits nets sur cessions de valeurs mobilières de placement",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7674",
+    "label": "Produits nets sur cessions de jetons",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "768",
+    "label": "Autres produits financiers",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7683",
+    "label": "Bonis provenant du rachat par l'entreprise d'actions et d'obligations émises par elle-même",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "77",
+    "label": "Produits exceptionnels",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "772",
+    "label": "Produits sur exercices antérieurs",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "778",
+    "label": "Autres produits exceptionnels",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "78",
+    "label": "Reprises sur amortissements, dépréciations et provisions",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "781",
+    "label": "Reprises sur amortissements, dépréciations et provisions (à inscrire dans les produits d'exploitation)",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7811",
+    "label": "Reprises sur amortissements des immobilisations incorporelles et corporelles",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "78111",
+    "label": "Immobilisations incorporelles",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "78112",
+    "label": "Immobilisations corporelles",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7815",
+    "label": "Reprises sur provisions d'exploitation",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7816",
+    "label": "Reprises sur dépréciations des immobilisations incorporelles et corporelles",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "78161",
+    "label": "Immobilisations incorporelles",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "78162",
+    "label": "Immobilisations corporelles",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7817",
+    "label": "Reprises sur dépréciations des actifs circulants",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "78173",
+    "label": "Stocks et en-cours",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "78174",
+    "label": "Créances",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "786",
+    "label": "Reprises sur dépréciations et provisions (à inscrire dans les produits financiers)",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7865",
+    "label": "Reprises sur provisions financières",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7866",
+    "label": "Reprises sur dépréciations des éléments financiers",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "78662",
+    "label": "Immobilisations financières",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "78665",
+    "label": "Valeurs mobilières de placement",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "787",
+    "label": "Reprises sur dépréciations et provisions (à inscrire dans les produits exceptionnels)",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7872",
+    "label": "Reprises sur provisions réglementées (immobilisations)",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "78725",
+    "label": "Amortissements dérogatoires",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7873",
+    "label": "Reprises sur provisions réglementées (stocks)",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7874",
+    "label": "Reprises sur autres provisions réglementées",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7875",
+    "label": "Reprises sur provisions exceptionnelles",
+    "account_type": "REVENUE",
+    "is_header": false
+  },
+  {
+    "code": "7876",
+    "label": "Reprises sur dépréciations exceptionnelles",
+    "account_type": "REVENUE",
+    "is_header": false
+  }
+]

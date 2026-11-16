@@ -8,6 +8,8 @@ export interface Line {
   debit: string; // saisie brute en euros
   credit: string;
   projectId: string | null;
+  /** Lot AG8.c : affectation analytique (« activity:ID » ou « key:ID »), instances agricoles. */
+  analytic: string | null;
   /** Lot T2 : code de TVA et base HT (saisie en euros) d'une ligne 445… */
   vatCode: string | null;
   vatBase: string;
@@ -27,6 +29,7 @@ export interface InitialLine {
   debit_cents?: number;
   credit_cents?: number;
   project_id?: string | null;
+  analytic?: string | null;
   vat_code?: string | null;
   vat_base_cents?: number | null;
 }
@@ -41,6 +44,7 @@ export function newLine(init: Partial<InitialLine> = {}): Line {
     debit: toInput(init.debit_cents ?? 0),
     credit: toInput(init.credit_cents ?? 0),
     projectId: init.project_id ?? null,
+    analytic: init.analytic ?? null,
     vatCode: init.vat_code ?? null,
     vatBase: init.vat_base_cents != null ? toInput(init.vat_base_cents) : "",
   };
@@ -167,6 +171,7 @@ export function toPayload(state: EntryState, bankTransactionId?: number): EntryP
         debit_cents: c.debit ?? 0,
         credit_cents: c.credit ?? 0,
         project_id: l.projectId ? Number(l.projectId) : null,
+        ...(l.analytic ? { analytic: l.analytic } : {}),
         vat_code: l.vatCode,
         vat_base_cents: l.vatCode && l.vatBase.trim() ? parseAmount(l.vatBase) : null,
       };

@@ -28,7 +28,13 @@ import { AppLink } from "../../app/navigation";
 import { FecPanel } from "./FecPanel";
 import { PrepaidPanel } from "./PrepaidPanel";
 import { DepreciationPanel } from "./DepreciationPanel";
+import { AidAccrualPanel } from "../aids/AidAccrualPanel";
+import { GrantReleasePanel } from "../aids/GrantReleasePanel";
+import { ClosingStockPanel } from "../stock/StockEntryBar";
+import { LivingWipPanel } from "../assets/LivingWipPanel";
+import { LivingImpairmentPanel } from "../assets/LivingImpairmentPanel";
 import { FISCAL_YEARS_KEY, type FiscalYear } from "./FiscalYearsPage";
+import { ExplainButton } from "../assistant/AssistantDrawer";
 
 type StepState = "todo" | "done" | "skipped" | "provisional";
 
@@ -202,7 +208,8 @@ function Checks({ checks }: { checks: Check[] }) {
             <Table.Td><StatusBadge tone={c.severity === "anomaly" ? "gap" : "info"}>{c.severity === "anomaly" ? "Anomalie" : "Info"}</StatusBadge></Table.Td>
             <Table.Td>{c.label}</Table.Td>
             <Table.Td className="lv-num" ta="right">{c.count}</Table.Td>
-            <Table.Td ta="right">{c.url && <Anchor component={AppLink} href={c.url} size="sm">Voir</Anchor>}</Table.Td>
+            <Table.Td ta="right">{c.url && <Anchor component={AppLink} href={c.url} size="sm">Voir</Anchor>}
+              <ExplainButton question={`Clôture de l'exercice : explique ce contrôle et comment le résoudre : « ${c.label} » (${c.count}).`} /></Table.Td>
           </Table.Tr>
         ))}
       </Table.Tbody>
@@ -216,7 +223,9 @@ function Inventory({ view }: { view: ClosingView }) {
   const fyId = view.fiscal_year.id;
   const editable = can.write && view.fiscal_year.status === "open";
   const remove = useClosingAction(fyId, (entryId: number) => api.delete(`/api/v1/fiscal-years/${fyId}/inventory/${entryId}`));
-  const withAssociates = !!useCurrentSession().instance?.has_associates;
+  const session = useCurrentSession();
+  const withAssociates = !!session.instance?.has_associates;
+  const agri = session.instance?.chart === "agri";
   return (
     <Stack>
       {view.inventory.length ? (
@@ -242,6 +251,11 @@ function Inventory({ view }: { view: ClosingView }) {
       ) : <Text size="sm" c="dimmed">Aucune écriture d'inventaire.</Text>}
       <DepreciationPanel fyId={fyId} editable={editable} />
       <PrepaidPanel fyId={fyId} editable={editable} />
+      {agri && <ClosingStockPanel fyId={fyId} editable={editable} />}
+      {agri && <LivingWipPanel fyId={fyId} editable={editable} />}
+      {agri && <LivingImpairmentPanel fyId={fyId} editable={editable} />}
+      <AidAccrualPanel fyId={fyId} editable={editable} />
+      <GrantReleasePanel fyId={fyId} editable={editable} />
       {editable && <InventoryForm view={view} />}
       {withAssociates && <InterestPanel fyId={fyId} open={view.fiscal_year.status === "open"} />}
     </Stack>

@@ -52,6 +52,22 @@ def products_list():
     )
 
 
+@bp.route("/products/agri-catalog", methods=["POST"])
+def products_agri_catalog():
+    """Exploitation agricole (lot AG1.e) : ajoute au catalogue les catégories d'articles agricoles absentes."""
+    from app.access import current_role, permissions
+    from app.services import agri_catalog
+    from app.tenant import current_chart
+
+    if current_chart() != "agri":
+        raise ApiError("not_found", "Catalogue réservé aux exploitations agricoles.", 404)
+    if not permissions(current_role())["write"]:
+        raise ApiError("forbidden", "Lecture seule.", 403)
+    result = agri_catalog.seed_catalog()
+    return jsonify(result=result, notices=[notice(
+        f"{result['created']} article(s) agricole(s) ajouté(s) au catalogue ; taux de TVA à vérifier.")])
+
+
 @bp.route("/products", methods=["POST"])
 def products_create():
     try:

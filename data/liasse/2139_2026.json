@@ -1,0 +1,1138 @@
+{
+ "_comment": "Aide à la liasse BA, réel simplifié (lot AG6.f, claudedocs/design_fiscalite_ba.md § 8). Cases lues sur les formulaires 2026 fournis (claudedocs/compta_agricole/liasse_BA/, hors git) ; correspondance comptes → cases proposée par Lyvre d'après le plan agricole (ANC 2020-04), À VALIDER par l'expert-comptable. Règles : accounts + mode (debit, credit, debit_only, credit_only, debit_movements, credit_movements), sum / minus (cases), tax (résultat fiscal), sinon saisie. detail : ligne « dont », hors totaux.",
+ "form": "2139",
+ "millesime": 2026,
+ "regime": "simplified",
+ "title": "Bénéfices agricoles, régime du bénéfice réel simplifié",
+ "sources": [
+  "2139-SD (cerfa 11144*28), 2139-bis-SD, 2139-ter-SD : 2139-sd_5399.pdf",
+  "2139-A-SD à 2139-E-SD (cerfa 15946*08) : 2139-sd_5400.pdf",
+  "2139-NOT-SD : 2139-sd_5401.pdf"
+ ],
+ "read_on": "2026-11-05",
+ "reliability": "I",
+ "balance_sheet_tables": [
+  "2139-A-SD"
+ ],
+ "tables": [
+  {
+   "code": "2139-SD",
+   "title": "Cadre B : récapitulation des éléments d'imposition",
+   "rows": [
+    {
+     "case": "ligne 1 col. 1",
+     "label": "Résultat fiscal : bénéfice (report de FS)",
+     "tax": "fiscal_profit_before_ja"
+    },
+    {
+     "case": "ligne 1 col. 2",
+     "label": "Résultat fiscal : déficit (report de FT)",
+     "tax": "fiscal_loss_before_ja"
+    },
+    {
+     "case": "e",
+     "label": "Abattement en faveur des jeunes agriculteurs",
+     "tax": "ja"
+    },
+    {
+     "case": "l",
+     "label": "Déduction pour épargne de précaution (art. 73)",
+     "tax": "dep"
+    },
+    {
+     "case": "g",
+     "label": "Bénéfice (col. 1 − col. 2)",
+     "tax": "fiscal_profit"
+    },
+    {
+     "case": "h",
+     "label": "Déficit",
+     "tax": "fiscal_loss"
+    }
+   ]
+  },
+  {
+   "code": "2139-A-SD",
+   "title": "Bilan simplifié",
+   "rows": [
+    {
+     "case": "AA",
+     "label": "Frais d'établissement (brut)",
+     "accounts": [
+      "201"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "AB",
+     "label": "Frais d'établissement (amortissements)",
+     "accounts": [
+      "2801",
+      "2901"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "AC",
+     "label": "Autres immobilisations incorporelles (brut)",
+     "accounts": [
+      "20",
+      "232",
+      "237"
+     ],
+     "mode": "debit",
+     "exclude": [
+      "201"
+     ]
+    },
+    {
+     "case": "AD",
+     "label": "Autres immobilisations incorporelles (amortissements)",
+     "accounts": [
+      "280",
+      "290",
+      "2932"
+     ],
+     "mode": "credit",
+     "exclude": [
+      "2801",
+      "2901"
+     ]
+    },
+    {
+     "case": "AE",
+     "label": "Terrains (brut)",
+     "accounts": [
+      "211",
+      "2125"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "AF",
+     "label": "Terrains (provisions)",
+     "accounts": [
+      "2911"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "AG",
+     "label": "Améliorations du fonds (brut)",
+     "accounts": [
+      "217"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "AH",
+     "label": "Améliorations du fonds (amortissements)"
+    },
+    {
+     "case": "AJ",
+     "label": "Constructions (brut)",
+     "accounts": [
+      "213",
+      "214",
+      "212"
+     ],
+     "exclude": [
+      "2125"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "AK",
+     "label": "Constructions (amortissements)",
+     "accounts": [
+      "2812",
+      "2813",
+      "2814",
+      "2912",
+      "2913",
+      "2914"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "AL",
+     "label": "Installations techniques, matériels et outillage (brut)",
+     "accounts": [
+      "215"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "AM",
+     "label": "Installations techniques, matériels et outillage (amortissements)",
+     "accounts": [
+      "2815",
+      "2915"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "AN",
+     "label": "Plantations pérennes (brut)",
+     "accounts": [
+      "246",
+      "247"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "AP",
+     "label": "Plantations pérennes (amortissements)",
+     "accounts": [
+      "2846",
+      "2847",
+      "2946",
+      "2947"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "AQ",
+     "label": "Autres immobilisations corporelles, dont animaux immobilisés (brut)",
+     "accounts": [
+      "218",
+      "22",
+      "241",
+      "243"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "AR",
+     "label": "Autres immobilisations corporelles (amortissements)",
+     "accounts": [
+      "2818",
+      "282",
+      "2841",
+      "2843",
+      "2918",
+      "292",
+      "2941",
+      "2943"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "AS",
+     "label": "Immobilisations corporelles en cours (brut)",
+     "accounts": [
+      "231",
+      "234",
+      "238"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "AT",
+     "label": "Immobilisations corporelles en cours (provisions)",
+     "accounts": [
+      "2931"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "AU",
+     "label": "Immobilisations financières (brut)",
+     "accounts": [
+      "26",
+      "27"
+     ],
+     "mode": "debit",
+     "exclude": [
+      "269",
+      "279"
+     ]
+    },
+    {
+     "case": "AV",
+     "label": "Immobilisations financières (provisions)",
+     "accounts": [
+      "296",
+      "297"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "AW",
+     "label": "Total I (brut)",
+     "sum": [
+      "AA",
+      "AC",
+      "AE",
+      "AG",
+      "AJ",
+      "AL",
+      "AN",
+      "AQ",
+      "AS",
+      "AU"
+     ]
+    },
+    {
+     "case": "AX",
+     "label": "Total I (amortissements et provisions)",
+     "sum": [
+      "AB",
+      "AD",
+      "AF",
+      "AH",
+      "AK",
+      "AM",
+      "AP",
+      "AR",
+      "AT",
+      "AV"
+     ]
+    },
+    {
+     "case": "AY",
+     "label": "Stocks (brut)",
+     "accounts": [
+      "3"
+     ],
+     "mode": "debit",
+     "exclude": [
+      "39"
+     ]
+    },
+    {
+     "case": "AZ",
+     "label": "Stocks (provisions)",
+     "accounts": [
+      "39"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "BA",
+     "label": "Avances et acomptes versés sur commandes",
+     "accounts": [
+      "4091"
+     ],
+     "mode": "debit_only"
+    },
+    {
+     "case": "BB",
+     "label": "Avances et acomptes (provisions)"
+    },
+    {
+     "case": "BC",
+     "label": "Clients et comptes rattachés (brut)",
+     "accounts": [
+      "41"
+     ],
+     "mode": "debit_only",
+     "exclude": [
+      "4191"
+     ]
+    },
+    {
+     "case": "BD",
+     "label": "Clients (provisions)",
+     "accounts": [
+      "491"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "BE",
+     "label": "Autres créances (brut)",
+     "accounts": [
+      "40",
+      "42",
+      "43",
+      "44",
+      "45",
+      "46",
+      "47"
+     ],
+     "mode": "debit_only",
+     "exclude": [
+      "4091",
+      "476",
+      "477"
+     ]
+    },
+    {
+     "case": "BF",
+     "label": "Autres créances (provisions)",
+     "accounts": [
+      "49"
+     ],
+     "mode": "credit",
+     "exclude": [
+      "491"
+     ]
+    },
+    {
+     "case": "BG",
+     "label": "Valeurs mobilières de placement (brut)",
+     "accounts": [
+      "50"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "BH",
+     "label": "Valeurs mobilières de placement (provisions)",
+     "accounts": [
+      "59"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "BJ",
+     "label": "Caisse, banques et autres disponibilités",
+     "accounts": [
+      "51",
+      "53",
+      "54",
+      "58"
+     ],
+     "mode": "debit_only"
+    },
+    {
+     "case": "BN",
+     "label": "Charges constatées d'avance",
+     "accounts": [
+      "486"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "BP",
+     "label": "Total II (brut)",
+     "sum": [
+      "AY",
+      "BA",
+      "BC",
+      "BE",
+      "BG",
+      "BJ",
+      "BN"
+     ]
+    },
+    {
+     "case": "BQ",
+     "label": "Total II (provisions)",
+     "sum": [
+      "AZ",
+      "BB",
+      "BD",
+      "BF",
+      "BH"
+     ]
+    },
+    {
+     "case": "BR",
+     "label": "Total de l'actif (brut)",
+     "sum": [
+      "AW",
+      "BP"
+     ]
+    },
+    {
+     "case": "BS",
+     "label": "Total de l'actif (amortissements et provisions)",
+     "sum": [
+      "AX",
+      "BQ"
+     ]
+    },
+    {
+     "case": "CA",
+     "label": "Capital social ou individuel",
+     "accounts": [
+      "101",
+      "108"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "CB",
+     "label": "Écarts de réévaluation",
+     "accounts": [
+      "105"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "CC",
+     "label": "Réserves et report à nouveau",
+     "accounts": [
+      "10",
+      "11"
+     ],
+     "mode": "credit",
+     "exclude": [
+      "101",
+      "105",
+      "108",
+      "109"
+     ]
+    },
+    {
+     "case": "CD",
+     "label": "dont report à nouveau",
+     "accounts": [
+      "11"
+     ],
+     "mode": "credit",
+     "detail": true
+    },
+    {
+     "case": "CE",
+     "label": "Résultat de l'exercice",
+     "accounts": [
+      "12",
+      "6",
+      "7"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "CF",
+     "label": "Subventions d'investissement et provisions réglementées",
+     "accounts": [
+      "13",
+      "14"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "CT",
+     "label": "dont subventions d'investissement",
+     "accounts": [
+      "13"
+     ],
+     "mode": "credit",
+     "detail": true
+    },
+    {
+     "case": "CG",
+     "label": "Total I (capitaux propres)",
+     "sum": [
+      "CA",
+      "CB",
+      "CC",
+      "CE",
+      "CF"
+     ]
+    },
+    {
+     "case": "CH",
+     "label": "Provisions pour risques et charges (total II)",
+     "accounts": [
+      "15"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "CR",
+     "label": "Concours bancaires courants et découverts bancaires",
+     "accounts": [
+      "51"
+     ],
+     "mode": "credit_only"
+    },
+    {
+     "case": "CO",
+     "label": "Autres emprunts et dettes assimilées",
+     "accounts": [
+      "16",
+      "17"
+     ],
+     "mode": "credit",
+     "exclude": [
+      "169"
+     ]
+    },
+    {
+     "case": "CS",
+     "label": "dont emprunts fonciers",
+     "detail": true
+    },
+    {
+     "case": "CJ",
+     "label": "Avances et acomptes reçus sur commandes en cours",
+     "accounts": [
+      "4191"
+     ],
+     "mode": "credit_only"
+    },
+    {
+     "case": "CK",
+     "label": "Fournisseurs et comptes rattachés",
+     "accounts": [
+      "40"
+     ],
+     "mode": "credit_only",
+     "exclude": [
+      "4091"
+     ]
+    },
+    {
+     "case": "CL",
+     "label": "Autres dettes",
+     "accounts": [
+      "41",
+      "42",
+      "43",
+      "44",
+      "45",
+      "46",
+      "47"
+     ],
+     "mode": "credit_only",
+     "exclude": [
+      "4191",
+      "476",
+      "477"
+     ]
+    },
+    {
+     "case": "CM",
+     "label": "Produits constatés d'avance",
+     "accounts": [
+      "487"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "CN",
+     "label": "Total III (dettes)",
+     "sum": [
+      "CR",
+      "CO",
+      "CJ",
+      "CK",
+      "CL",
+      "CM"
+     ]
+    },
+    {
+     "case": "CP",
+     "label": "Total du passif (I + II + III)",
+     "sum": [
+      "CG",
+      "CH",
+      "CN"
+     ]
+    }
+   ],
+   "checks": [
+    {
+     "equal": [
+      "BR",
+      "CP"
+     ],
+     "minus": [
+      "BS"
+     ],
+     "label": "Total de l'actif net (BR − BS) égal au total du passif (CP)"
+    }
+   ]
+  },
+  {
+   "code": "2139-B-SD",
+   "title": "Compte de résultat simplifié",
+   "rows": [
+    {
+     "case": "EA",
+     "label": "Production vendue : produits végétaux",
+     "accounts": [
+      "7011"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "EB",
+     "label": "Production vendue : produits animaux",
+     "accounts": [
+      "7012"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "EC",
+     "label": "Production vendue : produits transformés",
+     "accounts": [
+      "7013"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "ED",
+     "label": "Production vendue : animaux",
+     "accounts": [
+      "7014"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "EE",
+     "label": "Autre production vendue (biens et services)",
+     "accounts": [
+      "70"
+     ],
+     "mode": "credit",
+     "exclude": [
+      "7011",
+      "7012",
+      "7013",
+      "7014"
+     ]
+    },
+    {
+     "case": "EF",
+     "label": "Variation d'inventaire : animaux reproducteurs (méthode simplifiée)"
+    },
+    {
+     "case": "EG",
+     "label": "Variation de production stockée",
+     "accounts": [
+      "71"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "EH",
+     "label": "Production immobilisée",
+     "accounts": [
+      "72"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "EJ",
+     "label": "Production autoconsommée",
+     "accounts": [
+      "73"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "EK",
+     "label": "Indemnités et subventions d'exploitation",
+     "accounts": [
+      "74"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "EL",
+     "label": "dont remboursement forfaitaire de TVA",
+     "accounts": [
+      "741"
+     ],
+     "mode": "credit",
+     "detail": true
+    },
+    {
+     "case": "EM",
+     "label": "Autres produits (dont reprises et transferts de charges)",
+     "accounts": [
+      "75",
+      "781"
+     ],
+     "mode": "credit",
+     "exclude": [
+      "757"
+     ]
+    },
+    {
+     "case": "EN",
+     "label": "dont quotes-parts de résultat sur opérations faites en commun",
+     "accounts": [
+      "755"
+     ],
+     "mode": "credit",
+     "detail": true
+    },
+    {
+     "case": "EP",
+     "label": "Total des produits d'exploitation (I)",
+     "sum": [
+      "EA",
+      "EB",
+      "EC",
+      "ED",
+      "EE",
+      "EF",
+      "EG",
+      "EH",
+      "EJ",
+      "EK",
+      "EM"
+     ]
+    },
+    {
+     "case": "EQ",
+     "label": "Achats d'approvisionnements",
+     "accounts": [
+      "601",
+      "602",
+      "6091",
+      "6092"
+     ],
+     "mode": "debit",
+     "exclude": [
+      "60117"
+     ]
+    },
+    {
+     "case": "ER",
+     "label": "Achats d'animaux",
+     "accounts": [
+      "60117"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "ES",
+     "label": "Autres achats et charges externes",
+     "accounts": [
+      "604",
+      "605",
+      "606",
+      "607",
+      "608",
+      "609",
+      "61",
+      "62"
+     ],
+     "mode": "debit",
+     "exclude": [
+      "6091",
+      "6092",
+      "613",
+      "614"
+     ]
+    },
+    {
+     "case": "ET",
+     "label": "Variation de stock (approvisionnements et marchandises)",
+     "accounts": [
+      "603"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "EU",
+     "label": "Loyer, fermage et charges locatives",
+     "accounts": [
+      "613",
+      "614"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "EV",
+     "label": "Impôts, taxes et versements assimilés",
+     "accounts": [
+      "63"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "EO",
+     "label": "dont taxes foncières",
+     "detail": true
+    },
+    {
+     "case": "EX",
+     "label": "Rémunérations",
+     "accounts": [
+      "641",
+      "644",
+      "648",
+      "649"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "EW",
+     "label": "dont rémunération du travail de l'exploitant",
+     "accounts": [
+      "644"
+     ],
+     "mode": "debit",
+     "detail": true
+    },
+    {
+     "case": "EY",
+     "label": "Cotisations personnelles de l'exploitant",
+     "accounts": [
+      "646"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "DH",
+     "label": "dont cotisations obligatoires hors CSG / CRDS",
+     "detail": true
+    },
+    {
+     "case": "DL",
+     "label": "dont cotisations facultatives Madelin",
+     "detail": true
+    },
+    {
+     "case": "DM",
+     "label": "dont cotisations facultatives aux nouveaux plans d'épargne retraite",
+     "detail": true
+    },
+    {
+     "case": "DG",
+     "label": "Autres charges sociales",
+     "accounts": [
+      "645",
+      "647"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "EZ",
+     "label": "Dotations aux amortissements et provisions",
+     "accounts": [
+      "681"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "HJ",
+     "label": "dont provisions",
+     "accounts": [
+      "6815",
+      "6817"
+     ],
+     "mode": "debit",
+     "detail": true
+    },
+    {
+     "case": "HI",
+     "label": "dont amortissement du fonds (art. 39, 1-2°, al. 3)",
+     "detail": true
+    },
+    {
+     "case": "FA",
+     "label": "Autres charges",
+     "accounts": [
+      "65"
+     ],
+     "mode": "debit",
+     "exclude": [
+      "657"
+     ]
+    },
+    {
+     "case": "FB",
+     "label": "dont quotes-parts de résultat sur opérations faites en commun",
+     "accounts": [
+      "655"
+     ],
+     "mode": "debit",
+     "detail": true
+    },
+    {
+     "case": "FC",
+     "label": "Total des charges d'exploitation (II)",
+     "sum": [
+      "EQ",
+      "ER",
+      "ES",
+      "ET",
+      "EU",
+      "EV",
+      "EX",
+      "EY",
+      "DG",
+      "EZ",
+      "FA"
+     ]
+    },
+    {
+     "case": "FD",
+     "label": "Résultat d'exploitation (I − II)",
+     "sum": [
+      "EP"
+     ],
+     "minus": [
+      "FC"
+     ]
+    },
+    {
+     "case": "FE",
+     "label": "Produits financiers (III)",
+     "accounts": [
+      "76",
+      "786"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "DJ",
+     "label": "dont produits nets sur cessions de valeurs mobilières de placement",
+     "detail": true
+    },
+    {
+     "case": "FF",
+     "label": "Produits exceptionnels (IV), dont produits de cession d'immobilisations",
+     "accounts": [
+      "77",
+      "757",
+      "787"
+     ],
+     "mode": "credit"
+    },
+    {
+     "case": "FG",
+     "label": "Charges financières (V)",
+     "accounts": [
+      "66",
+      "686"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "DK",
+     "label": "dont charges nettes sur cessions de valeurs mobilières de placement",
+     "detail": true
+    },
+    {
+     "case": "FH",
+     "label": "Charges exceptionnelles (VI), dont valeur comptable des immobilisations cédées",
+     "accounts": [
+      "67",
+      "657",
+      "687",
+      "69"
+     ],
+     "mode": "debit"
+    },
+    {
+     "case": "FJ",
+     "label": "Bénéfice ou perte : (I + III + IV) − (II + V + VI)",
+     "sum": [
+      "EP",
+      "FE",
+      "FF"
+     ],
+     "minus": [
+      "FC",
+      "FG",
+      "FH"
+     ]
+    },
+    {
+     "case": "FK",
+     "label": "Bénéfice comptable",
+     "tax": "accounting_profit"
+    },
+    {
+     "case": "FL",
+     "label": "Déficit comptable",
+     "tax": "accounting_loss"
+    },
+    {
+     "case": "FM",
+     "label": "Rémunérations et avantages personnels non déductibles",
+     "note": "Rémunération de l'exploitant (644) à réintégrer : à saisir en ligne de passage pour qu'elle entre dans le résultat fiscal."
+    },
+    {
+     "case": "FN",
+     "label": "Amortissements excédentaires et autres amortissements non déductibles"
+    },
+    {
+     "case": "FO",
+     "label": "Impôts et taxes non déductibles"
+    },
+    {
+     "case": "FP",
+     "label": "Réintégrations diverses (lignes de passage de Lyvre)",
+     "tax": "reintegrations"
+    },
+    {
+     "case": "HK",
+     "label": "dont provisions non déductibles",
+     "detail": true
+    },
+    {
+     "case": "FQ",
+     "label": "Régimes particuliers des départements d'outre-mer"
+    },
+    {
+     "case": "JS",
+     "label": "Déduction « zone franche DOM »"
+    },
+    {
+     "case": "FR",
+     "label": "Déductions diverses (lignes de passage de Lyvre)",
+     "tax": "deductions"
+    },
+    {
+     "case": "HL",
+     "label": "dont déduction exceptionnelle (art. 39 decies)",
+     "detail": true
+    },
+    {
+     "case": "FS",
+     "label": "Résultat fiscal : bénéfice",
+     "tax": "fiscal_profit_before_ja"
+    },
+    {
+     "case": "FT",
+     "label": "Résultat fiscal : déficit",
+     "tax": "fiscal_loss_before_ja"
+    },
+    {
+     "case": "HA",
+     "label": "Effectif moyen du personnel",
+     "unit": "nombre"
+    },
+    {
+     "case": "HC",
+     "label": "Superficie de l'exploitation : totale",
+     "unit": "ha"
+    },
+    {
+     "case": "GA",
+     "label": "Montant de la TVA collectée",
+     "accounts": [
+      "4457"
+     ],
+     "mode": "credit_movements"
+    },
+    {
+     "case": "GB",
+     "label": "TVA déductible sur biens et services (sauf immobilisations)",
+     "accounts": [
+      "44566"
+     ],
+     "mode": "debit_movements"
+    },
+    {
+     "case": "GC",
+     "label": "TVA déductible afférente aux stocks"
+    }
+   ],
+   "checks": [
+    {
+     "equal": [
+      "FJ",
+      "CE"
+     ],
+     "label": "Bénéfice ou perte (FJ) égal au résultat du bilan (CE)"
+    }
+   ]
+  }
+ ],
+ "not_covered": [
+  "2139-C-SD (immobilisations), 2139-D-SD (amortissements), 2139-E-SD (provisions), 2139-bis et 2139-ter : à remplir depuis le registre des immobilisations et les annexes"
+ ]
+}

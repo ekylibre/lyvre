@@ -231,3 +231,15 @@ def test_supplier_credit_note_goes_to_line_15(books):
     assert boxes["15"][1] == 20 and boxes["16"][1] == 20 and boxes["20"][1] == 100 and boxes["TD"][1] == 0
     assert boxes["25"][1] == 80
     assert [l.entry_id for l in vat_return.lines_for(date(2026, 7, 1), date(2026, 7, 31), "15")] == [note.id]
+
+
+def test_uncoded_vat_lines_block_validation(books):
+    """Essai de l'interface (09/11/2026) : taxe sans code bloquante (reprise FEC « néant ») ; crédit 44567 : avertissement."""
+    _july(books)
+    _entry(books, date(2026, 7, 21), ("6061", 10000, 0), ("44566", 2000, 0), ("401", 0, 12000))  # sans code
+    client = books["client"]
+    checks = client.get("/api/v1/vat-returns/preview?period=2026-07").get_json()["checks"]
+    (uncoded,) = [c for c in checks if c["key"] == "uncoded"]
+    assert uncoded["level"] == "error" and uncoded["count"] == 1
+    response = client.post("/api/v1/vat-returns", json={"period": "2026-07"})
+    assert response.status_code >= 400 and "sans code" in response.get_json()["error"]["message"]

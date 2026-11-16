@@ -25,6 +25,8 @@ from app.models import Rule  # noqa: E402
 
 
 YAML_PATH = Path(__file__).parent / "data" / "rules.yml"
+# Gabarit par plan (lot AG1.e) : `python seed_rules.py agri` lit data/rules_agri.yml.
+YAML_BY_CHART = {"agri": Path(__file__).parent / "data" / "rules_agri.yml"}
 
 
 def _amount_to_cents(value):
@@ -40,7 +42,9 @@ def _clean(value):
     return s or None
 
 
-def main() -> int:
+def main(argv=None) -> int:
+    argv = sys.argv if argv is None else argv
+    yaml_path = YAML_BY_CHART.get(argv[1], YAML_PATH) if len(argv) > 1 else YAML_PATH
     app = create_app()
     with app.app_context():
         existing = db.session.query(Rule).count()
@@ -48,11 +52,11 @@ def main() -> int:
             print(f"rules table already populated ({existing} rows) — skipping.")
             return 0
 
-        if not YAML_PATH.exists():
-            print(f"Yaml template not found at {YAML_PATH} — nothing to seed.")
+        if not yaml_path.exists():
+            print(f"Yaml template not found at {yaml_path} — nothing to seed.")
             return 0
 
-        with open(YAML_PATH, "r", encoding="utf-8") as f:
+        with open(yaml_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
         entries = data.get("rules") or []
 
@@ -76,7 +80,7 @@ def main() -> int:
             created += 1
 
         db.session.commit()
-        print(f"Seed terminé : {created} règle(s) importée(s) depuis {YAML_PATH.name}.")
+        print(f"Seed terminé : {created} règle(s) importée(s) depuis {yaml_path.name}.")
     return 0
 
 

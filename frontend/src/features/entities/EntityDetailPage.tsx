@@ -11,6 +11,7 @@ import { useAction, type Notice } from "../../api/resources";
 import { useIntegration, useIsAssociation } from "../../api/session";
 import { FormDrawer } from "../../components/FormModal";
 import { MoneyText } from "../../components/Money";
+import { OriginBadge } from "../../components/OriginBadge";
 import { PageHeader } from "../../components/PageHeader";
 import { Can } from "../../components/Can";
 import { StatusBadge, type Tone } from "../../components/StatusBadge";
@@ -84,6 +85,7 @@ export default function EntityDetailPage() {
     queryKey: [...TIERS_KEY, id], queryFn: () => api.get<Detail>(`/api/v1/tiers/${id}`),
   });
   const odooNote = useAction(() => api.post<{ notices: Notice[] }>(`/api/v1/tiers/${id}/odoo-note`));
+  const check = useAction(() => api.post<{ notices: Notice[] }>(`/api/v1/tiers/${id}/check`), { invalidate: [TIERS_KEY, ["dashboard"]] });
   if (isPending || !data) return <Center h={300}><Loader /></Center>;
   const e = data.item;
   const types = Object.fromEntries(data.meta.types.map((t) => [t.value, t.label]));
@@ -107,7 +109,7 @@ export default function EntityDetailPage() {
     <>
       <PageHeader
         title={<Group gap="sm">{e.name}{member && <StatusBadge tone="ok">Adhérent</StatusBadge>}
-          {association && e.is_benevole && <StatusBadge tone="info">Bénévole</StatusBadge>}</Group>}
+          {association && e.is_benevole && <StatusBadge tone="info">Bénévole</StatusBadge>}<OriginBadge origin={e.origin} /></Group>}
         description={identity}
         actions={<>
           {member && odoo && (
@@ -115,6 +117,7 @@ export default function EntityDetailPage() {
               title="Écrire la date anniversaire et le statut d'adhésion dans « Notes interne » d'Odoo"
               onClick={() => odooNote.mutate(undefined)}>Mettre à jour la fiche Odoo</Button></Can>
           )}
+          {e.origin?.pending && <Can><Button variant="default" loading={check.isPending} onClick={() => check.mutate()}>Marquer vérifié</Button></Can>}
           <Button variant="default" component={AppLink} href="/entities/">Retour à la liste</Button>
           <Can><Button onClick={() => setEditing(true)}>Modifier</Button></Can>
         </>} />

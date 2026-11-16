@@ -11,13 +11,30 @@ export type SaleStatus = "draft" | "issued" | "partially_paid" | "paid" | "cance
 
 export interface SaleRow {
   id: number; kind: SaleKind; kind_label: string; status: SaleStatus; status_label: string; number: string | null;
-  source: "app" | "qonto"; client: { id: number; name: string }; issue_date: string | null; due_date: string | null;
+  source: "app" | "qonto" | "received"; client: { id: number; name: string }; issue_date: string | null; due_date: string | null;
   validity_date: string | null;
   untaxed_cents: number; tax_cents: number; total_cents: number; paid_cents: number; sent_at: string | null; overdue: boolean;
   due_cents: number; reminder_count: number; last_reminder_at: string | null;
   /** Émise (ou à émettre) par Qonto ; statut et erreur Qonto. */
   qonto_emit: boolean; qonto_status: string | null; qonto_error: string | null;
+  /** Lot PDP1 : facture électronique transmise par SUPER PDP (dernier statut de la réforme). */
+  pdp?: { id: string | null; status: string | null; status_label: string | null; error: string | null; sent_at: string | null } | null;
+  /** Lot AG10.c : autofacture reçue (numéro du client) et son cycle de vie. */
+  self_billed?: boolean; lifecycle?: Lifecycle | null;
 }
+
+export type LifecycleStatus = "received" | "accepted" | "disputed" | "refused" | "paid";
+
+export interface Lifecycle {
+  status: LifecycleStatus; label: string;
+  /** Code de statut de la réforme à transmettre par la plateforme agréée (fr:205…). */
+  code: string | null; reason: string | null; at: string | null;
+  actions: ("accepted" | "disputed" | "refused")[];
+}
+
+export const LIFECYCLE_TONES: Record<LifecycleStatus, Tone> = {
+  received: "todo", accepted: "info", disputed: "gap", refused: "neutral", paid: "ok",
+};
 
 export interface SalePayment {
   id: number; amount_cents: number; paid_on: string; origin: "bank" | "manual"; method: string; vat_released_cents: number;
@@ -53,7 +70,11 @@ export interface SaleDetail extends Omit<SaleRow, "client"> {
   emails: { sent_at: string; recipients: string; subject: string | null; status: "sent" | "failed"; error: string | null;
     purpose: "send" | "reminder" }[];
   payments: SalePayment[];
-  pdf_url: string;
+  pdf_url: string; received_file_url?: string | null;
+  /** Lot AG10.e : pourquoi la pièce n'a pas de Factur-X (RFA sans motif sourcé) ; client particulier (note BAR = B2C). */
+  facturx_warning?: string | null; b2c?: boolean;
+  /** Lot PDP1 : transmission par SUPER PDP possible (refus motivé sinon). */
+  pdp_send?: { refusal: string | null } | null;
   lease: { id: number; unit_label: string } | null; recurrence_id: number | null;
   rent_receipts: { id: number; kind: "quittance" | "recu"; label: string; paid_cents: number; sent_at: string | null; pdf_url: string }[];
 }

@@ -14,7 +14,7 @@ from app.models.customer_invoice import CUSTOMER_INVOICE_PAYMENT_STATES, CUSTOME
 from app.models.entity import ENTITY_TYPES
 from app.models.order import POS_ORDER_STATES
 from app.queries.entities import last_membership_dates
-from app.services import catalog, external_config, odoo_partner_update, organization, vat_codes
+from app.services import agent_review, catalog, external_config, odoo_partner_update, organization, vat_codes
 from app.services.helloasso_client import HelloAssoConfigError
 from app.services.helloasso_sync import sync_helloasso
 from app.services.odoo_client import OdooConfigError
@@ -49,6 +49,7 @@ def entity_payload(e: Entity, last_ha=None, last_pos=None, transactions=None) ->
         **{key: getattr(e, key) for key in ADDRESS_FIELDS}, "person_kind": e.person_kind,
         "last_helloasso_membership": _iso(last_ha), "last_pos_membership": _iso(last_pos),
         "transactions": e.transactions.count() if transactions is None else transactions,
+        "origin": agent_review.origin_payload(e),            # lot AK3 : créé par clé d'API
     }
 
 
@@ -231,6 +232,18 @@ def _open_items(entity):
             rows.append({"kind": kind, "account_id": account.id, "account_code": account.code,
                          "open_balance_cents": lettering.open_balance(account.id)})
     return rows
+
+
+@bp.route("/tiers/<int:entity_id>/check", methods=["POST"])
+def tiers_check(entity_id):
+    """Lot AK3 : tiers créé par une clé d'API, vérifié par l'utilisateur."""
+    from flask_login import current_user
+    entity = get_or_404(Entity, entity_id, "Tiers introuvable.")
+    try:
+        agent_review.check_entity(entity, current_user)
+    except ValueError as exc:
+        raise ApiError("conflict", str(exc), 409) from None
+    return jsonify(item=entity_payload(entity), notices=[notice(f"Tiers « {entity.name} » marqué vérifié.")])
 
 
 @bp.route("/tiers/<int:entity_id>")

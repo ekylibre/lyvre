@@ -1,0 +1,82 @@
+# Filières et environnement (audit_calendrier.md § 2.5) : rappels seulement (AGD9).
+- id: VIT-01
+  title: Viticulture (douane)
+  domain: filieres
+  organism: Douane
+  reminder_only: true
+  summary: Déclaration de récolte le 10/12 pour les récoltants ; stocks au 31/7 avant le 10/9 ; DRM mensuelle des entrepositaires agréés (date à vérifier) ; casier viticole à jour.
+  applies: {production: [viticulture]}
+  events:
+    - label: Déclaration de récolte et de production
+      rule: {type: fixed, days: ["12-10"]}
+      reminders: [30, 7]
+    - label: Déclaration de stocks au 31/7
+      rule: {type: fixed, days: ["09-10"]}
+      reminders: [30, 7]
+    - label: Déclaration récapitulative mensuelle (DRM)
+      applies: {flags: [bonded_warehouse]}
+      rule: {type: monthly, day: 10}
+      reminders: [3]
+      reliability: I
+  lyvre_data: Stocks de vin, variation de stocks, droits d'accises (6358).
+  links:
+    - https://www.douane.gouv.fr/demarche/declarer-sa-recolte-et-production
+  reliability: V
+
+- id: ENV-01
+  title: Prélèvements d'eau
+  domain: filieres
+  organism: Agence de l'eau
+  reminder_only: true
+  summary: Déclaration de redevance avant le 31/3 de l'année suivante, même sans prélèvement (majoration de 10 % à 40 % en cas de retard) ; demande de volumes auprès de l'OUGC à l'automne.
+  applies: {flags: [irrigation]}
+  events:
+    - label: Déclaration de redevance pour prélèvement d'eau
+      rule: {type: fixed, days: ["03-31"]}
+      reminders: [30, 7]
+  links:
+    - https://www.eaurmc.fr/upload/docs/application/pdf/2026-03/f18.rpi_notice_5132407.pdf
+  reliability: V
+
+- id: ENV-02
+  title: Redevance pour pollution diffuse
+  domain: filieres
+  organism: Agence de l'eau
+  reminder_only: true
+  summary: Collectée par les distributeurs ; l'exploitant ne déclare que ses achats de produits hors de France, avant le 31/3.
+  applies: {flags: [plant_protection]}
+  events: []
+  reliability: I
+
+- id: ENV-03
+  title: Produits phytosanitaires
+  domain: filieres
+  organism: DRAAF
+  reminder_only: true
+  summary: Registre tenu en continu, conservé 5 ans (format électronique à vérifier) ; Certiphyto valable 5 ans, à renouveler 6 mois avant l'expiration ; contrôle du pulvérisateur tous les 3 ans.
+  applies: {flags: [plant_protection]}
+  events:
+    - label: Fin de validité du Certiphyto
+      rule: {type: profile, field: certiphyto_expires_on}
+      reminders: [180, 30]
+  reliability: R
+
+- id: ENV-04
+  title: Directive nitrates (zones vulnérables)
+  domain: filieres
+  organism: DDT(M)
+  reminder_only: true
+  summary: Plan prévisionnel de fumure et cahier d'enregistrement par campagne ; déclaration des flux d'azote dans certaines régions (date régionale) ; périodes d'interdiction d'épandage.
+  applies: {flags: [vulnerable_zone]}
+  events: []
+  reliability: I
+
+- id: ELE-01
+  title: Identification animale
+  domain: filieres
+  organism: EDE
+  reminder_only: true
+  summary: Bovins - naissances, entrées et sorties notifiées dans les 7 jours (BDNI), boucles dans les 20 jours ; ovins et caprins - recensement annuel et registre ; porcs - BDPORC ; équidés - SIRE.
+  applies: {production: [cattle, sheep_goats, pigs]}
+  events: []
+  reliability: R

@@ -52,6 +52,8 @@ def issue_problems(sale: Sale) -> list[str]:
         return ["Pièce déjà émise."]
     if sale.kind not in ("invoice", "credit_note", "quote"):
         return ["Type de pièce non émissible."]
+    if sale.self_billed:
+        return ["Autofacture reçue : elle porte le numéro du client, acceptez-la pour la comptabiliser."]
     fy = fiscal_year_for(sale.issue_date)
     if sale.kind == "quote":
         pass  # un devis n'est pas comptabilisé
@@ -67,6 +69,10 @@ def issue_problems(sale: Sale) -> list[str]:
         problems.append(f"Adresse du client « {sale.entity.name} » incomplète (fiche du tiers).")
     if not sale.lines:
         problems.append("Aucune ligne.")
+    from app.services.sale_documents import is_b2c
+    if sale.kind != "quote" and is_b2c(sale) and len({l.nature for l in sale.lines}) > 1:
+        problems.append("Facture à un particulier : biens et services sur deux factures distinctes (e-reporting, "
+                        "factures mixtes non gérées par la plateforme).")
     missing = [str(i) for i, line in enumerate(sale.lines, start=1) if not line.account_id]
     if missing:
         problems.append(f"Compte de vente manquant (ligne {', '.join(missing)}).")

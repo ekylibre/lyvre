@@ -5,16 +5,17 @@ avec son mot de passe."""
 import json
 import shutil
 
-from flask import jsonify, request, url_for
+from flask import current_app, jsonify, request, url_for
 from flask_login import current_user
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import ArgumentError
 
+from app.association_only import SIMPLE_CHARTS
 from app.decorators import admin_required
 from app.extensions import db
 from app.models import Instance
-from app.services import external_config, instance_access, instance_backup
+from app.services import agri_setup, external_config, instance_access, instance_backup
 from app.services.attachments import uploads_dir_for
 from app.services.instance_access import AccessError
 from app.services.instance_backup import BackupError
@@ -104,7 +105,7 @@ def _created_notices(message, counts, grants):
 def instances_list():
     return jsonify(items=[_instance(i) for i in db.session.query(Instance).order_by(Instance.label)],
                    meta={"charts": [{"value": k, "label": v} for k, v in CHARTS.items()], "default_chart": DEFAULT_CHART,
-                         "integrations_by_chart": _integrations_by_chart()})
+                         "integrations_by_chart": _integrations_by_chart(), "agri": agri_setup.meta()})
 
 
 def _integrations_by_chart() -> dict:
@@ -144,8 +145,16 @@ def instances_create():
     bookkeeping = data.get("bookkeeping") or "double"
     if bookkeeping not in ("double", "simple"):
         raise invalid("Mode de tenue inconnu.", "bookkeeping")
-    if bookkeeping == "simple" and chart != "asso":
-        raise invalid("La comptabilité simplifiée est réservée au plan des associations.", "bookkeeping")
+    if bookkeeping == "simple" and chart not in SIMPLE_CHARTS:
+        raise invalid("La comptabilité simplifiée est réservée aux associations et aux exploitations agricoles.",
+                      "bookkeeping")
+    farm = None
+    if chart == "agri":  # lot AG1.b : forme, impôt, régime BA et premier exercice, validés avant le provisioning
+        try:
+            farm = agri_setup.parse(data)
+        except agri_setup.SetupError as exc:
+            raise invalid(exc.message, exc.field) from None
+        bookkeeping = farm.bookkeeping
     grants = _grants(data.get("members"))
     integrations = _chosen_integrations(data, chart)
     auto = data.get("provisioning_mode", "auto") == "auto"
@@ -160,11 +169,19 @@ def instances_create():
         if not database_url:
             raise invalid("URL de base de données obligatoire en mode manuel.", "database_url")
     inst = Instance(slug=slug, label=label, database_url=database_url, chart=chart, bookkeeping=bookkeeping,
-                    has_associates=chart in ("sci", "societe"),
+                    has_associates=chart in ("sci", "societe") or bool(farm and farm.has_associates),
                     integrations=json.dumps({"enabled": sorted(integrations), "dismissed": []}),
                     is_active=True)
     counts = _save_with_grants(inst, grants, lambda: discard_sqlite_database(database_url) if auto else None)
-    return jsonify(item=_instance(inst), notices=_created_notices(f"Instance « {label} » créée", counts, grants)), 201
+    notices = _created_notices(f"Instance « {label} » créée", counts, grants)
+    if farm is not None:
+        try:
+            agri_setup.initialize(inst, farm)
+        except Exception as exc:  # noqa: BLE001 — instance créée : le profil se complète dans Structure › Fiscalité
+            current_app.logger.warning("Farm profile of instance %s not initialized: %r", inst.slug, exc)
+            notices.append(notice("Profil de l'exploitation non enregistré : complétez Structure › Fiscalité et créez "
+                                  "le premier exercice.", "warning"))
+    return jsonify(item=_instance(inst), notices=notices), 201
 
 
 @bp.route("/instances/<int:instance_id>")
@@ -184,11 +201,16 @@ def instances_update(instance_id):
     inst.label = label
     if "is_active" in data:
         inst.is_active = bool(data["is_active"])
+    notices = [notice(f"Instance « {label} » mise à jour.")]
     if "bookkeeping" in data and data["bookkeeping"] != inst.bookkeeping:
         _change_bookkeeping(inst, data["bookkeeping"])
+        if inst.chart == "agri" and inst.bookkeeping == "double":  # lot AG1.d : sortie du micro-BA
+            notices.append(notice("Sortie du micro-BA : ouvrez une période « réel » dans Structure › Fiscalité. Les "
+                                  "créances du bilan d'ouverture sont à réintégrer au résultat (CGI art. 72 E bis).",
+                                  "warning"))
     db.session.commit()
     clear_engine_cache(inst.id)
-    return jsonify(item=_instance(inst), notices=[notice(f"Instance « {label} » mise à jour.")])
+    return jsonify(item=_instance(inst), notices=notices)
 
 
 def _change_bookkeeping(inst, mode):
@@ -198,8 +220,9 @@ def _change_bookkeeping(inst, mode):
     if mode not in ("double", "simple"):
         raise invalid("Mode de tenue inconnu.", "bookkeeping")
     if mode == "simple":
-        if inst.chart != "asso":
-            raise invalid("La comptabilité simplifiée est réservée au plan des associations.", "bookkeeping")
+        if inst.chart not in SIMPLE_CHARTS:
+            raise invalid("La comptabilité simplifiée est réservée aux associations et aux exploitations agricoles.",
+                          "bookkeeping")
         with get_tenant_engine(inst).connect() as conn:
             count = conn.execute(text(
                 "SELECT COUNT(DISTINCT l.entry_id) FROM journal_lines l JOIN accounts a ON a.id = l.account_id "

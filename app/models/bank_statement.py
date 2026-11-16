@@ -7,6 +7,7 @@ from app.extensions import db
 
 SOURCE_QONTO = "qonto"
 SOURCE_UPLOAD = "upload"
+SOURCE_EKYLIBRE = "ekylibre"   # restauration d'une sauvegarde Ekylibre (lot RE3)
 
 
 class BankStatement(db.Model):

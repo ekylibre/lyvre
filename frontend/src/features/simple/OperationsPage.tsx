@@ -17,12 +17,14 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
 import type { Category } from "./CategoriesPage";
+import { AnalyticSelect, useAnalyticTargets } from "../../components/AnalyticSelect";
 
 type Kind = "income" | "expense";
 interface Row {
   entry_id: number; line_id: number; date: string; label: string; kind: Kind; amount_cents: number; category_id: number | null;
   category: string; bank_account_id: number; bank_account: string; treasury_kind: string; entity_id: number | null;
   entity: string | null; project_id: number | null; project: string | null; reconciled: boolean; editable: boolean;
+  analytic?: string | null;
 }
 type Option = { value: string; label: string };
 interface View {
@@ -107,9 +109,12 @@ function OperationForm({ view, row, kind, onDone }: { view: View; row: Row | nul
   const [account, setAccount] = useState<string | null>(row ? String(row.bank_account_id) : view.meta.bank_accounts[0]?.value ?? null);
   const [entity, setEntity] = useState<string | null>(row?.entity_id ? String(row.entity_id) : null);
   const [project, setProject] = useState<string | null>(row?.project_id ? String(row.project_id) : null);
+  const [analytic, setAnalytic] = useState<string | null>(row?.analytic ?? null);
+  const targets = useAnalyticTargets();
   const locked = row?.reconciled ?? false;
   const body = () => ({ date: when, label, amount_cents: amount, category_id: category ? Number(category) : null,
-    bank_account_id: account ? Number(account) : null, entity_id: entity ? Number(entity) : null, project_id: project ? Number(project) : null });
+    bank_account_id: account ? Number(account) : null, entity_id: entity ? Number(entity) : null, project_id: project ? Number(project) : null,
+    ...(targets.length ? { analytic } : {}) });
   const save = useAction(() => row ? api.put<{ notices: Notice[] }>(`/api/v1/simple/operations/${row.entry_id}`, body())
     : api.post<{ notices: Notice[] }>("/api/v1/simple/operations", body()), { invalidate: [KEY] });
   const remove = useAction(() => api.delete<{ notices: Notice[] }>(`/api/v1/simple/operations/${row!.entry_id}`), { invalidate: [KEY] });
@@ -132,6 +137,7 @@ function OperationForm({ view, row, kind, onDone }: { view: View; row: Row | nul
         <Select label="Tiers" clearable searchable data={view.meta.entities} value={entity} onChange={setEntity} />
         {view.meta.projects.length > 0 && <Select label="Projet" clearable searchable data={view.meta.projects} value={project} onChange={setProject} />}
       </Group>
+      <AnalyticSelect label="Affectation analytique" targets={targets} value={analytic} onChange={setAnalytic} />
       <Group justify="space-between">
         <div>{row && !locked && <Button variant="subtle" color="brique" onClick={() => confirmAction({
           title: "Supprimer l'opération ?", confirmLabel: "Supprimer", onConfirm: () => remove.mutate(undefined, { onSuccess: onDone }) })}>Supprimer</Button>}</div>

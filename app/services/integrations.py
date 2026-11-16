@@ -25,7 +25,7 @@ from app.extensions import db
 from app.models import IntegrationState, SyncJob
 from app.models.sync_job import (
     SYNC_KIND_METRICS, SYNC_KIND_PAYOUT_PAYMENTS, SYNC_KIND_PAYOUTS, SYNC_KIND_QONTO,
-    SYNC_KIND_QONTO_INVOICES,
+    SYNC_KIND_QONTO_INVOICES, SYNC_KIND_SUPERPDP,
 )
 from app.services import external_config
 
@@ -63,6 +63,7 @@ _SYNC_SOURCES = {
     "ga4": ((SYNC_KIND_METRICS,), "ga4", "impact.index"),
     "facebook": ((SYNC_KIND_METRICS,), "facebook", "impact.index"),
     "qonto": ((SYNC_KIND_QONTO, SYNC_KIND_QONTO_INVOICES), None, "bank_accounts.index"),
+    "superpdp": ((SYNC_KIND_SUPERPDP,), None, "purchases.index"),
 }
 
 
@@ -304,6 +305,24 @@ def _probe_documenso() -> str:
     return f"Serveur Documenso {documenso.base_url()} accessible, jeton d'API accepté."
 
 
+def _probe_assistant() -> str:
+    """Assistant Claude (lot AG9b) : le modèle réglé est accessible avec la clé."""
+    from app.services.assistant import settings
+    model = settings.model()
+    info = settings.client(timeout=CHECK_TIMEOUT).models.retrieve(model)
+    origin = " (clé du serveur)" if external_config.server_locked("assistant") else ""
+    return f"Modèle {getattr(info, 'display_name', None) or model} accessible{origin}."
+
+
+def _probe_ekylibre() -> str:
+    """Lot AG11.a : instance accessible et jeton accepté (profil de l'utilisateur)."""
+    from app.services import ekylibre_client
+    client = ekylibre_client.Client.from_config(timeout=CHECK_TIMEOUT)
+    profile = client.profile()
+    who = " ".join(p for p in (profile.get("first_name"), profile.get("last_name")) if p) or client.email
+    return f"Instance {client.base} accessible, connecté en tant que {who}."
+
+
 def _probe_brevo() -> str:
     from app.services import brevo_attributes, brevo_client
 
@@ -326,6 +345,21 @@ def _probe_brevo() -> str:
     return message
 
 
+def _probe_superpdp() -> str:
+    """Lot PDP1 : entreprise du jeton (`GET /companies/me`), environnement et adresses de réception."""
+    from app.services import superpdp
+    from app.services.superpdp_client import SuperPdpClient
+    cfg = external_config.get_all("superpdp")
+    client = SuperPdpClient(cfg["client_id"], cfg["client_secret"], timeout=CHECK_TIMEOUT)
+    company = client.company()
+    env = "bac à sable" if company.get("env") == "sandbox" else "production"
+    message = (f"Entreprise « {company.get('formal_name') or company.get('trade_name') or '?'} » "
+               f"({company.get('number_scheme')} {company.get('number')}), environnement {env}.")
+    if external_config.scope_enabled("superpdp", "receive"):
+        message += " " + superpdp.directory_summary(client)
+    return message
+
+
 PROBES: dict[str, Callable[[], str]] = {
     "stancer": _probe_stancer,
     "odoo": _probe_odoo,
@@ -336,6 +370,9 @@ PROBES: dict[str, Callable[[], str]] = {
     "qonto": _probe_qonto,
     "documenso": _probe_documenso,
     "brevo": _probe_brevo,
+    "assistant": _probe_assistant,
+    "ekylibre": _probe_ekylibre,
+    "superpdp": _probe_superpdp,
 }
 
 
@@ -390,8 +427,15 @@ def describe_error(service: str, exc: BaseException) -> str:
     from app.services.odoo_client import OdooConfigError
     from app.services.qonto_client import QontoConfigError, QontoError
 
-    if isinstance(exc, BrevoError):  # déjà en français (IP non autorisée, clé refusée…)
+    from app.services.ekylibre_client import EkylibreError
+    from app.services.superpdp_client import SuperPdpError
+    if isinstance(exc, SuperPdpError):                 # lot PDP1 : déjà en français, avec le détail de l'API
+        return str(exc)
+    if isinstance(exc, (BrevoError, EkylibreError)):  # déjà en français (IP non autorisée, clé refusée…)
         return exc.message
+    if service == "assistant":                       # lot AG9b : erreurs du SDK anthropic
+        from app.services.assistant.settings import describe_error as assistant_error
+        return assistant_error(exc)
     name = type(exc).__name__
     timeout_msg = f"Délai dépassé ({CHECK_TIMEOUT} s) : le service ne répond pas."
 

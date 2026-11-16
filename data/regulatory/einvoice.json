@@ -1,0 +1,38 @@
+{
+ "_comment": "Facturation électronique et e-reporting : dates d'obligation par taille d'entreprise (essai de l'interface, 10/11/2026). Même format que ba.json.",
+ "values": [
+  {
+   "key": "einvoice.reception_start",
+   "value": "2026-09-01",
+   "valid_from": "2024-01-01",
+   "valid_to": null,
+   "source": "https://www.impots.gouv.fr/professionnel/questions/partir-de-quand-suis-je-concerne-par-la-reforme-de-la-facturation",
+   "source_label": "impots.gouv.fr, calendrier de la réforme (CGI art. 289 bis)",
+   "verified_on": "2026-11-10",
+   "reliability": "V",
+   "note": "Réception des factures électroniques par une plateforme agréée : toutes les entreprises, micro-entreprises comprises."
+  },
+  {
+   "key": "einvoice.issue_start.large",
+   "value": "2026-09-01",
+   "valid_from": "2024-01-01",
+   "valid_to": null,
+   "source": "https://www.impots.gouv.fr/professionnel/questions/partir-de-quand-suis-je-concerne-par-la-reforme-de-la-facturation",
+   "source_label": "impots.gouv.fr, calendrier de la réforme (CGI art. 289 bis)",
+   "verified_on": "2026-11-10",
+   "reliability": "V",
+   "note": "Émission des factures électroniques et e-reporting : grandes entreprises et ETI."
+  },
+  {
+   "key": "einvoice.issue_start.sme",
+   "value": "2027-09-01",
+   "valid_from": "2024-01-01",
+   "valid_to": null,
+   "source": "https://www.impots.gouv.fr/professionnel/questions/partir-de-quand-suis-je-concerne-par-la-reforme-de-la-facturation",
+   "source_label": "impots.gouv.fr, calendrier de la réforme (CGI art. 289 bis)",
+   "verified_on": "2026-11-10",
+   "reliability": "V",
+   "note": "Émission des factures électroniques et e-reporting : PME et micro-entreprises. Une entrée anticipée dans le dispositif n'avance pas l'obligation d'e-reporting."
+  }
+ ]
+}

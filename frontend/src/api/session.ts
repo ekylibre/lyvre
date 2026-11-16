@@ -1,17 +1,70 @@
 // Session de la SPA : utilisateur, instance, menus, préférences (GET /api/v1/session).
 import { useCallback, useEffect, useRef } from "react";
+import { useInRouterContext, useLocation } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, api, setCsrfToken } from "./client";
 
-export interface NavLink { key: string; label: string; url: string }
+// Lot NV1 : trois niveaux (menu › entrée ou sous-menu › entrée), icône Lucide et pictogramme agric.
+export interface NavLink { key: string; label: string; url: string; icon?: string; pictogram?: string; also_urls?: string[] }
 export interface NavDivider { divider: true }
-export interface NavMenu { key: string; label: string; url?: string; items?: (NavLink | NavDivider)[] }
+export interface NavGroup { key: string; label: string; icon?: string; pictogram?: string; items: NavItem[] }
+export type NavItem = NavLink | NavGroup | NavDivider;
+export interface NavMenu { key: string; label: string; url?: string; icon?: string; pictogram?: string; items?: NavItem[] }
+
+/** Entrées cliquables de l'arbre, avec le fil des libellés parents (recherche, entrée active). */
+export function navLinks(menus: NavMenu[]): (NavLink & { trail: string[] })[] {
+  const out: (NavLink & { trail: string[] })[] = [];
+  const walk = (items: NavItem[], trail: string[]) => {
+    for (const item of items) {
+      if ("divider" in item) continue;
+      if ("items" in item) walk(item.items, [...trail, item.label]);
+      else out.push({ ...item, trail });
+    }
+  };
+  for (const menu of menus) {
+    if (menu.url) out.push({ key: menu.key, label: menu.label, url: menu.url, icon: menu.icon, pictogram: menu.pictogram, trail: [] });
+    walk(menu.items ?? [], [menu.label]);
+  }
+  return out;
+}
+
+const pathOf = (url: string) => new URL(url, window.location.origin).pathname.replace(/\/$/, "") || "/";
+
+/** URL du menu qui correspond le mieux à la page (préfixe le plus long : /entities/members
+ * l'emporte sur /entities/ pour la page des adhérents). Tous niveaux (lot NV1). */
+export function activeUrl(menus: NavMenu[], pathname: string): string | null {
+  // Lot NV2 : une page rattachée (`also_urls`, un onglet) active l'entrée qui la porte.
+  const candidates = navLinks(menus).flatMap((l) => [[l.url, l.url], ...(l.also_urls ?? []).map((a) => [a, l.url])]);
+  const current = pathname.replace(/\/$/, "") || "/";
+  const matches = candidates.filter(([u]) => {
+    const path = pathOf(u);
+    return path === "/" ? current === "/" : current === path || current.startsWith(`${path}/`);
+  });
+  return matches.sort(([a], [b]) => pathOf(b).length - pathOf(a).length)[0]?.[1] ?? null;
+}
+
+function useOptionalPathname(): string | null {
+  // Hors routeur (rare : écrans d'erreur), pas d'entrée de menu.
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  return useInRouterContext() ? useLocation().pathname : null;
+}
+
+/** Entrée de menu de la page courante (lot NV4 : icône automatique des en-têtes de page). */
+export function useNavEntry(): (NavLink & { trail: string[] }) | null {
+  const pathname = useOptionalPathname();
+  const nav = useCurrentSession().nav;
+  if (pathname === null) return null;
+  const url = activeUrl(nav, pathname);
+  return url ? navLinks(nav).find((l) => l.url === url) ?? null : null;
+}
 
 export type ColorSchemePreference = "light" | "dark" | "auto";
 
 export interface Preferences {
   color_scheme?: ColorSchemePreference;
   tables?: Record<string, { hidden?: string[] }>;
+  /** Menu latéral replié en rail (lot NV4). */
+  nav_rail?: boolean;
   [key: string]: unknown;
 }
 

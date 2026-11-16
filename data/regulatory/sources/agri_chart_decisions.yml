@@ -1,0 +1,23 @@
+# Arbitrages du plan « Exploitation agricole » (lot AG1.b, claudedocs/design_compta_agricole.md § 2.2), lus par
+# scripts/build_agri_chart.py. Décisions de l'utilisateur, expert-comptable (AGD5, AGD11, 03/11/2026).
+# status : decided (appliquée) | pending (le script s'arrête).
+
+labels:
+  # En-tête absent du texte : les 2341–2347 sont numérotés 234x (Q-A2 → en-tête 234).
+  "234": {label: "Immobilisations corporelles en cours - biens vivants", status: decided}
+  # PCG 2026 : 757 / 657 couvrent toutes les cessions ; le titre 5 les réserve aux biens vivants (Q-A2 → subdivision).
+  "757": {label: "Produits des cessions d'immobilisations incorporelles et corporelles", status: decided}
+  "657": {label: "Valeurs comptables des immobilisations incorporelles et corporelles cédées", status: decided}
+  # Libellé coupé en deux lignes autour du numéro dans le PDF.
+  "296": {label: "Dépréciations des participations et créances rattachées à des participations", status: decided}
+
+extra:
+  - {code: "7571", label: "Produits de cessions des biens vivants immobilisés", status: decided}
+  - {code: "7578", label: "Produits des cessions des autres immobilisations incorporelles et corporelles", status: decided}
+  - {code: "6571", label: "Valeur comptable des biens vivants immobilisés cédés", status: decided}
+  - {code: "6578", label: "Valeurs comptables des autres immobilisations incorporelles et corporelles cédées", status: decided}
+
+# Correspondance PCGA 1986 → titre 5 : écarts à la nomenclature onoma.
+pcga1986_overrides:
+  # onoma envoie l'ancien 745 « Subventions d'exploitation » sur l'en-tête 74 ; les aides découplées vont en 745.
+  "745": {target: "745", status: decided}

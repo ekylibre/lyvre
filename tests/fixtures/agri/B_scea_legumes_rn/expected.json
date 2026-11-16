@@ -1,0 +1,58 @@
+{
+  "B_FEC20250131.txt": {
+    "_comment": "Agrégats du FEC fictif (centimes), calculés directement sur le fichier, à relire par l'expert-comptable.",
+    "lines": 3940,
+    "total_debit_cents": 992676818,
+    "total_credit_cents": 992676818,
+    "class_net_debit_cents": {
+      "1": -208469039,
+      "2": 189402934,
+      "3": 518126,
+      "4": 31100396,
+      "5": -11073201,
+      "6": 104950358,
+      "7": -106429574
+    },
+    "result_cents": 1479216,
+    "lines_cents": {
+      "ventes_animaux_7014": 0,
+      "ventes_70": 92286373,
+      "subventions_74": 13528380,
+      "production_stockee_71": 0,
+      "achats_animaux_60117": 0,
+      "fermages_6131": 160998,
+      "msa_646": 407238,
+      "dotations_6811": 17101757,
+      "biens_vivants_24": 15847508,
+      "stocks_3": 518126
+    }
+  },
+  "B_FEC20260131.txt": {
+    "_comment": "Agrégats du FEC fictif (centimes), calculés directement sur le fichier, à relire par l'expert-comptable.",
+    "lines": 953,
+    "total_debit_cents": 140041957,
+    "total_credit_cents": 140041957,
+    "class_net_debit_cents": {
+      "1": -7628910,
+      "2": 22077523,
+      "3": 0,
+      "4": -31677201,
+      "5": 7487231,
+      "6": 24220012,
+      "7": -14478655
+    },
+    "result_cents": -9741357,
+    "lines_cents": {
+      "ventes_animaux_7014": 0,
+      "ventes_70": 12290783,
+      "subventions_74": 2180197,
+      "production_stockee_71": 0,
+      "achats_animaux_60117": 0,
+      "fermages_6131": 0,
+      "msa_646": 162914,
+      "dotations_6811": 0,
+      "biens_vivants_24": 0,
+      "stocks_3": 0
+    }
+  }
+}

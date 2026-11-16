@@ -17,12 +17,13 @@ import { MoneyText } from "../../components/Money";
 import { MonthSelect } from "../../components/MonthSelect";
 import { PageHeader } from "../../components/PageHeader";
 import { Can } from "../../components/Can";
+import { OriginBadge } from "../../components/OriginBadge";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate } from "../../lib/format";
 import { AppLink } from "../../app/navigation";
 import { deleteMessage, PURCHASES_KEY, STATE_TONES, type Purchase, type PurchasesMeta } from "./types";
 
-const FILTERS = { q: "", state: "", status: "", source: "", entity_id: "", month: "", unpaid: "", no_supplier: "", hidden: "", sort: "desc" };
+const FILTERS = { q: "", state: "", status: "", source: "", entity_id: "", month: "", unpaid: "", no_supplier: "", from_key: "", hidden: "", sort: "desc" };
 
 export function syncResult(r: Record<string, unknown>) {
   const n = (key: string) => Number(r[key] ?? 0);
@@ -60,6 +61,7 @@ export default function PurchasesPage() {
   const client = useQueryClient();
   const can = useCan();
   const qonto = useIntegration("qonto", "purchases");
+  const pdp = useIntegration("superpdp", "receive");
   const [params, setParams] = useUrlParams(FILTERS);
   const query = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
   const { data, isFetching } = useList<Purchase, PurchasesMeta>(PURCHASES_KEY, `/api/v1/purchases${query ? `?${query}` : ""}`);
@@ -68,6 +70,9 @@ export default function PurchasesPage() {
   const [job, setJob] = useState<Job | null>(null);
   const shown = qonto ? job ?? meta?.sync.job ?? null : null;
   const sync = useAction<void, { job: Job; notices?: Notice[] }>(() => api.post("/api/v1/purchases/sync"));
+  const [pdpJob, setPdpJob] = useState<Job | null>(null);
+  const pdpShown = pdp ? pdpJob ?? meta?.superpdp?.job ?? null : null;
+  const pdpSync = useAction<void, { job: Job; notices?: Notice[] }>(() => api.post("/api/v1/superpdp/sync"));
   const postReady = useAction(() => api.post<{ notices: Notice[] }>("/api/v1/purchases/post-ready"), { invalidate: [PURCHASES_KEY] });
   const remove = useAction((id: number) => api.delete<{ notices: Notice[] }>(`/api/v1/purchases/${id}`), { invalidate: [PURCHASES_KEY] });
   const filtered = Object.entries(params).some(([k, v]) => k !== "sort" && v);
@@ -79,8 +84,10 @@ export default function PurchasesPage() {
         <Anchor component={AppLink} href={`/purchases/${p.id}`} size="sm" className="lv-num">{p.invoice_number || "sans numéro"}</Anchor>
         {p.is_credit_note && <Badge size="xs" variant="light" color="gray">Avoir</Badge>}
         {p.source === "manual" && <Badge size="xs" variant="outline" color="gray" title={p.has_attachment ? "Saisie dans l'application — pièce jointe" : "Saisie dans l'application"}>saisie</Badge>}
+        {p.source === "superpdp" && <Badge size="xs" variant="outline" color="lichen" title={p.pdp_status ? `Statut SUPER PDP : ${p.pdp_status}` : undefined}>SUPER PDP</Badge>}
         {qonto && p.qonto_upload_status === "failed" && <Badge size="xs" color="brique" title={p.qonto_upload_error ?? undefined}>envoi Qonto en échec</Badge>}
         {p.is_einvoice && <Badge size="xs" variant="outline" color="gray" title="Facture électronique">e-facture</Badge>}
+        <OriginBadge origin={p.origin} size="xs" />
       </Group>
     ) },
     { accessor: "supplier", title: "Fournisseur", render: (p) => p.supplier
@@ -112,9 +119,14 @@ export default function PurchasesPage() {
         actions={<>
           <Can><Button component={AppLink} href="/purchases/new">Nouvelle facture</Button>
           {qonto && <Button variant="default" loading={sync.isPending} disabled={!meta?.qonto.available || shown?.status === "running"}
-            onClick={() => sync.mutate(undefined, { onSuccess: (r) => setJob(r.job) })}>Synchroniser les factures Qonto</Button>}</Can>
+            onClick={() => sync.mutate(undefined, { onSuccess: (r) => setJob(r.job) })}>Synchroniser les factures Qonto</Button>}
+          {pdp && <Button variant="default" loading={pdpSync.isPending} disabled={!meta?.superpdp?.available || pdpShown?.status === "running"}
+            onClick={() => pdpSync.mutate(undefined, { onSuccess: (r) => setPdpJob(r.job) })}>Recevoir (SUPER PDP)</Button>}</Can>
         </>} />
       <IntegrationNotice name="qonto" state={meta?.qonto} consequence="synchronisation impossible" />
+      {pdp && <IntegrationNotice name="superpdp" state={meta?.superpdp} consequence="réception impossible" />}
+      {pdpShown && <JobStatus key={pdpShown.id} job={pdpShown}
+        onDone={() => void client.invalidateQueries({ queryKey: PURCHASES_KEY })} />}
       {meta && qonto && (
         <Paper p="sm" mb="sm">
           <Group justify="space-between" gap="sm">
@@ -132,12 +144,14 @@ export default function PurchasesPage() {
           {" "}: la charge serait comptée deux fois, à remplacer par un règlement fournisseur.
         </Alert>
       )}
-      {!!(counters && (counters.to_complete || (qonto && counters.to_review) || counters.supplier_proposals || counters.ready)) && (
+      {!!(counters && (counters.to_complete || (qonto && counters.to_review) || counters.supplier_proposals || counters.ready || counters.from_key)) && (
         <Alert color="paille" mb="sm">
           <Group justify="space-between" gap="sm">
             <Group gap="md">
               {counters.to_complete > 0 && <Text size="sm"><Anchor component="button" size="sm" onClick={() => setParams({ state: "to_complete" })}>{counters.to_complete} facture(s) à compléter</Anchor>
                 {counters.without_supplier > 0 && <> (dont <Anchor component="button" size="sm" onClick={() => setParams({ no_supplier: "1" })}>{counters.without_supplier} sans fournisseur rattaché</Anchor>)</>}.</Text>}
+              {!!counters.from_key && <Anchor component="button" size="sm" fw={600} onClick={() => setParams({ from_key: "1" })}>
+                {counters.from_key} saisie(s) par clé d'API à vérifier</Anchor>}
               {counters.supplier_proposals > 0 && <Anchor component={AppLink} href="/purchases/suppliers" size="sm" fw={600}>{counters.supplier_proposals} fournisseur(s) à valider</Anchor>}
               {qonto && counters.to_review > 0 && <Text size="sm" c="var(--lv-brique)">{counters.to_review} facture(s) comptabilisée(s) modifiée(s) dans Qonto, à revoir.</Text>}
             </Group>
@@ -150,7 +164,8 @@ export default function PurchasesPage() {
         <SearchInput value={params.q} onChange={(q) => setParams({ q })} placeholder="Numéro, fournisseur…" />
         <Select label="État" placeholder="Tous" clearable data={meta?.states ?? []} value={params.state || null} onChange={(state) => setParams({ state: state ?? "" })} w={150} />
         {qonto && <Select label="Statut Qonto" placeholder="Tous" clearable data={meta?.statuses ?? []} value={params.status || null} onChange={(status) => setParams({ status: status ?? "" })} w={160} />}
-        <Select label="Origine" placeholder="Toutes" clearable data={[{ value: "qonto", label: "Qonto" }, { value: "manual", label: "Saisies" }]}
+        <Select label="Origine" placeholder="Toutes" clearable data={[{ value: "qonto", label: "Qonto" }, { value: "superpdp", label: "SUPER PDP" }, { value: "manual", label: "Saisies" },
+            { value: "ekylibre", label: "Reprises d'Ekylibre" }]}
           value={params.source || null} onChange={(source) => setParams({ source: source ?? "" })} w={120} />
         <Select label="Fournisseur" placeholder="Tous" clearable searchable data={meta?.suppliers ?? []} value={params.entity_id || null}
           onChange={(entity_id) => setParams({ entity_id: entity_id ?? "" })} w={200} />
@@ -158,6 +173,7 @@ export default function PurchasesPage() {
         <Group gap="md" pb={8}>
           <Checkbox label="Non payées" checked={params.unpaid === "1"} onChange={(e) => setParams({ unpaid: e.currentTarget.checked ? "1" : "" })} />
           <Checkbox label="Sans fournisseur" checked={params.no_supplier === "1"} onChange={(e) => setParams({ no_supplier: e.currentTarget.checked ? "1" : "" })} />
+          <Checkbox label="Saisies par clé à vérifier" checked={params.from_key === "1"} onChange={(e) => setParams({ from_key: e.currentTarget.checked ? "1" : "" })} />
           <Checkbox label={`Masquées (${counters?.hidden ?? 0})`} checked={params.hidden === "1"} onChange={(e) => setParams({ hidden: e.currentTarget.checked ? "1" : "" })} />
         </Group>
       </FilterBar>

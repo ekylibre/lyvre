@@ -17,6 +17,21 @@ def create_app(config_name=None):
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+
+    @app.before_request
+    def _large_uploads():
+        """Sauvegardes Ekylibre avec pièces (lot RE6) : limite relevée avant la lecture du formulaire (CSRF)."""
+        from flask import request
+        if request.path == "/api/v1/imports/ekylibre/upload":
+            from .services.ekylibre.restore import MAX_UPLOAD
+            request.max_content_length = MAX_UPLOAD + 1024 * 1024
+        elif request.path == "/mcp" or request.path.startswith("/api/v1/agent/"):
+            # Clés d'API (lot AK4) : une pièce de 10 Mo en base64 tient en 15 Mo ; rien au-delà.
+            request.max_content_length = 15 * 1024 * 1024
+
+    # Clés d'API (lot AK1) : authentification avant le CSRF, qui ne s'applique pas à une requête par clé.
+    from .api_auth import register as register_api_auth
+    register_api_auth(app)
     csrf.init_app(app)
 
     login_manager.login_view = "auth.login"
@@ -31,6 +46,8 @@ def create_app(config_name=None):
 
     from .tenant import register_tenant_hooks
     register_tenant_hooks(app)
+    from .api_auth import register_limits
+    register_limits(app)
     from .association_only import register_association_guard
     register_association_guard(app)
 
@@ -44,6 +61,7 @@ def create_app(config_name=None):
     from .views.purchases import bp as purchases_bp
     from .views.exports import bp as exports_bp
     from .views.integrations import legacy_bp as external_connections_bp
+    from .views.agenda_mail import bp as agenda_mail_bp
 
     # Pages migrées vers la SPA : avant les blueprints (un doublon d'endpoint échoue).
     from .spa import register_spa
@@ -59,6 +77,7 @@ def create_app(config_name=None):
     app.register_blueprint(purchases_bp)
     app.register_blueprint(exports_bp)
     app.register_blueprint(external_connections_bp)
+    app.register_blueprint(agenda_mail_bp)
 
     _register_template_filters(app)
 
@@ -67,6 +86,13 @@ def create_app(config_name=None):
 
     from .api import register_api
     register_api(app)
+
+    # Serveur MCP (lot AK2) : POST /mcp, par clé d'API.
+    from .mcp_server import register as register_mcp
+    register_mcp(app)
+
+    from .commands import register_commands
+    register_commands(app)
 
     return app
 

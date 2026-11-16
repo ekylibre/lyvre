@@ -3,7 +3,7 @@
 Montants Ekylibre (`numeric`, ex. « 1234.5600 ») convertis en centimes ; dates ISO conservées en
 `date`. Période : du 01/01 de l'exercice de départ à la date limite (`until`).
 """
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
@@ -15,7 +15,13 @@ TABLES = {
     "journal_entry_items", "purchases", "purchase_items", "sales", "sale_items", "outgoing_payments",
     "incoming_payments", "incoming_payment_modes", "affairs", "cashes", "bank_statements",
     "bank_statement_items", "attachments", "documents", "associates", "fixed_assets", "taxes",
+    "preferences",   # lot RE1 : référentiel détecté (accounting_system, fiscal_position)
+    "loans", "loan_repayments",   # lot RE3 : emprunts au rapport (Lyvre n'a pas de fiche d'emprunt)
+    # lot RE4 : agronomie (Q7) et dernier inventaire
+    "activities", "activity_productions", "campaigns", "inventories", "inventory_items", "products",
+    "product_nature_variants", "product_nature_categories",
 }
+WIDE_START, WIDE_UNTIL = date(1900, 1, 1), date(2999, 12, 31)   # chargement avant la détection de la période
 
 
 def cents(value) -> int:
@@ -33,6 +39,7 @@ class EkyData:
     start: date
     until: date
     rows: dict = field(default_factory=dict)
+    opening_account_ids: set = field(default_factory=set)   # comptes portés par les à-nouveaux calculés (RE2)
 
     # ---------------------------------------------------------------- chargement
 
@@ -73,6 +80,34 @@ class EkyData:
 
     def get(self, table, row_id):
         return self.by_id[table].get(row_id) if row_id else None
+
+    def preference(self, name: str):
+        row = next((p for p in self.rows.get("preferences", []) if p.get("name") == name and not p.get("user_id")), None)
+        if row is None:
+            return None
+        return next((row.get(k) for k in ("string_value", "integer_value", "decimal_value", "boolean_value")
+                     if row.get(k) is not None), None)
+
+    def own_company(self) -> dict | None:
+        """Fiche de la structure (« of_company »)."""
+        return next((e for e in self.rows["entities"] if e.get("of_company") == "t"), None)
+
+    def set_period(self, start: date, until: date) -> None:
+        self.start, self.until = start, until
+
+    def balances_before(self, when: date, fiscal_year_id: str | None = None) -> Counter:
+        """Solde (débit − crédit, centimes) par numéro de compte des lignes datées avant `when`, tous états
+        confondus (lot RE2 : à-nouveaux calculés) ; `fiscal_year_id` : lignes de cet exercice seulement."""
+        result = Counter()
+        for entry in self.rows["journal_entries"]:
+            if day(entry["printed_on"]) >= when or (fiscal_year_id and entry["financial_year_id"] != fiscal_year_id):
+                continue
+            for item in self.items_by_entry[entry["id"]]:
+                result[self.account_number(item["account_id"])] += cents(item["real_debit"]) - cents(item["real_credit"])
+        return result
+
+    def has_history_before(self, when: date) -> bool:
+        return any(day(e["printed_on"]) < when for e in self.rows["journal_entries"])
 
     def account_number(self, account_id) -> str | None:
         account = self.get("accounts", account_id)
@@ -130,6 +165,19 @@ class EkyData:
                     return self.statement_items_by_entry[other["entry_id"]]
         return None
 
+    def bank_statements(self) -> list[dict]:
+        """Relevés de la période (par la date de fin), dans l'ordre."""
+        return sorted((s for s in self.rows["bank_statements"] if self.in_period(s.get("stopped_on") or s.get("started_on"))),
+                      key=lambda s: (s.get("started_on") or "", int(s["id"])))
+
+    def loans(self) -> list[dict]:
+        """Emprunts commencés au plus tard à la date limite."""
+        return sorted((l for l in self.rows["loans"] if l.get("started_on") and day(l["started_on"]) <= self.until),
+                      key=lambda l: (l["started_on"], int(l["id"])))
+
+    def repayments_of(self, loan_id) -> list[dict]:
+        return sorted((r for r in self.rows["loan_repayments"] if r["loan_id"] == loan_id), key=lambda r: int(r["position"]))
+
     def documents_of(self, resource_type, resource_id) -> list[dict]:
         return [self.get("documents", a["document_id"]) for a in self.attachments.get((resource_type, resource_id), [])
                 if self.get("documents", a["document_id"])]
@@ -140,6 +188,7 @@ class EkyData:
         ids |= {o["payee_id"] for o in self.outgoing_payments()} | {o["payer_id"] for o in self.incoming_payments()}
         ids |= {a["entity_id"] for a in self.rows["associates"]}
         used_accounts = {i["account_id"] for e in self.entries() for i in self.items_by_entry[e["id"]]}
+        used_accounts |= self.opening_account_ids
         for entity in self.rows["entities"]:
             if {entity.get("supplier_account_id"), entity.get("client_account_id")} & used_accounts:
                 ids.add(entity["id"])

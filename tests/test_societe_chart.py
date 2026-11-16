@@ -96,8 +96,11 @@ def test_balance_sheet_like_the_2050(session):
     data = build_bilan(_year(session), chart="societe")
     actif = {l["label"]: l["n"] for l in data["actif"] if l["kind"] != "section"}
     passif = {l["label"]: l["n"] for l in data["passif"] if l["kind"] != "section"}
-    assert actif["Frais de développement"] == 214923200
-    assert actif["Amortissements et dépréciations des immobilisations"] == -214923200
+    # Brut, amortissements et net par ligne (2050) ; la ligne globale ne garde que le non rapproché.
+    dev = next(l for l in data["actif"] if l["label"] == "Frais de développement")
+    assert (dev["gross"], dev["depreciation"], dev["n"]) == (214923200, 214923200, 0)
+    rest = next(l for l in data["actif"] if l.get("unallocated"))
+    assert rest["n"] == 0 and rest["label"].endswith("non rapprochés d'une ligne")
     assert passif["Primes d'émission, de fusion, d'apport"] == 148591200
     assert passif["Report à nouveau"] == -138773600
     assert passif["Associés — comptes courants"] == 500000

@@ -24,6 +24,8 @@ class VatReturn(db.Model):
     credit_carried_cents = db.Column(db.Integer, nullable=False, default=0, server_default="0")
     due_cents = db.Column(db.Integer, nullable=False, default=0, server_default="0")
     credit_cents = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+    # Lot AG2.a : remboursement de crédit demandé (case 26 de la CA3, formulaire 3519), déduit du crédit reporté.
+    refund_cents = db.Column(db.Integer, nullable=False, default=0, server_default="0")
     liquidation_entry_id = db.Column(db.Integer, db.ForeignKey("journal_entries.id", ondelete="SET NULL"))
     deadline = db.Column(db.Date)
     declared_on = db.Column(db.Date)

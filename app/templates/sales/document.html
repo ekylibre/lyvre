@@ -95,7 +95,7 @@
 </table>
 
 <div class="notes">
-  {% if exempt %}<p><b>TVA non applicable, art. 293 B du CGI.</b></p>{% endif %}
+  {% if exempt and exempt_mention %}<p><b>{{ exempt_mention }}</b></p>{% endif %}
   {% for mention in exemption_mentions %}<p><b>{{ mention }}</b></p>{% endfor %}
   {% if sale.vat_mode == "debits" and has_services %}<p>Option pour le paiement de la taxe d'après les débits.</p>{% endif %}
   {% if sale.kind == "invoice" %}

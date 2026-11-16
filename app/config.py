@@ -56,6 +56,11 @@ class Config:
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD", "")
     MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", "")
 
+    # Lexicon (OSFarm, lot AG3.e) : aides PAC publiées par l'ASP, lues par SIREN (route réservée aux membres). Clé du
+    # serveur (`Authorization: Bearer`), jamais envoyée au navigateur ; vide : contrôle des aides publiées masqué.
+    LEXICON_API_KEY = os.environ.get("LEXICON_API_KEY", "")
+    LEXICON_URL = os.environ.get("LEXICON_URL", "https://lexicon.osfarm.org")
+
     # API Sirene v4 (INSEE) : pré-remplissage de la Structure et des tiers. Clé du serveur (en-tête
     # X-INSEE-Api-Key-Integration), jamais envoyée au navigateur ; vide : fonctions Sirene masquées.
     SIRENE_API_URL = os.environ.get("SIRENE_API_URL") or "https://api.insee.fr/api-sirene/4"
@@ -70,6 +75,9 @@ class Config:
     # Brevo : repli de développement seulement (INTEGRATIONS_ENV_FALLBACK) ; en production, la clé se
     # saisit dans Configuration › Intégrations.
     BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "")
+    # Assistant Claude (lot AG9b, AGD26) : clé du serveur ; présente, elle prime sur la clé des instances
+    # et l'intégration est active, son réglage de clé en lecture seule.
+    ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
 
 def _flag(name: str, default: bool) -> bool:
