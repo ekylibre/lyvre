@@ -3,7 +3,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Bot,
-  ArchiveRestore, Banknote, BookOpen, BookUser, Boxes, Briefcase, Building, Building2, Calculator, CalendarClock, CalendarRange,
+  ArchiveRestore, Banknote, BookOpen, BookText, BookUser, Boxes, Briefcase, Building, Building2, Calculator, CalendarClock, CalendarRange,
   ChartLine, ChartNoAxesColumn, Clock, Coins, Contact, CreditCard, Droplets, FileChartColumn, FileChartLine, FileClock,
   FileCog, FileHeart, FileInput, FilePenLine, FileText, FileUp, FolderKanban, FolderOpen, Gauge, GitCompareArrows, HandCoins,
   Handshake, Heart, HeartPulse, History, IdCard, KeyRound, Landmark, LayoutDashboard, ListChecks, ListFilter, ListTree,
@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 export const NAV_ICONS: Record<string, LucideIcon> = {
-  "archive-restore": ArchiveRestore, banknote: Banknote, "book-open": BookOpen, "book-user": BookUser, boxes: Boxes, briefcase: Briefcase,
+  "archive-restore": ArchiveRestore, banknote: Banknote, "book-open": BookOpen, "book-text": BookText, "book-user": BookUser, boxes: Boxes, briefcase: Briefcase,
   building: Building, "building-2": Building2, calculator: Calculator, "calendar-clock": CalendarClock,
   "calendar-range": CalendarRange, "chart-line": ChartLine, "chart-no-axes-column": ChartNoAxesColumn, clock: Clock,
   coins: Coins, contact: Contact, "credit-card": CreditCard, droplets: Droplets, "file-chart-column": FileChartColumn,

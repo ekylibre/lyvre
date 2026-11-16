@@ -160,7 +160,23 @@ def test_every_icon_is_in_the_frontend_table():
             if e.get("icon"):
                 yield e["icon"]
             yield from icons(e.get("items", []))
-    assert sorted(set(icons(MENUS)) - known) == []
+    from app.api.reports import EDITIONS  # cartes de la page des éditions (lot NV3)
+    assert sorted((set(icons(MENUS)) | {icon for _, _, icon, _, _ in EDITIONS}) - known) == []
+
+
+def test_tools_menu_only_where_a_calculator_applies():
+    """Pas de menu Outils menant à une page vide (association, SCI, société : aucune calculette)."""
+    from app.services.calculators import charts_covered
+    assert charts_covered() == {"agri"}
+    for chart in ("asso", "sci", "societe", "agri"):
+        features = {"calculators"} if chart in charts_covered() else set()
+        nav = {m["key"]: m for m in build_nav(chart, is_admin=True, features=features)}
+        assert ("tools" in nav) is (chart == "agri"), chart
+
+
+def test_session_hides_tools_for_an_association(app, login_as):
+    client = login_as(role="admin")  # instance de test : plan asso
+    assert "tools" not in {m["key"] for m in client.get("/api/v1/session").get_json()["nav"]}
 
 
 # ---------------------------------------------------------------- lot NV4 (claudedocs/design_navigation.md § 5)

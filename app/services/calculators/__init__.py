@@ -113,6 +113,12 @@ def registry() -> dict[str, object]:
     return _REGISTRY
 
 
+def charts_covered() -> set[str]:
+    """Types de structure pour lesquels au moins une calculette existe : le menu Outils n'apparaît que pour eux
+    (pas de page vide pour une association, essai de la mise en production du 16/11/2026)."""
+    return {chart for module in registry().values() for chart in module.SPEC.charts}
+
+
 def get(code: str):
     module = registry().get(code)
     if module is None:

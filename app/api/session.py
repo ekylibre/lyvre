@@ -96,9 +96,10 @@ def _integrations(inst, role) -> dict:
 def _features(inst) -> set[str]:
     """Options de l'instance qui conditionnent des menus : module Associés, intégrations activées,
     déclarations de TVA (un exercice les prépare dans Lyvre, lot T3 ; toujours pour une exploitation, dont la page
-    indique le régime à renseigner)."""
+    indique le régime à renseigner), calculettes (au moins une pour ce type de structure)."""
+    from app.services.calculators import charts_covered
     return {*(["associates"] if inst.has_associates else []), *(["vat_returns"] if inst.chart == "agri" or _vat_prepared(inst) else []),
-            *_enabled_integrations(inst)}
+            *(["calculators"] if inst.chart in charts_covered() else []), *_enabled_integrations(inst)}
 
 
 def _vat_prepared(inst) -> bool:

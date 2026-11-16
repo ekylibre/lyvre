@@ -315,7 +315,8 @@ MENUS = [
         "charts": _ALL,
         "active": ["tools"],
         "items": [
-            {"key": "calculators", "label": "Calculettes", "icon": "calculator", "endpoint": "tools.index", "charts": _ALL},
+            {"key": "calculators", "label": "Calculettes", "icon": "calculator", "endpoint": "tools.index", "charts": _ALL,
+             "feature": "calculators"},  # au moins une calculette pour ce type de structure (app.api.session._features)
         ],
     },
     # ----------------------------------------------------------------- Configuration
