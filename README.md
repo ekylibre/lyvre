@@ -204,8 +204,8 @@ Désactivées par défaut, proposées selon la structure, silencieuses tant qu'e
 ### Avec Docker
 
 ```bash
-git clone git@github.com:asso-seconde-nature/seconde-compta.git
-cd seconde-compta
+git clone https://github.com/ekylibre/lyvre.git
+cd lyvre
 cp .env.example .env      # puis renseigner SECRET_KEY, ADMIN_EMAIL, ADMIN_PASSWORD
 docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 ```
