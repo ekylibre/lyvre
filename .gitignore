@@ -30,3 +30,14 @@ claudedocs/compta_agricole/liasse_BA/
 claudedocs/compta_agricole/fiches_pratiques/
 claudedocs/compta_agricole/msa/*.pdf
 claudedocs/compta_agricole/RICA/
+
+# Documents de travail à données réelles (structures clientes, comptes) : gardés en local, hors du dépôt public.
+.claude/settings.local.json
+claudedocs/besoins_societe_tva.md
+claudedocs/design_societe_tva.md
+claudedocs/besoins_import_ekylibre_sci.md
+claudedocs/design_import_ekylibre_sci.md
+claudedocs/besoins_restauration_ekylibre.md
+claudedocs/design_restauration_ekylibre.md
+claudedocs/rapport_activites/*.pdf
+claudedocs/rapport_activites/*.xlsx
