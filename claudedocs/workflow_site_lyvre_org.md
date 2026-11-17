@@ -12,7 +12,7 @@ Modèle technique : `fourmy/apps/site` (Astro 7, nginx, CSP stricte) et `fourmy/
 | L2 README | ✅ réécrit (agricole, société, liens site et démo), sections générées |
 | L3 Site Astro | ✅ `site/` : 9 pages, une page par version, RSS, `version.json`, thème sombre ; 30 tests Playwright + axe (ordinateur, mobile) |
 | L4 Contact | ✅ `site/contact/contact.py` + 15 tests (Brevo simulé) ; pas encore d'envoi réel |
-| L5 Image et Dokploy | 🟡 Dockerfiles, nginx, `docker-compose.site.yml` écrits ; construction de l'image non essayée (pas de Docker local), service Dokploy et DNS à faire |
+| L5 Image et Dokploy | 🟡 Service Compose `site` du projet Dokploy « Lyvre » construit et en ligne (branche `site-lyvre-org`, à passer sur `main` après fusion) ; vérifié par l'adresse du serveur. DNS de `lyvre.org` et `www` encore sur le parking Gandi |
 | L6 Captures | ✅ `make captures` ; script réparé (encaissement automatique depuis 2026.11.1), captures agricoles ajoutées |
 | L7 Démo | ⏳ non commencé (voir ci-dessous) |
 | L8 Recette | ⏳ après déploiement |
