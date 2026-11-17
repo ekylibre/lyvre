@@ -2,10 +2,12 @@
 // fictives créées par l'API (« SCI Ventes E2E », « SCI E2E », association « Les Jardins Partagés »),
 // Sirene et Brevo simulés par scripts/e2e_demo.py. Seule la carte du bail appelle le service public
 // de l'IGN (capture sautée sans réseau).
-// Serveur neuf requis (les données s'ajoutent à chaque passage) :
+// Lancement : `make captures` (serveur neuf, captures, arrêt). À la main, serveur neuf requis (les données
+// s'ajoutent à chaque passage) :
 //   .venv/bin/python scripts/e2e_server.py --demo &
 //   cd frontend && node --input-type=module - ../doc/images < ../scripts/readme_screenshots.mjs
 // (lu sur l'entrée standard depuis frontend/ pour y résoudre @playwright/test)
+// Les mêmes images servent au README et au site lyvre.org (data/features.yml › capture).
 import { chromium } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 
@@ -75,9 +77,12 @@ for (const rows of invoices) {
   await call("POST", `/sales/${item.id}/issue`);
   ids.push(item.id);
 }
-// Encaissement de la dernière par le crédit bancaire de 1 200 €, une autre par chèque.
+// Encaissement de la dernière par le crédit bancaire de 1 200 € (déjà fait à l'émission depuis 2026.11.1 :
+// crédit unique de même montant), une autre par chèque.
 const options = await call("GET", `/sales/${ids[3]}/payment-options`);
-await call("POST", "/sales/match", { bank_transaction_id: options.candidates[0].id, allocations: [{ sale_id: ids[3], amount_cents: 120000 }] });
+if (options.candidates?.length) {
+  await call("POST", "/sales/match", { bank_transaction_id: options.candidates[0].id, allocations: [{ sale_id: ids[3], amount_cents: 120000 }] });
+}
 await call("POST", `/sales/${ids[1]}/payments`, { amount: "300", paid_on: iso(today), bank_account_id: options.accounts[0].value, method: "check" });
 const quote = (await call("POST", "/sales", { kind: "quote", entity_id: client, issue_date: iso(today),
   lines: [{ label: "Rénovation de la cage d'escalier", quantity: "1", unit_price: "6800", vat_rate: "0" }] })).item;
@@ -154,5 +159,17 @@ await shot("/entities/members", "adherents", { wait: "Camille Martin" });
 const job = (await call("POST", "/brevo/sync", { dry_run: true })).job;
 await shot(`/entities/members/brevo/${job.id}`, "brevo", { wait: "Rattachés" });
 await shot("/changelog", "nouveautes", { wait: "Version actuelle" });
+
+// Exploitation fictive du jeu d'essai agricole (tests/fixtures/agri, EARL porcs au réel simplifié) :
+// échéancier et résultat fiscal (l'inventaire du jeu d'essai est vide : pas de capture). Une capture qui
+// échoue n'arrête pas les autres.
+await use("Exploitation A E2E");
+for (const [path, name] of [["/agenda/", "agri-echeancier"], ["/tax-result/", "agri-resultat-fiscal"]]) {
+  try {
+    await shot(path, name);
+  } catch (err) {
+    console.log(`capture ${name} sautée :`, String(err).split("\n")[0]);
+  }
+}
 
 await browser.close();

@@ -1,0 +1,82 @@
+---
+// Mise en page commune : en-tête (Essayer la démo, Installer), pied de page (version publiée),
+// métadonnées SEO et Open Graph.
+import "@fontsource/ibm-plex-sans/400.css";
+import "@fontsource/ibm-plex-sans/600.css";
+import "@fontsource/bricolage-grotesque/700.css";
+import "@fontsource/bricolage-grotesque/800.css";
+import "../styles/tokens.css";
+import "../styles/site.css";
+import Wordmark from "../components/Wordmark.astro";
+import { current } from "../lib/data";
+import { CONTACT_EMAIL, NAV, REPO_URL } from "../lib/site";
+
+interface Props {
+  title: string;
+  description: string;
+}
+const { title, description } = Astro.props;
+const fullTitle = title === "Lyvre" ? "Lyvre, la comptabilité libre, sobre et souveraine" : `${title} · Lyvre`;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const path = Astro.url.pathname;
+const ogImage = new URL("/og.png", Astro.site);
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate" type="application/rss+xml" title="Nouveautés de Lyvre" href="/nouveautes/rss.xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Lyvre" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:locale" content="fr_FR" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#2F6B4F" />
+  </head>
+  <body>
+    <a class="skip" href="#contenu">Aller au contenu</a>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="logo" href="/" aria-label="Lyvre, accueil"><Wordmark /></a>
+        <nav class="site-nav" aria-label="Navigation principale">
+          {NAV.map((n) => <a href={n.href} aria-current={path.startsWith(n.href) ? "page" : undefined}>{n.label}</a>)}
+        </nav>
+        <a class="btn btn-primary header-cta" href="/demo/" data-testid="demo">Essayer la démo</a>
+      </div>
+    </header>
+    <main id="contenu">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="wrap">
+        <div>
+          <Wordmark onDark />
+          <p>La comptabilité libre, sobre et souveraine. Logiciel libre sous licence GNU AGPL v3.</p>
+          <p class="version" data-testid="version">
+            <a href={`/nouveautes/${current.version}/`}>Version {current.version}</a>
+          </p>
+        </div>
+        <ul aria-label="Lyvre">
+          {NAV.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
+          <li><a href="/demo/">Démo en ligne</a></li>
+          <li><a href="/nouveautes/rss.xml">Flux RSS des nouveautés</a></li>
+        </ul>
+        <ul aria-label="Informations">
+          <li><a href={REPO_URL}>Code source (GitHub)</a></li>
+          <li><a href="/mentions-legales/">Mentions légales</a></li>
+          <li><a href="/donnees-personnelles/">Données personnelles</a></li>
+          <li><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></li>
+        </ul>
+      </div>
+    </footer>
+  </body>
+</html>

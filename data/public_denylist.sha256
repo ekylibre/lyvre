@@ -1,0 +1,2 @@
+# Liste noire des textes publics (README, site lyvre.org, nouveautés) : empreintes SHA-256 de termes
+# normalisés, jamais les termes eux-mêmes (dépôt public). Ajouter : python scripts/release.py denylist "terme"

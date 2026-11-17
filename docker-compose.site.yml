@@ -1,0 +1,31 @@
+# Site public lyvre.org (doc/site.md) — service Compose Dokploy, construit depuis main à chaque push.
+# - « site » : nginx, site statique ; domaines lyvre.org et www.lyvre.org → port 80 (Traefik de Dokploy).
+# - « contact » : formulaire de contact (Brevo), joignable seulement par le nginx du site.
+# Variables (onglet Environment de Dokploy, jamais dans le dépôt) : BREVO_API_KEY, CONTACT_TO, CONTACT_FROM,
+# BREVO_CONTACT_LIST_ID (facultative). En local : docker compose -f docker-compose.site.yml up --build
+# puis http://localhost:8080 (ports de docker-compose.site.local.yml).
+services:
+  site:
+    build:
+      context: .
+      dockerfile: docker/site.Dockerfile
+      args:
+        PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://lyvre.org}
+        PUBLIC_DEMO_URL: ${PUBLIC_DEMO_URL:-https://demo.lyvre.org}
+    restart: unless-stopped
+    expose:
+      - "80"
+    depends_on:
+      - contact
+  contact:
+    build:
+      context: .
+      dockerfile: docker/contact.Dockerfile
+    restart: unless-stopped
+    expose:
+      - "5000"
+    environment:
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      CONTACT_TO: ${CONTACT_TO:-contact@lyvre.org}
+      CONTACT_FROM: ${CONTACT_FROM:-site@lyvre.org}
+      BREVO_CONTACT_LIST_ID: ${BREVO_CONTACT_LIST_ID:-}

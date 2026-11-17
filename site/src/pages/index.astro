@@ -1,0 +1,147 @@
+---
+import Base from "../layouts/Base.astro";
+import Shot from "../components/Shot.astro";
+import { audiences, highlights, inline, integrations, overview, splitEntry, versions, formatDate, STRUCTURES } from "../lib/data";
+import { REPO_URL } from "../lib/site";
+
+const withShot = audiences.filter((a) => a.capture);
+const withoutShot = audiences.filter((a) => !a.capture);
+/** Les trois dernières versions, réduites à leur première nouveauté (ou action, ou correction). */
+const latest = versions.slice(0, 3).map((v) => {
+  const first = v.entries.find((e) => e.kind === "action") ?? v.entries.find((e) => e.kind === "new") ?? v.entries[0];
+  return { ...v, first };
+});
+---
+
+<Base title="Lyvre" description="Lyvre, logiciel libre de comptabilité pour associations, SCI, exploitations agricoles et sociétés : banque sans ressaisie, factures, clôture, FEC. Hébergé chez vous.">
+  <section class="hero wrap">
+    <p class="eyebrow">Logiciel libre de comptabilité</p>
+    <h1>La comptabilité libre, sobre et souveraine.</h1>
+    <p class="lead">
+      De la saisie au bilan pour une association, une SCI, une exploitation agricole ou une société : banque et caisse,
+      achats et ventes, adhésions, baux, inventaire, TVA, clôture et FEC pour l'expert-comptable. Hébergé chez vous.
+    </p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/demo/">Essayer la démo</a>
+      <a class="btn btn-secondary" href="/installer/">Installer Lyvre</a>
+    </div>
+    <Shot
+      class="hero-shot"
+      name="tableau-de-bord.png"
+      dark="tableau-de-bord-sombre.png"
+      alt="Tableau de bord de Lyvre : résultat, facturé, encours clients et graphique mensuel"
+      eager
+      widths={[640, 960, 1440]}
+      sizes="(max-width: 72rem) 100vw, 72rem"
+    />
+  </section>
+
+  <section class="section wrap" aria-labelledby="en-bref">
+    <h2 id="en-bref" class="sr-only">En bref</h2>
+    <div class="highlights">
+      {highlights.map((h) => (
+        <div>
+          <h3><span aria-hidden="true">{h.emoji}</span> {h.title}</h3>
+          <p set:html={inline(h.text)} />
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="section wrap" aria-labelledby="pour-qui">
+    <div class="section-head">
+      <p class="eyebrow">Pour qui</p>
+      <h2 id="pour-qui">Une comptabilité qui connaît votre structure</h2>
+      <p class="muted">Le plan comptable, les écrans et les contrôles s'adaptent à la forme choisie à la création.</p>
+    </div>
+    {withShot.map((a) => (
+      <article class="audience">
+        <div>
+          <h3><span aria-hidden="true">{a.emoji}</span> {a.title}</h3>
+          <ul>{a.points.map((p) => <li set:html={inline(p)} />)}</ul>
+        </div>
+        <Shot name={a.capture!} alt={a.alt ?? a.title} />
+      </article>
+    ))}
+    <div class="cards">
+      {withoutShot.map((a) => (
+        <article class="card">
+          <h3><span aria-hidden="true">{a.emoji}</span> {a.title}</h3>
+          <ul>{a.points.map((p) => <li set:html={inline(p)} />)}</ul>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="section wrap" aria-labelledby="apercu">
+    <div class="section-head">
+      <p class="eyebrow">Aperçu</p>
+      <h2 id="apercu">Tout au clavier, rien à ressaisir</h2>
+      <p><a href="/fonctionnalites/">Toutes les fonctionnalités</a></p>
+    </div>
+    <div class="gallery">
+      {overview.map((o) => (
+        <Shot name={o.capture} alt={o.alt}>
+          <figcaption><strong>{o.title}</strong> : <span set:html={inline(o.caption)} /></figcaption>
+        </Shot>
+      ))}
+    </div>
+  </section>
+
+  <section class="section wrap" aria-labelledby="integrations">
+    <div class="section-head">
+      <p class="eyebrow">Intégrations</p>
+      <h2 id="integrations">Branché sur vos outils, quand vous le décidez</h2>
+      <p class="muted">Désactivées par défaut, activées structure par structure et testées depuis l'écran. Aucune donnée ne part tant qu'elles restent éteintes.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Service</th><th scope="col">Usage</th><th scope="col">Structures</th></tr></thead>
+        <tbody>
+          {integrations.map((i) => <tr><th scope="row">{i.name}</th><td>{i.usage}</td><td>{i.structures}</td></tr>)}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section wrap" aria-labelledby="dernieres">
+    <div class="section-head">
+      <p class="eyebrow">Nouveautés</p>
+      <h2 id="dernieres">Lyvre avance chaque semaine</h2>
+      <p><a href="/nouveautes/">Toutes les versions</a> · <a href="/nouveautes/rss.xml">flux RSS</a></p>
+    </div>
+    <div class="latest">
+      {latest.map((v) => {
+        const e = v.first && splitEntry(v.first.text);
+        return (
+          <article class="card">
+            <p class="muted">{formatDate(v.date)}</p>
+            <h3><a href={`/nouveautes/${v.version}/`}>{v.title}</a></h3>
+            {v.first && e && (
+              <p>
+                {v.first.structure && <span class="tag">{STRUCTURES[v.first.structure]}</span>} {e.where ? `${e.where} : ` : ""}
+                {e.what.length > 180 ? `${e.what.slice(0, 180).replace(/\s\S*$/, "")}…` : e.what}
+              </p>
+            )}
+          </article>
+        );
+      })}
+    </div>
+  </section>
+
+  <section class="section wrap">
+    <div class="band">
+      <div>
+        <h2>Libre, et chez vous</h2>
+        <p>
+          Lyvre est publié sous licence GNU AGPL v3. Une image Docker, une base par structure, des sauvegardes avec les pièces
+          jointes : vos comptes restent sur votre serveur, et vous pouvez lire, modifier et partager le code.
+        </p>
+      </div>
+      <div class="actions">
+        <a class="btn btn-primary" href="/installer/">Installer</a>
+        <a class="btn btn-secondary" href={REPO_URL}>Code source</a>
+      </div>
+    </div>
+  </section>
+</Base>

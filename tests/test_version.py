@@ -44,7 +44,7 @@ def test_validation_errors():
     ]}
     errors = "\n".join(version.validate(data))
     for expected in ("plus récente à la plus ancienne", "n'est pas dans le mois", "titre manquant",
-                     "structure « asso » ou « sci »", "format AAAA.MM.N", "next, entrée 1 : type", "next, entrée 1 : texte"):
+                     "structure parmi asso, sci", "format AAAA.MM.N", "next, entrée 1 : type", "next, entrée 1 : texte"):
         assert expected in errors, expected
 
 

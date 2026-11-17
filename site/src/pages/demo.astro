@@ -1,0 +1,26 @@
+---
+import Base from "../layouts/Base.astro";
+import { DEMO_LOGIN, DEMO_URL } from "../lib/site";
+---
+
+<Base title="Démo en ligne" description="Essayer Lyvre en ligne, sans rien installer, sur des structures de démonstration aux données fictives.">
+  <div class="wrap prose">
+    <h1>Démo en ligne</h1>
+    <p class="lead">
+      Une installation de Lyvre ouverte à tous, avec une association, une SCI, une exploitation agricole et une société de
+      démonstration. Tout y est fictif, et tout est remis à zéro chaque nuit.
+    </p>
+    <dl class="credentials">
+      <dt>Adresse</dt><dd><a href={DEMO_URL}>{DEMO_URL.replace("https://", "")}</a></dd>
+      <dt>E-mail</dt><dd>{DEMO_LOGIN.email}</dd>
+      <dt>Mot de passe</dt><dd>{DEMO_LOGIN.password}</dd>
+    </dl>
+    <p class="actions"><a class="btn btn-primary" href={DEMO_URL}>Ouvrir la démo</a></p>
+    <h2>Bon à savoir</h2>
+    <ul>
+      <li>N'y saisissez aucune donnée réelle : la démo est partagée par tous ses visiteurs.</li>
+      <li>Les intégrations (banque, e-mails, signature, plateformes) y sont coupées : rien ne quitte la démo.</li>
+      <li>Pour garder vos données, <a href="/installer/">installez Lyvre</a> chez vous.</li>
+    </ul>
+  </div>
+</Base>

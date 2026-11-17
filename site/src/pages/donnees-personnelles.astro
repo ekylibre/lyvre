@@ -1,0 +1,31 @@
+---
+import Base from "../layouts/Base.astro";
+import { CONTACT_EMAIL } from "../lib/site";
+---
+
+<Base title="Données personnelles" description="Données personnelles du site lyvre.org : formulaire de contact, finalité, durée de conservation, droits.">
+  <div class="wrap prose">
+    <h1>Données personnelles</h1>
+    <h2>Ce que ce site collecte</h2>
+    <p>Rien, sauf ce que vous envoyez par le formulaire de contact. Ce site ne dépose aucun cookie et n'utilise aucun outil de mesure d'audience ni traceur tiers.</p>
+    <h2>Formulaire de contact</h2>
+    <ul>
+      <li><strong>Données</strong> : nom, adresse e-mail, type de structure et message.</li>
+      <li><strong>Finalité</strong> : vous répondre, et vous recontacter au sujet de votre demande. Aucune lettre d'information sans votre accord distinct.</li>
+      <li><strong>Base légale</strong> : votre consentement, donné en cochant la case du formulaire.</li>
+      <li><strong>Destinataire</strong> : l'équipe Lyvre d'Ekylibre SAS. Le message est transmis par Brevo (Sendinblue SAS, France), qui conserve le contact pour notre compte ; il n'est enregistré sur aucun autre serveur.</li>
+      <li><strong>Durée de conservation</strong> : trois ans après notre dernier échange.</li>
+    </ul>
+    <h2>Vos droits</h2>
+    <p>
+      Vous pouvez accéder à vos données, les faire rectifier ou effacer, retirer votre consentement ou vous opposer à leur
+      traitement en écrivant à <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. Vous pouvez aussi saisir la CNIL
+      (<a href="https://www.cnil.fr/">cnil.fr</a>).
+    </p>
+    <h2>L'application Lyvre</h2>
+    <p>
+      Les données que vous saisissez dans une installation de Lyvre restent sur le serveur qui l'héberge : Ekylibre n'y a pas
+      accès. Dans la démonstration en ligne, n'enregistrez aucune donnée réelle : elle est partagée et remise à zéro chaque nuit.
+    </p>
+  </div>
+</Base>

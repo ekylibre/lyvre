@@ -1,0 +1,40 @@
+---
+import Base from "../layouts/Base.astro";
+import Shot from "../components/Shot.astro";
+import Tags from "../components/Tags.astro";
+import { domains, featuresOf, inline } from "../lib/data";
+---
+
+<Base title="Fonctionnalités" description="Comptabilité, banque, achats, ventes, baux, adhérents, exploitation agricole, TVA, clôture et API : ce que fait Lyvre.">
+  <div class="wrap">
+    <h1>Fonctionnalités</h1>
+    <p class="lead">
+      Ce que Lyvre sait faire aujourd'hui, domaine par domaine. Les étiquettes indiquent les structures concernées ; sans
+      étiquette, la fonctionnalité sert à toutes.
+    </p>
+    <nav aria-label="Domaines" class="tags" style="margin-bottom:1rem">
+      {domains.filter((d) => featuresOf(d.id).length).map((d) => <a class="tag" href={`#${d.id}`}>{d.title}</a>)}
+    </nav>
+    {domains.map((d) => {
+      const list = featuresOf(d.id);
+      return list.length > 0 && (
+        <section class="domain" id={d.id} aria-labelledby={`h-${d.id}`}>
+          <h2 id={`h-${d.id}`}><span aria-hidden="true">{d.emoji}</span> {d.title}</h2>
+          <div class="feature-grid">
+            {list.map((f) => (
+              <article class="feature" id={f.id}>
+                <h3>{f.title}</h3>
+                <Tags structures={f.structures} />
+                {f.status === "soon" && <span class="tags"><span class="tag tag-soon">À venir</span></span>}
+                <p set:html={inline(f.text)} />
+                {f.since && <p class="meta">Depuis la <a href={`/nouveautes/${f.since}/`}>version {f.since}</a></p>}
+                {f.capture && <Shot name={f.capture} alt={`${f.title} : capture d'écran`} widths={[400, 800]} sizes="(max-width: 40rem) 100vw, 22rem" />}
+              </article>
+            ))}
+          </div>
+        </section>
+      );
+    })}
+    <p class="actions"><a class="btn btn-primary" href="/demo/">Essayer la démo</a> <a class="btn btn-secondary" href="/installer/">Installer</a></p>
+  </div>
+</Base>

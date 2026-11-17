@@ -1,0 +1,17 @@
+---
+import Base from "../../layouts/Base.astro";
+import Release from "../../components/Release.astro";
+import { current, versions } from "../../lib/data";
+---
+
+<Base title="Nouveautés" description="Les nouveautés, améliorations et corrections de Lyvre, version par version, avec les actions requises à la mise à jour.">
+  <div class="wrap">
+    <h1>Nouveautés</h1>
+    <p class="lead">
+      Version actuelle : <strong>{current.version}</strong>. Chaque version est aussi décrite dans l'application (menu
+      utilisateur › Nouveautés). Les actions à faire en mettant à jour sont en tête de la version.
+    </p>
+    <p><a href="/nouveautes/rss.xml">S'abonner au flux RSS</a></p>
+    {versions.map((v) => <Release release={v} />)}
+  </div>
+</Base>

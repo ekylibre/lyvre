@@ -1,0 +1,385 @@
+# Présentation publique de Lyvre : source unique des sections générées du README et du site lyvre.org.
+# Après modification : `python scripts/release.py build` (README), le site la relit à sa construction.
+# Textes publics : aucune donnée réelle (structure, client, personne). `release.py check` le contrôle.
+#
+# structures : asso | sci | agri | societe (absent : toutes)
+# capture : fichier de doc/images/ (régénéré par `make captures`)
+# since : version publiée qui a apporté la fonctionnalité (facultatif)
+# status : available | soon
+
+highlights:
+  - emoji: 📒
+    title: Comptabilité complète
+    text: Partie double au clavier ou comptabilité simplifiée, plan associatif, SCI, agricole ou général, lettrage, immobilisations.
+  - emoji: 🏦
+    title: Banque sans ressaisie
+    text: Qonto ou OFX, rapprochement au clavier avec suggestions, règles, factures lues automatiquement.
+  - emoji: ✅
+    title: Prêt pour l'expert-comptable
+    text: Écritures validées intangibles, clôture guidée, à-nouveaux, FEC conforme, accès en lecture seule.
+  - emoji: 🔐
+    title: Libre et chez vous
+    text: AGPL-3.0, une base par structure, sauvegardes avec les pièces, aucune donnée envoyée sans intégration activée.
+
+audiences:
+  - id: asso
+    emoji: 🌱
+    title: Une association
+    capture: adherents.png
+    alt: Liste des adhérents avec dates d'adhésion, échéances et statut
+    points:
+      - Plan comptable associatif (règlement ANC 2018-06), contributions volontaires, fonds dédiés.
+      - Adhésions HelloAsso et caisse, échéances, relances par e-mail, bénévolat valorisé.
+      - Reçus fiscaux Cerfa numérotés, PDF figés, envoi et état annuel.
+      - Liste des adhérents synchronisée vers **Brevo**, sans doublon.
+  - id: sci
+    emoji: 🏡
+    title: Une SCI
+    capture: bail-carte.png
+    alt: Carte d'un bail, photo aérienne et parcelles cadastrales de l'IGN
+    points:
+      - "Associés : registre des parts (usufruit, nue-propriété), comptes courants, intérêts."
+      - Baux par lots, carte des parcelles et bâtiments (IGN), modèles relus, texte figé.
+      - Signature électronique (Documenso auto-hébergé), quittances, révision des loyers sur les indices INSEE.
+      - Reprise d'une comptabilité Ekylibre.
+  - id: agri
+    emoji: 🌾
+    title: Une exploitation agricole
+    capture: agri-echeancier.png
+    alt: Échéancier d'une exploitation agricole, liste de contrôle d'automne et démarches à préciser
+    points:
+      - Plan comptable agricole (EI, EARL, GAEC, SCEA), micro-BA ou réel, bilan et compte de résultat agricoles.
+      - Inventaire de clôture, avances aux cultures, biens vivants et lots d'animaux, valeur fiscale des stocks.
+      - Résultat fiscal, abattement jeune agriculteur, DEP, assiette des cotisations MSA, aide à la liasse BA.
+      - Aides PAC et subventions suivies, TVA agricole (CA12A, acomptes), échéancier de l'exploitation.
+  - id: societe
+    emoji: 🏢
+    title: Une société
+    points:
+      - Plan comptable général 2026, bilan et compte de résultat présentés comme la liasse 2050.
+      - Codes de TVA sur les écritures, autoliquidation, déclarations CA3 calculées depuis les écritures.
+      - Facturation électronique (Factur-X, plateforme agréée), relevés de compte conservés.
+      - Statut de jeune entreprise innovante, archive de l'exercice pour l'expert-comptable.
+  - id: expert
+    emoji: 🧮
+    title: L'expert-comptable
+    capture: cloture.png
+    alt: Assistant de clôture, étapes et contrôles
+    points:
+      - Accès en lecture seule à la structure, sans rien pouvoir modifier.
+      - Validation par lots, verrouillage de période, historique de chaque écriture.
+      - "Assistant de clôture : contrôles, inventaire, CCA / PCA, dotations, résultat, FEC."
+      - Reprise d'historique depuis un FEC, un tableur ou une sauvegarde Ekylibre.
+  - id: hebergeur
+    emoji: 🛠️
+    title: L'hébergeur
+    capture: integrations.png
+    alt: Page des intégrations
+    points:
+      - Une image Docker, plusieurs structures, une base SQLite par structure.
+      - Migrations de toutes les bases au démarrage, sauvegardes `.zip` avec les pièces jointes.
+      - Intégrations activées structure par structure, testées depuis l'écran.
+      - Version et nouveautés dans l'application, changelog avec les actions requises.
+
+overview:
+  - capture: rapprochement.png
+    alt: Rapprochement bancaire au clavier
+    title: Rapprochement
+    caption: suggestions classées, tout au clavier, annulable.
+  - capture: ventes.png
+    alt: Liste des factures de vente
+    title: Ventes
+    caption: devis, factures et avoirs numérotés, restant dû, encaissements rapprochés.
+  - capture: facture.png
+    alt: Fiche d'une facture payée
+    title: Facture
+    caption: PDF Factur-X, écriture au journal des ventes, encaissement depuis la banque.
+  - capture: bail.png
+    alt: Fiche d'un bail avec avis d'échéance et quittance
+    title: Bail
+    caption: avis d'échéance récurrents, dépôt de garantie, quittances en un clic.
+  - capture: sirene.png
+    alt: Compléter la structure depuis Sirene
+    title: Sirene
+    caption: structure et tiers complétés depuis l'INSEE, champ par champ.
+  - capture: agri-echeancier.png
+    alt: Échéancier d'une exploitation agricole
+    title: Échéancier
+    caption: déclarations, paiements et démarches calculés depuis le profil, listes de contrôle de saison.
+  - capture: agri-resultat-fiscal.png
+    alt: Résultat fiscal d'une exploitation agricole et déduction pour épargne de précaution
+    title: Résultat fiscal
+    caption: du résultat comptable aux bénéfices agricoles, plafond DEP, répartition par associé.
+  - capture: brevo.png
+    alt: Aperçu de la synchronisation Brevo
+    title: Brevo
+    caption: aperçu sans écriture, rattachements, désinscrits respectés.
+  - capture: abonnements.png
+    alt: Liste des abonnements d'achat
+    title: Abonnements
+    caption: coût mensuel, échéances manquantes, préavis de résiliation.
+  - capture: nouveautes.png
+    alt: Page des nouveautés
+    title: Nouveautés
+    caption: chaque version expliquée dans l'application, actions requises en tête.
+
+domains:
+  - id: compta
+    emoji: 📒
+    title: Comptabilité
+  - id: banque
+    emoji: 🏦
+    title: Banque et caisse
+  - id: achats
+    emoji: 🧾
+    title: Achats
+  - id: ventes
+    emoji: 💶
+    title: Ventes et facturation électronique
+  - id: baux
+    emoji: 🏡
+    title: Baux et associés
+  - id: tiers
+    emoji: 🤝
+    title: Tiers, adhérents, dons
+  - id: agri
+    emoji: 🌾
+    title: Exploitation agricole
+  - id: fiscal
+    emoji: 🏛️
+    title: TVA et fiscalité
+  - id: pilotage
+    emoji: 📊
+    title: Pilotage et clôture
+  - id: api
+    emoji: 🤖
+    title: Agents et API
+
+features:
+  # --- Comptabilité
+  - id: plans-comptables
+    domain: compta
+    title: Plans comptables
+    text: Plan associatif (ANC 2018-06), SCI, agricole (Recueil PCG 2026) ou général 2026, choisi à la création de la structure.
+  - id: partie-double
+    domain: compta
+    title: Partie double au clavier
+    text: Journaux, grand livre, balance, bilan et compte de résultat N / N-1.
+  - id: compta-simplifiee
+    domain: compta
+    title: Comptabilité simplifiée
+    text: Recettes et dépenses par catégorie, passage en partie double sans ressaisie.
+  - id: validation
+    domain: compta
+    title: Écritures intangibles
+    text: Validation par lots, écritures corrigées par extourne, historique, verrouillage de période.
+  - id: lettrage-immos
+    domain: compta
+    title: Lettrage et immobilisations
+    text: Lettrage automatique ou au clavier, à-nouveaux détaillés, immobilisations et amortissements, charges et produits constatés d'avance, contributions volontaires en nature.
+  # --- Banque
+  - id: import-bancaire
+    domain: banque
+    title: Relevés importés
+    text: Import OFX et synchronisation Qonto, dédoublonnés, opérations annulées gérées, relevés de compte conservés.
+  - id: rapprochement
+    domain: banque
+    title: Rapprochement au clavier
+    text: Suggestions classées, rapprochement en masse et annulable, règles de catégorisation proposées depuis un mois.
+    capture: rapprochement.png
+  - id: reglements-multiples
+    domain: banque
+    title: Factures réglées en plusieurs fois
+    text: Acomptes, échéanciers et virements échelonnés rattachés à une facture d'achat ou de vente.
+    since: 2026.11.2
+  - id: caisse-tresorerie
+    domain: banque
+    title: Caisse et trésorerie
+    text: Caisse en espèces et dépôts en banque, solde bancaire face au solde comptable, prévisionnel de trésorerie sur 12 mois.
+  # --- Achats
+  - id: factures-achat
+    domain: achats
+    title: Factures fournisseurs lues
+    text: Qonto ou dépôt d'un fichier, lecture Factur-X, PDF ou photo (OCR), pièce conservée.
+  - id: catalogue
+    domain: achats
+    title: Catalogue et engagements
+    text: Catalogue de produits, compte proposé par fournisseur, règlements rapprochés.
+  - id: abonnements
+    domain: achats
+    title: Abonnements
+    text: Coût mensuel, échéances manquantes et préavis de résiliation suivis échéance par échéance.
+    capture: abonnements.png
+  # --- Ventes
+  - id: factures-vente
+    domain: ventes
+    title: Devis, factures et avoirs
+    text: Numérotés, PDF Factur-X, journal des ventes, envoi par e-mail, relances et factures récurrentes.
+    capture: ventes.png
+  - id: encaissements
+    domain: ventes
+    title: Encaissements rapprochés
+    text: Facture encaissée depuis le relevé, TVA à l'encaissement ou sur les débits.
+    capture: facture.png
+  - id: facture-electronique
+    domain: ventes
+    title: Facturation électronique
+    text: Envoi et réception par une plateforme agréée (SUPER PDP), e-reporting, autofactures et décomptes de coopérative.
+  # --- Baux
+  - id: baux
+    domain: baux
+    structures: [sci]
+    title: Baux
+    text: Assistant, modèles relus, carte IGN, avis d'échéance, dépôt de garantie, quittances en un clic.
+    capture: bail.png
+  - id: signature
+    domain: baux
+    structures: [sci]
+    title: Signature et révision
+    text: Signature électronique Documenso, révision des loyers (ILC, ILAT, IRL, fermages) sur les indices INSEE.
+  - id: associes
+    domain: baux
+    structures: [sci]
+    title: Associés
+    text: Registre des parts (usufruit, nue-propriété), comptes courants d'associés et intérêts.
+  # --- Tiers
+  - id: sirene
+    domain: tiers
+    title: Tiers et Sirene
+    text: Structure et tiers pré-remplis et mis à jour depuis l'API Sirene de l'INSEE (SIREN, adresse, NAF, TVA).
+    capture: sirene.png
+  - id: adhesions
+    domain: tiers
+    structures: [asso]
+    title: Adhésions
+    text: Adhésions HelloAsso et caisse, échéances, relances, bénévolat, liste synchronisée vers Brevo.
+    capture: adherents.png
+  - id: recus-fiscaux
+    domain: tiers
+    structures: [asso]
+    title: Reçus fiscaux
+    text: Particuliers (Cerfa 11580) et entreprises (16216), dons en nature, état annuel.
+  # --- Agricole
+  - id: plan-agricole
+    domain: agri
+    structures: [agri]
+    title: Plan « Exploitation agricole »
+    text: EI, EARL, GAEC, SCEA, micro-BA ou réel, bilan et compte de résultat agricoles, soldes intermédiaires de gestion.
+  - id: inventaire
+    domain: agri
+    structures: [agri]
+    title: Inventaire de clôture
+    text: Stocks ligne par ligne, avances aux cultures, lots d'animaux, valeur fiscale des stocks, écriture de stock.
+  - id: biens-vivants
+    domain: agri
+    structures: [agri]
+    title: Biens vivants
+    text: Reproducteurs et plantations immobilisés, en-cours, entrées en production, morts, sinistres et abattage sanitaire.
+  - id: resultat-fiscal
+    domain: agri
+    structures: [agri]
+    title: Résultat fiscal et liasse
+    text: Résultat fiscal des bénéfices agricoles, abattement jeune agriculteur, DEP, plus-values, aide à la liasse 2139 ou 2143.
+    capture: agri-resultat-fiscal.png
+  - id: msa
+    domain: agri
+    structures: [agri]
+    title: Cotisations MSA
+    text: Assiette sociale par exploitant, historique et comparaison entre moyenne triennale et annuelle.
+  - id: aides
+    domain: agri
+    structures: [agri]
+    title: Aides et subventions
+    text: Registre des dossiers PAC, ICHN, MAEC, DJA, virements rapprochés, aides à recevoir à la clôture.
+  - id: activites
+    domain: agri
+    structures: [agri]
+    title: Activités et marges
+    text: Ateliers et productions par campagne, ventilation des charges et produits, marges brutes.
+  - id: calculettes
+    domain: agri
+    structures: [agri]
+    title: Calculettes
+    text: Micro-BA ou réel, plafond DEP, fermages, MSA, coût du matériel, acomptes de TVA, préremplies depuis le dossier.
+  # --- TVA et fiscalité
+  - id: tva-ca3
+    domain: fiscal
+    structures: [societe]
+    title: Déclarations de TVA
+    text: CA3 mensuelles calculées depuis les écritures, codes de TVA, autoliquidation, PDF et tableur pour la télédéclaration.
+    since: 2026.11.1
+  - id: tva-agricole
+    domain: fiscal
+    structures: [agri]
+    title: TVA agricole
+    text: CA12A, acomptes trimestriels, remboursement forfaitaire, livres des ventes et des achats.
+  - id: echeancier
+    domain: fiscal
+    title: Échéancier
+    text: Déclarations, paiements et démarches en liste ou en calendrier, listes de contrôle, résumé du lundi, agenda iCal.
+    capture: agri-echeancier.png
+  - id: fiscalite
+    domain: fiscal
+    title: Profil fiscal
+    text: Forme juridique, régimes datés et options fiscales avec leur date limite de renonciation.
+  # --- Pilotage et clôture
+  - id: tableau-de-bord
+    domain: pilotage
+    title: Tableau de bord
+    text: Résultat, facturé, encours, carte « À traiter » ; budget prévu / réalisé, comptabilité par projet, rapport d'activité.
+  - id: cloture
+    domain: pilotage
+    title: Clôture guidée
+    text: Assistant en étapes, clôture provisoire puis définitive, affectation du résultat, FEC et archive pour l'expert-comptable.
+  - id: reprise
+    domain: pilotage
+    title: Reprise d'historique
+    text: FEC, tableur, export Ekylibre, restauration d'une sauvegarde Ekylibre.
+  # --- Agents et API
+  - id: cles-api
+    domain: api
+    title: Clés d'API
+    text: Par structure et par utilisateur, domaines en lecture ou en écriture, expiration, révocation, journal des appels.
+  - id: mcp
+    domain: api
+    title: Serveur MCP
+    text: Un agent pose ses questions sur le dossier et saisit achats et dépenses en brouillon, jamais comptabilisés sans vérification.
+  - id: assistant
+    domain: api
+    title: Assistant
+    text: Questions sur le dossier depuis l'en-tête (intégration à activer), réponses tirées de la comptabilité et de l'échéancier.
+
+integrations:
+  - name: Qonto
+    usage: Comptes, transactions, relevés, factures d'achat, ventes
+    structures: toutes
+  - name: HelloAsso
+    usage: Adhésions et formulaires
+    structures: associations
+  - name: Brevo
+    usage: Liste de contacts des adhérents
+    structures: associations
+  - name: Stancer
+    usage: Versements et paiements par carte
+    structures: toutes
+  - name: Odoo
+    usage: Caisse, factures clients
+    structures: toutes
+  - name: SMTP
+    usage: Relances, reçus, factures par e-mail
+    structures: toutes
+  - name: Documenso
+    usage: Signature électronique des baux
+    structures: toutes
+  - name: SUPER PDP
+    usage: "Facture électronique : envoi des ventes, réception des achats (une seule plateforme agréée à la fois)"
+    structures: toutes
+  - name: Sirene (INSEE)
+    usage: Pré-remplissage de la structure et des tiers
+    structures: toutes (clé du serveur)
+  - name: Claude
+    usage: Assistant de questions sur le dossier
+    structures: toutes
+  - name: Google Analytics, Facebook
+    usage: Visibilité et impact
+    structures: associations

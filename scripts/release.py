@@ -1,8 +1,12 @@
 """Version et changelog de Lyvre (lot R1), à partir de data/changelog.yml.
 
     python scripts/release.py check                  # fichier valide, fichiers générés à jour
-    python scripts/release.py build                  # régénère CHANGELOG.md, package.json, badge du README
+    python scripts/release.py build                  # régénère CHANGELOG.md, package.json, sections du README
     python scripts/release.py publish [--title "…"]  # « next » devient la version AAAA.MM.N du jour, puis build
+    python scripts/release.py denylist "terme"       # ajoute l'empreinte d'un terme à la liste noire publique
+
+Le README a des sections générées entre balises (`<!-- features -->` … `<!-- /features -->`), tirées de
+data/features.yml et des versions publiées (scripts/public_content.py) ; le reste s'écrit à la main.
 
 `publish` ne commite et ne pousse rien : il affiche les commandes git à lancer (commit, tag
 v<version>). Le numéro n'est écrit à la main nulle part : il est celui de la première version de
@@ -20,7 +24,9 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from app.version import CHANGELOG_FILE, ChangelogError, load, markdown, next_version, validate  # noqa: E402
+from app.version import (CHANGELOG_FILE, STRUCTURES, ChangelogError, load, markdown, next_version,  # noqa: E402
+                         validate)
+from scripts import public_content  # noqa: E402
 
 CHANGELOG_MD = ROOT / "CHANGELOG.md"
 PACKAGE_JSON = ROOT / "frontend" / "package.json"
@@ -48,26 +54,37 @@ def _lock(version: str) -> str:
     return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
 
 
-def _readme(version: str) -> str | None:
+def _readme(data: dict, version: str) -> str | None:
     if not README.exists():
         return None
     text = README.read_text(encoding="utf-8")
-    return BADGE.sub(lambda m: f"{m.group(1)}{badge(version)}{m.group(2)}", text)
+    text = BADGE.sub(lambda m: f"{m.group(1)}{badge(version)}{m.group(2)}", text)
+    return public_content.render_readme(text, public_content.load_features(), data["versions"], STRUCTURES)
 
 
 def expected(data: dict) -> dict[Path, str]:
     """Contenu attendu de chaque fichier généré."""
     version = data["versions"][0]["version"] if data["versions"] else "0.0.0"
     out = {CHANGELOG_MD: markdown(data), PACKAGE_JSON: _package(version), PACKAGE_LOCK: _lock(version)}
-    readme = _readme(version)
+    readme = _readme(data, version)
     if readme is not None:
         out[README] = readme
     return out
 
 
+def public_errors(data: dict) -> list[str]:
+    """Fonctionnalités cohérentes, et aucun terme de la liste noire dans un texte publié."""
+    features = public_content.load_features()
+    errors = public_content.validate_features(features, {str(v["version"]) for v in data["versions"]})
+    texts = public_content.public_texts(features, data["versions"])
+    if README.exists():
+        texts.append(("README.md", README.read_text(encoding="utf-8")))
+    return errors + public_content.denylist_errors(texts, public_content.denylist())
+
+
 def check() -> list[str]:
     data = load()
-    errors = validate(data)
+    errors = validate(data) + public_errors(data)
     if not errors:
         for path, content in expected(data).items():
             if not path.exists() or path.read_text(encoding="utf-8") != content:
@@ -119,6 +136,8 @@ def main(argv=None) -> int:
     sub.add_parser("build")
     pub = sub.add_parser("publish")
     pub.add_argument("--title")
+    deny = sub.add_parser("denylist")
+    deny.add_argument("term")
     args = parser.parse_args(argv)
     try:
         if args.command == "check":
@@ -127,7 +146,15 @@ def main(argv=None) -> int:
                 print(e, file=sys.stderr)
             return 1 if errors else 0
         if args.command == "build":
-            print(f"Version {build()} : CHANGELOG.md, package.json et README régénérés.")
+            print(f"Version {build()} : CHANGELOG.md, package.json et sections du README régénérés.")
+            return 0
+        if args.command == "denylist":
+            digest = public_content.fingerprint(args.term)
+            existing = public_content.denylist(local=Path("/nonexistent"))
+            if digest not in existing:
+                with public_content.DENYLIST_FILE.open("a", encoding="utf-8") as f:
+                    f.write(digest + "\n")
+            print(f"Empreinte ajoutée à {public_content.DENYLIST_FILE.relative_to(ROOT)} ; lancer `release.py check`.")
             return 0
         number = publish(args.title)
         print(f"Version {number} publiée dans data/changelog.yml ; fichiers régénérés. À lancer :\n"

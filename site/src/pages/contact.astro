@@ -1,0 +1,57 @@
+---
+import Base from "../layouts/Base.astro";
+import { CONTACT_EMAIL } from "../lib/site";
+// Envoi classique (sans JavaScript) vers /api/contact, relayé par nginx au service site/contact :
+// redirection vers /contact/merci/, ou retour ici avec ?erreur=<code>. Le script ne fait qu'horodater
+// l'ouverture du formulaire (délai anti-robots) et afficher l'erreur.
+---
+
+<Base title="Contact" description="Écrire à l'équipe Lyvre : être accompagné, faire héberger sa comptabilité, contribuer.">
+  <div class="wrap">
+    <h1>Contact</h1>
+    <p class="lead">Une question, besoin d'aide pour installer ou faire héberger Lyvre, envie de contribuer ? Écrivez-nous.</p>
+    <div id="erreur" class="notice notice-error" role="alert" hidden></div>
+    <form class="form" id="formulaire" method="post" action="/api/contact">
+      <label>Nom <input name="name" required maxlength="120" autocomplete="name" /></label>
+      <label>E-mail <input name="email" type="email" required maxlength="200" autocomplete="email" /></label>
+      <label>Vous représentez
+        <select name="profile">
+          <option value="asso">Une association</option>
+          <option value="sci">Une SCI</option>
+          <option value="agri">Une exploitation agricole</option>
+          <option value="societe">Une société</option>
+          <option value="expert">Un cabinet d'expertise comptable</option>
+          <option value="dev">Je développe ou j'héberge</option>
+          <option value="autre" selected>Autre</option>
+        </select>
+      </label>
+      <label>Message <textarea name="message" required minlength="10" maxlength="5000"></textarea></label>
+      <div class="hp" aria-hidden="true">
+        <label>Site web (laisser vide) <input name="website" tabindex="-1" autocomplete="off" /></label>
+      </div>
+      <input type="hidden" name="started_at" id="started_at" value="" />
+      <label class="check">
+        <input type="checkbox" name="consent" value="on" required />
+        <span>J'accepte que mes coordonnées servent à me répondre (voir <a href="/donnees-personnelles/">données personnelles</a>).</span>
+      </label>
+      <button class="btn btn-primary" type="submit">Envoyer</button>
+    </form>
+    <p class="muted" style="margin-top:2rem">Ou directement : <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
+  </div>
+</Base>
+
+<script>
+  const started = document.getElementById("started_at") as HTMLInputElement | null;
+  if (started) started.value = String(Date.now());
+  const messages: Record<string, string> = {
+    champs: "Le message n'a pas pu être envoyé : vérifiez les champs.",
+    trop: "Trop de messages envoyés depuis votre connexion : réessayez dans quelques minutes.",
+    service: "Le formulaire est momentanément indisponible : écrivez-nous directement par e-mail.",
+  };
+  const code = new URLSearchParams(location.search).get("erreur");
+  const box = document.getElementById("erreur");
+  if (code && box) {
+    box.textContent = messages[code] ?? messages.service!;
+    box.hidden = false;
+  }
+</script>

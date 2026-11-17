@@ -1,0 +1,30 @@
+---
+import Base from "../layouts/Base.astro";
+import { CONTACT_EMAIL, REPO_URL } from "../lib/site";
+---
+
+<Base title="Mentions légales" description="Mentions légales du site lyvre.org : éditeur, directeur de la publication, hébergeur.">
+  <div class="wrap prose">
+    <h1>Mentions légales</h1>
+    <h2>Éditeur du site</h2>
+    <p>Le site lyvre.org est édité par <strong>EKYLIBRE</strong>, société par actions simplifiée (SAS).</p>
+    <ul>
+      <li>Siège social : 8 rue du Bouil Bleu, 17250 Saint-Porchaire, France</li>
+      <li>Immatriculation : RCS Saintes 808 534 283 — code APE 62.01Z</li>
+      <li>Numéro de TVA intracommunautaire : FR06 808 534 283</li>
+      <li>Contact : <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></li>
+    </ul>
+    <h2>Directeur de la publication</h2>
+    <p>Le président d'Ekylibre SAS.</p>
+    <h2>Hébergement</h2>
+    <p>Le site et la démonstration sont hébergés sur un serveur privé virtuel de <strong>Hostinger International Ltd.</strong>, 61 Lordou Vironos Street, 6023 Larnaca, Chypre.</p>
+    <h2>Propriété intellectuelle</h2>
+    <p>
+      Lyvre est un logiciel libre publié sous licence GNU AGPL v3 (<a href={REPO_URL}>code source</a>). Les captures d'écran
+      montrent des structures fictives. Les photographies aériennes et le cadastre visibles dans les captures proviennent de
+      l'IGN (Géoplateforme), sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence/">licence ouverte Etalab 2.0</a>.
+    </p>
+    <h2>Données personnelles</h2>
+    <p>Voir la page <a href="/donnees-personnelles/">données personnelles</a>. Ce site ne dépose aucun cookie.</p>
+  </div>
+</Base>

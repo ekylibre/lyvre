@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.astro/
+test-results/
+playwright-report/
+# Copies faites par scripts/prebuild.mjs (sources : data/, doc/images/, frontend/src/)
+src/data/
+src/assets/captures/
+src/assets/brand/
+src/styles/tokens.css
+public/favicon.svg
+public/og.png

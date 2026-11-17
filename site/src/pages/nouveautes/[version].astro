@@ -1,0 +1,28 @@
+---
+import type { GetStaticPaths } from "astro";
+import Base from "../../layouts/Base.astro";
+import Release from "../../components/Release.astro";
+import { plain, splitEntry, versions, type Version } from "../../lib/data";
+
+export const getStaticPaths = (() =>
+  versions.map((v, i) => ({ params: { version: v.version }, props: { release: v, newer: versions[i - 1], older: versions[i + 1] } }))) satisfies GetStaticPaths;
+
+interface Props {
+  release: Version;
+  newer?: Version;
+  older?: Version;
+}
+const { release, newer, older } = Astro.props;
+const summary = release.entries.map((e) => splitEntry(plain(e.text)).what).join(" ").slice(0, 155);
+---
+
+<Base title={`Version ${release.version} : ${release.title}`} description={summary}>
+  <div class="wrap">
+    <p><a href="/nouveautes/">Toutes les nouveautés</a></p>
+    <Release release={release} heading="h1" />
+    <nav class="actions" aria-label="Versions voisines">
+      {older && <a class="btn btn-secondary" href={`/nouveautes/${older.version}/`}>← {older.version}</a>}
+      {newer && <a class="btn btn-secondary" href={`/nouveautes/${newer.version}/`}>{newer.version} →</a>}
+    </nav>
+  </div>
+</Base>

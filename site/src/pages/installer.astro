@@ -1,0 +1,62 @@
+---
+import Base from "../layouts/Base.astro";
+import { DEMO_URL, DOC_URL, REPO_URL } from "../lib/site";
+---
+
+<Base title="Installer" description="Installer Lyvre avec Docker sur votre serveur : démarrage rapide, déploiement, sauvegardes et mises à jour.">
+  <div class="wrap prose">
+    <h1>Installer Lyvre</h1>
+    <p class="lead">
+      Lyvre tient dans une image Docker. Une seule installation sert plusieurs structures, chacune avec sa propre base.
+      Pour regarder d'abord, <a href={DEMO_URL}>la démo</a> ne demande rien à installer.
+    </p>
+
+    <h2>Démarrage rapide</h2>
+    <ol class="steps">
+      <li>
+        <p>Récupérez le code :</p>
+        <pre tabindex="0"><code>git clone {REPO_URL}.git
+cd lyvre</code></pre>
+      </li>
+      <li>
+        <p>Créez le fichier de configuration et renseignez au moins <code>SECRET_KEY</code>, <code>ADMIN_EMAIL</code> et <code>ADMIN_PASSWORD</code> :</p>
+        <pre tabindex="0"><code>cp .env.example .env</code></pre>
+      </li>
+      <li>
+        <p>Lancez Lyvre :</p>
+        <pre tabindex="0"><code>docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build</code></pre>
+      </li>
+      <li>
+        <p>
+          Ouvrez <strong>http://localhost:5000</strong> et connectez-vous avec <code>ADMIN_EMAIL</code> /
+          <code>ADMIN_PASSWORD</code>. Les migrations et le plan comptable sont appliqués au démarrage ; les données vont dans
+          <code>./instance</code>.
+        </p>
+      </li>
+    </ol>
+
+    <h2>Sur un serveur</h2>
+    <ul>
+      <li>Derrière un proxy HTTPS (Traefik, Caddy, nginx) ou avec Dokploy : le service écoute sur le port 5000 du conteneur.</li>
+      <li>Les données (bases, pièces jointes, sauvegardes) vivent dans un seul dossier, à sauvegarder avec le reste du serveur.</li>
+      <li>Chaque structure se sauvegarde aussi depuis l'application, en <code>.zip</code> avec ses pièces jointes.</li>
+    </ul>
+    <p>Le détail : <a href={`${DOC_URL}/docker.md`}>déploiement Docker</a>, <a href={`${DOC_URL}/installation.md`}>installation sans Docker</a>, <a href={`${DOC_URL}/backups.md`}>sauvegardes</a>.</p>
+
+    <h2>Mettre à jour</h2>
+    <p>
+      Récupérez la nouvelle version (<code>git pull</code>) et relancez la construction. Les bases de toutes les structures sont
+      migrées au démarrage. Avant de mettre à jour, lisez les <a href="/nouveautes/">nouveautés</a> : les actions à faire sont
+      en tête de chaque version.
+    </p>
+
+    <h2>Intégrations</h2>
+    <p>
+      Qonto, HelloAsso, Brevo, Documenso, Sirene, SUPER PDP… sont éteintes par défaut et s'activent structure par structure
+      depuis l'application, avec leurs propres clés : <a href={`${DOC_URL}/integrations.md`}>guide des intégrations</a>.
+    </p>
+
+    <h2>Besoin d'aide ?</h2>
+    <p>Pour être accompagné dans l'installation ou l'hébergement, <a href="/contact/">écrivez-nous</a>. Les questions techniques ont aussi leur place sur <a href={`${REPO_URL}/issues`}>GitHub</a>.</p>
+  </div>
+</Base>

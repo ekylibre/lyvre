@@ -1,0 +1,5 @@
+# Essai local du site : docker compose -f docker-compose.site.yml -f docker-compose.site.local.yml up --build
+services:
+  site:
+    ports:
+      - "8080:80"

@@ -41,3 +41,6 @@ claudedocs/besoins_restauration_ekylibre.md
 claudedocs/design_restauration_ekylibre.md
 claudedocs/rapport_activites/*.pdf
 claudedocs/rapport_activites/*.xlsx
+
+# Liste noire en clair (termes privés), contrôlée par scripts/release.py check
+.public-denylist

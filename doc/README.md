@@ -11,6 +11,7 @@ Application web de comptabilité pour associations loi 1901 (plan comptable des 
 | [Multi-tenant & users](multi_tenant.md) | Gestion des instances (1 DB par asso) et des utilisateurs |
 | [Sauvegardes](backups.md) | Sauvegarde / restauration d'instances SQLite depuis l'UI |
 | [Docker](docker.md) | Déploiement conteneurisé (Dockerfile + docker-compose) |
+| [Site lyvre.org](site.md) | Site public : contenu tiré de `data/`, captures, contact Brevo, déploiement Dokploy |
 | [Modèles](models.md) | Schéma de base de données, tables, relations |
 | [Routes](routes.md) | Référence complète de toutes les URLs |
 | [Services](services.md) | Logique métier : comptabilité, imports, rapprochement |

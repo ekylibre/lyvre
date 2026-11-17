@@ -1,0 +1,23 @@
+---
+// Logotype de l'application (frontend/src/app/AppShell/Wordmark.tsx) : symbole et « lyvre », y en lichen
+// (paille sur fond sombre). Hors pied de page, le symbole suit le thème du système.
+import symbol from "../assets/brand/lyvre-symbole.svg";
+import symbolDark from "../assets/brand/lyvre-symbole-inverse.svg";
+
+interface Props {
+  onDark?: boolean;
+}
+const { onDark = false } = Astro.props;
+---
+
+<span class:list={["wordmark", { "on-dark": onDark }]}>
+  {onDark ? (
+    <img src={symbolDark.src} alt="" width="40" height="40" />
+  ) : (
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset={symbolDark.src} />
+      <img src={symbol.src} alt="" width="40" height="40" />
+    </picture>
+  )}
+  <span aria-hidden="true">l<span class="y">y</span>vre</span>
+</span>

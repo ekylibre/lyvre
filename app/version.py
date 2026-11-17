@@ -116,7 +116,7 @@ def _entry_errors(entries: list, where: str) -> list[str]:
         if e.get("kind") not in KINDS:
             errors.append(f"{where}, entrée {i} : type parmi {', '.join(KINDS)}.")
         if e.get("structure") not in (None, *STRUCTURES):
-            errors.append(f"{where}, entrée {i} : structure « asso » ou « sci ».")
+            errors.append(f"{where}, entrée {i} : structure parmi {', '.join(STRUCTURES)}.")
         if not (e.get("text") or "").strip():
             errors.append(f"{where}, entrée {i} : texte manquant.")
     return errors

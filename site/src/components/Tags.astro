@@ -1,0 +1,10 @@
+---
+import { STRUCTURES, type Structure } from "../lib/data";
+
+interface Props {
+  structures?: Structure[];
+}
+const { structures = [] } = Astro.props;
+---
+
+{structures.length > 0 && <span class="tags">{structures.map((s) => <span class={`tag tag-${s}`}>{STRUCTURES[s]}</span>)}</span>}

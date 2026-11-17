@@ -1,0 +1,26 @@
+---
+// Capture d'écran encadrée, optimisée (WebP), avec une variante sombre facultative.
+import { Image, getImage } from "astro:assets";
+import { capture } from "../lib/captures";
+
+interface Props {
+  name: string;
+  alt: string;
+  dark?: string;
+  eager?: boolean;
+  widths?: number[];
+  sizes?: string;
+  class?: string;
+}
+const { name, alt, dark, eager = false, widths = [480, 800, 1200], sizes = "(max-width: 52rem) 100vw, 50vw", class: className } = Astro.props;
+const image = capture(name);
+const darkImage = dark ? await getImage({ src: capture(dark), widths, format: "webp" }) : undefined;
+---
+
+<figure class:list={["shot", className]}>
+  <picture>
+    {darkImage && <source media="(prefers-color-scheme: dark)" srcset={darkImage.srcSet.attribute} sizes={sizes} type="image/webp" />}
+    <Image src={image} alt={alt} widths={widths} sizes={sizes} format="webp" loading={eager ? "eager" : "lazy"} fetchpriority={eager ? "high" : "auto"} />
+  </picture>
+  <slot />
+</figure>

@@ -1,0 +1,18 @@
+# Image du site : seulement ce que la construction lit (liste blanche).
+*
+!data/changelog.yml
+!data/features.yml
+!doc/images/
+!frontend/src/assets/
+!frontend/src/app/lyvre.css
+!site/
+!docker/site.nginx.conf
+site/node_modules
+site/dist
+site/.astro
+site/test-results
+site/playwright-report
+site/contact
+site/src/data
+site/src/assets/captures
+site/src/assets/brand
