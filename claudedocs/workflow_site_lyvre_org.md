@@ -15,7 +15,25 @@ Modèle technique : `fourmy/apps/site` (Astro 7, nginx, CSP stricte) et `fourmy/
 | L5 Image et Dokploy | 🟡 Service Compose `site` du projet Dokploy « Lyvre » construit et en ligne (branche `site-lyvre-org`, à passer sur `main` après fusion) ; vérifié par l'adresse du serveur. DNS de `lyvre.org` et `www` encore sur le parking Gandi |
 | L6 Captures | ✅ `make captures` ; script réparé (encaissement automatique depuis 2026.11.1), captures agricoles ajoutées |
 | L7 Démo | ⏳ non commencé (voir ci-dessous) |
-| L8 Recette | ⏳ après déploiement |
+| L8 Recette | ⏳ après DNS et autorisation Brevo |
+
+**Déploiement (17/11/2026).** Projet Dokploy « Lyvre », service Compose `site` (appName `lyvre-site-1aur6o`,
+dépôt `ekylibre/lyvre`, branche `site-lyvre-org`, `docker-compose.site.yml`, redéploiement à chaque push),
+domaines `lyvre.org` et `www.lyvre.org` (Let's Encrypt). Variables : `BREVO_API_KEY` (celle de `.env`),
+`CONTACT_TO=contact@lyvre.org`, `CONTACT_FROM=site@lyvre.org`. Vérifié en interrogeant le serveur
+(`curl --resolve lyvre.org:443:76.13.49.203`) : pages en 200, `version.json` (2026.11.5), `www` → apex en 301,
+formulaire relayé au service de contact (champ piège → « merci » sans envoi).
+
+**Reste à faire avant ouverture**
+
+| # | Action | Qui |
+|---|---|---|
+| R1 | DNS Gandi : A de `lyvre.org` et `www` vers `76.13.49.203`, supprimer la redirection web de `www` (`demo` pointe déjà vers le serveur) | utilisateur (pas de clé Gandi dans `.env`) |
+| R2 | Brevo : autoriser l'IP `76.13.49.203` (Sécurité › IP autorisées) ; la clé est restreinte par IP, l'appel depuis le poste a été refusé | utilisateur |
+| R3 | Brevo : expéditeur `site@lyvre.org` validé ; boîte `contact@lyvre.org` créée chez Gandi | utilisateur |
+| R4 | Envoi réel depuis la page Contact, puis recette L8 | après R1 à R3 |
+| R5 | Fusion dans `main`, puis branche du service Dokploy passée sur `main` | après revue |
+| R6 | Décisions : publier les entrées `next` du changelog, éditeur des mentions légales, termes de la liste noire | utilisateur |
 
 **L7, ce qui a changé depuis le plan.** Le jeu de démonstration de `e2e_server.py` crée les bases par
 `create_all`, sans migrations Alembic : l'image de production les migre au démarrage (`flask db upgrade`,

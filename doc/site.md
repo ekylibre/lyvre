@@ -83,6 +83,11 @@ Dans Dokploy :
 4. DNS (Gandi) : enregistrements A de `lyvre.org` et de `www` vers l'adresse du serveur Dokploy, sans
    redirection web Gandi sur `www`.
 
+Service en place : projet Dokploy « Lyvre », service Compose `site`, serveur `76.13.49.203`. La clé Brevo
+est restreinte par adresse IP : celle du serveur doit être autorisée dans Brevo (Sécurité › IP autorisées).
+Avant la mise à jour du DNS, le site se contrôle par l'adresse du serveur :
+`curl -sk --resolve lyvre.org:443:76.13.49.203 https://lyvre.org/version.json`.
+
 Essai local (Docker) :
 
 ```bash
