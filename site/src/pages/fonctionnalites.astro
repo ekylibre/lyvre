@@ -1,40 +1,194 @@
 ---
+// Fonctionnalités, module par module (data/features.yml › domains et features) : un filtre par type de structure
+// recompose la page (src/scripts/structure-filter.ts ; sans JavaScript, tout reste affiché), un index des modules,
+// et pour chaque module ses écrans et ses fonctionnalités.
 import Base from "../layouts/Base.astro";
 import Shot from "../components/Shot.astro";
 import Tags from "../components/Tags.astro";
-import { domains, featuresOf, inline } from "../lib/data";
+import { LIMITS } from "../data/about/comparison";
+import { current, domains, featuresOf, groupsOf, inline, type Structure } from "../lib/data";
+
+const modules = domains.filter((d) => featuresOf(d.id).length > 0);
+const choices: [Structure, string][] = [
+  ["asso", "une association"], ["sci", "une SCI"], ["agri", "une exploitation agricole"], ["societe", "une société"],
+];
+const slug = (text: string) => text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-");
 ---
 
-<Base title="Fonctionnalités" description="Comptabilité, banque, achats, ventes, baux, adhérents, exploitation agricole, TVA, clôture et API : ce que fait Lyvre.">
-  <div class="wrap">
-    <h1>Fonctionnalités</h1>
-    <p class="lead">
-      Ce que Lyvre sait faire aujourd'hui, domaine par domaine. Les étiquettes indiquent les structures concernées ; sans
-      étiquette, la fonctionnalité sert à toutes.
-    </p>
-    <nav aria-label="Domaines" class="tags" style="margin-bottom:1rem">
-      {domains.filter((d) => featuresOf(d.id).length).map((d) => <a class="tag" href={`#${d.id}`}>{d.title}</a>)}
-    </nav>
-    {domains.map((d) => {
-      const list = featuresOf(d.id);
-      return list.length > 0 && (
-        <section class="domain" id={d.id} aria-labelledby={`h-${d.id}`}>
-          <h2 id={`h-${d.id}`}><span aria-hidden="true">{d.emoji}</span> {d.title}</h2>
-          <div class="feature-grid">
-            {list.map((f) => (
-              <article class="feature" id={f.id}>
-                <h3>{f.title}</h3>
-                <Tags structures={f.structures} />
-                {f.status === "soon" && <span class="tags"><span class="tag tag-soon">À venir</span></span>}
-                <p set:html={inline(f.text)} />
-                {f.since && <p class="meta">Depuis la <a href={`/nouveautes/${f.since}/`}>version {f.since}</a></p>}
-                {f.capture && <Shot name={f.capture} alt={`${f.title} : capture d'écran`} widths={[400, 800]} sizes="(max-width: 40rem) 100vw, 22rem" />}
-              </article>
-            ))}
+<Base title="Fonctionnalités" description="Comptabilité, banque, achats, ventes, baux, adhérents, exploitation agricole, TVA, clôture et API : ce que fait Lyvre, module par module, avec ses écrans.">
+  <div class="wrap modules-page">
+    <header class="modules-head">
+      <h1>Ce que fait Lyvre, module par module</h1>
+      <p class="lead">
+        Dix modules, de la saisie au FEC, et les écrans tels que vous les verrez. Choisissez votre structure pour ne garder
+        que ce qui la concerne.
+      </p>
+    </header>
+
+    <div class="structure-filter" role="group" aria-label="Afficher les fonctionnalités pour" data-structure-filter hidden>
+      <span class="structure-filter-label">Je tiens les comptes de</span>
+      <button type="button" class="structure-choice" data-structure="" aria-pressed="true">toutes les structures</button>
+      {choices.map(([id, label]) => (
+        <button type="button" class={`structure-choice structure-${id}`} data-structure={id} aria-pressed="false">{label}</button>
+      ))}
+      <p class="structure-filter-status" aria-live="polite" data-structure-status></p>
+    </div>
+
+    <div class="modules-layout">
+      <nav class="modules-index" aria-label="Modules">
+        <ol>
+          {modules.map((d) => (
+            <li data-module-link={d.id}>
+              <a href={`#${d.id}`}><span aria-hidden="true">{d.emoji}</span> {d.title}</a>
+            </li>
+          ))}
+        </ol>
+      </nav>
+
+      <div class="modules">
+        {modules.map((d) => {
+          const [main, ...more] = d.captures ?? [];
+          const groups = groupsOf(d.id);
+          // Structure commune à tout le module : étiquette une fois en tête, pas sur chaque ligne.
+          const all = featuresOf(d.id);
+          const key = (f: (typeof all)[number]) => (f.structures ?? []).join(" ");
+          const shared = all.every((f) => key(f) === key(all[0]!)) ? all[0]!.structures : undefined;
+          const fresh = all.filter((f) => f.since === current.version).length;
+          return (
+            <section class="module" id={d.id} aria-labelledby={`h-${d.id}`} data-module={d.id}>
+              <div class="module-head">
+                <h2 id={`h-${d.id}`}><span aria-hidden="true" class="module-emoji">{d.emoji}</span> {d.title}</h2>
+                {d.intro && <p class="module-intro">{d.intro}</p>}
+                {(shared?.length || fresh > 0) && (
+                  <p class="module-meta">
+                    {shared?.length && <Tags structures={shared} />}
+                    {fresh > 0 && <a href={`/nouveautes/${current.version}/`}>{fresh > 1 ? `${fresh} fonctionnalités nouvelles` : "Une fonctionnalité nouvelle"} dans la version {current.version}</a>}
+                  </p>
+                )}
+              </div>
+              {main && (
+                <Shot name={main.file} alt={main.alt} class="module-shot" widths={[640, 960, 1280, 1600]}
+                  sizes="(max-width: 60rem) 100vw, 54rem" />
+              )}
+              <div class:list={["module-body", { "has-aside": more.length > 0 }]}>
+                <div class="module-features">
+                  {groups.map((g) => (
+                    <div class="feature-group" data-group>
+                      {g.title && <h3 class="feature-group-title" id={`${d.id}-${slug(g.title)}`}>{g.title}</h3>}
+                      <dl class="feature-list">
+                        {g.features.map((f) => (
+                          <div class="feature-item" id={f.id} data-structures={(f.structures ?? []).join(" ")}>
+                            <dt>
+                              {f.title}
+                              {f.status === "soon" && <span class="tag tag-soon">À venir</span>}
+                              {f.since === current.version && fresh < all.length && <span class="tag tag-new">Nouveau</span>}
+                            </dt>
+                            <dd>
+                              <span set:html={inline(f.text)} />
+                              {!shared?.length && <Tags structures={f.structures} />}
+                              {f.since && f.since !== current.version && <a class="feature-since" href={`/nouveautes/${f.since}/`}>Depuis la version {f.since}</a>}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                  ))}
+                </div>
+                {more.length > 0 && (
+                  <div class="module-aside">
+                    {more.map((s) => <Shot name={s.file} alt={s.alt} widths={[480, 800]} sizes="(max-width: 60rem) 100vw, 22rem" />)}
+                  </div>
+                )}
+              </div>
+            </section>
+          );
+        })}
+
+        <section class="module module-limits" aria-labelledby="h-limites">
+          <div class="module-head">
+            <h2 id="h-limites">Ce que Lyvre ne fait pas encore</h2>
+            <p class="module-intro">
+              Pour choisir en connaissance de cause. La <a href="/comparatif/">comparaison avec les autres logiciels</a>
+              détaille, éditeur par éditeur, ce qui existe ailleurs.
+            </p>
           </div>
+          <ul class="limits">{LIMITS.map((l) => <li>{l}</li>)}</ul>
+          <p class="actions"><a class="btn btn-primary" href="/demo/">Essayer la démo</a> <a class="btn btn-secondary" href="/installer/">Installer</a></p>
         </section>
-      );
-    })}
-    <p class="actions"><a class="btn btn-primary" href="/demo/">Essayer la démo</a> <a class="btn btn-secondary" href="/installer/">Installer</a></p>
+      </div>
+    </div>
   </div>
 </Base>
+
+<script>
+  import { setupStructureFilter } from "../scripts/structure-filter";
+  setupStructureFilter();
+</script>
+
+<style is:global>
+  /* Page Fonctionnalités : index collant, filtre par structure, grandes captures, listes plutôt que cartes. */
+  .modules-head { max-width: 48rem; }
+  .modules-head h1 { font-size: clamp(2.3rem, 5.5vw, 4rem); max-width: 16ch; }
+
+  .structure-filter { position: sticky; top: 4.25rem; z-index: 4; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
+    margin: 2rem 0 0; padding: 0.85rem 0; background: var(--lv-paper); border-bottom: 1px solid var(--lv-line); }
+  .structure-filter[hidden] { display: none; }
+  .structure-filter-label { font-weight: 600; margin-right: 0.25rem; }
+  .structure-choice { font: inherit; font-size: 0.95rem; min-height: 2.5rem; padding: 0.35rem 0.9rem; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--lv-line-strong); background: var(--lv-surface); color: var(--lv-ink); }
+  .structure-choice:hover { border-color: var(--lv-lichen); }
+  .structure-choice[aria-pressed="true"] { background: var(--lv-lichen); border-color: var(--lv-lichen); color: var(--lv-on-lichen); }
+  .structure-choice.structure-sci[aria-pressed="true"] { background: var(--lv-ardoise); border-color: var(--lv-ardoise); color: var(--lv-paper); }
+  .structure-choice.structure-agri[aria-pressed="true"] { background: var(--lv-paille); border-color: var(--lv-paille); color: var(--lv-night); }
+  .structure-choice.structure-societe[aria-pressed="true"] { background: var(--lv-ink); border-color: var(--lv-ink); color: var(--lv-paper); }
+  .structure-filter-status { flex-basis: 100%; margin: 0; font-size: 0.9rem; color: var(--lv-ink-muted); min-height: 1.4em; }
+
+  .modules-layout { display: grid; grid-template-columns: 13rem minmax(0, 1fr); gap: 3rem; margin-top: 2rem; }
+  .modules-index { position: sticky; top: 10rem; align-self: start; }
+  .modules-index ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.15rem; }
+  .modules-index a { display: block; padding: 0.4rem 0.6rem; border-left: 2px solid var(--lv-line); color: var(--lv-ink-muted);
+    text-decoration: none; font-size: 0.95rem; }
+  .modules-index a:hover, .modules-index a[aria-current="true"] { color: var(--lv-ink); border-left-color: var(--lv-lichen); }
+  .modules-index li[hidden] { display: none; }
+
+  .module { padding-block: 0 4.5rem; scroll-margin-top: 9rem; }
+  .module[hidden] { display: none; }
+  .module-head { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 0.5rem 2.5rem; align-items: end; margin-bottom: 1.5rem; }
+  .module-head h2 { font-size: clamp(1.9rem, 3.4vw, 2.7rem); margin: 0; }
+  .module-emoji { font-size: 0.8em; }
+  .module-intro { margin: 0; font-size: 1.12rem; color: var(--lv-ink-muted); }
+  .module-shot { margin-bottom: 2rem; }
+
+  .module-body { display: grid; gap: 2.5rem; }
+  .module-body.has-aside { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: start; }
+  .module-aside { display: grid; gap: 1.5rem; position: sticky; top: 11rem; }
+  .module-meta { grid-column: 1 / -1; margin: 0.25rem 0 0; display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; font-size: 0.95rem; }
+  .tag-new { background: var(--lv-sauge); color: var(--lv-lichen-strong); }
+  .module-aside .shot { box-shadow: none; }
+
+  .feature-group + .feature-group { margin-top: 1.75rem; }
+  .feature-group[hidden] { display: none; }
+  .feature-group-title { font-family: var(--font-text); font-size: 1rem; font-weight: 600; color: var(--lv-lichen-strong);
+    margin: 0 0 0.25rem; padding-bottom: 0.4rem; border-bottom: 2px solid var(--lv-sauge); }
+  .feature-list { margin: 0; }
+  .feature-item { padding: 0.85rem 0; border-bottom: 1px solid var(--lv-line); }
+  .feature-item[hidden] { display: none; }
+  .feature-item dt { font-weight: 600; font-size: 1.05rem; display: flex; gap: 0.5rem; align-items: baseline; flex-wrap: wrap; }
+  .feature-item dd { margin: 0.2rem 0 0; color: var(--lv-ink-muted); font-size: 0.98rem; }
+  .feature-item dd .tags { display: inline-flex; margin-left: 0.4rem; vertical-align: 0.1em; }
+  .feature-since { display: inline-block; margin-left: 0.5rem; font-size: 0.85rem; white-space: nowrap; }
+
+  .limits { margin: 0; padding-left: 1.2rem; max-width: 48rem; }
+  .limits li { margin-bottom: 0.6rem; }
+
+  @media (max-width: 60rem) {
+    .modules-layout { grid-template-columns: 1fr; gap: 0; }
+    .modules-index { position: static; margin-bottom: 2rem; }
+    .modules-index ol { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .modules-index a { border: 1px solid var(--lv-line); border-radius: 999px; padding: 0.3rem 0.75rem; }
+    .module-head, .module-body.has-aside { grid-template-columns: 1fr; }
+    .module-aside { position: static; }
+    .structure-filter { top: 0; }
+  }
+  @media (max-width: 52rem) { .structure-filter { position: static; } }
+</style>

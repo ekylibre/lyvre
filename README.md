@@ -84,7 +84,7 @@ Hébergé chez vous.
         <li>Plan comptable agricole (EI, EARL, GAEC, SCEA), micro-BA ou réel, bilan et compte de résultat agricoles.</li>
         <li>Inventaire de clôture, avances aux cultures, biens vivants et lots d'animaux, valeur fiscale des stocks.</li>
         <li>Résultat fiscal, abattement jeune agriculteur, DEP, assiette des cotisations MSA, aide à la liasse BA.</li>
-        <li>Aides PAC et subventions suivies, TVA agricole (CA12A, acomptes), échéancier de l'exploitation.</li>
+        <li>Aides PAC et subventions suivies jusqu'à la clôture, TVA agricole (CA12A, acomptes, remboursement forfaitaire), échéancier avec résumé du lundi et agenda iCal.</li>
       </ul>
     </td>
     <td valign="top"><img src="doc/images/agri-echeancier.png" alt="Échéancier d'une exploitation agricole, liste de contrôle d'automne et démarches à préciser"></td>
@@ -211,22 +211,32 @@ Hébergé chez vous.
 <details>
 <summary><b>🌾 Exploitation agricole</b></summary>
 
-- **Plan « Exploitation agricole »** : EI, EARL, GAEC, SCEA, micro-BA ou réel, bilan et compte de résultat agricoles, soldes intermédiaires de gestion.
-- **Inventaire de clôture** : Stocks ligne par ligne, avances aux cultures, lots d'animaux, valeur fiscale des stocks, écriture de stock.
-- **Biens vivants** : Reproducteurs et plantations immobilisés, en-cours, entrées en production, morts, sinistres et abattage sanitaire.
-- **Résultat fiscal et liasse** : Résultat fiscal des bénéfices agricoles, abattement jeune agriculteur, DEP, plus-values, aide à la liasse 2139 ou 2143.
-- **Cotisations MSA** : Assiette sociale par exploitant, historique et comparaison entre moyenne triennale et annuelle.
-- **Aides et subventions** : Registre des dossiers PAC, ICHN, MAEC, DJA, virements rapprochés, aides à recevoir à la clôture.
-- **Activités et marges** : Ateliers et productions par campagne, ventilation des charges et produits, marges brutes.
-- **Calculettes** : Micro-BA ou réel, plafond DEP, fermages, MSA, coût du matériel, acomptes de TVA, préremplies depuis le dossier.
+- **Plan « Exploitation agricole »** : EI, EARL, GAEC, SCEA, création en trois étapes (forme, impôt et régime, premier exercice), bilan et compte de résultat agricoles, soldes intermédiaires de gestion, annexe des biens vivants.
+- **Micro-BA ou réel** : Livre des recettes du micro-BA, récapitulatif sur trois ans et bénéfice forfaitaire, simulation micro-BA ou réel et alerte de changement de régime.
+- **Articles et règles agricoles** : Engrais, semences, aliments, animaux avec compte et taux de TVA proposés ; règles bancaires MSA, ASP, FranceAgriMer et fermages.
+- **Inventaire de clôture** : Stocks ligne par ligne au coût réel, au coût standard ou au prix de détail, valeur fiscale (méthode forfaitaire, stock bloqué), écriture de stock sans extourne à l'ouverture.
+- **Avances aux cultures** : Une fiche par culture en terre, valorisée sur vos barèmes par hectare et par mois ou au coût réel des charges retenues.
+- **Lots d'animaux** : Naissances, achats, ventes, morts et passages d'un lot à l'autre ; écart entre l'effectif théorique et l'effectif compté.
+- **Biens vivants** : Reproducteurs et plantations immobilisés, en-cours puis entrée en production, morts, sinistres, abattage sanitaire et provision pour hausse de valeur des vaches.
+- **Résultat fiscal** : Du résultat comptable au bénéfice agricole, avec l'écart de valeur des stocks, la CSG non déductible, puis la répartition par associé.
+- **DEP et abattement jeune agriculteur** : Plafond de la DEP calculé, registre des déductions et de leurs utilisations ; abattement JA pendant les 60 mois suivant l'installation aidée.
+- **Plus-values et crédits d'impôt** : Plus-values à court et long terme, exonération de l'article 151 septies simulée, crédits d'impôt bio, HVE et remplacement.
+- **Aide à la liasse** : Cases de la 2139 ou de la 2143 calculées depuis la comptabilité, avec contrôles d'équilibre ; exports tableur et PDF.
+- **Cotisations MSA** : Assiette sociale par exploitant, historique, comparaison entre moyenne triennale et assiette annuelle.
+- **Dossiers d'aide** : PAC, ICHN, MAEC, DJA et aides régionales par campagne, avec les montants demandés, notifiés et versés ; la campagne PAC se crée en une fois.
+- **Virements et clôture** : Virements de l'ASP, de FranceAgriMer ou de la Région rattachés aux dossiers ; aides à recevoir ou reçues d'avance proposées à la clôture.
+- **Subventions d'investissement** : Reprise calculée à la clôture au rythme de l'amortissement des biens financés ; montants publiés par l'ASP comparés aux versements.
+- **Activités et marges** : Ateliers et productions par campagne, surfaces et effectifs, charges et produits ventilés, marges brutes ; lecture des activités d'Ekylibre.
+- **Calculettes** : Micro-BA ou réel, plafond DEP, fermages, MSA, coût du matériel, acomptes de TVA et les outils de terrain, préremplis depuis le dossier.
+- **Facture électronique agricole** : Autofactures reçues acceptées ou contestées, décomptes de coopérative en une écriture, e-reporting des ventes directes.
 </details>
 
 <details>
 <summary><b>🏛️ TVA et fiscalité</b></summary>
 
 - **Déclarations de TVA** : CA3 mensuelles calculées depuis les écritures, codes de TVA, autoliquidation, PDF et tableur pour la télédéclaration.
-- **TVA agricole** : CA12A, acomptes trimestriels, remboursement forfaitaire, livres des ventes et des achats.
-- **Échéancier** : Déclarations, paiements et démarches en liste ou en calendrier, listes de contrôle, résumé du lundi, agenda iCal.
+- **TVA agricole** : CA12A préparée dans l'ordre du formulaire, acomptes trimestriels, CA3 trimestrielle sur option, remboursement de crédit, remboursement forfaitaire, livres des ventes et des achats.
+- **Échéancier** : Déclarations, paiements et démarches en liste ou en calendrier, listes de contrôle cochées d'après le dossier, prélèvements reconnus sur les relevés, résumé du lundi, agenda iCal.
 - **Profil fiscal** : Forme juridique, régimes datés et options fiscales avec leur date limite de renonciation.
 </details>
 

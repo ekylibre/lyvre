@@ -5,6 +5,9 @@
 !doc/images/
 !frontend/src/assets/
 !frontend/src/app/lyvre.css
+!frontend/src/features/about/comparison.ts
+!frontend/src/features/about/competitors.ts
+!frontend/src/features/about/openSourceVendors.ts
 !site/
 !docker/site.nginx.conf
 site/node_modules

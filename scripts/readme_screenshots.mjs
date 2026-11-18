@@ -160,11 +160,35 @@ const job = (await call("POST", "/brevo/sync", { dry_run: true })).job;
 await shot(`/entities/members/brevo/${job.id}`, "brevo", { wait: "Rattachés" });
 await shot("/changelog", "nouveautes", { wait: "Version actuelle" });
 
+// Page Fonctionnalités du site : bilan d'une structure dont l'exercice est ouvert (SCI des Tilleuls).
+await use("SCI des Tilleuls");
+await shot("/reports/compte-de-resultat", "compta-resultat", { wait: "Total" }).catch((err) => console.log("capture compta-resultat sautée :", String(err).split("\n")[0]));
+
 // Exploitation fictive du jeu d'essai agricole (tests/fixtures/agri, EARL porcs au réel simplifié) :
 // échéancier et résultat fiscal (l'inventaire du jeu d'essai est vide : pas de capture). Une capture qui
 // échoue n'arrête pas les autres.
 await use("EARL des Pins");
-for (const [path, name] of [["/agenda/", "agri-echeancier"], ["/tax-result/", "agri-resultat-fiscal"]]) {
+// Dossiers d'aide repris des écritures déjà comptabilisées (un dossier par compte), clés d'API d'un agent et d'un script.
+try {
+  const schemes = (await call("GET", "/aids/schemes")).items;
+  const campaign = (await call("GET", "/aids?campaign=default")).campaign;
+  const byAccount = new Map();
+  for (const line of (await call("GET", `/aids?campaign=${campaign}`)).ledger) {
+    byAccount.set(line.account.code, [...(byAccount.get(line.account.code) ?? []), line.id]);
+  }
+  for (const [code, ids] of byAccount) {
+    const scheme = schemes.find((s) => s.accounts.some((a) => a.code === code)) ?? schemes.find((s) => s.accounts.some((a) => code.startsWith(a.code)));
+    if (scheme) await call("POST", "/aids/from-ledger", { line_ids: ids, scheme: scheme.key, campaign });
+  }
+  const me = (await call("GET", "/session")).user.id;
+  await call("POST", "/api-keys", { name: "Agent de saisie terrain", user_id: me, read_domains: ["accounting", "agenda", "agronomy"], write_domains: ["purchases"] });
+  await call("POST", "/api-keys", { name: "Tableau de bord de l'exploitation", user_id: me, read_domains: ["accounting", "bank", "tax"], write_domains: [] });
+} catch (err) {
+  console.log("données des aides et des clés incomplètes :", String(err).split("\n")[0]);
+}
+for (const [path, name] of [["/agenda/", "agri-echeancier"], ["/tax-result/", "agri-resultat-fiscal"],
+  // Page Fonctionnalités du site : une capture par module.
+  ["/entries/", "compta-ecritures"], ["/aids/", "agri-aides"], ["/configuration/api-keys/", "api-cles"]]) {
   try {
     await shot(path, name);
   } catch (err) {

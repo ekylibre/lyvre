@@ -14,6 +14,7 @@ export const DEMO_LOGIN = {
 
 export const NAV = [
   { href: "/fonctionnalites/", label: "Fonctionnalités" },
+  { href: "/comparatif/", label: "Comparatif" },
   { href: "/nouveautes/", label: "Nouveautés" },
   { href: "/installer/", label: "Installer" },
   { href: "/contact/", label: "Contact" },

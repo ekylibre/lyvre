@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
 
-const PAGES = ["/", "/fonctionnalites/", "/nouveautes/", "/installer/", "/demo/", "/contact/", "/contact/merci/", "/mentions-legales/", "/donnees-personnelles/"];
+const PAGES = ["/", "/fonctionnalites/", "/comparatif/", "/nouveautes/", "/installer/", "/demo/", "/contact/", "/contact/merci/", "/mentions-legales/", "/donnees-personnelles/"];
 const changelog = parse(readFileSync(new URL("../../data/changelog.yml", import.meta.url), "utf8"), { version: "1.1" }) as {
   next?: { text: string; tech?: string }[];
   versions: { version: string; entries: { text: string; tech?: string }[] }[];
@@ -53,13 +53,36 @@ test("formulaire de contact : champs, piège invisible, consentement, envoi vers
   await expect(page.getByRole("alert")).toContainText("Trop de messages");
 });
 
-test("fonctionnalités : un domaine par section, liens vers la version d'arrivée", async ({ page }) => {
+test("fonctionnalités : un module par section avec ses écrans, liens vers la version d'arrivée", async ({ page }) => {
   await page.goto("/fonctionnalites/");
   await expect(page.getByRole("heading", { level: 2, name: /Comptabilité/ })).toBeVisible();
-  await expect(page.getByRole("heading", { level: 2, name: /Exploitation agricole/ })).toBeVisible();
-  const since = page.locator(".feature .meta a").first();
+  await expect(page.locator("#agri .shot img").first()).toHaveAttribute("alt", /Résultat fiscal/);
+  const since = page.locator(".feature-since").first();
   await since.click();
   await expect(page).toHaveURL(/\/nouveautes\/\d{4}\.\d{2}\.\d+\/$/);
+});
+
+test("fonctionnalités : le filtre par structure masque ce qui ne la concerne pas et se garde dans l'adresse", async ({ page }) => {
+  await page.goto("/fonctionnalites/");
+  await expect(page.locator("#baux")).toBeVisible();
+  await page.getByRole("button", { name: "une exploitation agricole" }).click();
+  await expect(page.getByRole("button", { name: "une exploitation agricole" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page).toHaveURL(/\?pour=agri/);
+  await expect(page.locator("#baux")).toBeHidden();
+  await expect(page.locator("#agri")).toBeVisible();
+  await expect(page.locator("#adhesions")).toBeHidden();
+  await expect(page.locator("#rapprochement")).toBeVisible();
+  await page.goto("/fonctionnalites/?pour=sci");
+  await expect(page.locator("#agri")).toBeHidden();
+  await expect(page.locator("#baux")).toBeVisible();
+});
+
+test("comparatif : chaque case renvoie à sa source", async ({ page }) => {
+  await page.goto("/comparatif/");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Lyvre et les autres logiciels");
+  const cell = page.locator("td.mark a").first();
+  await expect(cell).toHaveAttribute("href", /^https:\/\//);
+  await expect(cell).toHaveAttribute("title", /.+/);
 });
 
 test("aucun défilement horizontal", async ({ page }) => {

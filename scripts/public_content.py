@@ -51,6 +51,8 @@ def validate_features(features: dict, published: set[str]) -> list[str]:
         if not f.get("id") or f["id"] in seen:
             errors.append(f"{where} : identifiant manquant ou en double.")
         seen.add(f.get("id"))
+        if f.get("id") in domains:
+            errors.append(f"{where} : même identifiant qu'un module (ancre en double sur le site).")
         if f.get("domain") not in domains:
             errors.append(f"{where} : domaine inconnu « {f.get('domain')} ».")
         if not (f.get("title") and f.get("text")):
@@ -66,6 +68,12 @@ def validate_features(features: dict, published: set[str]) -> list[str]:
             capture = item.get("capture")
             if capture and not (IMAGES / capture).is_file():
                 errors.append(f"features.yml, {section} : capture « {capture} » absente de doc/images/.")
+    for d in features["domains"]:
+        for shot in d.get("captures") or []:
+            if not (shot.get("file") and shot.get("alt")):
+                errors.append(f"features.yml, module « {d.get('id')} » : capture sans fichier ou sans texte alternatif.")
+            elif not (IMAGES / shot["file"]).is_file():
+                errors.append(f"features.yml, module « {d.get('id')} » : capture « {shot['file']} » absente de doc/images/.")
     return errors
 
 

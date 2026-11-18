@@ -64,6 +64,11 @@ def test_inline_markdown_in_html_cells():
     ({"features": [{"id": "a", "domain": "compta", "title": "T", "text": "x", "capture": "absente.png"}]}, "absente de doc/images"),
     ({"features": [{"id": "a", "domain": "compta", "title": "T", "text": "x"},
                    {"id": "a", "domain": "compta", "title": "T", "text": "y"}]}, "en double"),
+    ({"features": [{"id": "compta", "domain": "compta", "title": "T", "text": "x"}]}, "même identifiant qu'un module"),
+    ({"domains": [{"id": "compta", "emoji": "📒", "title": "C", "captures": [{"file": "absente.png", "alt": "A"}]}]},
+     "module « compta » : capture « absente.png »"),
+    ({"domains": [{"id": "compta", "emoji": "📒", "title": "C", "captures": [{"file": "facture.png"}]}]},
+     "sans texte alternatif"),
 ])
 def test_feature_errors(change, message):
     errors = "\n".join(pc.validate_features(_features(**change), {"2026.11.1"}))

@@ -12,6 +12,7 @@ COPY data/changelog.yml data/features.yml data/
 COPY doc/images doc/images
 COPY frontend/src/assets frontend/src/assets
 COPY frontend/src/app/lyvre.css frontend/src/app/lyvre.css
+COPY frontend/src/features/about/comparison.ts frontend/src/features/about/competitors.ts frontend/src/features/about/openSourceVendors.ts frontend/src/features/about/
 COPY site site
 ARG PUBLIC_SITE_URL=https://lyvre.org
 ARG PUBLIC_DEMO_URL=https://demo.lyvre.org

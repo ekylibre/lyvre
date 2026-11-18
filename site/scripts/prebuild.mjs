@@ -1,5 +1,6 @@
 // Prépare la construction du site à partir des sources du dépôt (jamais modifiées ici) :
-// - data/changelog.yml et data/features.yml → src/data/ (lus par src/lib/data.ts) ;
+// - data/changelog.yml et data/features.yml → src/data/ (lus par src/lib/data.ts), comparatif de la page À propos
+//   (frontend/src/features/about/*.ts) → src/data/about/ ;
 // - doc/images/*.png (captures du README, `make captures`) → src/assets/captures/ (optimisées par Astro) ;
 // - logos de l'application → src/assets/brand/ et public/favicon.svg ;
 // - couleurs de la charte (frontend/src/app/lyvre.css) → src/styles/tokens.css, thème clair et sombre ;
@@ -22,6 +23,10 @@ function copy(src, dest) {
 
 // Données
 for (const name of ["changelog.yml", "features.yml"]) copy(from("data", name), at("src/data", name));
+// Comparatif de la page À propos de l'application (critères, logiciels, points forts, limites).
+for (const name of ["comparison.ts", "competitors.ts", "openSourceVendors.ts"]) {
+  copy(from("frontend/src/features/about", name), at("src/data/about", name));
+}
 
 // Captures
 const images = from("doc/images");

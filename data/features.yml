@@ -51,7 +51,7 @@ audiences:
       - Plan comptable agricole (EI, EARL, GAEC, SCEA), micro-BA ou réel, bilan et compte de résultat agricoles.
       - Inventaire de clôture, avances aux cultures, biens vivants et lots d'animaux, valeur fiscale des stocks.
       - Résultat fiscal, abattement jeune agriculteur, DEP, assiette des cotisations MSA, aide à la liasse BA.
-      - Aides PAC et subventions suivies, TVA agricole (CA12A, acomptes), échéancier de l'exploitation.
+      - Aides PAC et subventions suivies jusqu'à la clôture, TVA agricole (CA12A, acomptes, remboursement forfaitaire), échéancier avec résumé du lundi et agenda iCal.
   - id: societe
     emoji: 🏢
     title: Une société
@@ -124,36 +124,90 @@ overview:
     caption: chaque version expliquée dans l'application, actions requises en tête.
 
 domains:
+  # intro : ce que le module apporte, en une phrase (page Fonctionnalités du site).
+  # captures : écrans du module (doc/images/), la première en grand.
   - id: compta
     emoji: 📒
     title: Comptabilité
+    intro: Tenir les comptes en partie double au clavier, ou en recettes et dépenses quand la structure est petite.
+    captures:
+      - file: compta-ecritures.png
+        alt: Liste des écritures de l'exercice, avec journal, origine, montant et numéro de validation
+      - file: compta-resultat.png
+        alt: Compte de résultat d'une SCI, produits et charges d'exploitation
   - id: banque
     emoji: 🏦
     title: Banque et caisse
+    intro: Chaque ligne du relevé trouve son écriture, au clavier, avec des suggestions et des règles.
+    captures:
+      - file: rapprochement.png
+        alt: Rapprochement bancaire, transactions à traiter et écriture suggérée
   - id: achats
     emoji: 🧾
     title: Achats
+    intro: Les factures fournisseurs arrivent de Qonto ou d'un dépôt de fichier, sont lues, puis comptabilisées.
+    captures:
+      - file: abonnements.png
+        alt: Abonnements, coût mensuel et échéances manquantes
   - id: ventes
     emoji: 💶
     title: Ventes et facturation électronique
+    intro: Du devis à l'encaissement, avec le PDF Factur-X et la plateforme agréée de la réforme.
+    captures:
+      - file: facture.png
+        alt: Facture payée, client, lignes et encaissement rapproché
+      - file: ventes.png
+        alt: Liste des factures, devis et brouillons avec leur état et le restant dû
   - id: baux
     emoji: 🏡
     title: Baux et associés
+    intro: Les baux d'une SCI ou d'un propriétaire, de la carte des parcelles à la quittance.
+    captures:
+      - file: bail.png
+        alt: Fiche d'un bail, avis d'échéance, quittances et dépôt de garantie
+      - file: bail-carte.png
+        alt: Carte d'un bail, photo aérienne et parcelles cadastrales de l'IGN
   - id: tiers
     emoji: 🤝
     title: Tiers, adhérents, dons
+    intro: Clients, fournisseurs, adhérents et donateurs au même endroit, complétés depuis Sirene.
+    captures:
+      - file: adherents.png
+        alt: Liste des adhérents avec dates d'adhésion, échéances et statut
+      - file: sirene.png
+        alt: Structure complétée depuis le répertoire Sirene de l'INSEE
   - id: agri
     emoji: 🌾
     title: Exploitation agricole
+    intro: Le plan agricole, l'inventaire, les biens vivants, les aides et le résultat fiscal des bénéfices agricoles.
+    captures:
+      - file: agri-resultat-fiscal.png
+        alt: Résultat fiscal d'une exploitation, DEP et réintégrations
+      - file: agri-aides.png
+        alt: Aides et subventions d'une campagne, montants notifiés, versés et reste à percevoir
   - id: fiscal
     emoji: 🏛️
     title: TVA et fiscalité
+    intro: Les déclarations préparées depuis les écritures et un échéancier qui dit quoi faire cette semaine.
+    captures:
+      - file: agri-echeancier.png
+        alt: Échéancier d'une exploitation agricole, liste de contrôle d'automne et démarches à préciser
   - id: pilotage
     emoji: 📊
     title: Pilotage et clôture
+    intro: Ce qui reste à faire, le résultat au fil de l'année, puis une clôture guidée jusqu'au FEC.
+    captures:
+      - file: tableau-de-bord.png
+        alt: Tableau de bord, à traiter, résultat, facturé et encours clients
+      - file: cloture.png
+        alt: Assistant de clôture, étapes et contrôles
   - id: api
     emoji: 🤖
     title: Agents et API
+    intro: Un agent ou un script lit le dossier et prépare des brouillons, avec des droits bornés par structure.
+    captures:
+      - file: api-cles.png
+        alt: Accès API, clés par usage avec leurs domaines et leur expiration
 
 features:
   # --- Comptabilité
@@ -226,7 +280,7 @@ features:
     title: Facturation électronique
     text: Envoi et réception par une plateforme agréée (SUPER PDP), e-reporting, autofactures et décomptes de coopérative.
   # --- Baux
-  - id: baux
+  - id: assistant-bail
     domain: baux
     structures: [sci]
     title: Baux
@@ -259,48 +313,135 @@ features:
     structures: [asso]
     title: Reçus fiscaux
     text: Particuliers (Cerfa 11580) et entreprises (16216), dons en nature, état annuel.
-  # --- Agricole
+  # --- Agricole (group : sous-partie du module sur la page Fonctionnalités)
   - id: plan-agricole
     domain: agri
+    group: Plan et états
     structures: [agri]
     title: Plan « Exploitation agricole »
-    text: EI, EARL, GAEC, SCEA, micro-BA ou réel, bilan et compte de résultat agricoles, soldes intermédiaires de gestion.
+    text: EI, EARL, GAEC, SCEA, création en trois étapes (forme, impôt et régime, premier exercice), bilan et compte de résultat agricoles, soldes intermédiaires de gestion, annexe des biens vivants.
+    since: 2026.11.6
+  - id: micro-ba
+    domain: agri
+    group: Plan et états
+    structures: [agri]
+    title: Micro-BA ou réel
+    text: Livre des recettes du micro-BA, récapitulatif sur trois ans et bénéfice forfaitaire, simulation micro-BA ou réel et alerte de changement de régime.
+    since: 2026.11.6
+  - id: catalogue-agricole
+    domain: agri
+    group: Plan et états
+    structures: [agri]
+    title: Articles et règles agricoles
+    text: Engrais, semences, aliments, animaux avec compte et taux de TVA proposés ; règles bancaires MSA, ASP, FranceAgriMer et fermages.
+    since: 2026.11.6
   - id: inventaire
     domain: agri
+    group: Inventaire et biens vivants
     structures: [agri]
     title: Inventaire de clôture
-    text: Stocks ligne par ligne, avances aux cultures, lots d'animaux, valeur fiscale des stocks, écriture de stock.
+    text: Stocks ligne par ligne au coût réel, au coût standard ou au prix de détail, valeur fiscale (méthode forfaitaire, stock bloqué), écriture de stock sans extourne à l'ouverture.
+    since: 2026.11.6
+  - id: avances-cultures
+    domain: agri
+    group: Inventaire et biens vivants
+    structures: [agri]
+    title: Avances aux cultures
+    text: Une fiche par culture en terre, valorisée sur vos barèmes par hectare et par mois ou au coût réel des charges retenues.
+    since: 2026.11.6
+  - id: lots-animaux
+    domain: agri
+    group: Inventaire et biens vivants
+    structures: [agri]
+    title: Lots d'animaux
+    text: Naissances, achats, ventes, morts et passages d'un lot à l'autre ; écart entre l'effectif théorique et l'effectif compté.
+    since: 2026.11.6
   - id: biens-vivants
     domain: agri
+    group: Inventaire et biens vivants
     structures: [agri]
     title: Biens vivants
-    text: Reproducteurs et plantations immobilisés, en-cours, entrées en production, morts, sinistres et abattage sanitaire.
+    text: Reproducteurs et plantations immobilisés, en-cours puis entrée en production, morts, sinistres, abattage sanitaire et provision pour hausse de valeur des vaches.
+    since: 2026.11.6
   - id: resultat-fiscal
     domain: agri
+    group: Fiscal et social
     structures: [agri]
-    title: Résultat fiscal et liasse
-    text: Résultat fiscal des bénéfices agricoles, abattement jeune agriculteur, DEP, plus-values, aide à la liasse 2139 ou 2143.
+    title: Résultat fiscal
+    text: Du résultat comptable au bénéfice agricole, avec l'écart de valeur des stocks, la CSG non déductible, puis la répartition par associé.
     capture: agri-resultat-fiscal.png
+    since: 2026.11.6
+  - id: dep-ja
+    domain: agri
+    group: Fiscal et social
+    structures: [agri]
+    title: DEP et abattement jeune agriculteur
+    text: Plafond de la DEP calculé, registre des déductions et de leurs utilisations ; abattement JA pendant les 60 mois suivant l'installation aidée.
+    since: 2026.11.6
+  - id: plus-values
+    domain: agri
+    group: Fiscal et social
+    structures: [agri]
+    title: Plus-values et crédits d'impôt
+    text: Plus-values à court et long terme, exonération de l'article 151 septies simulée, crédits d'impôt bio, HVE et remplacement.
+    since: 2026.11.6
+  - id: liasse-ba
+    domain: agri
+    group: Fiscal et social
+    structures: [agri]
+    title: Aide à la liasse
+    text: Cases de la 2139 ou de la 2143 calculées depuis la comptabilité, avec contrôles d'équilibre ; exports tableur et PDF.
+    since: 2026.11.6
   - id: msa
     domain: agri
+    group: Fiscal et social
     structures: [agri]
     title: Cotisations MSA
-    text: Assiette sociale par exploitant, historique et comparaison entre moyenne triennale et annuelle.
+    text: Assiette sociale par exploitant, historique, comparaison entre moyenne triennale et assiette annuelle.
+    since: 2026.11.6
   - id: aides
     domain: agri
+    group: Aides et subventions
     structures: [agri]
-    title: Aides et subventions
-    text: Registre des dossiers PAC, ICHN, MAEC, DJA, virements rapprochés, aides à recevoir à la clôture.
+    title: Dossiers d'aide
+    text: PAC, ICHN, MAEC, DJA et aides régionales par campagne, avec les montants demandés, notifiés et versés ; la campagne PAC se crée en une fois.
+    capture: agri-aides.png
+    since: 2026.11.6
+  - id: aides-banque
+    domain: agri
+    group: Aides et subventions
+    structures: [agri]
+    title: Virements et clôture
+    text: Virements de l'ASP, de FranceAgriMer ou de la Région rattachés aux dossiers ; aides à recevoir ou reçues d'avance proposées à la clôture.
+    since: 2026.11.6
+  - id: subventions-investissement
+    domain: agri
+    group: Aides et subventions
+    structures: [agri]
+    title: Subventions d'investissement
+    text: Reprise calculée à la clôture au rythme de l'amortissement des biens financés ; montants publiés par l'ASP comparés aux versements.
+    since: 2026.11.6
   - id: activites
     domain: agri
+    group: Activités et outils
     structures: [agri]
     title: Activités et marges
-    text: Ateliers et productions par campagne, ventilation des charges et produits, marges brutes.
+    text: Ateliers et productions par campagne, surfaces et effectifs, charges et produits ventilés, marges brutes ; lecture des activités d'Ekylibre.
+    since: 2026.11.6
   - id: calculettes
     domain: agri
+    group: Activités et outils
     structures: [agri]
     title: Calculettes
-    text: Micro-BA ou réel, plafond DEP, fermages, MSA, coût du matériel, acomptes de TVA, préremplies depuis le dossier.
+    text: Micro-BA ou réel, plafond DEP, fermages, MSA, coût du matériel, acomptes de TVA et les outils de terrain, préremplis depuis le dossier.
+    since: 2026.11.6
+  - id: facture-electronique-agricole
+    domain: agri
+    group: Activités et outils
+    structures: [agri]
+    title: Facture électronique agricole
+    text: Autofactures reçues acceptées ou contestées, décomptes de coopérative en une écriture, e-reporting des ventes directes.
+    since: 2026.11.6
   # --- TVA et fiscalité
   - id: tva-ca3
     domain: fiscal
@@ -312,11 +453,12 @@ features:
     domain: fiscal
     structures: [agri]
     title: TVA agricole
-    text: CA12A, acomptes trimestriels, remboursement forfaitaire, livres des ventes et des achats.
+    text: CA12A préparée dans l'ordre du formulaire, acomptes trimestriels, CA3 trimestrielle sur option, remboursement de crédit, remboursement forfaitaire, livres des ventes et des achats.
+    since: 2026.11.6
   - id: echeancier
     domain: fiscal
     title: Échéancier
-    text: Déclarations, paiements et démarches en liste ou en calendrier, listes de contrôle, résumé du lundi, agenda iCal.
+    text: Déclarations, paiements et démarches en liste ou en calendrier, listes de contrôle cochées d'après le dossier, prélèvements reconnus sur les relevés, résumé du lundi, agenda iCal.
     capture: agri-echeancier.png
   - id: fiscalite
     domain: fiscal

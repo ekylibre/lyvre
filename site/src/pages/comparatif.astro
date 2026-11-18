@@ -1,0 +1,138 @@
+---
+// Lyvre et les autres logiciels : le comparatif de la page À propos de l'application (frontend/src/features/about/,
+// copié par scripts/prebuild.mjs), avec la justification et la page source de chaque case.
+import Base from "../layouts/Base.astro";
+import { CHECKED_ON, VENDORS, type Evidence, type Mark, type Vendor } from "../data/about/competitors";
+import { OSS_VENDORS } from "../data/about/openSourceVendors";
+import { LIMITS, OSS_ROWS, ROWS, STRENGTHS, type Row } from "../data/about/comparison";
+
+const LABEL: Record<Mark, string> = { yes: "oui", partial: "en partie", no: "non" };
+const tables: { id: string; title: string; intro: string; rows: Row[]; vendors: Vendor[]; note: string }[] = [
+  {
+    id: "editeurs",
+    title: "Les logiciels des comparatifs",
+    intro: `Logiciels cités par deux comparatifs publics, fonctionnalités vérifiées sur les sites et centres d'aide des éditeurs le ${CHECKED_ON}.`,
+    rows: ROWS,
+    vendors: VENDORS,
+    note: "Aussi cités : MaCotisation (cotisations, logiciel comptable intégré), Ma Compta Association (catégories, rapport d'AG, installation locale), Sage 50 (comptabilité d'engagement, stocks).",
+  },
+  {
+    id: "open-source",
+    title: "Les logiciels open source",
+    intro: `Logiciels de gestion dont le code source est publié, examinés le ${CHECKED_ON} sur leur documentation et leur code. Plusieurs sont des ERP ou des outils de facturation : la ligne « Plan comptable associatif » fait la différence.`,
+    rows: OSS_ROWS,
+    vendors: OSS_VENDORS,
+    note: "Invoice Ninja publie son code sous Elastic License 2.0, qui n'est pas une licence libre ; le dépôt de bureau de Frappe Books est archivé depuis le 02/10/2026.",
+  },
+];
+---
+
+<Base title="Comparatif" description="Lyvre face aux logiciels de comptabilité associative et aux logiciels open source : chaque case justifiée et sourcée chez l'éditeur.">
+  <div class="wrap compare-page">
+    <header class="compare-head">
+      <h1>Lyvre et les autres logiciels</h1>
+      <p class="lead">
+        Chaque case renvoie à la page de l'éditeur qui la justifie. Un point « · » signifie que rien n'a été trouvé chez
+        l'éditeur, pas que la fonctionnalité manque ; les offres évoluent.
+      </p>
+    </header>
+
+    <div class="compare-summary">
+      <section aria-labelledby="h-forces">
+        <h2 id="h-forces">Ce qui distingue Lyvre</h2>
+        <ul>{STRENGTHS.map((s) => <li>{s}</li>)}</ul>
+      </section>
+      <section aria-labelledby="h-limites">
+        <h2 id="h-limites">Ce que Lyvre ne fait pas encore</h2>
+        <ul>{LIMITS.map((l) => <li>{l}</li>)}</ul>
+      </section>
+    </div>
+
+    {tables.map((t) => (
+      <section class="compare-table" aria-labelledby={`h-${t.id}`}>
+        <h2 id={`h-${t.id}`}>{t.title}</h2>
+        <p class="compare-intro">{t.intro}</p>
+        <div class="compare-scroll" tabindex="0" role="region" aria-label={`Tableau : ${t.title}`}>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col"><span class="sr-only">Critère</span></th>
+                <th scope="col" class="col-lyvre">Lyvre</th>
+                {t.vendors.map((v) => <th scope="col"><a href={v.site} title={v.offer} rel="noreferrer">{v.name}</a></th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {t.rows.map((row) => (
+                <tr>
+                  <th scope="row">{row.label}{row.note && <span class="row-note">{row.note}</span>}</th>
+                  <td class={`col-lyvre mark mark-${row.lyvre}`}><span class="glyph" aria-hidden="true" /><span class="sr-only">{LABEL[row.lyvre]}</span></td>
+                  {t.vendors.map((v) => {
+                    const e: Evidence | undefined = v.criteria[row.key];
+                    return e ? (
+                      <td class={`mark mark-${e.mark}`}>
+                        <a href={e.url} title={e.why} rel="noreferrer"><span class="glyph" aria-hidden="true" /><span class="sr-only">{LABEL[e.mark]} : {e.why}</span></a>
+                      </td>
+                    ) : <td class="mark mark-unknown"><span class="glyph" aria-hidden="true" /><span class="sr-only">non trouvé chez l'éditeur</span></td>;
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p class="compare-note">
+          <span class="legend mark-yes"><span class="glyph" aria-hidden="true" /> oui</span>
+          <span class="legend mark-partial"><span class="glyph" aria-hidden="true" /> en partie, option payante ou module tiers</span>
+          <span class="legend mark-no"><span class="glyph" aria-hidden="true" /> non</span>
+          <span class="legend mark-unknown"><span class="glyph" aria-hidden="true" /> non trouvé chez l'éditeur</span>
+          <br />{t.note}
+        </p>
+      </section>
+    ))}
+
+    <section class="compare-sources" aria-labelledby="h-sources">
+      <h2 id="h-sources">Sources</h2>
+      <ul>
+        <li><a href="https://www.pennylane.com/fr/fiches-pratiques/comptabilite/meilleur-logiciel-comptabilite-association" rel="noreferrer">Pennylane, « Meilleur logiciel de comptabilité pour association » (27/04/2026)</a>, comparatif publié par un éditeur présent dans la liste.</li>
+        <li><a href="https://lp.independant.io/logiciel-comptabilite/association/" rel="noreferrer">Independant.io, « Logiciel comptabilité association »</a>, choix des logiciels comparés.</li>
+        <li>Sites, centres d'aide, documentation et dépôts de code des éditeurs, consultés le {CHECKED_ON} : chaque case renvoie à sa page.</li>
+      </ul>
+      <p class="actions"><a class="btn btn-primary" href="/demo/">Essayer la démo</a> <a class="btn btn-secondary" href="/fonctionnalites/">Voir les fonctionnalités</a></p>
+    </section>
+  </div>
+</Base>
+
+<style is:global>
+  .compare-head { max-width: 48rem; }
+  .compare-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin: 2.5rem 0 1rem; padding-top: 2rem; border-top: 1px solid var(--lv-line); }
+  .compare-summary h2, .compare-sources h2 { font-size: 1.5rem; }
+  .compare-summary ul { margin: 0; padding-left: 1.2rem; }
+  .compare-summary li { margin-bottom: 0.5rem; }
+  .compare-table { padding-top: 3rem; }
+  .compare-intro { max-width: 52rem; color: var(--lv-ink-muted); }
+  .compare-scroll { position: relative; overflow-x: auto; border: 1px solid var(--lv-line); border-radius: 12px; background: var(--lv-surface); }
+  .compare-scroll:focus-visible { outline-offset: 4px; }
+  .compare-scroll table { min-width: 56rem; font-size: 0.95rem; }
+  .compare-scroll thead th { position: sticky; top: 0; background: var(--lv-surface); text-transform: none; letter-spacing: 0;
+    font-size: 0.9rem; color: var(--lv-ink); text-align: center; white-space: nowrap; }
+  .compare-scroll thead th a { color: inherit; }
+  .compare-scroll tbody th { font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--lv-ink); font-size: 0.95rem;
+    position: sticky; left: 0; background: var(--lv-surface); min-width: 15rem; }
+  .row-note { display: block; font-size: 0.82rem; color: var(--lv-ink-muted); font-weight: 400; }
+  .col-lyvre { background: var(--lv-sauge) !important; }
+  /* Marques dessinées (pas de glyphe de police) : disque plein, demi-disque, croix, point. */
+  .mark { text-align: center; vertical-align: middle; }
+  .compare-scroll tbody th { vertical-align: middle; }
+  .mark a { display: inline-grid; place-items: center; min-width: 2rem; min-height: 2rem; border-radius: 50%; }
+  .mark a:hover { background: var(--lv-surface-sunken); }
+  .glyph { display: inline-block; width: 0.85rem; height: 0.85rem; border-radius: 50%; vertical-align: middle; }
+  .mark-yes .glyph { background: var(--lv-lichen); }
+  .mark-partial .glyph { border: 2px solid var(--lv-paille-ink); background: linear-gradient(90deg, var(--lv-paille-ink) 50%, transparent 50%); }
+  .mark-no .glyph { width: 0.9rem; height: 0.9rem; border-radius: 0;
+    background: linear-gradient(45deg, transparent 42%, var(--lv-brique) 42% 58%, transparent 58%),
+                linear-gradient(-45deg, transparent 42%, var(--lv-brique) 42% 58%, transparent 58%); }
+  .mark-unknown .glyph { width: 0.3rem; height: 0.3rem; background: var(--lv-line-strong); }
+  .legend { display: inline-flex; align-items: center; gap: 0.35rem; margin-right: 1.1rem; }
+  .compare-note { font-size: 0.88rem; color: var(--lv-ink-muted); margin-top: 0.75rem; max-width: 60rem; }
+  .compare-sources { padding-top: 3rem; max-width: 52rem; }
+  @media (max-width: 52rem) { .compare-summary { grid-template-columns: 1fr; gap: 1.5rem; } }
+</style>

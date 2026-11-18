@@ -28,11 +28,21 @@ export interface Feature {
   capture?: string;
   since?: string;
   status?: "available" | "soon";
+  /** Sous-partie du module (page Fonctionnalités). */
+  group?: string;
+}
+export interface Shot {
+  file: string;
+  alt: string;
 }
 export interface Domain {
   id: string;
   emoji: string;
   title: string;
+  /** Ce que le module apporte, en une phrase. */
+  intro?: string;
+  /** Écrans du module, le premier en grand. */
+  captures?: Shot[];
 }
 export interface Audience {
   id: string;
@@ -114,6 +124,17 @@ export const integrations = features.integrations;
 
 export function featuresOf(domain: string): Feature[] {
   return featureList.filter((f) => f.domain === domain);
+}
+
+/** Fonctionnalités d'un module par sous-partie (une seule partie sans titre si aucune n'en a). */
+export function groupsOf(domain: string): { title?: string; features: Feature[] }[] {
+  const out: { title?: string; features: Feature[] }[] = [];
+  for (const f of featuresOf(domain)) {
+    const last = out.at(-1);
+    if (last && last.title === f.group) last.features.push(f);
+    else out.push({ title: f.group, features: [f] });
+  }
+  return out;
 }
 
 export function formatDate(iso: string): string {
