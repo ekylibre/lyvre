@@ -6,11 +6,26 @@ sources que le README : rien n'y est ressaisi.
 | Source | Sert à |
 |---|---|
 | `data/changelog.yml` (versions publiées, champ `text`) | version du pied de page, page « Nouveautés », une page par version, flux RSS, `version.json` |
-| `data/features.yml` | « En bref », « Pour qui », « Aperçu », « Fonctionnalités », « Intégrations » (site et README) |
+| `data/features.yml` | « En bref », « Pour qui », « Aperçu », « Fonctionnalités » (modules, sous-parties, captures), « Intégrations » (site et README) |
+| `frontend/src/features/about/comparison.ts`, `competitors.ts`, `openSourceVendors.ts` | page « Comparatif » (mêmes données que la page À propos de l'application) |
 | `doc/images/*.png` | captures (converties en WebP à la construction) |
 | `frontend/src/app/lyvre.css`, `frontend/src/assets/lyvre-*.svg` | couleurs de la charte (thèmes clair et sombre), logos, favicon |
 
 La partie `next` du changelog et les précisions `tech` ne sont jamais publiées.
+
+## Pages
+
+| Page | Contenu |
+|---|---|
+| `/` | accueil : en bref, pour qui (une capture par type de structure), aperçu, nouveautés récentes |
+| `/fonctionnalites/` | un module par domaine de `features.yml` : phrase d'introduction (`intro`), grande capture puis captures secondaires (`captures`), fonctionnalités en liste, regroupées en sous-parties (`group`, avec la capture de leurs fonctionnalités) ; filtre « Je tiens les comptes de… » (`?pour=asso\|sci\|agri\|societe`), index des modules ; « Ce que Lyvre ne fait pas encore » |
+| `/comparatif/` | points forts, limites, deux tableaux (logiciels des comparatifs, logiciels open source) dont chaque case renvoie à sa source |
+| `/nouveautes/` | versions repliées, une ligne « version — titre — date » avec le nombre de changements et les actions requises ; une page dépliée par version (`/nouveautes/<version>/`), flux RSS |
+| `/installer/`, `/demo/`, `/contact/`, `/mentions-legales/`, `/donnees-personnelles/` | pages de texte, formulaire de contact |
+
+Une fonctionnalité dont tout le module concerne la même structure n'affiche pas son étiquette (elle est en tête du
+module) ; une fonctionnalité de la version courante prend l'étiquette « Nouveau », sauf si tout le module est nouveau
+(mention en tête du module). Une fonctionnalité ne peut pas porter l'identifiant d'un module (ancre en double).
 
 ## Faire évoluer le contenu
 
@@ -19,19 +34,38 @@ La partie `next` du changelog et les précisions `tech` ne sont jamais publiées
 | annoncer une nouveauté | une entrée sous `next` dans `data/changelog.yml`, puis `python scripts/release.py publish` |
 | ajouter ou modifier une fonctionnalité, un profil, une intégration | `data/features.yml`, puis `python scripts/release.py build` (README) |
 | refaire les captures | `make captures` (base jetable aux données fabriquées), puis relire les images |
+| changer les écrans d'un module | `captures` du module dans `features.yml` (la première en grand), `capture` d'une fonctionnalité pour sa sous-partie |
+| changer le comparatif | `frontend/src/features/about/` (l'application et le site le lisent tous les deux) |
 | interdire un nom dans les textes publics | `python scripts/release.py denylist "terme"` (seule l'empreinte est enregistrée) |
 
 `python scripts/release.py check`, lancé par `pytest`, échoue si :
 
 - le README n'a pas été régénéré (sections entre `<!-- nom -->` et `<!-- /nom -->`) ;
-- une fonctionnalité cite un domaine inconnu, une version non publiée ou une capture absente ;
+- une fonctionnalité cite un domaine inconnu, une version non publiée ou une capture absente, ou porte l'identifiant
+  d'un module ;
+- une capture de module est absente de `doc/images/` ou n'a pas de texte alternatif ;
 - un texte public (README, `features.yml`, versions publiées) contient un terme de la liste noire.
 
 **Liste noire.** `data/public_denylist.sha256` contient des empreintes SHA-256 de termes normalisés (minuscules,
 sans accents) : le dépôt est public, les noms eux-mêmes n'y figurent pas. Un fichier local `.public-denylist`
 (ignoré par Git, un terme par ligne) est contrôlé en plus.
 
-Le site est ensuite reconstruit par Dokploy à chaque push sur `main`.
+Le site est ensuite reconstruit par Dokploy à chaque push sur `main` (voir « Déploiement » : le webhook a déjà
+manqué des push).
+
+## Captures
+
+`make captures` lance `scripts/e2e_server.py --demo` (base jetable des tests de bout en bout) puis
+`scripts/readme_screenshots.mjs`. En mode `--demo` seulement, `scripts/e2e_demo.py` donne aux structures et à
+l'utilisateur des noms vraisemblables (« SCI des Tilleuls », « SCI du Moulin », « EARL des Pins »,
+`demo@lyvre.org`, sans marque réelle) ; les parcours E2E gardent leurs noms.
+
+Le script crée par l'API les données de chaque écran : factures, devis, bail et abonnements de la SCI ; pour
+l'exploitation du jeu d'essai agricole (`tests/fixtures/agri/A_earl_porcs_rs`) : exercice rouvert (l'import FEC le
+clôt à titre provisoire), régime de TVA agricole et CA12A annuelle, lignes d'inventaire, deux associés exploitants
+et leurs assiettes MSA passées, activités « Porcs charcutiers » et « Maïs grain » (productions Lexicon) avec la
+ventilation des comptes, dossiers d'aide repris des écritures, clés d'API. Les lignes de TVA importées du FEC n'ont
+pas de code : la capture de la TVA montre la liste des déclarations, pas un formulaire calculé.
 
 ## Construire et tester
 
@@ -83,10 +117,10 @@ Dans Dokploy :
 4. DNS (Gandi) : enregistrements A de `lyvre.org` et de `www` vers l'adresse du serveur Dokploy, sans
    redirection web Gandi sur `www`.
 
-Service en place : projet Dokploy « Lyvre », service Compose `site`, serveur `76.13.49.203`. La clé Brevo
-est restreinte par adresse IP : celle du serveur doit être autorisée dans Brevo (Sécurité › IP autorisées).
-Avant la mise à jour du DNS, le site se contrôle par l'adresse du serveur :
-`curl -sk --resolve lyvre.org:443:76.13.49.203 https://lyvre.org/version.json`.
+Service en place : projet Dokploy « Lyvre », service Compose `site` (composeId `yV9WXDlaSRcV-aA01ETyV`, branche
+`main`), serveur `76.13.49.203`, DNS Gandi en place. La clé Brevo est restreinte par adresse IP : celle du serveur
+est autorisée dans Brevo (Sécurité › IP autorisées). Pas de liste Brevo pour les contacts du site
+(`BREVO_CONTACT_LIST_ID` non renseigné, choix du 18/11/2026).
 
 Essai local (Docker) :
 
@@ -94,8 +128,19 @@ Essai local (Docker) :
 docker compose -f docker-compose.site.yml -f docker-compose.site.local.yml up --build   # http://localhost:8080
 ```
 
+**Webhook.** Le 18/11/2026, deux push sur `main` n'ont déclenché aucun déploiement. Après un push, vérifier le
+dernier déploiement du service (Dokploy, ou `compose.one` par l'API) et, s'il manque, lancer `compose.deploy`.
+
+**Décalages au chargement.** Les polices du premier affichage sont préchargées (`site/src/layouts/Base.astro`) et,
+sur mobile, le menu et le filtre de structures tiennent sur une ligne qui défile : leur hauteur ne dépend pas de la
+police chargée. Sans cela, le score Lighthouse de performance tombait à 81 (CLS 0,4).
+
 Après déploiement : `curl -I https://www.lyvre.org` (301 vers `https://lyvre.org/`),
 `curl -s https://lyvre.org/version.json`, et un message envoyé depuis la page Contact.
+
+Contrôles en production (sans serveur local) : un fichier de configuration Playwright temporaire qui reprend
+`site/playwright.config.ts` avec `baseURL: "https://lyvre.org"` et sans `webServer`, puis
+`npx playwright test -c <ce fichier>` ; Lighthouse : `npx lighthouse@12.1.0 https://lyvre.org/fonctionnalites/`.
 
 ## Démo en ligne (demo.lyvre.org)
 
@@ -120,8 +165,11 @@ Après déploiement : `curl -I https://www.lyvre.org` (301 vers `https://lyvre.o
   et le serveur MCP ; pièces limitées à `DEMO_MAX_UPLOAD_MB` (10 Mo). Bandeau en tête de chaque page,
   identifiants sur la page de connexion.
 
-Dans Dokploy : service **Compose** `demo` (projet « Lyvre »), dépôt `ekylibre/lyvre`, fichier
-`docker-compose.demo.yml` ; domaine `demo.lyvre.org` → service `demo`, port 5000, HTTPS ; variable
+Les propositions « Activer … » (tableau de bord, intégrations, fenêtre « intégration désactivée ») sont masquées
+en démonstration.
+
+Dans Dokploy : service **Compose** `demo` (projet « Lyvre », composeId `2Hhm4Ole2KDxrmVmEXiRK`), dépôt
+`ekylibre/lyvre`, branche `main`, fichier `docker-compose.demo.yml` ; domaine `demo.lyvre.org` → service `demo`, port 5000, HTTPS ; variable
 `SECRET_KEY` (obligatoire). Essai local :
 
 ```bash

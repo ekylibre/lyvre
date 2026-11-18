@@ -4,18 +4,18 @@ Source : `claudedocs/besoins_site_lyvre_org.md` (SP-1…9, DM-1…3, RM-1…5, M
 Modèle technique : `fourmy/apps/site` (Astro 7, nginx, CSP stricte) et `fourmy/docker/site.*`.
 Étape suivante : `/sc:implement`, lot par lot, dans l'ordre du §2.
 
-## État (17/11/2026, branche `site-lyvre-org`)
+## État (18/11/2026, `main`, site et démo en ligne)
 
 | Lot | État |
 |---|---|
 | L1 Source et génération | ✅ `data/features.yml`, `scripts/public_content.py`, sections du README, liste noire par empreintes, `tests/test_public_content.py` |
 | L2 README | ✅ réécrit (agricole, société, liens site et démo), sections générées |
-| L3 Site Astro | ✅ `site/` : 9 pages, une page par version, RSS, `version.json`, thème sombre ; 30 tests Playwright + axe (ordinateur, mobile) |
-| L4 Contact | ✅ `site/contact/contact.py` + 15 tests (Brevo simulé) ; pas encore d'envoi réel |
-| L5 Image et Dokploy | 🟡 Service Compose `site` du projet Dokploy « Lyvre » construit et en ligne (branche `site-lyvre-org`, à passer sur `main` après fusion) ; DNS en place (vérifié le 18/11 : `lyvre.org`, `www` → 301, `demo` vers `76.13.49.203`) |
-| L6 Captures | ✅ `make captures` ; script réparé (encaissement automatique depuis 2026.11.1), captures agricoles ajoutées |
-| L7 Démo | 🟡 code prêt (18/11) : `app/demo.py` (garde), `scripts/demo_seed.py` (4 structures par l'API), remise à zéro dans `docker/entrypoint.sh`, `docker-compose.demo.yml`, bandeau et identifiants dans la SPA, `tests/test_demo.py` ; en ligne le 18/11 : service Compose Dokploy `demo` (composeId `2Hhm4Ole2KDxrmVmEXiRK`, branche `site-lyvre-org`), `demo.lyvre.org` ; connexion, 4 structures et refus 403 vérifiés |
-| L8 Recette | 🟡 18/11 : ✅ 18/11 : tout validé, Lighthouse 100 ; pas de liste Brevo pour les contacts (choix du 18/11) |
+| L3 Site Astro | ✅ `site/` : 10 pages (dont Comparatif), une page par version, RSS, `version.json`, thème sombre ; 38 tests Playwright + axe (ordinateur, mobile) |
+| L4 Contact | ✅ `site/contact/contact.py` + 15 tests (Brevo simulé) ; envoi réel vérifié le 18/11 |
+| L5 Image et Dokploy | ✅ Service Compose `site` du projet Dokploy « Lyvre », branche `main` ; DNS en place (`lyvre.org`, `www` → 301, `demo`) ; webhook GitHub intermittent (doc/site.md › Déploiement) |
+| L6 Captures | ✅ `make captures` : 20 captures, noms vraisemblables en mode `--demo`, jeu d'essai agricole complété par l'API (inventaire, TVA, MSA, marges, aides, clés d'API) |
+| L7 Démo | ✅ code prêt (18/11) : `app/demo.py` (garde), `scripts/demo_seed.py` (4 structures par l'API), remise à zéro dans `docker/entrypoint.sh`, `docker-compose.demo.yml`, bandeau et identifiants dans la SPA, `tests/test_demo.py` ; en ligne le 18/11 : service Compose Dokploy `demo` (composeId `2Hhm4Ole2KDxrmVmEXiRK`, branche `main`), `demo.lyvre.org` ; connexion, 4 structures et refus 403 vérifiés ; propositions « Activer … » masquées |
+| L8 Recette | ✅ 18/11 : tout validé, Lighthouse 100 (accueil, fonctionnalités, comparatif, démo, contact) ; pas de liste Brevo pour les contacts (choix du 18/11) |
 
 **Déploiement (17/11/2026).** Projet Dokploy « Lyvre », service Compose `site` (appName `lyvre-site-1aur6o`,
 dépôt `ekylibre/lyvre`, branche `site-lyvre-org`, `docker-compose.site.yml`, redéploiement à chaque push),
@@ -24,7 +24,18 @@ domaines `lyvre.org` et `www.lyvre.org` (Let's Encrypt). Variables : `BREVO_API_
 (`curl --resolve lyvre.org:443:76.13.49.203`) : pages en 200, `version.json` (2026.11.5), `www` → apex en 301,
 formulaire relayé au service de contact (champ piège → « merci » sans envoi).
 
-**Reste à faire avant ouverture**
+**Évolutions après la recette (18/11/2026)**
+
+| Évolution | Détail |
+|---|---|
+| Fonctionnalités par module | `/fonctionnalites/` refaite : un module par domaine avec ses écrans, filtre par structure (`?pour=`), index des modules, sous-parties du module agricole avec leurs captures ; `features.yml` › `domains` prend `intro` et `captures`, les fonctionnalités `group` |
+| Fonctionnalités agricoles | 18 fonctionnalités de la 2026.11.6 (inventaire, biens vivants, DEP et JA, liasse, aides, TVA agricole…) ; README régénéré |
+| Comparatif | `/comparatif/` reprend la page À propos de l'application ; critères, points forts et limites sortis dans `frontend/src/features/about/comparison.ts` (une seule source) ; limite TVA corrigée (CA12A agricole) |
+| Nouveautés | versions repliées, ligne « version — titre — date », nombre de changements et actions requises |
+| Captures | noms sans « E2E » ni marque réelle ; 9 nouveaux écrans (écritures, bilan, TVA, marges, MSA, inventaire, aides, clés d'API) |
+| Performance | décalages au chargement supprimés (polices préchargées, menu et filtre sur une ligne sur mobile) : Lighthouse 100 |
+
+**Reste à faire**
 
 | # | Action | Qui |
 |---|---|---|
@@ -33,8 +44,10 @@ formulaire relayé au service de contact (champ piège → « merci » sans envo
 | R3 | ✅ Brevo : expéditeur `site@lyvre.org` ; boîte `contact@lyvre.org` (18/11, selon l'utilisateur) | utilisateur |
 | R4 | ✅ Envoi réel depuis la page Contact (18/11), reçu dans `contact@lyvre.org` ; reste la recette L8 | — |
 | R5 | ✅ Fusion dans `main` en avance rapide et tag `v2026.11.6` (18/11) ; services Dokploy `site` et `demo` passés sur `main` | — |
-| R7 | ✅ Démo en ligne (18/11) ; remise à zéro de la nuit à constater le 19/11 | — |
+| R7 | 🟡 Démo en ligne (18/11) ; remise à zéro de la nuit (02:00 UTC) à constater le 19/11 | — |
 | R6 | 🟡 Version 2026.11.6 publiée (18/11, tag `v2026.11.6`) ; éditeur Ekylibre SAS, mentions alignées sur fourmy.org ; reste : termes de la liste noire | utilisateur |
+| R8 | Webhook GitHub → Dokploy à vérifier (push du 18/11 sans déploiement, deux fois) | utilisateur |
+| R9 | TVA calculée sur le jeu d'essai agricole : les lignes de TVA importées du FEC n'ont pas de code ; à coder dans le jeu d'essai pour une capture du formulaire CA12A | facultatif |
 
 **L7, ce qui a changé depuis le plan.** Le jeu de démonstration de `e2e_server.py` crée les bases par
 `create_all`, sans migrations Alembic : l'image de production les migre au démarrage (`flask db upgrade`,
