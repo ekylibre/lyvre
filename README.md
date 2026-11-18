@@ -15,7 +15,7 @@ Hébergé chez vous.
 
 **[lyvre.org](https://lyvre.org)** · **[Essayer la démo](https://demo.lyvre.org)** · [Installer](#démarrage-rapide)
 
-<!-- version -->[![Version 2026.11.5](https://img.shields.io/badge/version-2026.11.5-2f6b4f)](CHANGELOG.md)<!-- /version -->
+<!-- version -->[![Version 2026.11.6](https://img.shields.io/badge/version-2026.11.6-2f6b4f)](CHANGELOG.md)<!-- /version -->
 [![Site lyvre.org](https://img.shields.io/badge/site-lyvre.org-2f6b4f)](https://lyvre.org)
 [![Licence AGPL-3.0](https://img.shields.io/badge/licence-AGPL--3.0-2f6b4f)](LICENSE)
 [![Auto-hébergé](https://img.shields.io/badge/auto--h%C3%A9berg%C3%A9-Docker-3a4440)](doc/docker.md)
@@ -308,6 +308,10 @@ Nouveautés), sur [lyvre.org/nouveautes](https://lyvre.org/nouveautes/) (avec un
 [CHANGELOG.md](CHANGELOG.md), actions requises à la mise à jour en tête. Les dernières :
 
 <!-- news -->
+- **2026.11.6 — Comptabilité agricole et sociétés** (18/11/2026)
+  - Facturation électronique — l'écran e-reporting indique la date à laquelle l'émission et l'e-reporting deviennent obligatoires pour l'entreprise : 1er septembre 2026 pour une grande entreprise ou une…
+  - Accès API et serveur MCP — Configuration › Accès API crée des clés par usage (par exemple « Aiffel — saisie terrain »), rattachées à un membre de la structure et jamais plus puissantes que son rôle…
+  - ⚠️ Accès API et MCP — APP_BASE_URL doit être l'adresse publique HTTPS (elle donne l'adresse du serveur MCP) et le proxy doit transmettre l'en-tête Authorization vers /mcp et /api/v1.
 - **2026.11.5 — Solde bancaire des comptes** (03/11/2026)
   - Banque › Comptes bancaires — colonne « Solde bancaire » à côté du solde comptable, calculée depuis le solde d'ouverture du relevé et les transactions importées.
 - **2026.11.4 — Correctif : menu des déclarations de TVA** (01/11/2026)
@@ -317,10 +321,6 @@ Nouveautés), sur [lyvre.org/nouveautes](https://lyvre.org/nouveautes/) (avec un
 - **2026.11.2 — Factures réglées en plusieurs fois** (01/11/2026)
   - Une facture se règle en plusieurs fois — acomptes, échéancier, virements échelonnés.
   - « Rattacher à une facture » dans Banque › Transactions — une ligne de relevé règle (ou encaisse) en tout ou partie une facture d'achat ou de vente déjà saisie, avec le restant après rattachement.
-- **2026.11.1 — Société, déclarations de TVA et relevés de compte** (01/11/2026)
-  - [Sociétés] Nouvelle structure « Société (SAS, SASU) » à la création d'une instance, avec le plan comptable général 2026, le bilan et le compte de résultat présentés comme la liasse 2050 et le statut de jeune…
-  - Codes de TVA sur les écritures (TVA par taux et par compte, base HT), régime TVA des tiers (France, Union européenne, hors UE) avec autoliquidation des achats auprès de fournisseurs étrangers, et…
-  - Déclarations de TVA mensuelles (CA3) calculées depuis les écritures — cases du formulaire 2026 avec leur code de saisie, lignes de chaque case, contrôles, écriture de liquidation, crédit reporté d'un…
 
 Toutes les versions : [CHANGELOG.md](CHANGELOG.md) · [lyvre.org/nouveautes](https://lyvre.org/nouveautes/)
 <!-- /news -->
