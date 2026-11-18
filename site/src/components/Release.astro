@@ -1,35 +1,43 @@
 ---
-// Une version publiée : actions requises en tête (encadré), puis nouveautés, améliorations, corrections.
-import { byKind, formatDate, inline, KINDS, splitEntry, STRUCTURES, type Version } from "../lib/data";
+// Une version publiée. Page de la version : titre et contenu. Liste des nouveautés (`collapsible`) : repliée par
+// défaut, une ligne « version — titre — date » qui s'ouvre au clic, avec le nombre de changements et les actions
+// requises.
+import ReleaseBody from "./ReleaseBody.astro";
+import { formatDate, type Version } from "../lib/data";
 
 interface Props {
   release: Version;
   heading?: "h1" | "h2";
+  collapsible?: boolean;
 }
-const { release, heading = "h2" } = Astro.props;
+const { release, heading = "h2", collapsible = false } = Astro.props;
 const Heading = heading;
+const count = release.entries.length;
+const actions = release.entries.filter((e) => e.kind === "action").length;
 ---
 
-<section class="release" id={`v${release.version}`}>
-  <Heading>
-    {heading === "h2" ? <a href={`/nouveautes/${release.version}/`}>{release.version} · {release.title}</a> : `${release.version} · ${release.title}`}
-  </Heading>
-  <p class="muted"><time datetime={release.date}>{formatDate(release.date)}</time></p>
-  {byKind(release.entries).map(([kind, entries]) => (
-    <div class={kind === "action" ? "action" : undefined}>
-      <h3>{kind === "action" ? "⚠️ " : ""}{KINDS[kind]}</h3>
-      <ul>
-        {entries.map((e) => {
-          const { where, what } = splitEntry(e.text);
-          return (
-            <li>
-              {e.structure && <span class="tag">{STRUCTURES[e.structure]}</span>}
-              {where && <span class="where">{where} : </span>}
-              <span set:html={inline(what)} />
-            </li>
-          );
-        })}
-      </ul>
+{collapsible ? (
+  <details class="release-fold" id={`v${release.version}`}>
+    <summary>
+      <h2 class="release-line">
+        <span class="release-version">{release.version}</span>
+        <span class="release-title">{release.title}</span>
+        <time class="release-date" datetime={release.date}>{formatDate(release.date)}</time>
+      </h2>
+      <span class="release-count">
+        {count} {count > 1 ? "changements" : "changement"}
+        {actions > 0 && <span class="tag tag-soon">{actions > 1 ? `${actions} actions requises` : "Action requise"}</span>}
+      </span>
+    </summary>
+    <div class="release-body">
+      <ReleaseBody release={release} />
+      <p class="release-link"><a href={`/nouveautes/${release.version}/`}>Page de la version {release.version}</a></p>
     </div>
-  ))}
-</section>
+  </details>
+) : (
+  <section class="release" id={`v${release.version}`}>
+    <Heading>{`${release.version} · ${release.title}`}</Heading>
+    <p class="muted"><time datetime={release.date}>{formatDate(release.date)}</time></p>
+    <ReleaseBody release={release} />
+  </section>
+)}

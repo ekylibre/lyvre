@@ -34,6 +34,19 @@ test("version et nouveautés lues dans data/changelog.yml, sans la partie next n
   expect(json.version).toBe(current.version);
 });
 
+test("nouveautés : versions repliées, une ligne version — titre — date qui s'ouvre au clic", async ({ page }) => {
+  await page.goto("/nouveautes/");
+  const first = page.locator("details.release-fold").first();
+  await expect(first).not.toHaveAttribute("open", "");
+  await expect(page.locator("details.release-fold[open]")).toHaveCount(0);
+  const line = first.locator("summary h2");
+  await expect(line).toContainText(current.version);
+  await expect(line.locator("time")).toHaveAttribute("datetime", /^\d{4}-\d{2}-\d{2}$/);
+  await expect(first.locator(".release-body")).toBeHidden();
+  await first.locator("summary").click();
+  await expect(first.locator(".release-body")).toBeVisible();
+});
+
 test("une page par version et un flux RSS", async ({ page }) => {
   await page.goto(`/nouveautes/${current.version}/`);
   await expect(page.getByRole("heading", { level: 1 })).toContainText(current.version);

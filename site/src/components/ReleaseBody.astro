@@ -1,0 +1,27 @@
+---
+// Contenu d'une version : actions requises en tête (encadré), puis nouveautés, améliorations, corrections.
+import { byKind, inline, KINDS, splitEntry, STRUCTURES, type Version } from "../lib/data";
+
+interface Props {
+  release: Version;
+}
+const { release } = Astro.props;
+---
+
+{byKind(release.entries).map(([kind, entries]) => (
+  <div class={kind === "action" ? "action" : undefined}>
+    <h3>{kind === "action" ? "⚠️ " : ""}{KINDS[kind]}</h3>
+    <ul>
+      {entries.map((e) => {
+        const { where, what } = splitEntry(e.text);
+        return (
+          <li>
+            {e.structure && <span class="tag">{STRUCTURES[e.structure]}</span>}
+            {where && <span class="where">{where} : </span>}
+            <span set:html={inline(what)} />
+          </li>
+        );
+      })}
+    </ul>
+  </div>
+))}

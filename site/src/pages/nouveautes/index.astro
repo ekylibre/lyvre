@@ -12,6 +12,6 @@ import { current, versions } from "../../lib/data";
       utilisateur › Nouveautés). Les actions à faire en mettant à jour sont en tête de la version.
     </p>
     <p><a href="/nouveautes/rss.xml">S'abonner au flux RSS</a></p>
-    {versions.map((v) => <Release release={v} />)}
+    <div class="release-list">{versions.map((v) => <Release release={v} collapsible />)}</div>
   </div>
 </Base>
