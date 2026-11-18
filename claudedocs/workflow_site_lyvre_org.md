@@ -14,7 +14,7 @@ Modèle technique : `fourmy/apps/site` (Astro 7, nginx, CSP stricte) et `fourmy/
 | L4 Contact | ✅ `site/contact/contact.py` + 15 tests (Brevo simulé) ; pas encore d'envoi réel |
 | L5 Image et Dokploy | 🟡 Service Compose `site` du projet Dokploy « Lyvre » construit et en ligne (branche `site-lyvre-org`, à passer sur `main` après fusion) ; DNS en place (vérifié le 18/11 : `lyvre.org`, `www` → 301, `demo` vers `76.13.49.203`) |
 | L6 Captures | ✅ `make captures` ; script réparé (encaissement automatique depuis 2026.11.1), captures agricoles ajoutées |
-| L7 Démo | 🟡 code prêt (18/11) : `app/demo.py` (garde), `scripts/demo_seed.py` (4 structures par l'API), remise à zéro dans `docker/entrypoint.sh`, `docker-compose.demo.yml`, bandeau et identifiants dans la SPA, `tests/test_demo.py` ; seed vérifié hors Docker ; image non construite localement (Docker absent du poste) ; service Dokploy `demo` à créer |
+| L7 Démo | 🟡 code prêt (18/11) : `app/demo.py` (garde), `scripts/demo_seed.py` (4 structures par l'API), remise à zéro dans `docker/entrypoint.sh`, `docker-compose.demo.yml`, bandeau et identifiants dans la SPA, `tests/test_demo.py` ; en ligne le 18/11 : service Compose Dokploy `demo` (composeId `2Hhm4Ole2KDxrmVmEXiRK`, branche `site-lyvre-org`), `demo.lyvre.org` ; connexion, 4 structures et refus 403 vérifiés |
 | L8 Recette | ⏳ après l'envoi réel du contact (R4) et la démo en ligne |
 
 **Déploiement (17/11/2026).** Projet Dokploy « Lyvre », service Compose `site` (appName `lyvre-site-1aur6o`,
@@ -31,9 +31,9 @@ formulaire relayé au service de contact (champ piège → « merci » sans envo
 | R1 | ✅ DNS Gandi (18/11) | utilisateur |
 | R2 | ✅ Brevo : IP `76.13.49.203` autorisée (18/11, selon l'utilisateur) | utilisateur |
 | R3 | ✅ Brevo : expéditeur `site@lyvre.org` ; boîte `contact@lyvre.org` (18/11, selon l'utilisateur) | utilisateur |
-| R4 | Envoi réel depuis la page Contact, puis recette L8 | après R1 à R3 |
+| R4 | ✅ Envoi réel depuis la page Contact (18/11), reçu dans `contact@lyvre.org` ; reste la recette L8 | — |
 | R5 | Fusion dans `main`, puis branche du service Dokploy passée sur `main` | après revue |
-| R7 | Démo : service Compose Dokploy `demo` (`docker-compose.demo.yml`, domaine `demo.lyvre.org` port 5000, `SECRET_KEY`), puis connexion et redémarrage pour vérifier la remise à zéro | après accord |
+| R7 | ✅ Démo en ligne (18/11) ; remise à zéro de la nuit à constater le 19/11 | — |
 | R6 | Décisions : publier les entrées `next` du changelog, éditeur des mentions légales, termes de la liste noire | utilisateur |
 
 **L7, ce qui a changé depuis le plan.** Le jeu de démonstration de `e2e_server.py` crée les bases par
