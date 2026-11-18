@@ -56,7 +56,7 @@ test("formulaire de contact : champs, piège invisible, consentement, envoi vers
 test("fonctionnalités : un module par section avec ses écrans, liens vers la version d'arrivée", async ({ page }) => {
   await page.goto("/fonctionnalites/");
   await expect(page.getByRole("heading", { level: 2, name: /Comptabilité/ })).toBeVisible();
-  await expect(page.locator("#agri .shot img").first()).toHaveAttribute("alt", /Résultat fiscal/);
+  await expect(page.locator("#agri .shot img").first()).toHaveAttribute("alt", /Marges par activité/);
   const since = page.locator(".feature-since").first();
   await since.click();
   await expect(page).toHaveURL(/\/nouveautes\/\d{4}\.\d{2}\.\d+\/$/);

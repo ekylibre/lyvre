@@ -74,8 +74,11 @@ const slug = (text: string) => text.toLowerCase().normalize("NFD").replace(/[̀-
               )}
               <div class:list={["module-body", { "has-aside": more.length > 0 }]}>
                 <div class="module-features">
-                  {groups.map((g) => (
-                    <div class="feature-group" data-group>
+                  {groups.map((g) => {
+                    // Sous-partie titrée : ses écrans à côté de sa liste (hors la grande capture du module).
+                    const shots = g.title ? g.features.filter((f) => f.capture && f.capture !== main?.file) : [];
+                    return (
+                    <div class:list={["feature-group", { "has-shots": shots.length > 0 }]} data-group>
                       {g.title && <h3 class="feature-group-title" id={`${d.id}-${slug(g.title)}`}>{g.title}</h3>}
                       <dl class="feature-list">
                         {g.features.map((f) => (
@@ -93,8 +96,14 @@ const slug = (text: string) => text.toLowerCase().normalize("NFD").replace(/[̀-
                           </div>
                         ))}
                       </dl>
+                      {shots.length > 0 && (
+                        <div class="feature-group-shots">
+                          {shots.map((f) => <Shot name={f.capture!} alt={`${f.title} : capture d'écran`} widths={[480, 800]} sizes="(max-width: 60rem) 100vw, 24rem" />)}
+                        </div>
+                      )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 {more.length > 0 && (
                   <div class="module-aside">
@@ -168,7 +177,11 @@ const slug = (text: string) => text.toLowerCase().normalize("NFD").replace(/[̀-
   .tag-new { background: var(--lv-sauge); color: var(--lv-lichen-strong); }
   .module-aside .shot { box-shadow: none; }
 
-  .feature-group + .feature-group { margin-top: 1.75rem; }
+  .feature-group + .feature-group { margin-top: 2.25rem; }
+  .feature-group.has-shots { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); column-gap: 2.5rem; align-items: start; }
+  .feature-group.has-shots .feature-group-title { grid-column: 1 / -1; }
+  .feature-group-shots { display: grid; gap: 1.25rem; padding-top: 0.85rem; }
+  .feature-group-shots .shot { box-shadow: none; }
   .feature-group[hidden] { display: none; }
   .feature-group-title { font-family: var(--font-text); font-size: 1rem; font-weight: 600; color: var(--lv-lichen-strong);
     margin: 0 0 0.25rem; padding-bottom: 0.4rem; border-bottom: 2px solid var(--lv-sauge); }
@@ -190,6 +203,7 @@ const slug = (text: string) => text.toLowerCase().normalize("NFD").replace(/[̀-
     .modules-index a { border: 1px solid var(--lv-line); border-radius: 999px; padding: 0.3rem 0.75rem; }
     .module-head, .module-body.has-aside { grid-template-columns: 1fr; }
     .module-aside { position: static; }
+    .feature-group.has-shots { grid-template-columns: 1fr; }
     .structure-filter { top: 0; }
   }
   @media (max-width: 52rem) {

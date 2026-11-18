@@ -133,8 +133,8 @@ domains:
     captures:
       - file: compta-ecritures.png
         alt: Liste des écritures de l'exercice, avec journal, origine, montant et numéro de validation
-      - file: compta-resultat.png
-        alt: Compte de résultat d'une SCI, produits et charges d'exploitation
+      - file: compta-bilan.png
+        alt: Bilan d'une exploitation agricole, actif brut, amortissements et net, passif
   - id: banque
     emoji: 🏦
     title: Banque et caisse
@@ -181,10 +181,8 @@ domains:
     title: Exploitation agricole
     intro: Le plan agricole, l'inventaire, les biens vivants, les aides et le résultat fiscal des bénéfices agricoles.
     captures:
-      - file: agri-resultat-fiscal.png
-        alt: Résultat fiscal d'une exploitation, DEP et réintégrations
-      - file: agri-aides.png
-        alt: Aides et subventions d'une campagne, montants notifiés, versés et reste à percevoir
+      - file: agri-marges.png
+        alt: Marges par activité, production, charges opérationnelles et marge brute par hectare ou par tête
   - id: fiscal
     emoji: 🏛️
     title: TVA et fiscalité
@@ -192,6 +190,8 @@ domains:
     captures:
       - file: agri-echeancier.png
         alt: Échéancier d'une exploitation agricole, liste de contrôle d'automne et démarches à préciser
+      - file: tva-agricole.png
+        alt: Déclarations de TVA d'une exploitation, CA12A annuelles et acomptes trimestriels
   - id: pilotage
     emoji: 📊
     title: Pilotage et clôture
@@ -340,6 +340,7 @@ features:
     group: Inventaire et biens vivants
     structures: [agri]
     title: Inventaire de clôture
+    capture: agri-inventaire.png
     text: Stocks ligne par ligne au coût réel, au coût standard ou au prix de détail, valeur fiscale (méthode forfaitaire, stock bloqué), écriture de stock sans extourne à l'ouverture.
     since: 2026.11.6
   - id: avances-cultures
@@ -398,6 +399,7 @@ features:
     structures: [agri]
     title: Cotisations MSA
     text: Assiette sociale par exploitant, historique, comparaison entre moyenne triennale et assiette annuelle.
+    capture: agri-msa.png
     since: 2026.11.6
   - id: aides
     domain: agri
@@ -426,6 +428,7 @@ features:
     group: Activités et outils
     structures: [agri]
     title: Activités et marges
+    capture: agri-marges.png
     text: Ateliers et productions par campagne, surfaces et effectifs, charges et produits ventilés, marges brutes ; lecture des activités d'Ekylibre.
     since: 2026.11.6
   - id: calculettes

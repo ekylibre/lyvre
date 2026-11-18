@@ -160,10 +160,6 @@ const job = (await call("POST", "/brevo/sync", { dry_run: true })).job;
 await shot(`/entities/members/brevo/${job.id}`, "brevo", { wait: "Rattachés" });
 await shot("/changelog", "nouveautes", { wait: "Version actuelle" });
 
-// Page Fonctionnalités du site : bilan d'une structure dont l'exercice est ouvert (SCI des Tilleuls).
-await use("SCI des Tilleuls");
-await shot("/reports/compte-de-resultat", "compta-resultat", { wait: "Total" }).catch((err) => console.log("capture compta-resultat sautée :", String(err).split("\n")[0]));
-
 // Exploitation fictive du jeu d'essai agricole (tests/fixtures/agri, EARL porcs au réel simplifié) :
 // échéancier et résultat fiscal (l'inventaire du jeu d'essai est vide : pas de capture). Une capture qui
 // échoue n'arrête pas les autres.
@@ -180,6 +176,47 @@ try {
     const scheme = schemes.find((s) => s.accounts.some((a) => a.code === code)) ?? schemes.find((s) => s.accounts.some((a) => code.startsWith(a.code)));
     if (scheme) await call("POST", "/aids/from-ledger", { line_ids: ids, scheme: scheme.key, campaign });
   }
+  // Exercice rouvert (clôture provisoire de l'import FEC) pour saisir l'inventaire ; TVA agricole (CA12A annuelle).
+  const fy = (await call("GET", "/fiscal-years")).items[0];
+  await call("POST", `/fiscal-years/${fy.id}/reopen`, { reason: "Inventaire de clôture à saisir" });
+  await call("POST", "/tax-profiles", { kind: "vat_regime", value: "rsa_installments", start_date: fy.start_date });
+  await call("PATCH", `/fiscal-years/${fy.id}`, { vat_liable: true, vat_period: "annual" });
+  // Inventaire de clôture : une ligne par compte de stock ouvert au bilan.
+  for (const [account_code, label, quantity, unit, unit_value_cents] of [
+    ["31114", "Aliment porcs engraissement", "48", "t", 39000], ["31115", "Produits vétérinaires", "1", "unit", 82000],
+    ["3113", "Porcs charcutiers en engraissement", "620", "head", 16500], ["35511", "Maïs grain", "290", "t", 18500],
+  ]) await call("POST", `/fiscal-years/${fy.id}/stock/lines`, { account_code, label, quantity, unit, method: "actual", unit_value_cents });
+  // Deux associés exploitants (MSA par exploitant), avec les assiettes des deux années précédentes.
+  for (const [new_name, profit_share] of [["Julien Garnier", "60"], ["Sophie Garnier", "40"]]) {
+    await call("POST", "/associates", { new_name, is_operator: true, profit_share });
+  }
+  const people = (await call("GET", `/fiscal-years/${fy.id}/msa`)).item.people;
+  for (const [i, person] of people.entries()) {
+    for (const [year, base_cents] of [[2023, 2150000 - i * 600000], [2024, 1980000 - i * 550000]]) {
+      await call("PUT", `/msa/people/${person.person.id}/bases/${year}`, { base_cents, note: "avis MSA" });
+    }
+  }
+  // Activités : porcs charcutiers et maïs grain, comptes ventilés (directement, ou 90 / 10 pour les charges communes) ;
+  // les travaux par entreprise (6051 : fabrication d'aliment, engraissement à façon) vont aux porcs, les aides
+  // découplées (745) au maïs.
+  const pigs = (await call("POST", "/workshops", { name: "Porcs", family: "animal_farming" })).item;
+  const crops = (await call("POST", "/workshops", { name: "Grandes cultures", family: "plant_farming" })).item;
+  const fat = (await call("POST", "/activities", { workshop_id: pigs.id, lexicon_reference: "fattening_pig", name: "Porcs charcutiers" })).item.id;
+  const corn = (await call("POST", "/activities", { workshop_id: crops.id, lexicon_reference: "grain_corn", name: "Maïs grain" })).item.id;
+  for (const year of [2024, 2025]) {
+    await call("PUT", `/activities/${fat}/campaigns/${year}`, { measure: "2600" });
+    await call("PUT", `/activities/${corn}/campaigns/${year}`, { measure: "48" });
+  }
+  const shared = [{ activity_id: fat, share_bp: 9000 }, { activity_id: corn, share_bp: 1000 }];
+  const plan = [
+    ...["60114", "60115", "60116", "60117", "6342", "7013", "7014", "6242", "6051"].map((c) => [c, [{ activity_id: fat }]]),
+    ...["60111", "60112", "60113", "6341", "7011", "6131", "742", "745"].map((c) => [c, [{ activity_id: corn }]]),
+    ...["60613", "60614", "6155", "616"].map((c) => [c, shared]),
+  ];
+  for (const [code, targets] of plan) {
+    const lines = (await call("GET", `/fiscal-years/${fy.id}/analytic/unallocated?account=${code}`)).item.lines;
+    if (lines.length) await call("POST", `/fiscal-years/${fy.id}/analytic/allocations`, { line_ids: lines.map((l) => l.id), targets });
+  }
   const me = (await call("GET", "/session")).user.id;
   await call("POST", "/api-keys", { name: "Agent de saisie terrain", user_id: me, read_domains: ["accounting", "agenda", "agronomy"], write_domains: ["purchases"] });
   await call("POST", "/api-keys", { name: "Tableau de bord de l'exploitation", user_id: me, read_domains: ["accounting", "bank", "tax"], write_domains: [] });
@@ -188,7 +225,9 @@ try {
 }
 for (const [path, name] of [["/agenda/", "agri-echeancier"], ["/tax-result/", "agri-resultat-fiscal"],
   // Page Fonctionnalités du site : une capture par module.
-  ["/entries/", "compta-ecritures"], ["/aids/", "agri-aides"], ["/configuration/api-keys/", "api-cles"]]) {
+  ["/entries/", "compta-ecritures"], ["/aids/", "agri-aides"], ["/configuration/api-keys/", "api-cles"],
+  ["/reports/bilan", "compta-bilan"], ["/vat-returns/", "tva-agricole"], ["/activities/margins", "agri-marges"],
+  ["/msa/", "agri-msa"], ["/inventory/", "agri-inventaire"]]) {
   try {
     await shot(path, name);
   } catch (err) {

@@ -92,6 +92,8 @@ def rename_for_captures(db, tmpdir: str) -> None:
     user.email, user.full_name = CAPTURE_USER["email"], CAPTURE_USER["full_name"]
     for slug, label in CAPTURE_LABELS.items():
         db.session.query(Instance).filter_by(slug=slug).one().label = label
+    # L'EARL du jeu d'essai a deux associés exploitants (profile.json) : module Associés pour la capture MSA.
+    db.session.query(Instance).filter_by(slug="agri-a-e2e").one().has_associates = True
     for slug, rows in CAPTURE_RENAMES.items():
         engine = create_engine(f"sqlite:///{os.path.join(tmpdir, slug + '.db')}")
         with engine.begin() as conn:
