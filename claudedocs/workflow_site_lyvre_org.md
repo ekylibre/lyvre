@@ -34,7 +34,7 @@ formulaire relayé au service de contact (champ piège → « merci » sans envo
 | R4 | ✅ Envoi réel depuis la page Contact (18/11), reçu dans `contact@lyvre.org` ; reste la recette L8 | — |
 | R5 | Fusion dans `main`, puis branche du service Dokploy passée sur `main` | après revue |
 | R7 | ✅ Démo en ligne (18/11) ; remise à zéro de la nuit à constater le 19/11 | — |
-| R6 | Décisions : publier les entrées `next` du changelog, éditeur des mentions légales, termes de la liste noire | utilisateur |
+| R6 | 🟡 Version 2026.11.6 publiée (18/11, tag `v2026.11.6` à poser sur `main` après fusion) ; éditeur Ekylibre SAS, mentions alignées sur fourmy.org ; reste : termes de la liste noire | utilisateur |
 
 **L7, ce qui a changé depuis le plan.** Le jeu de démonstration de `e2e_server.py` crée les bases par
 `create_all`, sans migrations Alembic : l'image de production les migre au démarrage (`flask db upgrade`,
