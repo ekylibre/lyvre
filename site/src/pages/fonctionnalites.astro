@@ -25,12 +25,14 @@ const slug = (text: string) => text.toLowerCase().normalize("NFD").replace(/[̀-
       </p>
     </header>
 
-    <div class="structure-filter" role="group" aria-label="Afficher les fonctionnalités pour" data-structure-filter hidden>
+    <div class="structure-filter" role="group" aria-label="Afficher les fonctionnalités pour" data-structure-filter>
       <span class="structure-filter-label">Je tiens les comptes de</span>
-      <button type="button" class="structure-choice" data-structure="" aria-pressed="true">toutes les structures</button>
-      {choices.map(([id, label]) => (
-        <button type="button" class={`structure-choice structure-${id}`} data-structure={id} aria-pressed="false">{label}</button>
-      ))}
+      <div class="structure-filter-choices">
+        <button type="button" class="structure-choice" data-structure="" aria-pressed="true">toutes les structures</button>
+        {choices.map(([id, label]) => (
+          <button type="button" class={`structure-choice structure-${id}`} data-structure={id} aria-pressed="false">{label}</button>
+        ))}
+      </div>
       <p class="structure-filter-status" aria-live="polite" data-structure-status></p>
     </div>
 
@@ -132,8 +134,8 @@ const slug = (text: string) => text.toLowerCase().normalize("NFD").replace(/[̀-
 
   .structure-filter { position: sticky; top: 4.25rem; z-index: 4; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
     margin: 2rem 0 0; padding: 0.85rem 0; background: var(--lv-paper); border-bottom: 1px solid var(--lv-line); }
-  .structure-filter[hidden] { display: none; }
   .structure-filter-label { font-weight: 600; margin-right: 0.25rem; }
+  .structure-filter-choices { display: contents; }
   .structure-choice { font: inherit; font-size: 0.95rem; min-height: 2.5rem; padding: 0.35rem 0.9rem; border-radius: 999px; cursor: pointer;
     border: 1px solid var(--lv-line-strong); background: var(--lv-surface); color: var(--lv-ink); }
   .structure-choice:hover { border-color: var(--lv-lichen); }
@@ -190,5 +192,10 @@ const slug = (text: string) => text.toLowerCase().normalize("NFD").replace(/[̀-
     .module-aside { position: static; }
     .structure-filter { top: 0; }
   }
-  @media (max-width: 52rem) { .structure-filter { position: static; } }
+  @media (max-width: 52rem) {
+    /* Choix sur une rangée qui défile : sa hauteur ne dépend pas de la police chargée (pas de décalage). */
+    .structure-filter { position: static; display: grid; grid-template-columns: auto; }
+    .structure-filter-choices { display: flex; gap: 0.5rem; overflow-x: auto; scrollbar-width: none; padding-bottom: 0.15rem; }
+    .structure-choice { white-space: nowrap; flex: none; }
+  }
 </style>

@@ -1,6 +1,7 @@
 // Filtre de la page Fonctionnalités : ne garde que les fonctionnalités d'un type de structure (celles sans
 // structure servent à toutes), masque les sous-parties et modules vides, et garde le choix dans l'adresse
-// (?pour=agri) pour qu'il se partage. Sans JavaScript, la barre reste cachée et tout s'affiche.
+// (?pour=agri) pour qu'il se partage. La barre est affichée d'emblée (pas de décalage à son apparition) ; sans
+// JavaScript, ses boutons restent sans effet et tout s'affiche.
 const LABELS: Record<string, string> = {
   asso: "une association", sci: "une SCI", agri: "une exploitation agricole", societe: "une société",
 };
@@ -11,7 +12,6 @@ export function setupStructureFilter(): void {
   const buttons = [...bar.querySelectorAll<HTMLButtonElement>("button[data-structure]")];
   const status = bar.querySelector<HTMLElement>("[data-structure-status]");
   const modules = [...document.querySelectorAll<HTMLElement>("[data-module]")];
-  bar.hidden = false;
 
   function apply(structure: string, announce: boolean): void {
     for (const b of buttons) b.setAttribute("aria-pressed", String(b.dataset.structure === structure));
