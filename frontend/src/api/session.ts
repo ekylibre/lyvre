@@ -138,6 +138,11 @@ export function useCurrentSession(): Session {
  * `instanceAdmin` (administrateur de l'instance). Sert à masquer les actions ; l'API refuse de
  * toute façon ce qui n'est pas permis.
  */
+/** Démonstration publique (LYVRE_DEMO) : intégrations ni activables ni configurables. */
+export function useDemo(): boolean {
+  return !!useCurrentSession().demo;
+}
+
 export function useCan(): { write: boolean; instanceAdmin: boolean; role: InstanceRole | null } {
   const session = useCurrentSession();
   return {

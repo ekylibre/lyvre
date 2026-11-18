@@ -8,7 +8,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { useAction, type Notice } from "../../api/resources";
-import { SESSION_KEY } from "../../api/session";
+import { SESSION_KEY, useDemo } from "../../api/session";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { AppLink } from "../../app/navigation";
@@ -37,6 +37,7 @@ function hint(f: Field) {
 export default function IntegrationDetailPage() {
   const service = useParams().service ?? "";
   const client = useQueryClient();
+  const demo = useDemo();
   const key = [...INTEGRATIONS_KEY, service];
   const { data, error } = useQuery({ queryKey: key, retry: false,
     queryFn: () => api.get<IntegrationDetail>(`/api/v1/integrations/${service}`) });
@@ -65,7 +66,12 @@ export default function IntegrationDetailPage() {
       <PageHeader title={v.label} description={v.description} icon={<IntegrationLogo slug={v.slug} size={48} />}
         actions={<><StatusBadge tone={STATUS_TONES[v.status]}>{v.status_label}</StatusBadge>
           <Button variant="default" component={AppLink} href="/configuration/integrations/">Intégrations</Button></>} />
-      {v.recommended && !v.enabled && (
+      {demo && (
+        <Alert color="paille" mb="md" title="Démonstration">
+          Les intégrations ne s'activent pas dans la démonstration : rien n'y quitte le serveur.
+        </Alert>
+      )}
+      {v.recommended && !v.enabled && !demo && (
         <Alert color="lichen" mb="md" title={`${v.label} est recommandée pour votre structure.`}>
           <Group justify="space-between">
             <Text size="sm">Activez-la, puis renseignez sa configuration et testez-la.</Text>
@@ -115,9 +121,9 @@ export default function IntegrationDetailPage() {
             <Title order={3} mb="sm">État</Title>
             <Group justify="space-between" mb="sm">
               <Text>Intégration <b>{v.enabled ? "activée" : "désactivée"}</b></Text>
-              <Button size="compact-md" variant="default" loading={toggle.isPending} disabled={data.item.server_locked}
+              {!demo && <Button size="compact-md" variant="default" loading={toggle.isPending} disabled={data.item.server_locked}
                 title={data.item.server_locked ? "Activée par la configuration du serveur (.env)" : undefined}
-                onClick={() => toggle.mutate(!v.enabled, { onSuccess: toggled })}>{v.enabled ? "Désactiver" : "Activer"}</Button>
+                onClick={() => toggle.mutate(!v.enabled, { onSuccess: toggled })}>{v.enabled ? "Désactiver" : "Activer"}</Button>}
             </Group>
             {v.last_check ? (
               <>

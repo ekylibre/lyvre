@@ -98,3 +98,13 @@ def test_outside_demo_nothing_changes(monkeypatch):
     other = create_app("development")
     assert other.config["LYVRE_DEMO"] is False
     assert "lyvre-demo" not in other.test_client().get("/login").get_data(as_text=True)
+
+
+def test_no_integration_proposed_on_dashboard(app, login_as):
+    client = login_as(is_admin=True)
+    inst = db.session.query(Instance).filter_by(slug="test").one()
+    inst.integrations = '{"enabled": [], "dismissed": []}'
+    db.session.commit()
+    from app.services import external_config
+    assert external_config.proposals(inst)  # hors démonstration, l'administrateur se verrait proposer des intégrations
+    assert client.get("/api/v1/session").get_json()["instance"]["integrations"]["proposed"] == []

@@ -1,5 +1,5 @@
 // Captures d'écran du README (doc/images/) sur la base jetable des tests de bout en bout : données
-// fictives créées par l'API (« SCI Ventes E2E », « SCI E2E », association « Les Jardins Partagés »),
+// fictives créées par l'API (« SCI des Tilleuls », « SCI du Moulin », association « Les Jardins Partagés »),
 // Sirene et Brevo simulés par scripts/e2e_demo.py. Seule la carte du bail appelle le service public
 // de l'IGN (capture sautée sans réseau).
 // Lancement : `make captures` (serveur neuf, captures, arrêt). À la main, serveur neuf requis (les données
@@ -23,7 +23,7 @@ const page = await context.newPage();
 
 async function login(instance) {
   await page.goto(`${BASE}/login`);
-  await page.getByLabel("Email").fill("e2e@example.org");
+  await page.getByLabel("Email").fill("demo@lyvre.org");
   await page.getByLabel("Mot de passe").fill("e2e-mot-de-passe");
   await page.getByRole("button", { name: "Se connecter" }).click();
   await page.waitForURL(/select-instance/);
@@ -51,7 +51,7 @@ async function shot(path, name, { wait, dark = false, full = false } = {}) {
   console.log("capture", name);
 }
 
-// ---------------------------------------------------------------- données (SCI Ventes E2E)
+// ---------------------------------------------------------------- données (SCI des Tilleuls)
 async function use(label) {
   const session = await call("GET", "/session");
   const target = session.instances.find((i) => i.label === label);
@@ -59,11 +59,11 @@ async function use(label) {
   csrf = "";
 }
 
-await login("SCI Ventes E2E");
-await call("PUT", "/organization", { name: "SCI Ventes E2E", legal_form: "Société civile immobilière", share_capital: "274890",
+await login("SCI des Tilleuls");
+await call("PUT", "/organization", { name: "SCI des Tilleuls", legal_form: "Société civile immobilière", share_capital: "274890",
   rcs_city: "Paris" });
 await call("PUT", "/billing-settings", { iban: "FR76 3000 6000 0112 3456 7890 189" });
-const client = (await call("GET", "/sales/form-options")).clients.find((c) => c.label === "Client Ventes E2E").value;
+const client = (await call("GET", "/sales/form-options")).clients.find((c) => c.label === "Agence Horizon").value;
 const invoices = [
   [["Gestion locative — octobre", "1", "450"], ["Frais de dossier", "1", "120"]],
   [["Audit énergétique", "2", "380"]],
@@ -100,7 +100,7 @@ const leaseInvoice = (await call("GET", `/leases/${lease.id}`)).item.invoices[0]
 await call("POST", `/sales/${leaseInvoice.id}/payments`, { amount: "910", bank_account_id: options.accounts[0].value, method: "transfer" });
 await call("POST", `/sales/${leaseInvoice.id}/rent-receipt`);
 await call("POST", `/leases/${lease.id}/deposit`, { paid_on: iso(today), bank_account_id: options.accounts[0].value });
-const supplier = (await call("GET", "/subscriptions")).meta.suppliers.find((s) => s.label === "Orange E2E").value;
+const supplier = (await call("GET", "/subscriptions")).meta.suppliers.find((s) => s.label === "Opérateur Télécom").value;
 const start = new Date(today.getFullYear(), today.getMonth() - 4, 1, 12);
 for (const [label, category, amount, frequency, renewal] of [
   ["Box internet et téléphonie", "internet", "45", "monthly", null],
@@ -145,10 +145,10 @@ try {
   console.log("capture bail-carte sautée (réseau IGN indisponible ?) :", String(err).split("\n")[0]);
 }
 
-// SCI E2E : rapprochement au clavier et assistant de clôture.
-await use("SCI E2E");
+// SCI du Moulin : rapprochement au clavier et assistant de clôture.
+await use("SCI du Moulin");
 const bank = (await call("GET", "/bank-accounts")).items[0];
-await shot(`/reconciliation/?bank_account_id=${bank.id}`, "rapprochement", { wait: "VIR CLIENT DUPONT" });
+await shot(`/reconciliation/?bank_account_id=${bank.id}`, "rapprochement", { wait: "VIR LOYER DUPONT" });
 const years = (await call("GET", "/fiscal-years")).items;
 const old = years.reduce((a, b) => (a.start_date < b.start_date ? a : b));
 await shot(`/fiscal-years/${old.id}/closing`, "cloture", { wait: "Contrôles" });
@@ -163,7 +163,7 @@ await shot("/changelog", "nouveautes", { wait: "Version actuelle" });
 // Exploitation fictive du jeu d'essai agricole (tests/fixtures/agri, EARL porcs au réel simplifié) :
 // échéancier et résultat fiscal (l'inventaire du jeu d'essai est vide : pas de capture). Une capture qui
 // échoue n'arrête pas les autres.
-await use("Exploitation A E2E");
+await use("EARL des Pins");
 for (const [path, name] of [["/agenda/", "agri-echeancier"], ["/tax-result/", "agri-resultat-fiscal"]]) {
   try {
     await shot(path, name);

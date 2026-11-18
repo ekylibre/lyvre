@@ -244,9 +244,8 @@ la base revient à l'état initial après un redémarrage.
 - [x] « Essayer la démo » ouvre une session sur `demo.lyvre.org`.
 - [~] Aucun `tech` ni chemin de code ✅ ; axe sans violation ✅ (30 tests Playwright contre la production,
       ordinateur et mobile) ; Lighthouse non lancé.
-- Remarques : les captures du site montrent les noms de la base de test (« SCI Ventes E2E »,
-      `e2e@example.org`) ; le tableau de bord de la démo propose « Activer Qonto / HelloAsso », refusé ensuite
-      avec le message de démonstration.
+- Remarques traitées (18/11) : captures refaites avec des noms vraisemblables (`e2e_demo.rename_for_captures`,
+      mode `--demo` seulement) ; propositions « Activer » masquées dans la démo (tableau de bord, intégrations).
 
 ## 3. Récapitulatif
 

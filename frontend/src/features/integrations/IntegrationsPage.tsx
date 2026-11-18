@@ -1,6 +1,7 @@
 // Configuration › Intégrations (admin) : services externes de l'instance et leur état.
 import { Card, Group, SimpleGrid, Text } from "@mantine/core";
 import { useList } from "../../api/resources";
+import { useDemo } from "../../api/session";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { AppLink } from "../../app/navigation";
@@ -9,6 +10,7 @@ import { INTEGRATIONS_KEY, STATUS_TONES, checkSummary, sortIntegrations, type In
 
 export default function IntegrationsPage() {
   const { data } = useList<Integration>(INTEGRATIONS_KEY, "/api/v1/integrations");
+  const demo = useDemo();
   return (
     <>
       <PageHeader title="Intégrations"
@@ -20,12 +22,12 @@ export default function IntegrationsPage() {
             <Group justify="space-between" align="flex-start">
               <Group gap="sm" wrap="nowrap"><IntegrationLogo slug={v.slug} /><Text fw={700} size="lg">{v.label}</Text></Group>
               <Group gap={6}>
-                {v.recommended && !v.enabled && <StatusBadge tone="info">Recommandée</StatusBadge>}
+                {v.recommended && !v.enabled && !demo && <StatusBadge tone="info">Recommandée</StatusBadge>}
                 <StatusBadge tone={STATUS_TONES[v.status]}>{v.status_label}</StatusBadge>
               </Group>
             </Group>
             <Text size="sm" c="dimmed" mt={4}>{v.description}</Text>
-            {v.recommended && !v.enabled && <Text size="sm" fw={600} c="var(--lv-lichen)" mt="xs">Activer et configurer →</Text>}
+            {v.recommended && !v.enabled && !demo && <Text size="sm" fw={600} c="var(--lv-lichen)" mt="xs">Activer et configurer →</Text>}
             {v.last_check ? (
               <>
                 <Text size="sm" mt="xs">Dernier test : {checkSummary(v.last_check)}

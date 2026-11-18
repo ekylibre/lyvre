@@ -251,6 +251,9 @@ def seed(app):
         for spec in FIXTURES["instances"]:
             if spec.get("agri_fixture"):  # lot AG1.f : exploitation fictive du jeu d'essai agricole
                 _seed_agri(spec)
+        if DEMO:  # captures : noms vraisemblables à la place des noms « E2E »
+            from scripts import e2e_demo
+            e2e_demo.rename_for_captures(db, TMPDIR)
         for name in FIXTURES.get("spare_databases", []):
             engine = create_engine(f"sqlite:///{os.path.join(TMPDIR, name + '.db')}")
             db.metadata.create_all(engine)

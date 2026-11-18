@@ -3,16 +3,18 @@
 // `integration_required` (état périmé, écran contourné).
 import { Anchor, Button, Group, Stack, Text } from "@mantine/core";
 import { modals } from "@mantine/modals";
-import { useCan, useIntegration } from "../api/session";
+import { useCan, useDemo, useIntegration } from "../api/session";
 import { integrationLabel } from "../features/integrations/catalog";
 
 function RequiredContent({ service, message, close }: { service: string; message: string; close: () => void }) {
   const can = useCan();
+  const demo = useDemo();
   return (
     <Stack>
       <Text size="sm">{message}</Text>
       <Group justify="flex-end">
-        {can.instanceAdmin
+        {demo ? <Text size="sm" c="dimmed">Les intégrations ne s'activent pas dans la démonstration.</Text>
+          : can.instanceAdmin
           ? <Button component="a" href={`/configuration/integrations/${service}`} onClick={close}>Activer l'intégration</Button>
           : <Text size="sm" c="dimmed">Contactez un administrateur de l'instance pour l'activer.</Text>}
         <Anchor component="button" size="sm" onClick={close}>Fermer</Anchor>

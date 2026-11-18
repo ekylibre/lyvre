@@ -88,7 +88,8 @@ def _integrations(inst, role) -> dict:
     """Intégrations activées (masquages, menus) et, pour l'administrateur de l'instance,
     intégrations recommandées à proposer (tableau de bord)."""
     return {"enabled": _enabled_integrations(inst),
-            "proposed": external_config.proposals(inst) if permissions(role).get("instance_admin") else [],
+            "proposed": external_config.proposals(inst)
+            if permissions(role).get("instance_admin") and not demo.session_info() else [],
             # Périmètre des intégrations qui en ont un (Qonto : relevés, achats, ventes).
             "scopes": {service: sorted(external_config.scopes(service, inst)) for service in external_config.SCOPES}}
 

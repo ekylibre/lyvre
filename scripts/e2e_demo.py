@@ -57,6 +57,50 @@ def seed(engine, tmpdir: str, brevo: bool = True) -> None:
                          {"k": key, "v": value})
 
 
+# ------------------------------------------------------------------ noms des captures
+
+# Les captures du README et du site montrent des structures de la base des tests de bout en bout : en mode
+# --demo, leurs noms « E2E » deviennent des noms vraisemblables (et sans marque réelle). Les parcours E2E,
+# lancés sans --demo, gardent les noms de frontend/e2e/fixtures.json.
+CAPTURE_USER = {"email": "demo@lyvre.org", "full_name": "Claire Fontaine"}
+CAPTURE_LABELS = {"ventes-e2e": "SCI des Tilleuls", "sci-e2e": "SCI du Moulin", "agri-a-e2e": "EARL des Pins"}
+CAPTURE_RENAMES = {
+    "ventes-e2e": [
+        ("organization", "name", "SCI Ventes E2E", "SCI des Tilleuls"),
+        ("organization", "signatory_name", "Gérant E2E", "Claire Fontaine"),
+        ("entities", "name", "Client Ventes E2E", "Agence Horizon"),
+        ("entities", "address_line1", "2 avenue X", "2 avenue des Platanes"),
+        ("entities", "name", "Orange E2E", "Opérateur Télécom"),
+        ("bank_accounts", "label", "Banque Ventes", "Compte courant"),
+        ("bank_transactions", "label", "VIR CLIENT VENTES E2E", "VIR AGENCE HORIZON"),
+    ],
+    "sci-e2e": [
+        ("bank_accounts", "label", "Banque E2E", "Compte courant"),
+        ("bank_transactions", "label", "CB LEROY MERLIN", "CB QUINCAILLERIE DU CENTRE"),
+        ("bank_transactions", "label", "VIR CLIENT DUPONT", "VIR LOYER DUPONT"),
+    ],
+}
+
+
+def rename_for_captures(db, tmpdir: str) -> None:
+    """Noms vraisemblables (mode --demo) : utilisateur et instances (méta-base), puis données des bases."""
+    from sqlalchemy import create_engine
+
+    from app.models import Instance, User
+
+    user = db.session.query(User).one()
+    user.email, user.full_name = CAPTURE_USER["email"], CAPTURE_USER["full_name"]
+    for slug, label in CAPTURE_LABELS.items():
+        db.session.query(Instance).filter_by(slug=slug).one().label = label
+    for slug, rows in CAPTURE_RENAMES.items():
+        engine = create_engine(f"sqlite:///{os.path.join(tmpdir, slug + '.db')}")
+        with engine.begin() as conn:
+            for table, column, old, new in rows:
+                conn.execute(text(f"UPDATE {table} SET {column} = :new WHERE {column} = :old"), {"old": old, "new": new})
+            conn.execute(text("UPDATE journal_entries SET reference = replace(reference, 'E2E-', '')"))
+        engine.dispose()
+
+
 # ------------------------------------------------------------------ Sirene simulé
 
 
