@@ -1,0 +1,43 @@
+# Lyvre — démonstration publique (demo.lyvre.org, service Compose Dokploy « demo », lot L7 du site).
+# Même image que l'application, en mode démonstration (app/demo.py) : données fabriquées par
+# scripts/demo_seed.py, recréées à chaque démarrage et chaque nuit (DEMO_RESET_AT, heure UTC), appels
+# externes et SMTP coupés, écritures sensibles refusées. Aucun volume : les données vivent dans le conteneur.
+# Variables Dokploy (.env) : SECRET_KEY (obligatoire), DEMO_EMAIL / DEMO_PASSWORD (défaut demo@lyvre.org /
+# demo-lyvre, affichés sur la page de connexion et sur lyvre.org).
+# En local : docker compose -f docker-compose.demo.yml -f docker-compose.demo.local.yml up --build, puis
+# http://localhost:5001.
+services:
+  demo:
+    build:
+      context: .
+      args:
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-}
+    restart: unless-stopped
+    expose:
+      - "5000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      FLASK_ENV: production
+      LYVRE_DEMO: "1"
+      DEMO_RESET_ON_START: "1"
+      DEMO_RESET_AT: ${DEMO_RESET_AT:-02:00}
+      APP_BASE_URL: ${APP_BASE_URL:-https://demo.lyvre.org}
+      # Instance par défaut de seed_meta.py : l'association de démonstration.
+      DATABASE_URL: sqlite:///jardins.db
+      DEFAULT_INSTANCE_URL: sqlite:///jardins.db
+      DEFAULT_INSTANCE_SLUG: jardins
+      DEFAULT_INSTANCE_LABEL: Les Jardins Partagés
+      DEFAULT_INSTANCE_CHART: asso
+      # Aucune clé de service : intégrations inactives, et coupées de toute façon par le mode démonstration.
+      SIRENE_API_KEY: ""
+      ANTHROPIC_API_KEY: ""
+      LEXICON_API_KEY: ""
+      MAIL_SERVER: ""
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5000/login"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s

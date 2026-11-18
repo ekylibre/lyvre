@@ -1,0 +1,6 @@
+# Démonstration en local (hors Dokploy) : port publié.
+#   docker compose -f docker-compose.demo.yml -f docker-compose.demo.local.yml up --build
+services:
+  demo:
+    ports:
+      - "${DEMO_PORT:-5001}:5000"

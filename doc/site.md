@@ -96,3 +96,36 @@ docker compose -f docker-compose.site.yml -f docker-compose.site.local.yml up --
 
 Après déploiement : `curl -I https://www.lyvre.org` (301 vers `https://lyvre.org/`),
 `curl -s https://lyvre.org/version.json`, et un message envoyé depuis la page Contact.
+
+## Démo en ligne (demo.lyvre.org)
+
+`docker-compose.demo.yml` : un service `demo`, même image que l'application, en mode démonstration
+(`LYVRE_DEMO=1`, `app/demo.py`).
+
+- **Données** : `scripts/demo_seed.py`, lancé par `docker/entrypoint.sh` après les migrations. Quatre
+  structures fictives, créées comme dans l'application (migrations, plan comptable, règles) puis remplies par
+  l'API : « Les Jardins Partagés » (association, adhérents HelloAsso, écritures, relevé à rapprocher), « SCI des
+  Tilleuls » (factures, devis, bail, quittance, abonnements), « Atelier Bois & Cie » (société, factures),
+  « EARL des Pins (fictive) » (jeu d'essai agricole `tests/fixtures/agri`, copié dans l'image).
+- **Compte** : `DEMO_EMAIL` / `DEMO_PASSWORD` (défaut `demo@lyvre.org` / `demo-lyvre`, les valeurs de la page
+  `/demo/` du site), administrateur de chaque instance mais pas administrateur global. L'administrateur de
+  `seed_meta.py` reçoit un mot de passe aléatoire et est désactivé.
+- **Remise à zéro** : à chaque démarrage (`DEMO_RESET_ON_START=1`) et chaque nuit à `DEMO_RESET_AT` (heure UTC,
+  défaut `02:00`) : le conteneur arrête son processus principal, `restart: unless-stopped` le relance. Pas de
+  volume. Le dossier d'instance n'est vidé que s'il est vide ou porte le marqueur `.lyvre-demo` : posé par
+  erreur sur une vraie instance, `LYVRE_DEMO=1` arrête le conteneur sans rien effacer.
+- **Garde** : aucun appel sortant (`requests` limité à `DEMO_ALLOWED_HOSTS`, vide par défaut ; SMTP coupé) ;
+  refus (403 `demo`) des écritures sur les instances, les utilisateurs, les mots de passe, les réglages
+  d'intégration, les clés d'API, les paramètres réglementaires, la restauration Ekylibre, l'assistant, l'agent
+  et le serveur MCP ; pièces limitées à `DEMO_MAX_UPLOAD_MB` (10 Mo). Bandeau en tête de chaque page,
+  identifiants sur la page de connexion.
+
+Dans Dokploy : service **Compose** `demo` (projet « Lyvre »), dépôt `ekylibre/lyvre`, fichier
+`docker-compose.demo.yml` ; domaine `demo.lyvre.org` → service `demo`, port 5000, HTTPS ; variable
+`SECRET_KEY` (obligatoire). Essai local :
+
+```bash
+docker compose -f docker-compose.demo.yml -f docker-compose.demo.local.yml up --build   # http://localhost:5001
+```
+
+Tests : `.venv/bin/python -m pytest tests/test_demo.py`.

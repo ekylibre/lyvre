@@ -68,6 +68,15 @@ export interface Preferences {
   [key: string]: unknown;
 }
 
+export interface DemoCredentials { email: string; password: string }
+
+/** Identifiants de la démonstration, lus avant la connexion dans la page (balise meta `lyvre-demo`). */
+export function demoCredentials(): DemoCredentials | null {
+  const meta = document.querySelector<HTMLMetaElement>('meta[name="lyvre-demo"]');
+  const email = meta?.dataset.email, password = meta?.dataset.password;
+  return email && password ? { email, password } : null;
+}
+
 export type InstanceRole = "admin" | "treasurer" | "accountant";
 
 export interface Session {
@@ -87,6 +96,8 @@ export interface Session {
   app?: { version: string; commit: string };
   /** Services du serveur : Sirene si la clé de l'INSEE est configurée (lot G3). */
   services?: { sirene: boolean };
+  /** Démonstration publique (LYVRE_DEMO) : identifiants partagés, bandeau ; absent ou null sinon. */
+  demo?: DemoCredentials | null;
   csrf_token: string;
 }
 

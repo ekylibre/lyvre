@@ -18,6 +18,10 @@ def create_app(config_name=None):
     migrate.init_app(app, db)
     login_manager.init_app(app)
 
+    # Mode démonstration (LYVRE_DEMO) : premier hook, avant l'authentification et le CSRF.
+    from .demo import register as register_demo
+    register_demo(app)
+
     @app.before_request
     def _large_uploads():
         """Sauvegardes Ekylibre avec pièces (lot RE6) : limite relevée avant la lecture du formulaire (CSRF)."""

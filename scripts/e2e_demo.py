@@ -26,7 +26,8 @@ def email(name: str) -> str:
         + "@example.org"
 
 
-def seed(engine, tmpdir: str) -> None:
+def seed(engine, tmpdir: str, brevo: bool = True) -> None:
+    """Structure, exercice et adhérents ; `brevo` : réglages du compte Brevo simulé (pas dans la démo en ligne)."""
     today = date.today()
     with engine.begin() as conn:
         conn.execute(text("INSERT INTO fiscal_years (label, start_date, end_date, closed, vat_liable) "
@@ -50,7 +51,7 @@ def seed(engine, tmpdir: str) -> None:
             conn.execute(text("INSERT INTO helloasso_items (helloasso_id, order_id, entity_id, type, name, amount_cents, "
                               "user_first_name, user_last_name) VALUES (:h, :o, :e, 'Membership', 'Adhésion', 2000, :f, :l)"),
                          {"h": 19000 + i, "o": order, "e": entity, "f": first, "l": last})
-        for key, value in (("api_key", "xkeysib-demo"), ("list_id", "7")):
+        for key, value in ((("api_key", "xkeysib-demo"), ("list_id", "7")) if brevo else ()):
             conn.execute(text("INSERT INTO external_connections (service, key, value, updated_at) "
                          "VALUES ('brevo', :k, :v, CURRENT_TIMESTAMP)"),
                          {"k": key, "v": value})

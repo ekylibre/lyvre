@@ -28,7 +28,14 @@ from app.extensions import db  # noqa: E402
 
 
 @pytest.fixture()
-def app():
+def app_env():
+    """Réglages d'environnement posés avant la création de l'application ; un module de tests la redéfinit
+    (tests/test_demo.py : mode démonstration)."""
+    return None
+
+
+@pytest.fixture()
+def app(app_env):
     app = create_app("development")
     app.config.update(
         TESTING=True,

@@ -4,6 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="{{ csrf_token() }}">
+  {%- if config.LYVRE_DEMO %}
+  {%- set demo = config.LYVRE_DEMO_CREDENTIALS %}
+  <meta name="lyvre-demo" data-email="{{ demo.email }}" data-password="{{ demo.password }}">
+  {%- endif %}
   <title>Lyvre</title>
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
   {{ vite_assets(spa_entry) }}

@@ -12,10 +12,10 @@ Modèle technique : `fourmy/apps/site` (Astro 7, nginx, CSP stricte) et `fourmy/
 | L2 README | ✅ réécrit (agricole, société, liens site et démo), sections générées |
 | L3 Site Astro | ✅ `site/` : 9 pages, une page par version, RSS, `version.json`, thème sombre ; 30 tests Playwright + axe (ordinateur, mobile) |
 | L4 Contact | ✅ `site/contact/contact.py` + 15 tests (Brevo simulé) ; pas encore d'envoi réel |
-| L5 Image et Dokploy | 🟡 Service Compose `site` du projet Dokploy « Lyvre » construit et en ligne (branche `site-lyvre-org`, à passer sur `main` après fusion) ; vérifié par l'adresse du serveur. DNS de `lyvre.org` et `www` encore sur le parking Gandi |
+| L5 Image et Dokploy | 🟡 Service Compose `site` du projet Dokploy « Lyvre » construit et en ligne (branche `site-lyvre-org`, à passer sur `main` après fusion) ; DNS en place (vérifié le 18/11 : `lyvre.org`, `www` → 301, `demo` vers `76.13.49.203`) |
 | L6 Captures | ✅ `make captures` ; script réparé (encaissement automatique depuis 2026.11.1), captures agricoles ajoutées |
-| L7 Démo | ⏳ non commencé (voir ci-dessous) |
-| L8 Recette | ⏳ après DNS et autorisation Brevo |
+| L7 Démo | 🟡 code prêt (18/11) : `app/demo.py` (garde), `scripts/demo_seed.py` (4 structures par l'API), remise à zéro dans `docker/entrypoint.sh`, `docker-compose.demo.yml`, bandeau et identifiants dans la SPA, `tests/test_demo.py` ; seed vérifié hors Docker ; image non construite localement (Docker absent du poste) ; service Dokploy `demo` à créer |
+| L8 Recette | ⏳ après l'envoi réel du contact (R4) et la démo en ligne |
 
 **Déploiement (17/11/2026).** Projet Dokploy « Lyvre », service Compose `site` (appName `lyvre-site-1aur6o`,
 dépôt `ekylibre/lyvre`, branche `site-lyvre-org`, `docker-compose.site.yml`, redéploiement à chaque push),
@@ -28,11 +28,12 @@ formulaire relayé au service de contact (champ piège → « merci » sans envo
 
 | # | Action | Qui |
 |---|---|---|
-| R1 | DNS Gandi : A de `lyvre.org` et `www` vers `76.13.49.203`, supprimer la redirection web de `www` (`demo` pointe déjà vers le serveur) | utilisateur (pas de clé Gandi dans `.env`) |
-| R2 | Brevo : autoriser l'IP `76.13.49.203` (Sécurité › IP autorisées) ; la clé est restreinte par IP, l'appel depuis le poste a été refusé | utilisateur |
-| R3 | Brevo : expéditeur `site@lyvre.org` validé ; boîte `contact@lyvre.org` créée chez Gandi | utilisateur |
+| R1 | ✅ DNS Gandi (18/11) | utilisateur |
+| R2 | ✅ Brevo : IP `76.13.49.203` autorisée (18/11, selon l'utilisateur) | utilisateur |
+| R3 | ✅ Brevo : expéditeur `site@lyvre.org` ; boîte `contact@lyvre.org` (18/11, selon l'utilisateur) | utilisateur |
 | R4 | Envoi réel depuis la page Contact, puis recette L8 | après R1 à R3 |
 | R5 | Fusion dans `main`, puis branche du service Dokploy passée sur `main` | après revue |
+| R7 | Démo : service Compose Dokploy `demo` (`docker-compose.demo.yml`, domaine `demo.lyvre.org` port 5000, `SECRET_KEY`), puis connexion et redémarrage pour vérifier la remise à zéro | après accord |
 | R6 | Décisions : publier les entrées `next` du changelog, éditeur des mentions légales, termes de la liste noire | utilisateur |
 
 **L7, ce qui a changé depuis le plan.** Le jeu de démonstration de `e2e_server.py` crée les bases par

@@ -202,6 +202,18 @@ function ReadOnlyBadge() {
   );
 }
 
+/** Démonstration publique (LYVRE_DEMO) : rappel en tête de chaque page. */
+function DemoBanner() {
+  return (
+    <Box className="lv-demo-banner" role="note" px={{ base: "md", md: 48 }} py={6}>
+      <Text size="sm" ta="center">
+        <strong>Démonstration</strong> : données fictives partagées entre visiteurs, remises à zéro chaque nuit ;
+        e-mails et services externes désactivés. <Anchor href="https://lyvre.org" size="sm">Découvrir Lyvre</Anchor>
+      </Text>
+    </Box>
+  );
+}
+
 function UserMenu() {
   const session = useCurrentSession();
   const logout = useLogout();
@@ -310,6 +322,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </AppShell.Section>
       </AppShell.Navbar>
       <AppShell.Main bg="var(--lv-paper)">
+        {session.demo && <DemoBanner />}
         <Box maw={1200} mx="auto" px={{ base: "md", md: 48 }} py={{ base: "md", md: "lg" }}>{children}</Box>
       </AppShell.Main>
     </AppShell>

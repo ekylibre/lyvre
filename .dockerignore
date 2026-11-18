@@ -21,6 +21,8 @@ instance/
 claudedocs/
 doc/
 tests/
+# Sauf l'exploitation fictive du jeu d'essai agricole : données de la démonstration (scripts/demo_seed.py).
+!tests/fixtures/agri/
 README.md
 LICENSE
 Modele-document-Nouveau-Plan-comptable-Bilan-CDR.xls

@@ -2,10 +2,10 @@
 // « Mot de passe oublié ? » vers la demande d'un lien de réinitialisation.
 import { useEffect } from "react";
 import { useSearchParams } from "react-router";
-import { Alert, Anchor, Button, PasswordInput, Stack, TextInput } from "@mantine/core";
+import { Alert, Anchor, Button, Code, PasswordInput, Stack, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { safeNext } from "../../api/client";
-import { useLogin, useSession, type Session } from "../../api/session";
+import { demoCredentials, useLogin, useSession, type Session } from "../../api/session";
 import { AppLink, useGoTo } from "../../app/navigation";
 import { AuthCard } from "./AuthCard";
 
@@ -24,6 +24,7 @@ export default function LoginPage() {
   const goTo = useGoTo();
   const { data: session } = useSession();
   const login = useLogin();
+  const demo = demoCredentials();
   const form = useForm({
     mode: "uncontrolled",
     initialValues: { email: "", password: "" },
@@ -46,12 +47,24 @@ export default function LoginPage() {
         <Stack>
           {reset && !login.error && <Alert color="lichen" role="status">Mot de passe modifié : connectez-vous avec le nouveau.</Alert>}
           {login.error && <Alert color="red" role="alert">{login.error.message}</Alert>}
+          {demo && (
+            <Alert color="lichen" title="Démonstration">
+              <Stack gap="xs">
+                <Text size="sm">Données fictives partagées entre visiteurs, remises à zéro chaque nuit.
+                  Email : <Code>{demo.email}</Code> · mot de passe : <Code>{demo.password}</Code></Text>
+                <Button size="xs" variant="light" w="fit-content"
+                  onClick={() => form.setValues({ email: demo.email, password: demo.password })}>
+                  Remplir les identifiants
+                </Button>
+              </Stack>
+            </Alert>
+          )}
           <TextInput label="Email" type="email" autoComplete="username" autoFocus required
             key={form.key("email")} {...form.getInputProps("email")} />
           <PasswordInput label="Mot de passe" autoComplete="current-password" required
             key={form.key("password")} {...form.getInputProps("password")} />
           <Button type="submit" loading={login.isPending}>Se connecter</Button>
-          <Anchor component={AppLink} href="/password/forgot" size="sm" ta="center">Mot de passe oublié ?</Anchor>
+          {!demo && <Anchor component={AppLink} href="/password/forgot" size="sm" ta="center">Mot de passe oublié ?</Anchor>}
           <Anchor href="/about" size="sm" ta="center">Découvrir Lyvre et ses fonctionnalités</Anchor>
         </Stack>
       </form>

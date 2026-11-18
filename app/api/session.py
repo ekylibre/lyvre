@@ -16,7 +16,7 @@ from app.access import accessible_instances, permissions, role_for
 from app.extensions import db
 from app.menu_config import build_nav
 from app.models import Instance, SyncJob, User
-from app import version
+from app import demo, version
 from app.services import external_config, password_reset, sirene
 from app.services.instance_access import MIN_PASSWORD
 
@@ -127,7 +127,7 @@ def session_payload() -> dict:
     if not current_user.is_authenticated:
         return {"user": None, "instance": None, "instances": [], "nav": [], "admin_links": [],
                 "role": None, "permissions": permissions(None), "preferences": {},
-                "app": version.info(), "csrf_token": generate_csrf()}
+                "app": version.info(), "demo": demo.session_info(), "csrf_token": generate_csrf()}
     inst = getattr(g, "current_instance", None) or _current_instance()
     is_admin = bool(current_user.is_admin)
     role = role_for(current_user, inst) if inst else None
@@ -154,6 +154,7 @@ def session_payload() -> dict:
         # Services du serveur (pas d'interrupteur par instance) : Sirene si la clé est configurée.
         "services": {"sirene": sirene.available()},
         "app": version.info(),  # version de Lyvre (data/changelog.yml) et commit déployé
+        "demo": demo.session_info(),  # démonstration publique : identifiants affichés, bandeau
         "csrf_token": generate_csrf(),
     }
 

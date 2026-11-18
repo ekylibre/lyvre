@@ -96,6 +96,8 @@ html, body { background: var(--lv-paper); }
 .lv-rail-btn[data-active] { background: #DDE8DF; color: #1E2421; }
 .lv-rail-btn:focus-visible { outline: 2px solid var(--lv-paille); }
 .lv-nav-foot { font: 500 11px/16px var(--mantine-font-family-monospace); opacity: 0.75; letter-spacing: 0.06em; }
+.lv-demo-banner { background: var(--lv-paille-tint); color: var(--lv-paille-ink); border-bottom: 1px solid var(--lv-paille); }
+.lv-demo-banner a { color: inherit; text-decoration: underline; }
 
 /* Tableaux (LedgerTable) : en-tête sauge en capitales, survol paper. */
 .mantine-datatable thead th { background: var(--lv-sauge); color: var(--lv-ink);
