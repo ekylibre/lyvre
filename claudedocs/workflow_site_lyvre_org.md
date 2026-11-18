@@ -15,7 +15,7 @@ Modèle technique : `fourmy/apps/site` (Astro 7, nginx, CSP stricte) et `fourmy/
 | L5 Image et Dokploy | 🟡 Service Compose `site` du projet Dokploy « Lyvre » construit et en ligne (branche `site-lyvre-org`, à passer sur `main` après fusion) ; DNS en place (vérifié le 18/11 : `lyvre.org`, `www` → 301, `demo` vers `76.13.49.203`) |
 | L6 Captures | ✅ `make captures` ; script réparé (encaissement automatique depuis 2026.11.1), captures agricoles ajoutées |
 | L7 Démo | 🟡 code prêt (18/11) : `app/demo.py` (garde), `scripts/demo_seed.py` (4 structures par l'API), remise à zéro dans `docker/entrypoint.sh`, `docker-compose.demo.yml`, bandeau et identifiants dans la SPA, `tests/test_demo.py` ; en ligne le 18/11 : service Compose Dokploy `demo` (composeId `2Hhm4Ole2KDxrmVmEXiRK`, branche `site-lyvre-org`), `demo.lyvre.org` ; connexion, 4 structures et refus 403 vérifiés |
-| L8 Recette | 🟡 18/11 : tout validé sauf Lighthouse (non lancé) et l'ajout du contact à une liste Brevo (`BREVO_CONTACT_LIST_ID` absent) ; voir la liste L8 |
+| L8 Recette | 🟡 18/11 : tout validé, Lighthouse 100, sauf l'ajout du contact à une liste Brevo (`BREVO_CONTACT_LIST_ID` absent) ; voir la liste L8 |
 
 **Déploiement (17/11/2026).** Projet Dokploy « Lyvre », service Compose `site` (appName `lyvre-site-1aur6o`,
 dépôt `ekylibre/lyvre`, branche `site-lyvre-org`, `docker-compose.site.yml`, redéploiement à chaque push),
@@ -242,8 +242,9 @@ la base revient à l'état initial après un redémarrage.
 - [~] Contact : e-mail reçu ✅ ; champ piège ignoré ✅ (17/11) ; limite de débit couverte par les tests
       unitaires ; **pas d'ajout à une liste Brevo** (`BREVO_CONTACT_LIST_ID` non renseigné).
 - [x] « Essayer la démo » ouvre une session sur `demo.lyvre.org`.
-- [~] Aucun `tech` ni chemin de code ✅ ; axe sans violation ✅ (30 tests Playwright contre la production,
-      ordinateur et mobile) ; Lighthouse non lancé.
+- [x] Aucun `tech` ni chemin de code ✅ ; axe sans violation ✅ (30 tests Playwright contre la production,
+      ordinateur et mobile) ; Lighthouse 100 partout (18/11 : accueil, fonctionnalités, démo, contact ;
+      performance, accessibilité, bonnes pratiques, SEO ; profil mobile).
 - Remarques traitées (18/11) : captures refaites avec des noms vraisemblables (`e2e_demo.rename_for_captures`,
       mode `--demo` seulement) ; propositions « Activer » masquées dans la démo (tableau de bord, intégrations).
 
