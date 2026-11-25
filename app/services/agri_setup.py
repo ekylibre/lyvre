@@ -1,6 +1,7 @@
 """Création d'une instance « Exploitation agricole » (lot AG1.b, claudedocs/design_compta_agricole.md § 8 et § 9) :
 forme juridique, impôt (IR / IS), régime des bénéfices agricoles et premier exercice, saisis en trois étapes et
-validés **avant** le provisioning ; puis écrits dans la base de la nouvelle instance.
+validés **avant** le provisioning ; puis écrits dans la base de la nouvelle instance. Le SIREN et le régime de TVA,
+facultatifs, suivent le même chemin.
 
 Le régime choisit le mode de tenue (C3) : micro-BA → comptabilité simplifiée (recettes et dépenses, exercice civil),
 réel simplifié et réel normal → partie double en engagement (AGD10).
@@ -12,7 +13,7 @@ from datetime import date
 
 from flask import g
 
-from app.services import reg_params
+from app.services import organization, reg_params
 from app.services.tax_profile import COMPANY_FORMS, KINDS, LEGAL_FORMS
 
 # Formes proposées pour une exploitation (ni association, ni SCI).
@@ -35,6 +36,8 @@ class FarmProfile:
     fy_start: date
     fy_end: date
     created_on: date | None
+    siren: str | None = None
+    vat_regime: str | None = None
 
     @property
     def bookkeeping(self) -> str:
@@ -91,7 +94,16 @@ def parse(data: dict) -> FarmProfile:
             if cutoff and created_on >= date.fromisoformat(cutoff):
                 raise SetupError("Micro-BA interdit : société créée depuis le 01/01/1997 (CGI art. 69 D), sauf EARL "
                                  "unipersonnelle.", "ba_regime")
-    return FarmProfile(form, income_tax, ba_regime, start, end, created_on)
+    siren = None
+    if str(data.get("siren") or "").strip():
+        clean, errors = organization.validate({"siren": data["siren"]})
+        if errors:
+            raise SetupError(errors["siren"], "siren")
+        siren = clean["siren"]
+    vat_regime = str(data.get("vat_regime") or "").strip() or None
+    if vat_regime and vat_regime not in KINDS["vat_regime"]["values"]:
+        raise SetupError("Régime de TVA inconnu.", "vat_regime")
+    return FarmProfile(form, income_tax, ba_regime, start, end, created_on, siren, vat_regime)
 
 
 def fiscal_year_label(start: date, end: date) -> str:
@@ -99,8 +111,8 @@ def fiscal_year_label(start: date, end: date) -> str:
 
 
 def initialize(inst, profile: FarmProfile) -> None:
-    """Écrit le profil dans la base (déjà provisionnée) de ``inst`` : forme et date de création, régimes datés du
-    début du premier exercice, premier exercice."""
+    """Écrit le profil dans la base (déjà provisionnée) de ``inst`` : forme, date de création et SIREN, régimes datés
+    du début du premier exercice, premier exercice."""
     from app.extensions import db
     from app.models import FiscalYear, TaxProfile
     from app.services import organization
@@ -111,11 +123,14 @@ def initialize(inst, profile: FarmProfile) -> None:
         g.current_instance, g.tenant_engine = inst, get_tenant_engine(inst)
         org = organization.get()
         org.legal_form_code, org.created_on = profile.legal_form_code, profile.created_on
+        if profile.siren:
+            org.siren = profile.siren
         db.session.add(TaxProfile(kind="income_tax", value=profile.income_tax, start_date=profile.fy_start,
                                   origin="law", note="Saisi à la création de l'instance"))
-        if profile.ba_regime:
-            db.session.add(TaxProfile(kind="ba_regime", value=profile.ba_regime, start_date=profile.fy_start,
-                                      origin="law", note="Saisi à la création de l'instance"))
+        for kind in ("ba_regime", "vat_regime"):
+            if getattr(profile, kind):
+                db.session.add(TaxProfile(kind=kind, value=getattr(profile, kind), start_date=profile.fy_start,
+                                          origin="law", note="Saisi à la création de l'instance"))
         db.session.add(FiscalYear(label=fiscal_year_label(profile.fy_start, profile.fy_end),
                                   start_date=profile.fy_start, end_date=profile.fy_end))
         db.session.commit()
@@ -133,4 +148,5 @@ def meta() -> dict:
     return {"legal_forms": [{"value": f, "label": LEGAL_FORMS[f]} for f in AGRI_FORMS],
             "is_only_forms": sorted(IS_ONLY_FORMS),
             "income_tax": [{"value": k, "label": v} for k, v in KINDS["income_tax"]["values"].items()],
-            "ba_regimes": [{"value": k, "label": v} for k, v in KINDS["ba_regime"]["values"].items()]}
+            "ba_regimes": [{"value": k, "label": v} for k, v in KINDS["ba_regime"]["values"].items()],
+            "vat_regimes": [{"value": k, "label": v} for k, v in KINDS["vat_regime"]["values"].items()]}
