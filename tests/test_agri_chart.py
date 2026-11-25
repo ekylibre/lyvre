@@ -183,6 +183,8 @@ def test_create_micro_farm_is_simple(admin):
       "created_on": "2012-01-01"}, "ba_regime"),
     ({"legal_form_code": "SAS", "income_tax": "IR"}, "income_tax"),
     ({"fy_end": "2026-04-30"}, "fy_end"),
+    ({"siren": "123456789"}, "siren"),
+    ({"vat_regime": "quarterly"}, "vat_regime"),
 ])
 def test_create_farm_validation(admin, extra, field):
     body = {"slug": "ferme-x", "label": "Ferme", "chart": "agri", "legal_form_code": "EARL", "income_tax": "IR",
@@ -191,6 +193,18 @@ def test_create_farm_validation(admin, extra, field):
     assert resp.status_code == 422, resp.get_json()
     assert field in resp.get_json()["error"]["fields"]
     assert Instance.query.filter_by(slug="ferme-x").first() is None
+
+
+def test_create_farm_with_siren_and_vat_regime(admin):
+    resp = admin.post("/api/v1/instances", json={
+        "slug": "ferme-tva", "label": "Ferme", "chart": "agri", "legal_form_code": "EI", "income_tax": "IR",
+        "ba_regime": "simplified", "fy_start": "2026-01-01", "fy_end": "2026-12-31",
+        "siren": "123 456 782", "vat_regime": "rsa_installments"})
+    assert resp.status_code == 201, resp.get_json()
+    (org,) = _tenant_rows("ferme-tva", Organization)
+    assert org.siren == "123456782"
+    profiles = {(p.kind, p.value, p.start_date) for p in _tenant_rows("ferme-tva", TaxProfile)}
+    assert ("vat_regime", "rsa_installments", date(2026, 1, 1)) in profiles
 
 
 def test_create_farm_at_is(admin):

@@ -2,7 +2,13 @@
 # « Nouveautés ». Ajouter les entrées sous « next », puis `python scripts/release.py publish`.
 # kind : new | improved | fixed | action ; structure : asso | sci (absent : toutes) ;
 # text : pour l'utilisateur ; tech : précision pour CHANGELOG.md seulement.
-next: []
+next:
+- kind: improved
+  structure: agri
+  text: Création d'une exploitation par l'API — le SIREN et le régime de TVA peuvent être fournis d'emblée ; à
+    défaut, ils restent à saisir dans Configuration › Structure.
+  tech: agri_setup.parse et initialize (champs facultatifs siren et vat_regime, validés comme dans organization
+    et tax_profile) ; meta() expose vat_regimes.
 versions:
 - version: 2026.11.6
   date: 2026-11-18
