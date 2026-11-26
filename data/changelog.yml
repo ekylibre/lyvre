@@ -2,7 +2,13 @@
 # « Nouveautés ». Ajouter les entrées sous « next », puis `python scripts/release.py publish`.
 # kind : new | improved | fixed | action ; structure : asso | sci (absent : toutes) ;
 # text : pour l'utilisateur ; tech : précision pour CHANGELOG.md seulement.
-next: []
+next:
+- kind: improved
+  text: Exercices — les changements de TVA d'un exercice ouvert (assujettissement, exigibilité des services, rythme
+    de déclaration) passent par un bouton « TVA » et son menu, au lieu d'une rangée de boutons ; l'état reste affiché
+    dans la colonne TVA.
+  tech: features/fiscal-years/VatMenu (menu Mantine, nom accessible « TVA, exercice … ») ; une seule action PATCH
+    /fiscal-years/<id>.
 versions:
 - version: 2026.11.6
   date: 2026-11-18
